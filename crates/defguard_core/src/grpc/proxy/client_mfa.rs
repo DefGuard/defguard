@@ -4,6 +4,8 @@ use std::{
     time::Duration,
 };
 
+use chrono::Utc;
+
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     db::{
@@ -11,6 +13,7 @@ use defguard_common::{
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
         },
     },
@@ -29,7 +32,7 @@ use defguard_proto::{
         core_response::Payload,
     },
 };
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -48,7 +51,7 @@ use crate::{
         posture::{PostureCheckError, PostureResult, validate_posture},
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{GatewayEvent, proxy::session::create_new_session, utils::parse_client_ip_agent},
+    grpc::{GatewayEvent, utils::parse_client_ip_agent},
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -688,17 +691,16 @@ impl ClientMfaServer {
         let key = WireguardNetwork::genkey();
 
         // create new VPN client session
-        let vpn_client_session = create_new_session(
-            &mut transaction,
-            &location,
-            &user,
-            &device,
-            Some(method.into()),
-            key.public.clone(),
-            self.wireguard_tx.clone(),
-            self.bidi_event_tx.clone(),
-        )
-        .await
+        let vpn_client_session = self
+            .create_new_session(
+                &mut transaction,
+                &location,
+                &user,
+                &device,
+                Some(method.into()),
+                key.public.clone(),
+            )
+            .await
             .map_err(|err| {
                 error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
                 Status::internal("unexpected error")
@@ -833,15 +835,13 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        create_new_session(
+        self.create_new_session(
             &mut conn,
             &location,
             &user,
             &device,
             None, // posture-only session has no MFA method
             key.private.clone(),
-            self.wireguard_tx.clone(),
-            self.bidi_event_tx.clone(),
         )
         .await?;
 
@@ -853,6 +853,116 @@ impl ClientMfaServer {
         Ok(PostureCheckOutcome::Approved {
             preshared_key: key.private,
         })
+    }
+
+    /// Helper used to close all existing active sessions while creating a new MFA session
+    /// and send relevant gateway updates
+    async fn create_new_session(
+        &self,
+        conn: &mut PgConnection,
+        location: &WireguardNetwork<Id>,
+        user: &User<Id>,
+        device: &Device<Id>,
+        mfa_method: Option<VpnClientMfaMethod>,
+        preshared_key: String,
+    ) -> Result<VpnClientSession<Id>, Status> {
+        debug!(
+            "Creating new VPN session for device {device} of user {user} in location {location} after successful MFA authorization."
+        );
+
+        // find all active sessions for a given device and location
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &mut *conn,
+            location.id,
+            device.id,
+        )
+        .await
+        .map_err(|err| {
+            error!(
+                "Failed to fetch active VPN sessions for device {device} in location {location}: {err}"
+            );
+            Status::internal("unexpected error")
+        })?;
+        if !active_sessions.is_empty() {
+            info!(
+                "Found {} active sessions for device {device} in location {location}. Disconnecting them before creating a new MFA session",
+                active_sessions.len()
+            );
+        }
+
+        // disconnect all active sessions
+        for session in active_sessions {
+            debug!("Disconnecting previous active MFA VPN session {session:?}.");
+            self.disconnect_session(&mut *conn, session, location, user, device)
+                .await?;
+        }
+
+        // create new MFA session
+        let mut session =
+            VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
+        session.preshared_key = Some(preshared_key);
+        session.save(conn).await.map_err(|err| {
+            error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
+            Status::internal("unexpected error")
+        })
+    }
+
+    /// Update session state as disconnected and send relevant gateway update
+    async fn disconnect_session(
+        &self,
+        conn: &mut PgConnection,
+        mut session: VpnClientSession<Id>,
+        location: &WireguardNetwork<Id>,
+        user: &User<Id>,
+        device: &Device<Id>,
+    ) -> Result<(), Status> {
+        let is_connected = session.state == VpnClientSessionState::Connected;
+        let is_mfa_session = session.mfa_method.is_some();
+
+        // update session state in DB
+        let disconnect_timestamp = Utc::now().naive_utc();
+        session.disconnected_at = Some(disconnect_timestamp);
+        session.state = VpnClientSessionState::Disconnected;
+        session.save(&mut *conn).await.map_err(|err| {
+            error!("Failed to update VPN session {session:?}: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        // gateway update is only needed to remove peer for MFA sessions
+        // this is needed to remove peers for both Connected and New sessions
+        if is_mfa_session {
+            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+            self.wireguard_tx.send(gateway_event).map_err(|err| {
+                error!("Error sending WireGuard event: {err}");
+                Status::internal("unexpected error")
+            })?;
+        }
+
+        // only emit disconnect events if a session has actually been connected
+        if is_connected {
+            let context = BidiRequestContext {
+                timestamp: disconnect_timestamp,
+                user_id: user.id,
+                username: user.username.clone(),
+                ip: None,
+                device_name: format!("{device}"),
+            };
+            self.bidi_event_tx
+                .send(BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Disconnected {
+                            location: location.clone(),
+                            device: device.clone(),
+                            is_mfa_session,
+                        },
+                    )),
+                })
+                .map_err(ClientMfaServerError::from)
+                .map_err(Status::from)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -893,7 +1003,7 @@ mod tests {
     use super::{ClientLoginSession, ClientMfaServer};
     use crate::{
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::{GatewayEvent, proxy::session::create_new_session},
+        grpc::GatewayEvent,
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -923,18 +1033,17 @@ mod tests {
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        create_new_session(
-            &mut conn,
-            &location,
-            &user,
-            &device,
-            Some(VpnClientMfaMethod::Totp),
-            REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
-            server.wireguard_tx.clone(),
-            server.bidi_event_tx.clone(),
-        )
-        .await
-        .expect("should replace connected MFA session");
+        server
+            .create_new_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+            )
+            .await
+            .expect("should replace connected MFA session");
 
         let gateway_event = gateway_rx
             .try_recv()
@@ -999,18 +1108,17 @@ mod tests {
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        create_new_session(
-            &mut conn,
-            &location,
-            &user,
-            &device,
-            Some(VpnClientMfaMethod::Totp),
-            REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
-            server.wireguard_tx.clone(),
-            server.bidi_event_tx.clone(),
-        )
-        .await
-        .expect("should replace new MFA session");
+        server
+            .create_new_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+            )
+            .await
+            .expect("should replace new MFA session");
 
         let gateway_event = gateway_rx
             .try_recv()
@@ -1059,18 +1167,17 @@ mod tests {
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        create_new_session(
-            &mut conn,
-            &location,
-            &user,
-            &device,
-            Some(VpnClientMfaMethod::Totp),
-            REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
-            server.wireguard_tx.clone(),
-            server.bidi_event_tx.clone(),
-        )
-        .await
-        .expect("should replace connected non-MFA session");
+        server
+            .create_new_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+            )
+            .await
+            .expect("should replace connected non-MFA session");
 
         assert!(matches!(
             gateway_rx.try_recv(),
@@ -1200,18 +1307,17 @@ mod tests {
             .await
             .expect("failed to acquire database connection");
 
-        let new_session = create_new_session(
-            &mut conn,
-            &location,
-            &user,
-            &device,
-            Some(VpnClientMfaMethod::Totp),
-            NEW_MFA_PRESHARED_KEY.to_string(),
-            server.wireguard_tx.clone(),
-            server.bidi_event_tx.clone(),
-        )
-        .await
-        .expect("failed to create replacement MFA session");
+        let new_session = server
+            .create_new_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                Some(VpnClientMfaMethod::Totp),
+                NEW_MFA_PRESHARED_KEY.to_string(),
+            )
+            .await
+            .expect("failed to create replacement MFA session");
 
         let previous_session = VpnClientSession::find_by_id(&pool, previous_session.id)
             .await

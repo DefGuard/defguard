@@ -154,6 +154,12 @@ fn resolve_string_check(
     }
 }
 
+/// Evaluates all per-OS DB fields from `rule` against the signals in `data`,
+/// appending any [`FailureReason`]s to `failures`.
+///
+/// OS and kernel version comparisons use major-only semantics: a device running
+/// the same major release as the policy minimum always passes regardless of
+/// minor or patch differences. Client version comparisons use full semver.
 fn evaluate_os_rule(
     rule: &DevicePostureOsRule<defguard_common::db::Id>,
     data: &DevicePostureData,
