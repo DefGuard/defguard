@@ -234,10 +234,11 @@ pub async fn validate_posture(
             }
         }
 
-        if !policy.allow_prerelease_client && !data.defguard_client_version.is_empty() {
-            if data.defguard_client_version.contains('-') {
-                all_failures.push(FailureReason::PrereleaseClientNotAllowed);
-            }
+        if !policy.allow_prerelease_client
+            && !data.defguard_client_version.is_empty()
+            && data.defguard_client_version.contains('-')
+        {
+            all_failures.push(FailureReason::PrereleaseClientNotAllowed);
         }
 
         // OS-level checks.

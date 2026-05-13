@@ -5,7 +5,7 @@ use defguard_common::db::{
 };
 use defguard_proto::enterprise::posture::{
     BoolCheck, DevicePostureCheckRequest, DevicePostureData, StringCheck, UnavailableReason,
-    bool_check, string_check, string_check::Result as StringResult,
+    bool_check, string_check,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -80,12 +80,6 @@ fn bool_check_unavailable(reason: UnavailableReason) -> BoolCheck {
 fn string_check_value(s: &str) -> StringCheck {
     StringCheck {
         result: Some(string_check::Result::Value(s.to_string())),
-    }
-}
-
-fn string_check_unavailable(reason: UnavailableReason) -> StringCheck {
-    StringCheck {
-        result: Some(StringResult::Unavailable(reason as i32)),
     }
 }
 
