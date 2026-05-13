@@ -97,12 +97,21 @@ fn parse_version_lenient(s: &str) -> Option<Version> {
     Version::parse(&padded).ok()
 }
 
-/// Returns `Some(true)` when `actual >= required`, `Some(false)` when it is older,
+/// Returns `Some(true)` when `actual >= required` (full semver), `Some(false)` when it is older,
 /// and `None` when either string cannot be parsed.
 fn version_meets_minimum(required: &str, actual: &str) -> Option<bool> {
     let req = parse_version_lenient(required)?;
     let act = parse_version_lenient(actual)?;
     Some(act >= req)
+}
+
+/// Returns `Some(true)` when `actual.major >= required.major`, ignoring minor and patch.
+/// Used for OS and kernel version checks where only the major release matters.
+/// Returns `None` when either string cannot be parsed.
+fn major_version_meets_minimum(required: &str, actual: &str) -> Option<bool> {
+    let req = parse_version_lenient(required)?;
+    let act = parse_version_lenient(actual)?;
+    Some(act.major >= req.major)
 }
 
 /// Resolves a `BoolCheck` signal:
@@ -153,7 +162,7 @@ fn evaluate_os_rule(
     // min_os_version
     if let Some(ref required) = rule.min_os_version {
         match resolve_string_check(data.os_version.as_ref(), "os_version") {
-            Ok(Some(actual)) => match version_meets_minimum(required, &actual) {
+            Ok(Some(actual)) => match major_version_meets_minimum(required, &actual) {
                 Some(true) => {}
                 Some(false) => failures.push(FailureReason::OsVersionTooOld {
                     required: required.clone(),
@@ -213,7 +222,7 @@ fn evaluate_os_rule(
     // min_kernel_version (Linux only)
     if let Some(ref required) = rule.min_kernel_version {
         match resolve_string_check(data.linux_kernel_version.as_ref(), "linux_kernel_version") {
-            Ok(Some(actual)) => match version_meets_minimum(required, &actual) {
+            Ok(Some(actual)) => match major_version_meets_minimum(required, &actual) {
                 Some(true) => {}
                 Some(false) => failures.push(FailureReason::KernelVersionTooOld {
                     required: required.clone(),
@@ -362,6 +371,20 @@ mod unit_tests {
         assert_eq!(version_meets_minimum("11", "11.0.0"), Some(true));
         assert_eq!(version_meets_minimum("14.5", "14.4.1"), Some(false));
         assert_eq!(version_meets_minimum("14.5", "14.5.0"), Some(true));
+    }
+
+    #[test]
+    fn major_version_meets_minimum_comparisons() {
+        // Same major — always pass regardless of minor/patch.
+        assert_eq!(major_version_meets_minimum("22.10", "22.04"), Some(true));
+        assert_eq!(major_version_meets_minimum("22", "22.99.1"), Some(true));
+        // Higher major — pass.
+        assert_eq!(major_version_meets_minimum("5", "6.0.0"), Some(true));
+        // Lower major — fail.
+        assert_eq!(major_version_meets_minimum("6", "5.15.0"), Some(false));
+        assert_eq!(major_version_meets_minimum("23", "22.04"), Some(false));
+        // Unparseable — None.
+        assert_eq!(major_version_meets_minimum("bad", "22.04"), None);
     }
 
     #[test]

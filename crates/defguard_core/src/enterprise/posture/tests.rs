@@ -476,6 +476,30 @@ async fn fail_os_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
     ));
 }
 
+/// Regression guard: policy requires "22.10", device reports "22.04".
+/// Under major-only comparison this must PASS because major versions are equal.
+#[sqlx::test]
+async fn pass_os_version_same_major_lower_minor(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    // Require 22.10 — device has 22.04 (same major, older minor).
+    save_linux_policy(&pool, location_id, Some("22.10"), None, None, true).await;
+
+    let result = validate_posture(
+        &pool,
+        &make_request(location_id, Some(linux_posture_data("22.04", true))),
+    )
+    .await
+    .unwrap();
+
+    assert!(
+        matches!(result, super::PostureResult::Pass),
+        "expected Pass for same-major OS version but got Fail"
+    );
+}
+
 #[sqlx::test]
 async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
