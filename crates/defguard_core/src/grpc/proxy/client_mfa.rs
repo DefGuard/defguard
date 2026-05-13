@@ -793,7 +793,10 @@ impl ClientMfaServer {
         };
 
         let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
-            error!("Posture check: device with pubkey {} not found", request.pubkey);
+            error!(
+                "Posture check: device with pubkey {} not found",
+                request.pubkey
+            );
             return Err(Status::invalid_argument("device not found"));
         };
 
@@ -809,17 +812,18 @@ impl ClientMfaServer {
         }
 
         // Evaluate posture.
-        let posture_result = validate_posture(&self.pool, &request).await.map_err(|err| {
-            match err {
-                PostureCheckError::NoActiveEnterpriseLicense => {
-                    Status::failed_precondition("enterprise license required for posture checks")
-                }
-                PostureCheckError::DbError(e) => {
-                    error!("DB error during posture validation: {e}");
-                    Status::internal("unexpected error")
-                }
-            }
-        })?;
+        let posture_result =
+            validate_posture(&self.pool, &request)
+                .await
+                .map_err(|err| match err {
+                    PostureCheckError::NoActiveEnterpriseLicense => Status::failed_precondition(
+                        "enterprise license required for posture checks",
+                    ),
+                    PostureCheckError::DbError(e) => {
+                        error!("DB error during posture validation: {e}");
+                        Status::internal("unexpected error")
+                    }
+                })?;
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
@@ -898,8 +902,7 @@ impl ClientMfaServer {
         }
 
         // create new MFA session
-        let mut session =
-            VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
+        let mut session = VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
         session.preshared_key = Some(preshared_key);
         session.save(conn).await.map_err(|err| {
             error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
@@ -948,16 +951,16 @@ impl ClientMfaServer {
                 device_name: format!("{device}"),
             };
             self.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Disconnected {
-                            location: location.clone(),
-                            device: device.clone(),
-                            is_mfa_session,
-                        },
-                    )),
-                })
-                .map_err(Status::from)?;
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::Disconnected {
+                        location: location.clone(),
+                        device: device.clone(),
+                        is_mfa_session,
+                    },
+                )),
+            })
+            .map_err(Status::from)?;
         }
 
         Ok(())

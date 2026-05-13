@@ -97,14 +97,10 @@ pub async fn build_device_config_response(
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
-            let has_postures = network.has_postures(pool).await
-                .map_err(|err| {
-                    error!(
-                        "Failed to check postures for network {}: {err}",
-                        network.id
-                    );
-                    Status::internal(format!("unexpected error: {err}"))
-                })?;
+            let has_postures = network.has_postures(pool).await.map_err(|err| {
+                error!("Failed to check postures for network {}: {err}", network.id);
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
@@ -165,14 +161,10 @@ pub async fn build_device_config_response(
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             if let Some(wireguard_network_device) = wireguard_network_device {
-                let has_postures = network.has_postures(pool).await
-                    .map_err(|err| {
-                        error!(
-                            "Failed to check postures for network {}: {err}",
-                            network.id
-                        );
-                        Status::internal(format!("unexpected error: {err}"))
-                    })?;
+                let has_postures = network.has_postures(pool).await.map_err(|err| {
+                    error!("Failed to check postures for network {}: {err}", network.id);
+                    Status::internal(format!("unexpected error: {err}"))
+                })?;
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
                     network_id: network.id,
@@ -198,7 +190,6 @@ pub async fn build_device_config_response(
                         .into(),
                     ),
                     posture_check_required: Some(has_postures),
-
                 };
                 configs.push(config);
             }

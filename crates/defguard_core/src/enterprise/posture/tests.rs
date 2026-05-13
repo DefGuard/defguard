@@ -9,13 +9,17 @@ use defguard_proto::enterprise::posture::{
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::enterprise::{
-    db::models::device_posture::{DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType},
-    license::{License, LicenseTier, SupportType, set_cached_license},
-    limits::{Counts, set_counts},
-    posture::validate_posture,
+use crate::{
+    enterprise::{
+        db::models::device_posture::{
+            DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+        },
+        license::{License, LicenseTier, SupportType, set_cached_license},
+        limits::{Counts, set_counts},
+        posture::validate_posture,
+    },
+    grpc::proto::enterprise::license::LicenseLimits,
 };
-use crate::grpc::proto::enterprise::license::LicenseLimits;
 use defguard_common::db::models::WireguardNetwork;
 
 // ---------------------------------------------------------------------------
@@ -151,9 +155,13 @@ async fn save_linux_policy(
     .await
     .unwrap();
 
-    DevicePostureLocation::set_for_location(&mut pool.acquire().await.unwrap(), location_id, &[policy.id])
-        .await
-        .unwrap();
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
 }
 
 // ---------------------------------------------------------------------------
@@ -239,9 +247,12 @@ async fn pass_antivirus_present(_: PgPoolOptions, options: PgConnectOptions) {
 
     save_windows_policy(&pool, location_id, Some(true), None, None).await;
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(windows_posture_data())))
-        .await
-        .unwrap();
+    let result = validate_posture(
+        &pool,
+        &make_request(location_id, Some(windows_posture_data())),
+    )
+    .await
+    .unwrap();
 
     assert!(matches!(result, super::PostureResult::Pass));
 }
@@ -254,9 +265,12 @@ async fn pass_ad_domain_joined(_: PgPoolOptions, options: PgConnectOptions) {
 
     save_windows_policy(&pool, location_id, None, Some(true), None).await;
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(windows_posture_data())))
-        .await
-        .unwrap();
+    let result = validate_posture(
+        &pool,
+        &make_request(location_id, Some(windows_posture_data())),
+    )
+    .await
+    .unwrap();
 
     assert!(matches!(result, super::PostureResult::Pass));
 }
@@ -269,9 +283,12 @@ async fn pass_security_update_current(_: PgPoolOptions, options: PgConnectOption
 
     save_windows_policy(&pool, location_id, None, None, Some(true)).await;
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(windows_posture_data())))
-        .await
-        .unwrap();
+    let result = validate_posture(
+        &pool,
+        &make_request(location_id, Some(windows_posture_data())),
+    )
+    .await
+    .unwrap();
 
     assert!(matches!(result, super::PostureResult::Pass));
 }
@@ -578,8 +595,9 @@ async fn fail_check_unavailable_insufficient_permissions(
     save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
 
     let mut data = linux_posture_data("22.04", true);
-    data.disk_encryption =
-        Some(bool_check_unavailable(UnavailableReason::InsufficientPermissions));
+    data.disk_encryption = Some(bool_check_unavailable(
+        UnavailableReason::InsufficientPermissions,
+    ));
 
     let result = validate_posture(&pool, &make_request(location_id, Some(data)))
         .await
@@ -746,9 +764,13 @@ async fn save_windows_policy(
     .await
     .unwrap();
 
-    DevicePostureLocation::set_for_location(&mut pool.acquire().await.unwrap(), location_id, &[policy.id])
-        .await
-        .unwrap();
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
 }
 
 #[sqlx::test]
