@@ -95,41 +95,14 @@ async fn test_device_posture_versions_metadata(_: PgPoolOptions, options: PgConn
     assert_eq!(response.status(), StatusCode::OK);
     let metadata: DevicePostureVersionMetadata = response.json().await;
 
-    assert_eq!(
-        metadata.os_versions.windows,
-        WINDOWS_OS_VERSIONS
-            .iter()
-            .map(|value| (*value).to_owned())
-            .collect::<Vec<_>>()
-    );
-    assert_eq!(
-        metadata.os_versions.macos,
-        MACOS_OS_VERSIONS
-            .iter()
-            .map(|value| (*value).to_owned())
-            .collect::<Vec<_>>()
-    );
+    assert_eq!(metadata.os_versions.windows, WINDOWS_OS_VERSIONS.to_vec());
+    assert_eq!(metadata.os_versions.macos, MACOS_OS_VERSIONS.to_vec());
     assert_eq!(
         metadata.linux_kernel_versions,
-        LINUX_KERNEL_VERSIONS
-            .iter()
-            .map(|value| (*value).to_owned())
-            .collect::<Vec<_>>()
+        LINUX_KERNEL_VERSIONS.to_vec()
     );
-    assert_eq!(
-        metadata.os_versions.ios,
-        IOS_OS_VERSIONS
-            .iter()
-            .map(|value| (*value).to_owned())
-            .collect::<Vec<_>>()
-    );
-    assert_eq!(
-        metadata.os_versions.android,
-        ANDROID_OS_VERSIONS
-            .iter()
-            .map(|value| (*value).to_owned())
-            .collect::<Vec<_>>()
-    );
+    assert_eq!(metadata.os_versions.ios, IOS_OS_VERSIONS.to_vec());
+    assert_eq!(metadata.os_versions.android, ANDROID_OS_VERSIONS.to_vec());
     assert_eq!(
         metadata.client_versions,
         CLIENT_VERSIONS
@@ -453,14 +426,14 @@ async fn test_device_posture_list_filters_os_and_defguard(
         allow_prerelease_client: true,
         os_rules: vec![
             ApiOsRule::Windows {
-                min_os_version: Some(windows_version.to_owned()),
+                min_os_version: Some(windows_version),
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
             },
             ApiOsRule::Android {
-                min_os_version: Some(android_version.to_owned()),
+                min_os_version: Some(android_version),
                 device_integrity_required: Some(true),
             },
         ],
@@ -478,7 +451,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Windows {
-            min_os_version: Some(WINDOWS_OS_VERSIONS[1].to_owned()),
+            min_os_version: Some(WINDOWS_OS_VERSIONS[1]),
             disk_encryption_required: Some(false),
             antivirus_required: Some(false),
             ad_domain_joined_required: None,
@@ -495,7 +468,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
 
     let response = client
         .get(
-            "/api/v1/device-posture?windows=Windows%2010&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=1.6&defguard=Prerelease%20allowed",
+            "/api/v1/device-posture?windows=10&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=1.6&defguard=Prerelease%20allowed",
         )
         .send()
         .await;
@@ -519,14 +492,14 @@ async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: 
         allow_prerelease_client: false,
         os_rules: vec![
             ApiOsRule::Windows {
-                min_os_version: Some(windows_version.to_owned()),
+                min_os_version: Some(windows_version),
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(false),
                 ad_domain_joined_required: None,
                 windows_security_update_current: Some(true),
             },
             ApiOsRule::Macos {
-                min_os_version: Some(macos_version.to_owned()),
+                min_os_version: Some(macos_version),
                 disk_encryption_required: Some(true),
                 device_integrity_required: Some(true),
             },
@@ -714,7 +687,7 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Windows {
-            min_os_version: Some("Windows 7".to_owned()),
+            min_os_version: Some(7),
             disk_encryption_required: None,
             antivirus_required: None,
             ad_domain_joined_required: None,
@@ -767,7 +740,7 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Linux {
-            min_kernel_version: Some("4.x".to_owned()),
+            min_kernel_version: Some(4),
             disk_encryption_required: None,
         }],
     };

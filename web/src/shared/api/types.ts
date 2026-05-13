@@ -900,7 +900,7 @@ export interface SettingsEnterprise {
 export type ApiDevicePostureOsRule =
   | {
       os_type: 'windows';
-      min_os_version: string | null;
+      min_os_version: number | null;
       disk_encryption_required: boolean | null;
       antivirus_required: boolean | null;
       ad_domain_joined_required: boolean | null;
@@ -908,22 +908,22 @@ export type ApiDevicePostureOsRule =
     }
   | {
       os_type: 'macos';
-      min_os_version: string | null;
+      min_os_version: number | null;
       disk_encryption_required: boolean | null;
       device_integrity_required: boolean | null;
     }
   | {
       os_type: 'linux';
-      min_kernel_version: string | null;
+      min_kernel_version: number | null;
       disk_encryption_required: boolean | null;
     }
   | {
       os_type: 'ios';
-      min_os_version: string | null;
+      min_os_version: number | null;
     }
   | {
       os_type: 'android';
-      min_os_version: string | null;
+      min_os_version: number | null;
       device_integrity_required: boolean | null;
     };
 
@@ -948,15 +948,15 @@ export interface EditDevicePostureRequest {
 }
 
 export interface DevicePostureOsVersionCatalog {
-  windows: string[];
-  macos: string[];
-  ios: string[];
-  android: string[];
+  windows: number[];
+  macos: number[];
+  ios: number[];
+  android: number[];
 }
 
 export interface DevicePostureVersionMetadata {
   os_versions: DevicePostureOsVersionCatalog;
-  linux_kernel_versions: string[];
+  linux_kernel_versions: number[];
   client_versions: string[];
 }
 

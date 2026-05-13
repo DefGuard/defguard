@@ -34,20 +34,15 @@ use crate::{
 /// TODO: also consider if this is the best way to store possible options
 pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
 
-pub static WINDOWS_OS_VERSIONS: &[&str] = &["Windows 10", "Windows 11"];
-pub static MACOS_OS_VERSIONS: &[&str] = &[
-    "macOS 13 Ventura",
-    "macOS 14 Sonoma",
-    "macOS 15 Sequoia",
-    "macOS 26 Tahoe",
-];
-pub static IOS_OS_VERSIONS: &[&str] = &["17", "18", "26"];
-pub static ANDROID_OS_VERSIONS: &[&str] = &["13", "14", "15", "16"];
+pub static WINDOWS_OS_VERSIONS: &[i32] = &[10, 11];
+pub static MACOS_OS_VERSIONS: &[i32] = &[13, 14, 15, 26];
+pub static IOS_OS_VERSIONS: &[i32] = &[17, 18, 26];
+pub static ANDROID_OS_VERSIONS: &[i32] = &[13, 14, 15, 16];
 
-/// Valid Linux kernel version families for posture rules.
-pub static LINUX_KERNEL_VERSIONS: &[&str] = &["5.x", "6.x", "7.x"];
+/// Valid Linux kernel major versions for posture rules.
+pub static LINUX_KERNEL_VERSIONS: &[i32] = &[5, 6, 7];
 
-fn owned_versions(values: &[&str]) -> Vec<String> {
+fn owned_client_versions(values: &[&str]) -> Vec<String> {
     values.iter().map(|value| (*value).to_owned()).collect()
 }
 
@@ -59,26 +54,26 @@ fn owned_versions(values: &[&str]) -> Vec<String> {
 #[serde(tag = "os_type", rename_all = "lowercase")]
 pub enum ApiOsRule {
     Windows {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
         disk_encryption_required: Option<bool>,
         antivirus_required: Option<bool>,
         ad_domain_joined_required: Option<bool>,
         windows_security_update_current: Option<bool>,
     },
     Macos {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
         disk_encryption_required: Option<bool>,
         device_integrity_required: Option<bool>,
     },
     Linux {
-        min_kernel_version: Option<String>,
+        min_kernel_version: Option<i32>,
         disk_encryption_required: Option<bool>,
     },
     Ios {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
     },
     Android {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
         device_integrity_required: Option<bool>,
     },
 }
@@ -238,20 +233,20 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct DevicePostureOsVersionCatalog {
-    pub windows: Vec<String>,
-    pub macos: Vec<String>,
-    pub ios: Vec<String>,
-    pub android: Vec<String>,
+    pub windows: Vec<i32>,
+    pub macos: Vec<i32>,
+    pub ios: Vec<i32>,
+    pub android: Vec<i32>,
 }
 
 impl DevicePostureOsVersionCatalog {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            windows: owned_versions(WINDOWS_OS_VERSIONS),
-            macos: owned_versions(MACOS_OS_VERSIONS),
-            ios: owned_versions(IOS_OS_VERSIONS),
-            android: owned_versions(ANDROID_OS_VERSIONS),
+            windows: WINDOWS_OS_VERSIONS.to_vec(),
+            macos: MACOS_OS_VERSIONS.to_vec(),
+            ios: IOS_OS_VERSIONS.to_vec(),
+            android: ANDROID_OS_VERSIONS.to_vec(),
         }
     }
 }
@@ -265,7 +260,7 @@ impl Default for DevicePostureOsVersionCatalog {
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct DevicePostureVersionMetadata {
     pub os_versions: DevicePostureOsVersionCatalog,
-    pub linux_kernel_versions: Vec<String>,
+    pub linux_kernel_versions: Vec<i32>,
     pub client_versions: Vec<String>,
 }
 
@@ -274,8 +269,8 @@ impl DevicePostureVersionMetadata {
     pub fn new() -> Self {
         Self {
             os_versions: DevicePostureOsVersionCatalog::new(),
-            linux_kernel_versions: owned_versions(LINUX_KERNEL_VERSIONS),
-            client_versions: owned_versions(CLIENT_VERSIONS),
+            linux_kernel_versions: LINUX_KERNEL_VERSIONS.to_vec(),
+            client_versions: owned_client_versions(CLIENT_VERSIONS),
         }
     }
 }
@@ -418,14 +413,14 @@ fn apply_os_rule_filters(
             append_string_array_filter(
                 query_builder,
                 &versions,
-                &format!(" AND {alias}.min_os_version"),
+                &format!(" AND {alias}.min_os_version::text"),
             );
         }
         OsType::Linux => {
             append_string_array_filter(
                 query_builder,
                 &versions,
-                &format!(" AND {alias}.min_kernel_version"),
+                &format!(" AND {alias}.min_kernel_version::text"),
             );
         }
     }
@@ -517,36 +512,56 @@ fn validate_device_posture_os_rule(rule: &ApiOsRule) -> Result<(), WebError> {
         ApiOsRule::Windows {
             min_os_version: Some(v),
             ..
-        } if !WINDOWS_OS_VERSIONS.contains(&v.as_str()) => Err(WebError::BadRequest(format!(
+        } if !WINDOWS_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
             "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
-            WINDOWS_OS_VERSIONS.join(", ")
+            WINDOWS_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         ))),
         ApiOsRule::Macos {
             min_os_version: Some(v),
             ..
-        } if !MACOS_OS_VERSIONS.contains(&v.as_str()) => Err(WebError::BadRequest(format!(
+        } if !MACOS_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
             "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
-            MACOS_OS_VERSIONS.join(", ")
+            MACOS_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         ))),
         ApiOsRule::Ios {
             min_os_version: Some(v),
-        } if !IOS_OS_VERSIONS.contains(&v.as_str()) => Err(WebError::BadRequest(format!(
+        } if !IOS_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
             "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
-            IOS_OS_VERSIONS.join(", ")
+            IOS_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         ))),
         ApiOsRule::Android {
             min_os_version: Some(v),
             ..
-        } if !ANDROID_OS_VERSIONS.contains(&v.as_str()) => Err(WebError::BadRequest(format!(
+        } if !ANDROID_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
             "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
-            ANDROID_OS_VERSIONS.join(", ")
+            ANDROID_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         ))),
         ApiOsRule::Linux {
             min_kernel_version: Some(kv),
             ..
-        } if !LINUX_KERNEL_VERSIONS.contains(&kv.as_str()) => Err(WebError::BadRequest(format!(
+        } if !LINUX_KERNEL_VERSIONS.contains(kv) => Err(WebError::BadRequest(format!(
             "Unknown min_kernel_version '{kv}'. Valid values: {}",
-            LINUX_KERNEL_VERSIONS.join(", ")
+            LINUX_KERNEL_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         ))),
         _ => Ok(()),
     }

@@ -10,10 +10,15 @@ export const PostureCheckOs = {
 
 export type PostureCheckOsValue = (typeof PostureCheckOs)[keyof typeof PostureCheckOs];
 
+export type PostureCheckOsVersionValue = number;
+export type PostureCheckDefguardVersionValue = string;
+
 export type PostureCheckVersionValues = Record<
-  PostureCheckOsValue | 'defguard',
-  readonly string[]
->;
+  PostureCheckOsValue,
+  readonly PostureCheckOsVersionValue[]
+> & {
+  defguard: readonly PostureCheckDefguardVersionValue[];
+};
 
 export const getPostureCheckVersionValues = (
   metadata: DevicePostureVersionMetadata,
@@ -38,8 +43,6 @@ export const PostureCheckRequirement = {
 export type PostureCheckRequirementValue =
   (typeof PostureCheckRequirement)[keyof typeof PostureCheckRequirement];
 
-export type PostureCheckVersionValue = string;
+export type PostureCheckVersionValue = PostureCheckOsVersionValue;
 
-export type PostureCheckDefguardVersionValue = string;
-
-export type PostureCheckFilterValue = string;
+export type PostureCheckFilterValue = string | number;

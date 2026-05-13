@@ -21,6 +21,7 @@ import {
   getPostureCheckColumnFilterOptions,
   getPostureCheckTableFilterMessages,
   mapApiDevicePostureToRow,
+  mapPostureCheckFilterValueToRequestValue,
 } from './postureChecks';
 import { getPostureCheckVersionValues } from './types';
 
@@ -29,9 +30,12 @@ const mapColumnFiltersToRequest = (columnFilters: ColumnFiltersState) => {
 
   for (const filter of columnFilters) {
     if (Array.isArray(filter.value) && filter.value.length > 0) {
-      result[filter.id] = filter.value.filter(
-        (value): value is string => typeof value === 'string',
-      );
+      result[filter.id] = filter.value
+        .filter(
+          (value): value is string | number =>
+            typeof value === 'string' || typeof value === 'number',
+        )
+        .map(mapPostureCheckFilterValueToRequestValue);
     }
   }
 

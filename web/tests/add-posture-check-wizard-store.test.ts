@@ -8,12 +8,12 @@ import type { DevicePostureVersionMetadata } from '../src/shared/api/types';
 
 const versionValues = getPostureCheckVersionValues({
   os_versions: {
-    windows: ['Windows 10', 'Windows 11'],
-    macos: ['macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia', 'macOS 26 Tahoe'],
-    ios: ['17', '18', '26'],
-    android: ['13', '14', '15', '16'],
+    windows: [10, 11],
+    macos: [13, 14, 15, 26],
+    ios: [17, 18, 26],
+    android: [13, 14, 15, 16],
   },
-  linux_kernel_versions: ['5.x', '6.x', '7.x'],
+  linux_kernel_versions: [5, 6, 7],
   client_versions: ['1.6', '2.0'],
 } satisfies DevicePostureVersionMetadata);
 
@@ -67,7 +67,7 @@ describe('add posture check wizard store', () => {
     store.updateOperatingSystemDetails(PostureCheckOs.Windows, {
       conditions: ['disk-encryption', 'antivirus'],
       securityUpdates: true,
-      version: 'Windows 10',
+      version: 10,
     });
 
     store.next();
@@ -77,7 +77,7 @@ describe('add posture check wizard store', () => {
       {
         conditions: ['disk-encryption', 'antivirus'],
         securityUpdates: true,
-        version: 'Windows 10',
+        version: 10,
       },
     );
   });

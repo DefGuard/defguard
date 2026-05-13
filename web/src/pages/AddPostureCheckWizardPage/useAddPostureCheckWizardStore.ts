@@ -4,6 +4,7 @@ import {
   type PostureCheckDefguardVersionValue,
   PostureCheckOs,
   type PostureCheckOsValue,
+  type PostureCheckOsVersionValue,
   type PostureCheckVersionValues,
 } from '../PostureChecksPage/types';
 import {
@@ -22,15 +23,18 @@ export type OperatingSystemConditionKey =
 export type OperatingSystemFormState = {
   conditions: OperatingSystemConditionKey[];
   securityUpdates: boolean;
-  version: string;
+  version: PostureCheckOsVersionValue | null;
 };
 
-const getCurrentOrLatestVersion = (values: readonly string[], currentValue?: string) => {
+const getCurrentOrLatestVersion = <T extends string | number>(
+  values: readonly T[],
+  currentValue?: T | null,
+): T | null => {
   if (isPresent(currentValue) && values.includes(currentValue)) {
     return currentValue;
   }
 
-  return values[values.length - 1] ?? currentValue ?? '';
+  return values[values.length - 1] ?? currentValue ?? null;
 };
 
 const emptyPostureCheckVersionValues: PostureCheckVersionValues = {
@@ -77,7 +81,7 @@ const createDefaultState = (versionValues: PostureCheckVersionValues): StoreValu
   allowPrereleaseClient: false,
   configuredOperatingSystems: [],
   description: null,
-  minimumClientVersion: getCurrentOrLatestVersion(versionValues.defguard),
+  minimumClientVersion: getCurrentOrLatestVersion(versionValues.defguard) ?? '',
   name: '',
   operatingSystemState: createDefaultOperatingSystemState(versionValues),
   availableVersionValues: versionValues,
@@ -117,10 +121,9 @@ export const useAddPostureCheckWizardStore = create<Store>()((set, get) => ({
   syncVersionValues: (versionValues) => {
     set((state) => ({
       availableVersionValues: versionValues,
-      minimumClientVersion: getCurrentOrLatestVersion(
-        versionValues.defguard,
-        state.minimumClientVersion,
-      ),
+      minimumClientVersion:
+        getCurrentOrLatestVersion(versionValues.defguard, state.minimumClientVersion) ??
+        '',
       operatingSystemState: {
         [PostureCheckOs.Windows]: {
           ...state.operatingSystemState[PostureCheckOs.Windows],

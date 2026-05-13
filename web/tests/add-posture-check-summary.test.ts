@@ -11,13 +11,13 @@ describe('add posture check summary helpers', () => {
       buildOperatingSystemSummarySection(PostureCheckOs.Windows, {
         conditions: ['active-directory', 'antivirus'],
         securityUpdates: true,
-        version: 'Windows 10',
+        version: 10,
       }),
     ).toEqual({
       icon: 'windows',
       label: 'Windows',
       lines: [
-        { emphasized: true, text: 'Windows 10 and higher' },
+        { emphasized: true, text: '10 and higher' },
         { text: 'Connected to Active Directory' },
         { text: 'Antivirus installed' },
       ],

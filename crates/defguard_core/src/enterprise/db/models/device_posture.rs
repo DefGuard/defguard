@@ -35,7 +35,7 @@ pub struct DevicePostureOsRule<I = NoId> {
     #[model(enum)]
     pub os_type: OsType,
     // shared
-    pub min_os_version: Option<String>,
+    pub min_os_version: Option<i32>,
     // Windows, macOS, Linux
     pub disk_encryption_required: Option<bool>,
     // Windows only
@@ -43,7 +43,7 @@ pub struct DevicePostureOsRule<I = NoId> {
     pub ad_domain_joined_required: Option<bool>,
     pub windows_security_update_current: Option<bool>,
     // Linux only
-    pub min_kernel_version: Option<String>,
+    pub min_kernel_version: Option<i32>,
     // macOS, iOS, Android only
     pub device_integrity_required: Option<bool>,
 }

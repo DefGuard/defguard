@@ -8,6 +8,7 @@ import {
   type PostureCheckDefguardVersionValue,
   PostureCheckOs,
   type PostureCheckOsValue,
+  type PostureCheckOsVersionValue,
 } from '../PostureChecksPage/types';
 import type {
   OperatingSystemConditionKey,
@@ -42,7 +43,7 @@ const getConditionLabel = (condition: OperatingSystemConditionKey) => {
 
 const getOperatingSystemVersionLabel = (
   operatingSystem: PostureCheckOsValue,
-  version: string,
+  version: PostureCheckOsVersionValue,
 ) => {
   switch (operatingSystem) {
     case PostureCheckOs.Windows:
@@ -62,12 +63,14 @@ export const buildOperatingSystemSummarySection = (
   operatingSystem: PostureCheckOsValue,
   details: OperatingSystemFormState,
 ): SummarySection => {
-  const lines: SummaryLine[] = [
-    {
+  const lines: SummaryLine[] = [];
+
+  if (details.version !== null) {
+    lines.push({
       text: getOperatingSystemVersionLabel(operatingSystem, details.version),
       emphasized: true,
-    },
-  ];
+    });
+  }
 
   details.conditions.forEach((condition) => {
     lines.push({ text: getConditionLabel(condition) });

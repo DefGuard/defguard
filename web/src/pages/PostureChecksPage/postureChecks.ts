@@ -72,9 +72,9 @@ export const getPostureCheckTableFilterMessages = (): TableFilterMessages => ({
   emptyState: m.search_empty_common_title(),
 });
 
-const toSelectionOptions = (
-  values: readonly PostureCheckFilterValue[],
-  getLabel: (value: string) => string,
+const toSelectionOptions = <T extends PostureCheckFilterValue>(
+  values: readonly T[],
+  getLabel: (value: T) => string,
 ): SelectionOption<PostureCheckFilterValue>[] =>
   values.map((value) => ({
     id: value,
@@ -93,7 +93,7 @@ export const getPostureCheckColumnFilterOptions = (
   versionValues: PostureCheckVersionValues,
 ): PostureCheckColumnFilterOptions => ({
   windows: [
-    ...toSelectionOptions(versionValues.windows, (value) => value),
+    ...toSelectionOptions(versionValues.windows, (value) => value.toString()),
     ...toRequirementSelectionOptions([
       PostureCheckRequirement.DiskEncryption,
       PostureCheckRequirement.Antivirus,
@@ -102,7 +102,7 @@ export const getPostureCheckColumnFilterOptions = (
     ]),
   ],
   macos: [
-    ...toSelectionOptions(versionValues.macos, (value) => value),
+    ...toSelectionOptions(versionValues.macos, (value) => value.toString()),
     ...toRequirementSelectionOptions([
       PostureCheckRequirement.DiskEncryption,
       PostureCheckRequirement.DeviceIntegrity,
@@ -125,13 +125,14 @@ export const getPostureCheckColumnFilterOptions = (
 
 export const mapPostureCheckFilterValueToRequestValue = (
   value: PostureCheckFilterValue,
-) => value;
+) => (typeof value === 'number' ? value.toString() : value);
 
 export const isPostureCheckFilterValue = (
-  value: string,
-): value is PostureCheckFilterValue => value.length > 0;
+  value: string | number,
+): value is PostureCheckFilterValue => typeof value === 'number' || value.length > 0;
 
-const mapVersionFilterValue = (value: string | undefined | null) => value ?? undefined;
+const mapVersionFilterValue = (value: number | string | undefined | null) =>
+  value ?? undefined;
 
 const joinRequirementParts = (parts: Array<string | null | undefined | false>) => {
   const filteredParts = parts.filter((part): part is string => Boolean(part));
@@ -140,7 +141,9 @@ const joinRequirementParts = (parts: Array<string | null | undefined | false>) =
 };
 
 const joinFilters = (parts: Array<PostureCheckFilterValue | null | undefined | false>) =>
-  parts.filter((part): part is PostureCheckFilterValue => Boolean(part));
+  parts.filter(
+    (part): part is PostureCheckFilterValue => part !== false && isPresent(part),
+  );
 
 type PostureCheckRuleParts = {
   summaryParts: Array<string | null | undefined | false>;
@@ -163,7 +166,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Windows:
       return {
         summaryParts: [
-          rule.min_os_version,
+          rule.min_os_version?.toString(),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.antivirus_required && PostureCheckRequirement.Antivirus,
           rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
@@ -180,7 +183,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Macos:
       return {
         summaryParts: [
-          rule.min_os_version,
+          rule.min_os_version?.toString(),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
         ],
