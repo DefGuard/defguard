@@ -262,6 +262,7 @@ pub async fn validate_posture(
         request.pubkey, request.device_posture_data
     );
 
+    // Verify license
     if !is_enterprise_license_active() {
         warn!(
             "No active enterprise license - posture check aborted for device {}",
@@ -281,8 +282,8 @@ pub async fn validate_posture(
         }
     };
 
+    // If location has no assigned postures - pass
     let posture_ids = DevicePostureLocation::find_by_location(pool, request.location_id).await?;
-
     if posture_ids.is_empty() {
         debug!(
             "No posture policies assigned to location {} — passing device {}",
@@ -329,11 +330,10 @@ pub async fn validate_posture(
 
         // OS-level checks.
         let os_rules = DevicePostureOsRule::find_by_posture(pool, posture_id).await?;
-
         let matching_rule = os_type.as_ref().and_then(|ot| {
             os_rules
                 .iter()
-                .find(|r| std::mem::discriminant(&r.os_type) == std::mem::discriminant(ot))
+                .find(|r| r.os_type == *ot)
         });
 
         match matching_rule {
