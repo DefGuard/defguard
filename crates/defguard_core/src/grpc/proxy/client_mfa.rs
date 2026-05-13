@@ -947,8 +947,7 @@ impl ClientMfaServer {
                 ip: None,
                 device_name: format!("{device}"),
             };
-            self.bidi_event_tx
-                .send(BidiStreamEvent {
+            self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
                         DesktopClientMfaEvent::Disconnected {
@@ -958,7 +957,6 @@ impl ClientMfaServer {
                         },
                     )),
                 })
-                .map_err(ClientMfaServerError::from)
                 .map_err(Status::from)?;
         }
 
