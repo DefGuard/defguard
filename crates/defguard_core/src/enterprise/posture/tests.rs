@@ -5,7 +5,7 @@ use defguard_common::db::{
 };
 use defguard_proto::enterprise::posture::{
     BoolCheck, DevicePostureCheckRequest, DevicePostureData, StringCheck, UnavailableReason,
-    bool_check, string_check,
+    bool_check, string_check, string_check::Result as StringResult,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -79,12 +79,31 @@ fn string_check_value(s: &str) -> StringCheck {
     }
 }
 
+fn string_check_unavailable(reason: UnavailableReason) -> StringCheck {
+    StringCheck {
+        result: Some(StringResult::Unavailable(reason as i32)),
+    }
+}
+
 fn linux_posture_data(os_version: &str, disk_encryption: bool) -> DevicePostureData {
     DevicePostureData {
         defguard_client_version: "1.6.0".to_string(),
         os_type: "linux".to_string(),
         os_version: Some(string_check_value(os_version)),
         disk_encryption: Some(bool_check_value(disk_encryption)),
+        ..Default::default()
+    }
+}
+
+fn windows_posture_data() -> DevicePostureData {
+    DevicePostureData {
+        defguard_client_version: "1.6.0".to_string(),
+        os_type: "windows".to_string(),
+        os_version: Some(string_check_value("11.0")),
+        disk_encryption: Some(bool_check_value(true)),
+        antivirus_present: Some(bool_check_value(true)),
+        windows_ad_domain_joined: Some(bool_check_value(true)),
+        windows_security_update_current: Some(bool_check_value(true)),
         ..Default::default()
     }
 }
@@ -210,6 +229,153 @@ async fn fail_missing_posture_data(_: PgPoolOptions, options: PgConnectOptions) 
         super::PostureResult::Fail(ref reasons) if reasons.len() == 1
             && matches!(reasons[0], super::FailureReason::MissingPostureData)
     ));
+}
+
+#[sqlx::test]
+async fn pass_antivirus_present(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_windows_policy(&pool, location_id, Some(true), None, None).await;
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(windows_posture_data())))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
+}
+
+#[sqlx::test]
+async fn pass_ad_domain_joined(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_windows_policy(&pool, location_id, None, Some(true), None).await;
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(windows_posture_data())))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
+}
+
+#[sqlx::test]
+async fn pass_security_update_current(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_windows_policy(&pool, location_id, None, None, Some(true)).await;
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(windows_posture_data())))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
+}
+
+#[sqlx::test]
+async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "kernel-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Linux,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_current: None,
+        min_kernel_version: Some("6.1.0".to_string()),
+        device_integrity_required: None,
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+
+    let mut data = linux_posture_data("22.04", true);
+    data.linux_kernel_version = Some(string_check_value("6.8.0"));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
+}
+
+#[sqlx::test]
+async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "integrity-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Macos,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_current: None,
+        min_kernel_version: None,
+        device_integrity_required: Some(true),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+
+    let data = DevicePostureData {
+        defguard_client_version: "1.6.0".to_string(),
+        os_type: "macos".to_string(),
+        device_integrity: Some(bool_check_value(true)),
+        ..Default::default()
+    };
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
 }
 
 #[sqlx::test]
@@ -519,5 +685,241 @@ async fn fail_enterprise_inactive(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(matches!(
         result,
         Err(super::PostureCheckError::NoActiveEnterpriseLicense)
+    ));
+}
+
+async fn save_windows_policy(
+    pool: &sqlx::PgPool,
+    location_id: i64,
+    antivirus_required: Option<bool>,
+    ad_domain_joined_required: Option<bool>,
+    windows_security_update_current: Option<bool>,
+) {
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "windows-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Windows,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required,
+        ad_domain_joined_required,
+        windows_security_update_current,
+        min_kernel_version: None,
+        device_integrity_required: None,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureLocation::set_for_location(&mut pool.acquire().await.unwrap(), location_id, &[policy.id])
+        .await
+        .unwrap();
+}
+
+#[sqlx::test]
+async fn fail_antivirus_required(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_windows_policy(&pool, location_id, Some(true), None, None).await;
+
+    let mut data = windows_posture_data();
+    data.antivirus_present = Some(bool_check_value(false));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::AntivirusRequired)
+    ));
+}
+
+#[sqlx::test]
+async fn fail_ad_domain_required(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_windows_policy(&pool, location_id, None, Some(true), None).await;
+
+    let mut data = windows_posture_data();
+    data.windows_ad_domain_joined = Some(bool_check_value(false));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::AdDomainRequired)
+    ));
+}
+
+#[sqlx::test]
+async fn fail_security_update_required(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_windows_policy(&pool, location_id, None, None, Some(true)).await;
+
+    let mut data = windows_posture_data();
+    data.windows_security_update_current = Some(bool_check_value(false));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::SecurityUpdateRequired)
+    ));
+}
+
+#[sqlx::test]
+async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "kernel-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Linux,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_current: None,
+        min_kernel_version: Some("6.1.0".to_string()),
+        device_integrity_required: None,
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+
+    let mut data = linux_posture_data("22.04", true);
+    data.linux_kernel_version = Some(string_check_value("5.15.0"));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.iter().any(|r| matches!(r, super::FailureReason::KernelVersionTooOld { .. }))
+    ));
+}
+
+#[sqlx::test]
+async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "integrity-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Macos,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_current: None,
+        min_kernel_version: None,
+        device_integrity_required: Some(true),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+
+    let data = DevicePostureData {
+        defguard_client_version: "1.6.0".to_string(),
+        os_type: "macos".to_string(),
+        device_integrity: Some(bool_check_value(false)),
+        ..Default::default()
+    };
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::DeviceIntegrityRequired)
+    ));
+}
+
+#[sqlx::test]
+async fn fail_check_unavailable_unspecified(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
+
+    let mut data = linux_posture_data("22.04", true);
+    data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::Unspecified));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::CheckUnavailable { .. })
     ));
 }
