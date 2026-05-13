@@ -81,11 +81,18 @@ fn parse_version_lenient(s: &str) -> Option<Version> {
     if let Ok(v) = Version::parse(s) {
         return Some(v);
     }
+    // Strip leading zeros from each component (semver rejects "22.04" due to "04").
+    let normalize = |p: &str| -> String {
+        p.parse::<u64>().map_or_else(|_| p.to_string(), |n| n.to_string())
+    };
     let parts: Vec<&str> = s.splitn(3, '.').collect();
     let padded = match parts.len() {
-        1 => format!("{}.0.0", parts[0]),
-        2 => format!("{}.{}.0", parts[0], parts[1]),
-        _ => return None,
+        1 => format!("{}.0.0", normalize(parts[0])),
+        2 => format!("{}.{}.0", normalize(parts[0]), normalize(parts[1])),
+        _ => {
+            // Three parts present but standard parse failed; normalize each component.
+            format!("{}.{}.{}", normalize(parts[0]), normalize(parts[1]), normalize(parts[2]))
+        }
     };
     Version::parse(&padded).ok()
 }
@@ -344,7 +351,7 @@ pub async fn validate_posture(
 }
 
 #[cfg(test)]
-mod tests {
+mod unit_tests {
     use super::*;
 
     #[test]
@@ -366,3 +373,6 @@ mod tests {
         assert!(parse_version_lenient("not-a-version").is_none());
     }
 }
+
+#[cfg(test)]
+mod tests;
