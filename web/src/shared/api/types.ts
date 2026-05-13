@@ -947,6 +947,19 @@ export interface EditDevicePostureRequest {
   os_rules: EditDevicePostureOsRule[];
 }
 
+export interface DevicePostureOsVersionCatalog {
+  windows: string[];
+  macos: string[];
+  ios: string[];
+  android: string[];
+}
+
+export interface DevicePostureVersionMetadata {
+  os_versions: DevicePostureOsVersionCatalog;
+  linux_kernel_versions: string[];
+  client_versions: string[];
+}
+
 export type InitialSetupStepValue =
   | 'welcome'
   | 'admin_user'

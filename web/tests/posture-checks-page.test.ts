@@ -1,17 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import {
   filterPostureChecks,
+  getPostureCheckColumnFilterOptions,
   getPostureCheckOsLabel,
   mapApiDevicePostureToRow,
   mapPostureCheckFilterValueToRequestValue,
   type PostureCheckRow,
-  postureCheckColumnFilterOptions,
 } from '../src/pages/PostureChecksPage/postureChecks';
 import {
+  getPostureCheckVersionValues,
   PostureCheckOs,
   PostureCheckRequirement,
 } from '../src/pages/PostureChecksPage/types';
-import type { ApiDevicePosture } from '../src/shared/api/types';
+import type {
+  ApiDevicePosture,
+  DevicePostureVersionMetadata,
+} from '../src/shared/api/types';
+
+const makeVersionMetadata = (): DevicePostureVersionMetadata => ({
+  os_versions: {
+    windows: ['Windows 10', 'Windows 11'],
+    macos: ['macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia', 'macOS 26 Tahoe'],
+    ios: ['17', '18', '26'],
+    android: ['13', '14', '15', '16'],
+  },
+  linux_kernel_versions: ['5.x', '6.x', '7.x'],
+  client_versions: ['1.6', '2.0'],
+});
 
 describe('posture checks page helpers', () => {
   it('maps fetched posture-check policies into compact table rows', () => {
@@ -157,7 +172,33 @@ describe('posture checks page helpers', () => {
     expect(filterPostureChecks(rows, 'not-present')).toEqual([]);
   });
 
+  it('maps posture version metadata into UI version values, including Linux kernel versions', () => {
+    const metadata: DevicePostureVersionMetadata = {
+      os_versions: {
+        windows: ['Windows 11'],
+        macos: ['macOS 15 Sequoia'],
+        ios: ['18'],
+        android: ['15'],
+      },
+      linux_kernel_versions: ['6.x', '7.x'],
+      client_versions: ['1.6'],
+    };
+
+    expect(getPostureCheckVersionValues(metadata)).toEqual({
+      windows: ['Windows 11'],
+      macos: ['macOS 15 Sequoia'],
+      linux: ['6.x', '7.x'],
+      ios: ['18'],
+      android: ['15'],
+      defguard: ['1.6'],
+    });
+  });
+
   it('exposes predefined filter buckets for posture requirement columns', () => {
+    const postureCheckColumnFilterOptions = getPostureCheckColumnFilterOptions(
+      getPostureCheckVersionValues(makeVersionMetadata()),
+    );
+
     expect(postureCheckColumnFilterOptions.windows.map((option) => option.id)).toEqual([
       'Windows 10',
       'Windows 11',

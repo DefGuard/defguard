@@ -1,9 +1,10 @@
 import { create } from 'zustand';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import {
   type PostureCheckDefguardVersionValue,
   PostureCheckOs,
   type PostureCheckOsValue,
-  postureCheckVersionValues,
+  type PostureCheckVersionValues,
 } from '../PostureChecksPage/types';
 import {
   AddPostureCheckWizardStep,
@@ -24,47 +25,62 @@ export type OperatingSystemFormState = {
   version: string;
 };
 
-const createDefaultOperatingSystemState = (): Record<
-  PostureCheckOsValue,
-  OperatingSystemFormState
-> => ({
+const getCurrentOrLatestVersion = (values: readonly string[], currentValue?: string) => {
+  if (isPresent(currentValue) && values.includes(currentValue)) {
+    return currentValue;
+  }
+
+  return values[values.length - 1] ?? currentValue ?? '';
+};
+
+const emptyPostureCheckVersionValues: PostureCheckVersionValues = {
+  windows: [],
+  macos: [],
+  linux: [],
+  ios: [],
+  android: [],
+  defguard: [],
+};
+
+const createDefaultOperatingSystemState = (
+  versionValues: PostureCheckVersionValues,
+): Record<PostureCheckOsValue, OperatingSystemFormState> => ({
   [PostureCheckOs.Windows]: {
     conditions: [],
     securityUpdates: false,
-    version: 'Windows 11',
+    version: getCurrentOrLatestVersion(versionValues.windows),
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
     securityUpdates: false,
-    version: postureCheckVersionValues.macos[postureCheckVersionValues.macos.length - 1],
+    version: getCurrentOrLatestVersion(versionValues.macos),
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
     securityUpdates: false,
-    version: postureCheckVersionValues.linux[postureCheckVersionValues.linux.length - 1],
+    version: getCurrentOrLatestVersion(versionValues.linux),
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
     securityUpdates: false,
-    version: postureCheckVersionValues.ios[postureCheckVersionValues.ios.length - 1],
+    version: getCurrentOrLatestVersion(versionValues.ios),
   },
   [PostureCheckOs.Android]: {
     conditions: [],
     securityUpdates: false,
-    version:
-      postureCheckVersionValues.android[postureCheckVersionValues.android.length - 1],
+    version: getCurrentOrLatestVersion(versionValues.android),
   },
 });
 
-const createDefaultState = (): StoreValues => ({
+const createDefaultState = (versionValues: PostureCheckVersionValues): StoreValues => ({
   activeStep: AddPostureCheckWizardStep.OperatingSystems,
   allowPrereleaseClient: false,
   configuredOperatingSystems: [],
   description: null,
-  minimumClientVersion:
-    postureCheckVersionValues.defguard[postureCheckVersionValues.defguard.length - 1],
+  minimumClientVersion: getCurrentOrLatestVersion(versionValues.defguard),
   name: '',
-  operatingSystemState: createDefaultOperatingSystemState(),
+  operatingSystemState: createDefaultOperatingSystemState(versionValues),
+  availableVersionValues: versionValues,
 });
 
 interface StoreValues {
@@ -75,6 +91,7 @@ interface StoreValues {
   minimumClientVersion: PostureCheckDefguardVersionValue;
   name: string;
   operatingSystemState: Record<PostureCheckOsValue, OperatingSystemFormState>;
+  availableVersionValues: PostureCheckVersionValues;
 }
 
 interface Store extends StoreValues {
@@ -83,6 +100,7 @@ interface Store extends StoreValues {
   reset: () => void;
   next: () => void;
   back: () => void;
+  syncVersionValues: (versionValues: PostureCheckVersionValues) => void;
   setDescription: (value: string | null) => void;
   setAllowPrereleaseClient: (value: boolean) => void;
   setMinimumClientVersion: (value: PostureCheckDefguardVersionValue) => void;
@@ -94,8 +112,54 @@ interface Store extends StoreValues {
 }
 
 export const useAddPostureCheckWizardStore = create<Store>()((set, get) => ({
-  ...createDefaultState(),
-  reset: () => set(createDefaultState()),
+  ...createDefaultState(emptyPostureCheckVersionValues),
+  reset: () => set(createDefaultState(get().availableVersionValues)),
+  syncVersionValues: (versionValues) => {
+    set((state) => ({
+      availableVersionValues: versionValues,
+      minimumClientVersion: getCurrentOrLatestVersion(
+        versionValues.defguard,
+        state.minimumClientVersion,
+      ),
+      operatingSystemState: {
+        [PostureCheckOs.Windows]: {
+          ...state.operatingSystemState[PostureCheckOs.Windows],
+          version: getCurrentOrLatestVersion(
+            versionValues.windows,
+            state.operatingSystemState[PostureCheckOs.Windows].version,
+          ),
+        },
+        [PostureCheckOs.Macos]: {
+          ...state.operatingSystemState[PostureCheckOs.Macos],
+          version: getCurrentOrLatestVersion(
+            versionValues.macos,
+            state.operatingSystemState[PostureCheckOs.Macos].version,
+          ),
+        },
+        [PostureCheckOs.Linux]: {
+          ...state.operatingSystemState[PostureCheckOs.Linux],
+          version: getCurrentOrLatestVersion(
+            versionValues.linux,
+            state.operatingSystemState[PostureCheckOs.Linux].version,
+          ),
+        },
+        [PostureCheckOs.Ios]: {
+          ...state.operatingSystemState[PostureCheckOs.Ios],
+          version: getCurrentOrLatestVersion(
+            versionValues.ios,
+            state.operatingSystemState[PostureCheckOs.Ios].version,
+          ),
+        },
+        [PostureCheckOs.Android]: {
+          ...state.operatingSystemState[PostureCheckOs.Android],
+          version: getCurrentOrLatestVersion(
+            versionValues.android,
+            state.operatingSystemState[PostureCheckOs.Android].version,
+          ),
+        },
+      },
+    }));
+  },
   addConfiguredOperatingSystem: (value) => {
     if (get().configuredOperatingSystems.includes(value)) {
       return;

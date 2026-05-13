@@ -1,18 +1,31 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useAddPostureCheckWizardStore } from '../src/pages/AddPostureCheckWizardPage/useAddPostureCheckWizardStore';
 import {
+  getPostureCheckVersionValues,
   PostureCheckOs,
-  postureCheckVersionValues,
 } from '../src/pages/PostureChecksPage/types';
+import type { DevicePostureVersionMetadata } from '../src/shared/api/types';
+
+const versionValues = getPostureCheckVersionValues({
+  os_versions: {
+    windows: ['Windows 10', 'Windows 11'],
+    macos: ['macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia', 'macOS 26 Tahoe'],
+    ios: ['17', '18', '26'],
+    android: ['13', '14', '15', '16'],
+  },
+  linux_kernel_versions: ['5.x', '6.x', '7.x'],
+  client_versions: ['1.6', '2.0'],
+} satisfies DevicePostureVersionMetadata);
 
 describe('add posture check wizard store', () => {
   beforeEach(() => {
     useAddPostureCheckWizardStore.getState().reset();
+    useAddPostureCheckWizardStore.getState().syncVersionValues(versionValues);
   });
 
   it('stores defguard client-version settings and restores their defaults on reset', () => {
     expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBe(
-      postureCheckVersionValues.defguard[postureCheckVersionValues.defguard.length - 1],
+      versionValues.defguard[versionValues.defguard.length - 1],
     );
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(false);
 
@@ -25,7 +38,7 @@ describe('add posture check wizard store', () => {
     useAddPostureCheckWizardStore.getState().reset();
 
     expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBe(
-      postureCheckVersionValues.defguard[postureCheckVersionValues.defguard.length - 1],
+      versionValues.defguard[versionValues.defguard.length - 1],
     );
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(false);
   });

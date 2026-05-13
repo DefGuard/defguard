@@ -1,10 +1,11 @@
 use defguard_common::db::setup_pool;
 use defguard_core::{
     enterprise::{
-        db::models::device_posture::{DevicePosture, DevicePostureSnapshot, OsType},
+        db::models::device_posture::{DevicePosture, DevicePostureSnapshot},
         handlers::device_posture::{
-            ApiDevicePosture, ApiOsRule, AssignLocationsData, AssignPosturesData, CLIENT_VERSIONS,
-            EditDevicePosture, valid_os_versions,
+            ANDROID_OS_VERSIONS, ApiDevicePosture, ApiOsRule, AssignLocationsData,
+            AssignPosturesData, CLIENT_VERSIONS, DevicePostureVersionMetadata, EditDevicePosture,
+            IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS, MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
         },
         license::{get_cached_license, set_cached_license},
     },
@@ -84,6 +85,58 @@ async fn test_device_posture_enterprise_license_required(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     set_cached_license(saved);
+}
+
+#[sqlx::test]
+async fn test_device_posture_versions_metadata(_: PgPoolOptions, options: PgConnectOptions) {
+    let (client, _) = setup(options).await;
+
+    let response = client.get("/api/v1/device-posture/versions").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let metadata: DevicePostureVersionMetadata = response.json().await;
+
+    assert_eq!(
+        metadata.os_versions.windows,
+        WINDOWS_OS_VERSIONS
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        metadata.os_versions.macos,
+        MACOS_OS_VERSIONS
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        metadata.linux_kernel_versions,
+        LINUX_KERNEL_VERSIONS
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        metadata.os_versions.ios,
+        IOS_OS_VERSIONS
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        metadata.os_versions.android,
+        ANDROID_OS_VERSIONS
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        metadata.client_versions,
+        CLIENT_VERSIONS
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    );
 }
 
 #[sqlx::test]
@@ -390,8 +443,8 @@ async fn test_device_posture_list_filters_os_and_defguard(
 ) {
     let (mut client, _) = setup(options).await;
 
-    let windows_version = valid_os_versions(&OsType::Windows)[0];
-    let android_version = valid_os_versions(&OsType::Android)[2];
+    let windows_version = WINDOWS_OS_VERSIONS[0];
+    let android_version = ANDROID_OS_VERSIONS[2];
 
     let filtered = EditDevicePosture {
         name: "Filtered posture".to_owned(),
@@ -425,7 +478,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Windows {
-            min_os_version: Some(valid_os_versions(&OsType::Windows)[1].to_owned()),
+            min_os_version: Some(WINDOWS_OS_VERSIONS[1].to_owned()),
             disk_encryption_required: Some(false),
             antivirus_required: Some(false),
             ad_domain_joined_required: None,
@@ -456,8 +509,8 @@ async fn test_device_posture_list_filters_os_and_defguard(
 async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = setup(options).await;
 
-    let windows_version = valid_os_versions(&OsType::Windows)[0];
-    let macos_version = valid_os_versions(&OsType::Macos)[0];
+    let windows_version = WINDOWS_OS_VERSIONS[0];
+    let macos_version = MACOS_OS_VERSIONS[0];
 
     let edit = EditDevicePosture {
         name: "With Rules".to_owned(),

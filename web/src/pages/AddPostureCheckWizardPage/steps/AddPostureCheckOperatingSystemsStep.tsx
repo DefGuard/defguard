@@ -15,13 +15,17 @@ import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
 import {
   PostureCheckOs,
   type PostureCheckOsValue,
-  postureCheckVersionValues,
+  type PostureCheckVersionValues,
 } from '../../PostureChecksPage/types';
 import { addPostureCheckOperatingSystems } from '../types';
 import {
   type OperatingSystemConditionKey,
   useAddPostureCheckWizardStore,
 } from '../useAddPostureCheckWizardStore';
+
+type Props = {
+  versionValues: PostureCheckVersionValues;
+};
 
 type ConditionDefinition = {
   helperText?: string;
@@ -44,7 +48,7 @@ const getVersionOptionLabel = (operatingSystem: PostureCheckOsValue, value: stri
   }
 };
 
-export const AddPostureCheckOperatingSystemsStep = () => {
+export const AddPostureCheckOperatingSystemsStep = ({ versionValues }: Props) => {
   const next = useAddPostureCheckWizardStore((s) => s.next);
   const configuredOperatingSystems = useAddPostureCheckWizardStore(
     (s) => s.configuredOperatingSystems,
@@ -105,7 +109,7 @@ export const AddPostureCheckOperatingSystemsStep = () => {
   const getVersionOptions = (
     operatingSystem: PostureCheckOsValue,
   ): SelectOption<string>[] =>
-    postureCheckVersionValues[operatingSystem].map((value) => ({
+    versionValues[operatingSystem].map((value) => ({
       key: value,
       label: getVersionOptionLabel(operatingSystem, value),
       value,

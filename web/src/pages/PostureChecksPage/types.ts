@@ -1,3 +1,5 @@
+import type { DevicePostureVersionMetadata } from '../../shared/api/types';
+
 export const PostureCheckOs = {
   Windows: 'windows',
   Macos: 'macos',
@@ -8,14 +10,21 @@ export const PostureCheckOs = {
 
 export type PostureCheckOsValue = (typeof PostureCheckOs)[keyof typeof PostureCheckOs];
 
-export const postureCheckVersionValues = {
-  windows: ['Windows 10', 'Windows 11'],
-  macos: ['macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia', 'macOS 26 Tahoe'],
-  linux: ['5.x', '6.x', '7.x'],
-  ios: ['17', '18', '26'],
-  android: ['13', '14', '15', '16'],
-  defguard: ['1.6', '2.0'],
-} as const;
+export type PostureCheckVersionValues = Record<
+  PostureCheckOsValue | 'defguard',
+  readonly string[]
+>;
+
+export const getPostureCheckVersionValues = (
+  metadata: DevicePostureVersionMetadata,
+): PostureCheckVersionValues => ({
+  windows: metadata.os_versions.windows,
+  macos: metadata.os_versions.macos,
+  linux: metadata.linux_kernel_versions,
+  ios: metadata.os_versions.ios,
+  android: metadata.os_versions.android,
+  defguard: metadata.client_versions,
+});
 
 export const PostureCheckRequirement = {
   DiskEncryption: 'Disk encryption',
@@ -26,23 +35,11 @@ export const PostureCheckRequirement = {
   PrereleaseAllowed: 'Pre-release allowed',
 } as const;
 
-type ArrayValues<T extends readonly string[]> = T[number];
-
 export type PostureCheckRequirementValue =
   (typeof PostureCheckRequirement)[keyof typeof PostureCheckRequirement];
 
-export type PostureCheckVersionValue =
-  | ArrayValues<(typeof postureCheckVersionValues)['windows']>
-  | ArrayValues<(typeof postureCheckVersionValues)['macos']>
-  | ArrayValues<(typeof postureCheckVersionValues)['linux']>
-  | ArrayValues<(typeof postureCheckVersionValues)['ios']>
-  | ArrayValues<(typeof postureCheckVersionValues)['android']>
-  | ArrayValues<(typeof postureCheckVersionValues)['defguard']>;
+export type PostureCheckVersionValue = string;
 
-export type PostureCheckDefguardVersionValue = ArrayValues<
-  (typeof postureCheckVersionValues)['defguard']
->;
+export type PostureCheckDefguardVersionValue = string;
 
-export type PostureCheckFilterValue =
-  | PostureCheckVersionValue
-  | PostureCheckRequirementValue;
+export type PostureCheckFilterValue = string;

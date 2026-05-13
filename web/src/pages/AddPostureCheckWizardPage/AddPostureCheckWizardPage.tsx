@@ -1,10 +1,13 @@
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { type ReactNode, useCallback, useMemo } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
+import { getDevicePostureVersionMetadataQueryOptions } from '../../shared/query';
 import { closeAddPostureCheckWizard } from './navigation';
 import './style.scss';
+import { getPostureCheckVersionValues } from '../PostureChecksPage/types';
 import { AddPostureCheckClientVersionStep } from './steps/AddPostureCheckClientVersionStep';
 import { AddPostureCheckDetailsStep } from './steps/AddPostureCheckDetailsStep';
 import { AddPostureCheckOperatingSystemsStep } from './steps/AddPostureCheckOperatingSystemsStep';
@@ -12,20 +15,39 @@ import { AddPostureCheckSummaryStep } from './steps/AddPostureCheckSummaryStep';
 import { AddPostureCheckWizardStep, type AddPostureCheckWizardStepValue } from './types';
 import { useAddPostureCheckWizardStore } from './useAddPostureCheckWizardStore';
 
-const steps: Record<AddPostureCheckWizardStepValue, ReactNode> = {
-  [AddPostureCheckWizardStep.OperatingSystems]: <AddPostureCheckOperatingSystemsStep />,
-  [AddPostureCheckWizardStep.ClientVersion]: <AddPostureCheckClientVersionStep />,
-  [AddPostureCheckWizardStep.Details]: <AddPostureCheckDetailsStep />,
-  [AddPostureCheckWizardStep.Summary]: <AddPostureCheckSummaryStep />,
-};
-
 export const AddPostureCheckWizardPage = () => {
   const activeStep = useAddPostureCheckWizardStore((s) => s.activeStep);
+  const syncVersionValues = useAddPostureCheckWizardStore((s) => s.syncVersionValues);
   const navigate = useNavigate();
+  const { data: versionMetadata } = useSuspenseQuery(
+    getDevicePostureVersionMetadataQueryOptions,
+  );
+  const versionValues = useMemo(
+    () => getPostureCheckVersionValues(versionMetadata),
+    [versionMetadata],
+  );
+
+  useEffect(() => {
+    syncVersionValues(versionValues);
+  }, [syncVersionValues, versionValues]);
 
   const onClose = useCallback(() => {
     closeAddPostureCheckWizard(navigate);
   }, [navigate]);
+
+  const steps = useMemo(
+    (): Record<AddPostureCheckWizardStepValue, ReactNode> => ({
+      [AddPostureCheckWizardStep.OperatingSystems]: (
+        <AddPostureCheckOperatingSystemsStep versionValues={versionValues} />
+      ),
+      [AddPostureCheckWizardStep.ClientVersion]: (
+        <AddPostureCheckClientVersionStep versionValues={versionValues} />
+      ),
+      [AddPostureCheckWizardStep.Details]: <AddPostureCheckDetailsStep />,
+      [AddPostureCheckWizardStep.Summary]: <AddPostureCheckSummaryStep />,
+    }),
+    [versionValues],
+  );
 
   const stepsConfig = useMemo(
     (): Record<AddPostureCheckWizardStepValue, WizardPageStep> => ({

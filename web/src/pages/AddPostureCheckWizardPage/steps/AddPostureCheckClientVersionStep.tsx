@@ -6,10 +6,14 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { Select } from '../../../shared/defguard-ui/components/Select/Select';
 import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
-import { postureCheckVersionValues } from '../../PostureChecksPage/types';
+import type { PostureCheckVersionValues } from '../../PostureChecksPage/types';
 import { useAddPostureCheckWizardStore } from '../useAddPostureCheckWizardStore';
 
-export const AddPostureCheckClientVersionStep = () => {
+type Props = {
+  versionValues: PostureCheckVersionValues;
+};
+
+export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
   const back = useAddPostureCheckWizardStore((s) => s.back);
   const next = useAddPostureCheckWizardStore((s) => s.next);
   const minimumClientVersion = useAddPostureCheckWizardStore(
@@ -25,7 +29,7 @@ export const AddPostureCheckClientVersionStep = () => {
     (s) => s.setAllowPrereleaseClient,
   );
 
-  const versionOptions = postureCheckVersionValues.defguard.map((version) => ({
+  const versionOptions = versionValues.defguard.map((version) => ({
     key: version,
     label: m.posture_checks_wizard_client_version_option({ version }),
     value: version,

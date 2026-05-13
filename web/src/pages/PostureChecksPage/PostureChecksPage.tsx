@@ -11,28 +11,27 @@ import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptySta
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
-import { getLicenseInfoQueryOptions } from '../../shared/query';
+import {
+  getDevicePostureVersionMetadataQueryOptions,
+  getLicenseInfoQueryOptions,
+} from '../../shared/query';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
 import { PostureChecksTable } from './PostureChecksTable';
 import {
+  getPostureCheckColumnFilterOptions,
   getPostureCheckTableFilterMessages,
-  isPostureCheckFilterValue,
   mapApiDevicePostureToRow,
-  mapPostureCheckFilterValueToRequestValue,
 } from './postureChecks';
-import type { PostureCheckFilterValue } from './types';
+import { getPostureCheckVersionValues } from './types';
 
 const mapColumnFiltersToRequest = (columnFilters: ColumnFiltersState) => {
   const result: Record<string, string[]> = {};
 
   for (const filter of columnFilters) {
     if (Array.isArray(filter.value) && filter.value.length > 0) {
-      result[filter.id] = filter.value
-        .filter(
-          (value): value is PostureCheckFilterValue =>
-            typeof value === 'string' && isPostureCheckFilterValue(value),
-        )
-        .map(mapPostureCheckFilterValueToRequestValue);
+      result[filter.id] = filter.value.filter(
+        (value): value is string => typeof value === 'string',
+      );
     }
   }
 
@@ -44,7 +43,18 @@ const PostureChecksContent = () => {
   const { data: licenseInfo, isFetching: licenseInfoFetching } = useSuspenseQuery(
     getLicenseInfoQueryOptions,
   );
+  const { data: versionMetadata } = useSuspenseQuery(
+    getDevicePostureVersionMetadataQueryOptions,
+  );
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const versionValues = useMemo(
+    () => getPostureCheckVersionValues(versionMetadata),
+    [versionMetadata],
+  );
+  const columnFilterOptions = useMemo(
+    () => getPostureCheckColumnFilterOptions(versionValues),
+    [versionValues],
+  );
   const requestFilters = useMemo(
     () => mapColumnFiltersToRequest(columnFilters),
     [columnFilters],
@@ -101,6 +111,7 @@ const PostureChecksContent = () => {
       {postureChecks.length > 0 || columnFilters.length > 0 ? (
         <PostureChecksTable
           addButtonProps={addButtonProps}
+          columnFilterOptions={columnFilterOptions}
           columnFilters={columnFilters}
           filterMessages={filterMessages}
           hasNextPage={pagination?.next_page !== null}
