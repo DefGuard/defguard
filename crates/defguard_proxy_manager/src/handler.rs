@@ -974,7 +974,7 @@ impl ProxyHandler {
                             }
                             None
                         }
-                        Some(defguard_proto::proxy::core_request::Payload::DevicePostureCheck(
+                        Some(core_request::Payload::DevicePostureCheck(
                             request,
                         )) => match self.services.client_mfa.handle_posture_check(request).await {
                             Ok(PostureCheckOutcome::Approved { preshared_key }) => {
