@@ -142,7 +142,7 @@ async fn test_explicit_user_allow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
-    let user: User<NoId> = User::new(
+    let user = User::new(
         "alice",
         Some("password"),
         "Alice",
@@ -151,7 +151,7 @@ async fn test_explicit_user_allow(_: PgPoolOptions, options: PgConnectOptions) {
         None,
     );
     let user = user.save(&pool).await.unwrap();
-    let other_user: User<NoId> = User::new(
+    let other_user = User::new(
         "bob",
         Some("password"),
         "Bob",
@@ -161,7 +161,7 @@ async fn test_explicit_user_allow(_: PgPoolOptions, options: PgConnectOptions) {
     );
     let other_user = other_user.save(&pool).await.unwrap();
 
-    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    let destination = "192.168.1.0/24".parse().unwrap();
     let rule = applied_rule_with_addresses("allow-alice", vec![destination]);
     create_acl_rule(
         &pool,
@@ -197,7 +197,7 @@ async fn test_group_membership_allow(_: PgPoolOptions, options: PgConnectOptions
 
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
 
-    let user: User<NoId> = User::new(
+    let user = User::new(
         "alice",
         Some("password"),
         "Alice",
@@ -206,7 +206,7 @@ async fn test_group_membership_allow(_: PgPoolOptions, options: PgConnectOptions
         None,
     );
     let user = user.save(&pool).await.unwrap();
-    let non_member: User<NoId> = User::new(
+    let non_member = User::new(
         "bob",
         Some("password"),
         "Bob",
@@ -223,7 +223,7 @@ async fn test_group_membership_allow(_: PgPoolOptions, options: PgConnectOptions
     let group = group.save(&pool).await.unwrap();
     add_user_to_group(&pool, user.id, group.id).await;
 
-    let destination: IpNetwork = "10.1.0.0/16".parse().unwrap();
+    let destination = "10.1.0.0/16".parse().unwrap();
     let rule = applied_rule_with_addresses("allow-eng-group", vec![destination]);
     create_acl_rule(
         &pool,
@@ -259,12 +259,12 @@ async fn test_allow_all_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
 
-    let user_1: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user_1 = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None);
+    let user_2 = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None);
     let user_2 = user_2.save(&pool).await.unwrap();
 
-    let destination: IpNetwork = "172.16.0.0/12".parse().unwrap();
+    let destination = "172.16.0.0/12".parse().unwrap();
     let rule = AclRule {
         name: "allow-everyone".into(),
         state: RuleState::Applied,
@@ -301,10 +301,10 @@ async fn test_deny_overrides_allow(_: PgPoolOptions, options: PgConnectOptions) 
     let pool = setup_pool(options).await;
 
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
-    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
     let user = user.save(&pool).await.unwrap();
 
-    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    let destination = "192.168.1.0/24".parse().unwrap();
     let rule = applied_rule_with_addresses("allow-then-deny", vec![destination]);
 
     // User appears in both allowed and denied - deny overrides allow.
@@ -333,10 +333,10 @@ async fn test_deny_all_users(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
-    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
     let user = user.save(&pool).await.unwrap();
 
-    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    let destination = "192.168.1.0/24".parse().unwrap();
     // deny_all_users = true combined with allow_all_users = true - deny overrides allow.
     let rule = AclRule {
         name: "deny-everyone".into(),
@@ -378,7 +378,7 @@ async fn test_any_address_returns_all_traffic(_: PgPoolOptions, options: PgConne
     location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
-    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
     let user = user.save(&pool).await.unwrap();
 
     // Rule with any_address - should short-circuit to all-traffic networks.
@@ -433,7 +433,7 @@ async fn test_any_address_respects_location_ip_version(
     // IPv4-only location - should only return 0.0.0.0/0, not ::/0.
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
 
-    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
     let user = user.save(&pool).await.unwrap();
 
     let rule = AclRule {
@@ -459,4 +459,91 @@ async fn test_any_address_respects_location_ip_version(
         !result.contains(&*IPV6_DEFAULT_ROUTE),
         "IPv4-only location should not include ::/0"
     );
+}
+
+#[sqlx::test]
+async fn test_multiple_rules_destinations_merged(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Rule 1: gives access to 192.168.1.0/24
+    let rule1 = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("rule-1", vec!["192.168.1.0/24".parse().unwrap()])
+    };
+    create_acl_rule(&pool, rule1, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    // Rule 2: gives access to 10.10.0.0/16 - distinct, no overlap with rule 1
+    let rule2 = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("rule-2", vec!["10.10.0.0/16".parse().unwrap()])
+    };
+    create_acl_rule(&pool, rule2, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    // Rule 3: overlaps with rule 1 (192.168.1.128/25 is a subset of 192.168.1.0/24)
+    // After merging it should not expand the result.
+    let rule3 = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("rule-3", vec!["192.168.1.128/25".parse().unwrap()])
+    };
+    create_acl_rule(&pool, rule3, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // merge_ranges sorts by range start, so 10.10.0.0/16 comes before 192.168.1.0/24.
+    // The overlapping 192.168.1.128/25 should be absorbed into 192.168.1.0/24.
+    let expected = vec![
+        "10.10.0.0/16".parse().unwrap(),
+        "192.168.1.0/24".parse().unwrap(),
+    ];
+    assert_eq!(result, expected);
+}
+
+#[sqlx::test]
+async fn test_non_matching_rule_excluded(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+    let other_user = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None);
+    let other_user = other_user.save(&pool).await.unwrap();
+
+    // Rule only allows other_user - alice should get nothing.
+    let rule = AclRule {
+        ..applied_rule_with_addresses("other-user-only", vec!["172.16.0.0/12".parse().unwrap()])
+    };
+    create_acl_rule(
+        &pool,
+        rule,
+        &[location.id],
+        &[other_user.id],
+        &[],
+        &[],
+        &[],
+        &[],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+
+    // other_user matches and gets the destination
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &other_user)
+        .await
+        .unwrap();
+    assert_eq!(result, vec!["172.16.0.0/12".parse().unwrap()]);
+
+    // alice does not match and gets nothing
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+    assert!(result.is_empty());
 }
