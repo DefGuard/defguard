@@ -3,17 +3,17 @@ name: Continuous integration
 on:
   push:
     branches:
-      - main
       - dev
       - "release/**"
+      - "stable/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
   pull_request:
     branches:
-      - main
       - dev
       - "release/**"
+      - "stable/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: recursive
 
@@ -47,7 +47,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: |
             ${{ env.CARGO_HOME }}/registry/index
@@ -57,10 +57,10 @@ jobs:
           restore-keys: cargo-registry-
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Scan code with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
           TRIVY_SHOW_SUPPRESSED: 1
           TRIVY_IGNOREFILE: "./.trivyignore.yaml"
@@ -86,7 +86,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
         with:
           tool: cargo-deny
 
@@ -115,7 +115,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: recursive
 
@@ -125,7 +125,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: |
             ${{ env.CARGO_HOME }}/registry/index
@@ -135,13 +135,13 @@ jobs:
           restore-keys: cargo-registry-
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
         with:
           tool: cargo-nextest
 
@@ -159,7 +159,7 @@ jobs:
         run: sccache --show-stats
 
       - name: Upload test archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: nextest-archive
           path: nextest-archive.tar.zst
@@ -205,18 +205,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: recursive
           fetch-depth: 1
 
       - name: Download test archive
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: nextest-archive
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
         with:
           tool: cargo-nextest
 
@@ -233,7 +233,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete test archive artifact
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({

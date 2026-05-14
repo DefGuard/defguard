@@ -31,6 +31,7 @@ jobs:
       tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}}
         type=sha
       # Explicitly disable latest tag. It will be added otherwise.
       flavor: |
@@ -58,7 +59,7 @@ jobs:
     steps:
       - name: Create GitHub release
         id: release
-        uses: shogo82148/actions-create-release@v1
+        uses: shogo82148/actions-create-release@6a396031bc74c57403da1018fec74d24c6aa03cd # v1
         with:
           draft: true
           generate_release_notes: true
@@ -88,17 +89,17 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: recursive
 
       - name: Install NodeJS
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 25
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
         with:
           version: 10
 
@@ -111,12 +112,12 @@ jobs:
           pnpm build
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           targets: "aarch64-unknown-linux-gnu"
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Build Linux x86_64 binary
         run: |
@@ -144,7 +145,7 @@ jobs:
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
 
       - name: Build x86_64 DEB package
-        uses: defGuard/fpm-action@main
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
@@ -161,7 +162,7 @@ jobs:
             --after-remove linux/postrm"
 
       - name: Build aarch64 DEB package
-        uses: defGuard/fpm-action@main
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
@@ -178,7 +179,7 @@ jobs:
             --after-remove linux/postrm"
 
       - name: Build x86_64 RPM package
-        uses: defGuard/fpm-action@main
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
@@ -195,7 +196,7 @@ jobs:
             --after-remove linux/postrm"
 
       - name: Build aarch64 RPM package
-        uses: defGuard/fpm-action@main
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
@@ -212,7 +213,7 @@ jobs:
             --after-remove linux/postrm"
 
       - name: Build FreeBSD package
-        uses: defGuard/fpm-action@main
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
@@ -227,7 +228,7 @@ jobs:
             --depends openssl"
 
       - name: Upload Linux x86_64 archive
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -237,7 +238,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux aarch64 archive
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -247,7 +248,7 @@ jobs:
           overwrite: true
 
       - name: Upload FreeBSD x86_64 archive
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -257,7 +258,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux x86_64 DEB
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -267,7 +268,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux aarch64 DEB
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -277,7 +278,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux x86_64 RPM
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -287,7 +288,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux aarch64 RPM
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -297,7 +298,7 @@ jobs:
           overwrite: true
 
       - name: Upload FreeBSD package
-        uses: shogo82148/actions-upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
