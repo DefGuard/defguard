@@ -108,7 +108,10 @@ impl Group<Id> {
         .await
     }
 
-    pub async fn locations_with_one_allowed_group<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
+    pub async fn locations_with_one_allowed_group<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<Vec<String>>
     where
         E: PgExecutor<'e>,
     {
