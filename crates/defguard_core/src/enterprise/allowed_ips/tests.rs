@@ -9,6 +9,10 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query,
 };
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    sync::LazyLock,
+};
 
 use crate::enterprise::{
     allowed_ips::get_allowed_ips_from_acl_rules,
@@ -17,6 +21,11 @@ use crate::enterprise::{
     },
     license::{License, LicenseTier, SupportType, set_cached_license},
 };
+
+static IPV4_DEFAULT_ROUTE: LazyLock<IpNetwork> =
+    LazyLock::new(|| IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap());
+static IPV6_DEFAULT_ROUTE: LazyLock<IpNetwork> =
+    LazyLock::new(|| IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap());
 
 fn set_test_license_business() {
     let license = License {
@@ -351,5 +360,103 @@ async fn test_deny_all_users(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(
         result.is_empty(),
         "deny_all_users should prevent any access"
+    );
+}
+
+#[sqlx::test]
+async fn test_any_address_returns_all_traffic(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    // Dual-stack location so we can assert both networks are returned.
+    let mut location = WireguardNetwork::default()
+        .set_address([
+            "10.0.0.1/24".parse().unwrap(),
+            "fd00::1/64".parse().unwrap(),
+        ])
+        .unwrap();
+    location.acl_enabled = true;
+    let location = location.save(&pool).await.unwrap();
+
+    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Rule with any_address - should short-circuit to all-traffic networks.
+    let any_address_rule = AclRule {
+        name: "any-address".into(),
+        state: RuleState::Applied,
+        enabled: true,
+        allow_all_users: true,
+        any_address: true,
+        any_port: true,
+        any_protocol: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+    create_acl_rule(
+        &pool,
+        any_address_rule,
+        &[location.id],
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+    )
+    .await;
+
+    // A second rule that would add extra addresses - should never be reached.
+    let extra_rule = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("extra", vec!["192.168.99.0/24".parse().unwrap()])
+    };
+    create_acl_rule(&pool, extra_rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // Expect exactly the default routes for both IP versions present on the location.
+    let expected = vec![*IPV4_DEFAULT_ROUTE, *IPV6_DEFAULT_ROUTE];
+    assert_eq!(result, expected);
+}
+
+#[sqlx::test]
+async fn test_any_address_respects_location_ip_version(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    // IPv4-only location - should only return 0.0.0.0/0, not ::/0.
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+
+    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    let rule = AclRule {
+        name: "any-address-ipv4-only".into(),
+        state: RuleState::Applied,
+        enabled: true,
+        allow_all_users: true,
+        any_address: true,
+        any_port: true,
+        any_protocol: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+    create_acl_rule(&pool, rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    assert_eq!(result, vec![*IPV4_DEFAULT_ROUTE]);
+    assert!(
+        !result.contains(&*IPV6_DEFAULT_ROUTE),
+        "IPv4-only location should not include ::/0"
     );
 }
