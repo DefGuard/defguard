@@ -49,6 +49,25 @@ pub(super) fn major_version_meets_minimum(required: i32, actual: &str) -> Option
     Some(act.major >= required as u64)
 }
 
+/// Returns `Some(true)` when `actual`'s major component is present in `allowed`,
+/// `Some(false)` when it is not, and `None` when `actual` cannot be parsed.
+pub(super) fn major_version_in_list(actual: &str, allowed: &[i32]) -> Option<bool> {
+    let act = parse_version_lenient(actual)?;
+    Some(allowed.contains(&(act.major as i32)))
+}
+
+/// Returns `Some(true)` when `actual`'s `"major.minor"` string matches any entry
+/// in `allowed`, `Some(false)` when it does not, and `None` when `actual` cannot
+/// be parsed.
+///
+/// This is used for client version validation: the list stores `"major.minor"`
+/// strings (e.g. `"1.6"`) and the client reports a full semver (e.g. `"1.6.3"`).
+pub(super) fn minor_version_in_list(actual: &str, allowed: &[&str]) -> Option<bool> {
+    let act = parse_version_lenient(actual)?;
+    let key = format!("{}.{}", act.major, act.minor);
+    Some(allowed.contains(&key.as_str()))
+}
+
 #[cfg(test)]
 mod unit_tests {
     use super::*;
@@ -75,6 +94,34 @@ mod unit_tests {
         assert_eq!(major_version_meets_minimum(23, "22.04"), Some(false));
         // Unparseable actual — None.
         assert_eq!(major_version_meets_minimum(22, "not-a-version"), None);
+    }
+
+    #[test]
+    fn major_version_in_list_checks_membership() {
+        let list = &[10_i32, 11, 14, 15];
+        // Major is in the list.
+        assert_eq!(major_version_in_list("14.5.1", list), Some(true));
+        assert_eq!(major_version_in_list("10", list), Some(true));
+        // Major is not in the list.
+        assert_eq!(major_version_in_list("12.0.0", list), Some(false));
+        assert_eq!(major_version_in_list("99.1", list), Some(false));
+        // Unparseable — None.
+        assert_eq!(major_version_in_list("not-a-version", list), None);
+    }
+
+    #[test]
+    fn minor_version_in_list_checks_membership() {
+        let list = &["1.6", "2.0"];
+        // Exact major.minor match.
+        assert_eq!(minor_version_in_list("1.6.3", list), Some(true));
+        assert_eq!(minor_version_in_list("2.0.0", list), Some(true));
+        // Different minor — not in list.
+        assert_eq!(minor_version_in_list("1.7.0", list), Some(false));
+        assert_eq!(minor_version_in_list("1.5.9", list), Some(false));
+        // Completely unknown major.
+        assert_eq!(minor_version_in_list("3.0.0", list), Some(false));
+        // Unparseable — None.
+        assert_eq!(minor_version_in_list("not-a-version", list), None);
     }
 
     #[test]

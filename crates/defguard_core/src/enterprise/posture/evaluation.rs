@@ -6,7 +6,14 @@ use sqlx::PgPool;
 
 use super::{
     FailureReason, PostureCheckError, PostureResult,
-    version::{major_version_meets_minimum, version_meets_minimum},
+    version::{
+        major_version_in_list, major_version_meets_minimum, minor_version_in_list,
+        version_meets_minimum,
+    },
+    version_list::{
+        ANDROID_OS_VERSIONS, CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
+        MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
+    },
 };
 use crate::enterprise::{
     db::models::device_posture::{
@@ -68,20 +75,43 @@ fn parse_os_type(s: &str) -> Option<OsType> {
 /// OS and kernel version comparisons use major-only semantics: a device running
 /// the same major release as the policy minimum always passes regardless of
 /// minor or patch differences. Client version comparisons use full semver.
+///
+/// For OS and kernel versions, the device-reported major must also appear in the
+/// known version list for its OS type. An unrecognized version produces
+/// [`FailureReason::UnrecognizedVersion`] regardless of the minimum comparison.
 fn evaluate_os_rule(
     rule: &DevicePostureOsRule<defguard_common::db::Id>,
     data: &DevicePostureData,
     failures: &mut Vec<FailureReason>,
 ) {
+    let os_version_list: &[i32] = match rule.os_type {
+        OsType::Windows => WINDOWS_OS_VERSIONS,
+        OsType::Macos => MACOS_OS_VERSIONS,
+        OsType::Ios => IOS_OS_VERSIONS,
+        OsType::Android => ANDROID_OS_VERSIONS,
+        OsType::Linux => &[], // Linux uses kernel version list, not OS version list
+    };
+
     // min_os_version
     if let Some(required) = rule.min_os_version {
         match resolve_string_check(data.os_version.as_ref(), "os_version") {
-            Ok(Some(actual)) => match major_version_meets_minimum(required, &actual) {
-                Some(true) => {}
-                Some(false) => failures.push(FailureReason::OsVersionTooOld { required, actual }),
+            Ok(Some(actual)) => match major_version_in_list(&actual, os_version_list) {
                 None => failures.push(FailureReason::CheckUnavailable {
                     check: "os_version (unparseable)",
                 }),
+                Some(false) => failures.push(FailureReason::UnrecognizedVersion {
+                    check: "os_version",
+                    actual,
+                }),
+                Some(true) => match major_version_meets_minimum(required, &actual) {
+                    Some(true) => {}
+                    Some(false) => {
+                        failures.push(FailureReason::OsVersionTooOld { required, actual })
+                    }
+                    None => failures.push(FailureReason::CheckUnavailable {
+                        check: "os_version (unparseable)",
+                    }),
+                },
             },
             Ok(None) => {} // NotApplicable — skip
             Err(name) => failures.push(FailureReason::CheckUnavailable { check: name }),
@@ -133,14 +163,23 @@ fn evaluate_os_rule(
     // min_kernel_version (Linux only)
     if let Some(required) = rule.min_kernel_version {
         match resolve_string_check(data.linux_kernel_version.as_ref(), "linux_kernel_version") {
-            Ok(Some(actual)) => match major_version_meets_minimum(required, &actual) {
-                Some(true) => {}
-                Some(false) => {
-                    failures.push(FailureReason::KernelVersionTooOld { required, actual })
-                }
+            Ok(Some(actual)) => match major_version_in_list(&actual, LINUX_KERNEL_VERSIONS) {
                 None => failures.push(FailureReason::CheckUnavailable {
                     check: "linux_kernel_version (unparseable)",
                 }),
+                Some(false) => failures.push(FailureReason::UnrecognizedVersion {
+                    check: "linux_kernel_version",
+                    actual,
+                }),
+                Some(true) => match major_version_meets_minimum(required, &actual) {
+                    Some(true) => {}
+                    Some(false) => {
+                        failures.push(FailureReason::KernelVersionTooOld { required, actual })
+                    }
+                    None => failures.push(FailureReason::CheckUnavailable {
+                        check: "linux_kernel_version (unparseable)",
+                    }),
+                },
             },
             Ok(None) => {}
             Err(name) => failures.push(FailureReason::CheckUnavailable { check: name }),
@@ -217,15 +256,24 @@ pub async fn validate_posture(
                     check: "defguard_client_version",
                 });
             } else {
-                match version_meets_minimum(required, actual) {
-                    Some(true) => {}
-                    Some(false) => all_failures.push(FailureReason::ClientVersionTooOld {
-                        required: required.clone(),
-                        actual: actual.clone(),
-                    }),
+                match minor_version_in_list(actual, CLIENT_VERSIONS) {
                     None => all_failures.push(FailureReason::CheckUnavailable {
                         check: "defguard_client_version (unparseable)",
                     }),
+                    Some(false) => all_failures.push(FailureReason::UnrecognizedVersion {
+                        check: "client_version",
+                        actual: actual.clone(),
+                    }),
+                    Some(true) => match version_meets_minimum(required, actual) {
+                        Some(true) => {}
+                        Some(false) => all_failures.push(FailureReason::ClientVersionTooOld {
+                            required: required.clone(),
+                            actual: actual.clone(),
+                        }),
+                        None => all_failures.push(FailureReason::CheckUnavailable {
+                            check: "defguard_client_version (unparseable)",
+                        }),
+                    },
                 }
             }
         }
