@@ -846,13 +846,13 @@ impl ClientMfaServer {
         // Posture check succeeded - create a vpn session
         let key = WireguardNetwork::genkey();
 
-        let mut conn = self.pool.acquire().await.map_err(|err| {
-            error!("Failed to acquire DB connection for posture session: {err}");
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction for posture session: {err}");
             Status::internal("unexpected error")
         })?;
 
         self.create_new_session(
-            &mut conn,
+            &mut transaction,
             &location,
             &user,
             &device,
@@ -860,6 +860,11 @@ impl ClientMfaServer {
             key.public.clone(),
         )
         .await?;
+
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
 
         info!(
             "Posture check passed for device {} (user {}) in location {}. Session created.",

@@ -278,11 +278,18 @@ pub async fn validate_posture(
             }
         }
 
-        if !policy.allow_prerelease_client
-            && !data.defguard_client_version.is_empty()
-            && data.defguard_client_version.contains('-')
-        {
-            all_failures.push(FailureReason::PrereleaseClientNotAllowed);
+        if !policy.allow_prerelease_client {
+            // If min_client_version is set and version is empty, CheckUnavailable was
+            // already pushed above — avoid a duplicate entry.
+            if data.defguard_client_version.is_empty() {
+                if policy.min_client_version.is_none() {
+                    all_failures.push(FailureReason::CheckUnavailable {
+                        check: "defguard_client_version",
+                    });
+                }
+            } else if data.defguard_client_version.contains('-') {
+                all_failures.push(FailureReason::PrereleaseClientNotAllowed);
+            }
         }
 
         // OS-level checks.
