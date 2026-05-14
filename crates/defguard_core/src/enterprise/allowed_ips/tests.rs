@@ -18,7 +18,8 @@ use std::{
 use crate::enterprise::{
     allowed_ips::get_allowed_ips_from_acl_rules,
     db::models::acl::{
-        AclRule, AclRuleDestinationRange, AclRuleGroup, AclRuleNetwork, AclRuleUser, RuleState,
+        AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleGroup, AclRuleNetwork,
+        AclRuleUser, AliasKind, AliasState, RuleState,
     },
     license::{License, LicenseTier, SupportType, set_cached_license},
 };
@@ -135,6 +136,14 @@ async fn add_user_to_group(pool: &PgPool, user_id: Id, group_id: Id) {
     .execute(pool)
     .await
     .unwrap();
+}
+
+async fn link_alias_to_rule(pool: &PgPool, rule_id: Id, alias_id: Id) {
+    let mut conn = pool.acquire().await.unwrap();
+    AclRuleAlias::new(rule_id, alias_id)
+        .save(&mut *conn)
+        .await
+        .unwrap();
 }
 
 #[sqlx::test]
@@ -613,4 +622,91 @@ async fn test_unapplied_rule_excluded(_: PgPoolOptions, options: PgConnectOption
 
     // Only the applied rule's destination should appear.
     assert_eq!(result, vec!["10.10.0.0/16".parse().unwrap()]);
+}
+
+#[sqlx::test]
+async fn test_alias_addresses_included(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Alias carries extra addresses that should expand into the result.
+    let alias = AclAlias {
+        name: "component-alias".into(),
+        kind: AliasKind::Component,
+        state: AliasState::Applied,
+        addresses: vec!["10.20.0.0/16".parse().unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Rule has its own direct address plus the Alias.
+    let rule = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("with-alias", vec!["192.168.1.0/24".parse().unwrap()])
+    };
+    let rule_id = create_acl_rule(&pool, rule, &[location.id], &[], &[], &[], &[], &[]).await;
+    link_alias_to_rule(&pool, rule_id, alias.id).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // Both the direct address and the Alias address should be present.
+    let expected = vec![
+        "10.20.0.0/16".parse().unwrap(),
+        "192.168.1.0/24".parse().unwrap(),
+    ];
+    assert_eq!(result, expected);
+}
+
+#[sqlx::test]
+async fn test_predefined_destination_included(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Pre-defined Destination (AliasKind::Destination).
+    let destination = AclAlias {
+        name: "dest-alias".into(),
+        kind: AliasKind::Destination,
+        state: AliasState::Applied,
+        addresses: vec!["172.16.0.0/12".parse().unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Rule uses use_manual_destination_settings: false so manual addresses are
+    // ignored; only the Destination contributes.
+    let rule = AclRule {
+        name: "dest-alias-rule".into(),
+        state: RuleState::Applied,
+        enabled: true,
+        allow_all_users: true,
+        any_address: false,
+        any_port: true,
+        any_protocol: true,
+        use_manual_destination_settings: false,
+        ..Default::default()
+    };
+    let rule_id = create_acl_rule(&pool, rule, &[location.id], &[], &[], &[], &[], &[]).await;
+    link_alias_to_rule(&pool, rule_id, destination.id).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    assert_eq!(result, vec!["172.16.0.0/12".parse().unwrap()]);
 }
