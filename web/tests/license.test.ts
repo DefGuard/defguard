@@ -20,7 +20,6 @@ const makeLicense = (overrides: Partial<LicenseInfo> = {}): LicenseInfo => ({
   ...overrides,
 });
 
-
 describe('getLicenseState', () => {
   it('should return null for undefined (not yet loaded)', () => {
     expect(getLicenseState(undefined)).toBeNull();
@@ -74,7 +73,6 @@ describe('getLicenseState', () => {
   });
 });
 
-
 describe('canUseBusinessFeature', () => {
   it('should allow access with valid Business license', () => {
     const result = canUseBusinessFeature(makeLicense({ tier: 'Business' }));
@@ -102,7 +100,6 @@ describe('canUseBusinessFeature', () => {
   });
 });
 
-
 describe('canUseEnterpriseFeature', () => {
   it('should allow access with valid Enterprise license', () => {
     const result = canUseEnterpriseFeature(makeLicense({ tier: 'Enterprise' }));
@@ -124,7 +121,9 @@ describe('canUseEnterpriseFeature', () => {
   });
 
   it('should deny access when Enterprise license is expired', () => {
-    const result = canUseEnterpriseFeature(makeLicense({ tier: 'Enterprise', expired: true }));
+    const result = canUseEnterpriseFeature(
+      makeLicense({ tier: 'Enterprise', expired: true }),
+    );
     expect(result.result).toBe(false);
     expect(result.error).toBe('expired');
   });

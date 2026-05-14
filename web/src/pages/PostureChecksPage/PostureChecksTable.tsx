@@ -21,11 +21,12 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { type PostureCheckRow, postureCheckColumnFilterOptions } from './postureChecks';
+import type { PostureCheckColumnFilterOptions, PostureCheckRow } from './postureChecks';
 import './style.scss';
 
 type Props = {
   addButtonProps: ButtonProps;
+  columnFilterOptions: PostureCheckColumnFilterOptions;
   columnFilters: ColumnFiltersState;
   filterMessages: TableFilterMessages;
   hasNextPage: boolean;
@@ -39,6 +40,7 @@ const columnHelper = createColumnHelper<PostureCheckRow>();
 
 export const PostureChecksTable = ({
   addButtonProps,
+  columnFilterOptions,
   columnFilters,
   filterMessages,
   hasNextPage,
@@ -67,7 +69,7 @@ export const PostureChecksTable = ({
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: postureCheckColumnFilterOptions.windows,
+          filterOptions: columnFilterOptions.windows,
         },
         cell: (info) => (
           <TableCell>
@@ -82,7 +84,7 @@ export const PostureChecksTable = ({
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: postureCheckColumnFilterOptions.macos,
+          filterOptions: columnFilterOptions.macos,
         },
         cell: (info) => (
           <TableCell>
@@ -97,7 +99,7 @@ export const PostureChecksTable = ({
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: postureCheckColumnFilterOptions.linux,
+          filterOptions: columnFilterOptions.linux,
         },
         cell: (info) => (
           <TableCell>
@@ -112,7 +114,7 @@ export const PostureChecksTable = ({
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: postureCheckColumnFilterOptions.ios,
+          filterOptions: columnFilterOptions.ios,
         },
         cell: (info) => (
           <TableCell>
@@ -127,7 +129,7 @@ export const PostureChecksTable = ({
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: postureCheckColumnFilterOptions.android,
+          filterOptions: columnFilterOptions.android,
         },
         cell: (info) => (
           <TableCell>
@@ -142,7 +144,7 @@ export const PostureChecksTable = ({
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: postureCheckColumnFilterOptions.defguard,
+          filterOptions: columnFilterOptions.defguard,
         },
         cell: (info) => (
           <TableCell>
@@ -203,7 +205,7 @@ export const PostureChecksTable = ({
         },
       }),
     ],
-    [],
+    [columnFilterOptions],
   );
 
   const table = useReactTable({

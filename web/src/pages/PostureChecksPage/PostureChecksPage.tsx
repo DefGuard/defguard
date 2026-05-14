@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import type { ColumnFiltersState } from '@tanstack/react-table';
 import { Suspense, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
@@ -10,16 +11,19 @@ import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptySta
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
-import { getLicenseInfoQueryOptions } from '../../shared/query';
+import {
+  getDevicePostureVersionMetadataQueryOptions,
+  getLicenseInfoQueryOptions,
+} from '../../shared/query';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
 import { PostureChecksTable } from './PostureChecksTable';
 import {
+  getPostureCheckColumnFilterOptions,
   getPostureCheckTableFilterMessages,
-  isPostureCheckFilterValue,
   mapApiDevicePostureToRow,
   mapPostureCheckFilterValueToRequestValue,
 } from './postureChecks';
-import type { PostureCheckFilterValue } from './types';
+import { getPostureCheckVersionValues } from './types';
 
 const mapColumnFiltersToRequest = (columnFilters: ColumnFiltersState) => {
   const result: Record<string, string[]> = {};
@@ -28,8 +32,8 @@ const mapColumnFiltersToRequest = (columnFilters: ColumnFiltersState) => {
     if (Array.isArray(filter.value) && filter.value.length > 0) {
       result[filter.id] = filter.value
         .filter(
-          (value): value is PostureCheckFilterValue =>
-            typeof value === 'string' && isPostureCheckFilterValue(value),
+          (value): value is string | number =>
+            typeof value === 'string' || typeof value === 'number',
         )
         .map(mapPostureCheckFilterValueToRequestValue);
     }
@@ -39,10 +43,22 @@ const mapColumnFiltersToRequest = (columnFilters: ColumnFiltersState) => {
 };
 
 const PostureChecksContent = () => {
+  const navigate = useNavigate();
   const { data: licenseInfo, isFetching: licenseInfoFetching } = useSuspenseQuery(
     getLicenseInfoQueryOptions,
   );
+  const { data: versionMetadata } = useSuspenseQuery(
+    getDevicePostureVersionMetadataQueryOptions,
+  );
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const versionValues = useMemo(
+    () => getPostureCheckVersionValues(versionMetadata),
+    [versionMetadata],
+  );
+  const columnFilterOptions = useMemo(
+    () => getPostureCheckColumnFilterOptions(versionValues),
+    [versionValues],
+  );
   const requestFilters = useMemo(
     () => mapColumnFiltersToRequest(columnFilters),
     [columnFilters],
@@ -83,11 +99,11 @@ const PostureChecksContent = () => {
       testId: 'add-posture-check',
       onClick: () => {
         licenseActionCheck(canUseEnterpriseFeature(licenseInfo), () => {
-          // TODO: Implement add posture check flow
+          void navigate({ to: '/add-posture-check' });
         });
       },
     }),
-    [licenseInfo, licenseInfoFetching],
+    [licenseInfo, licenseInfoFetching, navigate],
   );
 
   if (isLoading) {
@@ -99,6 +115,7 @@ const PostureChecksContent = () => {
       {postureChecks.length > 0 || columnFilters.length > 0 ? (
         <PostureChecksTable
           addButtonProps={addButtonProps}
+          columnFilterOptions={columnFilterOptions}
           columnFilters={columnFilters}
           filterMessages={filterMessages}
           hasNextPage={pagination?.next_page !== null}
