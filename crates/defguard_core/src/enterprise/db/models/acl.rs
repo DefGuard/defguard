@@ -1336,6 +1336,138 @@ impl AclRuleInfo<Id> {
         Ok(unique_denied_users.into_iter().collect())
     }
 
+    /// Returns `true` if the given user is permitted by this rule's source policy.
+    ///
+    /// Evaluation order:
+    /// 1. If `deny_all_users` is set, return `false` immediately.
+    /// 2. If the user is explicitly denied or is a member of a denied group, return `false`.
+    /// 3. If `allow_all_users` is set, return `true`.
+    /// 4. If the user is explicitly allowed or is a member of an allowed group, return `true`.
+    /// 5. Otherwise return `false`.
+    pub(crate) async fn user_is_allowed(
+        &self,
+        user_id: Id,
+        conn: &mut PgConnection,
+    ) -> sqlx::Result<bool> {
+        debug!(
+            "Checking if user {user_id} is allowed by ACL rule {}",
+            self.id
+        );
+
+        // All users are denied - no need to check further.
+        if self.deny_all_users {
+            debug!(
+                "deny_all_users is set on rule {} - user {user_id} is denied",
+                self.id
+            );
+            return Ok(false);
+        }
+
+        // Check if user is explicitly denied.
+        if self.denied_users.iter().any(|u| u.id == user_id) {
+            debug!("User {user_id} is explicitly denied by rule {}", self.id);
+            return Ok(false);
+        }
+
+        // Check if user is a member of a denied group.
+        let denied_by_group = if self.deny_all_groups {
+            // Every group is a denied group - check if user is in any group.
+            query_scalar!(
+                "SELECT EXISTS(
+                    SELECT 1 FROM group_user gu
+                    JOIN \"user\" u ON u.id = gu.user_id
+                    WHERE u.id = $1 AND u.is_active
+                )",
+                user_id
+            )
+            .fetch_one(&mut *conn)
+            .await?
+            .unwrap_or(false)
+        } else if !self.denied_groups.is_empty() {
+            let denied_group_ids: Vec<Id> = self.denied_groups.iter().map(|g| g.id).collect();
+            query_scalar!(
+                "SELECT EXISTS(
+                    SELECT 1 FROM group_user gu
+                    JOIN \"user\" u ON u.id = gu.user_id
+                    WHERE u.id = $1 AND u.is_active AND gu.group_id = ANY($2)
+                )",
+                user_id,
+                &denied_group_ids
+            )
+            .fetch_one(&mut *conn)
+            .await?
+            .unwrap_or(false)
+        } else {
+            false
+        };
+
+        if denied_by_group {
+            debug!(
+                "User {user_id} is denied via group membership by rule {}",
+                self.id
+            );
+            return Ok(false);
+        }
+
+        // All users are allowed (and not denied above).
+        if self.allow_all_users {
+            debug!(
+                "allow_all_users is set on rule {} - user {user_id} is allowed",
+                self.id
+            );
+            return Ok(true);
+        }
+
+        // Check if user is explicitly allowed.
+        if self.allowed_users.iter().any(|u| u.id == user_id) {
+            debug!("User {user_id} is explicitly allowed by rule {}", self.id);
+            return Ok(true);
+        }
+
+        // Check if user is a member of an allowed group.
+        let allowed_by_group = if self.allow_all_groups {
+            // Every group is an allowed group - check if user is in any group.
+            query_scalar!(
+                "SELECT EXISTS(
+                    SELECT 1 FROM group_user gu
+                    JOIN \"user\" u ON u.id = gu.user_id
+                    WHERE u.id = $1 AND u.is_active
+                )",
+                user_id
+            )
+            .fetch_one(&mut *conn)
+            .await?
+            .unwrap_or(false)
+        } else if !self.allowed_groups.is_empty() {
+            let allowed_group_ids: Vec<Id> = self.allowed_groups.iter().map(|g| g.id).collect();
+            query_scalar!(
+                "SELECT EXISTS(
+                    SELECT 1 FROM group_user gu
+                    JOIN \"user\" u ON u.id = gu.user_id
+                    WHERE u.id = $1 AND u.is_active AND gu.group_id = ANY($2)
+                )",
+                user_id,
+                &allowed_group_ids
+            )
+            .fetch_one(&mut *conn)
+            .await?
+            .unwrap_or(false)
+        } else {
+            false
+        };
+
+        if allowed_by_group {
+            debug!(
+                "User {user_id} is allowed via group membership by rule {}",
+                self.id
+            );
+        } else {
+            debug!("User {user_id} is not matched by rule {}", self.id);
+        }
+
+        Ok(allowed_by_group)
+    }
+
     /// Returns the list of explicitly configured allowed network devices or
     /// a list of all devices if 'allow_all_network_devices' flag is enabled.
     pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
