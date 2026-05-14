@@ -123,10 +123,10 @@ fn make_request(location_id: i64, data: Option<DevicePostureData>) -> DevicePost
     }
 }
 
+/// Creates a Linux posture policy with no OS version requirement (Linux has no version list).
 async fn save_linux_policy(
     pool: &sqlx::PgPool,
     location_id: i64,
-    min_os_version: Option<i32>,
     disk_encryption_required: Option<bool>,
     min_client_version: Option<&str>,
     allow_prerelease_client: bool,
@@ -146,11 +146,98 @@ async fn save_linux_policy(
         id: defguard_common::db::NoId,
         posture_id: policy.id,
         os_type: OsType::Linux,
-        min_os_version,
+        min_os_version: None,
         disk_encryption_required,
         antivirus_required: None,
         ad_domain_joined_required: None,
         windows_security_update_current: None,
+        min_kernel_version: None,
+        device_integrity_required: None,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+}
+
+/// Creates a Windows posture policy requiring a minimum OS major version.
+/// Windows has a known version list `[10, 11]`, making it suitable for OS version tests.
+async fn save_windows_os_version_policy(
+    pool: &sqlx::PgPool,
+    location_id: i64,
+    min_os_version: i32,
+    disk_encryption_required: Option<bool>,
+) {
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "windows-os-version-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Windows,
+        min_os_version: Some(min_os_version),
+        disk_encryption_required,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_current: None,
+        min_kernel_version: None,
+        device_integrity_required: None,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+}
+
+async fn save_windows_policy(
+    pool: &sqlx::PgPool,
+    location_id: i64,
+    antivirus_required: Option<bool>,
+    ad_domain_joined_required: Option<bool>,
+    windows_security_update_current: Option<bool>,
+) {
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "windows-policy".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Windows,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required,
+        ad_domain_joined_required,
+        windows_security_update_current,
         min_kernel_version: None,
         device_integrity_required: None,
     }
@@ -187,17 +274,18 @@ async fn pass_no_posture_assigned(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(matches!(result, super::PostureResult::Pass));
 }
 
+/// Both OS version (Windows 10 required, device on 11) and disk encryption pass.
 #[sqlx::test]
 async fn pass_all_checks_met(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, Some(20), Some(true), None, true).await;
+    save_windows_os_version_policy(&pool, location_id, 10, Some(true)).await;
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", true))),
+        &make_request(location_id, Some(windows_posture_data())),
     )
     .await
     .unwrap();
@@ -205,20 +293,25 @@ async fn pass_all_checks_met(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(matches!(result, super::PostureResult::Pass));
 }
 
+/// Policy requires Windows 11; device reports exactly "11.0" — boundary must pass.
 #[sqlx::test]
 async fn pass_boundary_os_version_exact(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, Some(22), None, None, true).await;
+    save_windows_os_version_policy(&pool, location_id, 11, None).await;
 
-    let result = validate_posture(
-        &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", true))),
-    )
-    .await
-    .unwrap();
+    let data = DevicePostureData {
+        defguard_client_version: "1.6.0".to_string(),
+        os_type: "windows".to_string(),
+        os_version: Some(string_check_value("11.0")),
+        ..Default::default()
+    };
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
 
     assert!(matches!(result, super::PostureResult::Pass));
 }
@@ -229,7 +322,7 @@ async fn fail_missing_posture_data(_: PgPoolOptions, options: PgConnectOptions) 
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, None, None, true).await;
+    save_linux_policy(&pool, location_id, None, None, true).await;
 
     let result = validate_posture(&pool, &make_request(location_id, None))
         .await
@@ -238,7 +331,7 @@ async fn fail_missing_posture_data(_: PgPoolOptions, options: PgConnectOptions) 
     assert!(matches!(
         result,
         super::PostureResult::Fail(ref reasons) if reasons.len() == 1
-            && matches!(reasons[0], super::FailureReason::CheckUnavailable { .. })
+            && matches!(reasons[0], super::FailureReason::MissingPostureData)
     ));
 }
 
@@ -429,7 +522,7 @@ async fn fail_unrecognized_client_version(_: PgPoolOptions, options: PgConnectOp
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, None, Some("1.6"), true).await;
+    save_linux_policy(&pool, location_id, None, Some("1.6"), true).await;
 
     let mut data = linux_posture_data("6.1.0", true);
     data.defguard_client_version = "1.7.0".to_string();
@@ -455,7 +548,7 @@ async fn pass_known_client_version_meets_minimum(_: PgPoolOptions, options: PgCo
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, None, Some("1.6"), true).await;
+    save_linux_policy(&pool, location_id, None, Some("1.6"), true).await;
 
     let mut data = linux_posture_data("6.1.0", true);
     data.defguard_client_version = "1.6.3".to_string();
@@ -686,7 +779,7 @@ async fn fail_disk_encryption_required(_: PgPoolOptions, options: PgConnectOptio
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
+    save_linux_policy(&pool, location_id, Some(true), None, true).await;
 
     let result = validate_posture(
         &pool,
@@ -702,20 +795,25 @@ async fn fail_disk_encryption_required(_: PgPoolOptions, options: PgConnectOptio
     ));
 }
 
+/// Policy requires Windows 11; device reports "10.0" (known but too old).
 #[sqlx::test]
 async fn fail_os_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, Some(22), None, None, true).await;
+    save_windows_os_version_policy(&pool, location_id, 11, None).await;
 
-    let result = validate_posture(
-        &pool,
-        &make_request(location_id, Some(linux_posture_data("20.04", true))),
-    )
-    .await
-    .unwrap();
+    let data = DevicePostureData {
+        defguard_client_version: "1.6.0".to_string(),
+        os_type: "windows".to_string(),
+        os_version: Some(string_check_value("10.0")),
+        ..Default::default()
+    };
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
 
     assert!(matches!(
         result,
@@ -724,23 +822,26 @@ async fn fail_os_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
     ));
 }
 
-/// Regression guard: policy requires "22.10", device reports "22.04".
-/// Under major-only comparison this must PASS because major versions are equal.
+/// Policy requires Windows 11 (major only); device reports "11.5" (same major, non-zero minor).
+/// Must pass because OS version comparison is major-only.
 #[sqlx::test]
 async fn pass_os_version_same_major_lower_minor(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    // Require 22.10 — device has 22.04 (same major, older minor).
-    save_linux_policy(&pool, location_id, Some(22), None, None, true).await;
+    save_windows_os_version_policy(&pool, location_id, 11, None).await;
 
-    let result = validate_posture(
-        &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", true))),
-    )
-    .await
-    .unwrap();
+    let data = DevicePostureData {
+        defguard_client_version: "1.6.0".to_string(),
+        os_type: "windows".to_string(),
+        os_version: Some(string_check_value("11.5")),
+        ..Default::default()
+    };
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
 
     assert!(
         matches!(result, super::PostureResult::Pass),
@@ -754,10 +855,10 @@ async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, None, Some("1.5.0"), true).await;
+    save_linux_policy(&pool, location_id, None, Some("2.0"), true).await;
 
     let mut data = linux_posture_data("22.04", true);
-    data.defguard_client_version = "1.4.0".to_string();
+    data.defguard_client_version = "1.6.0".to_string();
 
     let result = validate_posture(&pool, &make_request(location_id, Some(data)))
         .await
@@ -766,7 +867,7 @@ async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     assert!(matches!(
         result,
         super::PostureResult::Fail(ref reasons) if reasons.len() == 1
-            && matches!(reasons[0], super::FailureReason::ClientVersionTooOld { .. })
+            && matches!(reasons[0], super::FailureReason::ClientVersionTooOld { ref required, .. } if required == "2.0")
     ));
 }
 
@@ -776,7 +877,7 @@ async fn fail_prerelease_not_allowed(_: PgPoolOptions, options: PgConnectOptions
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, None, None, false).await;
+    save_linux_policy(&pool, location_id, None, None, false).await;
 
     let mut data = linux_posture_data("22.04", true);
     data.defguard_client_version = "1.6.0-beta1".to_string();
@@ -798,7 +899,7 @@ async fn fail_check_unavailable_detection_failed(_: PgPoolOptions, options: PgCo
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
+    save_linux_policy(&pool, location_id, Some(true), None, true).await;
 
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::DetectionFailed));
@@ -823,7 +924,7 @@ async fn fail_check_unavailable_insufficient_permissions(
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
+    save_linux_policy(&pool, location_id, Some(true), None, true).await;
 
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(
@@ -847,7 +948,7 @@ async fn pass_check_not_applicable(_: PgPoolOptions, options: PgConnectOptions) 
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
+    save_linux_policy(&pool, location_id, Some(true), None, true).await;
 
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::NotApplicable));
@@ -947,7 +1048,7 @@ async fn fail_enterprise_inactive(_: PgPoolOptions, options: PgConnectOptions) {
     set_cached_license(None);
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, None, None, true).await;
+    save_linux_policy(&pool, location_id, None, None, true).await;
 
     let result = validate_posture(
         &pool,
@@ -959,49 +1060,6 @@ async fn fail_enterprise_inactive(_: PgPoolOptions, options: PgConnectOptions) {
         result,
         Err(super::PostureCheckError::NoActiveEnterpriseLicense)
     ));
-}
-
-async fn save_windows_policy(
-    pool: &sqlx::PgPool,
-    location_id: i64,
-    antivirus_required: Option<bool>,
-    ad_domain_joined_required: Option<bool>,
-    windows_security_update_current: Option<bool>,
-) {
-    let policy = DevicePosture {
-        id: defguard_common::db::NoId,
-        name: "windows-policy".to_string(),
-        description: None,
-        min_client_version: None,
-        allow_prerelease_client: true,
-    }
-    .save(pool)
-    .await
-    .unwrap();
-
-    DevicePostureOsRule {
-        id: defguard_common::db::NoId,
-        posture_id: policy.id,
-        os_type: OsType::Windows,
-        min_os_version: None,
-        disk_encryption_required: None,
-        antivirus_required,
-        ad_domain_joined_required,
-        windows_security_update_current,
-        min_kernel_version: None,
-        device_integrity_required: None,
-    }
-    .save(pool)
-    .await
-    .unwrap();
-
-    DevicePostureLocation::set_for_location(
-        &mut pool.acquire().await.unwrap(),
-        location_id,
-        &[policy.id],
-    )
-    .await
-    .unwrap();
 }
 
 #[sqlx::test]
@@ -1185,7 +1243,7 @@ async fn fail_check_unavailable_unspecified(_: PgPoolOptions, options: PgConnect
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some(true), None, true).await;
+    save_linux_policy(&pool, location_id, Some(true), None, true).await;
 
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::Unspecified));
