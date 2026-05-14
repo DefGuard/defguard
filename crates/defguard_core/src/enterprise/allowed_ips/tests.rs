@@ -1,3 +1,4 @@
+use chrono::DateTime;
 use defguard_common::db::{
     Id, NoId,
     models::{WireguardNetwork, group::Group, user::User},
@@ -546,4 +547,70 @@ async fn test_non_matching_rule_excluded(_: PgPoolOptions, options: PgConnectOpt
         .await
         .unwrap();
     assert!(result.is_empty());
+}
+
+#[sqlx::test]
+async fn test_expired_rule_excluded(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Expired rule - expires at the Unix epoch (well in the past).
+    let expired_rule = AclRule {
+        allow_all_users: true,
+        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        ..applied_rule_with_addresses("expired", vec!["192.168.1.0/24".parse().unwrap()])
+    };
+    create_acl_rule(&pool, expired_rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    // Active rule with no expiry - should still be picked up.
+    let active_rule = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("active", vec!["10.10.0.0/16".parse().unwrap()])
+    };
+    create_acl_rule(&pool, active_rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // Only the active rule's destination should appear.
+    assert_eq!(result, vec!["10.10.0.0/16".parse().unwrap()]);
+}
+
+#[sqlx::test]
+async fn test_unapplied_rule_excluded(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // New (unapplied) rule - should not be returned by get_location_active_acl_rules.
+    let new_rule = AclRule {
+        allow_all_users: true,
+        state: RuleState::New,
+        ..applied_rule_with_addresses("new-rule", vec!["192.168.1.0/24".parse().unwrap()])
+    };
+    create_acl_rule(&pool, new_rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    // Applied rule - should be included.
+    let applied_rule = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("applied-rule", vec!["10.10.0.0/16".parse().unwrap()])
+    };
+    create_acl_rule(&pool, applied_rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // Only the applied rule's destination should appear.
+    assert_eq!(result, vec!["10.10.0.0/16".parse().unwrap()]);
 }
