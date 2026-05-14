@@ -710,3 +710,50 @@ async fn test_predefined_destination_included(_: PgPoolOptions, options: PgConne
 
     assert_eq!(result, vec!["172.16.0.0/12".parse().unwrap()]);
 }
+
+#[sqlx::test]
+async fn test_address_range_decomposed_to_cidrs(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Rule with no direct addresses - destination is expressed entirely as a range.
+    // Range 10.0.1.1 - 10.0.1.14 is non-CIDR-aligned and should decompose into
+    // the minimal set of covering subnets.
+    let rule = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("range-rule", vec![])
+    };
+    create_acl_rule(
+        &pool,
+        rule,
+        &[location.id],
+        &[],
+        &[],
+        &[],
+        &[],
+        &[(
+            "10.0.1.1/32".parse().unwrap(),
+            "10.0.1.14/32".parse().unwrap(),
+        )],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    let expected = vec![
+        "10.0.1.1/32".parse().unwrap(),
+        "10.0.1.2/31".parse().unwrap(),
+        "10.0.1.4/30".parse().unwrap(),
+        "10.0.1.8/30".parse().unwrap(),
+        "10.0.1.12/31".parse().unwrap(),
+        "10.0.1.14/32".parse().unwrap(),
+    ];
+    assert_eq!(result, expected);
+}
