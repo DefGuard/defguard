@@ -174,7 +174,17 @@ pub async fn validate_posture(
         request.pubkey, request.device_posture_data
     );
 
-    // Verify license
+    // If location has no assigned postures - pass immediately (no license required).
+    let posture_ids = DevicePostureLocation::find_by_location(pool, request.location_id).await?;
+    if posture_ids.is_empty() {
+        debug!(
+            "No posture policies assigned to location {} — passing device {}",
+            request.location_id, request.pubkey
+        );
+        return Ok(PostureResult::Pass);
+    }
+
+    // Policies exist - enforce the enterprise license.
     if !is_enterprise_license_active() {
         warn!(
             "No active enterprise license - posture check aborted for device {}",
@@ -193,16 +203,6 @@ pub async fn validate_posture(
             return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
         }
     };
-
-    // If location has no assigned postures - pass
-    let posture_ids = DevicePostureLocation::find_by_location(pool, request.location_id).await?;
-    if posture_ids.is_empty() {
-        debug!(
-            "No posture policies assigned to location {} — passing device {}",
-            request.location_id, request.pubkey
-        );
-        return Ok(PostureResult::Pass);
-    }
 
     let os_type = parse_os_type(&data.os_type);
     let mut all_failures: Vec<FailureReason> = Vec::new();

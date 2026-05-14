@@ -811,6 +811,18 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("user is inactive"));
         }
 
+        // Validate that the user is allowed to access this location.
+        let user_info = UserInfo::from_user(&self.pool, user.clone())
+            .await
+            .map_err(|_| {
+                error!(
+                    "Posture check: failed to fetch user info for {}",
+                    user.username
+                );
+                Status::internal("unexpected error")
+            })?;
+        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+
         // Evaluate posture.
         let posture_result =
             validate_posture(&self.pool, &request)
@@ -845,7 +857,7 @@ impl ClientMfaServer {
             &user,
             &device,
             None, // posture-only session has no MFA method
-            key.private.clone(),
+            key.public.clone(),
         )
         .await?;
 
@@ -855,7 +867,7 @@ impl ClientMfaServer {
         );
 
         Ok(PostureCheckOutcome::Approved {
-            preshared_key: key.private,
+            preshared_key: key.public,
         })
     }
 
@@ -871,7 +883,7 @@ impl ClientMfaServer {
         preshared_key: String,
     ) -> Result<VpnClientSession<Id>, Status> {
         debug!(
-            "Creating new VPN session for device {device} of user {user} in location {location} after successful MFA authorization."
+            "Creating new VPN session for device {device} of user {user} in location {location}."
         );
 
         // find all active sessions for a given device and location
