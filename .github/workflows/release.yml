@@ -31,6 +31,7 @@ jobs:
       tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}}
         type=sha
       # Explicitly disable latest tag. It will be added otherwise.
       flavor: |
