@@ -33,7 +33,7 @@ jobs:
       - name: Export image tag
         run: |
           BRANCH=${GITHUB_REF#refs/heads/}
-          if [[ "$BRANCH" == release/* ]]; then
+          if [[ "$BRANCH" == release/* ]] || [[ "$BRANCH" == stable/* ]]; then
             IMAGE_TAG=${BRANCH//\//-}
           else
             IMAGE_TAG=$BRANCH
@@ -133,7 +133,7 @@ jobs:
       - name: Export image tag
         run: |
           BRANCH=${GITHUB_REF#refs/heads/}
-          if [[ "$BRANCH" == release/* ]]; then
+          if [[ "$BRANCH" == release/* ]] || [[ "$BRANCH" == stable/* ]]; then
             IMAGE_TAG=${BRANCH//\//-}
           else
             IMAGE_TAG=$BRANCH
@@ -229,7 +229,7 @@ jobs:
       - name: Export image tag
         run: |
           BRANCH=${GITHUB_REF#refs/heads/}
-          if [[ "$BRANCH" == release/* ]]; then
+          if [[ "$BRANCH" == release/* ]] || [[ "$BRANCH" == stable/* ]]; then
             IMAGE_TAG=${BRANCH//\//-}
           else
             IMAGE_TAG=$BRANCH
