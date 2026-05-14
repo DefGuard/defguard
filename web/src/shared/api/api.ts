@@ -47,11 +47,13 @@ import type {
   Device,
   DeviceLocationIpsResponse,
   DevicePostureListFilters,
+  DevicePostureVersionMetadata,
   Edge,
   EdgeInfo,
   EditAclAliasRequest,
   EditAclDestination,
   EditAclRuleRequest,
+  EditDevicePostureRequest,
   EditGroupRequest,
   EditNetworkDeviceRequest,
   EditNetworkLocation,
@@ -436,6 +438,12 @@ const api = {
       client.post(`/device/user/${username}/ip/validate`, data),
   },
   devicePosture: {
+    addDevicePosture: (data: EditDevicePostureRequest) =>
+      client.post<ApiDevicePosture>('/device-posture', removeEmptyStrings(data)),
+    editDevicePosture: (id: number, data: EditDevicePostureRequest) =>
+      client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
+    getDevicePostureVersionMetadata: () =>
+      client.get<DevicePostureVersionMetadata>('/device-posture/versions'),
     getDevicePosturesPage: (params?: DevicePostureListFilters) =>
       fetchPage<ApiDevicePosture>('/device-posture', params),
   },

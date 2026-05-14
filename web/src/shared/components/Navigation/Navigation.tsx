@@ -115,7 +115,7 @@ const navigationConfig: NavGroupProps[] = [
       },
       {
         id: 'posture_checks',
-        icon: 'protection',
+        icon: 'connected-devices',
         label: m.cmp_nav_item_posture_checks(),
         link: '/acl/posture-checks',
         licenseTier: LicenseTier.Enterprise,
