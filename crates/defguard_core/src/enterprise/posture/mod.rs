@@ -27,14 +27,14 @@ pub enum FailureReason {
         actual: String,
     },
     PrereleaseClientNotAllowed,
-	OsVersionTooOld {
-		required: i32,
-		actual: String,
-	},
-	KernelVersionTooOld {
-		required: i32,
-		actual: String,
-	},
+    OsVersionTooOld {
+        required: i32,
+        actual: String,
+    },
+    KernelVersionTooOld {
+        required: i32,
+        actual: String,
+    },
     DiskEncryptionRequired,
     AntivirusRequired,
     AdDomainRequired,

@@ -974,26 +974,26 @@ impl ProxyHandler {
                             }
                             None
                         }
-                        Some(core_request::Payload::DevicePostureCheck(
-                            request,
-                        )) => match self.services.client_mfa.handle_posture_check(request).await {
-                            Ok(PostureCheckOutcome::Approved { preshared_key }) => {
-                                Some(core_response::Payload::DevicePostureCheck(
-                                    DevicePostureCheckResponse { preshared_key },
-                                ))
+                        Some(core_request::Payload::DevicePostureCheck(request)) => {
+                            match self.services.client_mfa.handle_posture_check(request).await {
+                                Ok(PostureCheckOutcome::Approved { preshared_key }) => {
+                                    Some(core_response::Payload::DevicePostureCheck(
+                                        DevicePostureCheckResponse { preshared_key },
+                                    ))
+                                }
+                                Ok(PostureCheckOutcome::Rejected { failed_checks }) => {
+                                    Some(core_response::Payload::DevicePostureRejected(
+                                        DevicePostureRejection {
+                                            failed_posture_checks: failed_checks,
+                                        },
+                                    ))
+                                }
+                                Err(err) => {
+                                    error!("Posture check error: {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
                             }
-                            Ok(PostureCheckOutcome::Rejected { failed_checks }) => {
-                                Some(core_response::Payload::DevicePostureRejected(
-                                    DevicePostureRejection {
-                                        failed_posture_checks: failed_checks,
-                                    },
-                                ))
-                            }
-                            Err(err) => {
-                                error!("Posture check error: {err}");
-                                Some(core_response::Payload::CoreError(err.into()))
-                            }
-                        },
+                        }
                     };
 
                     if let Some(payload) = payload {
