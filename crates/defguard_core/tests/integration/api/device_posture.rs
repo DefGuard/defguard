@@ -448,15 +448,21 @@ async fn test_device_posture_list_filters_os_and_defguard(
     let other = EditDevicePosture {
         name: "Other posture".to_owned(),
         description: None,
-        min_client_version: None,
+        min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
         allow_prerelease_client: false,
-        os_rules: vec![ApiOsRule::Windows {
-            min_os_version: Some(WINDOWS_OS_VERSIONS[1]),
-            disk_encryption_required: Some(false),
-            antivirus_required: Some(false),
-            ad_domain_joined_required: None,
-            windows_security_update_current: None,
-        }],
+        os_rules: vec![
+            ApiOsRule::Windows {
+                min_os_version: Some(windows_version),
+                disk_encryption_required: Some(true),
+                antivirus_required: Some(true),
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+            },
+            ApiOsRule::Android {
+                min_os_version: Some(android_version),
+                device_integrity_required: Some(true),
+            },
+        ],
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -467,8 +473,17 @@ async fn test_device_posture_list_filters_os_and_defguard(
     client.drain_all_events();
 
     let response = client
+        .get("/api/v1/device-posture?defguard=Pre-release%20allowed")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
+    assert_eq!(page.data.len(), 1);
+    assert_eq!(page.data[0].name, "Filtered posture");
+
+    let response = client
         .get(
-            "/api/v1/device-posture?windows=10&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=1.6&defguard=Prerelease%20allowed",
+            "/api/v1/device-posture?windows=10&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=1.6&defguard=Pre-release%20allowed",
         )
         .send()
         .await;
