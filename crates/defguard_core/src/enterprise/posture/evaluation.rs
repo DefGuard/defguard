@@ -74,14 +74,11 @@ fn evaluate_os_rule(
     failures: &mut Vec<FailureReason>,
 ) {
     // min_os_version
-    if let Some(ref required) = rule.min_os_version {
+    if let Some(required) = rule.min_os_version {
         match resolve_string_check(data.os_version.as_ref(), "os_version") {
             Ok(Some(actual)) => match major_version_meets_minimum(required, &actual) {
                 Some(true) => {}
-                Some(false) => failures.push(FailureReason::OsVersionTooOld {
-                    required: required.clone(),
-                    actual,
-                }),
+                Some(false) => failures.push(FailureReason::OsVersionTooOld { required, actual }),
                 None => failures.push(FailureReason::CheckUnavailable {
                     check: "os_version (unparseable)",
                 }),
@@ -134,14 +131,13 @@ fn evaluate_os_rule(
     }
 
     // min_kernel_version (Linux only)
-    if let Some(ref required) = rule.min_kernel_version {
+    if let Some(required) = rule.min_kernel_version {
         match resolve_string_check(data.linux_kernel_version.as_ref(), "linux_kernel_version") {
             Ok(Some(actual)) => match major_version_meets_minimum(required, &actual) {
                 Some(true) => {}
-                Some(false) => failures.push(FailureReason::KernelVersionTooOld {
-                    required: required.clone(),
-                    actual,
-                }),
+                Some(false) => {
+                    failures.push(FailureReason::KernelVersionTooOld { required, actual })
+                }
                 None => failures.push(FailureReason::CheckUnavailable {
                     check: "linux_kernel_version (unparseable)",
                 }),

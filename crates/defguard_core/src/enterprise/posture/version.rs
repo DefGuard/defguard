@@ -37,13 +37,16 @@ pub(super) fn version_meets_minimum(required: &str, actual: &str) -> Option<bool
     Some(act >= req)
 }
 
-/// Returns `Some(true)` when `actual.major >= required.major`, ignoring minor and patch.
-/// Used for OS and kernel version checks where only the major release matters.
-/// Returns `None` when either string cannot be parsed.
-pub(super) fn major_version_meets_minimum(required: &str, actual: &str) -> Option<bool> {
-    let req = parse_version_lenient(required)?;
+/// Returns `Some(true)` when `actual`'s major version component is `>= required`,
+/// `Some(false)` when it is older, and `None` when `actual` cannot be parsed.
+///
+/// `required` is a plain major version integer sourced directly from the DB
+/// (the `min_os_version` / `min_kernel_version` columns). `actual` is a
+/// client-reported version string parsed leniently — only its major component
+/// is compared; minor and patch are ignored.
+pub(super) fn major_version_meets_minimum(required: i32, actual: &str) -> Option<bool> {
     let act = parse_version_lenient(actual)?;
-    Some(act.major >= req.major)
+    Some(act.major >= required as u64)
 }
 
 #[cfg(test)]
@@ -63,15 +66,15 @@ mod unit_tests {
     #[test]
     fn major_version_meets_minimum_comparisons() {
         // Same major — always pass regardless of minor/patch.
-        assert_eq!(major_version_meets_minimum("22.10", "22.04"), Some(true));
-        assert_eq!(major_version_meets_minimum("22", "22.99.1"), Some(true));
+        assert_eq!(major_version_meets_minimum(22, "22.04"), Some(true));
+        assert_eq!(major_version_meets_minimum(22, "22.99.1"), Some(true));
         // Higher major — pass.
-        assert_eq!(major_version_meets_minimum("5", "6.0.0"), Some(true));
+        assert_eq!(major_version_meets_minimum(5, "6.0.0"), Some(true));
         // Lower major — fail.
-        assert_eq!(major_version_meets_minimum("6", "5.15.0"), Some(false));
-        assert_eq!(major_version_meets_minimum("23", "22.04"), Some(false));
-        // Unparseable — None.
-        assert_eq!(major_version_meets_minimum("bad", "22.04"), None);
+        assert_eq!(major_version_meets_minimum(6, "5.15.0"), Some(false));
+        assert_eq!(major_version_meets_minimum(23, "22.04"), Some(false));
+        // Unparseable actual — None.
+        assert_eq!(major_version_meets_minimum(22, "not-a-version"), None);
     }
 
     #[test]

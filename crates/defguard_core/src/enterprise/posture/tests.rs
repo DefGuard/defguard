@@ -117,7 +117,7 @@ fn make_request(location_id: i64, data: Option<DevicePostureData>) -> DevicePost
 async fn save_linux_policy(
     pool: &sqlx::PgPool,
     location_id: i64,
-    min_os_version: Option<&str>,
+    min_os_version: Option<i32>,
     disk_encryption_required: Option<bool>,
     min_client_version: Option<&str>,
     allow_prerelease_client: bool,
@@ -137,7 +137,7 @@ async fn save_linux_policy(
         id: defguard_common::db::NoId,
         posture_id: policy.id,
         os_type: OsType::Linux,
-        min_os_version: min_os_version.map(str::to_string),
+        min_os_version,
         disk_encryption_required,
         antivirus_required: None,
         ad_domain_joined_required: None,
@@ -184,7 +184,7 @@ async fn pass_all_checks_met(_: PgPoolOptions, options: PgConnectOptions) {
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, Some("20.04"), Some(true), None, true).await;
+    save_linux_policy(&pool, location_id, Some(20), Some(true), None, true).await;
 
     let result = validate_posture(
         &pool,
@@ -202,7 +202,7 @@ async fn pass_boundary_os_version_exact(_: PgPoolOptions, options: PgConnectOpti
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, Some("22.04"), None, None, true).await;
+    save_linux_policy(&pool, location_id, Some(22), None, None, true).await;
 
     let result = validate_posture(
         &pool,
@@ -312,7 +312,7 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
         antivirus_required: None,
         ad_domain_joined_required: None,
         windows_security_update_current: None,
-        min_kernel_version: Some("6.1.0".to_string()),
+        min_kernel_version: Some(6),
         device_integrity_required: None,
     }
     .save(&pool)
@@ -471,7 +471,7 @@ async fn fail_os_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, Some("22.04"), None, None, true).await;
+    save_linux_policy(&pool, location_id, Some(22), None, None, true).await;
 
     let result = validate_posture(
         &pool,
@@ -496,7 +496,7 @@ async fn pass_os_version_same_major_lower_minor(_: PgPoolOptions, options: PgCon
     let location_id = create_location(&pool).await;
 
     // Require 22.10 — device has 22.04 (same major, older minor).
-    save_linux_policy(&pool, location_id, Some("22.10"), None, None, true).await;
+    save_linux_policy(&pool, location_id, Some(22), None, None, true).await;
 
     let result = validate_posture(
         &pool,
@@ -858,7 +858,7 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
         antivirus_required: None,
         ad_domain_joined_required: None,
         windows_security_update_current: None,
-        min_kernel_version: Some("6.1.0".to_string()),
+        min_kernel_version: Some(6),
         device_integrity_required: None,
     }
     .save(&pool)
