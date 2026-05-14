@@ -285,3 +285,71 @@ async fn test_allow_all_users(_: PgPoolOptions, options: PgConnectOptions) {
         );
     }
 }
+
+#[sqlx::test]
+async fn test_deny_overrides_allow(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-then-deny", vec![destination]);
+
+    // User appears in both allowed and denied - deny overrides allow.
+    create_acl_rule(
+        &pool,
+        rule,
+        &[location.id],
+        &[user.id], // explicitly allowed
+        &[user.id], // explicitly denied
+        &[],
+        &[],
+        &[],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+    assert!(result.is_empty(), "deny should override allow");
+}
+
+#[sqlx::test]
+async fn test_deny_all_users(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user: User<NoId> = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    // deny_all_users = true combined with allow_all_users = true - deny overrides allow.
+    let rule = AclRule {
+        name: "deny-everyone".into(),
+        state: RuleState::Applied,
+        enabled: true,
+        allow_all_users: true,
+        deny_all_users: true,
+        addresses: vec![destination],
+        any_address: false,
+        any_port: true,
+        any_protocol: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+    create_acl_rule(&pool, rule, &[location.id], &[], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+    assert!(
+        result.is_empty(),
+        "deny_all_users should prevent any access"
+    );
+}
