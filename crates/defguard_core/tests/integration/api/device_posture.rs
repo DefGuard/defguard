@@ -3,11 +3,14 @@ use defguard_core::{
     enterprise::{
         db::models::device_posture::{DevicePosture, DevicePostureSnapshot},
         handlers::device_posture::{
-            ANDROID_OS_VERSIONS, ApiDevicePosture, ApiOsRule, AssignLocationsData,
-            AssignPosturesData, CLIENT_VERSIONS, DevicePostureVersionMetadata, EditDevicePosture,
-            IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS, MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
+            ApiDevicePosture, ApiOsRule, AssignLocationsData, AssignPosturesData,
+            DevicePostureVersionMetadata, EditDevicePosture,
         },
         license::{get_cached_license, set_cached_license},
+        posture::version_list::{
+            ANDROID_OS_VERSIONS, CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
+            MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
+        },
     },
     events::ApiEventType,
 };

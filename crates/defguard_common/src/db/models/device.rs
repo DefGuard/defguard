@@ -46,6 +46,7 @@ pub struct DeviceConfig {
     pub keepalive_interval: i32,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
+    pub posture_check_required: bool,
 }
 
 // The type of a device:
@@ -764,6 +765,7 @@ impl Device<Id> {
             .await?;
 
         let config = Self::create_config(network, &wireguard_network_device);
+        let has_postures = network.has_postures(&mut *transaction).await?;
         let device_config = DeviceConfig {
             network_id: network.id,
             network_name: network.name.clone(),
@@ -776,6 +778,7 @@ impl Device<Id> {
             keepalive_interval: network.keepalive_interval,
             location_mfa_mode: network.location_mfa_mode.clone(),
             service_location_mode: network.service_location_mode.clone(),
+            posture_check_required: has_postures,
         };
 
         Ok((device_network_info, device_config))
@@ -795,6 +798,7 @@ impl Device<Id> {
             .await?;
 
         let config = Self::create_config(network, &wireguard_network_device);
+        let has_postures = network.has_postures(&mut *transaction).await?;
         let device_config = DeviceConfig {
             network_id: network.id,
             network_name: network.name.clone(),
@@ -807,6 +811,7 @@ impl Device<Id> {
             keepalive_interval: network.keepalive_interval,
             location_mfa_mode: network.location_mfa_mode.clone(),
             service_location_mode: network.service_location_mode.clone(),
+            posture_check_required: has_postures,
         };
 
         Ok((device_network_info, device_config))
@@ -870,6 +875,7 @@ impl Device<Id> {
             network_info.push(device_network_info);
 
             let config = Self::create_config(&network, &wireguard_network_device);
+            let has_postures = network.has_postures(&mut *conn).await?;
             configs.push(DeviceConfig {
                 network_id: network.id,
                 network_name: network.name,
@@ -882,6 +888,7 @@ impl Device<Id> {
                 keepalive_interval: network.keepalive_interval,
                 location_mfa_mode: network.location_mfa_mode.clone(),
                 service_location_mode: network.service_location_mode.clone(),
+                posture_check_required: has_postures,
             });
         }
         Ok((network_info, configs))

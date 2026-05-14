@@ -5,6 +5,7 @@ use std::{
 };
 
 use chrono::Utc;
+
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     db::{
@@ -24,6 +25,7 @@ use defguard_proto::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
         ClientMfaStartResponse, MfaMethod,
     },
+    enterprise::posture::DevicePostureCheckRequest,
     proxy::{
         self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse,
         ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse,
@@ -43,7 +45,11 @@ use tokio::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider,
+        is_business_license_active,
+        posture::{PostureCheckError, PostureResult, validate_posture},
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayEvent, utils::parse_client_ip_agent},
 };
@@ -685,15 +691,16 @@ impl ClientMfaServer {
         let key = WireguardNetwork::genkey();
 
         // create new VPN client session
-        let vpn_client_session = self.create_new_mfa_session(
-            &mut transaction,
-            &location,
-            &user,
-            &device,
-            method.into(),
-            key.public.clone(),
-        )
-        .await
+        let vpn_client_session = self
+            .create_new_session(
+                &mut transaction,
+                &location,
+                &user,
+                &device,
+                Some(method.into()),
+                key.public.clone(),
+            )
+            .await
             .map_err(|err| {
                 error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
                 Status::internal("unexpected error")
@@ -762,27 +769,141 @@ impl ClientMfaServer {
         Ok(response)
     }
 
+    /// Handles a `PostureCheck` request from the proxy bidi stream.
+    ///
+    /// Validates the posture data, and on success creates a new `VpnClientSession`
+    /// with a generated preshared key. Returns a typed outcome so the caller can
+    /// map it to the appropriate `CoreResponse` payload without needing to know about
+    /// session internals.
+    pub async fn handle_posture_check(
+        &mut self,
+        request: DevicePostureCheckRequest,
+    ) -> Result<PostureCheckOutcome, Status> {
+        debug!(
+            "Handling posture check for device pubkey={} location_id={}",
+            request.pubkey, request.location_id
+        );
+
+        // Look up location, device, and user.
+        let Ok(Some(location)) =
+            WireguardNetwork::find_by_id(&self.pool, request.location_id).await
+        else {
+            error!("Posture check: location {} not found", request.location_id);
+            return Err(Status::invalid_argument("location not found"));
+        };
+
+        let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
+            error!(
+                "Posture check: device with pubkey {} not found",
+                request.pubkey
+            );
+            return Err(Status::invalid_argument("device not found"));
+        };
+
+        let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
+            error!("Posture check: user {} not found", device.user_id);
+            return Err(Status::internal("user not found"));
+        };
+
+        // Ensure user is active
+        if !user.is_active {
+            error!("Posture check: user {} is inactive", device.user_id);
+            return Err(Status::invalid_argument("user is inactive"));
+        }
+
+        // Validate that the user is allowed to access this location.
+        let user_info = UserInfo::from_user(&self.pool, user.clone())
+            .await
+            .map_err(|_| {
+                error!(
+                    "Posture check: failed to fetch user info for {}",
+                    user.username
+                );
+                Status::internal("unexpected error")
+            })?;
+        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+
+        // Evaluate posture.
+        let posture_result =
+            validate_posture(&self.pool, &request)
+                .await
+                .map_err(|err| match err {
+                    PostureCheckError::NoActiveEnterpriseLicense => Status::failed_precondition(
+                        "enterprise license required for posture checks",
+                    ),
+                    PostureCheckError::DbError(e) => {
+                        error!("DB error during posture validation: {e}");
+                        Status::internal("unexpected error")
+                    }
+                })?;
+
+        // Posture check failed - return payload with reasons
+        if let PostureResult::Fail(reasons) = posture_result {
+            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+            return Ok(PostureCheckOutcome::Rejected { failed_checks });
+        }
+
+        // Posture check succeeded - create a vpn session
+        let key = WireguardNetwork::genkey();
+
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        self.create_new_session(
+            &mut transaction,
+            &location,
+            &user,
+            &device,
+            None, // posture-only session has no MFA method
+            key.public.clone(),
+        )
+        .await?;
+
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        info!(
+            "Posture check passed for device {} (user {}) in location {}. Session created.",
+            device, user.username, location
+        );
+
+        Ok(PostureCheckOutcome::Approved {
+            preshared_key: key.public,
+        })
+    }
+
     /// Helper used to close all existing active sessions while creating a new MFA session
     /// and send relevant gateway updates
-    async fn create_new_mfa_session(
+    async fn create_new_session(
         &self,
         conn: &mut PgConnection,
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
-        mfa_method: VpnClientMfaMethod,
+        mfa_method: Option<VpnClientMfaMethod>,
         preshared_key: String,
     ) -> Result<VpnClientSession<Id>, Status> {
         debug!(
-            "Creating new VPN session for device {device} of user {user} in location {location} after successful MFA authorization."
+            "Creating new VPN session for device {device} of user {user} in location {location}."
         );
 
         // find all active sessions for a given device and location
-        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(&mut *conn, location.id, device.id).await
-            .map_err(|err| {
-                error!("Failed to fetch active VPN sessions for device {device} in location {location}: {err}");
-                Status::internal("unexpected error")
-            })?;
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &mut *conn,
+            location.id,
+            device.id,
+        )
+        .await
+        .map_err(|err| {
+            error!(
+                "Failed to fetch active VPN sessions for device {device} in location {location}: {err}"
+            );
+            Status::internal("unexpected error")
+        })?;
         if !active_sessions.is_empty() {
             info!(
                 "Found {} active sessions for device {device} in location {location}. Disconnecting them before creating a new MFA session",
@@ -798,8 +919,7 @@ impl ClientMfaServer {
         }
 
         // create new MFA session
-        let mut session =
-            VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method));
+        let mut session = VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
         session.preshared_key = Some(preshared_key);
         session.save(conn).await.map_err(|err| {
             error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
@@ -864,6 +984,14 @@ impl ClientMfaServer {
     }
 }
 
+/// Result of a [`ClientMfaServer::handle_posture_check`] call.
+pub enum PostureCheckOutcome {
+    /// Posture evaluation passed; the contained key must be returned to the client.
+    Approved { preshared_key: String },
+    /// Posture evaluation failed; the contained list describes which checks failed.
+    Rejected { failed_checks: Vec<String> },
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -924,13 +1052,13 @@ mod tests {
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace connected MFA session");
@@ -999,13 +1127,13 @@ mod tests {
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace new MFA session");
@@ -1058,13 +1186,13 @@ mod tests {
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace connected non-MFA session");
@@ -1198,13 +1326,13 @@ mod tests {
             .expect("failed to acquire database connection");
 
         let new_session = server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                NEW_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                NEW_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("failed to create replacement MFA session");

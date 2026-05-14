@@ -37,6 +37,7 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 method: MfaMethod::Email as i32,
+                posture_data: None,
             },
         )),
     });
@@ -68,6 +69,7 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
                 location_id: nonexistent_location_id,
                 pubkey: device.wireguard_pubkey.clone(),
                 method: MfaMethod::Email as i32,
+                posture_data: None,
             },
         )),
     });
@@ -210,6 +212,7 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
                 location_id: network.id,
                 pubkey: "no-such-pubkey".to_owned(),
                 method: MfaMethod::Email as i32,
+                posture_data: None,
             },
         )),
     });
@@ -242,6 +245,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 method: MfaMethod::Email as i32,
+                posture_data: None,
             },
         )),
     });
@@ -417,6 +421,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 method: MfaMethod::Oidc as i32,
+                posture_data: None,
             },
         )),
     });

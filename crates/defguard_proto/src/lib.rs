@@ -26,6 +26,11 @@ mod generated {
                     tonic::include_proto!("defguard.enterprise.firewall.v2");
                 }
             }
+            pub mod posture {
+                pub mod v2 {
+                    tonic::include_proto!("defguard.enterprise.posture.v2");
+                }
+            }
         }
 
         pub mod client_types {
@@ -55,6 +60,9 @@ pub mod worker {
 pub mod enterprise {
     pub mod firewall {
         pub use crate::generated::defguard::enterprise::firewall::v2::*;
+    }
+    pub mod posture {
+        pub use crate::generated::defguard::enterprise::posture::v2::*;
     }
 }
 
@@ -166,6 +174,7 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
                 )
                 .into(),
             ),
+            posture_check_required: Some(config.posture_check_required),
         }
     }
 }
