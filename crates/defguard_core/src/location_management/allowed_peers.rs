@@ -1,6 +1,6 @@
 use defguard_common::db::{Id, models::WireguardNetwork};
 use defguard_proto::gateway::Peer;
-use sqlx::{PgExecutor, query};
+use sqlx::{PgConnection, PgExecutor, query};
 
 use crate::grpc::should_prevent_service_location_usage;
 
@@ -11,13 +11,10 @@ use crate::grpc::should_prevent_service_location_usage;
 ///
 /// If the location is a service location, only returns peers if enterprise features are enabled.
 /// MFA-enabled locations only return peers backed by an active session with a runtime preshared key.
-pub async fn get_location_allowed_peers<'e, E>(
+pub async fn get_location_allowed_peers(
     location: &WireguardNetwork<Id>,
-    executor: E,
-) -> sqlx::Result<Vec<Peer>>
-where
-    E: PgExecutor<'e>,
-{
+    conn: &mut PgConnection,
+) -> sqlx::Result<Vec<Peer>> {
     debug!("Fetching all allowed peers for location {}", location.id);
 
     if should_prevent_service_location_usage(location) {
@@ -28,7 +25,8 @@ where
         return Ok(Vec::new());
     }
 
-    if !location.mfa_enabled() {
+    let has_postures = location.has_postures(&mut *conn).await?;
+    if !location.mfa_enabled() && !has_postures {
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, \
                     ARRAY( \
@@ -44,7 +42,7 @@ where
                 ORDER BY d.id ASC",
             location.id,
         )
-        .fetch_all(executor)
+        .fetch_all(&mut *conn)
         .await?;
 
         return Ok(rows
@@ -84,7 +82,7 @@ where
             ORDER BY d.id ASC",
         location.id,
     )
-    .fetch_all(executor)
+    .fetch_all(&mut *conn)
     .await?;
 
     Ok(rows

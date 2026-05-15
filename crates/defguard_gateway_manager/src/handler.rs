@@ -230,7 +230,7 @@ impl GatewayHandler {
             );
         }
 
-        let peers = get_location_allowed_peers(&network, &self.pool).await?;
+        let peers = get_location_allowed_peers(&network, &mut *conn).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
         let payload = Some(core_response::Payload::Config(Configuration::new(
