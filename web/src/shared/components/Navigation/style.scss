@@ -14,7 +14,7 @@
   justify-content: flex-start;
   min-height: 100dvh;
 
-  & > .top {
+  &>.top {
     display: flex;
     flex-flow: row nowrap;
     align-items: center;
@@ -23,7 +23,19 @@
     padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
     width: 100%;
 
-    & > .control {
+    &>.version-badge {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-left: var(--spacing-md);
+      font: var(--t-body-xxs-500);
+      color: var(--fg-neutral);
+      background-color: var(--bg-emphasis);
+      border-radius: var(--radius-sm);
+      padding: 2px var(--spacing-xs);
+    }
+
+    &>.control {
       margin-left: auto;
 
       .icon[icon-kind='hamburger'] path {
@@ -32,7 +44,7 @@
     }
   }
 
-  & > .groups {
+  &>.groups {
     display: flex;
     flex-flow: column;
     row-gap: var(--spacing-lg);
@@ -41,7 +53,7 @@
     width: 100%;
   }
 
-  & > .bottom {
+  &>.bottom {
     width: 100%;
     margin-top: auto;
     box-sizing: border-box;
@@ -60,7 +72,7 @@
   user-select: none;
   width: 100%;
 
-  & > .track {
+  &>.track {
     display: flex;
     flex-flow: row nowrap;
     align-items: center;
@@ -81,7 +93,7 @@
   .fold-content {
     padding-top: var(--spacing-xs);
 
-    & > .items {
+    &>.items {
       display: flex;
       flex-flow: column;
       row-gap: var(--spacing-xs);
@@ -118,13 +130,13 @@
     --color: var(--fg-action);
   }
 
-  & > .icon path {
+  &>.icon path {
     fill: var(--color);
 
     @include animate(fill);
   }
 
-  & > span {
+  &>span {
     font: var(--t-body-sm-500);
     color: inherit;
   }

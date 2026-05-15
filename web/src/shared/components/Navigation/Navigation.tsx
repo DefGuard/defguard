@@ -223,11 +223,15 @@ export const Navigation = () => {
     }));
   }, [aliasesCount, destinationsCount, rulesCount]);
 
+  const rawVersion = useApp((s) => s.appInfo.version);
+  const semverVersion = rawVersion ? rawVersion.split('+')[0] : null;
+
   if (!isAdmin || !isOpen) return null;
   return (
     <div className="navigation">
       <div className="top">
         <NavLogo />
+        {semverVersion && <span className="version-badge">{semverVersion}</span>}
         <div className="control">
           <IconButton
             icon="hamburger"
