@@ -16,7 +16,7 @@ use std::{
 };
 
 use crate::enterprise::{
-    allowed_ips::get_allowed_ips_from_acl_rules,
+    allowed_ips::{AllowedIpsError, get_allowed_ips_from_acl_rules},
     db::models::acl::{
         AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleGroup, AclRuleNetwork,
         AclRuleUser, AliasKind, AliasState, RuleState,
@@ -756,4 +756,28 @@ async fn test_address_range_decomposed_to_cidrs(_: PgPoolOptions, options: PgCon
         "10.0.1.14/32".parse().unwrap(),
     ];
     assert_eq!(result, expected);
+}
+
+#[sqlx::test]
+async fn test_acl_not_enabled_returns_error(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    // Location with acl_enabled = false (the default).
+    let mut location = WireguardNetwork::default()
+        .try_set_address("10.0.0.1/24")
+        .unwrap();
+    location.acl_enabled = false;
+    let location = location.save(&pool).await.unwrap();
+
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user).await;
+
+    assert!(
+        matches!(result, Err(AllowedIpsError::AclNotEnabled)),
+        "expected AclNotEnabled error, got {result:?}"
+    );
 }
