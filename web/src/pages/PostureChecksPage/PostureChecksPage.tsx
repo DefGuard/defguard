@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { ColumnFiltersState } from '@tanstack/react-table';
 import { Suspense, useMemo, useState } from 'react';
@@ -16,6 +16,7 @@ import {
   getLicenseInfoQueryOptions,
 } from '../../shared/query';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
+import { shouldFetchPostureChecksEnterpriseData } from './license';
 import { PostureChecksTable } from './PostureChecksTable';
 import {
   getPostureCheckColumnFilterOptions,
@@ -47,16 +48,31 @@ const PostureChecksContent = () => {
   const { data: licenseInfo, isFetching: licenseInfoFetching } = useSuspenseQuery(
     getLicenseInfoQueryOptions,
   );
-  const { data: versionMetadata } = useSuspenseQuery(
-    getDevicePostureVersionMetadataQueryOptions,
+  const canUseEnterprise = useMemo(
+    () => canUseEnterpriseFeature(licenseInfo).result,
+    [licenseInfo],
   );
+  const { data: versionMetadata, isLoading: versionMetadataLoading } = useQuery({
+    ...getDevicePostureVersionMetadataQueryOptions,
+    enabled: shouldFetchPostureChecksEnterpriseData(canUseEnterprise),
+  });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const versionValues = useMemo(
-    () => getPostureCheckVersionValues(versionMetadata),
+    () => (versionMetadata ? getPostureCheckVersionValues(versionMetadata) : null),
     [versionMetadata],
   );
   const columnFilterOptions = useMemo(
-    () => getPostureCheckColumnFilterOptions(versionValues),
+    () =>
+      versionValues
+        ? getPostureCheckColumnFilterOptions(versionValues)
+        : {
+            windows: [],
+            macos: [],
+            linux: [],
+            ios: [],
+            android: [],
+            defguard: [],
+          },
     [versionValues],
   );
   const requestFilters = useMemo(
@@ -81,6 +97,7 @@ const PostureChecksContent = () => {
 
       return null;
     },
+    enabled: shouldFetchPostureChecksEnterpriseData(canUseEnterprise),
   });
 
   const flatQueryData = useMemo(() => data?.pages.flat() ?? null, [data?.pages]);
@@ -106,7 +123,7 @@ const PostureChecksContent = () => {
     [licenseInfo, licenseInfoFetching, navigate],
   );
 
-  if (isLoading) {
+  if (canUseEnterprise && (isLoading || versionMetadataLoading)) {
     return <TableSkeleton />;
   }
 

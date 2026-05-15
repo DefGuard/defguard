@@ -32,6 +32,7 @@ import type {
   ApiDevicePosture,
   ApiToken,
   ApplicationInfo,
+  AssignPosturesData,
   AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
@@ -444,8 +445,11 @@ const api = {
       client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
     getDevicePostureVersionMetadata: () =>
       client.get<DevicePostureVersionMetadata>('/device-posture/versions'),
+    getDevicePostures: () => fetchAllPages<ApiDevicePosture>('/device-posture'),
     getDevicePosturesPage: (params?: DevicePostureListFilters) =>
       fetchPage<ApiDevicePosture>('/device-posture', params),
+    setLocationPostures: (locationId: number, data: AssignPosturesData) =>
+      client.put<number[]>(`/network/${locationId}/postures`, data),
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
