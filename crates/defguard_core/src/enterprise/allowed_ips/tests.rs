@@ -61,7 +61,7 @@ async fn create_acl_rule(
     denied_user_ids: &[Id],
     allowed_group_ids: &[Id],
     denied_group_ids: &[Id],
-    destination_ranges: &[(IpNetwork, IpNetwork)],
+    destination_ranges: &[(IpAddr, IpAddr)],
 ) -> Id {
     let mut conn = pool.acquire().await.unwrap();
     let rule = rule.save(&mut *conn).await.unwrap();
@@ -97,12 +97,12 @@ async fn create_acl_rule(
             .await
             .unwrap();
     }
-    for (start, end) in destination_ranges {
+    for &(start, end) in destination_ranges {
         AclRuleDestinationRange {
             id: NoId,
             rule_id,
-            start: start.network(),
-            end: end.broadcast(),
+            start,
+            end,
         }
         .save(&mut *conn)
         .await
@@ -735,10 +735,7 @@ async fn test_address_range_decomposed_to_cidrs(_: PgPoolOptions, options: PgCon
         &[],
         &[],
         &[],
-        &[(
-            "10.0.1.1/32".parse().unwrap(),
-            "10.0.1.14/32".parse().unwrap(),
-        )],
+        &[("10.0.1.1".parse().unwrap(), "10.0.1.14".parse().unwrap())],
     )
     .await;
 
