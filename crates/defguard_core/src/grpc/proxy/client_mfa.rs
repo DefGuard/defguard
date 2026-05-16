@@ -166,7 +166,7 @@ impl ClientMfaServer {
     pub async fn start_client_mfa_login(
         &mut self,
         request: ClientMfaStartRequest,
-    ) -> Result<ClientMfaStartResponse, Status> {
+    ) -> Result<ClientMfaStartOutcome, Status> {
         debug!("Starting desktop client login: {request:?}");
         // fetch location
         let Ok(Some(location)) =
@@ -202,6 +202,39 @@ impl ClientMfaServer {
 
         // validate user is allowed to connect to a given location
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
+
+        // Evaluate postures if necessary.
+        let has_postures = location.has_postures(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to fetch postures for location {}({}): {err}",
+                location.name, location.id
+            );
+            Status::internal("unexpected error")
+        })?;
+        if has_postures {
+            let posture_result = validate_posture(
+                &self.pool,
+                location.id,
+                &request.pubkey,
+                &request.posture_data,
+            )
+            .await
+            .map_err(|err| match err {
+                PostureCheckError::NoActiveEnterpriseLicense => {
+                    Status::failed_precondition("enterprise license required for posture checks")
+                }
+                PostureCheckError::DbError(e) => {
+                    error!("DB error during posture validation: {e}");
+                    Status::internal("unexpected error")
+                }
+            })?;
+
+            // Posture check failed - return payload with reasons
+            if let PostureResult::Fail(reasons) = posture_result {
+                let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+                return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+            }
+        }
 
         user.verify_mfa_state(&self.pool).await.map_err(|err| {
             error!(
@@ -378,10 +411,10 @@ impl ClientMfaServer {
                 },
             );
 
-        Ok(ClientMfaStartResponse {
+        Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
             token,
             challenge: response_challenge,
-        })
+        }))
     }
 
     /// Checks if given user is allowed to access a location
@@ -824,18 +857,22 @@ impl ClientMfaServer {
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
 
         // Evaluate posture.
-        let posture_result =
-            validate_posture(&self.pool, &request)
-                .await
-                .map_err(|err| match err {
-                    PostureCheckError::NoActiveEnterpriseLicense => Status::failed_precondition(
-                        "enterprise license required for posture checks",
-                    ),
-                    PostureCheckError::DbError(e) => {
-                        error!("DB error during posture validation: {e}");
-                        Status::internal("unexpected error")
-                    }
-                })?;
+        let posture_result = validate_posture(
+            &self.pool,
+            location.id,
+            &request.pubkey,
+            &request.device_posture_data,
+        )
+        .await
+        .map_err(|err| match err {
+            PostureCheckError::NoActiveEnterpriseLicense => {
+                Status::failed_precondition("enterprise license required for posture checks")
+            }
+            PostureCheckError::DbError(e) => {
+                error!("DB error during posture validation: {e}");
+                Status::internal("unexpected error")
+            }
+        })?;
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
@@ -988,6 +1025,15 @@ impl ClientMfaServer {
 pub enum PostureCheckOutcome {
     /// Posture evaluation passed; the contained key must be returned to the client.
     Approved { preshared_key: String },
+    /// Posture evaluation failed; the contained list describes which checks failed.
+    Rejected { failed_checks: Vec<String> },
+}
+
+/// Result of a [`ClientMfaServer::start_client_mfa_login`] call.
+/// Adds posture check outcome info.
+pub enum ClientMfaStartOutcome {
+    /// Posture evaluation succeeded or was unnecessary.
+    Approved(ClientMfaStartResponse),
     /// Posture evaluation failed; the contained list describes which checks failed.
     Rejected { failed_checks: Vec<String> },
 }
