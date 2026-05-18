@@ -9,10 +9,10 @@ use defguard_common::db::{
         wireguard::{LocationMfaMode, WireguardNetwork},
     },
 };
+use defguard_common::gateway_event::GatewayEvent;
 use defguard_common::gateway_types::{
     FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol, SnatBinding,
 };
-use defguard_core::grpc::GatewayEvent;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig as ProtoFirewallConfig,
     gateway::{

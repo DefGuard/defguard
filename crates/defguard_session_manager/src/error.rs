@@ -1,5 +1,5 @@
 use defguard_common::db::Id;
-use defguard_core::grpc::GatewayEvent;
+use defguard_common::gateway_event::GatewayEvent;
 use thiserror::Error;
 use tokio::sync::{broadcast::error::SendError as BroadcastSendError, mpsc::error::SendError};
 

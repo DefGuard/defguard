@@ -24,7 +24,8 @@ use defguard_common::db::{
     },
     setup_pool,
 };
-use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
+use defguard_common::gateway_event::GatewayEvent;
+use defguard_core::events::BidiStreamEvent;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
     proxy_server,

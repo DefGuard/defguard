@@ -10,6 +10,7 @@ use axum::{
     serve,
 };
 use axum_extra::extract::cookie::Key;
+use defguard_common::gateway_event::GatewayEvent;
 use defguard_common::{VERSION, db::models::Settings, types::proxy::ProxyControlMessage};
 use defguard_core::{
     appstate::AppState,
@@ -17,7 +18,6 @@ use defguard_core::{
     db::AppEvent,
     enterprise::handlers::openid_login::{auth_callback, get_auth_info},
     events::ApiEvent,
-    grpc::GatewayEvent,
     handle_404,
     handlers::{
         auth::{

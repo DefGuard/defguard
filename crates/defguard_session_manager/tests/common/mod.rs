@@ -16,6 +16,7 @@ use defguard_common::{
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
+    gateway_event::GatewayEvent,
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_session_manager::{
@@ -37,7 +38,7 @@ pub(crate) struct SessionManagerHarness {
     stats_tx: mpsc::UnboundedSender<PeerStatsUpdate>,
     pub(crate) stats_rx: mpsc::UnboundedReceiver<PeerStatsUpdate>,
     pub(crate) event_rx: mpsc::UnboundedReceiver<SessionManagerEvent>,
-    pub(crate) gateway_rx: broadcast::Receiver<defguard_core::grpc::GatewayEvent>,
+    pub(crate) gateway_rx: broadcast::Receiver<GatewayEvent>,
 }
 
 pub(crate) fn assert_no_session_manager_events(harness: &mut SessionManagerHarness) {

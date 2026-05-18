@@ -114,10 +114,8 @@ mod tests {
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     };
-    use defguard_core::{
-        events::{BidiRequestContext, BidiStreamEventType},
-        grpc::GatewayEvent,
-    };
+    use defguard_common::gateway_event::GatewayEvent;
+    use defguard_core::events::{BidiRequestContext, BidiStreamEventType};
     use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
 
     use super::*;

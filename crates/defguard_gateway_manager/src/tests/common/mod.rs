@@ -11,6 +11,7 @@ use std::{
     time::Duration,
 };
 
+use defguard_common::gateway_event::GatewayEvent;
 use defguard_common::{
     db::{
         Id, NoId,
@@ -21,7 +22,6 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::{CoreRequest, CoreResponse, PeerStats, core_request, gateway_server};
 use prost_types::Timestamp;
 use sqlx::{PgPool, postgres::PgConnectOptions};

@@ -10,19 +10,14 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{
-            Device, Settings, WireguardNetwork,
-            device::{DeviceInfo, DeviceNetworkInfo},
-            wireguard::ServiceLocationMode,
-        },
+        models::{Settings, WireguardNetwork, wireguard::ServiceLocationMode},
     },
-    gateway_types::{FirewallConfig, WireguardPeer},
     types::UrlParseError,
 };
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     db::AppEvent,
@@ -212,45 +207,9 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
     }
 }
 
-// TODO: move this to common crate
-#[derive(Clone, Debug)]
-pub enum GatewayEvent {
-    NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(
-        Id,
-        WireguardNetwork<Id>,
-        Vec<WireguardPeer>,
-        Option<FirewallConfig>,
-    ),
-    NetworkDeleted(Id, String),
-    DeviceCreated(DeviceInfo),
-    DeviceModified(DeviceInfo),
-    DeviceDeleted(DeviceInfo),
-    FirewallConfigChanged(Id, FirewallConfig),
-    FirewallDisabled(Id),
-    MfaSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
-    MfaSessionDisconnected(Id, Device<Id>),
-}
-
-/// Sends given `GatewayEvent` to be handled by gateway GRPC server
-///
-/// If you want to use it inside the API context, use [`crate::AppState::send_wireguard_event`] instead
-pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
-    debug!("Sending the following WireGuard event to Defguard Gateway: {event:?}");
-    if let Err(err) = wg_tx.send(event) {
-        error!("Error sending WireGuard event {err}");
-    }
-}
-
-/// Sends multiple events to be handled by gateway gRPC server.
-///
-/// If you want to use it inside the API context, use [`crate::AppState::send_multiple_wireguard_events`] instead
-pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<GatewayEvent>) {
-    debug!("Sending {} WireGuard events", events.len());
-    for event in events {
-        send_wireguard_event(event, wg_tx);
-    }
-}
+pub use defguard_common::gateway_event::{
+    GatewayEvent, send_multiple_wireguard_events, send_wireguard_event,
+};
 
 /// If this location is marked as a service location, checks if all requirements are met for it to
 /// function:

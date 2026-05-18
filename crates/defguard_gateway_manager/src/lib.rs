@@ -9,11 +9,11 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use defguard_common::gateway_event::GatewayEvent;
 use defguard_common::{
     db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};

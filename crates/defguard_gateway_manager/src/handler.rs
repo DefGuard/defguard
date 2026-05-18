@@ -12,6 +12,7 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta};
+use defguard_common::gateway_event::GatewayEvent;
 use defguard_common::{
     VERSION,
     db::{
@@ -26,7 +27,6 @@ use defguard_common::{
 };
 use defguard_core::{
     enterprise::firewall::try_get_location_firewall_config,
-    grpc::GatewayEvent,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     location_management::allowed_peers::get_location_allowed_peers,
 };
@@ -1077,8 +1077,8 @@ mod tests {
         },
         setup_pool,
     };
+    use defguard_common::gateway_event::GatewayEvent;
     use defguard_common::gateway_types::{FirewallConfig, FirewallPolicy, WireguardPeer};
-    use defguard_core::grpc::GatewayEvent;
     use defguard_proto::{
         enterprise::firewall::FirewallPolicy as ProtoFirewallPolicy,
         gateway::{Configuration, PeerStats, core_response},

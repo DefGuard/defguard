@@ -17,6 +17,7 @@ use defguard_common::{
             settings::{initialize_current_settings, update_current_settings},
         },
     },
+    gateway_event::GatewayEvent,
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
 };
@@ -30,7 +31,7 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent},
     gateway_config,
-    grpc::{GatewayEvent, WorkerState, run_grpc_server},
+    grpc::{WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,

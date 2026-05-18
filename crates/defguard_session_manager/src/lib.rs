@@ -1,4 +1,5 @@
 use chrono::Utc;
+use defguard_common::gateway_event::GatewayEvent;
 use defguard_common::{
     db::{
         Id,
@@ -9,7 +10,6 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::grpc::GatewayEvent;
 use sqlx::{PgConnection, PgPool};
 use tokio::{
     sync::{
