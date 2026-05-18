@@ -8,6 +8,7 @@ import { useSelectionModal } from './useSelectionModal';
 
 export const SelectionModal = () => {
   const title = useSelectionModal((s) => s.title);
+  const contentClassName = useSelectionModal((s) => s.contentClassName);
   const isOpen = useSelectionModal((s) => s.isOpen);
   const onCancel = useSelectionModal((s) => s.onCancel);
 
@@ -21,6 +22,7 @@ export const SelectionModal = () => {
     <Modal
       title={title}
       id="selection-modal"
+      contentClassName={contentClassName}
       isOpen={isOpen}
       onClose={() => {
         useSelectionModal.setState({ isOpen: false });
@@ -40,6 +42,8 @@ const ModalContent = () => {
   const initialSelected = useSelectionModal((s) => s.selected);
   const renderItem = useSelectionModal((s) => s.renderItem);
   const orderItems = useSelectionModal((s) => s.orderItems);
+  const searchPlaceholder = useSelectionModal((s) => s.searchPlaceholder);
+  const visibleItemsLimit = useSelectionModal((s) => s.visibleItemsLimit);
   const itemGap = useSelectionModal((s) => s.itemGap);
   const enableDividers = useSelectionModal((s) => s.enableDividers);
 
@@ -54,6 +58,8 @@ const ModalContent = () => {
         onChange={setInternalSelection}
         renderItem={renderItem}
         orderItems={orderItems}
+        searchPlaceholder={searchPlaceholder}
+        visibleItemsLimit={visibleItemsLimit}
         itemGap={itemGap}
         enableDividers={enableDividers}
       />

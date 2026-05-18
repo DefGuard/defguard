@@ -591,6 +591,18 @@ pub(crate) async fn delete_group(
                 return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
             }
         }
+        let blocked_locations = group
+            .locations_with_one_allowed_group(&appstate.pool)
+            .await?;
+        if !blocked_locations.is_empty() {
+            let msg = format!(
+                "Cannot delete group {} because it is the only allowed group in locations: {}",
+                group.name,
+                blocked_locations.join(", ")
+            );
+            error!("{msg}");
+            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
+        }
         group.clone().delete(&appstate.pool).await?;
         ldap_delete_group(&group.name, &appstate.pool).await;
 

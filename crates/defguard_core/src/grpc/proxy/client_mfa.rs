@@ -5,7 +5,6 @@ use std::{
 };
 
 use chrono::Utc;
-
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     db::{

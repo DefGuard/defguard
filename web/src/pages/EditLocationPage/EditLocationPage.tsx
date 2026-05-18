@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
 import { useMemo } from 'react';
 import z from 'zod';
@@ -16,9 +16,15 @@ import {
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
-import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
+import type {
+  SelectionOption,
+  SelectionSectionCustomRender,
+} from '../../shared/components/SelectionSection/type';
+import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
 import { externalLink } from '../../shared/constants';
-
+import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -35,6 +41,9 @@ import {
 } from '../../shared/utils/license';
 import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { Validate } from '../../shared/validate';
+import postureCheckShield from './assets/posture_check_shield.png';
+import { renderPostureCheckSelectionItem } from './postureCheckSelectionItem';
+import { getPostureChecksSectionState } from './postureChecksSection';
 
 export const EditLocationPage = () => {
   const { locationId: paramsId } = useParams({
@@ -341,8 +350,45 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     if (licenseInfo === undefined) return undefined;
     return canUseBusinessFeature(licenseInfo).result;
   }, [licenseInfo]);
+  const { data: postureChecks = [] } = useQuery({
+    queryKey: ['device-posture'],
+    queryFn: api.devicePosture.getDevicePostures,
+    enabled: canUseEnterprise === true,
+  });
   const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
+  const postureChecksSectionState = useMemo(
+    () =>
+      getPostureChecksSectionState({
+        assignedPostureChecksCount: location.posture_checks.length,
+        canUseEnterprise,
+        postureChecksCount: postureChecks.length,
+      }),
+    [canUseEnterprise, location.posture_checks.length, postureChecks.length],
+  );
   const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
+
+  const postureCheckOptions = useMemo(
+    () =>
+      postureChecks.map(
+        (postureCheck): SelectionOption<number> => ({
+          id: postureCheck.id,
+          label: postureCheck.name,
+          meta: postureCheck,
+        }),
+      ),
+    [postureChecks],
+  );
+
+  const assignedPostureChecks = useMemo(() => {
+    const labelsById = new Map(
+      postureChecks.map((postureCheck) => [postureCheck.id, postureCheck.name]),
+    );
+
+    return location.posture_checks.map((id) => ({
+      id,
+      label: labelsById.get(id) ?? String(id),
+    }));
+  }, [location.posture_checks, postureChecks]);
 
   const serviceLocationLabelContent = useMemo(() => {
     if (!serviceLocationLocked) return undefined;
@@ -367,6 +413,18 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       </>
     );
   }, [firewallLocked]);
+
+  const postureChecksLabelContent = useMemo(() => {
+    if (!postureChecksSectionState.locked) return undefined;
+    return (
+      <>
+        <p>{m.license_enterprise_required()}</p>
+        <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+          {m.license_upgrade_to_unlock()}
+        </a>
+      </>
+    );
+  }, [postureChecksSectionState.locked]);
 
   const { data: devices } = useQuery({
     queryKey: ['device', 'all'],
@@ -401,6 +459,41 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       Snackbar.error(m.location_edit_failed());
     },
   });
+
+  const { mutate: setLocationPostures, isPending: isUpdatingLocationPostures } =
+    useMutation({
+      mutationFn: (data: { postures: number[] }) =>
+        api.devicePosture.setLocationPostures(location.id, data),
+      meta: {
+        invalidate: [['device-posture'], ['network']],
+      },
+      onError: () => {
+        Snackbar.error(m.location_posture_checks_update_failed());
+      },
+    });
+
+  const openPostureChecksSelection = () => {
+    useSelectionModal.setState({
+      isOpen: true,
+      contentClassName: 'posture-check-assignment-modal',
+      title: m.location_posture_checks_select(),
+      enableDividers: true,
+      itemGap: 12,
+      options: postureCheckOptions,
+      renderItem: renderPostureCheckSelectionItem as SelectionSectionCustomRender<
+        string | number,
+        unknown
+      >,
+      searchPlaceholder: m.controls_search(),
+      selected: new Set(location.posture_checks),
+      visibleItemsLimit: 4,
+      onSubmit: (values) => {
+        setLocationPostures({
+          postures: values.filter((value): value is number => typeof value === 'number'),
+        });
+      },
+    });
+  };
 
   const defaultValues = useMemo(
     (): FormFields => ({
@@ -790,6 +883,71 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               />
             )}
           </form.AppField>
+        </EditPageFormSection>
+        <EditPageFormSection
+          label={m.cmp_nav_item_posture_checks()}
+          labelContent={postureChecksLabelContent}
+        >
+          {postureChecksSectionState.showEmptyState && (
+            <div className="posture-checks-empty-state">
+              <img src={postureCheckShield} alt="" className="posture-check-shield" />
+              <p>
+                {m.location_posture_checks_empty_state_before_link()}{' '}
+                <Link to="/acl/posture-checks">{m.cmp_nav_item_posture_checks()}</Link>{' '}
+                {m.location_posture_checks_empty_state_after_link()}
+              </p>
+            </div>
+          )}
+          {postureChecksSectionState.showAssignedPostureChecks && (
+            <div className="posture-checks-assigned-state">
+              <SelectMultiple
+                options={postureCheckOptions}
+                selected={
+                  new Set(assignedPostureChecks.map((postureCheck) => postureCheck.id))
+                }
+                modalTitle={m.location_posture_checks_select()}
+                editText={m.location_posture_checks_edit()}
+                editIcon={IconKind.Edit}
+                toggleValue={false}
+                counterText={() => ''}
+                onSelectionChange={(values) => {
+                  setLocationPostures({
+                    postures: values.filter(
+                      (value): value is number => typeof value === 'number',
+                    ),
+                  });
+                }}
+                onToggleChange={() => {}}
+                selectionCustomItemRender={renderPostureCheckSelectionItem}
+                selectionModalProps={{
+                  contentClassName: 'posture-check-assignment-modal',
+                  enableDividers: true,
+                  itemGap: 12,
+                  searchPlaceholder: m.controls_search(),
+                  visibleItemsLimit: 6,
+                }}
+              />
+            </div>
+          )}
+          {postureChecksSectionState.showAssignButton && (
+            <Button
+              variant="outlined"
+              iconLeft={IconKind.ConnectedDevices}
+              loading={isUpdatingLocationPostures}
+              text={m.posture_checks_wizard_title()}
+              onClick={openPostureChecksSelection}
+            />
+          )}
+          {postureChecksSectionState.showLockedButton && (
+            <div className="posture-checks-locked-state">
+              <Button
+                variant="primary"
+                disabled
+                iconLeft={IconKind.ConnectedDevices}
+                text={m.posture_checks_wizard_title()}
+              />
+            </div>
+          )}
         </EditPageFormSection>
         <form.Subscribe
           selector={(form) => ({

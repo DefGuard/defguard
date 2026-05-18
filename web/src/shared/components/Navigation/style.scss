@@ -23,6 +23,16 @@
     padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
     width: 100%;
 
+    & > .version-badge {
+      margin-left: var(--spacing-md);
+      font: var(--t-body-xxs-500);
+      font-family: var(--font-family-jetbrains);
+      color: var(--fg-neutral);
+      background-color: var(--bg-emphasis);
+      border-radius: var(--radius-sm);
+      padding: 2px var(--spacing-xs);
+    }
+
     & > .control {
       margin-left: auto;
 

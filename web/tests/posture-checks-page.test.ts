@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shouldFetchPostureChecksEnterpriseData } from '../src/pages/PostureChecksPage/license';
 import {
   filterPostureChecks,
   getPostureCheckColumnFilterOptions,
@@ -66,6 +67,7 @@ describe('posture checks page helpers', () => {
     expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
       id: 1,
       name: 'First posture check',
+      locations: [2],
       windows: '11, Disk encryption, Antivirus',
       windowsFilters: [11, PostureCheckRequirement.DiskEncryption, 'Antivirus'],
       macos: '-',
@@ -104,6 +106,7 @@ describe('posture checks page helpers', () => {
     expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
       id: 2,
       name: 'Second posture check',
+      locations: [],
       windows: '-',
       windowsFilters: [],
       macos: '-',
@@ -130,6 +133,7 @@ describe('posture checks page helpers', () => {
       {
         id: 99,
         name: 'First posture check',
+        locations: [1],
         windows: '11, Disk encryption, Antivirus',
         windowsFilters: [11, PostureCheckRequirement.DiskEncryption, 'Antivirus'],
         macos: '-',
@@ -146,6 +150,7 @@ describe('posture checks page helpers', () => {
       {
         id: 100,
         name: 'Second posture check',
+        locations: [],
         windows: '-',
         windowsFilters: [],
         macos: 'macOS 15 Sequoia, Device integrity',
@@ -217,5 +222,10 @@ describe('posture checks page helpers', () => {
     expect(
       mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
     ).toBe('Pre-release allowed');
+  });
+
+  it('fetches enterprise-only posture data only when enterprise access is available', () => {
+    expect(shouldFetchPostureChecksEnterpriseData(true)).toBe(true);
+    expect(shouldFetchPostureChecksEnterpriseData(false)).toBe(false);
   });
 });
