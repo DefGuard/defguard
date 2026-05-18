@@ -199,7 +199,7 @@ mod test {
         .unwrap();
 
         // PreLogon service location should return peers when enterprise is enabled
-        let peers_prelogon = get_location_allowed_peers(&network_prelogon, &mut *conn)
+        let peers_prelogon = get_location_allowed_peers(&network_prelogon, &mut conn)
             .await
             .unwrap();
         assert_eq!(
@@ -240,7 +240,7 @@ mod test {
         .unwrap();
 
         // AlwaysOn service location should return peers when enterprise is enabled
-        let peers_alwayson = get_location_allowed_peers(&network_alwayson, &mut *conn)
+        let peers_alwayson = get_location_allowed_peers(&network_alwayson, &mut conn)
             .await
             .unwrap();
         assert_eq!(
@@ -302,7 +302,7 @@ mod test {
             .await
             .unwrap();
 
-        let peers = get_location_allowed_peers(&network, &mut *conn)
+        let peers = get_location_allowed_peers(&network, &mut conn)
             .await
             .unwrap();
 
@@ -355,7 +355,7 @@ mod test {
         );
         network_device.insert(&mut *conn).await.unwrap();
 
-        let peers = get_location_allowed_peers(&network, &mut *conn)
+        let peers = get_location_allowed_peers(&network, &mut conn)
             .await
             .unwrap();
 
@@ -447,7 +447,7 @@ mod test {
         connected_session.preshared_key = Some("connected-session-psk".into());
         connected_session.save(&mut *conn).await.unwrap();
 
-        let peers = get_location_allowed_peers(&network, &mut *conn)
+        let peers = get_location_allowed_peers(&network, &mut conn)
             .await
             .unwrap();
 

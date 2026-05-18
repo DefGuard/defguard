@@ -226,7 +226,7 @@ async fn enterprise_status_check(
                     firewall_config,
                 ))?;
             } else {
-                let new_peers = get_location_allowed_peers(&location, &mut *transaction).await?;
+                let new_peers = get_location_allowed_peers(&location, &mut transaction).await?;
                 wireguard_tx.send(GatewayEvent::NetworkModified(
                     location.id,
                     location,

@@ -185,7 +185,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -239,7 +239,7 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
     assert_eq!(allowed_groups, vec!["allowed group"]);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -293,7 +293,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network configuration was created for admin and the allowed group member
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -326,7 +326,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = get_location_allowed_peers(&network, &mut *conn)
+    let new_peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(new_peers.len(), 2);
@@ -359,7 +359,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = get_location_allowed_peers(&network, &mut *conn)
+    let new_peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(new_peers.len(), 3);
@@ -393,7 +393,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = get_location_allowed_peers(&network, &mut *conn)
+    let new_peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(new_peers.len(), 2);
@@ -443,7 +443,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
     let network: WireguardNetwork<Id> = response.json().await;
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -480,7 +480,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
     assert_eq!(allowed_groups, vec!["allowed group"]);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -551,7 +551,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     );
     let network = response.network;
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -658,7 +658,7 @@ PersistentKeepalive = 300
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -745,7 +745,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -766,7 +766,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::DeviceDeleted(..));
     assert_err!(wg_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 1);
@@ -784,7 +784,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 
     assert_err!(wg_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 1);
@@ -804,7 +804,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::DeviceCreated(..));
     assert_err!(wg_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -856,7 +856,7 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
     assert_err!(wg_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -872,7 +872,7 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
 
     assert_err!(wg_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -969,7 +969,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -989,7 +989,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::OK);
 
     // network configuration was created only for the admin device
-    let peers = get_location_allowed_peers(&network, &mut *conn)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 1);

@@ -378,7 +378,7 @@ pub(crate) async fn modify_network(
         .await?;
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
-    let peers = get_location_allowed_peers(&network, &mut *transaction).await?;
+    let peers = get_location_allowed_peers(&network, &mut transaction).await?;
     let maybe_firewall_config =
         try_get_location_firewall_config(&network, &mut transaction).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkModified(

@@ -1,7 +1,7 @@
 use defguard_common::db::Id;
 use defguard_proto::enterprise::posture::{
-    DevicePostureCheckRequest, DevicePostureData, UnavailableReason,
-    bool_check::Result as BoolResult, string_check::Result as StringResult,
+    DevicePostureData, UnavailableReason, bool_check::Result as BoolResult,
+    string_check::Result as StringResult,
 };
 use sqlx::PgPool;
 
