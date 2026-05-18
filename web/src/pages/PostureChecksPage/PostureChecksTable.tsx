@@ -1,5 +1,5 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
   createColumnHelper,
@@ -59,6 +59,7 @@ export const PostureChecksTable = ({
   onNextPage,
   postureChecks,
 }: Props) => {
+  const navigate = useNavigate();
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
   const locationOptions = useMemo(
     () =>
@@ -76,7 +77,7 @@ export const PostureChecksTable = ({
     }: {
       postureCheckId: number;
       locations: number[];
-    }) => api.devicePosture.assignLocations(postureCheckId, locations),
+    }) => api.devicePosture.setLocationsForDevicePosture(postureCheckId, locations),
     meta: {
       invalidate: [['device-posture'], ['network']],
     },
@@ -95,7 +96,13 @@ export const PostureChecksTable = ({
         minSize: 306,
         cell: (info) => (
           <TableCell>
-            <Link to="." className="posture-check-link">
+            <Link
+              to="/acl/posture-checks/$postureCheckId/edit"
+              params={{
+                postureCheckId: String(info.row.original.id),
+              }}
+              className="posture-check-link"
+            >
               {info.getValue()}
             </Link>
           </TableCell>
@@ -205,7 +212,12 @@ export const PostureChecksTable = ({
                   text: m.controls_edit(),
                   icon: 'edit',
                   onClick: () => {
-                    Snackbar.default(`Edit is not available yet for "${row.name}".`);
+                    void navigate({
+                      to: '/acl/posture-checks/$postureCheckId/edit',
+                      params: {
+                        postureCheckId: String(row.id),
+                      },
+                    });
                   },
                 },
                 {
@@ -265,7 +277,7 @@ export const PostureChecksTable = ({
         },
       }),
     ],
-    [assignLocations, columnFilterOptions, locationOptions],
+    [assignLocations, columnFilterOptions, locationOptions, navigate],
   );
 
   const table = useReactTable({

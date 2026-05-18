@@ -1,10 +1,12 @@
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
+import {
+  PostureCheckDefguardSection,
+  type PostureCheckEditorValues,
+} from '../../../shared/components/postureChecksEditor/PostureCheckEditorSections';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
-import { Select } from '../../../shared/defguard-ui/components/Select/Select';
 import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
 import type { PostureCheckVersionValues } from '../../PostureChecksPage/types';
 import { useAddPostureCheckWizardStore } from '../useAddPostureCheckWizardStore';
@@ -28,16 +30,24 @@ export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
   const setAllowPrereleaseClient = useAddPostureCheckWizardStore(
     (s) => s.setAllowPrereleaseClient,
   );
+  const name = useAddPostureCheckWizardStore((s) => s.name);
+  const description = useAddPostureCheckWizardStore((s) => s.description);
+  const configuredOperatingSystems = useAddPostureCheckWizardStore(
+    (s) => s.configuredOperatingSystems,
+  );
+  const operatingSystemState = useAddPostureCheckWizardStore(
+    (s) => s.operatingSystemState,
+  );
 
-  const versionOptions = versionValues.defguard.map((version) => ({
-    key: version,
-    label: m.posture_checks_wizard_client_version_option({ version }),
-    value: version,
-  }));
-
-  const selectedVersion =
-    versionOptions.find((option) => option.value === minimumClientVersion) ??
-    versionOptions[versionOptions.length - 1];
+  const values: PostureCheckEditorValues = {
+    allowPrereleaseClient,
+    configuredOperatingSystems,
+    description,
+    locations: new Set<number>(),
+    minimumClientVersion,
+    name,
+    operatingSystemState,
+  };
 
   return (
     <WizardCard className="add-posture-check-client-version-step">
@@ -45,20 +55,13 @@ export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
         <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
           {m.posture_checks_wizard_client_version_note()}
         </AppText>
-        <Select
-          options={versionOptions}
-          value={selectedVersion}
-          onChange={(option) => {
-            setMinimumClientVersion(option.value);
-          }}
-        />
-        <InteractiveBlock
-          variant="checkbox"
-          value={allowPrereleaseClient}
-          title={m.posture_checks_wizard_client_version_prerelease_title()}
-          content={m.posture_checks_wizard_client_version_prerelease_description()}
-          onClick={() => {
-            setAllowPrereleaseClient(!allowPrereleaseClient);
+        <PostureCheckDefguardSection
+          values={values}
+          versionValues={versionValues}
+          updateValues={(updater) => {
+            const nextValues = updater(values);
+            setMinimumClientVersion(nextValues.minimumClientVersion);
+            setAllowPrereleaseClient(nextValues.allowPrereleaseClient);
           }}
         />
       </div>

@@ -444,13 +444,15 @@ const api = {
     deleteDevicePosture: (id: number) => client.delete(`/device-posture/${id}`),
     editDevicePosture: (id: number, data: EditDevicePostureRequest) =>
       client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
-    assignLocations: (id: number, locations: number[]) =>
-      client.put<number[]>(`/device-posture/${id}/locations`, { locations }),
+    getDevicePosture: (id: number) =>
+      client.get<ApiDevicePosture>(`/device-posture/${id}`),
     getDevicePostureVersionMetadata: () =>
       client.get<DevicePostureVersionMetadata>('/device-posture/versions'),
     getDevicePostures: () => fetchAllPages<ApiDevicePosture>('/device-posture'),
     getDevicePosturesPage: (params?: DevicePostureListFilters) =>
       fetchPage<ApiDevicePosture>('/device-posture', params),
+    setLocationsForDevicePosture: (id: number, locations: number[]) =>
+      client.put<number[]>(`/device-posture/${id}/locations`, { locations }),
     setLocationPostures: (locationId: number, data: AssignPosturesData) =>
       client.put<number[]>(`/network/${locationId}/postures`, data),
   },
