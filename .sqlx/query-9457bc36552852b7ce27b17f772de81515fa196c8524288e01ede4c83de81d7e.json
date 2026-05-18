@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(\n                    SELECT 1 FROM group_user gu\n                    JOIN \"user\" u ON u.id = gu.user_id\n                    WHERE u.id = $1 AND u.is_active AND gu.group_id = ANY($2)\n                )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9457bc36552852b7ce27b17f772de81515fa196c8524288e01ede4c83de81d7e"
+}

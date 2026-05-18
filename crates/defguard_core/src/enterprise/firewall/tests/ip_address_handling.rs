@@ -8,9 +8,8 @@ use ipnetwork::Ipv6Network;
 
 use crate::enterprise::{
     db::models::acl::PortRange,
-    firewall::{
-        find_largest_subnet_in_range, get_last_ip_in_v6_subnet, merge_addrs, merge_port_ranges,
-    },
+    firewall::{merge_addrs, merge_port_ranges},
+    utils::{find_largest_subnet_in_range, get_last_ip_in_v6_subnet},
 };
 
 #[test]

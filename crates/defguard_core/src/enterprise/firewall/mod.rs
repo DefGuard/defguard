@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    ops::RangeInclusive,
-};
+use std::{net::IpAddr, ops::RangeInclusive};
 
 use defguard_common::db::{
     Id,
@@ -17,7 +14,7 @@ use sqlx::{PgConnection, query_as, query_scalar};
 
 use super::{
     db::models::acl::{AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange, Protocol},
-    utils::merge_ranges,
+    utils::{extract_subnets_from_range, get_last_ip_in_v6_subnet, merge_ranges},
 };
 use crate::enterprise::{
     db::models::{acl::AclAlias, snat::UserSnatBinding},
@@ -618,231 +615,40 @@ where
     (merge_addrs(ipv4_dest_addrs), merge_addrs(ipv6_dest_addrs))
 }
 
-fn get_last_ip_in_v6_subnet(subnet: &ipnetwork::Ipv6Network) -> IpAddr {
-    // get subnet IP portion as u128
-    let first_ip = subnet.ip().to_bits();
-
-    let last_ip = first_ip | (!subnet.mask().to_bits());
-
-    IpAddr::V6(last_ip.into())
-}
-
-/// Finds the largest subnet that fits within the given IP address range.
-/// Returns None if no valid subnet can be found.
-fn find_largest_subnet_in_range(start: IpAddr, end: IpAddr) -> Option<IpNetwork> {
-    if start > end {
-        return None;
-    }
-
-    match (start, end) {
-        (IpAddr::V4(start_v4), IpAddr::V4(end_v4)) => {
-            find_largest_ipv4_subnet_in_range(start_v4, end_v4)
-        }
-        (IpAddr::V6(start_v6), IpAddr::V6(end_v6)) => {
-            find_largest_ipv6_subnet_in_range(start_v6, end_v6)
-        }
-        _ => None, // Mixed IP versions
-    }
-}
-
-/// Finds the largest IPv4 subnet that fits within the given range.
-/// The subnet must contain more than one IP address since single IPs have their own gRPC
-/// representation.
-fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<IpNetwork> {
-    let start_bits = start.to_bits();
-    let end_bits = end.to_bits();
-
-    // Find the largest prefix length where the subnet fits in the range.
-    // We make some reasonable assumptions here and skip /0 and /32 networks.
-    for prefix_len in 1..=31 {
-        let mask = u32::MAX << (32 - prefix_len);
-
-        // number of IPs in subnet
-        let subnet_size = 1u32 << (32 - prefix_len);
-
-        // try do find first and last address in subnet
-        // in case the subnet does not align with first address in range
-        // try next potential subnet start
-        let network_addr = start_bits & mask;
-        let network_addr = if network_addr < start_bits {
-            // try next aligned address and handle overflow
-            let next_network_addr = network_addr.wrapping_add(subnet_size);
-            if next_network_addr < network_addr {
-                // overflow occurred, no valid network of this size
-                continue;
-            }
-            next_network_addr
-        } else {
-            network_addr
-        };
-
-        let broadcast_addr = network_addr | !mask;
-
-        if network_addr >= start_bits && broadcast_addr <= end_bits {
-            if let Ok(network) =
-                IpNetwork::new(IpAddr::V4(Ipv4Addr::from(network_addr)), prefix_len)
-            {
-                return Some(network);
-            }
-        }
-    }
-
-    None
-}
-
-/// Finds the largest IPv6 subnet that fits within the given range.
-/// The subnet must contain more than one IP address since single IPs have their own gRPC
-/// representation.
-fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<IpNetwork> {
-    let start_bits = start.to_bits();
-    let end_bits = end.to_bits();
-
-    // Find the largest prefix length where the subnet fits in the range.
-    // We make some reasonable assumptions here and skip /0 and /128 networks.
-    for prefix_len in 1..=127 {
-        let mask = u128::MAX << (128 - prefix_len);
-
-        // number of IPs in subnet
-        let subnet_size = 1u128 << (128 - prefix_len);
-
-        // try do find first and last address in subnet
-        // in case the subnet does not align with first address in range
-        // try next potential subnet start
-        let network_addr = start_bits & mask;
-        let network_addr = if network_addr < start_bits {
-            // try next aligned address and handle overflow
-            let next_network_addr = network_addr.wrapping_add(subnet_size);
-            if next_network_addr < network_addr {
-                // overflow occurred, no valid network of this size
-                continue;
-            }
-            next_network_addr
-        } else {
-            network_addr
-        };
-
-        let broadcast_addr = network_addr | !mask;
-
-        if network_addr >= start_bits && broadcast_addr <= end_bits {
-            if let Ok(network) =
-                IpNetwork::new(IpAddr::V6(Ipv6Addr::from(network_addr)), prefix_len)
-            {
-                return Some(network);
-            }
-        }
-    }
-
-    None
-}
-
-/// Recursively extracts all possible subnets from an IP address range.
-///
-/// This function attempts to find the largest subnet that fits within the given range,
-/// and then recursively processes any remaining address ranges before and after the subnet.
-/// This approach maximizes the use of subnet notation instead of range notation in firewall rules.
-///
-/// # Arguments
-/// * `range_start` - The starting IP address of the range
-/// * `range_end` - The ending IP address of the range
-///
-/// # Returns
-/// A vector of `IpAddress` objects representing the range as a combination of subnets and ranges
+/// Converts an IP address range into `Vec<IpAddress>` for use in firewall rules,
+/// delegating decomposition to the shared [`extract_subnets_from_range`] utility and
+/// mapping each resulting [`IpNetwork`] to the appropriate gRPC [`IpAddress`] variant.
+/// Falls back to [`Address::IpRange`] when the range cannot be expressed as any CIDR.
 fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec<IpAddress> {
-    // Initialize output.
-    let mut result = Vec::new();
+    let networks = extract_subnets_from_range(range_start, range_end);
 
-    // Return early if range represents a single IP address.
-    if range_start == range_end {
-        result.push(IpAddress {
-            address: Some(Address::Ip(range_start.to_string())),
-        });
-        return result;
-    }
-
-    // Try to find the largest subnet that fits in the range.
-    if let Some(subnet) = find_largest_subnet_in_range(range_start, range_end) {
-        let subnet_start = subnet.network();
-        let subnet_end = match subnet {
-            IpNetwork::V4(_) => subnet.broadcast(),
-            IpNetwork::V6(net6) => get_last_ip_in_v6_subnet(&net6),
-        };
-
-        // Check if the subnet covers the entire range
-        if subnet_start == range_start && subnet_end == range_end {
-            // Use subnet notation for the entire range
-            result.push(IpAddress {
-                address: Some(Address::IpSubnet(subnet.to_string())),
-            });
-        } else {
-            // Subnet is found within the range, append both subnet and remaining ranges.
-
-            // Add range before subnet (if any)
-            if range_start < subnet_start {
-                // find last IP before subnet start
-                let prev_ip = match subnet_start {
-                    IpAddr::V4(ip) => {
-                        let ip_u32 = ip.to_bits();
-                        if ip_u32 > 0 {
-                            IpAddr::V4(Ipv4Addr::from(ip_u32 - 1))
-                        } else {
-                            range_start // shouldn't happen in practice
-                        }
-                    }
-                    IpAddr::V6(ip) => {
-                        let ip_u128 = ip.to_bits();
-                        if ip_u128 > 0 {
-                            IpAddr::V6(Ipv6Addr::from(ip_u128 - 1))
-                        } else {
-                            range_start // shouldn't happen in practice
-                        }
-                    }
-                };
-
-                // also check this range for subnets
-                result.extend(extract_all_subnets_from_range(range_start, prev_ip));
-            }
-
-            // Add the subnet itself
-            result.push(IpAddress {
-                address: Some(Address::IpSubnet(subnet.to_string())),
-            });
-
-            // Add range after subnet (if any)
-            if subnet_end < range_end {
-                // find first IP after the subnet end
-                let next_ip = match subnet_end {
-                    IpAddr::V4(ip) => {
-                        let ip_u32 = ip.to_bits();
-                        if ip_u32 < u32::MAX {
-                            IpAddr::V4(Ipv4Addr::from(ip_u32 + 1))
-                        } else {
-                            range_end // shouldn't happen in practice
-                        }
-                    }
-                    IpAddr::V6(ip) => {
-                        let ip_u128 = ip.to_bits();
-                        if ip_u128 < u128::MAX {
-                            IpAddr::V6(Ipv6Addr::from(ip_u128 + 1))
-                        } else {
-                            range_end // shouldn't happen in practice
-                        }
-                    }
-                };
-                // also check this range for subnets
-                result.extend(extract_all_subnets_from_range(next_ip, range_end));
-            }
-        }
-    } else {
-        // Fall back to range notation if no subnet is found.
-        result.push(IpAddress {
+    // If decomposition produced nothing for a multi-IP range, the range straddles
+    // a CIDR boundary and cannot be expressed as subnets - fall back to IpRange.
+    if networks.is_empty() && range_start != range_end {
+        return vec![IpAddress {
             address: Some(Address::IpRange(IpRange {
                 start: range_start.to_string(),
                 end: range_end.to_string(),
             })),
-        });
+        }];
     }
 
-    result
+    networks
+        .into_iter()
+        .map(|network| {
+            let is_host = (network.is_ipv4() && network.prefix() == 32)
+                || (network.is_ipv6() && network.prefix() == 128);
+            if is_host {
+                IpAddress {
+                    address: Some(Address::Ip(network.ip().to_string())),
+                }
+            } else {
+                IpAddress {
+                    address: Some(Address::IpSubnet(network.to_string())),
+                }
+            }
+        })
+        .collect()
 }
 
 /// Converts an arbitrary list of IP address ranges into the smallest possible list
