@@ -32,6 +32,8 @@
   "modal_delete_edge_error": "Failed to delete edge",
   "modal_delete_group_title": "Delete group",
   "modal_delete_group_body": "Are you sure you want to delete group {name}? This action cannot be undone.",
+  "modal_delete_group_affected_locations_body": "Group {name} is used in location. Deleting it will also revoke location access for users in this group.",
+  "modal_delete_group_blocked_body": "Group {name} is the only allowed group in location. Deleting it would leave those locations with an empty Allowed groups list. Update locations manually before deleting this group.",
   "modal_delete_group_success": "Group deleted",
   "modal_delete_group_error": "Failed to delete group",
   "modal_delete_user_device_title": "Delete device",
