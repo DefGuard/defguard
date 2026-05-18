@@ -1,6 +1,7 @@
+use defguard_common::db::Id;
 use defguard_proto::enterprise::posture::{
-    DevicePostureCheckRequest, DevicePostureData, UnavailableReason,
-    bool_check::Result as BoolResult, string_check::Result as StringResult,
+    DevicePostureData, UnavailableReason, bool_check::Result as BoolResult,
+    string_check::Result as StringResult,
 };
 use sqlx::PgPool;
 
@@ -202,19 +203,21 @@ fn evaluate_os_rule(
 /// Returns [`PostureResult::Fail`] with accumulated [`FailureReason`]s otherwise.
 pub async fn validate_posture(
     pool: &PgPool,
-    request: &DevicePostureCheckRequest,
+    location_id: Id,
+    pubkey: &str,
+    posture_data: &Option<DevicePostureData>,
 ) -> Result<PostureResult, PostureCheckError> {
     debug!(
         "Performing posture check for device {}: {:?}",
-        request.pubkey, request.device_posture_data
+        pubkey, posture_data
     );
 
     // If location has no assigned postures - pass immediately (no license required).
-    let posture_ids = DevicePostureLocation::find_by_location(pool, request.location_id).await?;
+    let posture_ids = DevicePostureLocation::find_by_location(pool, location_id).await?;
     if posture_ids.is_empty() {
         debug!(
             "No posture policies assigned to location {} — passing device {}",
-            request.location_id, request.pubkey
+            location_id, pubkey
         );
         return Ok(PostureResult::Pass);
     }
@@ -223,17 +226,17 @@ pub async fn validate_posture(
     if !is_enterprise_license_active() {
         warn!(
             "No active enterprise license - posture check aborted for device {}",
-            request.pubkey
+            pubkey
         );
         return Err(PostureCheckError::NoActiveEnterpriseLicense);
     }
 
-    let data = match request.device_posture_data.as_ref() {
+    let data = match posture_data.as_ref() {
         Some(d) => d,
         None => {
             info!(
                 "Missing posture data - posture check failed for device {}",
-                request.pubkey
+                pubkey
             );
             return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
         }
@@ -305,9 +308,13 @@ pub async fn validate_posture(
     }
 
     if all_failures.is_empty() {
-        info!("Posture check passed for device {}", request.pubkey);
+        info!("Posture check passed for device {}", pubkey);
         Ok(PostureResult::Pass)
     } else {
+        info!(
+            "Posture check failed for device {}, reasons: {:?}",
+            pubkey, all_failures
+        );
         Ok(PostureResult::Fail(all_failures))
     }
 }

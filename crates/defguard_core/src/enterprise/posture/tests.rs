@@ -7,8 +7,7 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_proto::enterprise::posture::{
-    BoolCheck, DevicePostureCheckRequest, DevicePostureData, StringCheck, UnavailableReason,
-    bool_check, string_check,
+    BoolCheck, DevicePostureData, StringCheck, UnavailableReason, bool_check, string_check,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -114,14 +113,6 @@ fn windows_posture_data() -> DevicePostureData {
         windows_ad_domain_joined: Some(bool_check_value(true)),
         windows_security_update_current: Some(bool_check_value(true)),
         ..Default::default()
-    }
-}
-
-fn make_request(location_id: i64, data: Option<DevicePostureData>) -> DevicePostureCheckRequest {
-    DevicePostureCheckRequest {
-        location_id,
-        pubkey: "testpubkey".to_string(),
-        device_posture_data: data,
     }
 }
 
@@ -268,7 +259,9 @@ async fn pass_no_posture_assigned(_: PgPoolOptions, options: PgConnectOptions) {
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", true))),
+        location_id,
+        "testpubkey",
+        &Some(linux_posture_data("22.04", true)),
     )
     .await
     .unwrap();
@@ -287,7 +280,9 @@ async fn pass_all_checks_met(_: PgPoolOptions, options: PgConnectOptions) {
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(windows_posture_data())),
+        location_id,
+        "testpubkey",
+        &Some(windows_posture_data()),
     )
     .await
     .unwrap();
@@ -311,7 +306,7 @@ async fn pass_boundary_os_version_exact(_: PgPoolOptions, options: PgConnectOpti
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -326,7 +321,7 @@ async fn fail_missing_posture_data(_: PgPoolOptions, options: PgConnectOptions) 
 
     save_linux_policy(&pool, location_id, None, None, true).await;
 
-    let result = validate_posture(&pool, &make_request(location_id, None))
+    let result = validate_posture(&pool, location_id, "testpubkey", &None)
         .await
         .unwrap();
 
@@ -385,7 +380,7 @@ async fn fail_unrecognized_os_version(_: PgPoolOptions, options: PgConnectOption
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -447,7 +442,7 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -503,7 +498,7 @@ async fn fail_unrecognized_kernel_version(_: PgPoolOptions, options: PgConnectOp
 
     let data = linux_posture_data_with_kernel("99.0.0");
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -529,7 +524,7 @@ async fn fail_unrecognized_client_version(_: PgPoolOptions, options: PgConnectOp
     let mut data = linux_posture_data("6.1.0", true);
     data.defguard_client_version = "1.7.0".to_string();
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -555,7 +550,7 @@ async fn pass_known_client_version_meets_minimum(_: PgPoolOptions, options: PgCo
     let mut data = linux_posture_data("6.1.0", true);
     data.defguard_client_version = "1.6.3".to_string();
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -575,7 +570,9 @@ async fn pass_antivirus_present(_: PgPoolOptions, options: PgConnectOptions) {
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(windows_posture_data())),
+        location_id,
+        "testpubkey",
+        &Some(windows_posture_data()),
     )
     .await
     .unwrap();
@@ -593,7 +590,9 @@ async fn pass_ad_domain_joined(_: PgPoolOptions, options: PgConnectOptions) {
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(windows_posture_data())),
+        location_id,
+        "testpubkey",
+        &Some(windows_posture_data()),
     )
     .await
     .unwrap();
@@ -611,7 +610,9 @@ async fn pass_security_update_current(_: PgPoolOptions, options: PgConnectOption
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(windows_posture_data())),
+        location_id,
+        "testpubkey",
+        &Some(windows_posture_data()),
     )
     .await
     .unwrap();
@@ -661,7 +662,7 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
     let mut data = linux_posture_data("22.04", true);
     data.linux_kernel_version = Some(string_check_value("6.8.0"));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -714,7 +715,7 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -763,7 +764,9 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", true))),
+        location_id,
+        "testpubkey",
+        &Some(linux_posture_data("22.04", true)),
     )
     .await
     .unwrap();
@@ -785,7 +788,9 @@ async fn fail_disk_encryption_required(_: PgPoolOptions, options: PgConnectOptio
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", false))),
+        location_id,
+        "testpubkey",
+        &Some(linux_posture_data("22.04", false)),
     )
     .await
     .unwrap();
@@ -813,7 +818,7 @@ async fn fail_os_version_too_old(_: PgPoolOptions, options: PgConnectOptions) {
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -841,7 +846,7 @@ async fn pass_os_version_same_major_lower_minor(_: PgPoolOptions, options: PgCon
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -862,7 +867,7 @@ async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     let mut data = linux_posture_data("22.04", true);
     data.defguard_client_version = "1.6.0".to_string();
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -884,7 +889,7 @@ async fn fail_prerelease_not_allowed(_: PgPoolOptions, options: PgConnectOptions
     let mut data = linux_posture_data("22.04", true);
     data.defguard_client_version = "1.6.0-beta1".to_string();
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -906,7 +911,7 @@ async fn fail_check_unavailable_detection_failed(_: PgPoolOptions, options: PgCo
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::DetectionFailed));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -933,7 +938,7 @@ async fn fail_check_unavailable_insufficient_permissions(
         UnavailableReason::InsufficientPermissions,
     ));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -955,7 +960,7 @@ async fn pass_check_not_applicable(_: PgPoolOptions, options: PgConnectOptions) 
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::NotApplicable));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -1032,7 +1037,9 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", false))),
+        location_id,
+        "testpubkey",
+        &Some(linux_posture_data("22.04", false)),
     )
     .await
     .unwrap();
@@ -1054,7 +1061,9 @@ async fn fail_enterprise_inactive(_: PgPoolOptions, options: PgConnectOptions) {
 
     let result = validate_posture(
         &pool,
-        &make_request(location_id, Some(linux_posture_data("22.04", true))),
+        location_id,
+        "testpubkey",
+        &Some(linux_posture_data("22.04", true)),
     )
     .await;
 
@@ -1075,7 +1084,7 @@ async fn fail_antivirus_required(_: PgPoolOptions, options: PgConnectOptions) {
     let mut data = windows_posture_data();
     data.antivirus_present = Some(bool_check_value(false));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -1097,7 +1106,7 @@ async fn fail_ad_domain_required(_: PgPoolOptions, options: PgConnectOptions) {
     let mut data = windows_posture_data();
     data.windows_ad_domain_joined = Some(bool_check_value(false));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -1119,7 +1128,7 @@ async fn fail_security_update_required(_: PgPoolOptions, options: PgConnectOptio
     let mut data = windows_posture_data();
     data.windows_security_update_current = Some(bool_check_value(false));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -1172,7 +1181,7 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     let mut data = linux_posture_data("22.04", true);
     data.linux_kernel_version = Some(string_check_value("5.15.0"));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -1228,7 +1237,7 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
         ..Default::default()
     };
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 
@@ -1250,7 +1259,7 @@ async fn fail_check_unavailable_unspecified(_: PgPoolOptions, options: PgConnect
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::Unspecified));
 
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+    let result = validate_posture(&pool, location_id, "testpubkey", &Some(data))
         .await
         .unwrap();
 

@@ -32,7 +32,9 @@ use defguard_core::{
     },
     grpc::{
         GatewayEvent,
-        proxy::client_mfa::{ClientLoginSession, ClientMfaServer, PostureCheckOutcome},
+        proxy::client_mfa::{
+            ClientLoginSession, ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome,
+        },
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -663,8 +665,15 @@ impl ProxyHandler {
                                 .start_client_mfa_login(request)
                                 .await
                             {
-                                Ok(response_payload) => {
+                                Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
                                     Some(core_response::Payload::ClientMfaStart(response_payload))
+                                }
+                                Ok(ClientMfaStartOutcome::Rejected { failed_checks }) => {
+                                    Some(core_response::Payload::DevicePostureRejected(
+                                        DevicePostureRejection {
+                                            failed_posture_checks: failed_checks,
+                                        },
+                                    ))
                                 }
                                 Err(err) => {
                                     error!("client MFA start error {err}");
