@@ -12,6 +12,7 @@ import type {
   PaginationMeta,
 } from '../../shared/api/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
@@ -44,6 +45,8 @@ interface Props {
   hasNextPage: boolean;
   loadingNextPage: boolean;
   onNextPage: () => void;
+  search: string;
+  onSearchChange: (val: string) => void;
 }
 
 export const ActivityLogTable = ({
@@ -53,6 +56,8 @@ export const ActivityLogTable = ({
   loadingNextPage,
   hasNextPage,
   onNextPage,
+  search,
+  onSearchChange,
 }: Props) => {
   const { sortingState } = useApiToTableState<RowData>({
     ...filters,
@@ -179,24 +184,29 @@ export const ActivityLogTable = ({
     enableSorting: true,
   });
 
-  if (data.length === 0)
-    return (
-      <EmptyStateFlexible
-        icon="log"
-        title={m.activity_log_empty_title()}
-        subtitle={m.activity_log_empty_subtitle()}
-      />
-    );
-
   return (
     <>
-      <TableTop text={m.activity_log_table_title()}></TableTop>
-      <TableBody
-        table={table}
-        hasNextPage={hasNextPage}
-        onNextPage={onNextPage}
-        loadingNextPage={loadingNextPage}
-      />
+      <TableTop text={m.activity_log_table_title()}>
+        <Search
+          placeholder={m.controls_search()}
+          initialValue={search}
+          onChange={onSearchChange}
+        />
+      </TableTop>
+      {data.length === 0 ? (
+        <EmptyStateFlexible
+          icon="log"
+          title={m.activity_log_empty_title()}
+          subtitle={m.activity_log_empty_subtitle()}
+        />
+      ) : (
+        <TableBody
+          table={table}
+          hasNextPage={hasNextPage}
+          onNextPage={onNextPage}
+          loadingNextPage={loadingNextPage}
+        />
+      )}
     </>
   );
 };

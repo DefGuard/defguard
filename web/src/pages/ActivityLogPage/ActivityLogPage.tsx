@@ -1,5 +1,5 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { Page } from '../../shared/components/Page/Page';
@@ -10,13 +10,17 @@ import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLa
 import { ActivityLogTable } from './ActivityLogTable';
 
 export const ActivityLogPage = () => {
+  const [search, setSearch] = useState('');
+
   const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['activity-log'],
+    queryKey: ['activity-log', { search }],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.getActivityLog({
         page: pageParam,
+        search: search.length > 0 ? search : undefined,
       }),
+    placeholderData: keepPreviousData,
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
     getPreviousPageParam: (page) => {
       if (page.pagination.current_page !== 1) {
@@ -49,6 +53,8 @@ export const ActivityLogPage = () => {
               fetchNextPage();
             }}
             hasNextPage={pagination.next_page !== null}
+            search={search}
+            onSearchChange={setSearch}
           />
         )}
       </TablePageLayout>
