@@ -7,13 +7,20 @@
     gap: var(--spacing-sm);
   }
 
-  & > button {
+  & > .select-multiple-edit {
     background-color: transparent;
     border: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     font: var(--t-body-sm-400);
     color: var(--fg-action);
     cursor: pointer;
     user-select: none;
     padding: 0;
+
+    .icon {
+      flex: 0 0 auto;
+    }
   }
 }

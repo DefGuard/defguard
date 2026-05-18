@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shouldFetchPostureChecksEnterpriseData } from '../src/pages/PostureChecksPage/license';
 import {
   filterPostureChecks,
   getPostureCheckColumnFilterOptions,
@@ -217,5 +218,10 @@ describe('posture checks page helpers', () => {
     expect(
       mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
     ).toBe('Pre-release allowed');
+  });
+
+  it('fetches enterprise-only posture data only when enterprise access is available', () => {
+    expect(shouldFetchPostureChecksEnterpriseData(true)).toBe(true);
+    expect(shouldFetchPostureChecksEnterpriseData(false)).toBe(false);
   });
 });
