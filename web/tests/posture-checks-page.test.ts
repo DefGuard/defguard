@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { shouldFetchPostureChecksEnterpriseData } from '../src/pages/PostureChecksPage/license';
 import {
   getInitialEditPostureCheckFormValues,
   normalizeEditPostureCheckFormValues,
 } from '../src/pages/EditPostureCheckPage/form';
+import { shouldFetchPostureChecksEnterpriseData } from '../src/pages/PostureChecksPage/license';
 import {
   filterPostureChecks,
   getPostureCheckColumnFilterOptions,
