@@ -487,7 +487,7 @@ export interface LdapInfo {
 }
 
 export interface ApplicationInfo {
-  version: string;
+  version: string | null;
   network_present: boolean;
   smtp_enabled: boolean;
   external_openid_enabled: boolean;
