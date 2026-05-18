@@ -825,6 +825,14 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("location not found"));
         };
 
+        if location.mfa_enabled() {
+            error!(
+                "Posture check: location {} has MFA enabled, posture-only sessions are not allowed",
+                location
+            );
+            return Err(Status::invalid_argument("location has MFA enabled"));
+        }
+
         let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
             error!(
                 "Posture check: device with pubkey {} not found",
@@ -832,6 +840,20 @@ impl ClientMfaServer {
             );
             return Err(Status::invalid_argument("device not found"));
         };
+
+        if !location.has_postures(&self.pool).await.map_err(|err| {
+            error!(
+                "Posture check: failed to fetch postures for location {}: {err}",
+                location
+            );
+            Status::internal("unexpected error")
+        })? {
+            error!(
+                "Posture check: location {} has no postures defined but device {} requested posture check",
+                location, device.wireguard_pubkey
+            );
+            return Err(Status::invalid_argument("location does not use postures"));
+        }
 
         let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
             error!("Posture check: user {} not found", device.user_id);
