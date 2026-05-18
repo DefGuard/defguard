@@ -1079,12 +1079,14 @@ mod tests {
         },
         setup_pool,
     };
+    use defguard_proto::enterprise::posture::DevicePostureCheckRequest;
     use ipnetwork::IpNetwork;
     use sqlx::{
         PgPool,
         postgres::{PgConnectOptions, PgPoolOptions},
     };
     use tokio::sync::{broadcast, mpsc, oneshot};
+    use tonic::Code;
 
     use super::{ClientLoginSession, ClientMfaServer};
     use crate::{
@@ -1094,6 +1096,57 @@ mod tests {
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
     const NEW_MFA_PRESHARED_KEY: &str = "new-psk";
+
+    #[sqlx::test]
+    async fn test_posture_check_rejects_mfa_enabled_location(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_mfa_location(&pool).await;
+        let (mut server, _, _) = make_server(pool);
+
+        let err = match server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: "irrelevant".to_owned(),
+                device_posture_data: None,
+            })
+            .await
+        {
+            Ok(_) => panic!("MFA-enabled location should reject posture-only flow"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.code(), Code::InvalidArgument);
+    }
+
+    #[sqlx::test]
+    async fn test_posture_check_rejects_location_without_postures(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_non_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let (mut server, _, _) = make_server(pool);
+
+        let err = match server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey,
+                device_posture_data: None,
+            })
+            .await
+        {
+            Ok(_) => panic!("location without postures should reject posture-only flow"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.code(), Code::InvalidArgument);
+    }
 
     #[sqlx::test]
     async fn test_replacing_connected_mfa_session_emits_mfa_disconnect_event(
@@ -1450,6 +1503,26 @@ mod tests {
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 0, 1)), 24).unwrap()])
+        .expect("failed to set location address")
+        .save(pool)
+        .await
+        .expect("failed to create location")
+    }
+
+    async fn create_non_mfa_location(pool: &PgPool) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            "client-posture-location".to_owned(),
+            51820,
+            "vpn.example.com".to_owned(),
+            None,
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 20, 0, 1)), 24).unwrap()])
         .expect("failed to set location address")
         .save(pool)
         .await

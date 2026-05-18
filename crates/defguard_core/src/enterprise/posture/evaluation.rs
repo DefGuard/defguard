@@ -311,7 +311,10 @@ pub async fn validate_posture(
         info!("Posture check passed for device {}", pubkey);
         Ok(PostureResult::Pass)
     } else {
-        info!("Posture check failed for device {}, reasons: {:?}", pubkey, all_failures);
+        info!(
+            "Posture check failed for device {}, reasons: {:?}",
+            pubkey, all_failures
+        );
         Ok(PostureResult::Fail(all_failures))
     }
 }
