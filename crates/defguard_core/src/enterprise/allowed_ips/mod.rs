@@ -63,13 +63,7 @@ fn ipnetwork_to_range(network: &IpNetwork) -> RangeInclusive<IpAddr> {
 /// the destination addresses from every matching rule. The collected addresses are
 /// then merged into the smallest possible non-overlapping set of CIDRs.
 ///
-/// Returns `Err(AllowedIpsError::AclNotEnabled)` if called with a location that
-/// has `acl_enabled = false` - the caller is expected to guard against this before
-/// calling.
-///
-/// Returns an empty `Vec` if no rule matches the user - the user can reach nothing.
-///
-/// Returns `[0.0.0.0/0, ::/0]` (full tunnel) if any matching rule has
+/// Returns `[0.0.0.0/0, ::/0]` (all traffic) if any matching rule or destination has
 /// `any_address = true`.
 pub async fn get_allowed_ips_from_acl_rules(
     conn: &mut PgConnection,
@@ -123,7 +117,7 @@ pub async fn get_allowed_ips_from_acl_rules(
             all_networks.extend(rule.addresses.iter().copied());
             all_ranges.extend(rule.address_ranges.iter().map(RangeInclusive::from));
 
-            // Component aliases expand into additional addresses and ranges.
+            // Aliases expand into additional addresses and ranges.
             for alias in &rule.aliases {
                 if alias.any_address {
                     debug!(
@@ -138,7 +132,7 @@ pub async fn get_allowed_ips_from_acl_rules(
             }
         }
 
-        // Collect addresses from pre-defined destinations.
+        // Collect addresses from pre-defined Destinations.
         for destination in &rule.destinations {
             if destination.any_address {
                 debug!(
