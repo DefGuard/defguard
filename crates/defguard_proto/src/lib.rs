@@ -1,3 +1,5 @@
+pub mod gateway_conversions;
+
 use std::fmt;
 
 mod generated {
@@ -85,15 +87,13 @@ use defguard_common::{
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
+    gateway_types::{FirewallConfig, WireguardPeer},
 };
 use proxy::CoreError;
 use serde::Serialize;
 use tonic::Status;
 
-use crate::{
-    enterprise::firewall::FirewallConfig,
-    gateway::{Configuration, Peer},
-};
+use crate::gateway::Configuration;
 
 // Client MFA methods
 impl fmt::Display for MfaMethod {
@@ -224,7 +224,7 @@ impl From<ServiceLocationMode> for client_types::ServiceLocationMode {
 impl Configuration {
     pub fn new(
         location: &WireguardNetwork<Id>,
-        peers: Vec<Peer>,
+        peers: Vec<WireguardPeer>,
         maybe_firewall_config: Option<FirewallConfig>,
     ) -> Self {
         Self {
@@ -232,8 +232,8 @@ impl Configuration {
             port: location.port.cast_unsigned(),
             private_key: location.prvkey.clone(),
             addresses: location.address().iter().map(ToString::to_string).collect(),
-            peers,
-            firewall_config: maybe_firewall_config,
+            peers: peers.into_iter().map(Into::into).collect(),
+            firewall_config: maybe_firewall_config.map(Into::into),
             mtu: location.mtu.cast_unsigned(),
             fwmark: location.fwmark as u32,
         }

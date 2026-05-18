@@ -21,6 +21,7 @@ use defguard_common::{
             wireguard::DEFAULT_WIREGUARD_MTU,
         },
     },
+    gateway_types::{FirewallConfig, WireguardPeer},
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
@@ -31,7 +32,7 @@ use defguard_core::{
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
-    enterprise::firewall::FirewallConfig,
+    enterprise::firewall::FirewallConfig as ProtoFirewallConfig,
     gateway::{
         Configuration, CoreResponse, Peer, PeerStats, Update, UpdateType, core_request,
         core_response, gateway_client, update,
@@ -858,11 +859,13 @@ impl GatewayUpdatesHandler {
     fn send_network_update(
         &self,
         network: &WireguardNetwork<Id>,
-        peers: Vec<Peer>,
+        peers: Vec<WireguardPeer>,
         firewall_config: Option<FirewallConfig>,
         update_type: i32,
     ) -> Result<(), Status> {
         debug!("Sending network update for network {network}");
+        let proto_peers: Vec<Peer> = peers.into_iter().map(Into::into).collect();
+        let proto_firewall: Option<ProtoFirewallConfig> = firewall_config.map(Into::into);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
@@ -872,8 +875,8 @@ impl GatewayUpdatesHandler {
                     private_key: network.prvkey.clone(),
                     addresses: network.address().iter().map(ToString::to_string).collect(),
                     port: network.port.cast_unsigned(),
-                    peers,
-                    firewall_config,
+                    peers: proto_peers,
+                    firewall_config: proto_firewall,
                     mtu: network.mtu.cast_unsigned(),
                     fwmark: network.fwmark as u32,
                 })),
@@ -988,11 +991,12 @@ impl GatewayUpdatesHandler {
             "Sending firewall config update for network {} with config {firewall_config:?}",
             self.network
         );
+        let proto_firewall: ProtoFirewallConfig = firewall_config.into();
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
                 update_type: UpdateType::Modify as i32,
-                update: Some(update::Update::FirewallConfig(firewall_config)),
+                update: Some(update::Update::FirewallConfig(proto_firewall)),
             })),
         }) {
             let msg = format!(
@@ -1073,15 +1077,17 @@ mod tests {
         },
         setup_pool,
     };
+    use defguard_common::gateway_types::{FirewallConfig, FirewallPolicy, WireguardPeer};
     use defguard_core::grpc::GatewayEvent;
-    use defguard_proto::gateway::{Configuration, Peer, PeerStats, core_response};
+    use defguard_proto::{
+        enterprise::firewall::FirewallPolicy as ProtoFirewallPolicy,
+        gateway::{Configuration, PeerStats, core_response},
+    };
     use prost_types::Timestamp;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
-    use super::{
-        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, try_protos_into_stats_message,
-    };
+    use super::{GatewayHandler, GatewayUpdatesHandler, try_protos_into_stats_message};
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
         WireguardNetwork::new(
@@ -1203,14 +1209,14 @@ mod tests {
     fn gen_config_maps_network_fields() {
         let config = Configuration::new(
             &build_network(),
-            vec![Peer {
+            vec![WireguardPeer {
                 pubkey: "peer-public-key".to_owned(),
                 allowed_ips: vec!["10.10.0.2/32".to_owned()],
                 preshared_key: Some("peer-preshared-key".to_owned()),
                 keepalive_interval: Some(25),
             }],
             Some(FirewallConfig {
-                default_policy: 0,
+                default_policy: FirewallPolicy::Unspecified,
                 rules: Vec::new(),
                 snat_bindings: Vec::new(),
             }),
@@ -1235,7 +1241,10 @@ mod tests {
         let firewall_config = config
             .firewall_config
             .expect("generated config should include firewall config");
-        assert_eq!(firewall_config.default_policy, 0);
+        assert_eq!(
+            firewall_config.default_policy,
+            ProtoFirewallPolicy::Unspecified as i32
+        );
         assert!(firewall_config.rules.is_empty());
         assert!(firewall_config.snat_bindings.is_empty());
     }

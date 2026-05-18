@@ -16,6 +16,7 @@ use defguard_common::{
             wireguard::ServiceLocationMode,
         },
     },
+    gateway_types::{FirewallConfig, WireguardPeer},
     types::UrlParseError,
 };
 use reqwest::Url;
@@ -49,10 +50,7 @@ pub mod proto {
     }
 }
 
-use defguard_proto::{
-    enterprise::firewall::FirewallConfig, gateway::Peer,
-    worker::worker_service_server::WorkerServiceServer,
-};
+use defguard_proto::worker::worker_service_server::WorkerServiceServer;
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
 // gRPC header for passing auth token from clients
@@ -218,7 +216,12 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
     NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
+    NetworkModified(
+        Id,
+        WireguardNetwork<Id>,
+        Vec<WireguardPeer>,
+        Option<FirewallConfig>,
+    ),
     NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),

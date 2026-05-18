@@ -3,14 +3,15 @@ use std::{
     ops::RangeInclusive,
 };
 
-use defguard_common::db::{
-    Id,
-    models::{Device, ModelError, WireguardNetwork, user::User},
-};
-use defguard_proto::enterprise::firewall::{
-    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
-    PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
-    port::Port as PortInner,
+use defguard_common::{
+    db::{
+        Id,
+        models::{Device, ModelError, WireguardNetwork, user::User},
+    },
+    gateway_types::{
+        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+        PortRange as GwPortRange, Protocol as GwProtocol, SnatBinding,
+    },
 };
 use ipnetwork::IpNetwork;
 use sqlx::{PgConnection, query_as, query_scalar};
@@ -424,7 +425,7 @@ fn create_rules(
     protocols: &[Protocol],
     comment: &str,
 ) -> (Option<FirewallRule>, FirewallRule) {
-    let ip_version = i32::from(ip_version);
+    let gw_protocols: Vec<GwProtocol> = protocols.iter().map(|&p| GwProtocol::from(p)).collect();
     let allow = if source_addrs.is_empty() {
         debug!("Source address list is empty. Skipping generating the ALLOW rule for this ACL");
         None
@@ -435,10 +436,10 @@ fn create_rules(
             source_addrs: source_addrs.to_vec(),
             destination_addrs: destination_addrs.to_vec(),
             destination_ports: destination_ports.to_vec(),
-            protocols: protocols.to_vec(),
-            verdict: i32::from(FirewallPolicy::Allow),
+            protocols: gw_protocols.clone(),
+            verdict: FirewallPolicy::Allow,
             comment: Some(format!("{comment} ALLOW")),
-            ip_version,
+            ip_version: ip_version.clone(),
         };
         debug!("ALLOW rule generated from ACL: {rule:?}");
         Some(rule)
@@ -452,7 +453,7 @@ fn create_rules(
         destination_addrs: destination_addrs.to_vec(),
         destination_ports: Vec::new(),
         protocols: Vec::new(),
-        verdict: i32::from(FirewallPolicy::Deny),
+        verdict: FirewallPolicy::Deny,
         comment: Some(format!("{comment} DENY")),
         ip_version,
     };
@@ -753,9 +754,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
 
     // Return early if range represents a single IP address.
     if range_start == range_end {
-        result.push(IpAddress {
-            address: Some(Address::Ip(range_start.to_string())),
-        });
+        result.push(IpAddress::Ip(range_start.to_string()));
         return result;
     }
 
@@ -770,9 +769,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
         // Check if the subnet covers the entire range
         if subnet_start == range_start && subnet_end == range_end {
             // Use subnet notation for the entire range
-            result.push(IpAddress {
-                address: Some(Address::IpSubnet(subnet.to_string())),
-            });
+            result.push(IpAddress::IpSubnet(subnet.to_string()));
         } else {
             // Subnet is found within the range, append both subnet and remaining ranges.
 
@@ -803,9 +800,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
             }
 
             // Add the subnet itself
-            result.push(IpAddress {
-                address: Some(Address::IpSubnet(subnet.to_string())),
-            });
+            result.push(IpAddress::IpSubnet(subnet.to_string()));
 
             // Add range after subnet (if any)
             if subnet_end < range_end {
@@ -834,12 +829,10 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
         }
     } else {
         // Fall back to range notation if no subnet is found.
-        result.push(IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: range_start.to_string(),
-                end: range_end.to_string(),
-            })),
-        });
+        result.push(IpAddress::IpRange(IpRange {
+            start: range_start.to_string(),
+            end: range_end.to_string(),
+        }));
     }
 
     result
@@ -877,16 +870,12 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
             let range_start = *range.start();
             let range_end = *range.end();
             if range_start == range_end {
-                Port {
-                    port: Some(PortInner::SinglePort(u32::from(range_start))),
-                }
+                Port::Single(u32::from(range_start))
             } else {
-                Port {
-                    port: Some(PortInner::PortRange(PortRangeProto {
-                        start: u32::from(range_start),
-                        end: u32::from(range_end),
-                    })),
-                }
+                Port::Range(GwPortRange {
+                    start: u32::from(range_start),
+                    end: u32::from(range_end),
+                })
             }
         })
         .collect()
@@ -899,7 +888,7 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
 async fn generate_user_snat_bindings_for_location(
     location_id: Id,
     conn: &mut PgConnection,
-) -> sqlx::Result<Vec<SnatBindingProto>> {
+) -> sqlx::Result<Vec<SnatBinding>> {
     debug!("Generating SNAT bindings for location {location_id}");
 
     let user_snat_bindings = UserSnatBinding::all_for_location(&mut *conn, location_id).await?;
@@ -951,7 +940,7 @@ async fn generate_user_snat_bindings_for_location(
         }
 
         // create the SNAT binding proto
-        let snat_binding = SnatBindingProto {
+        let snat_binding = SnatBinding {
             id: user_binding.id,
             source_addrs,
             public_ip: user_binding.public_ip.to_string(),
@@ -1046,7 +1035,7 @@ pub async fn try_get_location_firewall_config(
         generate_firewall_rules_from_acls(location.id, location_acls, &mut *conn).await?;
     let snat_bindings = generate_user_snat_bindings_for_location(location.id, &mut *conn).await?;
     let firewall_config = FirewallConfig {
-        default_policy: default_policy.into(),
+        default_policy,
         rules: firewall_rules,
         snat_bindings,
     };
