@@ -11,6 +11,10 @@ import type {
   NetworkLocation,
 } from '../../shared/api/types';
 import { Breadcrumbs } from '../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../shared/components/ContextualHelp';
 import { EditHeader } from '../../shared/components/EditHeader/EditHeader';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
@@ -230,6 +234,9 @@ export const EditPostureCheckPage = () => {
               versionValues={versionValues}
             />
           </div>
+        </div>
+        <div className="helpers">
+          <ContextualHelpSidebar pageKey={ContextualHelpKey.PostureChecksEdit} />
         </div>
       </LayoutGrid>
     </Page>

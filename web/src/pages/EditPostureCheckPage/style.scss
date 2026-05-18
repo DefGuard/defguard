@@ -7,7 +7,7 @@
     padding: var(--spacing-3xl) var(--spacing-xl);
 
     > .main-content {
-      grid-column: 1 / -1;
+      grid-column: 1 / 7;
       grid-row: 1;
 
       > .card {
@@ -17,6 +17,14 @@
         width: 754px;
         padding: var(--spacing-xl);
       }
+    }
+
+    > .helpers {
+      grid-column: 7 / 10;
+      grid-row: 1;
+      justify-self: start;
+      width: 100%;
+      max-width: 373px;
     }
   }
 }
