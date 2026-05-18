@@ -24,9 +24,6 @@
     width: 100%;
 
     & > .version-badge {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       margin-left: var(--spacing-md);
       font: var(--t-body-xxs-500);
       font-family: var(--font-family-jetbrains);
