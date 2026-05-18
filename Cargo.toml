@@ -14,7 +14,7 @@ resolver = "2"
 # internal crates
 
 defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
-defguard_common = { path = "./crates/defguard_common", version = "2.0.0" }
+defguard_common = { path = "./crates/defguard_common", version = "2.0.1" }
 defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }

@@ -180,6 +180,7 @@
   "posture_checks_empty_title": "No posture checks added yet.",
   "posture_checks_empty_subtitle": "Add your first posture check to enhance access security.",
   "posture_checks_button_add": "Add new posture check",
+  "posture_checks_row_menu_assign_locations": "Assign to locations",
   "posture_checks_wizard_title": "Add posture check",
   "posture_checks_wizard_subtitle": "To activate localization, make sure at least one Edge component is connected.",
   "posture_checks_wizard_step_operating_systems": "Operating systems",

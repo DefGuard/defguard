@@ -1,6 +1,9 @@
 use chrono::{TimeDelta, Utc};
 use defguard_common::db::{
-    models::wireguard::{LocationMfaMode, ServiceLocationMode},
+    models::{
+        WireguardNetwork,
+        wireguard::{LocationMfaMode, ServiceLocationMode},
+    },
     setup_pool,
 };
 use defguard_proto::enterprise::posture::{
@@ -20,7 +23,6 @@ use crate::{
     },
     grpc::proto::enterprise::license::LicenseLimits,
 };
-use defguard_common::db::models::WireguardNetwork;
 
 // ---------------------------------------------------------------------------
 // Test helpers

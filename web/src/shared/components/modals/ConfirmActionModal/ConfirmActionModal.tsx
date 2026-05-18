@@ -85,15 +85,16 @@ const ModalContent = ({ data }: { data: ModalData }) => {
               closeModal(modalNameValue);
             }}
           />
-          <Button
-            text={m.controls_submit()}
-            variant="primary"
-            {...data.submitProps}
-            loading={isPending}
-            onClick={() => {
-              mutate();
-            }}
-          />
+          {isPresent(data.submitProps) && (
+            <Button
+              variant="primary"
+              {...data.submitProps}
+              loading={isPending}
+              onClick={() => {
+                mutate();
+              }}
+            />
+          )}
         </div>
       </Controls>
     </>

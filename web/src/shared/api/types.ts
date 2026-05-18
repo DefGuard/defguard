@@ -756,6 +756,7 @@ export interface NetworkLocation {
   location_mfa_mode: LocationMfaModeValue;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
+  posture_checks: number[];
 }
 
 export interface EditNetworkLocation
@@ -768,6 +769,7 @@ export interface EditNetworkLocation
     | 'allowed_ips'
     | 'address'
     | 'has_devices'
+    | 'posture_checks'
   > {
   allowed_ips: string;
   address: string;
@@ -937,6 +939,10 @@ export interface ApiDevicePosture {
   allow_prerelease_client: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
+}
+
+export interface AssignPosturesData {
+  postures: number[];
 }
 
 export interface EditDevicePostureRequest {

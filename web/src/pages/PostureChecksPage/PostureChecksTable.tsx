@@ -1,3 +1,4 @@
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
@@ -9,6 +10,8 @@ import {
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
+import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -21,7 +24,14 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import type { PostureCheckColumnFilterOptions, PostureCheckRow } from './postureChecks';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { getLocationsQueryOptions } from '../../shared/query';
+import {
+  getDeletePostureCheckModalData,
+  type PostureCheckColumnFilterOptions,
+  type PostureCheckRow,
+} from './postureChecks';
 import './style.scss';
 
 type Props = {
@@ -50,6 +60,34 @@ export const PostureChecksTable = ({
   postureChecks,
 }: Props) => {
   const navigate = useNavigate();
+  const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
+  const locationOptions = useMemo(
+    () =>
+      locations.map((location) => ({
+        id: location.id,
+        label: location.name,
+        searchFields: [location.name, ...location.address],
+      })),
+    [locations],
+  );
+  const { mutate: assignLocations } = useMutation({
+    mutationFn: ({
+      postureCheckId,
+      locations,
+    }: {
+      postureCheckId: number;
+      locations: number[];
+    }) => api.devicePosture.setLocationsForDevicePosture(postureCheckId, locations),
+    meta: {
+      invalidate: [['device-posture'], ['network']],
+    },
+    onSuccess: () => {
+      Snackbar.default(m.modal_assign_posture_check_locations_success());
+    },
+    onError: () => {
+      Snackbar.error(m.modal_assign_posture_check_locations_error());
+    },
+  });
 
   const columns = useMemo(
     () => [
@@ -58,7 +96,13 @@ export const PostureChecksTable = ({
         minSize: 306,
         cell: (info) => (
           <TableCell>
-            <Link to="." className="posture-check-link">
+            <Link
+              to="/acl/posture-checks/$postureCheckId/edit"
+              params={{
+                postureCheckId: String(info.row.original.id),
+              }}
+              className="posture-check-link"
+            >
               {info.getValue()}
             </Link>
           </TableCell>
@@ -184,12 +228,21 @@ export const PostureChecksTable = ({
                   },
                 },
                 {
-                  text: 'Assign to location',
+                  text: m.posture_checks_row_menu_assign_locations(),
                   icon: 'add-location',
                   onClick: () => {
-                    Snackbar.default(
-                      `Location assignment is not available yet for "${row.name}".`,
-                    );
+                    useSelectionModal.setState({
+                      isOpen: true,
+                      title: m.modal_assign_posture_check_locations_title(),
+                      options: locationOptions,
+                      selected: new Set(row.locations),
+                      onSubmit: (selected) => {
+                        assignLocations({
+                          postureCheckId: row.id,
+                          locations: selected as number[],
+                        });
+                      },
+                    });
                   },
                 },
               ],
@@ -201,7 +254,19 @@ export const PostureChecksTable = ({
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    Snackbar.default(`Delete is not available yet for "${row.name}".`);
+                    const assignedLocationNames = locationOptions
+                      .filter((location) => row.locations.includes(location.id))
+                      .map((location) => location.label);
+
+                    openModal(ModalName.ConfirmAction, {
+                      ...getDeletePostureCheckModalData(row, assignedLocationNames),
+                      onSuccess: () => {
+                        Snackbar.default(m.modal_delete_posture_check_success());
+                      },
+                      onError: () => {
+                        Snackbar.error(m.modal_delete_posture_check_error());
+                      },
+                    });
                   },
                 },
               ],
@@ -212,7 +277,7 @@ export const PostureChecksTable = ({
         },
       }),
     ],
-    [columnFilterOptions, navigate],
+    [assignLocations, columnFilterOptions, locationOptions, navigate],
   );
 
   const table = useReactTable({

@@ -1,8 +1,10 @@
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
 import type { ApiDevicePosture, ApiDevicePostureOsRule } from '../../shared/api/types';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import type { OpenConfirmActionModal } from '../../shared/hooks/modalControls/types';
 import {
   type PostureCheckFilterValue,
   PostureCheckOs,
@@ -15,6 +17,7 @@ import {
 export type PostureCheckRow = {
   id: number;
   name: string;
+  locations: number[];
   windows: string;
   windowsFilters: PostureCheckFilterValue[];
   macos: string;
@@ -240,6 +243,7 @@ const getDevicePostureRule = (
 export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureCheckRow => ({
   id: posture.id,
   name: posture.name,
+  locations: posture.locations,
   windows: getOsRuleSummary(getDevicePostureRule(posture, PostureCheckOs.Windows)),
   windowsFilters: getOsRuleFilters(getDevicePostureRule(posture, PostureCheckOs.Windows)),
   macos: getOsRuleSummary(getDevicePostureRule(posture, PostureCheckOs.Macos)),
@@ -273,6 +277,44 @@ export const getPostureCheckOsLabel = (value: PostureCheckOsValue) => {
     default:
       return 'Android';
   }
+};
+
+export const getDeletePostureCheckModalData = (
+  postureCheck: Pick<PostureCheckRow, 'id' | 'name'>,
+  locationNames: string[],
+): OpenConfirmActionModal => {
+  const formattedLocationNames = formatPostureCheckLocationNames(locationNames);
+
+  return {
+    title: m.modal_delete_posture_check_title(),
+    contentMd: formattedLocationNames
+      ? m.modal_delete_posture_check_content({
+          locations: formattedLocationNames,
+        })
+      : m.modal_delete_posture_check_content_empty(),
+    actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
+    invalidateKeys: [['device-posture'], ['network']],
+    submitProps: {
+      text: m.controls_delete(),
+      variant: 'critical',
+    },
+  };
+};
+
+const formatPostureCheckLocationNames = (locationNames: string[]) => {
+  if (locationNames.length === 0) {
+    return null;
+  }
+
+  if (locationNames.length === 1) {
+    return locationNames[0];
+  }
+
+  if (locationNames.length === 2) {
+    return `${locationNames[0]} and ${locationNames[1]}`;
+  }
+
+  return `${locationNames.slice(0, -1).join(', ')}, and ${locationNames.at(-1)}`;
 };
 
 export const filterPostureChecks = (rows: PostureCheckRow[], search: string) => {

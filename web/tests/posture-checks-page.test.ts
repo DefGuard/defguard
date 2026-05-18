@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shouldFetchPostureChecksEnterpriseData } from '../src/pages/PostureChecksPage/license';
 import {
   getInitialEditPostureCheckFormValues,
   normalizeEditPostureCheckFormValues,
@@ -71,6 +72,7 @@ describe('posture checks page helpers', () => {
     expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
       id: 1,
       name: 'First posture check',
+      locations: [2],
       windows: '11, Disk encryption, Antivirus',
       windowsFilters: [11, PostureCheckRequirement.DiskEncryption, 'Antivirus'],
       macos: '-',
@@ -109,6 +111,7 @@ describe('posture checks page helpers', () => {
     expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
       id: 2,
       name: 'Second posture check',
+      locations: [],
       windows: '-',
       windowsFilters: [],
       macos: '-',
@@ -135,6 +138,7 @@ describe('posture checks page helpers', () => {
       {
         id: 99,
         name: 'First posture check',
+        locations: [1],
         windows: '11, Disk encryption, Antivirus',
         windowsFilters: [11, PostureCheckRequirement.DiskEncryption, 'Antivirus'],
         macos: '-',
@@ -151,6 +155,7 @@ describe('posture checks page helpers', () => {
       {
         id: 100,
         name: 'Second posture check',
+        locations: [],
         windows: '-',
         windowsFilters: [],
         macos: 'macOS 15 Sequoia, Device integrity',
@@ -296,5 +301,10 @@ describe('posture checks page helpers', () => {
   it('should render the list page only on the base posture checks route', () => {
     expect(isPostureChecksListPath('/acl/posture-checks')).toBe(true);
     expect(isPostureChecksListPath('/acl/posture-checks/5/edit')).toBe(false);
+  });
+
+  it('fetches enterprise-only posture data only when enterprise access is available', () => {
+    expect(shouldFetchPostureChecksEnterpriseData(true)).toBe(true);
+    expect(shouldFetchPostureChecksEnterpriseData(false)).toBe(false);
   });
 });
