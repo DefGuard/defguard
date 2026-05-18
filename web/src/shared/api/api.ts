@@ -440,8 +440,11 @@ const api = {
   devicePosture: {
     addDevicePosture: (data: EditDevicePostureRequest) =>
       client.post<ApiDevicePosture>('/device-posture', removeEmptyStrings(data)),
+    deleteDevicePosture: (id: number) => client.delete(`/device-posture/${id}`),
     editDevicePosture: (id: number, data: EditDevicePostureRequest) =>
       client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
+    assignLocations: (id: number, locations: number[]) =>
+      client.put<number[]>(`/device-posture/${id}/locations`, { locations }),
     getDevicePostureVersionMetadata: () =>
       client.get<DevicePostureVersionMetadata>('/device-posture/versions'),
     getDevicePosturesPage: (params?: DevicePostureListFilters) =>
