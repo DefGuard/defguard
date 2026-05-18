@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
   createColumnHelper,
@@ -49,6 +49,8 @@ export const PostureChecksTable = ({
   onNextPage,
   postureChecks,
 }: Props) => {
+  const navigate = useNavigate();
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -166,7 +168,12 @@ export const PostureChecksTable = ({
                   text: m.controls_edit(),
                   icon: 'edit',
                   onClick: () => {
-                    Snackbar.default(`Edit is not available yet for "${row.name}".`);
+                    void navigate({
+                      to: '/acl/posture-checks/$postureCheckId/edit',
+                      params: {
+                        postureCheckId: String(row.id),
+                      },
+                    });
                   },
                 },
                 {
@@ -205,7 +212,7 @@ export const PostureChecksTable = ({
         },
       }),
     ],
-    [columnFilterOptions],
+    [columnFilterOptions, navigate],
   );
 
   const table = useReactTable({

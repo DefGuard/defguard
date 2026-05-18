@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getInitialEditPostureCheckFormValues,
+  normalizeEditPostureCheckFormValues,
+} from '../src/pages/EditPostureCheckPage/form';
+import {
   filterPostureChecks,
   getPostureCheckColumnFilterOptions,
   getPostureCheckOsLabel,
@@ -7,6 +11,7 @@ import {
   mapPostureCheckFilterValueToRequestValue,
   type PostureCheckRow,
 } from '../src/pages/PostureChecksPage/postureChecks';
+import { isPostureChecksListPath } from '../src/pages/PostureChecksPage/route';
 import {
   getPostureCheckVersionValues,
   PostureCheckOs,
@@ -217,5 +222,79 @@ describe('posture checks page helpers', () => {
     expect(
       mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
     ).toBe('Pre-release allowed');
+  });
+
+  it('maps an existing posture check into editable form state with assigned locations', () => {
+    const postureCheck: ApiDevicePosture = {
+      id: 5,
+      name: 'Edit posture check',
+      description: 'Existing policy',
+      min_client_version: '2.0',
+      allow_prerelease_client: true,
+      locations: [9, 3],
+      os_rules: [
+        {
+          os_type: 'windows',
+          min_os_version: 11,
+          disk_encryption_required: true,
+          antivirus_required: false,
+          ad_domain_joined_required: true,
+          windows_security_update_current: true,
+        },
+        {
+          os_type: 'android',
+          min_os_version: 15,
+          device_integrity_required: true,
+        },
+      ],
+    };
+
+    expect(
+      normalizeEditPostureCheckFormValues(
+        getInitialEditPostureCheckFormValues(
+          postureCheck,
+          getPostureCheckVersionValues(makeVersionMetadata()),
+        ),
+      ),
+    ).toEqual({
+      allowPrereleaseClient: true,
+      configuredOperatingSystems: ['windows', 'android'],
+      description: 'Existing policy',
+      locations: [3, 9],
+      minimumClientVersion: '2.0',
+      name: 'Edit posture check',
+      operatingSystemState: {
+        windows: {
+          conditions: ['active-directory', 'disk-encryption'],
+          securityUpdates: true,
+          version: 11,
+        },
+        macos: {
+          conditions: [],
+          securityUpdates: false,
+          version: 26,
+        },
+        linux: {
+          conditions: [],
+          securityUpdates: false,
+          version: 7,
+        },
+        ios: {
+          conditions: [],
+          securityUpdates: false,
+          version: 26,
+        },
+        android: {
+          conditions: ['device-integrity'],
+          securityUpdates: false,
+          version: 15,
+        },
+      },
+    });
+  });
+
+  it('should render the list page only on the base posture checks route', () => {
+    expect(isPostureChecksListPath('/acl/posture-checks')).toBe(true);
+    expect(isPostureChecksListPath('/acl/posture-checks/5/edit')).toBe(false);
   });
 });

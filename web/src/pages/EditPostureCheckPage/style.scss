@@ -1,0 +1,22 @@
+.edit-posture-check-page {
+  .page-content > .breadcrumbs {
+    padding: 0 var(--spacing-xl);
+  }
+
+  .page-content > .layout-grid {
+    padding: var(--spacing-3xl) var(--spacing-xl);
+
+    > .main-content {
+      grid-column: 1 / -1;
+      grid-row: 1;
+
+      > .card {
+        border: var(--border-1) solid var(--border-disabled);
+        border-radius: var(--radius-lg);
+        box-sizing: border-box;
+        width: 754px;
+        padding: var(--spacing-xl);
+      }
+    }
+  }
+}

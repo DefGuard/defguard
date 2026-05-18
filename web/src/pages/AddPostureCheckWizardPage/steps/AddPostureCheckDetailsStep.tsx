@@ -1,10 +1,12 @@
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
+import {
+  type PostureCheckEditorValues,
+  PostureCheckGeneralSection,
+} from '../../../shared/components/postureChecksEditor/PostureCheckEditorSections';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Input } from '../../../shared/defguard-ui/components/Input/Input';
-import { Textarea } from '../../../shared/defguard-ui/components/Textarea/Textarea';
 import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { useAddPostureCheckWizardStore } from '../useAddPostureCheckWizardStore';
 
@@ -15,6 +17,28 @@ export const AddPostureCheckDetailsStep = () => {
   const next = useAddPostureCheckWizardStore((s) => s.next);
   const setDescription = useAddPostureCheckWizardStore((s) => s.setDescription);
   const setName = useAddPostureCheckWizardStore((s) => s.setName);
+  const allowPrereleaseClient = useAddPostureCheckWizardStore(
+    (s) => s.allowPrereleaseClient,
+  );
+  const configuredOperatingSystems = useAddPostureCheckWizardStore(
+    (s) => s.configuredOperatingSystems,
+  );
+  const minimumClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumClientVersion,
+  );
+  const operatingSystemState = useAddPostureCheckWizardStore(
+    (s) => s.operatingSystemState,
+  );
+
+  const values: PostureCheckEditorValues = {
+    allowPrereleaseClient,
+    configuredOperatingSystems,
+    description,
+    locations: new Set<number>(),
+    minimumClientVersion,
+    name,
+    operatingSystemState,
+  };
 
   return (
     <WizardCard className="add-posture-check-details-step">
@@ -22,21 +46,14 @@ export const AddPostureCheckDetailsStep = () => {
         <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
           {m.posture_checks_wizard_details_note()}
         </AppText>
-        <div className="details-fields">
-          <Input
-            required
-            label={m.form_label_name()}
-            value={name}
-            onChange={(value) => {
-              setName(String(value ?? ''));
-            }}
-          />
-          <Textarea
-            label={m.posture_checks_wizard_details_description_optional_label()}
-            value={description}
-            onChange={setDescription}
-          />
-        </div>
+        <PostureCheckGeneralSection
+          values={values}
+          updateValues={(updater) => {
+            const nextValues = updater(values);
+            setName(nextValues.name);
+            setDescription(nextValues.description);
+          }}
+        />
       </div>
       <Controls>
         <Button text={m.controls_back()} variant="outlined" onClick={back} />
