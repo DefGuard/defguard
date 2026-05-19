@@ -34,9 +34,9 @@ pub enum GatewayCommand {
 /// Sends a [`GatewayCommand`] to the gateway manager service.
 ///
 /// In API handler context prefer `AppState::send_gateway_command`.
-pub fn send_gateway_command(event: GatewayCommand, wg_tx: &Sender<GatewayCommand>) {
+pub fn send_gateway_command(event: GatewayCommand, gateway_tx: &Sender<GatewayCommand>) {
     debug!("Sending the following command to Gateway Manager: {event:?}");
-    if let Err(err) = wg_tx.send(event) {
+    if let Err(err) = gateway_tx.send(event) {
         error!("Error sending Gateway command: {err}");
     }
 }
@@ -44,9 +44,9 @@ pub fn send_gateway_command(event: GatewayCommand, wg_tx: &Sender<GatewayCommand
 /// Sends multiple [`GatewayCommand`]s to the gateway manager service.
 ///
 /// In API handler context prefer `AppState::send_multiple_gateway_commands`.
-pub fn send_multiple_gateway_commands(events: Vec<GatewayCommand>, wg_tx: &Sender<GatewayCommand>) {
+pub fn send_multiple_gateway_commands(events: Vec<GatewayCommand>, gateway_tx: &Sender<GatewayCommand>) {
     debug!("Sending {} gateway commands", events.len());
     for event in events {
-        send_gateway_command(event, wg_tx);
+        send_gateway_command(event, gateway_tx);
     }
 }

@@ -871,7 +871,7 @@ pub(crate) async fn add_device(
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
-    // prepare a list of gateway events to be sent
+    // prepare a list of gateway commands to be sent
     let mut events = Vec::new();
 
     // get all locations affected by device being added
@@ -1197,7 +1197,7 @@ pub(crate) async fn delete_device(
     let device_id = device_info.device.id;
     events.push(GatewayCommand::DeviceDeleted(device_info.clone()));
 
-    // send generated gateway events
+    // send generated gateway commands
     appstate.send_multiple_gateway_commands(events);
 
     // Emit event specific to the device type.

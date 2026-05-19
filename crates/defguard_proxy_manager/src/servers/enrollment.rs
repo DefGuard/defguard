@@ -48,7 +48,7 @@ use tonic::Status;
 
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
-    wireguard_tx: Sender<GatewayCommand>,
+    gateway_tx: Sender<GatewayCommand>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -56,12 +56,12 @@ impl EnrollmentServer {
     #[must_use]
     pub(crate) fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayCommand>,
+        gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             pool,
-            wireguard_tx,
+            gateway_tx,
             bidi_event_tx,
         }
     }
@@ -98,7 +98,7 @@ impl EnrollmentServer {
 
     /// Sends given `GatewayCommand` to be handled by gateway manager service
     pub(crate) fn send_gateway_command(&self, event: GatewayCommand) {
-        if let Err(err) = self.wireguard_tx.send(event) {
+        if let Err(err) = self.gateway_tx.send(event) {
             error!("Error sending Gateway command: {err}");
         }
     }
@@ -1201,9 +1201,9 @@ mod test {
         settings.enrollment_send_welcome_email = false;
         update_current_settings(&pool, settings).await.unwrap();
 
-        let (wireguard_tx, _) = broadcast::channel(1);
+        let (gateway_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), wireguard_tx, bidi_event_tx);
+        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx);
 
         let mut transaction = pool.begin().await.unwrap();
         let result = server

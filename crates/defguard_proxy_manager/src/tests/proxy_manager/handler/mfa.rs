@@ -123,9 +123,9 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     )
     .await;
 
-    // Subscribe before finish so the handler's wireguard_tx.send() has a receiver,
+    // Subscribe before finish so the handler's gateway_tx.send() has a receiver,
     // and keep the receiver alive so we can assert on the event.
-    let mut gateway_rx = context.wireguard_tx.subscribe();
+    let mut gateway_rx = context.gateway_tx.subscribe();
 
     let code = generate_totp_code(&user);
     let (_, psk) = send_mfa_finish(&mut context, &token, Some(&code)).await;
@@ -138,12 +138,12 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
-    // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
+    // Verify GatewayCommand::MfaSessionAuthorized was broadcast.
     // Use the already-subscribed receiver - subscribing after send_mfa_finish would miss the event.
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
-        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
-        .expect("gateway event channel closed");
+        .expect("timed out waiting for GatewayCommand::MfaSessionAuthorized")
+        .expect("gateway command channel closed");
     let gateway_loc_id = match event {
         GatewayCommand::MfaSessionAuthorized(loc_id, _, _) => loc_id,
         other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
@@ -298,9 +298,9 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     .await;
 
     // Subscribe to the gateway broadcast BEFORE calling finish, so that the
-    // handler's wireguard_tx.send() has at least one active receiver (without
+    // handler's gateway_tx.send() has at least one active receiver (without
     // one the send would fail with SendError and return Internal).
-    let mut gateway_rx = context.wireguard_tx.subscribe();
+    let mut gateway_rx = context.gateway_tx.subscribe();
 
     // The start handler has already called generate_email_mfa_code internally
     // and the in-memory secret is still the same, so regenerating here gives
@@ -316,11 +316,11 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
-    // Verify GatewayEvent::MfaSessionAuthorized was broadcast
+    // Verify GatewayCommand::MfaSessionAuthorized was broadcast
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
-        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
-        .expect("gateway event channel closed");
+        .expect("timed out waiting for GatewayCommand::MfaSessionAuthorized")
+        .expect("gateway command channel closed");
     let loc_id = match event {
         GatewayCommand::MfaSessionAuthorized(loc_id, _, _) => loc_id,
         other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
@@ -358,8 +358,8 @@ async fn test_mfa_token_valid_before_finish_invalid_after(
     let valid = send_token_validation(&mut context, &token).await;
     assert!(valid, "token must be valid after start");
 
-    // Subscribe before finish so the handler's wireguard_tx.send() has a receiver
-    let _gateway_rx = context.wireguard_tx.subscribe();
+    // Subscribe before finish so the handler's gateway_tx.send() has a receiver
+    let _gateway_rx = context.gateway_tx.subscribe();
 
     let code = user.generate_email_mfa_code().expect("generate email code");
     send_mfa_finish(&mut context, &token, Some(&code)).await;
@@ -468,8 +468,8 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     // we proceed with the finish call.
     task::yield_now().await;
 
-    // Subscribe before finish so the handler's wireguard_tx.send() has a receiver
-    let _gateway_rx = context.wireguard_tx.subscribe();
+    // Subscribe before finish so the handler's gateway_tx.send() has a receiver
+    let _gateway_rx = context.gateway_tx.subscribe();
 
     // Now finish the MFA login with the correct code.  Use the no-recv variant
     // because two responses will arrive (ClientMfaFinish + AwaitRemoteMfaFinish)
@@ -509,7 +509,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
 /// When a second MFA cycle completes for the same device+location the handler
 /// must:
 ///  - disconnect the first `VpnClientSession` (state → Disconnected),
-///  - emit `GatewayEvent::MfaSessionDisconnected` for the first session, and
+///  - emit `GatewayCommand::MfaSessionDisconnected` for the first session, and
 ///  - create a new active `VpnClientSession`.
 #[sqlx::test]
 async fn test_mfa_finish_replaces_existing_session_disconnects_old(
@@ -525,7 +525,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     // ---- First MFA cycle ----
     // Must subscribe before finish so the send has a receiver.
-    let _gw_rx1 = context.wireguard_tx.subscribe();
+    let _gw_rx1 = context.gateway_tx.subscribe();
 
     let (_, token1) = send_mfa_start(
         &mut context,
@@ -566,7 +566,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     // Subscribe before finish so both MfaSessionDisconnected and
     // MfaSessionAuthorized have an active receiver.
-    let mut gw_rx2 = context.wireguard_tx.subscribe();
+    let mut gw_rx2 = context.gateway_tx.subscribe();
 
     let code2 = generate_totp_code(&user);
     let (_, psk2) = send_mfa_finish(&mut context, &token2, Some(&code2)).await;
@@ -583,8 +583,8 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     for _ in 0..2 {
         let event = timeout(RECEIVE_TIMEOUT, gw_rx2.recv())
             .await
-            .expect("timed out waiting for gateway event after second MFA finish")
-            .expect("gateway event channel closed");
+            .expect("timed out waiting for gateway command after second MFA finish")
+            .expect("gateway command channel closed");
 
         match event {
             GatewayCommand::MfaSessionDisconnected(loc_id, ref dev) => {
@@ -596,7 +596,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
                 assert_eq!(loc_id, network.id, "authorized session location mismatch");
                 got_authorized = true;
             }
-            other => panic!("unexpected gateway event: {other:?}"),
+            other => panic!("unexpected gateway command: {other:?}"),
         }
     }
     assert!(got_disconnected, "MfaSessionDisconnected must be emitted");

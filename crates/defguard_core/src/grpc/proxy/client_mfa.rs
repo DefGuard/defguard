@@ -83,7 +83,7 @@ pub struct ClientLoginSession {
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    wireguard_tx: Sender<GatewayCommand>,
+    gateway_tx: Sender<GatewayCommand>,
     pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -104,14 +104,14 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayCommand>,
+        gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         Self {
             pool,
-            wireguard_tx,
+            gateway_tx,
             sessions,
             remote_mfa_responses,
             bidi_event_tx,
@@ -710,12 +710,12 @@ impl ClientMfaServer {
         let gateway_network_info =
             Self::build_mfa_authorized_gateway_network_info(network_device, key.public.clone());
 
-        // send gateway event
+        // send gateway command
         debug!("Sending `peer_create` message to gateway");
         let event =
             GatewayCommand::MfaSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.wireguard_tx.send(event).map_err(|err| {
-            error!("Error sending WireGuard event: {err}");
+        self.gateway_tx.send(event).map_err(|err| {
+            error!("Error sending gateway command: {err}");
             Status::internal("unexpected error")
         })?;
 
@@ -951,9 +951,9 @@ impl ClientMfaServer {
         // gateway update is only needed to remove peer for MFA sessions
         // this is needed to remove peers for both Connected and New sessions
         if is_mfa_session {
-            let gateway_event = GatewayCommand::MfaSessionDisconnected(location.id, device.clone());
-            self.wireguard_tx.send(gateway_event).map_err(|err| {
-                error!("Error sending WireGuard event: {err}");
+            let gateway_command = GatewayCommand::MfaSessionDisconnected(location.id, device.clone());
+            self.gateway_tx.send(gateway_command).map_err(|err| {
+                error!("Error sending gateway command: {err}");
                 Status::internal("unexpected error")
             })?;
         }
@@ -1063,10 +1063,10 @@ mod tests {
             .await
             .expect("should replace connected MFA session");
 
-        let gateway_event = gateway_rx
+        let gateway_command = gateway_rx
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced connected session");
-        match gateway_event {
+        match gateway_command {
             GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
@@ -1138,10 +1138,10 @@ mod tests {
             .await
             .expect("should replace new MFA session");
 
-        let gateway_event = gateway_rx
+        let gateway_command = gateway_rx
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced new session");
-        match gateway_event {
+        match gateway_command {
             GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
@@ -1237,7 +1237,7 @@ mod tests {
         tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
         tokio::sync::broadcast::Receiver<GatewayCommand>,
     ) {
-        let (wireguard_tx, wireguard_rx) = broadcast::channel(8);
+        let (gateway_tx, gateway_rx) = broadcast::channel(8);
         let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
         let remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>> =
             Arc::default();
@@ -1246,13 +1246,13 @@ mod tests {
         (
             ClientMfaServer::new(
                 pool,
-                wireguard_tx,
+                gateway_tx,
                 bidi_event_tx,
                 remote_mfa_responses,
                 sessions,
             ),
             bidi_event_rx,
-            wireguard_rx,
+            gateway_rx,
         )
     }
 

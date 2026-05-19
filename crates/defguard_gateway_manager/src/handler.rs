@@ -615,7 +615,7 @@ impl GatewayHandler {
     }
 }
 
-/// Helper struct for handling gateway events.
+/// Helper struct for handling gateway commands.
 struct GatewayUpdatesHandler {
     network_id: Id,
     network: WireguardNetwork<Id>,
@@ -712,7 +712,7 @@ impl GatewayUpdatesHandler {
 
     /// Process incoming Gateway events
     ///
-    /// Main gRPC server uses a shared channel for broadcasting all gateway events
+    /// Main gRPC server uses a shared channel for broadcasting all gateway commands
     /// so the handler must determine if an event is relevant for the network being serviced
     async fn run(&mut self) {
         info!(

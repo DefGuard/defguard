@@ -44,7 +44,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut gateway_rx = client_state.gateway_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -54,7 +54,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     let response = make_network(&client, "network").await;
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // check vpn locations for `admin` group
@@ -102,7 +102,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         ]
     );
 
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkModified(..));
 
     // check vpn locations for `admin` group
@@ -134,7 +134,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkDeleted(..));
 }
 
@@ -507,7 +507,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut gateway_rx = client_state.gateway_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -515,7 +515,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create network
     make_network(&client, "network").await;
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // network details
@@ -534,7 +534,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::DeviceCreated(..));
 
     // an IP was assigned for new device
@@ -550,7 +550,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
     // add another network
     make_network(&client, "network").await;
     assert_matches!(
-        wg_rx.try_recv().unwrap(),
+        gateway_rx.try_recv().unwrap(),
         GatewayCommand::NetworkCreated(..)
     );
 
@@ -597,7 +597,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::DeviceModified(..));
 
     // device details
@@ -639,7 +639,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkDeleted(..));
 
     // delete device
@@ -648,7 +648,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::DeviceDeleted(..));
 
     let response = client.get("/api/v1/device").json(&device).send().await;
@@ -933,7 +933,7 @@ async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut gateway_rx = client_state.gateway_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -941,7 +941,7 @@ async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create network
     make_network(&client, "network").await;
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // network details

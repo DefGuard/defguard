@@ -324,7 +324,7 @@ async fn sync_user_groups<T: DirectorySync>(
     directory_sync: &T,
     user: &User<Id>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing groups of user {} with the directory", user.email);
     let directory_groups = directory_sync.get_user_groups(&user.email).await?;
@@ -371,7 +371,7 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
-    sync_allowed_user_devices(user, &mut transaction, wg_tx)
+    sync_allowed_user_devices(user, &mut transaction, gateway_tx)
         .await
         .map_err(|err| {
             DirectorySyncError::NetworkUpdateError(format!(
@@ -418,7 +418,7 @@ pub(crate) async fn test_directory_sync_connection(
 pub async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -435,7 +435,7 @@ pub async fn sync_user_groups_if_configured(
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
-            sync_user_groups(&dir_sync, user, pool, wg_tx).await?;
+            sync_user_groups(&dir_sync, user, pool, gateway_tx).await?;
         }
         Err(err) => {
             error!("Failed to build directory sync client: {err}");
@@ -482,7 +482,7 @@ async fn create_and_add_to_group(
 async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
     all_users: Option<&[DirectoryUser]>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' groups with the directory, this may take a while...");
@@ -579,7 +579,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
             create_and_add_to_group(&user, group, pool).await?;
         }
 
-        sync_allowed_user_devices(&user, &mut transaction, wg_tx).await.map_err(|err| {
+        sync_allowed_user_devices(&user, &mut transaction, gateway_tx).await.map_err(|err| {
             DirectorySyncError::NetworkUpdateError(format!(
                 "Failed to sync allowed devices for user {} during directory synchronization: {err}",
                 user.email
@@ -618,7 +618,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
 
 async fn sync_all_users_state(
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
     all_users: &[DirectoryUser],
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
@@ -656,7 +656,7 @@ async fn sync_all_users_state(
         &mut transaction,
         &inactive_directory_users,
         &mut modified_users,
-        wg_tx,
+        gateway_tx,
     )
     .await?;
 
@@ -789,7 +789,7 @@ async fn sync_all_users_state(
                             the admin behavior setting is set to disable",
                             user.email
                         );
-                        disable_user(&mut user, &mut transaction, wg_tx).await.map_err(|err| {
+                        disable_user(&mut user, &mut transaction, gateway_tx).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable admin {} during directory synchronization: {err}",
                                 user.email
@@ -819,7 +819,7 @@ async fn sync_all_users_state(
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    delete_user_and_cleanup_devices(user, &mut transaction, wg_tx)
+                    delete_user_and_cleanup_devices(user, &mut transaction, gateway_tx)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -844,7 +844,7 @@ async fn sync_all_users_state(
                             the user behavior setting is set to disable",
                             user.email
                         );
-                        disable_user(&mut user, &mut transaction, wg_tx).await.map_err(|err| {
+                        disable_user(&mut user, &mut transaction, gateway_tx).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable user {} during directory synchronization: {err}",
                                 user.email
@@ -866,7 +866,7 @@ async fn sync_all_users_state(
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    delete_user_and_cleanup_devices(user, &mut transaction, wg_tx)
+                    delete_user_and_cleanup_devices(user, &mut transaction, gateway_tx)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -904,7 +904,7 @@ async fn sync_inactive_directory_users(
     transaction: &mut PgConnection,
     inactive_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     // find all active Defguard users disabled in directory
     let disabled_users_emails = inactive_directory_users
@@ -929,7 +929,7 @@ async fn sync_inactive_directory_users(
                 "Disabling user {} because they are disabled in the directory",
                 user.email
             );
-            disable_user(&mut user, transaction, wg_tx)
+            disable_user(&mut user, transaction, gateway_tx)
                 .await
                 .map_err(|err| {
                     DirectorySyncError::UserUpdateError(format!(
@@ -1005,7 +1005,7 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 // Performs the directory sync job. This function is called by the utility thread.
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
-    wireguard_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -1042,7 +1042,7 @@ pub(crate) async fn do_directory_sync(
                 DirectorySyncTarget::All | DirectorySyncTarget::Users
             ) {
                 let users = dir_sync.get_all_users().await?;
-                sync_all_users_state(pool, wireguard_tx, &users).await?;
+                sync_all_users_state(pool, gateway_tx, &users).await?;
                 all_users = Some(users);
             }
             if matches!(
@@ -1063,7 +1063,7 @@ pub(crate) async fn do_directory_sync(
                     }
                     _ => None, // No need to pass all users for other providers, for the time being.
                 };
-                sync_all_users_groups(&dir_sync, pool, wireguard_tx, users_to_pass.as_deref())
+                sync_all_users_groups(&dir_sync, pool, gateway_tx, users_to_pass.as_deref())
                     .await?;
             }
         }

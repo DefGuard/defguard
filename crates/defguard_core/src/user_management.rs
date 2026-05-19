@@ -18,7 +18,7 @@ use crate::{
 pub async fn delete_user_and_cleanup_devices(
     user: User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), WebError> {
     let username = user.username.clone();
     debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
@@ -57,7 +57,7 @@ pub async fn delete_user_and_cleanup_devices(
         }
     }
 
-    send_multiple_gateway_commands(events, wg_tx);
+    send_multiple_gateway_commands(events, gateway_tx);
     info!(
         "The user {} has been deleted and his devices removed from gateways.",
         &username
@@ -69,12 +69,12 @@ pub async fn delete_user_and_cleanup_devices(
 pub async fn disable_user(
     user: &mut User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), WebError> {
     user.is_active = false;
     user.save(&mut *conn).await?;
     user.logout_all_sessions(&mut *conn).await?;
-    sync_allowed_user_devices(user, conn, wg_tx).await?;
+    sync_allowed_user_devices(user, conn, gateway_tx).await?;
     Ok(())
 }
 
@@ -82,7 +82,7 @@ pub async fn disable_user(
 pub async fn sync_allowed_user_devices(
     user: &User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), WebError> {
     debug!("Syncing allowed devices of user {}", user.username);
     let locations = WireguardNetwork::all(&mut *conn).await?;
@@ -93,7 +93,7 @@ pub async fn sync_allowed_user_devices(
         // check if any peers were updated
         if !gateway_events.is_empty() {
             // send peer update events
-            send_multiple_gateway_commands(gateway_events, wg_tx);
+            send_multiple_gateway_commands(gateway_events, gateway_tx);
         }
 
         // send firewall config update if ACLs & enterprise features are enabled
@@ -102,7 +102,7 @@ pub async fn sync_allowed_user_devices(
         {
             send_gateway_command(
                 GatewayCommand::FirewallConfigChanged(location.id, firewall_config),
-                wg_tx,
+                gateway_tx,
             );
         }
     }

@@ -29,7 +29,7 @@ const X_DEFGUARD_EVENT: &str = "x-defguard-event";
 pub struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
-    pub wireguard_tx: Sender<GatewayCommand>,
+    pub gateway_tx: Sender<GatewayCommand>,
     pub web_reload_tx: tokio::sync::broadcast::Sender<()>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
@@ -89,13 +89,13 @@ impl AppState {
     /// Sends given `GatewayCommand` to be handled by gateway manager service.
     /// Convenience wrapper around [`send_gateway_command`]
     pub fn send_gateway_command(&self, event: GatewayCommand) {
-        send_gateway_command(event, &self.wireguard_tx);
+        send_gateway_command(event, &self.gateway_tx);
     }
 
     /// Sends multiple commands to be handled by gateway manager service.
     /// Convenience wrapper around [`send_multiple_gateway_commands`]
     pub fn send_multiple_gateway_commands(&self, events: Vec<GatewayCommand>) {
-        send_multiple_gateway_commands(events, &self.wireguard_tx);
+        send_multiple_gateway_commands(events, &self.gateway_tx);
     }
 
     /// Sends event to the main event router
@@ -118,7 +118,7 @@ impl AppState {
         pool: PgPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
-        wireguard_tx: Sender<GatewayCommand>,
+        gateway_tx: Sender<GatewayCommand>,
         web_reload_tx: tokio::sync::broadcast::Sender<()>,
         key: Key,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -132,7 +132,7 @@ impl AppState {
         Self {
             pool,
             tx,
-            wireguard_tx,
+            gateway_tx,
             web_reload_tx,
             failed_logins,
             key,

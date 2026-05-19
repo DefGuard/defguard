@@ -471,7 +471,7 @@ impl ProxyHandler {
     async fn message_loop(
         &mut self,
         tx: UnboundedSender<CoreResponse>,
-        wireguard_tx: Sender<GatewayCommand>,
+        gateway_tx: Sender<GatewayCommand>,
         resp_stream: &mut Streaming<CoreRequest>,
     ) -> Result<(), ProxyError> {
         let pool = self.pool.clone();
@@ -863,7 +863,7 @@ impl ProxyHandler {
                                             if let Err(err) = sync_user_groups_if_configured(
                                                 &user,
                                                 &pool,
-                                                &wireguard_tx,
+                                                &gateway_tx,
                                             )
                                             .await
                                             {

@@ -555,7 +555,7 @@ impl AclRule {
                 None => {
                     debug!(
                         "No firewall config generated for location {location}. Not sending a \
-                        gateway event"
+                        gateway command"
                     );
                 }
             }
@@ -1704,7 +1704,7 @@ impl AclAlias {
                 None => {
                     debug!(
                         "No firewall config generated for location {location}. Not sending a \
-                        gateway event"
+                        gateway command"
                     );
                 }
             }

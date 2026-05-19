@@ -98,7 +98,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut gateway_rx = client_state.gateway_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -108,12 +108,12 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let response = make_first_network(&client).await;
     let network_1: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_1.name, "network");
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
     let response = make_second_network(&client).await;
     let network_2: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_2.name, "network-2");
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // ip suggestions
@@ -201,7 +201,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let configured = json["device"]["configured"].as_bool().unwrap();
     let config_text = json["config"]["config"].as_str().unwrap();
     assert!(configured);
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::DeviceCreated(..));
 
     // download WG config
@@ -238,7 +238,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     assert_eq!(device.name, "device-1");
     assert_eq!(device.description, Some("new description".to_owned()));
-    let event = wg_rx.try_recv().unwrap();
+    let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::DeviceModified(..));
 
     // Make sure the device is only in the selected network

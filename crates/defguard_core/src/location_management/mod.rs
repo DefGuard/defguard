@@ -41,7 +41,7 @@ pub enum LocationManagementError {
 // run sync_allowed_devices on all wireguard networks
 pub(crate) async fn sync_all_networks(
     conn: &mut PgConnection,
-    wireguard_tx: &Sender<GatewayCommand>,
+    gateway_tx: &Sender<GatewayCommand>,
 ) -> Result<(), LocationManagementError> {
     info!("Syncing allowed devices for all WireGuard locations");
     let locations = WireguardNetwork::all(&mut *conn).await?;
@@ -58,9 +58,9 @@ pub(crate) async fn sync_all_networks(
                 firewall_config,
             ));
         }
-        // check if any gateway events need to be sent
+        // check if any gateway commands need to be sent
         if !gateway_events.is_empty() {
-            send_multiple_gateway_commands(gateway_events, wireguard_tx);
+            send_multiple_gateway_commands(gateway_events, gateway_tx);
         }
     }
     Ok(())
@@ -236,7 +236,7 @@ pub async fn process_device_access_changes(
 /// Check if devices found in an imported config file exist already,
 /// if they do assign a specified IP.
 /// Return a list of imported devices which need to be manually mapped to a user
-/// and a list of WireGuard events to be sent out.
+/// and a list of gateway commands to be sent out.
 pub(crate) async fn handle_imported_devices(
     location: &WireguardNetwork<Id>,
     transaction: &mut PgConnection,
