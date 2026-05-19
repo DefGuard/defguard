@@ -8,6 +8,7 @@ use defguard_common::db::{
     },
     setup_pool,
 };
+use defguard_core::grpc::GatewayEvent;
 use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::{Duration, timeout};
@@ -16,7 +17,8 @@ use crate::common::{
     SessionManagerHarness, assert_no_gateway_events, assert_no_session_manager_events,
     attach_device_to_location, build_stats_update, count_session_stats,
     count_stats_for_device_location, create_device, create_device_with_pubkey, create_gateway,
-    create_location, create_session, create_session_stats, create_user, stale_session_timestamp,
+    create_location, create_session, create_session_stats, create_user,
+    enable_linux_posture_for_location, set_session_created_at, stale_session_timestamp,
     truncate_timestamp,
 };
 
@@ -296,6 +298,143 @@ async fn test_existing_new_session_becomes_connected_on_stats(
     assert_eq!(updated_session.state, VpnClientSessionState::Connected);
     assert_eq!(updated_session.connected_at, Some(handshake));
     assert_eq!(count_session_stats(&pool, updated_session.id).await, 1);
+}
+
+#[sqlx::test]
+async fn test_never_connected_posture_new_session_disconnects_after_threshold(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let location = create_location(&pool).await;
+    enable_linux_posture_for_location(&pool, location.id).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let mut harness = SessionManagerHarness::new(pool.clone());
+
+    let session = create_session(
+        &pool,
+        location.id,
+        user.id,
+        device.id,
+        None,
+        None,
+        Some("posture-psk-before-timeout"),
+    )
+    .await;
+    set_session_created_at(&pool, session.id, stale_session_timestamp(&location)).await;
+
+    let _ = harness.run_idle_iteration().await;
+
+    let disconnected_session = VpnClientSession::find_by_id(&pool, session.id)
+        .await
+        .expect("failed to query session")
+        .expect("expected session");
+    assert_eq!(
+        disconnected_session.state,
+        VpnClientSessionState::Disconnected
+    );
+    assert!(disconnected_session.disconnected_at.is_some());
+    assert!(
+        VpnClientSession::try_get_active_session(&pool, location.id, device.id)
+            .await
+            .expect("failed to query active session")
+            .is_none()
+    );
+
+    let gateway_event = timeout(RECEIVE_TIMEOUT, harness.gateway_rx.recv())
+        .await
+        .expect("timed out waiting for posture disconnect gateway event for new session")
+        .expect("gateway event channel closed");
+    match gateway_event {
+        GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            assert_eq!(location_id, location.id);
+            assert_eq!(disconnected_device.id, device.id);
+        }
+        other => panic!("unexpected gateway event: {other:?}"),
+    }
+
+    assert_no_session_manager_events(&mut harness);
+}
+
+#[sqlx::test]
+async fn test_inactive_posture_connected_session_disconnects_and_clears_authorization(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let location = create_location(&pool).await;
+    enable_linux_posture_for_location(&pool, location.id).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
+    let mut harness = SessionManagerHarness::new(pool.clone());
+
+    let stale_handshake = stale_session_timestamp(&location);
+    let mut session = create_session(
+        &pool,
+        location.id,
+        user.id,
+        device.id,
+        Some(stale_handshake),
+        None,
+        Some("posture-psk-before-disconnect"),
+    )
+    .await;
+    session.connected_at = Some(stale_handshake);
+    session.created_at = stale_handshake;
+    session.state = VpnClientSessionState::Connected;
+    session.save(&pool).await.expect("failed to age session");
+    create_session_stats(
+        &pool,
+        session.id,
+        gateway.id,
+        stale_handshake,
+        stale_handshake,
+        "203.0.113.10:51820".parse().unwrap(),
+        100,
+        200,
+        0,
+        0,
+    )
+    .await;
+
+    let _ = harness.run_idle_iteration().await;
+
+    let disconnected_session = VpnClientSession::find_by_id(&pool, session.id)
+        .await
+        .expect("failed to query session")
+        .expect("expected session");
+    assert_eq!(
+        disconnected_session.state,
+        VpnClientSessionState::Disconnected
+    );
+
+    let gateway_event = timeout(RECEIVE_TIMEOUT, harness.gateway_rx.recv())
+        .await
+        .expect("timed out waiting for posture disconnect gateway event")
+        .expect("gateway event channel closed");
+    match gateway_event {
+        GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            assert_eq!(location_id, location.id);
+            assert_eq!(disconnected_device.id, device.id);
+        }
+        other => panic!("unexpected gateway event: {other:?}"),
+    }
+
+    let disconnected_event = timeout(RECEIVE_TIMEOUT, harness.event_rx.recv())
+        .await
+        .expect("timed out waiting for ClientDisconnected event")
+        .expect("session manager event channel closed");
+    assert!(matches!(
+        disconnected_event.event,
+        SessionManagerEventType::ClientDisconnected
+    ));
+    assert_eq!(disconnected_event.context.location.id, location.id);
+    assert_eq!(disconnected_event.context.user.id, user.id);
+    assert_eq!(disconnected_event.context.device.id, device.id);
 }
 
 #[sqlx::test]

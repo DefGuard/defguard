@@ -219,6 +219,9 @@ impl SessionManager {
                 "[{index}/{locations_count}] Disconnecting inactive sessions in location {location}"
             );
 
+            let session_authorization_required =
+                location.mfa_enabled() || location.has_postures(&mut *transaction).await?;
+
             // get all connected sessions which have become inactive
             let inactive_sessions =
                 VpnClientSession::get_all_inactive_for_location(&mut *transaction, &location)
@@ -234,13 +237,18 @@ impl SessionManager {
                     "Disconnecting inactive session for user {}, device {} in location {location}",
                     session.user_id, session.device_id
                 );
-                self.disconnect_session(&mut transaction, session, &location)
-                    .await?;
+                self.disconnect_session(
+                    &mut transaction,
+                    session,
+                    &location,
+                    session_authorization_required,
+                )
+                .await?;
             }
 
             // get all sessions which were created but have never connected
-            // this is only relevant for MFA locations
-            if location.mfa_enabled() {
+            // this is only relevant for locations that authorize peers at runtime
+            if session_authorization_required {
                 let unused_sessions =
                     VpnClientSession::get_never_connected(&mut *transaction, &location).await?;
 
@@ -254,8 +262,13 @@ impl SessionManager {
                         "Disconnecting never connected session for user {}, device {} in location {location}",
                         session.user_id, session.device_id
                     );
-                    self.disconnect_session(&mut transaction, session, &location)
-                        .await?;
+                    self.disconnect_session(
+                        &mut transaction,
+                        session,
+                        &location,
+                        session_authorization_required,
+                    )
+                    .await?;
                 }
             }
         }
@@ -274,6 +287,7 @@ impl SessionManager {
         transaction: &mut PgConnection,
         mut session: VpnClientSession<Id>,
         location: &WireguardNetwork<Id>,
+        session_authorization_required: bool,
     ) -> Result<(), SessionManagerError> {
         let disconnect_timestamp = Utc::now().naive_utc();
         let is_connected = session.connected_at.is_some();
@@ -294,8 +308,8 @@ impl SessionManager {
                 session.device_id,
             ))?;
 
-        // remove peers from GW for MFA locations
-        if location.mfa_enabled() {
+        // remove peers from GW for locations that authorize peers at runtime
+        if session_authorization_required {
             self.send_peer_disconnect_message(location, &device)?;
         }
 
