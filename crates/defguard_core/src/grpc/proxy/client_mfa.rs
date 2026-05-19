@@ -826,8 +826,7 @@ impl ClientMfaServer {
 
         if location.mfa_enabled() {
             error!(
-                "Posture check: location {} has MFA enabled, posture-only sessions are not allowed",
-                location
+                "Posture check: location {location} has MFA enabled, posture-only sessions are not allowed"
             );
             return Err(Status::invalid_argument("location has MFA enabled"));
         }
@@ -841,15 +840,12 @@ impl ClientMfaServer {
         };
 
         if !location.has_postures(&self.pool).await.map_err(|err| {
-            error!(
-                "Posture check: failed to fetch postures for location {}: {err}",
-                location
-            );
+            error!("Posture check: failed to fetch postures for location {location}: {err}");
             Status::internal("unexpected error")
         })? {
             error!(
-                "Posture check: location {} has no postures defined but device {} requested posture check",
-                location, device.wireguard_pubkey
+                "Posture check: location {location} has no postures defined but device {} requested posture check",
+                device.wireguard_pubkey
             );
             return Err(Status::invalid_argument("location does not use postures"));
         }
