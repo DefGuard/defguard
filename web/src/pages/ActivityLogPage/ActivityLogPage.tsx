@@ -1,4 +1,5 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import type { SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -11,14 +12,22 @@ import { ActivityLogTable } from './ActivityLogTable';
 
 export const ActivityLogPage = () => {
   const [search, setSearch] = useState('');
+  const [sortingState, setSortingState] = useState<SortingState>([
+    { id: 'timestamp', desc: true },
+  ]);
+
+  const activeSorting = sortingState[0];
 
   const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['activity-log', { search }],
+    queryKey: ['activity-log', { search, sortingState }],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.getActivityLog({
         page: pageParam,
         search: search.length > 0 ? search : undefined,
+        // sort_by is typed as keyof string due to RequestSortParams<ActivityLogSortKey> quirk
+        sort_by: activeSorting?.id as never,
+        sort_order: activeSorting ? (activeSorting.desc ? 'desc' : 'asc') : undefined,
       }),
     placeholderData: keepPreviousData,
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
@@ -46,8 +55,6 @@ export const ActivityLogPage = () => {
         {isPresent(flatData) && isPresent(pagination) && (
           <ActivityLogTable
             data={flatData}
-            pagination={pagination}
-            filters={{}}
             loadingNextPage={isFetchingNextPage}
             onNextPage={() => {
               fetchNextPage();
@@ -55,6 +62,8 @@ export const ActivityLogPage = () => {
             hasNextPage={pagination.next_page !== null}
             search={search}
             onSearchChange={setSearch}
+            sortingState={sortingState}
+            onSortingChange={setSortingState}
           />
         )}
       </TablePageLayout>
