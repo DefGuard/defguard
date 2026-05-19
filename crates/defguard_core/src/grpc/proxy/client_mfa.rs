@@ -1098,7 +1098,9 @@ mod tests {
         },
         setup_pool,
     };
-    use defguard_proto::enterprise::posture::DevicePostureCheckRequest;
+    use defguard_proto::enterprise::posture::{
+        BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
+    };
     use ipnetwork::IpNetwork;
     use sqlx::{
         PgPool,
@@ -1109,12 +1111,144 @@ mod tests {
 
     use super::{ClientLoginSession, ClientMfaServer};
     use crate::{
+        enterprise::{
+            db::models::device_posture::{
+                DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+            },
+            license::{License, LicenseTier, SupportType, set_cached_license},
+            limits::{Counts, set_counts},
+        },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::GatewayEvent,
+        grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
     const NEW_MFA_PRESHARED_KEY: &str = "new-psk";
+
+    #[sqlx::test]
+    async fn test_posture_check_success_emits_vpn_session_authorized_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+
+        let outcome = server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                device_posture_data: Some(passing_linux_posture_data()),
+            })
+            .await
+            .expect("posture check should pass");
+        let preshared_key = match outcome {
+            super::PostureCheckOutcome::Approved { preshared_key } => preshared_key,
+            super::PostureCheckOutcome::Rejected { failed_checks } => {
+                panic!("posture check unexpectedly failed: {failed_checks:?}")
+            }
+        };
+
+        match gateway_rx
+            .try_recv()
+            .expect("expected VPN authorization gateway event")
+        {
+            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(authorized_device.id, device.id);
+                assert_eq!(network_info.network_id, location.id);
+                assert_eq!(
+                    network_info.preshared_key.as_deref(),
+                    Some(preshared_key.as_str())
+                );
+                assert!(network_info.is_authorized);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            location.id,
+            device.id,
+        )
+        .await
+        .expect("failed to fetch active sessions");
+        assert_eq!(active_sessions.len(), 1);
+        assert_eq!(
+            active_sessions[0].preshared_key.as_deref(),
+            Some(preshared_key.as_str())
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let mut old_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        old_session.preshared_key = Some("old-posture-psk".to_owned());
+        old_session.state = VpnClientSessionState::Connected;
+        let old_session = old_session
+            .save(&pool)
+            .await
+            .expect("failed to create previous posture session");
+        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+
+        server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                device_posture_data: Some(passing_linux_posture_data()),
+            })
+            .await
+            .expect("replacement posture check should pass");
+
+        match gateway_rx
+            .try_recv()
+            .expect("expected VPN deauthorization gateway event for replaced posture session")
+        {
+            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(disconnected_device.id, device.id);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+        match gateway_rx
+            .try_recv()
+            .expect("expected VPN authorization gateway event for replacement posture session")
+        {
+            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(authorized_device.id, device.id);
+                assert!(network_info.preshared_key.is_some());
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
+            .await
+            .expect("failed to reload old posture session")
+            .expect("expected old posture session");
+        assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
+    }
 
     #[sqlx::test]
     async fn test_posture_check_rejects_mfa_enabled_location(
@@ -1557,5 +1691,72 @@ mod tests {
         .insert(pool)
         .await
         .expect("failed to attach device to location");
+    }
+
+    fn set_enterprise_license() {
+        let license = License::new(
+            "test".to_owned(),
+            true,
+            Some(Utc::now() + chrono::TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 100,
+                devices: 100,
+                locations: 100,
+                network_devices: Some(100),
+            }),
+            None,
+            LicenseTier::Enterprise,
+            SupportType::Basic,
+        );
+        set_cached_license(Some(license));
+        set_counts(Counts::new(1, 1, 1, 1));
+    }
+
+    fn passing_linux_posture_data() -> DevicePostureData {
+        DevicePostureData {
+            defguard_client_version: "1.6.0".to_owned(),
+            os_type: "linux".to_owned(),
+            disk_encryption: Some(BoolCheck {
+                result: Some(bool_check::Result::Value(true)),
+            }),
+            ..Default::default()
+        }
+    }
+
+    async fn save_linux_posture_policy(pool: &PgPool, location_id: Id) {
+        let policy = DevicePosture {
+            id: defguard_common::db::NoId,
+            name: "client-mfa-test-posture".to_owned(),
+            description: None,
+            min_client_version: None,
+            allow_prerelease_client: true,
+        }
+        .save(pool)
+        .await
+        .expect("failed to save posture policy");
+
+        DevicePostureOsRule {
+            id: defguard_common::db::NoId,
+            posture_id: policy.id,
+            os_type: OsType::Linux,
+            min_os_version: None,
+            disk_encryption_required: Some(true),
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_current: None,
+            min_kernel_version: None,
+            device_integrity_required: None,
+        }
+        .save(pool)
+        .await
+        .expect("failed to save posture OS rule");
+
+        DevicePostureLocation::set_for_location(
+            &mut pool.acquire().await.expect("failed to acquire connection"),
+            location_id,
+            &[policy.id],
+        )
+        .await
+        .expect("failed to assign posture policy to location");
     }
 }
