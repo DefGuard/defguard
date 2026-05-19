@@ -7,7 +7,7 @@ use std::{
 use std::{path::PathBuf, str::FromStr, sync::Mutex as StdMutex};
 
 use axum_extra::extract::cookie::Key;
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{Id, models::proxy::Proxy},
     types::proxy::ProxyControlMessage,
@@ -401,14 +401,14 @@ impl ProxyManager {
 /// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct ProxyTxSet {
-    wireguard: Sender<GatewayEvent>,
+    wireguard: Sender<GatewayCommand>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
 }
 
 impl ProxyTxSet {
     #[must_use]
     pub const fn new(
-        wireguard: Sender<GatewayEvent>,
+        wireguard: Sender<GatewayCommand>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {

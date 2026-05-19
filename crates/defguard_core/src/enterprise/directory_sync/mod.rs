@@ -31,7 +31,7 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::user::check_username,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
@@ -324,7 +324,7 @@ async fn sync_user_groups<T: DirectorySync>(
     directory_sync: &T,
     user: &User<Id>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing groups of user {} with the directory", user.email);
     let directory_groups = directory_sync.get_user_groups(&user.email).await?;
@@ -418,7 +418,7 @@ pub(crate) async fn test_directory_sync_connection(
 pub async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -482,7 +482,7 @@ async fn create_and_add_to_group(
 async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
     all_users: Option<&[DirectoryUser]>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' groups with the directory, this may take a while...");
@@ -618,7 +618,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
 
 async fn sync_all_users_state(
     pool: &PgPool,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
     all_users: &[DirectoryUser],
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
@@ -904,7 +904,7 @@ async fn sync_inactive_directory_users(
     transaction: &mut PgConnection,
     inactive_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     // find all active Defguard users disabled in directory
     let disabled_users_emails = inactive_directory_users
@@ -1005,7 +1005,7 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 // Performs the directory sync job. This function is called by the utility thread.
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
-    wireguard_tx: &Sender<GatewayEvent>,
+    wireguard_tx: &Sender<GatewayCommand>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {

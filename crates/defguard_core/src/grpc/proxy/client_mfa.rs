@@ -51,7 +51,7 @@ use crate::{
         posture::{PostureCheckError, PostureResult, validate_posture},
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{GatewayEvent, utils::parse_client_ip_agent},
+    grpc::{GatewayCommand, utils::parse_client_ip_agent},
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -83,7 +83,7 @@ pub struct ClientLoginSession {
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayCommand>,
     pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -104,7 +104,7 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayEvent>,
+        wireguard_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
@@ -713,7 +713,7 @@ impl ClientMfaServer {
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let event =
-            GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), gateway_network_info);
+            GatewayCommand::MfaSessionAuthorized(location.id, device.clone(), gateway_network_info);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
@@ -951,7 +951,7 @@ impl ClientMfaServer {
         // gateway update is only needed to remove peer for MFA sessions
         // this is needed to remove peers for both Connected and New sessions
         if is_mfa_session {
-            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+            let gateway_event = GatewayCommand::MfaSessionDisconnected(location.id, device.clone());
             self.wireguard_tx.send(gateway_event).map_err(|err| {
                 error!("Error sending WireGuard event: {err}");
                 Status::internal("unexpected error")
@@ -1021,7 +1021,7 @@ mod tests {
     use super::{ClientLoginSession, ClientMfaServer};
     use crate::{
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::GatewayEvent,
+        grpc::GatewayCommand,
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -1067,7 +1067,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced connected session");
         match gateway_event {
-            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+            GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1142,7 +1142,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced new session");
         match gateway_event {
-            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+            GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1235,7 +1235,7 @@ mod tests {
     ) -> (
         ClientMfaServer,
         tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-        tokio::sync::broadcast::Receiver<GatewayEvent>,
+        tokio::sync::broadcast::Receiver<GatewayCommand>,
     ) {
         let (wireguard_tx, wireguard_rx) = broadcast::channel(8);
         let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
@@ -1359,7 +1359,7 @@ mod tests {
         );
 
         match gateway_rx.try_recv() {
-            Ok(GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device)) => {
+            Ok(GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device)) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }

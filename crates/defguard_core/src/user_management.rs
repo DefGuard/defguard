@@ -10,7 +10,7 @@ use tokio::sync::broadcast::Sender;
 use crate::{
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     error::WebError,
-    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    grpc::{GatewayCommand, send_gateway_command, send_multiple_gateway_commands},
     location_management::sync_allowed_devices_for_user,
 };
 
@@ -18,7 +18,7 @@ use crate::{
 pub async fn delete_user_and_cleanup_devices(
     user: User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
 ) -> Result<(), WebError> {
     let username = user.username.clone();
     debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
@@ -33,7 +33,7 @@ pub async fn delete_user_and_cleanup_devices(
         for network_info in &device_info.network_info {
             affected_location_ids.insert(network_info.network_id);
         }
-        events.push(GatewayEvent::DeviceDeleted(device_info));
+        events.push(GatewayCommand::DeviceDeleted(device_info));
     }
 
     user.delete(&mut *conn).await?;
@@ -49,7 +49,7 @@ pub async fn delete_user_and_cleanup_devices(
                 debug!(
                     "Sending firewall config update for location {location} affected by deleting user {username} devices"
                 );
-                events.push(GatewayEvent::FirewallConfigChanged(
+                events.push(GatewayCommand::FirewallConfigChanged(
                     location_id,
                     firewall_config,
                 ));
@@ -57,7 +57,7 @@ pub async fn delete_user_and_cleanup_devices(
         }
     }
 
-    send_multiple_wireguard_events(events, wg_tx);
+    send_multiple_gateway_commands(events, wg_tx);
     info!(
         "The user {} has been deleted and his devices removed from gateways.",
         &username
@@ -69,7 +69,7 @@ pub async fn delete_user_and_cleanup_devices(
 pub async fn disable_user(
     user: &mut User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
 ) -> Result<(), WebError> {
     user.is_active = false;
     user.save(&mut *conn).await?;
@@ -82,7 +82,7 @@ pub async fn disable_user(
 pub async fn sync_allowed_user_devices(
     user: &User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayEvent>,
+    wg_tx: &Sender<GatewayCommand>,
 ) -> Result<(), WebError> {
     debug!("Syncing allowed devices of user {}", user.username);
     let locations = WireguardNetwork::all(&mut *conn).await?;
@@ -93,15 +93,15 @@ pub async fn sync_allowed_user_devices(
         // check if any peers were updated
         if !gateway_events.is_empty() {
             // send peer update events
-            send_multiple_wireguard_events(gateway_events, wg_tx);
+            send_multiple_gateway_commands(gateway_events, wg_tx);
         }
 
         // send firewall config update if ACLs & enterprise features are enabled
         if let Some(firewall_config) =
             try_get_location_firewall_config(&location, &mut *conn).await?
         {
-            send_wireguard_event(
-                GatewayEvent::FirewallConfigChanged(location.id, firewall_config),
+            send_gateway_command(
+                GatewayCommand::FirewallConfigChanged(location.id, firewall_config),
                 wg_tx,
             );
         }

@@ -2,7 +2,7 @@ use defguard_common::db::models::{
     Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
     settings::update_current_settings,
 };
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_core::events::{BidiStreamEventType, EnrollmentEvent};
 use defguard_proto::{
     client_types::{ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest},
@@ -283,7 +283,7 @@ async fn test_new_device_sends_gateway_device_created_event(
         .expect("gateway event channel closed");
 
     assert!(
-        matches!(event, GatewayEvent::DeviceCreated(_)),
+        matches!(event, GatewayCommand::DeviceCreated(_)),
         "expected DeviceCreated gateway event, got: {event:?}"
     );
 

@@ -1,5 +1,5 @@
 use defguard_common::db::Id;
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_proto::{
     client_types::{ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod},
     proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},
@@ -145,7 +145,7 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
         .expect("gateway event channel closed");
     let gateway_loc_id = match event {
-        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
+        GatewayCommand::MfaSessionAuthorized(loc_id, _, _) => loc_id,
         other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
     };
     assert_eq!(gateway_loc_id, network.id);
@@ -322,7 +322,7 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
         .expect("gateway event channel closed");
     let loc_id = match event {
-        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
+        GatewayCommand::MfaSessionAuthorized(loc_id, _, _) => loc_id,
         other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
     };
     assert_eq!(loc_id, network.id);
@@ -587,12 +587,12 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
             .expect("gateway event channel closed");
 
         match event {
-            GatewayEvent::MfaSessionDisconnected(loc_id, ref dev) => {
+            GatewayCommand::MfaSessionDisconnected(loc_id, ref dev) => {
                 assert_eq!(loc_id, network.id, "disconnected session location mismatch");
                 assert_eq!(dev.id, device.id, "disconnected session device mismatch");
                 got_disconnected = true;
             }
-            GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => {
+            GatewayCommand::MfaSessionAuthorized(loc_id, _, _) => {
                 assert_eq!(loc_id, network.id, "authorized session location mismatch");
                 got_authorized = true;
             }

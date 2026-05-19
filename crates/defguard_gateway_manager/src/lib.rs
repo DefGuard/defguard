@@ -9,7 +9,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
     messages::peer_stats_update::PeerStatsUpdate,
@@ -656,14 +656,14 @@ mod unit_tests {
 /// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct GatewayTxSet {
-    events: Sender<GatewayEvent>,
+    events: Sender<GatewayCommand>,
     peer_stats: UnboundedSender<PeerStatsUpdate>,
 }
 
 impl GatewayTxSet {
     #[must_use]
     pub const fn new(
-        events: Sender<GatewayEvent>,
+        events: Sender<GatewayCommand>,
         peer_stats: UnboundedSender<PeerStatsUpdate>,
     ) -> Self {
         Self { events, peer_stats }

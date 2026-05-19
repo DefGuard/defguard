@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{Device, WireguardNetwork},
 };
 use defguard_core::{
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
@@ -109,12 +109,12 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let network_1: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_1.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
     let response = make_second_network(&client).await;
     let network_2: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_2.name, "network-2");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // ip suggestions
     let response = client.get("/api/v1/device/network/ip/1").send().await;
@@ -202,7 +202,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let config_text = json["config"]["config"].as_str().unwrap();
     assert!(configured);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    assert_matches!(event, GatewayCommand::DeviceCreated(..));
 
     // download WG config
     let response = client.get("/api/v1/device/network/1/config").send().await;
@@ -239,7 +239,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(device.name, "device-1");
     assert_eq!(device.description, Some("new description".to_owned()));
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceModified(..));
+    assert_matches!(event, GatewayCommand::DeviceModified(..));
 
     // Make sure the device is only in the selected network
     let device_networks =

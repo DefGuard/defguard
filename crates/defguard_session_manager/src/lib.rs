@@ -1,5 +1,5 @@
 use chrono::Utc;
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{
         Id,
@@ -42,7 +42,7 @@ pub async fn run_session_manager(
     pool: PgPool,
     mut peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-    gateway_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
     let mut session_update_timer = interval(SESSION_UPDATE_INTERVAL);
@@ -103,7 +103,7 @@ pub async fn run_session_manager_iteration(
 pub struct SessionManager {
     pool: PgPool,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-    gateway_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
 }
 
 impl SessionManager {
@@ -111,7 +111,7 @@ impl SessionManager {
     pub fn new(
         pool: PgPool,
         session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-        gateway_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
     ) -> Self {
         Self {
             pool,
@@ -323,7 +323,7 @@ impl SessionManager {
         debug!(
             "Sending MFA session disconnect event for device {device} in location {location} to gateway manager"
         );
-        let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        let event = GatewayCommand::MfaSessionDisconnected(location.id, device.clone());
         self.gateway_tx.send(event)?;
         Ok(())
     }

@@ -16,7 +16,7 @@ use defguard_common::{
     },
 };
 use defguard_core::{
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{
         Auth,
         wireguard::{ImportedNetworkData, WireguardNetworkData},
@@ -180,7 +180,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
@@ -235,7 +235,10 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
         .await
         .unwrap();
     assert_eq!(allowed_groups, vec!["allowed group"]);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkCreated(..)
+    );
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
@@ -287,7 +290,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // network configuration was created for admin and the allowed group member
     let peers = get_location_allowed_peers(&network, &client_state.pool)
@@ -321,7 +324,10 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkModified(..)
+    );
 
     let new_peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
@@ -354,7 +360,10 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkModified(..)
+    );
 
     let new_peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
@@ -388,7 +397,10 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkModified(..)
+    );
 
     let new_peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
@@ -437,7 +449,10 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let network: WireguardNetwork<Id> = response.json().await;
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkCreated(..)
+    );
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
@@ -474,7 +489,10 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
         .await
         .unwrap();
     assert_eq!(allowed_groups, vec!["allowed group"]);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkModified(..)
+    );
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
@@ -554,10 +572,10 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // network config was only created for one of the existing devices and the admin device
-    let GatewayEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else {
+    let GatewayCommand::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(device_info.device.id, devices[1].id);
@@ -568,7 +586,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
         peers[1].allowed_ips[0]
     );
 
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+    let GatewayCommand::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(device_info.device.id, devices[0].id);
@@ -662,7 +680,7 @@ PersistentKeepalive = 300
     assert_eq!(peers[3].pubkey, mapped_devices[1].wireguard_pubkey);
 
     // assert events
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+    let GatewayCommand::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(
@@ -676,7 +694,7 @@ PersistentKeepalive = 300
         mapped_devices[0].wireguard_ips,
     );
 
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+    let GatewayCommand::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(
@@ -734,7 +752,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
@@ -756,7 +774,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceDeleted(..));
+    assert_matches!(event, GatewayCommand::DeviceDeleted(..));
     assert_err!(wg_rx.try_recv());
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
@@ -794,7 +812,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    assert_matches!(event, GatewayCommand::DeviceCreated(..));
     assert_err!(wg_rx.try_recv());
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
@@ -845,7 +863,10 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let network: WireguardNetwork<Id> = response.json().await;
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkCreated(..)
+    );
     assert_err!(wg_rx.try_recv());
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
@@ -958,7 +979,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await

@@ -6,7 +6,7 @@ use defguard_common::db::models::{
     wireguard::{LocationMfaMode, ServiceLocationMode},
 };
 use defguard_core::{
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;
@@ -138,11 +138,14 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
     assert_eq!(network.connected_at, None);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // existing devices assertion
     // imported config for an existing device
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceModified(..));
+    assert_matches!(
+        wg_rx.try_recv().unwrap(),
+        GatewayCommand::DeviceModified(..)
+    );
     let user_device_1 = UserDevice::from_device(&pool, device_1)
         .await
         .unwrap()
@@ -153,7 +156,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         vec!["10.0.0.12"]
     );
     // generated IP for other existing device
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceCreated(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayCommand::DeviceCreated(..));
     let user_device_2 = UserDevice::from_device(&pool, device_2)
         .await
         .unwrap()
@@ -205,7 +208,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     // assert events
     let event = wg_rx.try_recv().unwrap();
     match event {
-        GatewayEvent::DeviceCreated(device_info) => {
+        GatewayCommand::DeviceCreated(device_info) => {
             assert_eq!(device_info.device.name, "device_1");
         }
         _ => unreachable!("Invalid event type received"),
@@ -213,7 +216,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
 
     let event = wg_rx.try_recv().unwrap();
     match event {
-        GatewayEvent::DeviceCreated(device_info) => {
+        GatewayCommand::DeviceCreated(device_info) => {
             assert_eq!(device_info.device.name, "device_2");
         }
         _ => unreachable!("Invalid event type received"),

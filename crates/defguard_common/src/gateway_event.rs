@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-pub enum GatewayEvent {
+pub enum GatewayCommand {
     NetworkCreated(Id, WireguardNetwork<Id>),
     NetworkModified(
         Id,
@@ -31,22 +31,22 @@ pub enum GatewayEvent {
     MfaSessionDisconnected(Id, Device<Id>),
 }
 
-/// Sends a [`GatewayEvent`] to the gateway manager service.
+/// Sends a [`GatewayCommand`] to the gateway manager service.
 ///
-/// In API handler context prefer `AppState::send_wireguard_event`.
-pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
-    debug!("Sending the following WireGuard event to Defguard Gateway: {event:?}");
+/// In API handler context prefer `AppState::send_gateway_command`.
+pub fn send_gateway_command(event: GatewayCommand, wg_tx: &Sender<GatewayCommand>) {
+    debug!("Sending the following command to Gateway Manager: {event:?}");
     if let Err(err) = wg_tx.send(event) {
-        error!("Error sending WireGuard event {err}");
+        error!("Error sending Gateway command: {err}");
     }
 }
 
-/// Sends multiple [`GatewayEvent`]s to the gateway manager service.
+/// Sends multiple [`GatewayCommand`]s to the gateway manager service.
 ///
-/// In API handler context prefer `AppState::send_multiple_wireguard_events`.
-pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<GatewayEvent>) {
-    debug!("Sending {} WireGuard events", events.len());
+/// In API handler context prefer `AppState::send_multiple_gateway_commands`.
+pub fn send_multiple_gateway_commands(events: Vec<GatewayCommand>, wg_tx: &Sender<GatewayCommand>) {
+    debug!("Sending {} gateway commands", events.len());
     for event in events {
-        send_wireguard_event(event, wg_tx);
+        send_gateway_command(event, wg_tx);
     }
 }

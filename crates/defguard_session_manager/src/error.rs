@@ -1,5 +1,5 @@
 use defguard_common::db::Id;
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use thiserror::Error;
 use tokio::sync::{broadcast::error::SendError as BroadcastSendError, mpsc::error::SendError};
 
@@ -36,7 +36,7 @@ pub enum SessionManagerError {
     #[error("Failed to send session manager event: {0}")]
     SessionManagerEventError(Box<SendError<SessionManagerEvent>>),
     #[error("Failed to send gateway manager event: {0}")]
-    GatewayManagerEventError(Box<BroadcastSendError<GatewayEvent>>),
+    GatewayManagerEventError(Box<BroadcastSendError<GatewayCommand>>),
 }
 
 impl From<SendError<SessionManagerEvent>> for SessionManagerError {
@@ -44,8 +44,8 @@ impl From<SendError<SessionManagerEvent>> for SessionManagerError {
         Self::SessionManagerEventError(Box::new(error))
     }
 }
-impl From<BroadcastSendError<GatewayEvent>> for SessionManagerError {
-    fn from(error: BroadcastSendError<GatewayEvent>) -> Self {
+impl From<BroadcastSendError<GatewayCommand>> for SessionManagerError {
+    fn from(error: BroadcastSendError<GatewayCommand>) -> Self {
         Self::GatewayManagerEventError(Box::new(error))
     }
 }

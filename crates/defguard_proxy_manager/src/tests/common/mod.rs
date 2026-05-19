@@ -24,7 +24,7 @@ use defguard_common::db::{
     },
     setup_pool,
 };
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_core::events::BidiStreamEvent;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
@@ -382,7 +382,7 @@ impl Drop for MockProxyHarness {
 pub(crate) struct HandlerTestContext {
     pub(crate) pool: PgPool,
     pub(crate) proxy: Proxy<Id>,
-    pub(crate) wireguard_tx: broadcast::Sender<GatewayEvent>,
+    pub(crate) wireguard_tx: broadcast::Sender<GatewayCommand>,
     pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,

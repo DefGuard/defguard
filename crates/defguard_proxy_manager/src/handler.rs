@@ -31,7 +31,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     grpc::{
-        GatewayEvent,
+        GatewayCommand,
         proxy::client_mfa::{ClientLoginSession, ClientMfaServer, PostureCheckOutcome},
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
@@ -471,7 +471,7 @@ impl ProxyHandler {
     async fn message_loop(
         &mut self,
         tx: UnboundedSender<CoreResponse>,
-        wireguard_tx: Sender<GatewayEvent>,
+        wireguard_tx: Sender<GatewayCommand>,
         resp_stream: &mut Streaming<CoreRequest>,
     ) -> Result<(), ProxyError> {
         let pool = self.pool.clone();

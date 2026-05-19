@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{
         Id, NoId,
@@ -476,7 +476,7 @@ pub(crate) struct HandlerTestContext {
     pub(crate) network: WireguardNetwork<Id>,
     pub(crate) gateway: Gateway<Id>,
     pub(crate) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
-    events_tx: Option<broadcast::Sender<GatewayEvent>>,
+    events_tx: Option<broadcast::Sender<GatewayCommand>>,
     pub(crate) mock_gateway: Option<MockGatewayHarness>,
     handler_task: Option<JoinHandle<anyhow::Result<()>>>,
 }
@@ -489,7 +489,7 @@ impl HandlerTestContext {
 
     pub(crate) async fn new_with_events_tx(
         options: PgConnectOptions,
-        events_tx: broadcast::Sender<GatewayEvent>,
+        events_tx: broadcast::Sender<GatewayCommand>,
     ) -> Self {
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
@@ -524,7 +524,7 @@ impl HandlerTestContext {
         }
     }
 
-    pub(crate) fn events_tx(&self) -> &broadcast::Sender<GatewayEvent> {
+    pub(crate) fn events_tx(&self) -> &broadcast::Sender<GatewayCommand> {
         self.events_tx
             .as_ref()
             .expect("events sender already taken from context")

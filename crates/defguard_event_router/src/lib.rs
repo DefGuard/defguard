@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_core::events::{ApiEvent, BidiStreamEvent};
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use defguard_session_manager::events::SessionManagerEvent;
@@ -61,7 +61,7 @@ impl RouterReceiverSet {
 struct EventRouter {
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayCommand>,
     activity_log_stream_reload_notify: Arc<Notify>,
 }
 
@@ -87,7 +87,7 @@ impl EventRouter {
     fn new(
         receivers: RouterReceiverSet,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
-        wireguard_tx: Sender<GatewayEvent>,
+        wireguard_tx: Sender<GatewayCommand>,
         activity_log_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
@@ -138,7 +138,7 @@ impl EventRouter {
 pub async fn run_event_router(
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<GatewayCommand>,
     activity_log_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");

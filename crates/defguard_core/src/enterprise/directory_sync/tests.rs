@@ -146,7 +146,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -186,7 +186,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -217,7 +217,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2.id);
         } else {
             panic!("Expected a DeviceDeleted event");
@@ -229,7 +229,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
         User::init_admin_user(&pool, "pass123").await.unwrap();
 
         let _ = make_test_provider(
@@ -271,7 +271,7 @@ mod test {
 
         // Check that we received a device deleted event for whichever admin was removed
         let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert!(dev.device.user_id == user1.id || dev.device.user_id == user3.id);
         } else {
             panic!("Expected a DeviceDeleted event");
@@ -284,7 +284,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -325,7 +325,7 @@ mod test {
 
         // Check for device deletion events
         let event1 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event1 {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event1 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user2.id
@@ -336,7 +336,7 @@ mod test {
         }
 
         let event2 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event2 {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event2 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user2.id
@@ -353,7 +353,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Disable,
@@ -401,14 +401,14 @@ mod test {
 
         // Check for device disconnection events
         let event1 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event1 {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event1 {
             assert!(dev.device.user_id == user2.id || dev.device.user_id == testuserdisabled.id);
         } else {
             panic!("Expected a DeviceDisconnected event");
         }
 
         let event2 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event2 {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event2 {
             assert!(dev.device.user_id == user2.id || dev.device.user_id == testuserdisabled.id);
         } else {
             panic!("Expected a DeviceDisconnected event");
@@ -436,7 +436,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16); // Added mut wg_rx
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16); // Added mut wg_rx
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -474,7 +474,7 @@ mod test {
 
         // Check for device disconnection events
         let event1 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event1 {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event1 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user3.id
@@ -485,7 +485,7 @@ mod test {
         }
 
         let event2 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event2 {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event2 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user3.id
@@ -514,7 +514,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -571,7 +571,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -600,7 +600,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -625,7 +625,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -659,13 +659,13 @@ mod test {
             .unwrap();
         transaction.commit().await.unwrap();
         let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2_pre_sync.id);
         } else {
             panic!("Expected DeviceDeleted event");
         }
         let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceCreated(dev)) = event {
+        if let Ok(GatewayCommand::DeviceCreated(dev)) = event {
             panic!("Unexpected DeviceCreated event: {dev:?}");
         }
     }
@@ -676,7 +676,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -704,7 +704,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -751,7 +751,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -791,7 +791,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
 
         // disable prefetching users
         make_test_provider(
@@ -825,7 +825,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
 
         // enable prefetching users
         make_test_provider(
@@ -862,7 +862,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config);
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayCommand>(16);
 
         // enable prefetching users
         make_test_provider(

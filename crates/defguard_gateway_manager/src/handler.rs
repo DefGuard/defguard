@@ -12,7 +12,7 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta};
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     VERSION,
     db::{
@@ -88,7 +88,7 @@ pub(crate) struct GatewayHandler {
     gateway: Gateway<Id>,
     message_id: AtomicU64,
     pool: PgPool,
-    events_tx: Sender<GatewayEvent>,
+    events_tx: Sender<GatewayCommand>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     updates_handler_handle: Option<JoinHandle<()>>,
@@ -102,7 +102,7 @@ impl GatewayHandler {
     pub fn new(
         gateway: Gateway<Id>,
         pool: PgPool,
-        events_tx: Sender<GatewayEvent>,
+        events_tx: Sender<GatewayCommand>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Self, GatewayError> {
@@ -564,7 +564,7 @@ impl GatewayHandler {
     pub(crate) fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
-        events_tx: Sender<GatewayEvent>,
+        events_tx: Sender<GatewayCommand>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
         socket_path: PathBuf,
@@ -620,7 +620,7 @@ struct GatewayUpdatesHandler {
     network_id: Id,
     network: WireguardNetwork<Id>,
     gateway_name: String,
-    events_rx: broadcast::Receiver<GatewayEvent>,
+    events_rx: broadcast::Receiver<GatewayCommand>,
     tx: UnboundedSender<CoreResponse>,
 }
 
@@ -630,7 +630,7 @@ impl GatewayUpdatesHandler {
         network_id: Id,
         network: WireguardNetwork<Id>,
         gateway_name: String,
-        events_rx: broadcast::Receiver<GatewayEvent>,
+        events_rx: broadcast::Receiver<GatewayCommand>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
         Self {
@@ -722,7 +722,7 @@ impl GatewayUpdatesHandler {
         while let Ok(update) = self.events_rx.recv().await {
             debug!("Received WireGuard update: {update:?}");
             let result = match update {
-                GatewayEvent::NetworkCreated(network_id, network) => {
+                GatewayCommand::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
                         self.send_network_update(
                             &network,
@@ -734,7 +734,7 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
-                GatewayEvent::NetworkModified(
+                GatewayCommand::NetworkModified(
                     network_id,
                     network,
                     peers,
@@ -754,14 +754,14 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
-                GatewayEvent::NetworkDeleted(network_id, network_name) => {
+                GatewayCommand::NetworkDeleted(network_id, network_name) => {
                     if network_id == self.network_id {
                         self.send_network_delete(&network_name)
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::DeviceCreated(device) => {
+                GatewayCommand::DeviceCreated(device) => {
                     // check if a peer has to be added in the current network
                     match device
                         .network_info
@@ -777,7 +777,7 @@ impl GatewayUpdatesHandler {
                         None => Ok(()),
                     }
                 }
-                GatewayEvent::DeviceModified(device) => {
+                GatewayCommand::DeviceModified(device) => {
                     // check if a peer has to be updated in the current network
                     match device
                         .network_info
@@ -793,7 +793,7 @@ impl GatewayUpdatesHandler {
                         None => Ok(()),
                     }
                 }
-                GatewayEvent::DeviceDeleted(device) => {
+                GatewayCommand::DeviceDeleted(device) => {
                     // check if a peer has to be updated in the current network
                     match device
                         .network_info
@@ -804,28 +804,28 @@ impl GatewayUpdatesHandler {
                         None => Ok(()),
                     }
                 }
-                GatewayEvent::FirewallConfigChanged(location_id, firewall_config) => {
+                GatewayCommand::FirewallConfigChanged(location_id, firewall_config) => {
                     if location_id == self.network_id {
                         self.send_firewall_update(firewall_config)
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::FirewallDisabled(location_id) => {
+                GatewayCommand::FirewallDisabled(location_id) => {
                     if location_id == self.network_id {
                         self.send_firewall_disable()
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::MfaSessionDisconnected(location_id, device) => {
+                GatewayCommand::MfaSessionDisconnected(location_id, device) => {
                     if location_id == self.network_id {
                         self.send_peer_delete(&device.wireguard_pubkey)
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::MfaSessionAuthorized(location_id, device, network_info) => {
+                GatewayCommand::MfaSessionAuthorized(location_id, device, network_info) => {
                     if location_id == self.network_id {
                         if network_info.network_id != location_id {
                             error!(
@@ -1077,7 +1077,7 @@ mod tests {
         },
         setup_pool,
     };
-    use defguard_common::gateway_event::GatewayEvent;
+    use defguard_common::gateway_event::GatewayCommand;
     use defguard_common::gateway_types::{FirewallConfig, FirewallPolicy, WireguardPeer};
     use defguard_proto::{
         enterprise::firewall::FirewallPolicy as ProtoFirewallPolicy,
@@ -1405,7 +1405,7 @@ mod tests {
             .save(&pool)
             .await
             .unwrap();
-        let (events_tx, _events_rx) = broadcast::channel::<GatewayEvent>(1);
+        let (events_tx, _events_rx) = broadcast::channel::<GatewayCommand>(1);
         let (peer_stats_tx, _peer_stats_rx) = unbounded_channel();
         let (_certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::<Id, String>::new()));
         let handler =

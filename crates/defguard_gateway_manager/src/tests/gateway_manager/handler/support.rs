@@ -9,7 +9,7 @@ use defguard_common::db::{
         wireguard::{LocationMfaMode, WireguardNetwork},
     },
 };
-use defguard_common::gateway_event::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::gateway_types::{
     FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol, SnatBinding,
 };
@@ -190,7 +190,7 @@ pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    build_event: fn(DeviceInfo) -> GatewayEvent,
+    build_event: fn(DeviceInfo) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     assert_eq!(context.events_tx().receiver_count(), 0);
@@ -215,7 +215,7 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    build_event: fn(DeviceInfo) -> GatewayEvent,
+    build_event: fn(DeviceInfo) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     let other_network = context.create_other_network().await;
@@ -243,7 +243,7 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
 
 pub(crate) async fn assert_firewall_event_for_different_network_is_ignored(
     options: PgConnectOptions,
-    build_event: impl FnOnce(Id) -> GatewayEvent,
+    build_event: impl FnOnce(Id) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     let other_network = context.create_other_network().await;

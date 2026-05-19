@@ -26,7 +26,7 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::update_counts,
     },
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     letsencrypt::do_letsencrypt_refresh,
     location_management::allowed_peers::get_location_allowed_peers,
     updates::do_new_version_check,
@@ -46,7 +46,7 @@ const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 #[instrument(skip_all)]
 pub async fn run_utility_thread(
     pool: &PgPool,
-    wireguard_tx: broadcast::Sender<GatewayEvent>,
+    wireguard_tx: broadcast::Sender<GatewayCommand>,
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
     web_reload_tx: broadcast::Sender<()>,
 ) -> Result<(), anyhow::Error> {
@@ -199,7 +199,7 @@ pub async fn run_utility_thread(
 /// Check if enterprise status has changed and perform any necessary actions
 async fn enterprise_status_check(
     pool: &PgPool,
-    wireguard_tx: broadcast::Sender<GatewayEvent>,
+    wireguard_tx: broadcast::Sender<GatewayCommand>,
     enable_enterprise: bool,
 ) -> Result<(), anyhow::Error> {
     // fetch all ACL-enabled networks
@@ -221,13 +221,13 @@ async fn enterprise_status_check(
 
             // Handle service location update or just update the firewall
             if location.service_location_mode == ServiceLocationMode::Disabled {
-                wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                wireguard_tx.send(GatewayCommand::FirewallConfigChanged(
                     location.id,
                     firewall_config,
                 ))?;
             } else {
                 let new_peers = get_location_allowed_peers(&location, &mut *transaction).await?;
-                wireguard_tx.send(GatewayEvent::NetworkModified(
+                wireguard_tx.send(GatewayCommand::NetworkModified(
                     location.id,
                     location,
                     new_peers,
@@ -242,13 +242,13 @@ async fn enterprise_status_check(
         for location in locations {
             if location.service_location_mode == ServiceLocationMode::Disabled {
                 debug!("Disabling gateway firewall configuration for location {location:?}");
-                wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+                wireguard_tx.send(GatewayCommand::FirewallDisabled(location.id))?;
             } else {
                 debug!(
                     "Disabling gateway firewall configuration and service location client \
                     connections for location {location}"
                 );
-                wireguard_tx.send(GatewayEvent::NetworkModified(
+                wireguard_tx.send(GatewayCommand::NetworkModified(
                     location.id,
                     location,
                     // Send empty peer list, we are disabling the service location
@@ -265,7 +265,7 @@ async fn enterprise_status_check(
 /// Find newly expired ACL rules and update their status.
 async fn expired_acl_rules_check(
     pool: &PgPool,
-    wireguard_tx: broadcast::Sender<GatewayEvent>,
+    wireguard_tx: broadcast::Sender<GatewayCommand>,
 ) -> Result<(), anyhow::Error> {
     // mark relevant rules as expired
     let updated_rules = query_as!(
@@ -309,7 +309,7 @@ async fn expired_acl_rules_check(
         match try_get_location_firewall_config(&location, &mut conn).await? {
             Some(firewall_config) => {
                 debug!("Sending firewall update event for location {location}");
-                wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                wireguard_tx.send(GatewayCommand::FirewallConfigChanged(
                     location.id,
                     firewall_config,
                 ))?;

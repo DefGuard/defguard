@@ -21,7 +21,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -159,7 +159,7 @@ pub async fn create_snat_binding(
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                 location.id,
                 firewall_config,
             ));
@@ -259,7 +259,7 @@ pub async fn modify_snat_binding(
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                 location_id,
                 firewall_config,
             ));
@@ -344,7 +344,7 @@ pub async fn delete_snat_binding(
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                 location_id,
                 firewall_config,
             ));

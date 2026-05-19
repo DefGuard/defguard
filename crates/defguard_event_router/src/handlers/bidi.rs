@@ -114,7 +114,7 @@ mod tests {
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     };
-    use defguard_common::gateway_event::GatewayEvent;
+    use defguard_common::gateway_event::GatewayCommand;
     use defguard_core::events::{BidiRequestContext, BidiStreamEventType};
     use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
 
@@ -161,7 +161,7 @@ mod tests {
         let (_bidi_tx, bidi_rx) = unbounded_channel();
         let (_session_manager_tx, session_manager_rx) = unbounded_channel();
         let (event_logger_tx, event_logger_rx) = unbounded_channel();
-        let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(1);
+        let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayCommand>(1);
 
         (
             EventRouter::new(
