@@ -26,6 +26,7 @@ struct ApiActivityLogEvent {
     id: Id,
     timestamp: NaiveDateTime,
     username: String,
+    module: String,
     ip: Option<String>,
     description: Option<String>,
 }
@@ -363,5 +364,56 @@ async fn test_activity_log_pagination_is_stable_across_pages_for_equal_timestamp
         unique_ids.len(),
         combined_ids.len(),
         "pagination should not duplicate events across pages"
+    );
+}
+
+#[sqlx::test]
+async fn test_activity_log_module_sort_is_alphabetical(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, db) = make_client_with_db(pool.clone()).await;
+    let admin = get_db_user(&db, "admin").await;
+
+    client.login_user("admin", "pass123").await;
+
+    let marker = unique_marker("module-sort");
+    let shared_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+
+    // Insert in enum declaration order (defguard=0, client=1, vpn=2, enrollment=3).
+    // If sorting used enum position instead of text, asc order would be:
+    // defguard, client, vpn, enrollment - not alphabetical.
+    for module in [
+        ActivityLogModule::Defguard,
+        ActivityLogModule::Client,
+        ActivityLogModule::Vpn,
+        ActivityLogModule::Enrollment,
+    ] {
+        ActivityLogEvent {
+            id: NoId,
+            timestamp: truncate_timestamp_to_microseconds(shared_timestamp),
+            user_id: admin.id,
+            username: admin.username.clone(),
+            location: None,
+            ip: None,
+            event: EventType::UserLogout,
+            module,
+            device: "integration-test".to_owned(),
+            description: Some(marker.to_string()),
+            metadata: None,
+        }
+        .save(&db)
+        .await
+        .expect("activity log event should persist");
+    }
+
+    let payload = fetch_activity_log(&client, &marker, "sort_by=module&sort_order=asc").await;
+    let modules: Vec<String> = payload.data.into_iter().map(|event| event.module).collect();
+
+    assert_eq!(
+        modules,
+        vec!["client", "defguard", "enrollment", "vpn"],
+        "module sort should be alphabetical (text order), not enum declaration order",
     );
 }
