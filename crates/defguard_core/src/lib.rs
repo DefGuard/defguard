@@ -1184,7 +1184,7 @@ pub async fn gateway_config(
     };
 
     // get peers
-    let peers = get_location_allowed_peers(&location, &mut *conn)
+    let peers = get_location_allowed_peers(&location, &mut conn)
         .await
         .map_err(|err| anyhow!("Failed to get peers for location {location} with error: {err}"))?;
 

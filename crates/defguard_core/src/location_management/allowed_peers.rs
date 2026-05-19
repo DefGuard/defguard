@@ -1,6 +1,6 @@
 use defguard_common::db::{Id, models::WireguardNetwork};
 use defguard_proto::gateway::Peer;
-use sqlx::{PgExecutor, query};
+use sqlx::{PgConnection, query};
 
 use crate::grpc::should_prevent_service_location_usage;
 
@@ -11,13 +11,10 @@ use crate::grpc::should_prevent_service_location_usage;
 ///
 /// If the location is a service location, only returns peers if enterprise features are enabled.
 /// MFA-enabled locations only return peers backed by an active session with a runtime preshared key.
-pub async fn get_location_allowed_peers<'e, E>(
+pub async fn get_location_allowed_peers(
     location: &WireguardNetwork<Id>,
-    executor: E,
-) -> sqlx::Result<Vec<Peer>>
-where
-    E: PgExecutor<'e>,
-{
+    conn: &mut PgConnection,
+) -> sqlx::Result<Vec<Peer>> {
     debug!("Fetching all allowed peers for location {}", location.id);
 
     if should_prevent_service_location_usage(location) {
@@ -28,7 +25,8 @@ where
         return Ok(Vec::new());
     }
 
-    if !location.mfa_enabled() {
+    let has_postures = location.has_postures(&mut *conn).await?;
+    if !location.mfa_enabled() && !has_postures {
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, \
                     ARRAY( \
@@ -44,7 +42,7 @@ where
                 ORDER BY d.id ASC",
             location.id,
         )
-        .fetch_all(executor)
+        .fetch_all(&mut *conn)
         .await?;
 
         return Ok(rows
@@ -84,7 +82,7 @@ where
             ORDER BY d.id ASC",
         location.id,
     )
-    .fetch_all(executor)
+    .fetch_all(&mut *conn)
     .await?;
 
     Ok(rows
@@ -120,7 +118,7 @@ mod test {
     #[ignore]
     #[sqlx::test]
     async fn test_get_peers_service_location_modes(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
+        let mut conn = setup_pool(options).await.acquire().await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -130,7 +128,7 @@ mod test {
             "test@example.com",
             None,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -142,7 +140,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -154,7 +152,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -165,18 +163,18 @@ mod test {
         network_normal.name = "normal-location".to_owned();
         network_normal.service_location_mode = ServiceLocationMode::Disabled;
         network_normal.location_mfa_mode = LocationMfaMode::Disabled;
-        let network_normal = network_normal.save(&pool).await.unwrap();
+        let network_normal = network_normal.save(&mut *conn).await.unwrap();
 
         WireguardNetworkDevice::new(
             network_normal.id,
             device1.id,
             vec![IpAddr::from_str("10.1.1.2").unwrap()],
         )
-        .insert(&pool)
+        .insert(&mut *conn)
         .await
         .unwrap();
 
-        let peers_normal = get_location_allowed_peers(&network_normal, &pool)
+        let peers_normal = get_location_allowed_peers(&network_normal, &mut conn)
             .await
             .unwrap();
         assert_eq!(peers_normal.len(), 1, "Normal location should return peers");
@@ -189,19 +187,19 @@ mod test {
         network_prelogon.name = "prelogon-service-location".to_owned();
         network_prelogon.service_location_mode = ServiceLocationMode::PreLogon;
         network_prelogon.location_mfa_mode = LocationMfaMode::Disabled;
-        let network_prelogon = network_prelogon.save(&pool).await.unwrap();
+        let network_prelogon = network_prelogon.save(&mut *conn).await.unwrap();
 
         WireguardNetworkDevice::new(
             network_prelogon.id,
             device2.id,
             vec![IpAddr::from_str("10.2.1.2").unwrap()],
         )
-        .insert(&pool)
+        .insert(&mut *conn)
         .await
         .unwrap();
 
         // PreLogon service location should return peers when enterprise is enabled
-        let peers_prelogon = get_location_allowed_peers(&network_prelogon, &pool)
+        let peers_prelogon = get_location_allowed_peers(&network_prelogon, &mut conn)
             .await
             .unwrap();
         assert_eq!(
@@ -218,7 +216,7 @@ mod test {
         network_alwayson.name = "alwayson-service-location".to_owned();
         network_alwayson.service_location_mode = ServiceLocationMode::AlwaysOn;
         network_alwayson.location_mfa_mode = LocationMfaMode::Disabled;
-        let network_alwayson = network_alwayson.save(&pool).await.unwrap();
+        let network_alwayson = network_alwayson.save(&mut *conn).await.unwrap();
 
         let device3 = Device::new(
             "device3".into(),
@@ -228,7 +226,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -237,12 +235,12 @@ mod test {
             device3.id,
             vec![IpAddr::from_str("10.3.1.2").unwrap()],
         )
-        .insert(&pool)
+        .insert(&mut *conn)
         .await
         .unwrap();
 
         // AlwaysOn service location should return peers when enterprise is enabled
-        let peers_alwayson = get_location_allowed_peers(&network_alwayson, &pool)
+        let peers_alwayson = get_location_allowed_peers(&network_alwayson, &mut conn)
             .await
             .unwrap();
         assert_eq!(
@@ -258,7 +256,7 @@ mod test {
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
-        let pool = setup_pool(options).await;
+        let mut conn = setup_pool(options).await.acquire().await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -268,7 +266,7 @@ mod test {
             "test@example.com",
             None,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -280,7 +278,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -290,21 +288,23 @@ mod test {
         network.name = "mfa-location".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
         network.location_mfa_mode = LocationMfaMode::Internal;
-        let network = network.save(&pool).await.unwrap();
+        let network = network.save(&mut *conn).await.unwrap();
 
         let network_device = WireguardNetworkDevice::new(
             network.id,
             device.id,
             vec![IpAddr::from_str("10.4.1.2").unwrap()],
         );
-        network_device.insert(&pool).await.unwrap();
+        network_device.insert(&mut *conn).await.unwrap();
 
         VpnClientSession::new(network.id, user.id, device.id, None, None)
-            .save(&pool)
+            .save(&mut *conn)
             .await
             .unwrap();
 
-        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+        let peers = get_location_allowed_peers(&network, &mut conn)
+            .await
+            .unwrap();
 
         assert!(peers.is_empty());
     }
@@ -314,7 +314,7 @@ mod test {
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
-        let pool = setup_pool(options).await;
+        let mut conn = setup_pool(options).await.acquire().await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -324,7 +324,7 @@ mod test {
             "test@example.com",
             None,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -336,7 +336,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -346,16 +346,18 @@ mod test {
         network.name = "non-mfa-location".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
         network.location_mfa_mode = LocationMfaMode::Disabled;
-        let network = network.save(&pool).await.unwrap();
+        let network = network.save(&mut *conn).await.unwrap();
 
         let network_device = WireguardNetworkDevice::new(
             network.id,
             device.id,
             vec![IpAddr::from_str("10.5.1.2").unwrap()],
         );
-        network_device.insert(&pool).await.unwrap();
+        network_device.insert(&mut *conn).await.unwrap();
 
-        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+        let peers = get_location_allowed_peers(&network, &mut conn)
+            .await
+            .unwrap();
 
         assert_eq!(peers.len(), 1);
         assert_eq!(peers[0].pubkey, "pubkey1");
@@ -367,7 +369,7 @@ mod test {
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
-        let pool = setup_pool(options).await;
+        let mut conn = setup_pool(options).await.acquire().await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -377,7 +379,7 @@ mod test {
             "test@example.com",
             None,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -389,7 +391,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -401,7 +403,7 @@ mod test {
             None,
             true,
         )
-        .save(&pool)
+        .save(&mut *conn)
         .await
         .unwrap();
 
@@ -411,14 +413,14 @@ mod test {
         network.name = "mfa-location-with-session-psk".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
         network.location_mfa_mode = LocationMfaMode::Internal;
-        let network = network.save(&pool).await.unwrap();
+        let network = network.save(&mut *conn).await.unwrap();
 
         WireguardNetworkDevice::new(
             network.id,
             new_device.id,
             vec![IpAddr::from_str("10.6.1.2").unwrap()],
         )
-        .insert(&pool)
+        .insert(&mut *conn)
         .await
         .unwrap();
 
@@ -427,13 +429,13 @@ mod test {
             connected_device.id,
             vec![IpAddr::from_str("10.6.1.3").unwrap()],
         )
-        .insert(&pool)
+        .insert(&mut *conn)
         .await
         .unwrap();
 
         let mut new_session = VpnClientSession::new(network.id, user.id, new_device.id, None, None);
         new_session.preshared_key = Some("new-session-psk".into());
-        new_session.save(&pool).await.unwrap();
+        new_session.save(&mut *conn).await.unwrap();
 
         let mut connected_session = VpnClientSession::new(
             network.id,
@@ -443,9 +445,11 @@ mod test {
             None,
         );
         connected_session.preshared_key = Some("connected-session-psk".into());
-        connected_session.save(&pool).await.unwrap();
+        connected_session.save(&mut *conn).await.unwrap();
 
-        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+        let peers = get_location_allowed_peers(&network, &mut conn)
+            .await
+            .unwrap();
 
         assert_eq!(peers.len(), 2);
         assert_eq!(
