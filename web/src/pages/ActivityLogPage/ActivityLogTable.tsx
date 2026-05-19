@@ -1,4 +1,5 @@
 import {
+  type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   type OnChangeFn,
@@ -7,8 +8,15 @@ import {
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
-import { activityLogEventDisplay } from '../../shared/api/activity-log-types';
+import {
+  ActivityLogEventType,
+  type ActivityLogEventTypeValue,
+  ActivityLogModule,
+  type ActivityLogModuleValue,
+  activityLogEventDisplay,
+} from '../../shared/api/activity-log-types';
 import type { ActivityLogEvent } from '../../shared/api/types';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -23,6 +31,22 @@ type RowData = ActivityLogEvent;
 const columnHelper = createColumnHelper<RowData>();
 const missingValuePlaceholder = '—';
 const activityLogTimestampFormat = 'DD/MM/YYYY | HH:mm:ss';
+
+const eventFilterOptions: SelectionOption<ActivityLogEventTypeValue>[] = Object.values(
+  ActivityLogEventType,
+).map((event) => ({
+  id: event,
+  label: activityLogEventDisplay[event],
+  searchFields: [activityLogEventDisplay[event]],
+}));
+
+const moduleFilterOptions: SelectionOption<ActivityLogModuleValue>[] = Object.values(
+  ActivityLogModule,
+).map((module) => ({
+  id: module,
+  label: module,
+  searchFields: [module],
+}));
 
 const renderOptionalTableValue = (
   value: string | null | undefined,
@@ -44,6 +68,8 @@ interface Props {
   onSearchChange: (val: string) => void;
   sortingState: SortingState;
   onSortingChange: OnChangeFn<SortingState>;
+  columnFilters: ColumnFiltersState;
+  onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
 }
 
 export const ActivityLogTable = ({
@@ -55,7 +81,18 @@ export const ActivityLogTable = ({
   onSearchChange,
   sortingState,
   onSortingChange,
+  columnFilters,
+  onColumnFiltersChange,
 }: Props) => {
+  const tableFilterMessages = useMemo(
+    () => ({
+      searchPlaceholder: m.controls_search(),
+      clearButton: m.controls_reset(),
+      applyButton: m.controls_submit(),
+      emptyState: m.search_empty_common_title(),
+    }),
+    [],
+  );
   const columns = useMemo(
     () => [
       columnHelper.accessor('timestamp', {
@@ -112,7 +149,11 @@ export const ActivityLogTable = ({
       columnHelper.accessor('event', {
         header: m.activity_log_col_event(),
         enableSorting: true,
+        enableColumnFilter: true,
         minSize: 190,
+        meta: {
+          filterOptions: eventFilterOptions,
+        },
         cell: (info) => {
           const event = info.getValue();
           return (
@@ -125,7 +166,11 @@ export const ActivityLogTable = ({
       columnHelper.accessor('module', {
         header: m.activity_log_col_module(),
         enableSorting: true,
+        enableColumnFilter: true,
         minSize: 120,
+        meta: {
+          filterOptions: moduleFilterOptions,
+        },
         cell: (info) => {
           const value = info.getValue();
           return (
@@ -170,6 +215,7 @@ export const ActivityLogTable = ({
   const table = useReactTable({
     state: {
       sorting: sortingState,
+      columnFilters,
     },
     data,
     columns,
@@ -181,6 +227,11 @@ export const ActivityLogTable = ({
     manualSorting: true,
     enableSortingRemoval: false,
     onSortingChange,
+    manualFiltering: true,
+    onColumnFiltersChange,
+    meta: {
+      filterMessages: tableFilterMessages,
+    },
   });
 
   return (

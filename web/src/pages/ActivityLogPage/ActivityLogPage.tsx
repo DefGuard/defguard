@@ -1,7 +1,11 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
-import type { SortingState } from '@tanstack/react-table';
+import type { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
+import type {
+  ActivityLogEventTypeValue,
+  ActivityLogModuleValue,
+} from '../../shared/api/activity-log-types';
 import api from '../../shared/api/api';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -15,11 +19,19 @@ export const ActivityLogPage = () => {
   const [sortingState, setSortingState] = useState<SortingState>([
     { id: 'timestamp', desc: true },
   ]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const activeSorting = sortingState[0];
 
+  const eventFilter = columnFilters.find((f) => f.id === 'event')?.value as
+    | ActivityLogEventTypeValue[]
+    | undefined;
+  const moduleFilter = columnFilters.find((f) => f.id === 'module')?.value as
+    | ActivityLogModuleValue[]
+    | undefined;
+
   const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['activity-log', { search, sortingState }],
+    queryKey: ['activity-log', { search, sortingState, columnFilters }],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.getActivityLog({
@@ -28,6 +40,8 @@ export const ActivityLogPage = () => {
         // sort_by is typed as keyof string due to RequestSortParams<ActivityLogSortKey> quirk
         sort_by: activeSorting?.id as never,
         sort_order: activeSorting ? (activeSorting.desc ? 'desc' : 'asc') : undefined,
+        event: eventFilter,
+        module: moduleFilter,
       }),
     placeholderData: keepPreviousData,
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
@@ -64,6 +78,8 @@ export const ActivityLogPage = () => {
             onSearchChange={setSearch}
             sortingState={sortingState}
             onSortingChange={setSortingState}
+            columnFilters={columnFilters}
+            onColumnFiltersChange={setColumnFilters}
           />
         )}
       </TablePageLayout>
