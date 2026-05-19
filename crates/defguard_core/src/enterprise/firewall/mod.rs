@@ -939,7 +939,7 @@ async fn generate_user_snat_bindings_for_location(
             continue;
         }
 
-        // create the SNAT binding proto
+        // create the SNAT binding
         let snat_binding = SnatBinding {
             id: user_binding.id,
             source_addrs,

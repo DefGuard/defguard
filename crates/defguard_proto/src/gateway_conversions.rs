@@ -1,3 +1,7 @@
+//! Conversions from [`defguard_common::gateway_types`] domain types to their
+//! protobuf counterparts. These are the sole serialization boundary between
+//! the native gateway command representation and the wire protocol.
+
 use defguard_common::gateway_types::{
     FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port, PortRange,
     Protocol, SnatBinding, WireguardPeer,

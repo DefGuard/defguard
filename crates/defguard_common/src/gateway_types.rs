@@ -1,3 +1,8 @@
+//! Native Rust types for data carried in [`crate::gateway_event::GatewayCommand`] variants.
+//!
+//! These are domain types; conversion to protobuf wire types happens at the
+//! serialization boundary (gateway manager) via `From` impls in `defguard_proto`.
+
 /// A WireGuard peer entry to be configured on a gateway.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WireguardPeer {
@@ -7,6 +12,7 @@ pub struct WireguardPeer {
     pub keepalive_interval: Option<u32>,
 }
 
+/// Default firewall action applied to traffic that does not match any rule.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum FirewallPolicy {
     #[default]
@@ -15,6 +21,7 @@ pub enum FirewallPolicy {
     Deny,
 }
 
+/// IP protocol version a firewall rule applies to.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum IpVersion {
     #[default]
@@ -23,6 +30,7 @@ pub enum IpVersion {
     Ipv6,
 }
 
+/// Network protocol matched by a firewall rule.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Protocol {
     Unspecified,
@@ -42,6 +50,7 @@ impl From<i32> for Protocol {
     }
 }
 
+/// An inclusive range of IP addresses.
 #[derive(Clone, Debug, PartialEq)]
 pub struct IpRange {
     pub start: String,
@@ -59,18 +68,21 @@ pub enum IpAddress {
     IpSubnet(String),
 }
 
+/// An inclusive range of port numbers.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PortRange {
     pub start: u32,
     pub end: u32,
 }
 
+/// A single port or an inclusive port range matched by a firewall rule.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Port {
     Single(u32),
     Range(PortRange),
 }
 
+/// A single ACL-derived firewall rule to be enforced on a gateway.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FirewallRule {
     pub id: i64,
@@ -83,6 +95,7 @@ pub struct FirewallRule {
     pub ip_version: IpVersion,
 }
 
+/// Source NAT binding that rewrites the source IP of matching VPN traffic.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SnatBinding {
     pub id: i64,
@@ -91,6 +104,7 @@ pub struct SnatBinding {
     pub comment: Option<String>,
 }
 
+/// Full firewall configuration to be applied to a gateway location.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FirewallConfig {
     pub default_policy: FirewallPolicy,

@@ -88,14 +88,14 @@ impl AppState {
 
     /// Sends given `GatewayCommand` to be handled by gateway manager service.
     /// Convenience wrapper around [`send_gateway_command`]
-    pub fn send_gateway_command(&self, event: GatewayCommand) {
-        send_gateway_command(event, &self.gateway_tx);
+    pub fn send_gateway_command(&self, command: GatewayCommand) {
+        send_gateway_command(command, &self.gateway_tx);
     }
 
     /// Sends multiple commands to be handled by gateway manager service.
     /// Convenience wrapper around [`send_multiple_gateway_commands`]
-    pub fn send_multiple_gateway_commands(&self, events: Vec<GatewayCommand>) {
-        send_multiple_gateway_commands(events, &self.gateway_tx);
+    pub fn send_multiple_gateway_commands(&self, commands: Vec<GatewayCommand>) {
+        send_multiple_gateway_commands(commands, &self.gateway_tx);
     }
 
     /// Sends event to the main event router
