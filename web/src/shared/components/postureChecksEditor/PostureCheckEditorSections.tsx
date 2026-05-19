@@ -180,6 +180,20 @@ export const PostureCheckOperatingSystemsSection = ({
         const conditions = osConditions[operatingSystem];
         const showWindowsSecurityUpdate = operatingSystem === PostureCheckOs.Windows;
 
+        const handleSecurityUpdatesToggle = () => {
+          updateValues((current) => ({
+            ...current,
+            operatingSystemState: {
+              ...current.operatingSystemState,
+              [operatingSystem]: {
+                ...current.operatingSystemState[operatingSystem],
+                securityUpdates:
+                  !current.operatingSystemState[operatingSystem].securityUpdates,
+              },
+            },
+          }));
+        };
+
         return (
           <div className="system-item" key={operatingSystem}>
             {index > 0 && <Divider />}
@@ -222,20 +236,7 @@ export const PostureCheckOperatingSystemsSection = ({
                     title={m.posture_checks_wizard_operating_systems_windows_security_updates()}
                     content={m.posture_checks_wizard_operating_systems_windows_security_updates_description()}
                     value={details.securityUpdates}
-                    onClick={() => {
-                      updateValues((current) => ({
-                        ...current,
-                        operatingSystemState: {
-                          ...current.operatingSystemState,
-                          [operatingSystem]: {
-                            ...current.operatingSystemState[operatingSystem],
-                            securityUpdates:
-                              !current.operatingSystemState[operatingSystem]
-                                .securityUpdates,
-                          },
-                        },
-                      }));
-                    }}
+                    onClick={handleSecurityUpdatesToggle}
                   />
                 )}
                 {conditions.length > 0 && (
