@@ -321,9 +321,9 @@ impl SessionManager {
         device: &Device<Id>,
     ) -> Result<(), SessionManagerError> {
         debug!(
-            "Sending MFA session disconnect event for device {device} in location {location} to gateway manager"
+            "Sending VPN session deauthorization event for device {device} in location {location} to gateway manager"
         );
-        let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        let event = GatewayEvent::VpnSessionDeauthorized(location.id, device.clone());
         self.gateway_tx.send(event)?;
         Ok(())
     }

@@ -1,5 +1,5 @@
 #[sqlx::test]
-async fn test_matching_location_mfa_session_authorized_produces_peer_create(
+async fn test_matching_location_vpn_session_authorized_produces_peer_create(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -18,12 +18,12 @@ async fn test_matching_location_mfa_session_authorized_produces_peer_create(
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::MfaSessionAuthorized(
+        context.events_tx().send(GatewayEvent::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
         )),
-        "failed to broadcast MFA session authorized event"
+        "failed to broadcast VPN session authorized event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -41,7 +41,7 @@ async fn test_matching_location_mfa_session_authorized_produces_peer_create(
 }
 
 #[sqlx::test]
-async fn test_mfa_session_authorized_with_mismatched_network_id_is_ignored(
+async fn test_vpn_session_authorized_with_mismatched_network_id_is_ignored(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -64,12 +64,12 @@ async fn test_mfa_session_authorized_with_mismatched_network_id_is_ignored(
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::MfaSessionAuthorized(
+        context.events_tx().send(GatewayEvent::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
         )),
-        "failed to broadcast mismatched MFA session authorized event"
+        "failed to broadcast mismatched VPN session authorized event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -78,7 +78,7 @@ async fn test_mfa_session_authorized_with_mismatched_network_id_is_ignored(
 }
 
 #[sqlx::test]
-async fn test_matching_location_mfa_session_disconnected_produces_peer_delete(
+async fn test_matching_location_vpn_session_deauthorized_produces_peer_delete(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -98,11 +98,11 @@ async fn test_matching_location_mfa_session_disconnected_produces_peer_delete(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::MfaSessionDisconnected(
+            .send(GatewayEvent::VpnSessionDeauthorized(
                 context.network.id,
                 device,
             )),
-        "failed to broadcast MFA session disconnected event"
+        "failed to broadcast VPN session deauthorized event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;

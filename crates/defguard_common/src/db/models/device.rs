@@ -155,7 +155,7 @@ pub struct DeviceNetworkInfo {
 
 impl DeviceNetworkInfo {
     #[must_use]
-    pub fn from_authorized_mfa_session<I>(
+    pub fn from_authorized_vpn_session<I>(
         network_id: Id,
         device_wireguard_ips: I,
         preshared_key: String,

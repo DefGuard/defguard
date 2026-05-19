@@ -89,11 +89,11 @@ pub struct ClientMfaServer {
 }
 
 impl ClientMfaServer {
-    fn build_mfa_authorized_gateway_network_info(
+    fn build_authorized_gateway_network_info(
         network_device: WireguardNetworkDevice,
         preshared_key: String,
     ) -> DeviceNetworkInfo {
-        DeviceNetworkInfo::from_authorized_mfa_session(
+        DeviceNetworkInfo::from_authorized_vpn_session(
             network_device.wireguard_network_id,
             network_device.wireguard_ips,
             preshared_key,
@@ -740,12 +740,12 @@ impl ClientMfaServer {
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
         let gateway_network_info =
-            Self::build_mfa_authorized_gateway_network_info(network_device, key.public.clone());
+            Self::build_authorized_gateway_network_info(network_device, key.public.clone());
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let event =
-            GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), gateway_network_info);
+            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
@@ -905,6 +905,18 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
+        let Ok(Some(network_device)) =
+            WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
+        else {
+            error!(
+                "Posture check: failed to fetch network config for device {device} and location {location}"
+            );
+            return Err(Status::internal("unexpected error"));
+        };
+
+        let gateway_network_info =
+            Self::build_authorized_gateway_network_info(network_device, key.public.clone());
+
         self.create_new_session(
             &mut transaction,
             &location,
@@ -917,6 +929,13 @@ impl ClientMfaServer {
 
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit transaction for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        let event =
+            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
+        self.wireguard_tx.send(event).map_err(|err| {
+            error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
 
@@ -992,6 +1011,11 @@ impl ClientMfaServer {
     ) -> Result<(), Status> {
         let is_connected = session.state == VpnClientSessionState::Connected;
         let is_mfa_session = session.mfa_method.is_some();
+        let requires_gateway_update = is_mfa_session
+            || location.has_postures(&mut *conn).await.map_err(|err| {
+                error!("Failed to fetch postures for location {location}: {err}");
+                Status::internal("unexpected error")
+            })?;
 
         // update session state in DB
         let disconnect_timestamp = Utc::now().naive_utc();
@@ -1002,10 +1026,10 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // gateway update is only needed to remove peer for MFA sessions
+        // gateway update is only needed to remove peers that were authorized at runtime - MFA and posture-check sessions
         // this is needed to remove peers for both Connected and New sessions
-        if is_mfa_session {
-            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        if requires_gateway_update {
+            let gateway_event = GatewayEvent::VpnSessionDeauthorized(location.id, device.clone());
             self.wireguard_tx.send(gateway_event).map_err(|err| {
                 error!("Error sending WireGuard event: {err}");
                 Status::internal("unexpected error")
@@ -1183,7 +1207,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced connected session");
         match gateway_event {
-            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1258,7 +1282,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced new session");
         match gateway_event {
-            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1475,7 +1499,7 @@ mod tests {
         );
 
         match gateway_rx.try_recv() {
-            Ok(GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device)) => {
+            Ok(GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device)) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
