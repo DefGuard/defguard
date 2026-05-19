@@ -207,37 +207,25 @@ pub async fn validate_posture(
     pubkey: &str,
     posture_data: &Option<DevicePostureData>,
 ) -> Result<PostureResult, PostureCheckError> {
-    debug!(
-        "Performing posture check for device {}: {:?}",
-        pubkey, posture_data
-    );
+    debug!("Performing posture check for device {pubkey}: {posture_data:?}");
 
     // If location has no assigned postures - pass immediately (no license required).
     let posture_ids = DevicePostureLocation::find_by_location(pool, location_id).await?;
     if posture_ids.is_empty() {
-        debug!(
-            "No posture policies assigned to location {} — passing device {}",
-            location_id, pubkey
-        );
+        debug!("No posture policies assigned to location {location_id} - passing device {pubkey}");
         return Ok(PostureResult::Pass);
     }
 
     // Policies exist - enforce the enterprise license.
     if !is_enterprise_license_active() {
-        warn!(
-            "No active enterprise license - posture check aborted for device {}",
-            pubkey
-        );
+        warn!("No active enterprise license - posture check aborted for device {pubkey}");
         return Err(PostureCheckError::NoActiveEnterpriseLicense);
     }
 
     let data = match posture_data.as_ref() {
         Some(d) => d,
         None => {
-            info!(
-                "Missing posture data - posture check failed for device {}",
-                pubkey
-            );
+            info!("Missing posture data - posture check failed for device {pubkey}");
             return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
         }
     };
