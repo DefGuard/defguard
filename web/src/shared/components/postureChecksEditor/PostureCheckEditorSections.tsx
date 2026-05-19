@@ -13,6 +13,7 @@ import { m } from '../../../paraglide/messages';
 import { Checkbox } from '../../defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { Input } from '../../defguard-ui/components/Input/Input';
+import { InteractiveBlock } from '../../defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
 import { Textarea } from '../../defguard-ui/components/Textarea/Textarea';
@@ -214,51 +215,30 @@ export const PostureCheckOperatingSystemsSection = ({
                       }}
                     />
                   </div>
-                  {showWindowsSecurityUpdate && (
-                    <div className="select-slot">
-                      <Select
-                        options={[
-                          {
-                            key: 'outdated',
-                            label: 'No requirement',
-                            value: false,
-                          },
-                          {
-                            key: 'current',
-                            label: 'Updated within 1 month',
-                            value: true,
-                          },
-                        ]}
-                        value={
-                          details.securityUpdates
-                            ? {
-                                key: 'current',
-                                label: 'Updated within 1 month',
-                                value: true,
-                              }
-                            : {
-                                key: 'outdated',
-                                label: 'No requirement',
-                                value: false,
-                              }
-                        }
-                        onChange={(option) => {
-                          updateValues((current) => ({
-                            ...current,
-                            operatingSystemState: {
-                              ...current.operatingSystemState,
-                              [operatingSystem]: {
-                                ...current.operatingSystemState[operatingSystem],
-                                securityUpdates: option.value,
-                              },
-                            },
-                          }));
-                        }}
-                      />
-                    </div>
-                  )}
                 </div>
-                {(showWindowsSecurityUpdate || conditions.length > 0) && (
+                {showWindowsSecurityUpdate && (
+                  <InteractiveBlock
+                    variant="checkbox"
+                    title={m.posture_checks_wizard_operating_systems_windows_security_updates()}
+                    content={m.posture_checks_wizard_operating_systems_windows_security_updates_description()}
+                    value={details.securityUpdates}
+                    onClick={() => {
+                      updateValues((current) => ({
+                        ...current,
+                        operatingSystemState: {
+                          ...current.operatingSystemState,
+                          [operatingSystem]: {
+                            ...current.operatingSystemState[operatingSystem],
+                            securityUpdates:
+                              !current.operatingSystemState[operatingSystem]
+                                .securityUpdates,
+                          },
+                        },
+                      }));
+                    }}
+                  />
+                )}
+                {conditions.length > 0 && (
                   <>
                     <Divider />
                     <div className="conditions">
@@ -363,24 +343,18 @@ export const PostureCheckDefguardSection = ({
           }));
         }}
       />
-      <Checkbox
-        active={values.allowPrereleaseClient}
+      <InteractiveBlock
+        variant="checkbox"
+        title={m.posture_checks_wizard_client_version_prerelease_title()}
+        content={m.posture_checks_wizard_client_version_prerelease_description()}
+        value={values.allowPrereleaseClient}
         onClick={() => {
           updateValues((current) => ({
             ...current,
             allowPrereleaseClient: !current.allowPrereleaseClient,
           }));
         }}
-      >
-        <div className="checkbox-copy">
-          <p className="title">
-            {m.posture_checks_wizard_client_version_prerelease_title()}
-          </p>
-          <p className="description">
-            {m.posture_checks_wizard_client_version_prerelease_description()}
-          </p>
-        </div>
-      </Checkbox>
+      />
     </div>
   );
 };
