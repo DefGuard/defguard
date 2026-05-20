@@ -81,7 +81,18 @@ jobs:
     runs-on:
       - self-hosted
       - Linux
-      - X64
+      - ${{ matrix.architecture }}
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [ARM64, X64]
+        include:
+          - architecture: ARM64
+            deb_arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+          - architecture: X64
+            deb_arch: amd64
+            rust_target: x86_64-unknown-linux-gnu
     container:
       image: debian:12
       env:
@@ -93,13 +104,11 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dpkg --add-architecture arm64
           apt-get update
           apt-get install -y \
             git curl ca-certificates \
             build-essential pkg-config \
-            libssl-dev libssl-dev:arm64 \
-            gcc-aarch64-linux-gnu \
+            libssl-dev \
             protobuf-compiler libprotobuf-dev
           git config --global --add safe.directory '*'
 
@@ -133,32 +142,18 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-        with:
-          targets: "aarch64-unknown-linux-gnu"
 
-      - name: Build Linux x86_64 binary (for DEB)
+      - name: Build binary (for DEB)
         run: |
-          cargo build --locked --release --target x86_64-unknown-linux-gnu
-          mv target/x86_64-unknown-linux-gnu/release/defguard \
-             defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
+          cargo build --locked --release --target ${{ matrix.rust_target }}
+          mv target/${{ matrix.rust_target }}/release/defguard \
+             defguard-${{ env.VERSION }}-${{ matrix.rust_target }}
 
-      - name: Build Linux aarch64 binary (for DEB)
-        env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          PKG_CONFIG_ALLOW_CROSS: "1"
-          PKG_CONFIG_LIBDIR_aarch64_unknown_linux_gnu: /usr/lib/aarch64-linux-gnu/pkgconfig
-        run: |
-          cargo build --locked --release --target aarch64-unknown-linux-gnu
-          mv target/aarch64-unknown-linux-gnu/release/defguard \
-             defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
-
-      - name: Upload DEB binaries
+      - name: Upload DEB binary
         uses: actions/upload-artifact@v4
         with:
-          name: deb-binaries
-          path: |
-            defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
-            defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
+          name: deb-binaries-${{ matrix.rust_target }}
+          path: defguard-${{ env.VERSION }}-${{ matrix.rust_target }}
           retention-days: 1
 
   build-binaries:
@@ -251,8 +246,9 @@ jobs:
       - name: Download DEB binaries (built on debian:12)
         uses: actions/download-artifact@v4
         with:
-          name: deb-binaries
+          pattern: deb-binaries-*
           path: deb-binaries
+          merge-multiple: true
 
       - name: Restore executable permissions on DEB binaries
         run: |
