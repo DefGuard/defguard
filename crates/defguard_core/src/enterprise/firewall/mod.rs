@@ -638,15 +638,12 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
         .map(|network| {
             let is_host = (network.is_ipv4() && network.prefix() == 32)
                 || (network.is_ipv6() && network.prefix() == 128);
-            if is_host {
-                IpAddress {
-                    address: Some(Address::Ip(network.ip().to_string())),
-                }
+            let address = if is_host {
+                Some(Address::Ip(network.ip().to_string()))
             } else {
-                IpAddress {
-                    address: Some(Address::IpSubnet(network.to_string())),
-                }
-            }
+                Some(Address::IpSubnet(network.to_string()))
+            };
+            IpAddress { address }
         })
         .collect()
 }
