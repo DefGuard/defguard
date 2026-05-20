@@ -87,7 +87,8 @@ jobs:
       # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          # VERSION=${GITHUB_REF_NAME#v}
+          VERSION="2.0.1-test"
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -352,7 +353,8 @@ jobs:
 
       - name: Write release version
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          # VERSION=${GITHUB_REF_NAME#v}
+          VERSION="2.0.1-test"
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
