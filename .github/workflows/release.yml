@@ -82,13 +82,6 @@ jobs:
       - self-hosted
       - Linux
       - X64
-    container:
-      image: debian:12
-      env:
-        DEBIAN_FRONTEND: noninteractive
-        HOME: /root
-        RUSTUP_HOME: /root/.rustup
-        CARGO_HOME: /root/.cargo
     env:
       SCCACHE_GHA_ENABLED: "false"
       RUSTC_WRAPPER: ""
@@ -96,9 +89,9 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dpkg --add-architecture arm64
-          apt-get update
-          apt-get install -y \
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y \
             git curl ca-certificates \
             build-essential pkg-config \
             libssl-dev libssl-dev:arm64 \
@@ -106,14 +99,14 @@ jobs:
             protobuf-compiler libprotobuf-dev \
             rsync openssh-client \
             ruby ruby-dev rubygems rpm
-          gem install fpm --no-document
+          sudo gem install fpm --no-document
           git config --global --add safe.directory '*'
 
       # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
           # VERSION=${GITHUB_REF_NAME#v}
-          VERSION="v2.0.1-test"
+          VERSION="2.0.1-test"
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -155,7 +148,8 @@ jobs:
       - name: Build Linux aarch64 binary
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          PKG_CONFIG_SYSROOT_DIR: /usr/lib/aarch64-linux-gnu
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          PKG_CONFIG_LIBDIR: /usr/lib/aarch64-linux-gnu/pkgconfig
         run: |
           cargo build --locked --release --target aarch64-unknown-linux-gnu
           mv target/aarch64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
@@ -169,36 +163,6 @@ jobs:
           scp root@freebsd:work/defguard/target/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
           tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
-
-      - name: Build x86_64 DEB package
-        run: |
-          fpm \
-            --output-type deb \
-            --version "${{ env.VERSION }}" \
-            --architecture amd64 \
-            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb \
-            --before-install linux/preinst \
-            --after-install linux/postinst \
-            --before-remove linux/prerm \
-            --after-remove linux/postrm \
-            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard" \
-            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
-            ".env.example=/etc/defguard/core.conf"
-
-      - name: Build aarch64 DEB package
-        run: |
-          fpm \
-            --output-type deb \
-            --version "${{ env.VERSION }}" \
-            --architecture arm64 \
-            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb \
-            --before-install linux/preinst \
-            --after-install linux/postinst \
-            --before-remove linux/prerm \
-            --after-remove linux/postrm \
-            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard" \
-            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
-            ".env.example=/etc/defguard/core.conf"
 
       - name: Build x86_64 RPM package
         run: |
@@ -243,6 +207,22 @@ jobs:
             "freebsd/defguard=/usr/local/etc/rc.d/defguard" \
             ".env.example=/etc/defguard/core.conf"
 
+      - name: Upload binaries for deb job
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-for-deb
+          path: |
+            defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
+            defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
+            linux/preinst
+            linux/postinst
+            linux/prerm
+            linux/postrm
+            linux/defguard.service
+            .env.example
+          include-hidden-files: true
+          retention-days: 1
+
       - name: Upload Linux x86_64 archive
         uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
         env:
@@ -270,26 +250,6 @@ jobs:
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload Linux x86_64 DEB
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload Linux aarch64 DEB
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
           asset_content_type: application/gzip
           overwrite: true
 
@@ -321,4 +281,94 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
           asset_content_type: application/x-pkg
+          overwrite: true
+
+  build-deb-packages:
+    needs:
+      - create-release
+      - build-binaries
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+    container:
+      image: debian:12
+      env:
+        DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            ca-certificates \
+            ruby ruby-dev rubygems \
+            build-essential
+          gem install fpm --no-document
+
+      - name: Write release version
+        run: |
+          # VERSION=${GITHUB_REF_NAME#v}
+          VERSION="2.0.1-test"
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Download binaries from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-for-deb
+
+      - name: Restore executable permissions
+        run: |
+          chmod +x defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
+          chmod +x defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
+
+      - name: Build x86_64 DEB package
+        run: |
+          fpm \
+            --output-type deb \
+            --version "${{ env.VERSION }}" \
+            --architecture amd64 \
+            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb \
+            --before-install linux/preinst \
+            --after-install linux/postinst \
+            --before-remove linux/prerm \
+            --after-remove linux/postrm \
+            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard" \
+            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
+            ".env.example=/etc/defguard/core.conf"
+
+      - name: Build aarch64 DEB package
+        run: |
+          fpm \
+            --output-type deb \
+            --version "${{ env.VERSION }}" \
+            --architecture arm64 \
+            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb \
+            --before-install linux/preinst \
+            --after-install linux/postinst \
+            --before-remove linux/prerm \
+            --after-remove linux/postrm \
+            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard" \
+            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
+            ".env.example=/etc/defguard/core.conf"
+
+      - name: Upload Linux x86_64 DEB
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload Linux aarch64 DEB
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
+          asset_content_type: application/gzip
           overwrite: true
