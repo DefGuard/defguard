@@ -874,21 +874,25 @@ impl ClientMfaServer {
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
 
         // Evaluate posture.
-        let posture_result = validate_posture(&self.pool, &request)
-            .await
-            .map_err(|err| match err {
-                PostureCheckError::NoActiveEnterpriseLicense => {
-                    Status::failed_precondition("enterprise license required for posture checks")
-                }
-                PostureCheckError::DbError(e) => {
-                    error!("DB error during posture validation: {e}");
-                    Status::internal("unexpected error")
-                }
-            })?;
+        let posture_result =
+            validate_posture(&self.pool, &request)
+                .await
+                .map_err(|err| match err {
+                    PostureCheckError::NoActiveEnterpriseLicense => Status::failed_precondition(
+                        "enterprise license required for posture checks",
+                    ),
+                    PostureCheckError::DbError(e) => {
+                        error!("DB error during posture validation: {e}");
+                        Status::internal("unexpected error")
+                    }
+                })?;
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons.iter().map(std::string::ToString::to_string).collect();
+            let failed_checks = reasons
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect();
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 
