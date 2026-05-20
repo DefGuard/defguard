@@ -2,6 +2,10 @@ import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-qu
 import type { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
+import type {
+  ActivityLogEventTypeValue,
+  ActivityLogModuleValue,
+} from '../../shared/api/activity-log-types';
 import api from '../../shared/api/api';
 import type { ActivityLogSortKey } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
@@ -49,6 +53,10 @@ export const ActivityLogPage = () => {
     [columnFilters],
   );
 
+  const eventFilter = filterParams.event as ActivityLogEventTypeValue[] | undefined;
+  const moduleFilter = filterParams.module as ActivityLogModuleValue[] | undefined;
+  const locationFilter = filterParams.location as string[] | undefined;
+
   const activeSorting = sortingState[0];
 
   const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -60,9 +68,9 @@ export const ActivityLogPage = () => {
         search: search.length > 0 ? search : undefined,
         sort_by: activeSorting?.id as ActivityLogSortKey,
         sort_order: activeSorting ? (activeSorting.desc ? 'desc' : 'asc') : undefined,
-        event: filterParams.event as never,
-        module: filterParams.module as never,
-        location: filterParams.location as never,
+        event: eventFilter,
+        module: moduleFilter,
+        location: locationFilter,
       }),
     placeholderData: keepPreviousData,
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
