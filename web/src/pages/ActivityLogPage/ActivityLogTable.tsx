@@ -70,6 +70,7 @@ interface Props {
   onSortingChange: OnChangeFn<SortingState>;
   columnFilters: ColumnFiltersState;
   onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
+  locationFilterOptions: SelectionOption<string>[];
 }
 
 export const ActivityLogTable = ({
@@ -83,6 +84,7 @@ export const ActivityLogTable = ({
   onSortingChange,
   columnFilters,
   onColumnFiltersChange,
+  locationFilterOptions,
 }: Props) => {
   const tableFilterMessages = useMemo(
     () => ({
@@ -136,7 +138,11 @@ export const ActivityLogTable = ({
       columnHelper.accessor('location', {
         header: m.activity_log_col_location(),
         enableSorting: true,
+        enableColumnFilter: true,
         minSize: 130,
+        meta: {
+          filterOptions: locationFilterOptions,
+        },
         cell: (info) => {
           const value = info.getValue();
           return (
@@ -209,7 +215,7 @@ export const ActivityLogTable = ({
         ),
       }),
     ],
-    [],
+    [locationFilterOptions],
   );
 
   const table = useReactTable({
