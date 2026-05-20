@@ -230,7 +230,7 @@ impl GatewayHandler {
             );
         }
 
-        let peers = get_location_allowed_peers(&network, &self.pool).await?;
+        let peers = get_location_allowed_peers(&network, &mut conn).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
         let payload = Some(core_response::Payload::Config(Configuration::new(
@@ -469,6 +469,7 @@ impl GatewayHandler {
                                         self.gateway.location_id,
                                         network,
                                         self.gateway.name.clone(),
+                                        Some(self.pool.clone()),
                                         self.events_tx.subscribe(),
                                         tx.clone(),
                                     );
@@ -619,6 +620,8 @@ struct GatewayUpdatesHandler {
     network_id: Id,
     network: WireguardNetwork<Id>,
     gateway_name: String,
+    pool: Option<PgPool>,
+    session_authorization_required: bool,
     events_rx: broadcast::Receiver<GatewayEvent>,
     tx: UnboundedSender<CoreResponse>,
 }
@@ -629,6 +632,7 @@ impl GatewayUpdatesHandler {
         network_id: Id,
         network: WireguardNetwork<Id>,
         gateway_name: String,
+        pool: Option<PgPool>,
         events_rx: broadcast::Receiver<GatewayEvent>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
@@ -636,9 +640,37 @@ impl GatewayUpdatesHandler {
             network_id,
             network,
             gateway_name,
+            pool,
+            session_authorization_required: false,
             events_rx,
             tx,
         }
+    }
+
+    async fn authorization_required_for(
+        network: &WireguardNetwork<Id>,
+        pool: Option<&PgPool>,
+    ) -> bool {
+        if network.mfa_enabled() {
+            return true;
+        }
+
+        let Some(pool) = pool else {
+            return false;
+        };
+
+        match network.has_postures(pool).await {
+            Ok(has_postures) => has_postures,
+            Err(err) => {
+                error!("Failed to fetch postures for location {network}: {err}");
+                false
+            }
+        }
+    }
+
+    async fn refresh_session_authorization_required(&mut self) {
+        self.session_authorization_required =
+            Self::authorization_required_for(&self.network, self.pool.as_ref()).await;
     }
 
     #[must_use]
@@ -650,7 +682,7 @@ impl GatewayUpdatesHandler {
         is_authorized: bool,
         preshared_key: Option<String>,
     ) -> Option<Peer> {
-        if !self.network.mfa_enabled() {
+        if !self.session_authorization_required {
             return Some(Peer {
                 pubkey: peer_pubkey,
                 allowed_ips,
@@ -661,7 +693,7 @@ impl GatewayUpdatesHandler {
 
         if !is_authorized {
             debug!(
-                "Skipping gateway peer update for WireGuard device {peer_label} in MFA enabled location {} because there is no active MFA session",
+                "Skipping gateway peer update for WireGuard device {peer_label} in runtime-authorized location {} because there is no active VPN session",
                 self.network.name
             );
             return None;
@@ -718,6 +750,7 @@ impl GatewayUpdatesHandler {
             "Starting update stream to gateway: {}, network {}",
             self.gateway_name, self.network
         );
+        self.refresh_session_authorization_required().await;
         while let Ok(update) = self.events_rx.recv().await {
             debug!("Received WireGuard update: {update:?}");
             let result = match update {
@@ -748,6 +781,7 @@ impl GatewayUpdatesHandler {
                         );
                         // update stored network data
                         self.network = network;
+                        self.refresh_session_authorization_required().await;
                         result
                     } else {
                         Ok(())
@@ -817,18 +851,18 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
-                GatewayEvent::MfaSessionDisconnected(location_id, device) => {
+                GatewayEvent::VpnSessionDeauthorized(location_id, device) => {
                     if location_id == self.network_id {
                         self.send_peer_delete(&device.wireguard_pubkey)
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::MfaSessionAuthorized(location_id, device, network_info) => {
+                GatewayEvent::VpnSessionAuthorized(location_id, device, network_info) => {
                     if location_id == self.network_id {
                         if network_info.network_id != location_id {
                             error!(
-                                "Received MFA authorization success event for location {location_id} with invalid runtime network info: {network_info:?}"
+                                "Received VPN authorization success event for location {location_id} with invalid runtime network info: {network_info:?}"
                             );
                             continue;
                         }
@@ -1254,7 +1288,10 @@ mod tests {
         let (tx, _rx) = unbounded_channel();
         drop(events_tx);
 
-        GatewayUpdatesHandler::new(network.id, network, "gateway".into(), events_rx, tx)
+        let mut handler =
+            GatewayUpdatesHandler::new(network.id, network, "gateway".into(), None, events_rx, tx);
+        handler.session_authorization_required = handler.network.mfa_enabled();
+        handler
     }
 
     #[test]
@@ -1295,6 +1332,24 @@ mod tests {
     #[test]
     fn test_runtime_peer_update_preserves_session_preshared_key_for_authorized_mfa_peer() {
         let handler = test_handler(LocationMfaMode::Internal);
+
+        let peer = handler
+            .runtime_peer_update(
+                "device",
+                "device-pubkey".into(),
+                vec!["10.1.1.2".into()],
+                true,
+                Some("session-psk".into()),
+            )
+            .unwrap();
+
+        assert_eq!(peer.preshared_key, Some("session-psk".into()));
+    }
+
+    #[test]
+    fn test_runtime_peer_update_preserves_session_preshared_key_for_authorized_posture_peer() {
+        let mut handler = test_handler(LocationMfaMode::Disabled);
+        handler.session_authorization_required = true;
 
         let peer = handler
             .runtime_peer_update(

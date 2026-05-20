@@ -138,15 +138,15 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
-    // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
+    // Verify GatewayEvent::VpnSessionAuthorized was broadcast.
     // Use the already-subscribed receiver - subscribing after send_mfa_finish would miss the event.
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
-        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
+        .expect("timed out waiting for GatewayEvent::VpnSessionAuthorized")
         .expect("gateway event channel closed");
     let gateway_loc_id = match event {
-        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
-        other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
+        GatewayEvent::VpnSessionAuthorized(loc_id, _, _) => loc_id,
+        other => panic!("expected VpnSessionAuthorized, got: {other:?}"),
     };
     assert_eq!(gateway_loc_id, network.id);
 
@@ -316,14 +316,14 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
-    // Verify GatewayEvent::MfaSessionAuthorized was broadcast
+    // Verify GatewayEvent::VpnSessionAuthorized was broadcast
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
-        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
+        .expect("timed out waiting for GatewayEvent::VpnSessionAuthorized")
         .expect("gateway event channel closed");
     let loc_id = match event {
-        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
-        other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
+        GatewayEvent::VpnSessionAuthorized(loc_id, _, _) => loc_id,
+        other => panic!("expected VpnSessionAuthorized, got: {other:?}"),
     };
     assert_eq!(loc_id, network.id);
 
@@ -509,7 +509,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
 /// When a second MFA cycle completes for the same device+location the handler
 /// must:
 ///  - disconnect the first `VpnClientSession` (state → Disconnected),
-///  - emit `GatewayEvent::MfaSessionDisconnected` for the first session, and
+///  - emit `GatewayEvent::VpnSessionDeauthorized` for the first session, and
 ///  - create a new active `VpnClientSession`.
 #[sqlx::test]
 async fn test_mfa_finish_replaces_existing_session_disconnects_old(
@@ -564,8 +564,8 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     )
     .await;
 
-    // Subscribe before finish so both MfaSessionDisconnected and
-    // MfaSessionAuthorized have an active receiver.
+    // Subscribe before finish so both VpnSessionDeauthorized and
+    // VpnSessionAuthorized have an active receiver.
     let mut gw_rx2 = context.wireguard_tx.subscribe();
 
     let code2 = generate_totp_code(&user);
@@ -576,7 +576,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     );
 
     // Receive events from the gateway broadcast channel.  The handler sends
-    // MfaSessionDisconnected (for the old session) and then MfaSessionAuthorized
+    // VpnSessionDeauthorized (for the old session) and then VpnSessionAuthorized
     // (for the new session) in that order.
     let mut got_disconnected = false;
     let mut got_authorized = false;
@@ -587,20 +587,20 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
             .expect("gateway event channel closed");
 
         match event {
-            GatewayEvent::MfaSessionDisconnected(loc_id, ref dev) => {
+            GatewayEvent::VpnSessionDeauthorized(loc_id, ref dev) => {
                 assert_eq!(loc_id, network.id, "disconnected session location mismatch");
                 assert_eq!(dev.id, device.id, "disconnected session device mismatch");
                 got_disconnected = true;
             }
-            GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => {
+            GatewayEvent::VpnSessionAuthorized(loc_id, _, _) => {
                 assert_eq!(loc_id, network.id, "authorized session location mismatch");
                 got_authorized = true;
             }
             other => panic!("unexpected gateway event: {other:?}"),
         }
     }
-    assert!(got_disconnected, "MfaSessionDisconnected must be emitted");
-    assert!(got_authorized, "MfaSessionAuthorized must be emitted");
+    assert!(got_disconnected, "VpnSessionDeauthorized must be emitted");
+    assert!(got_authorized, "VpnSessionAuthorized must be emitted");
 
     // New session must exist in the DB.
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
