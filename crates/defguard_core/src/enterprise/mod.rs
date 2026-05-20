@@ -1,4 +1,5 @@
 pub mod activity_log_stream;
+pub mod allowed_ips;
 pub mod db;
 pub mod directory_sync;
 pub mod firewall;
