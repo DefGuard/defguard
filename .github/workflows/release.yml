@@ -342,7 +342,7 @@ jobs:
       - name: Install git
         run: |
           apt-get update
-          apt-get install -y git curl ca-certificates
+          apt-get install -y git curl ca-certificates libatomic1
           git config --global --add safe.directory '*'
 
       - name: Checkout
