@@ -111,8 +111,8 @@ use crate::{
             check_enterprise_info,
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
-                get_device_posture, list_device_postures, set_locations_for_posture,
-                set_postures_for_location, update_device_posture,
+                get_device_posture, get_device_posture_versions, list_device_postures,
+                set_locations_for_posture, set_postures_for_location, update_device_posture,
             },
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
@@ -536,6 +536,7 @@ pub fn build_webapp(
     let api_router = api_router.nest(
         "/api/v1",
         Router::new()
+            .route("/device-posture/versions", get(get_device_posture_versions))
             .route(
                 "/device-posture",
                 get(list_device_postures).post(create_device_posture),
@@ -1183,7 +1184,7 @@ pub async fn gateway_config(
     };
 
     // get peers
-    let peers = get_location_allowed_peers(&location, &mut *conn)
+    let peers = get_location_allowed_peers(&location, &mut conn)
         .await
         .map_err(|err| anyhow!("Failed to get peers for location {location} with error: {err}"))?;
 

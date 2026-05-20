@@ -487,7 +487,7 @@ export interface LdapInfo {
 }
 
 export interface ApplicationInfo {
-  version: string;
+  version: string | null;
   network_present: boolean;
   smtp_enabled: boolean;
   external_openid_enabled: boolean;
@@ -756,6 +756,7 @@ export interface NetworkLocation {
   location_mfa_mode: LocationMfaModeValue;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
+  posture_checks: number[];
 }
 
 export interface EditNetworkLocation
@@ -768,6 +769,7 @@ export interface EditNetworkLocation
     | 'allowed_ips'
     | 'address'
     | 'has_devices'
+    | 'posture_checks'
   > {
   allowed_ips: string;
   address: string;
@@ -900,7 +902,7 @@ export interface SettingsEnterprise {
 export type ApiDevicePostureOsRule =
   | {
       os_type: 'windows';
-      min_os_version: string | null;
+      min_os_version: number | null;
       disk_encryption_required: boolean | null;
       antivirus_required: boolean | null;
       ad_domain_joined_required: boolean | null;
@@ -908,24 +910,26 @@ export type ApiDevicePostureOsRule =
     }
   | {
       os_type: 'macos';
-      min_os_version: string | null;
+      min_os_version: number | null;
       disk_encryption_required: boolean | null;
       device_integrity_required: boolean | null;
     }
   | {
       os_type: 'linux';
-      min_kernel_version: string | null;
+      min_kernel_version: number | null;
       disk_encryption_required: boolean | null;
     }
   | {
       os_type: 'ios';
-      min_os_version: string | null;
+      min_os_version: number | null;
     }
   | {
       os_type: 'android';
-      min_os_version: string | null;
+      min_os_version: number | null;
       device_integrity_required: boolean | null;
     };
+
+export type EditDevicePostureOsRule = ApiDevicePostureOsRule;
 
 export interface ApiDevicePosture {
   id: number;
@@ -935,6 +939,31 @@ export interface ApiDevicePosture {
   allow_prerelease_client: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
+}
+
+export interface AssignPosturesData {
+  postures: number[];
+}
+
+export interface EditDevicePostureRequest {
+  name: string;
+  description: string | null;
+  min_client_version: string | null;
+  allow_prerelease_client: boolean;
+  os_rules: EditDevicePostureOsRule[];
+}
+
+export interface DevicePostureOsVersionCatalog {
+  windows: number[];
+  macos: number[];
+  ios: number[];
+  android: number[];
+}
+
+export interface DevicePostureVersionMetadata {
+  os_versions: DevicePostureOsVersionCatalog;
+  linux_kernel_versions: number[];
+  client_versions: string[];
 }
 
 export type InitialSetupStepValue =

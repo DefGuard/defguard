@@ -20,6 +20,10 @@ use crate::{
             OsType,
         },
         handlers::EnterpriseLicenseInfo,
+        posture::version_list::{
+            ANDROID_OS_VERSIONS, CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
+            MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
+        },
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -29,30 +33,8 @@ use crate::{
     },
 };
 
-/// Minimum defguard desktop client versions available for posture rules.
-/// FIXME: 2.0 does not actually exist, remove before release
-/// TODO: also consider if this is the best way to store possible options
-pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
-
-/// Valid Linux kernel version families for posture rules.
-pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x", "7.x"];
-
-/// Returns the list of valid `min_os_version` values for a given OS type.
-/// TODO: consider a better format for storing versions
-#[must_use]
-pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
-    match os_type {
-        OsType::Windows => &["Windows 10", "Windows 11"],
-        OsType::Macos => &[
-            "macOS 13 Ventura",
-            "macOS 14 Sonoma",
-            "macOS 15 Sequoia",
-            "macOS 26 Tahoe",
-        ],
-        OsType::Linux => KERNEL_VERSIONS,
-        OsType::Ios => &["17", "18", "26"],
-        OsType::Android => &["13", "14", "15", "16"],
-    }
+fn owned_client_versions(values: &[&str]) -> Vec<String> {
+    values.iter().map(|value| (*value).to_owned()).collect()
 }
 
 /// Per-OS rule included in a posture check policy API.
@@ -63,26 +45,26 @@ pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
 #[serde(tag = "os_type", rename_all = "lowercase")]
 pub enum ApiOsRule {
     Windows {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
         disk_encryption_required: Option<bool>,
         antivirus_required: Option<bool>,
         ad_domain_joined_required: Option<bool>,
         windows_security_update_current: Option<bool>,
     },
     Macos {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
         disk_encryption_required: Option<bool>,
         device_integrity_required: Option<bool>,
     },
     Linux {
-        min_kernel_version: Option<String>,
+        min_kernel_version: Option<i32>,
         disk_encryption_required: Option<bool>,
     },
     Ios {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
     },
     Android {
-        min_os_version: Option<String>,
+        min_os_version: Option<i32>,
         device_integrity_required: Option<bool>,
     },
 }
@@ -240,6 +222,56 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct DevicePostureOsVersionCatalog {
+    pub windows: Vec<i32>,
+    pub macos: Vec<i32>,
+    pub ios: Vec<i32>,
+    pub android: Vec<i32>,
+}
+
+impl DevicePostureOsVersionCatalog {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            windows: WINDOWS_OS_VERSIONS.to_vec(),
+            macos: MACOS_OS_VERSIONS.to_vec(),
+            ios: IOS_OS_VERSIONS.to_vec(),
+            android: ANDROID_OS_VERSIONS.to_vec(),
+        }
+    }
+}
+
+impl Default for DevicePostureOsVersionCatalog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct DevicePostureVersionMetadata {
+    pub os_versions: DevicePostureOsVersionCatalog,
+    pub linux_kernel_versions: Vec<i32>,
+    pub client_versions: Vec<String>,
+}
+
+impl DevicePostureVersionMetadata {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            os_versions: DevicePostureOsVersionCatalog::new(),
+            linux_kernel_versions: LINUX_KERNEL_VERSIONS.to_vec(),
+            client_versions: owned_client_versions(CLIENT_VERSIONS),
+        }
+    }
+}
+
+impl Default for DevicePostureVersionMetadata {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Request body for creating or updating a device posture check policy.
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct EditDevicePosture {
@@ -372,14 +404,14 @@ fn apply_os_rule_filters(
             append_string_array_filter(
                 query_builder,
                 &versions,
-                &format!(" AND {alias}.min_os_version"),
+                &format!(" AND {alias}.min_os_version::text"),
             );
         }
         OsType::Linux => {
             append_string_array_filter(
                 query_builder,
                 &versions,
-                &format!(" AND {alias}.min_kernel_version"),
+                &format!(" AND {alias}.min_kernel_version::text"),
             );
         }
     }
@@ -464,6 +496,68 @@ fn validate_device_posture_base(data: &EditDevicePosture) -> Result<(), WebError
     validate_device_posture_os_rules(&data.os_rules)
 }
 
+fn validate_device_posture_os_rule(rule: &ApiOsRule) -> Result<(), WebError> {
+    let os_type = rule.os_type();
+
+    match rule {
+        ApiOsRule::Windows {
+            min_os_version: Some(v),
+            ..
+        } if !WINDOWS_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
+            "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
+            WINDOWS_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+        ApiOsRule::Macos {
+            min_os_version: Some(v),
+            ..
+        } if !MACOS_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
+            "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
+            MACOS_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+        ApiOsRule::Ios {
+            min_os_version: Some(v),
+        } if !IOS_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
+            "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
+            IOS_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+        ApiOsRule::Android {
+            min_os_version: Some(v),
+            ..
+        } if !ANDROID_OS_VERSIONS.contains(v) => Err(WebError::BadRequest(format!(
+            "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
+            ANDROID_OS_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+        ApiOsRule::Linux {
+            min_kernel_version: Some(kv),
+            ..
+        } if !LINUX_KERNEL_VERSIONS.contains(kv) => Err(WebError::BadRequest(format!(
+            "Unknown min_kernel_version '{kv}'. Valid values: {}",
+            LINUX_KERNEL_VERSIONS
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+        _ => Ok(()),
+    }
+}
+
 /// Validates the `os_rules` list in an [`EditDevicePosture`] request.
 ///
 /// Returns `Err(WebError::BadRequest(...))` if:
@@ -479,34 +573,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
                 "Duplicate os_type '{os_type:?}' in os_rules"
             )));
         }
-        let valid_versions = valid_os_versions(&os_type);
-        let min_os_version = match rule {
-            ApiOsRule::Windows { min_os_version, .. }
-            | ApiOsRule::Macos { min_os_version, .. }
-            | ApiOsRule::Ios { min_os_version }
-            | ApiOsRule::Android { min_os_version, .. } => min_os_version,
-            ApiOsRule::Linux { .. } => &None,
-        };
-        if let Some(v) = min_os_version {
-            if !valid_versions.contains(&v.as_str()) {
-                return Err(WebError::BadRequest(format!(
-                    "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
-                    valid_versions.join(", ")
-                )));
-            }
-        }
-        if let ApiOsRule::Linux {
-            min_kernel_version: Some(kv),
-            ..
-        } = rule
-        {
-            if !KERNEL_VERSIONS.contains(&kv.as_str()) {
-                return Err(WebError::BadRequest(format!(
-                    "Unknown min_kernel_version '{kv}'. Valid values: {}",
-                    KERNEL_VERSIONS.join(", ")
-                )));
-            }
-        }
+        validate_device_posture_os_rule(rule)?;
     }
     Ok(())
 }
@@ -585,6 +652,41 @@ pub async fn create_device_posture(
     let mut response = ApiDevicePosture::from(posture);
     response.os_rules = os_rules;
     Ok(ApiResponse::json(response, StatusCode::CREATED))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/device-posture/versions",
+    tag = "DevicePosture",
+    responses(
+        (status = 200, description = "Valid device posture OS and client versions", body = DevicePostureVersionMetadata),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+/// Return the backend-owned catalog of selectable posture-check versions.
+///
+/// # Errors
+///
+/// Returns an error when the requester is unauthorized or lacks the required license.
+pub async fn get_device_posture_versions(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+) -> ApiResult {
+    debug!(
+        "User {} fetching device posture version metadata",
+        session.user.username
+    );
+
+    Ok(ApiResponse::json(
+        DevicePostureVersionMetadata::new(),
+        StatusCode::OK,
+    ))
 }
 
 #[utoipa::path(

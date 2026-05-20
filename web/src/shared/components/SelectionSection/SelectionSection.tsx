@@ -18,6 +18,8 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
   onChange,
   options,
   selection,
+  searchPlaceholder,
+  visibleItemsLimit = 10,
   className,
   id,
   renderItem,
@@ -80,20 +82,20 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
   );
 
   const maxHeight = useMemo(() => {
-    let res = itemHeight * 10;
+    let res = itemHeight * visibleItemsLimit;
     // add gaps
     if (enableDividers) {
-      res += (itemGap * 2 + 1) * 9;
+      res += (itemGap * 2 + 1) * Math.max(visibleItemsLimit - 1, 0);
     } else {
-      res += itemGap * 9;
+      res += itemGap * Math.max(visibleItemsLimit - 1, 0);
     }
     return res;
-  }, [itemGap, itemHeight, enableDividers]);
+  }, [enableDividers, itemGap, itemHeight, visibleItemsLimit]);
 
   return (
     <div className={clsx('selection-section', className)} id={id}>
       <Search
-        placeholder={m.cmp_selection_section_search_placeholder()}
+        placeholder={searchPlaceholder ?? m.cmp_selection_section_search_placeholder()}
         initialValue={search}
         onChange={setSearch}
       />

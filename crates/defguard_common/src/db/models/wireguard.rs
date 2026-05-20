@@ -1451,6 +1451,20 @@ impl WireguardNetwork<Id> {
             .collect();
         Ok(used_ips)
     }
+
+    /// Returns true if the location has at least one posture check assigned.
+    pub async fn has_postures<'e, E>(&self, executor: E) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        let exists = query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM device_posture_location WHERE location_id = $1)",
+            self.id
+        )
+        .fetch_one(executor)
+        .await?;
+        Ok(exists.unwrap_or(false))
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]

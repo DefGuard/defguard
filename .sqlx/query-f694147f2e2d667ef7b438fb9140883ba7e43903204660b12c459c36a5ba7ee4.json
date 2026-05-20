@@ -34,7 +34,7 @@
       {
         "ordinal": 3,
         "name": "min_os_version",
-        "type_info": "Text"
+        "type_info": "Int4"
       },
       {
         "ordinal": 4,
@@ -59,7 +59,7 @@
       {
         "ordinal": 8,
         "name": "min_kernel_version",
-        "type_info": "Text"
+        "type_info": "Int4"
       },
       {
         "ordinal": 9,

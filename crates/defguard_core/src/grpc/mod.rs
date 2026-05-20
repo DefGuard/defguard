@@ -225,8 +225,8 @@ pub enum GatewayEvent {
     DeviceDeleted(DeviceInfo),
     FirewallConfigChanged(Id, FirewallConfig),
     FirewallDisabled(Id),
-    MfaSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
-    MfaSessionDisconnected(Id, Device<Id>),
+    VpnSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
+    VpnSessionDeauthorized(Id, Device<Id>),
 }
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server

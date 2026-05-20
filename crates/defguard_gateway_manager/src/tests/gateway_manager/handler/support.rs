@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use defguard_common::db::{
-    Id,
+    Id, NoId,
     models::{
         device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
         user::User,
@@ -9,7 +9,12 @@ use defguard_common::db::{
         wireguard::{LocationMfaMode, WireguardNetwork},
     },
 };
-use defguard_core::grpc::GatewayEvent;
+use defguard_core::{
+    enterprise::db::models::device_posture::{
+        DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+    },
+    grpc::GatewayEvent,
+};
 use defguard_proto::{
     enterprise::firewall::{
         FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol,
@@ -118,6 +123,34 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
     (device, device_network_info)
 }
 
+pub(crate) async fn create_authorized_posture_device_for_current_network(
+    context: &HandlerTestContext,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: &str,
+) -> (Device<Id>, DeviceNetworkInfo) {
+    let device = create_device_for_network(
+        context,
+        context.network.id,
+        device_name,
+        device_pubkey,
+        device_ip,
+    )
+    .await;
+    let network_device = WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
+        .await
+        .expect("failed to load posture device network info")
+        .expect("expected posture device network info");
+    let network_info = DeviceNetworkInfo::from_authorized_vpn_session(
+        context.network.id,
+        network_device.wireguard_ips,
+        preshared_key.to_owned(),
+    );
+
+    (device, network_info)
+}
+
 pub(crate) async fn create_device_info_for_network(
     context: &HandlerTestContext,
     network_id: Id,
@@ -183,6 +216,46 @@ pub(crate) async fn enable_internal_mfa_for_network(
         .await
         .expect("failed to enable MFA for test network");
     assert!(network.mfa_enabled());
+}
+
+pub(crate) async fn enable_linux_posture_for_network(
+    pool: &sqlx::PgPool,
+    network: &WireguardNetwork<Id>,
+) {
+    let policy = DevicePosture {
+        id: NoId,
+        name: "gateway-handler-test-posture".to_owned(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .expect("failed to save posture policy");
+
+    DevicePostureOsRule {
+        id: NoId,
+        posture_id: policy.id,
+        os_type: OsType::Linux,
+        min_os_version: None,
+        disk_encryption_required: Some(true),
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_current: None,
+        min_kernel_version: None,
+        device_integrity_required: None,
+    }
+    .save(pool)
+    .await
+    .expect("failed to save posture OS rule");
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.expect("failed to acquire connection"),
+        network.id,
+        &[policy.id],
+    )
+    .await
+    .expect("failed to assign posture policy to network");
 }
 
 pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(

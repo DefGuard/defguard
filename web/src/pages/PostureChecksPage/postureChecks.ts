@@ -1,19 +1,23 @@
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
 import type { ApiDevicePosture, ApiDevicePostureOsRule } from '../../shared/api/types';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import type { OpenConfirmActionModal } from '../../shared/hooks/modalControls/types';
 import {
   type PostureCheckFilterValue,
   PostureCheckOs,
   type PostureCheckOsValue,
   PostureCheckRequirement,
-  postureCheckVersionValues,
+  type PostureCheckRequirementValue,
+  type PostureCheckVersionValues,
 } from './types';
 
 export type PostureCheckRow = {
   id: number;
   name: string;
+  locations: number[];
   windows: string;
   windowsFilters: PostureCheckFilterValue[];
   macos: string;
@@ -32,90 +36,37 @@ const emptyRequirement = '-';
 
 type PostureCheckFilterDefinition = {
   label: string;
-  requestValue: string;
 };
 
-const postureCheckFilterDefinitions = {
-  'Windows 10': { label: 'Windows 10', requestValue: 'Windows 10' },
-  'Windows 11': { label: 'Windows 11', requestValue: 'Windows 11' },
-  'macOS 13 Ventura': {
-    label: 'macOS 13 Ventura',
-    requestValue: 'macOS 13 Ventura',
-  },
-  'macOS 14 Sonoma': {
-    label: 'macOS 14 Sonoma',
-    requestValue: 'macOS 14 Sonoma',
-  },
-  'macOS 15 Sequoia': {
-    label: 'macOS 15 Sequoia',
-    requestValue: 'macOS 15 Sequoia',
-  },
-  'macOS 26 Tahoe': {
-    label: 'macOS 26 Tahoe',
-    requestValue: 'macOS 26 Tahoe',
-  },
-  '5.x': { label: 'Kernel 5.x', requestValue: '5.x' },
-  '6.x': { label: 'Kernel 6.x', requestValue: '6.x' },
-  '7.x': { label: 'Kernel 7.x', requestValue: '7.x' },
-  '17': { label: 'iOS 17+', requestValue: '17' },
-  '18': { label: 'iOS 18+', requestValue: '18' },
-  '26': { label: 'iOS 26+', requestValue: '26' },
-  '13': { label: 'Android 13+', requestValue: '13' },
-  '14': { label: 'Android 14+', requestValue: '14' },
-  '15': { label: 'Android 15+', requestValue: '15' },
-  '16': { label: 'Android 16+', requestValue: '16' },
-  '1.6': { label: 'Defguard 1.6+', requestValue: '1.6' },
-  '2.0': { label: 'Defguard 2.0+', requestValue: '2.0' },
+export type PostureCheckColumnFilterOptions = {
+  windows: SelectionOption<PostureCheckFilterValue>[];
+  macos: SelectionOption<PostureCheckFilterValue>[];
+  linux: SelectionOption<PostureCheckFilterValue>[];
+  ios: SelectionOption<PostureCheckFilterValue>[];
+  android: SelectionOption<PostureCheckFilterValue>[];
+  defguard: SelectionOption<PostureCheckFilterValue>[];
+};
+
+const requirementFilterDefinitions = {
   [PostureCheckRequirement.DiskEncryption]: {
     label: PostureCheckRequirement.DiskEncryption,
-    requestValue: PostureCheckRequirement.DiskEncryption,
   },
   [PostureCheckRequirement.Antivirus]: {
     label: PostureCheckRequirement.Antivirus,
-    requestValue: PostureCheckRequirement.Antivirus,
   },
   [PostureCheckRequirement.AdJoined]: {
     label: PostureCheckRequirement.AdJoined,
-    requestValue: PostureCheckRequirement.AdJoined,
   },
   [PostureCheckRequirement.SecurityUpdates]: {
     label: PostureCheckRequirement.SecurityUpdates,
-    requestValue: PostureCheckRequirement.SecurityUpdates,
   },
   [PostureCheckRequirement.DeviceIntegrity]: {
     label: PostureCheckRequirement.DeviceIntegrity,
-    requestValue: PostureCheckRequirement.DeviceIntegrity,
   },
   [PostureCheckRequirement.PrereleaseAllowed]: {
     label: PostureCheckRequirement.PrereleaseAllowed,
-    requestValue: PostureCheckRequirement.PrereleaseAllowed,
   },
-} as const satisfies Record<PostureCheckFilterValue, PostureCheckFilterDefinition>;
-
-export const postureCheckFilterOptions = {
-  windows: [
-    ...postureCheckVersionValues.windows,
-    PostureCheckRequirement.DiskEncryption,
-    PostureCheckRequirement.Antivirus,
-    PostureCheckRequirement.AdJoined,
-    PostureCheckRequirement.SecurityUpdates,
-  ],
-  macos: [
-    ...postureCheckVersionValues.macos,
-    PostureCheckRequirement.DiskEncryption,
-    PostureCheckRequirement.DeviceIntegrity,
-  ],
-  linux: [...postureCheckVersionValues.linux, PostureCheckRequirement.DiskEncryption],
-  ios: postureCheckVersionValues.ios,
-  android: [
-    ...postureCheckVersionValues.android,
-    PostureCheckRequirement.DeviceIntegrity,
-  ],
-  defguard: [
-    ...postureCheckVersionValues.defguard,
-    PostureCheckRequirement.PrereleaseAllowed,
-  ],
-} as const;
+} as const satisfies Record<PostureCheckRequirementValue, PostureCheckFilterDefinition>;
 
 export const getPostureCheckTableFilterMessages = (): TableFilterMessages => ({
   searchPlaceholder: m.controls_search(),
@@ -126,31 +77,65 @@ export const getPostureCheckTableFilterMessages = (): TableFilterMessages => ({
 
 const toSelectionOptions = <T extends PostureCheckFilterValue>(
   values: readonly T[],
-): SelectionOption<T>[] =>
+  getLabel: (value: T) => string,
+): SelectionOption<PostureCheckFilterValue>[] =>
   values.map((value) => ({
     id: value,
-    label: postureCheckFilterDefinitions[value].label,
+    label: getLabel(value),
   }));
 
-export const postureCheckColumnFilterOptions = {
-  windows: toSelectionOptions(postureCheckFilterOptions.windows),
-  macos: toSelectionOptions(postureCheckFilterOptions.macos),
-  linux: toSelectionOptions(postureCheckFilterOptions.linux),
-  ios: toSelectionOptions(postureCheckFilterOptions.ios),
-  android: toSelectionOptions(postureCheckFilterOptions.android),
-  defguard: toSelectionOptions(postureCheckFilterOptions.defguard),
-};
+const toRequirementSelectionOptions = (
+  values: readonly PostureCheckRequirementValue[],
+): SelectionOption<PostureCheckFilterValue>[] =>
+  values.map((value) => ({
+    id: value,
+    label: requirementFilterDefinitions[value].label,
+  }));
+
+export const getPostureCheckColumnFilterOptions = (
+  versionValues: PostureCheckVersionValues,
+): PostureCheckColumnFilterOptions => ({
+  windows: [
+    ...toSelectionOptions(versionValues.windows, (value) => value.toString()),
+    ...toRequirementSelectionOptions([
+      PostureCheckRequirement.DiskEncryption,
+      PostureCheckRequirement.Antivirus,
+      PostureCheckRequirement.AdJoined,
+      PostureCheckRequirement.SecurityUpdates,
+    ]),
+  ],
+  macos: [
+    ...toSelectionOptions(versionValues.macos, (value) => value.toString()),
+    ...toRequirementSelectionOptions([
+      PostureCheckRequirement.DiskEncryption,
+      PostureCheckRequirement.DeviceIntegrity,
+    ]),
+  ],
+  linux: [
+    ...toSelectionOptions(versionValues.linux, (value) => `Kernel ${value}`),
+    ...toRequirementSelectionOptions([PostureCheckRequirement.DiskEncryption]),
+  ],
+  ios: toSelectionOptions(versionValues.ios, (value) => `iOS ${value}+`),
+  android: [
+    ...toSelectionOptions(versionValues.android, (value) => `Android ${value}+`),
+    ...toRequirementSelectionOptions([PostureCheckRequirement.DeviceIntegrity]),
+  ],
+  defguard: [
+    ...toSelectionOptions(versionValues.defguard, (value) => `Defguard ${value}+`),
+    ...toRequirementSelectionOptions([PostureCheckRequirement.PrereleaseAllowed]),
+  ],
+});
 
 export const mapPostureCheckFilterValueToRequestValue = (
   value: PostureCheckFilterValue,
-) => postureCheckFilterDefinitions[value].requestValue;
+) => (typeof value === 'number' ? value.toString() : value);
 
 export const isPostureCheckFilterValue = (
-  value: string,
-): value is PostureCheckFilterValue => value in postureCheckFilterDefinitions;
+  value: string | number,
+): value is PostureCheckFilterValue => typeof value === 'number' || value.length > 0;
 
-const mapVersionFilterValue = (value: string | undefined | null) =>
-  value && isPostureCheckFilterValue(value) ? value : undefined;
+const mapVersionFilterValue = (value: number | string | undefined | null) =>
+  value ?? undefined;
 
 const joinRequirementParts = (parts: Array<string | null | undefined | false>) => {
   const filteredParts = parts.filter((part): part is string => Boolean(part));
@@ -159,7 +144,9 @@ const joinRequirementParts = (parts: Array<string | null | undefined | false>) =
 };
 
 const joinFilters = (parts: Array<PostureCheckFilterValue | null | undefined | false>) =>
-  parts.filter((part): part is PostureCheckFilterValue => Boolean(part));
+  parts.filter(
+    (part): part is PostureCheckFilterValue => part !== false && isPresent(part),
+  );
 
 type PostureCheckRuleParts = {
   summaryParts: Array<string | null | undefined | false>;
@@ -182,7 +169,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Windows:
       return {
         summaryParts: [
-          rule.min_os_version,
+          rule.min_os_version?.toString(),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.antivirus_required && PostureCheckRequirement.Antivirus,
           rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
@@ -199,7 +186,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Macos:
       return {
         summaryParts: [
-          rule.min_os_version,
+          rule.min_os_version?.toString(),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
         ],
@@ -256,6 +243,7 @@ const getDevicePostureRule = (
 export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureCheckRow => ({
   id: posture.id,
   name: posture.name,
+  locations: posture.locations,
   windows: getOsRuleSummary(getDevicePostureRule(posture, PostureCheckOs.Windows)),
   windowsFilters: getOsRuleFilters(getDevicePostureRule(posture, PostureCheckOs.Windows)),
   macos: getOsRuleSummary(getDevicePostureRule(posture, PostureCheckOs.Macos)),
@@ -289,6 +277,44 @@ export const getPostureCheckOsLabel = (value: PostureCheckOsValue) => {
     default:
       return 'Android';
   }
+};
+
+export const getDeletePostureCheckModalData = (
+  postureCheck: Pick<PostureCheckRow, 'id' | 'name'>,
+  locationNames: string[],
+): OpenConfirmActionModal => {
+  const formattedLocationNames = formatPostureCheckLocationNames(locationNames);
+
+  return {
+    title: m.modal_delete_posture_check_title(),
+    contentMd: formattedLocationNames
+      ? m.modal_delete_posture_check_content({
+          locations: formattedLocationNames,
+        })
+      : m.modal_delete_posture_check_content_empty(),
+    actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
+    invalidateKeys: [['device-posture'], ['network']],
+    submitProps: {
+      text: m.controls_delete(),
+      variant: 'critical',
+    },
+  };
+};
+
+const formatPostureCheckLocationNames = (locationNames: string[]) => {
+  if (locationNames.length === 0) {
+    return null;
+  }
+
+  if (locationNames.length === 1) {
+    return locationNames[0];
+  }
+
+  if (locationNames.length === 2) {
+    return `${locationNames[0]} and ${locationNames[1]}`;
+  }
+
+  return `${locationNames.slice(0, -1).join(', ')}, and ${locationNames.at(-1)}`;
 };
 
 export const filterPostureChecks = (rows: PostureCheckRow[], search: string) => {

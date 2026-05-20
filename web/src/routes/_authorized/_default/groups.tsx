@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { GroupsPage } from '../../../pages/GroupsPage/GroupsPage';
 import {
   getGroupsInfoQueryOptions,
+  getLocationsQueryOptions,
   getUsersOverviewQueryOptions,
 } from '../../../shared/query';
 
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/_authorized/_default/groups')({
   loader: ({ context }) => {
     return Promise.all([
       context.queryClient.fetchQuery(getGroupsInfoQueryOptions),
+      context.queryClient.fetchQuery(getLocationsQueryOptions),
       context.queryClient.fetchQuery(getUsersOverviewQueryOptions),
     ]);
   },

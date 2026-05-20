@@ -26,12 +26,12 @@
             }
           }
         },
-        "Text",
+        "Int4",
         "Bool",
         "Bool",
         "Bool",
         "Bool",
-        "Text",
+        "Int4",
         "Bool"
       ]
     },

@@ -24,6 +24,7 @@ use defguard_proto::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
         ClientMfaStartResponse, MfaMethod,
     },
+    enterprise::posture::DevicePostureCheckRequest,
     proxy::{
         self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse,
         ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse,
@@ -43,7 +44,11 @@ use tokio::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider,
+        is_business_license_active,
+        posture::{PostureCheckError, PostureResult, validate_posture},
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayEvent, utils::parse_client_ip_agent},
 };
@@ -84,11 +89,11 @@ pub struct ClientMfaServer {
 }
 
 impl ClientMfaServer {
-    fn build_mfa_authorized_gateway_network_info(
+    fn build_authorized_gateway_network_info(
         network_device: WireguardNetworkDevice,
         preshared_key: String,
     ) -> DeviceNetworkInfo {
-        DeviceNetworkInfo::from_authorized_mfa_session(
+        DeviceNetworkInfo::from_authorized_vpn_session(
             network_device.wireguard_network_id,
             network_device.wireguard_ips,
             preshared_key,
@@ -160,7 +165,7 @@ impl ClientMfaServer {
     pub async fn start_client_mfa_login(
         &mut self,
         request: ClientMfaStartRequest,
-    ) -> Result<ClientMfaStartResponse, Status> {
+    ) -> Result<ClientMfaStartOutcome, Status> {
         debug!("Starting desktop client login: {request:?}");
         // fetch location
         let Ok(Some(location)) =
@@ -196,6 +201,39 @@ impl ClientMfaServer {
 
         // validate user is allowed to connect to a given location
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
+
+        // Evaluate postures if necessary.
+        let has_postures = location.has_postures(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to fetch postures for location {}({}): {err}",
+                location.name, location.id
+            );
+            Status::internal("unexpected error")
+        })?;
+        if has_postures {
+            let posture_result = validate_posture(
+                &self.pool,
+                location.id,
+                &request.pubkey,
+                &request.posture_data,
+            )
+            .await
+            .map_err(|err| match err {
+                PostureCheckError::NoActiveEnterpriseLicense => {
+                    Status::failed_precondition("enterprise license required for posture checks")
+                }
+                PostureCheckError::DbError(e) => {
+                    error!("DB error during posture validation: {e}");
+                    Status::internal("unexpected error")
+                }
+            })?;
+
+            // Posture check failed - return payload with reasons
+            if let PostureResult::Fail(reasons) = posture_result {
+                let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+                return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+            }
+        }
 
         user.verify_mfa_state(&self.pool).await.map_err(|err| {
             error!(
@@ -372,10 +410,10 @@ impl ClientMfaServer {
                 },
             );
 
-        Ok(ClientMfaStartResponse {
+        Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
             token,
             challenge: response_challenge,
-        })
+        }))
     }
 
     /// Checks if given user is allowed to access a location
@@ -685,15 +723,16 @@ impl ClientMfaServer {
         let key = WireguardNetwork::genkey();
 
         // create new VPN client session
-        let vpn_client_session = self.create_new_mfa_session(
-            &mut transaction,
-            &location,
-            &user,
-            &device,
-            method.into(),
-            key.public.clone(),
-        )
-        .await
+        let vpn_client_session = self
+            .create_new_session(
+                &mut transaction,
+                &location,
+                &user,
+                &device,
+                Some(method.into()),
+                key.public.clone(),
+            )
+            .await
             .map_err(|err| {
                 error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
                 Status::internal("unexpected error")
@@ -701,12 +740,12 @@ impl ClientMfaServer {
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
         let gateway_network_info =
-            Self::build_mfa_authorized_gateway_network_info(network_device, key.public.clone());
+            Self::build_authorized_gateway_network_info(network_device, key.public.clone());
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let event =
-            GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), gateway_network_info);
+            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
@@ -762,27 +801,182 @@ impl ClientMfaServer {
         Ok(response)
     }
 
+    /// Handles a `PostureCheck` request from the proxy bidi stream.
+    ///
+    /// Validates the posture data, and on success creates a new `VpnClientSession`
+    /// with a generated preshared key. Returns a typed outcome so the caller can
+    /// map it to the appropriate `CoreResponse` payload without needing to know about
+    /// session internals.
+    pub async fn handle_posture_check(
+        &mut self,
+        request: DevicePostureCheckRequest,
+    ) -> Result<PostureCheckOutcome, Status> {
+        debug!(
+            "Handling posture check for device pubkey={} location_id={}",
+            request.pubkey, request.location_id
+        );
+
+        // Look up location, device, and user.
+        let Ok(Some(location)) =
+            WireguardNetwork::find_by_id(&self.pool, request.location_id).await
+        else {
+            error!("Posture check: location {} not found", request.location_id);
+            return Err(Status::invalid_argument("location not found"));
+        };
+
+        if location.mfa_enabled() {
+            error!(
+                "Posture check: location {location} has MFA enabled, posture-only sessions are not allowed"
+            );
+            return Err(Status::invalid_argument("location has MFA enabled"));
+        }
+
+        let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
+            error!(
+                "Posture check: device with pubkey {} not found",
+                request.pubkey
+            );
+            return Err(Status::invalid_argument("device not found"));
+        };
+
+        if !location.has_postures(&self.pool).await.map_err(|err| {
+            error!("Posture check: failed to fetch postures for location {location}: {err}");
+            Status::internal("unexpected error")
+        })? {
+            error!(
+                "Posture check: location {location} has no postures defined but device {} requested posture check",
+                device.wireguard_pubkey
+            );
+            return Err(Status::invalid_argument("location does not use postures"));
+        }
+
+        let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
+            error!("Posture check: user {} not found", device.user_id);
+            return Err(Status::internal("user not found"));
+        };
+
+        // Ensure user is active
+        if !user.is_active {
+            error!("Posture check: user {} is inactive", device.user_id);
+            return Err(Status::invalid_argument("user is inactive"));
+        }
+
+        // Validate that the user is allowed to access this location.
+        let user_info = UserInfo::from_user(&self.pool, user.clone())
+            .await
+            .map_err(|_| {
+                error!(
+                    "Posture check: failed to fetch user info for {}",
+                    user.username
+                );
+                Status::internal("unexpected error")
+            })?;
+        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+
+        // Evaluate posture.
+        let posture_result = validate_posture(
+            &self.pool,
+            location.id,
+            &request.pubkey,
+            &request.device_posture_data,
+        )
+        .await
+        .map_err(|err| match err {
+            PostureCheckError::NoActiveEnterpriseLicense => {
+                Status::failed_precondition("enterprise license required for posture checks")
+            }
+            PostureCheckError::DbError(e) => {
+                error!("DB error during posture validation: {e}");
+                Status::internal("unexpected error")
+            }
+        })?;
+
+        // Posture check failed - return payload with reasons
+        if let PostureResult::Fail(reasons) = posture_result {
+            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+            return Ok(PostureCheckOutcome::Rejected { failed_checks });
+        }
+
+        // Posture check succeeded - create a vpn session
+        let key = WireguardNetwork::genkey();
+
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        let Ok(Some(network_device)) =
+            WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
+        else {
+            error!(
+                "Posture check: failed to fetch network config for device {device} and location {location}"
+            );
+            return Err(Status::internal("unexpected error"));
+        };
+
+        let gateway_network_info =
+            Self::build_authorized_gateway_network_info(network_device, key.public.clone());
+
+        self.create_new_session(
+            &mut transaction,
+            &location,
+            &user,
+            &device,
+            None, // posture-only session has no MFA method
+            key.public.clone(),
+        )
+        .await?;
+
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        let event =
+            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
+        self.wireguard_tx.send(event).map_err(|err| {
+            error!("Error sending WireGuard event: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        info!(
+            "Posture check passed for device {} (user {}) in location {}. Session created.",
+            device, user.username, location
+        );
+
+        Ok(PostureCheckOutcome::Approved {
+            preshared_key: key.public,
+        })
+    }
+
     /// Helper used to close all existing active sessions while creating a new MFA session
     /// and send relevant gateway updates
-    async fn create_new_mfa_session(
+    async fn create_new_session(
         &self,
         conn: &mut PgConnection,
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
-        mfa_method: VpnClientMfaMethod,
+        mfa_method: Option<VpnClientMfaMethod>,
         preshared_key: String,
     ) -> Result<VpnClientSession<Id>, Status> {
         debug!(
-            "Creating new VPN session for device {device} of user {user} in location {location} after successful MFA authorization."
+            "Creating new VPN session for device {device} of user {user} in location {location}."
         );
 
         // find all active sessions for a given device and location
-        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(&mut *conn, location.id, device.id).await
-            .map_err(|err| {
-                error!("Failed to fetch active VPN sessions for device {device} in location {location}: {err}");
-                Status::internal("unexpected error")
-            })?;
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &mut *conn,
+            location.id,
+            device.id,
+        )
+        .await
+        .map_err(|err| {
+            error!(
+                "Failed to fetch active VPN sessions for device {device} in location {location}: {err}"
+            );
+            Status::internal("unexpected error")
+        })?;
         if !active_sessions.is_empty() {
             info!(
                 "Found {} active sessions for device {device} in location {location}. Disconnecting them before creating a new MFA session",
@@ -798,8 +992,7 @@ impl ClientMfaServer {
         }
 
         // create new MFA session
-        let mut session =
-            VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method));
+        let mut session = VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
         session.preshared_key = Some(preshared_key);
         session.save(conn).await.map_err(|err| {
             error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
@@ -818,6 +1011,11 @@ impl ClientMfaServer {
     ) -> Result<(), Status> {
         let is_connected = session.state == VpnClientSessionState::Connected;
         let is_mfa_session = session.mfa_method.is_some();
+        let requires_gateway_update = is_mfa_session
+            || location.has_postures(&mut *conn).await.map_err(|err| {
+                error!("Failed to fetch postures for location {location}: {err}");
+                Status::internal("unexpected error")
+            })?;
 
         // update session state in DB
         let disconnect_timestamp = Utc::now().naive_utc();
@@ -828,10 +1026,10 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // gateway update is only needed to remove peer for MFA sessions
+        // gateway update is only needed to remove peers that were authorized at runtime - MFA and posture-check sessions
         // this is needed to remove peers for both Connected and New sessions
-        if is_mfa_session {
-            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        if requires_gateway_update {
+            let gateway_event = GatewayEvent::VpnSessionDeauthorized(location.id, device.clone());
             self.wireguard_tx.send(gateway_event).map_err(|err| {
                 error!("Error sending WireGuard event: {err}");
                 Status::internal("unexpected error")
@@ -864,6 +1062,23 @@ impl ClientMfaServer {
     }
 }
 
+/// Result of a [`ClientMfaServer::handle_posture_check`] call.
+pub enum PostureCheckOutcome {
+    /// Posture evaluation passed; the contained key must be returned to the client.
+    Approved { preshared_key: String },
+    /// Posture evaluation failed; the contained list describes which checks failed.
+    Rejected { failed_checks: Vec<String> },
+}
+
+/// Result of a [`ClientMfaServer::start_client_mfa_login`] call.
+/// Adds posture check outcome info.
+pub enum ClientMfaStartOutcome {
+    /// Posture evaluation succeeded or was unnecessary.
+    Approved(ClientMfaStartResponse),
+    /// Posture evaluation failed; the contained list describes which checks failed.
+    Rejected { failed_checks: Vec<String> },
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -883,21 +1098,208 @@ mod tests {
         },
         setup_pool,
     };
+    use defguard_proto::enterprise::posture::{
+        BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
+    };
     use ipnetwork::IpNetwork;
     use sqlx::{
         PgPool,
         postgres::{PgConnectOptions, PgPoolOptions},
     };
     use tokio::sync::{broadcast, mpsc, oneshot};
+    use tonic::Code;
 
     use super::{ClientLoginSession, ClientMfaServer};
     use crate::{
+        enterprise::{
+            db::models::device_posture::{
+                DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+            },
+            license::{License, LicenseTier, SupportType, set_cached_license},
+            limits::{Counts, set_counts},
+        },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::GatewayEvent,
+        grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
     const NEW_MFA_PRESHARED_KEY: &str = "new-psk";
+
+    #[sqlx::test]
+    async fn test_posture_check_success_emits_vpn_session_authorized_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+
+        let outcome = server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                device_posture_data: Some(passing_linux_posture_data()),
+            })
+            .await
+            .expect("posture check should pass");
+        let preshared_key = match outcome {
+            super::PostureCheckOutcome::Approved { preshared_key } => preshared_key,
+            super::PostureCheckOutcome::Rejected { failed_checks } => {
+                panic!("posture check unexpectedly failed: {failed_checks:?}")
+            }
+        };
+
+        match gateway_rx
+            .try_recv()
+            .expect("expected VPN authorization gateway event")
+        {
+            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(authorized_device.id, device.id);
+                assert_eq!(network_info.network_id, location.id);
+                assert_eq!(
+                    network_info.preshared_key.as_deref(),
+                    Some(preshared_key.as_str())
+                );
+                assert!(network_info.is_authorized);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            location.id,
+            device.id,
+        )
+        .await
+        .expect("failed to fetch active sessions");
+        assert_eq!(active_sessions.len(), 1);
+        assert_eq!(
+            active_sessions[0].preshared_key.as_deref(),
+            Some(preshared_key.as_str())
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let mut old_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        old_session.preshared_key = Some("old-posture-psk".to_owned());
+        old_session.state = VpnClientSessionState::Connected;
+        let old_session = old_session
+            .save(&pool)
+            .await
+            .expect("failed to create previous posture session");
+        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+
+        server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                device_posture_data: Some(passing_linux_posture_data()),
+            })
+            .await
+            .expect("replacement posture check should pass");
+
+        match gateway_rx
+            .try_recv()
+            .expect("expected VPN deauthorization gateway event for replaced posture session")
+        {
+            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(disconnected_device.id, device.id);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+        match gateway_rx
+            .try_recv()
+            .expect("expected VPN authorization gateway event for replacement posture session")
+        {
+            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(authorized_device.id, device.id);
+                assert!(network_info.preshared_key.is_some());
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
+            .await
+            .expect("failed to reload old posture session")
+            .expect("expected old posture session");
+        assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
+    }
+
+    #[sqlx::test]
+    async fn test_posture_check_rejects_mfa_enabled_location(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_mfa_location(&pool).await;
+        let (mut server, _, _) = make_server(pool);
+
+        let err = match server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: "irrelevant".to_owned(),
+                device_posture_data: None,
+            })
+            .await
+        {
+            Ok(_) => panic!("MFA-enabled location should reject posture-only flow"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.code(), Code::InvalidArgument);
+    }
+
+    #[sqlx::test]
+    async fn test_posture_check_rejects_location_without_postures(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_non_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let (mut server, _, _) = make_server(pool);
+
+        let err = match server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey,
+                device_posture_data: None,
+            })
+            .await
+        {
+            Ok(_) => panic!("location without postures should reject posture-only flow"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.code(), Code::InvalidArgument);
+    }
 
     #[sqlx::test]
     async fn test_replacing_connected_mfa_session_emits_mfa_disconnect_event(
@@ -924,13 +1326,13 @@ mod tests {
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace connected MFA session");
@@ -939,7 +1341,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced connected session");
         match gateway_event {
-            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -999,13 +1401,13 @@ mod tests {
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace new MFA session");
@@ -1014,7 +1416,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced new session");
         match gateway_event {
-            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1058,13 +1460,13 @@ mod tests {
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace connected non-MFA session");
@@ -1198,13 +1600,13 @@ mod tests {
             .expect("failed to acquire database connection");
 
         let new_session = server
-            .create_new_mfa_session(
+            .create_new_session(
                 &mut conn,
                 &location,
                 &user,
                 &device,
-                VpnClientMfaMethod::Totp,
-                NEW_MFA_PRESHARED_KEY.to_owned(),
+                Some(VpnClientMfaMethod::Totp),
+                NEW_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("failed to create replacement MFA session");
@@ -1231,7 +1633,7 @@ mod tests {
         );
 
         match gateway_rx.try_recv() {
-            Ok(GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device)) => {
+            Ok(GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device)) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1260,6 +1662,26 @@ mod tests {
         .expect("failed to create location")
     }
 
+    async fn create_non_mfa_location(pool: &PgPool) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            "client-posture-location".to_owned(),
+            51820,
+            "vpn.example.com".to_owned(),
+            None,
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 20, 0, 1)), 24).unwrap()])
+        .expect("failed to set location address")
+        .save(pool)
+        .await
+        .expect("failed to create location")
+    }
+
     async fn attach_device_to_location(pool: &PgPool, location_id: Id, device_id: Id) {
         WireguardNetworkDevice::new(
             location_id,
@@ -1269,5 +1691,72 @@ mod tests {
         .insert(pool)
         .await
         .expect("failed to attach device to location");
+    }
+
+    fn set_enterprise_license() {
+        let license = License::new(
+            "test".to_owned(),
+            true,
+            Some(Utc::now() + chrono::TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 100,
+                devices: 100,
+                locations: 100,
+                network_devices: Some(100),
+            }),
+            None,
+            LicenseTier::Enterprise,
+            SupportType::Basic,
+        );
+        set_cached_license(Some(license));
+        set_counts(Counts::new(1, 1, 1, 1));
+    }
+
+    fn passing_linux_posture_data() -> DevicePostureData {
+        DevicePostureData {
+            defguard_client_version: "1.6.0".to_owned(),
+            os_type: "linux".to_owned(),
+            disk_encryption: Some(BoolCheck {
+                result: Some(bool_check::Result::Value(true)),
+            }),
+            ..Default::default()
+        }
+    }
+
+    async fn save_linux_posture_policy(pool: &PgPool, location_id: Id) {
+        let policy = DevicePosture {
+            id: defguard_common::db::NoId,
+            name: "client-mfa-test-posture".to_owned(),
+            description: None,
+            min_client_version: None,
+            allow_prerelease_client: true,
+        }
+        .save(pool)
+        .await
+        .expect("failed to save posture policy");
+
+        DevicePostureOsRule {
+            id: defguard_common::db::NoId,
+            posture_id: policy.id,
+            os_type: OsType::Linux,
+            min_os_version: None,
+            disk_encryption_required: Some(true),
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_current: None,
+            min_kernel_version: None,
+            device_integrity_required: None,
+        }
+        .save(pool)
+        .await
+        .expect("failed to save posture OS rule");
+
+        DevicePostureLocation::set_for_location(
+            &mut pool.acquire().await.expect("failed to acquire connection"),
+            location_id,
+            &[policy.id],
+        )
+        .await
+        .expect("failed to assign posture policy to location");
     }
 }

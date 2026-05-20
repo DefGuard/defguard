@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseVersion, resolveVersion } from '../src/shared/utils/resolveVersion';
 import { parseVideoTutorials } from '../src/shared/video-tutorials/data';
 import { matchesVideoRouteContext } from '../src/shared/video-tutorials/resolved';
 import {
@@ -6,7 +7,6 @@ import {
   resolveVideoGuidePlacement,
 } from '../src/shared/video-tutorials/resolver';
 import { canonicalizeRouteKey } from '../src/shared/video-tutorials/route-key';
-import { parseVersion, resolveVersion } from '../src/shared/utils/resolveVersion';
 import type { VideoTutorialsMappings } from '../src/shared/video-tutorials/types';
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,9 @@ describe('canonicalizeRouteKey', () => {
   });
 
   it('should preserve dynamic route templates', () => {
-    expect(canonicalizeRouteKey('/vpn-overview/$locationId')).toBe('/vpn-overview/$locationId');
+    expect(canonicalizeRouteKey('/vpn-overview/$locationId')).toBe(
+      '/vpn-overview/$locationId',
+    );
   });
 
   it('should not strip the root slash when input is only a slash', () => {
@@ -307,7 +309,12 @@ describe('matchesVideoRouteContext', () => {
 
 describe('resolveVideoGuidePlacement', () => {
   it('should return the step-specific placement from the newest eligible version', () => {
-    const result = resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'migrationWizard', 'ca');
+    const result = resolveVideoGuidePlacement(
+      makeMappings(),
+      '2.3.0',
+      'migrationWizard',
+      'ca',
+    );
 
     expect(result?.video?.title).toBe('Certificate authority guide');
   });
@@ -361,7 +368,9 @@ describe('resolveVideoGuidePlacement', () => {
       },
     };
 
-    expect(resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca')).toBeNull();
+    expect(
+      resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca'),
+    ).toBeNull();
   });
 
   it('should return null when neither default nor step-specific placement exists', () => {
@@ -376,7 +385,9 @@ describe('resolveVideoGuidePlacement', () => {
       },
     };
 
-    expect(resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca')).toBeNull();
+    expect(
+      resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca'),
+    ).toBeNull();
   });
 
   it('should return null for an unsupported placement key', () => {
@@ -539,18 +550,18 @@ describe('parseVideoTutorials', () => {
     expect(result['2.2'].sections).toHaveLength(1);
     expect(result['2.2'].sections[0].name).toBe('Identity');
     expect(result['2.2'].sections[0].videos[0].youtubeVideoId).toBe('abcDEFghiJK');
-    expect(result['2.2'].placements?.migrationWizard?.default?.video?.youtubeVideoId).toBe(
-      'xyz987GHI12',
-    );
+    expect(
+      result['2.2'].placements?.migrationWizard?.default?.video?.youtubeVideoId,
+    ).toBe('xyz987GHI12');
     expect(result['2.2'].placements?.migrationWizard?.default?.docs?.[0]?.docsTitle).toBe(
       'Defguard Configuration Guide',
     );
-    expect(result['2.2'].placements?.migrationWizard?.steps?.general?.video?.youtubeVideoId).toBe(
-      'genGuide220',
-    );
-    expect(result['2.2'].placements?.initialSetupWizard?.default?.video?.youtubeVideoId).toBe(
-      'setGuide220',
-    );
+    expect(
+      result['2.2'].placements?.migrationWizard?.steps?.general?.video?.youtubeVideoId,
+    ).toBe('genGuide220');
+    expect(
+      result['2.2'].placements?.initialSetupWizard?.default?.video?.youtubeVideoId,
+    ).toBe('setGuide220');
   });
 
   it('should accept missing docsUrl', () => {
@@ -833,7 +844,7 @@ describe('parseVideoTutorials', () => {
     };
     const result = parseVideoTutorials(raw);
     expect(
-      (result['2.2'].sections[0].videos[0] as Record<string, unknown>)['unknownField'],
+      (result['2.2'].sections[0].videos[0] as Record<string, unknown>).unknownField,
     ).toBeUndefined();
   });
 
@@ -864,7 +875,7 @@ describe('parseVideoTutorials', () => {
 
     expect(result['2.2'].sections[0].videos[0].contextAppRoutes).toEqual(['/groups']);
     expect(
-      (result['2.2'].sections[0].videos[0] as Record<string, unknown>)['unknownField'],
+      (result['2.2'].sections[0].videos[0] as Record<string, unknown>).unknownField,
     ).toBeUndefined();
   });
 
@@ -884,7 +895,7 @@ describe('parseVideoTutorials', () => {
     };
     const result = parseVideoTutorials(raw);
     expect(
-      (result['2.2'].sections[0] as Record<string, unknown>)['extraSectionField'],
+      (result['2.2'].sections[0] as Record<string, unknown>).extraSectionField,
     ).toBeUndefined();
   });
 
@@ -987,19 +998,26 @@ describe('parseVideoTutorials', () => {
 
     const result = parseVideoTutorials(raw);
 
-    expect((result['2.2'] as Record<string, unknown>)['extraVersionField']).toBeUndefined();
+    expect((result['2.2'] as Record<string, unknown>).extraVersionField).toBeUndefined();
     expect(
-      (result['2.2'].placements?.migrationWizard as Record<string, unknown>)['extraPlacementField'],
+      (result['2.2'].placements?.migrationWizard as Record<string, unknown>)
+        .extraPlacementField,
     ).toBeUndefined();
     expect(
-      (result['2.2'].placements?.migrationWizard?.default?.video as Record<string, unknown>)[
-        'ignoredVideoField'
-      ],
+      (
+        result['2.2'].placements?.migrationWizard?.default?.video as Record<
+          string,
+          unknown
+        >
+      ).ignoredVideoField,
     ).toBeUndefined();
     expect(
-      (result['2.2'].placements?.migrationWizard?.default?.docs?.[0] as Record<string, unknown>)[
-        'ignoredDocsField'
-      ],
+      (
+        result['2.2'].placements?.migrationWizard?.default?.docs?.[0] as Record<
+          string,
+          unknown
+        >
+      ).ignoredDocsField,
     ).toBeUndefined();
   });
 

@@ -35,6 +35,7 @@ import { Route as WizardMigrationLocationsRouteImport } from './routes/_wizard/m
 import { Route as AuthorizedWizardSetupEdgeRouteImport } from './routes/_authorized/_wizard/setup-edge'
 import { Route as AuthorizedWizardSettingsEdgeCertificateRouteImport } from './routes/_authorized/_wizard/settings-edge-certificate'
 import { Route as AuthorizedWizardSettingsCoreCertificateRouteImport } from './routes/_authorized/_wizard/settings-core-certificate'
+import { Route as AuthorizedWizardAddPostureCheckRouteImport } from './routes/_authorized/_wizard/add-posture-check'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
@@ -73,6 +74,7 @@ import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_auth
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 import { Route as AuthorizedDefaultGatewayGatewayIdEditRouteImport } from './routes/_authorized/_default/gateway/$gatewayId/edit'
 import { Route as AuthorizedDefaultEdgeEdgeIdEditRouteImport } from './routes/_authorized/_default/edge/$edgeId/edit'
+import { Route as AuthorizedDefaultAclPostureChecksPostureCheckIdEditRouteImport } from './routes/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
 
 const SnackbarRoute = SnackbarRouteImport.update({
   id: '/snackbar',
@@ -204,6 +206,12 @@ const AuthorizedWizardSettingsCoreCertificateRoute =
   AuthorizedWizardSettingsCoreCertificateRouteImport.update({
     id: '/_wizard/settings-core-certificate',
     path: '/settings-core-certificate',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
+const AuthorizedWizardAddPostureCheckRoute =
+  AuthorizedWizardAddPostureCheckRouteImport.update({
+    id: '/_wizard/add-posture-check',
+    path: '/add-posture-check',
     getParentRoute: () => AuthorizedRoute,
   } as any)
 const AuthorizedWizardAddLocationRoute =
@@ -430,6 +438,12 @@ const AuthorizedDefaultEdgeEdgeIdEditRoute =
     path: '/edge/$edgeId/edit',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute =
+  AuthorizedDefaultAclPostureChecksPostureCheckIdEditRouteImport.update({
+    id: '/$postureCheckId/edit',
+    path: '/$postureCheckId/edit',
+    getParentRoute: () => AuthorizedDefaultAclPostureChecksRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -458,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/add-posture-check': typeof AuthorizedWizardAddPostureCheckRoute
   '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
@@ -475,7 +490,7 @@ export interface FileRoutesByFullPath {
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
-  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
+  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -494,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -521,6 +537,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/add-posture-check': typeof AuthorizedWizardAddPostureCheckRoute
   '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
@@ -538,7 +555,7 @@ export interface FileRoutesByTo {
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
-  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
+  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -557,6 +574,7 @@ export interface FileRoutesByTo {
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -588,6 +606,7 @@ export interface FileRoutesById {
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/_authorized/_wizard/add-posture-check': typeof AuthorizedWizardAddPostureCheckRoute
   '/_authorized/_wizard/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/_authorized/_wizard/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/_authorized/_wizard/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
@@ -605,7 +624,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/_authorized/_default/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/_authorized/_default/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
-  '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
+  '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -624,6 +643,7 @@ export interface FileRoutesById {
   '/_authorized/_default/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/_authorized/_default/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/_authorized/_default/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -654,6 +674,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/add-posture-check'
     | '/settings-core-certificate'
     | '/settings-edge-certificate'
     | '/setup-edge'
@@ -690,6 +711,7 @@ export interface FileRouteTypes {
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/acl/posture-checks/$postureCheckId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -717,6 +739,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/add-posture-check'
     | '/settings-core-certificate'
     | '/settings-edge-certificate'
     | '/setup-edge'
@@ -753,6 +776,7 @@ export interface FileRouteTypes {
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/acl/posture-checks/$postureCheckId/edit'
   id:
     | '__root__'
     | '/'
@@ -783,6 +807,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
+    | '/_authorized/_wizard/add-posture-check'
     | '/_authorized/_wizard/settings-core-certificate'
     | '/_authorized/_wizard/settings-edge-certificate'
     | '/_authorized/_wizard/setup-edge'
@@ -819,6 +844,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/edge/$edgeId/edit'
     | '/_authorized/_default/gateway/$gatewayId/edit'
     | '/_authorized/_default/locations/$locationId/edit'
+    | '/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1018,6 +1044,13 @@ declare module '@tanstack/react-router' {
       path: '/settings-core-certificate'
       fullPath: '/settings-core-certificate'
       preLoaderRoute: typeof AuthorizedWizardSettingsCoreCertificateRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
+    '/_authorized/_wizard/add-posture-check': {
+      id: '/_authorized/_wizard/add-posture-check'
+      path: '/add-posture-check'
+      fullPath: '/add-posture-check'
+      preLoaderRoute: typeof AuthorizedWizardAddPostureCheckRouteImport
       parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/add-location': {
@@ -1286,8 +1319,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/posture-checks/$postureCheckId/edit': {
+      id: '/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
+      path: '/$postureCheckId/edit'
+      fullPath: '/acl/posture-checks/$postureCheckId/edit'
+      preLoaderRoute: typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRouteImport
+      parentRoute: typeof AuthorizedDefaultAclPostureChecksRoute
+    }
   }
 }
+
+interface AuthorizedDefaultAclPostureChecksRouteChildren {
+  AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute: typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
+}
+
+const AuthorizedDefaultAclPostureChecksRouteChildren: AuthorizedDefaultAclPostureChecksRouteChildren =
+  {
+    AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute:
+      AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute,
+  }
+
+const AuthorizedDefaultAclPostureChecksRouteWithChildren =
+  AuthorizedDefaultAclPostureChecksRoute._addFileChildren(
+    AuthorizedDefaultAclPostureChecksRouteChildren,
+  )
 
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
@@ -1307,7 +1362,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
   AuthorizedDefaultAclEditDestinationRoute: typeof AuthorizedDefaultAclEditDestinationRoute
   AuthorizedDefaultAclEditRuleRoute: typeof AuthorizedDefaultAclEditRuleRoute
-  AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRoute
+  AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
@@ -1349,7 +1404,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultAclEditDestinationRoute,
   AuthorizedDefaultAclEditRuleRoute: AuthorizedDefaultAclEditRuleRoute,
   AuthorizedDefaultAclPostureChecksRoute:
-    AuthorizedDefaultAclPostureChecksRoute,
+    AuthorizedDefaultAclPostureChecksRouteWithChildren,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
@@ -1385,6 +1440,7 @@ interface AuthorizedRouteChildren {
   AuthorizedPlaygroundRoute: typeof AuthorizedPlaygroundRoute
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
+  AuthorizedWizardAddPostureCheckRoute: typeof AuthorizedWizardAddPostureCheckRoute
   AuthorizedWizardSettingsCoreCertificateRoute: typeof AuthorizedWizardSettingsCoreCertificateRoute
   AuthorizedWizardSettingsEdgeCertificateRoute: typeof AuthorizedWizardSettingsEdgeCertificateRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
@@ -1396,6 +1452,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddExternalOpenidRoute:
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
+  AuthorizedWizardAddPostureCheckRoute: AuthorizedWizardAddPostureCheckRoute,
   AuthorizedWizardSettingsCoreCertificateRoute:
     AuthorizedWizardSettingsCoreCertificateRoute,
   AuthorizedWizardSettingsEdgeCertificateRoute:

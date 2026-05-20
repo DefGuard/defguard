@@ -8,6 +8,7 @@ pub mod handlers;
 pub mod ldap;
 pub mod license;
 pub mod limits;
+pub mod posture;
 pub mod snat;
 mod utils;
 
