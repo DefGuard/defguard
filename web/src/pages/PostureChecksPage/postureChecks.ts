@@ -173,14 +173,16 @@ const getOsRuleParts = (
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.antivirus_required && PostureCheckRequirement.Antivirus,
           rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
-          rule.windows_security_update_current && PostureCheckRequirement.SecurityUpdates,
+          rule.windows_security_update_max_age !== null &&
+            PostureCheckRequirement.SecurityUpdates,
         ],
         filterParts: [
           mapVersionFilterValue(rule.min_os_version),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.antivirus_required && PostureCheckRequirement.Antivirus,
           rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
-          rule.windows_security_update_current && PostureCheckRequirement.SecurityUpdates,
+          rule.windows_security_update_max_age !== null &&
+            PostureCheckRequirement.SecurityUpdates,
         ],
       };
     case PostureCheckOs.Macos:

@@ -77,6 +77,14 @@
     flex-direction: column;
     gap: var(--spacing-md);
   }
+
+  .interactive-block .interactive-content {
+    gap: var(--spacing-xs);
+
+    p {
+      margin: 0;
+    }
+  }
 }
 
 .posture-check-defguard {
@@ -89,29 +97,11 @@
     color: var(--fg-muted);
   }
 
-  .checkbox > .track {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-md);
-  }
-
-  .checkbox .custom-label {
-    min-width: 0;
-  }
-
-  .checkbox-copy {
-    display: flex;
-    flex-direction: column;
+  .interactive-block .interactive-content {
     gap: var(--spacing-xs);
 
-    .title {
-      font: var(--t-body-sm-500);
-      color: var(--fg-default);
-    }
-
-    .description {
-      font: var(--t-body-sm-400);
-      color: var(--fg-neutral);
+    p {
+      margin: 0;
     }
   }
 }

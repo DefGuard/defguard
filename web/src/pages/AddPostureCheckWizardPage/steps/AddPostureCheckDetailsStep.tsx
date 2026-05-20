@@ -58,7 +58,11 @@ export const AddPostureCheckDetailsStep = () => {
       <Controls>
         <Button text={m.controls_back()} variant="outlined" onClick={back} />
         <div className="right">
-          <Button text={m.controls_continue()} onClick={next} />
+          <Button
+            text={m.controls_continue()}
+            onClick={next}
+            disabled={name.trim().length === 0}
+          />
         </div>
       </Controls>
     </WizardCard>

@@ -5,9 +5,7 @@ import {
   type PostureCheckEditorValues,
 } from '../../../shared/components/postureChecksEditor/PostureCheckEditorSections';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
 import type { PostureCheckVersionValues } from '../../PostureChecksPage/types';
 import { useAddPostureCheckWizardStore } from '../useAddPostureCheckWizardStore';
 
@@ -52,9 +50,6 @@ export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
   return (
     <WizardCard className="add-posture-check-client-version-step">
       <div className="client-version-track">
-        <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-          {m.posture_checks_wizard_client_version_note()}
-        </AppText>
         <PostureCheckDefguardSection
           values={values}
           versionValues={versionValues}

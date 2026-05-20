@@ -433,7 +433,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
-                windows_security_update_current: None,
+                windows_security_update_max_age: None,
             },
             ApiOsRule::Android {
                 min_os_version: Some(android_version),
@@ -459,7 +459,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
-                windows_security_update_current: None,
+                windows_security_update_max_age: None,
             },
             ApiOsRule::Android {
                 min_os_version: Some(android_version),
@@ -514,7 +514,7 @@ async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: 
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(false),
                 ad_domain_joined_required: None,
-                windows_security_update_current: Some(true),
+                windows_security_update_max_age: Some(30),
             },
             ApiOsRule::Macos {
                 min_os_version: Some(macos_version),
@@ -578,7 +578,7 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
                 disk_encryption_required: Some(true),
                 antivirus_required: None,
                 ad_domain_joined_required: None,
-                windows_security_update_current: None,
+                windows_security_update_max_age: None,
             },
             ApiOsRule::Macos {
                 min_os_version: None,
@@ -647,7 +647,7 @@ async fn test_device_posture_os_rules_duplicate_copies(
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
-                windows_security_update_current: None,
+                windows_security_update_max_age: None,
             },
             ApiOsRule::Android {
                 min_os_version: None,
@@ -709,7 +709,7 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
             disk_encryption_required: None,
             antivirus_required: None,
             ad_domain_joined_required: None,
-            windows_security_update_current: None,
+            windows_security_update_max_age: None,
         }],
     };
     let response = client
@@ -732,14 +732,14 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
                 disk_encryption_required: None,
                 antivirus_required: None,
                 ad_domain_joined_required: None,
-                windows_security_update_current: None,
+                windows_security_update_max_age: None,
             },
             ApiOsRule::Windows {
                 min_os_version: None,
                 disk_encryption_required: Some(true),
                 antivirus_required: None,
                 ad_domain_joined_required: None,
-                windows_security_update_current: None,
+                windows_security_update_max_age: None,
             },
         ],
     };

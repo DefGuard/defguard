@@ -10,8 +10,11 @@ vi.mock('../src/paraglide/messages', () => ({
       `iOS ${version}+`,
     posture_checks_wizard_summary_android_version: ({ version }: { version: number }) =>
       `Android ${version}+`,
-    posture_checks_wizard_operating_systems_windows_security_updates: () =>
-      'Check security updates',
+    posture_checks_wizard_operating_systems_windows_security_updates_within_days: ({
+      days,
+    }: {
+      days: number;
+    }) => `Within ${days} days`,
     posture_checks_wizard_operating_systems_condition_active_directory: () =>
       'Connected to Active Directory',
     posture_checks_wizard_operating_systems_condition_antivirus: () =>
@@ -137,7 +140,7 @@ describe('edit location posture-checks section state', () => {
           disk_encryption_required: true,
           antivirus_required: true,
           ad_domain_joined_required: true,
-          windows_security_update_current: true,
+          windows_security_update_max_age: 30,
         },
         {
           os_type: 'macos',
@@ -153,7 +156,7 @@ describe('edit location posture-checks section state', () => {
         label: 'Windows',
         lines: [
           'Windows 11+',
-          'Check security updates',
+          'Within 30 days',
           'Connected to Active Directory',
           'Antivirus installed',
           'Disk encryption enabled',
@@ -192,7 +195,7 @@ describe('edit location posture-checks section state', () => {
             disk_encryption_required: true,
             antivirus_required: false,
             ad_domain_joined_required: false,
-            windows_security_update_current: false,
+            windows_security_update_max_age: null,
           },
         ],
       } satisfies ApiDevicePosture,

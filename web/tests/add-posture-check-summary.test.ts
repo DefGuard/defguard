@@ -10,7 +10,7 @@ describe('add posture check summary helpers', () => {
     expect(
       buildOperatingSystemSummarySection(PostureCheckOs.Windows, {
         conditions: ['active-directory', 'antivirus'],
-        securityUpdates: true,
+        securityUpdateMaxAge: null,
         version: 10,
       }),
     ).toEqual({

@@ -210,7 +210,7 @@ pub(crate) async fn enable_linux_posture_for_location(pool: &PgPool, location_id
         disk_encryption_required: Some(true),
         antivirus_required: None,
         ad_domain_joined_required: None,
-        windows_security_update_current: None,
+        windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
     }

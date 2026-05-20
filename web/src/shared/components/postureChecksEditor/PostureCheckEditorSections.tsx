@@ -13,6 +13,7 @@ import { m } from '../../../paraglide/messages';
 import { Checkbox } from '../../defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { Input } from '../../defguard-ui/components/Input/Input';
+import { InteractiveBlock } from '../../defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
 import { Textarea } from '../../defguard-ui/components/Textarea/Textarea';
@@ -21,7 +22,7 @@ import { SystemSelector } from '../SystemSelector/SystemSelector';
 
 export type PostureCheckEditorOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
-  securityUpdates: boolean;
+  securityUpdateMaxAge: number | null;
   version: number | null;
 };
 
@@ -179,6 +180,60 @@ export const PostureCheckOperatingSystemsSection = ({
         const conditions = osConditions[operatingSystem];
         const showWindowsSecurityUpdate = operatingSystem === PostureCheckOs.Windows;
 
+        const securityUpdateOptions: SelectOption<number | null>[] = [
+          {
+            key: 'none',
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_no_requirement(),
+            value: null,
+          },
+          {
+            key: 30,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 30 },
+              ),
+            value: 30,
+          },
+          {
+            key: 60,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 60 },
+              ),
+            value: 60,
+          },
+          {
+            key: 90,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 90 },
+              ),
+            value: 90,
+          },
+          {
+            key: 180,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 180 },
+              ),
+            value: 180,
+          },
+        ];
+
+        const handleSecurityUpdateMaxAgeChange = (value: number | null) => {
+          updateValues((current) => ({
+            ...current,
+            operatingSystemState: {
+              ...current.operatingSystemState,
+              [operatingSystem]: {
+                ...current.operatingSystemState[operatingSystem],
+                securityUpdateMaxAge: value,
+              },
+            },
+          }));
+        };
+
         return (
           <div className="system-item" key={operatingSystem}>
             {index > 0 && <Divider />}
@@ -217,48 +272,20 @@ export const PostureCheckOperatingSystemsSection = ({
                   {showWindowsSecurityUpdate && (
                     <div className="select-slot">
                       <Select
-                        options={[
-                          {
-                            key: 'outdated',
-                            label: 'No requirement',
-                            value: false,
-                          },
-                          {
-                            key: 'current',
-                            label: 'Updated within 1 month',
-                            value: true,
-                          },
-                        ]}
+                        options={securityUpdateOptions}
                         value={
-                          details.securityUpdates
-                            ? {
-                                key: 'current',
-                                label: 'Updated within 1 month',
-                                value: true,
-                              }
-                            : {
-                                key: 'outdated',
-                                label: 'No requirement',
-                                value: false,
-                              }
+                          securityUpdateOptions.find(
+                            (o) => o.value === details.securityUpdateMaxAge,
+                          ) ?? securityUpdateOptions[0]
                         }
-                        onChange={(option) => {
-                          updateValues((current) => ({
-                            ...current,
-                            operatingSystemState: {
-                              ...current.operatingSystemState,
-                              [operatingSystem]: {
-                                ...current.operatingSystemState[operatingSystem],
-                                securityUpdates: option.value,
-                              },
-                            },
-                          }));
-                        }}
+                        onChange={(option) =>
+                          handleSecurityUpdateMaxAgeChange(option.value)
+                        }
                       />
                     </div>
                   )}
                 </div>
-                {(showWindowsSecurityUpdate || conditions.length > 0) && (
+                {conditions.length > 0 && (
                   <>
                     <Divider />
                     <div className="conditions">
@@ -363,24 +390,18 @@ export const PostureCheckDefguardSection = ({
           }));
         }}
       />
-      <Checkbox
-        active={values.allowPrereleaseClient}
+      <InteractiveBlock
+        variant="checkbox"
+        title={m.posture_checks_wizard_client_version_prerelease_title()}
+        content={m.posture_checks_wizard_client_version_prerelease_description()}
+        value={values.allowPrereleaseClient}
         onClick={() => {
           updateValues((current) => ({
             ...current,
             allowPrereleaseClient: !current.allowPrereleaseClient,
           }));
         }}
-      >
-        <div className="checkbox-copy">
-          <p className="title">
-            {m.posture_checks_wizard_client_version_prerelease_title()}
-          </p>
-          <p className="description">
-            {m.posture_checks_wizard_client_version_prerelease_description()}
-          </p>
-        </div>
-      </Checkbox>
+      />
     </div>
   );
 };

@@ -52,8 +52,12 @@ export const getPostureCheckAssignmentSummarySections = (
           rule.min_os_version !== null
             ? getOsLine(rule.os_type, rule.min_os_version)
             : null,
-          rule.windows_security_update_current
-            ? String(m.posture_checks_wizard_operating_systems_windows_security_updates())
+          rule.windows_security_update_max_age !== null
+            ? String(
+                m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                  { days: rule.windows_security_update_max_age },
+                ),
+              )
             : null,
           rule.ad_domain_joined_required
             ? String(

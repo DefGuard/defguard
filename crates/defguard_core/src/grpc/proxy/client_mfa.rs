@@ -211,22 +211,22 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
         if has_postures {
-            let posture_result = validate_posture(
-                &self.pool,
-                location.id,
-                &request.pubkey,
-                &request.posture_data,
-            )
-            .await
-            .map_err(|err| match err {
-                PostureCheckError::NoActiveEnterpriseLicense => {
-                    Status::failed_precondition("enterprise license required for posture checks")
-                }
-                PostureCheckError::DbError(e) => {
-                    error!("DB error during posture validation: {e}");
-                    Status::internal("unexpected error")
-                }
-            })?;
+            let posture_request = DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: request.pubkey.clone(),
+                device_posture_data: request.posture_data.clone(),
+            };
+            let posture_result = validate_posture(&self.pool, &posture_request)
+                .await
+                .map_err(|err| match err {
+                    PostureCheckError::NoActiveEnterpriseLicense => Status::failed_precondition(
+                        "enterprise license required for posture checks",
+                    ),
+                    PostureCheckError::DbError(e) => {
+                        error!("DB error during posture validation: {e}");
+                        Status::internal("unexpected error")
+                    }
+                })?;
 
             // Posture check failed - return payload with reasons
             if let PostureResult::Fail(reasons) = posture_result {
@@ -874,26 +874,25 @@ impl ClientMfaServer {
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
 
         // Evaluate posture.
-        let posture_result = validate_posture(
-            &self.pool,
-            location.id,
-            &request.pubkey,
-            &request.device_posture_data,
-        )
-        .await
-        .map_err(|err| match err {
-            PostureCheckError::NoActiveEnterpriseLicense => {
-                Status::failed_precondition("enterprise license required for posture checks")
-            }
-            PostureCheckError::DbError(e) => {
-                error!("DB error during posture validation: {e}");
-                Status::internal("unexpected error")
-            }
-        })?;
+        let posture_result =
+            validate_posture(&self.pool, &request)
+                .await
+                .map_err(|err| match err {
+                    PostureCheckError::NoActiveEnterpriseLicense => Status::failed_precondition(
+                        "enterprise license required for posture checks",
+                    ),
+                    PostureCheckError::DbError(e) => {
+                        error!("DB error during posture validation: {e}");
+                        Status::internal("unexpected error")
+                    }
+                })?;
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+            let failed_checks = reasons
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect();
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 
@@ -1332,7 +1331,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace connected MFA session");
@@ -1407,7 +1406,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace new MFA session");
@@ -1466,7 +1465,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace connected non-MFA session");
@@ -1606,7 +1605,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                NEW_MFA_PRESHARED_KEY.to_string(),
+                NEW_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("failed to create replacement MFA session");
@@ -1743,7 +1742,7 @@ mod tests {
             disk_encryption_required: Some(true),
             antivirus_required: None,
             ad_domain_joined_required: None,
-            windows_security_update_current: None,
+            windows_security_update_max_age: None,
             min_kernel_version: None,
             device_integrity_required: None,
         }

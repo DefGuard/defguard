@@ -1,6 +1,6 @@
-use defguard_common::db::Id;
 use defguard_proto::enterprise::posture::{
-    DevicePostureData, UnavailableReason, bool_check::Result as BoolResult,
+    DevicePostureCheckRequest, DevicePostureData, UnavailableReason,
+    bool_check::Result as BoolResult, int32_check::Result as Int32Result,
     string_check::Result as StringResult,
 };
 use sqlx::PgPool;
@@ -52,6 +52,23 @@ fn resolve_string_check(
     match signal.and_then(|c| c.result.as_ref()) {
         Some(StringResult::Value(v)) => Ok(Some(v.clone())),
         Some(StringResult::Unavailable(code)) => match UnavailableReason::try_from(*code) {
+            Ok(UnavailableReason::NotApplicable) => Ok(None),
+            _ => Err(check_name),
+        },
+        None => Err(check_name),
+    }
+}
+
+/// Resolves an `Int32Check` signal.
+/// Returns `None` when the value is `NotApplicable` (skip the check silently).
+/// Returns `Err(check_name)` for unresolvable unavailability or absent field.
+fn resolve_int32_check(
+    signal: Option<&defguard_proto::enterprise::posture::Int32Check>,
+    check_name: &'static str,
+) -> Result<Option<i32>, &'static str> {
+    match signal.and_then(|c| c.result.as_ref()) {
+        Some(Int32Result::Value(v)) => Ok(Some(*v)),
+        Some(Int32Result::Unavailable(code)) => match UnavailableReason::try_from(*code) {
             Ok(UnavailableReason::NotApplicable) => Ok(None),
             _ => Err(check_name),
         },
@@ -149,14 +166,21 @@ fn evaluate_os_rule(
         }
     }
 
-    // windows_security_update_current
-    if rule.windows_security_update_current == Some(true) {
-        match resolve_bool_check(
-            data.windows_security_update_current.as_ref(),
-            "windows_security_update_current",
+    // windows_security_update_max_age
+    if let Some(required_max_age_days) = rule.windows_security_update_max_age {
+        match resolve_int32_check(
+            data.windows_security_update_age_days.as_ref(),
+            "windows_security_update_age_days",
         ) {
-            Ok(true) => {}
-            Ok(false) => failures.push(FailureReason::SecurityUpdateRequired),
+            Ok(Some(actual_age_days)) => {
+                if actual_age_days > required_max_age_days {
+                    failures.push(FailureReason::SecurityUpdateTooOld {
+                        required_max_age_days,
+                        actual_age_days,
+                    });
+                }
+            }
+            Ok(None) => {} // NotApplicable — skip
             Err(name) => failures.push(FailureReason::CheckUnavailable { check: name }),
         }
     }
@@ -203,29 +227,39 @@ fn evaluate_os_rule(
 /// Returns [`PostureResult::Fail`] with accumulated [`FailureReason`]s otherwise.
 pub async fn validate_posture(
     pool: &PgPool,
-    location_id: Id,
-    pubkey: &str,
-    posture_data: &Option<DevicePostureData>,
+    request: &DevicePostureCheckRequest,
 ) -> Result<PostureResult, PostureCheckError> {
-    debug!("Performing posture check for device {pubkey}: {posture_data:?}");
+    debug!(
+        "Performing posture check for device {}: {:?}",
+        request.pubkey, request.device_posture_data
+    );
 
     // If location has no assigned postures - pass immediately (no license required).
-    let posture_ids = DevicePostureLocation::find_by_location(pool, location_id).await?;
+    let posture_ids = DevicePostureLocation::find_by_location(pool, request.location_id).await?;
     if posture_ids.is_empty() {
-        debug!("No posture policies assigned to location {location_id} - passing device {pubkey}");
+        debug!(
+            "No posture policies assigned to location {} — passing device {}",
+            request.location_id, request.pubkey
+        );
         return Ok(PostureResult::Pass);
     }
 
     // Policies exist - enforce the enterprise license.
     if !is_enterprise_license_active() {
-        warn!("No active enterprise license - posture check aborted for device {pubkey}");
+        warn!(
+            "No active enterprise license - posture check aborted for device {}",
+            request.pubkey
+        );
         return Err(PostureCheckError::NoActiveEnterpriseLicense);
     }
 
-    let data = match posture_data.as_ref() {
+    let data = match request.device_posture_data.as_ref() {
         Some(d) => d,
         None => {
-            info!("Missing posture data - posture check failed for device {pubkey}");
+            info!(
+                "Missing posture data - posture check failed for device {}",
+                request.pubkey
+            );
             return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
         }
     };
@@ -296,10 +330,9 @@ pub async fn validate_posture(
     }
 
     if all_failures.is_empty() {
-        info!("Posture check passed for device {pubkey}");
+        info!("Posture check passed for device {}", request.pubkey);
         Ok(PostureResult::Pass)
     } else {
-        info!("Posture check failed for device {pubkey}, reasons: {all_failures:?}");
         Ok(PostureResult::Fail(all_failures))
     }
 }
