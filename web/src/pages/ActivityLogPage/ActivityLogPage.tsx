@@ -2,10 +2,6 @@ import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-qu
 import type { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
-import type {
-  ActivityLogEventTypeValue,
-  ActivityLogModuleValue,
-} from '../../shared/api/activity-log-types';
 import api from '../../shared/api/api';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -14,6 +10,20 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getLocationsQueryOptions } from '../../shared/query';
 import { ActivityLogTable } from './ActivityLogTable';
+
+const mapColumnFiltersToApiParams = (
+  columnFilters: ColumnFiltersState,
+): Record<string, string[]> => {
+  const result: Record<string, string[]> = {};
+  for (const filter of columnFilters) {
+    if (Array.isArray(filter.value) && filter.value.length > 0) {
+      result[filter.id] = filter.value.filter(
+        (value): value is string => typeof value === 'string',
+      );
+    }
+  }
+  return result;
+};
 
 export const ActivityLogPage = () => {
   const [search, setSearch] = useState('');
@@ -33,17 +43,13 @@ export const ActivityLogPage = () => {
     [locations],
   );
 
+  const filterParams = useMemo(
+    () => mapColumnFiltersToApiParams(columnFilters),
+    [columnFilters],
+  );
+
   const activeSorting = sortingState[0];
 
-  const eventFilter = columnFilters.find((f) => f.id === 'event')?.value as
-    | ActivityLogEventTypeValue[]
-    | undefined;
-  const moduleFilter = columnFilters.find((f) => f.id === 'module')?.value as
-    | ActivityLogModuleValue[]
-    | undefined;
-  const locationFilter = columnFilters.find((f) => f.id === 'location')?.value as
-    | string[]
-    | undefined;
   const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['activity-log', { search, sortingState, columnFilters }],
     initialPageParam: 1,
@@ -54,9 +60,9 @@ export const ActivityLogPage = () => {
         // sort_by is typed as keyof string due to RequestSortParams<ActivityLogSortKey> quirk
         sort_by: activeSorting?.id as never,
         sort_order: activeSorting ? (activeSorting.desc ? 'desc' : 'asc') : undefined,
-        event: eventFilter,
-        module: moduleFilter,
-        location: locationFilter,
+        event: filterParams.event as never,
+        module: filterParams.module as never,
+        location: filterParams.location as never,
       }),
     placeholderData: keepPreviousData,
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
