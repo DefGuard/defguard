@@ -10,7 +10,7 @@ pub(super) fn parse_version_lenient(s: &str) -> Option<Version> {
     // Strip leading zeros from each component (semver rejects "22.04" due to "04").
     let normalize = |p: &str| -> String {
         p.parse::<u64>()
-            .map_or_else(|_| p.to_string(), |n| n.to_string())
+            .map_or_else(|_| p.to_owned(), |n| n.to_string())
     };
     let parts: Vec<&str> = s.splitn(3, '.').collect();
     let padded = match parts.len() {

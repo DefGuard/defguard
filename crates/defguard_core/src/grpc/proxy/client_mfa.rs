@@ -838,7 +838,7 @@ impl ClientMfaServer {
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+            let failed_checks = reasons.iter().map(std::string::ToString::to_string).collect();
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 
@@ -1057,7 +1057,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace connected MFA session");
@@ -1132,7 +1132,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace new MFA session");
@@ -1191,7 +1191,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace connected non-MFA session");
@@ -1331,7 +1331,7 @@ mod tests {
                 &user,
                 &device,
                 Some(VpnClientMfaMethod::Totp),
-                NEW_MFA_PRESHARED_KEY.to_string(),
+                NEW_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("failed to create replacement MFA session");

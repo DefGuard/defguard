@@ -22,7 +22,7 @@ import { SystemSelector } from '../SystemSelector/SystemSelector';
 
 export type PostureCheckEditorOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
-  securityUpdates: boolean;
+  securityUpdateMaxAge: number | null;
   version: number | null;
 };
 
@@ -180,15 +180,55 @@ export const PostureCheckOperatingSystemsSection = ({
         const conditions = osConditions[operatingSystem];
         const showWindowsSecurityUpdate = operatingSystem === PostureCheckOs.Windows;
 
-        const handleSecurityUpdatesToggle = () => {
+        const securityUpdateOptions: SelectOption<number | null>[] = [
+          {
+            key: 'none',
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_no_requirement(),
+            value: null,
+          },
+          {
+            key: 30,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 30 },
+              ),
+            value: 30,
+          },
+          {
+            key: 60,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 60 },
+              ),
+            value: 60,
+          },
+          {
+            key: 90,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 90 },
+              ),
+            value: 90,
+          },
+          {
+            key: 180,
+            label:
+              m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+                { days: 180 },
+              ),
+            value: 180,
+          },
+        ];
+
+        const handleSecurityUpdateMaxAgeChange = (value: number | null) => {
           updateValues((current) => ({
             ...current,
             operatingSystemState: {
               ...current.operatingSystemState,
               [operatingSystem]: {
                 ...current.operatingSystemState[operatingSystem],
-                securityUpdates:
-                  !current.operatingSystemState[operatingSystem].securityUpdates,
+                securityUpdateMaxAge: value,
               },
             },
           }));
@@ -229,16 +269,22 @@ export const PostureCheckOperatingSystemsSection = ({
                       }}
                     />
                   </div>
+                  {showWindowsSecurityUpdate && (
+                    <div className="select-slot">
+                      <Select
+                        options={securityUpdateOptions}
+                        value={
+                          securityUpdateOptions.find(
+                            (o) => o.value === details.securityUpdateMaxAge,
+                          ) ?? securityUpdateOptions[0]
+                        }
+                        onChange={(option) =>
+                          handleSecurityUpdateMaxAgeChange(option.value)
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
-                {showWindowsSecurityUpdate && (
-                  <InteractiveBlock
-                    variant="checkbox"
-                    title={m.posture_checks_wizard_operating_systems_windows_security_updates()}
-                    content={m.posture_checks_wizard_operating_systems_windows_security_updates_description()}
-                    value={details.securityUpdates}
-                    onClick={handleSecurityUpdatesToggle}
-                  />
-                )}
                 {conditions.length > 0 && (
                   <>
                     <Divider />

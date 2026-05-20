@@ -39,7 +39,10 @@ pub enum FailureReason {
     DiskEncryptionRequired,
     AntivirusRequired,
     AdDomainRequired,
-    SecurityUpdateRequired,
+    SecurityUpdateTooOld {
+        required_max_age_days: i32,
+        actual_age_days: i32,
+    },
     DeviceIntegrityRequired,
     /// A required check could not be evaluated (InsufficientPermissions or DetectionFailed).
     CheckUnavailable {
@@ -78,7 +81,14 @@ impl fmt::Display for FailureReason {
             Self::DiskEncryptionRequired => write!(f, "disk encryption is required"),
             Self::AntivirusRequired => write!(f, "antivirus is required"),
             Self::AdDomainRequired => write!(f, "Active Directory domain join is required"),
-            Self::SecurityUpdateRequired => write!(f, "Windows security updates must be current"),
+            Self::SecurityUpdateTooOld {
+                required_max_age_days,
+                actual_age_days,
+            } => write!(
+                f,
+                "last Windows security update is {actual_age_days} days old \
+                 (max allowed: {required_max_age_days})"
+            ),
             Self::DeviceIntegrityRequired => write!(f, "device integrity check failed"),
             Self::CheckUnavailable { check } => {
                 write!(f, "required check '{check}' could not be evaluated")

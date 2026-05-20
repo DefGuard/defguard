@@ -8,7 +8,7 @@ import {
 
 export type EditPostureCheckOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
-  securityUpdates: boolean;
+  securityUpdateMaxAge: number | null;
   version: number | null;
 };
 
@@ -35,27 +35,27 @@ export const getDefaultEditPostureCheckOperatingSystemState = (
 ): Record<PostureCheckOsValue, EditPostureCheckOperatingSystemState> => ({
   [PostureCheckOs.Windows]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: versionValues.windows[versionValues.windows.length - 1] ?? null,
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: versionValues.macos[versionValues.macos.length - 1] ?? null,
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: versionValues.linux[versionValues.linux.length - 1] ?? null,
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: versionValues.ios[versionValues.ios.length - 1] ?? null,
   },
   [PostureCheckOs.Android]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: versionValues.android[versionValues.android.length - 1] ?? null,
   },
 });
@@ -107,9 +107,10 @@ export const getInitialEditPostureCheckFormValues = (
   for (const rule of postureCheck.os_rules) {
     operatingSystemState[rule.os_type] = {
       conditions: getRuleConditions(rule),
-      securityUpdates:
-        rule.os_type === PostureCheckOs.Windows &&
-        rule.windows_security_update_current === true,
+      securityUpdateMaxAge:
+        rule.os_type === PostureCheckOs.Windows
+          ? rule.windows_security_update_max_age
+          : null,
       version: getRuleVersion(rule),
     };
   }

@@ -72,6 +72,19 @@ export const buildOperatingSystemSummarySection = (
     });
   }
 
+  if (
+    operatingSystem === PostureCheckOs.Windows &&
+    details.securityUpdateMaxAge !== null
+  ) {
+    lines.push({
+      text: m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
+        {
+          days: details.securityUpdateMaxAge,
+        },
+      ),
+    });
+  }
+
   details.conditions.forEach((condition) => {
     lines.push({ text: getConditionLabel(condition) });
   });

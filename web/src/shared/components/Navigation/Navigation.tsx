@@ -86,6 +86,13 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_enrollment(),
         link: '/enrollment',
       },
+      {
+        id: 'posture_checks',
+        icon: 'connected-devices',
+        label: m.cmp_nav_item_posture_checks(),
+        link: '/acl/posture-checks',
+        licenseTier: LicenseTier.Enterprise,
+      },
     ],
   },
   {
@@ -112,13 +119,6 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_aliases(),
         link: '/acl/aliases',
         licenseTier: LicenseTier.Business,
-      },
-      {
-        id: 'posture_checks',
-        icon: 'connected-devices',
-        label: m.cmp_nav_item_posture_checks(),
-        link: '/acl/posture-checks',
-        licenseTier: LicenseTier.Enterprise,
       },
     ],
   },
