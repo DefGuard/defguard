@@ -75,119 +75,19 @@ jobs:
   #   with:
   #     upload_url: ${{ needs.create-release.outputs.upload_url }}
 
-  build-deb-binaries:
-    needs:
-      - create-release
-    runs-on:
-      - self-hosted
-      - Linux
-      - ${{ matrix.architecture }}
-    strategy:
-      fail-fast: false
-      matrix:
-        architecture: [ARM64, X64]
-        include:
-          - architecture: ARM64
-            deb_arch: arm64
-            rust_target: aarch64-unknown-linux-gnu
-          - architecture: X64
-            deb_arch: amd64
-            rust_target: x86_64-unknown-linux-gnu
-    container:
-      image: debian:12
-      env:
-        DEBIAN_FRONTEND: noninteractive
-    env:
-      SCCACHE_GHA_ENABLED: "false"
-      RUSTC_WRAPPER: ""
-
-    steps:
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y \
-            git curl ca-certificates \
-            build-essential pkg-config \
-            libssl-dev \
-            protobuf-compiler libprotobuf-dev
-          git config --global --add safe.directory '*'
-
-      - name: Write release version
-        run: |
-          # VERSION=${GITHUB_REF_NAME#v}
-          VERSION="2.0.1-test"
-          echo Version: $VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          submodules: recursive
-
-      - name: Install NodeJS
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: 25
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
-        with:
-          version: 10
-
-      - name: Build frontend
-        working-directory: web
-        run: |
-          pnpm install --ignore-scripts --no-frozen-lockfile
-          pnpm build
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-
-      - name: Build binary (for DEB)
-        run: |
-          cargo build --locked --release --target ${{ matrix.rust_target }}
-          mv target/${{ matrix.rust_target }}/release/defguard \
-             defguard-${{ env.VERSION }}-${{ matrix.rust_target }}
-
-      - name: Upload DEB binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: deb-binaries-${{ matrix.rust_target }}
-          path: defguard-${{ env.VERSION }}-${{ matrix.rust_target }}
-          retention-days: 1
-
   build-binaries:
     needs:
       - create-release
-      - build-deb-binaries
     runs-on:
       - self-hosted
       - Linux
       - X64
-    env:
-      SCCACHE_GHA_ENABLED: "false"
-      RUSTC_WRAPPER: ""
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y \
-            git curl ca-certificates \
-            build-essential pkg-config \
-            libssl-dev libssl-dev:arm64 \
-            gcc-aarch64-linux-gnu \
-            protobuf-compiler libprotobuf-dev \
-            rsync openssh-client \
-            ruby ruby-dev rubygems rpm
-          sudo gem install fpm --no-document
-          git config --global --add safe.directory '*'
-
+      # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
-          # VERSION=${GITHUB_REF_NAME#v}
-          VERSION="2.0.1-test"
+          VERSION=${GITHUB_REF_NAME#v}
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -206,6 +106,8 @@ jobs:
         with:
           version: 10
 
+      # Change to '--frozen-lockfile' once this gets fixed:
+      # https://github.com/pnpm/action-setup/issues/40
       - name: Build frontend
         working-directory: web
         run: |
@@ -217,6 +119,9 @@ jobs:
         with:
           targets: "aarch64-unknown-linux-gnu"
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
       - name: Build Linux x86_64 binary
         run: |
           cargo build --locked --release --target x86_64-unknown-linux-gnu
@@ -227,8 +132,7 @@ jobs:
       - name: Build Linux aarch64 binary
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          PKG_CONFIG_ALLOW_CROSS: "1"
-          PKG_CONFIG_LIBDIR: /usr/lib/aarch64-linux-gnu/pkgconfig
+          PKG_CONFIG_SYSROOT_DIR: /usr/lib/aarch64-linux-gnu
         run: |
           cargo build --locked --release --target aarch64-unknown-linux-gnu
           mv target/aarch64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
@@ -243,90 +147,88 @@ jobs:
           tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
 
-      - name: Download DEB binaries (built on debian:12)
-        uses: actions/download-artifact@v4
-        with:
-          pattern: deb-binaries-*
-          path: deb-binaries
-          merge-multiple: true
-
-      - name: Restore executable permissions on DEB binaries
-        run: |
-          chmod +x deb-binaries/defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
-          chmod +x deb-binaries/defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
-
       - name: Build x86_64 DEB package
-        run: |
-          fpm \
-            --output-type deb \
-            --version "${{ env.VERSION }}" \
-            --architecture amd64 \
-            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb \
-            --before-install linux/preinst \
-            --after-install linux/postinst \
-            --before-remove linux/prerm \
-            --after-remove linux/postrm \
-            "deb-binaries/defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard" \
-            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
-            ".env.example=/etc/defguard/core.conf"
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
+        with:
+          fpm_args:
+            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts:
+            "--architecture amd64
+            --output-type deb
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build aarch64 DEB package
-        run: |
-          fpm \
-            --output-type deb \
-            --version "${{ env.VERSION }}" \
-            --architecture arm64 \
-            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb \
-            --before-install linux/preinst \
-            --after-install linux/postinst \
-            --before-remove linux/prerm \
-            --after-remove linux/postrm \
-            "deb-binaries/defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard" \
-            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
-            ".env.example=/etc/defguard/core.conf"
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
+        with:
+          fpm_args:
+            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts:
+            "--architecture arm64
+            --output-type deb
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build x86_64 RPM package
-        run: |
-          fpm \
-            --output-type rpm \
-            --version "${{ env.VERSION }}" \
-            --architecture amd64 \
-            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm \
-            --before-install linux/preinst \
-            --after-install linux/postinst \
-            --before-remove linux/prerm \
-            --after-remove linux/postrm \
-            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard" \
-            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
-            ".env.example=/etc/defguard/core.conf"
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
+        with:
+          fpm_args:
+            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts:
+            "--architecture amd64
+            --output-type rpm
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build aarch64 RPM package
-        run: |
-          fpm \
-            --output-type rpm \
-            --version "${{ env.VERSION }}" \
-            --architecture arm64 \
-            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm \
-            --before-install linux/preinst \
-            --after-install linux/postinst \
-            --before-remove linux/prerm \
-            --after-remove linux/postrm \
-            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard" \
-            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
-            ".env.example=/etc/defguard/core.conf"
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
+        with:
+          fpm_args:
+            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts:
+            "--architecture arm64
+            --output-type rpm
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build FreeBSD package
-        run: |
-          fpm \
-            --output-type freebsd \
-            --version "${{ env.VERSION }}" \
-            --architecture amd64 \
-            --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg \
-            --freebsd-osversion '*' \
-            --depends openssl \
-            "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard" \
-            "freebsd/defguard=/usr/local/etc/rc.d/defguard" \
-            ".env.example=/etc/defguard/core.conf"
+        uses: defGuard/fpm-action@ebb2575fbb892876fbdd326bb6d12524fbd7398c # main
+        with:
+          fpm_args:
+            "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
+            freebsd/defguard=/usr/local/etc/rc.d/defguard
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts:
+            "--architecture amd64
+            --output-type freebsd
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
+            --freebsd-osversion '*'
+            --depends openssl"
 
       - name: Upload Linux x86_64 archive
         uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
@@ -406,4 +308,109 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
           asset_content_type: application/x-pkg
+          overwrite: true
+
+  ubuntu-22-04-build:
+    needs:
+      - create-release
+    runs-on:
+      - self-hosted
+      - Linux
+      - ${{ matrix.architecture }}
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [ARM64, X64]
+        include:
+          - architecture: ARM64
+            deb_arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+          - architecture: X64
+            deb_arch: amd64
+            rust_target: x86_64-unknown-linux-gnu
+    container:
+      image: ubuntu:22.04
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        HOME: /root
+        RUSTUP_HOME: /root/.rustup
+        CARGO_HOME: /root/.cargo
+    env:
+      RUSTC_WRAPPER: ""
+
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y git curl ca-certificates
+          git config --global --add safe.directory '*'
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          submodules: recursive
+
+      - name: Write release version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Install NodeJS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 25
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        with:
+          version: 10
+
+      # Change to '--frozen-lockfile' once this gets fixed:
+      # https://github.com/pnpm/action-setup/issues/40
+      - name: Build frontend
+        working-directory: web
+        run: |
+          pnpm install --ignore-scripts --no-frozen-lockfile
+          pnpm build
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Install build dependencies
+        run: |
+          apt-get install -y \
+            build-essential pkg-config \
+            libssl-dev \
+            protobuf-compiler libprotobuf-dev \
+            ruby ruby-dev rubygems rpm
+          gem install fpm --no-document
+
+      - name: Build binary
+        run: |
+          cargo build --locked --release --target ${{ matrix.rust_target }}
+
+      - name: Build DEB package (ubuntu-22-04-lts)
+        run: |
+          fpm \
+            --output-type deb \
+            --version "${{ env.VERSION }}" \
+            --architecture ${{ matrix.deb_arch }} \
+            --package defguard-${{ env.VERSION }}-${{ matrix.deb_arch }}_ubuntu-22-04-lts.deb \
+            --before-install linux/preinst \
+            --after-install linux/postinst \
+            --before-remove linux/prerm \
+            --after-remove linux/postrm \
+            "target/${{ matrix.rust_target }}/release/defguard=/usr/bin/defguard" \
+            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
+            ".env.example=/etc/defguard/core.conf"
+
+      - name: Upload ubuntu-22-04-lts DEB
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-${{ matrix.deb_arch }}_ubuntu-22-04-lts.deb
+          asset_content_type: application/gzip
           overwrite: true
