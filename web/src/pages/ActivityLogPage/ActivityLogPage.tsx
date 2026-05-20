@@ -3,6 +3,7 @@ import type { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
+import type { ActivityLogSortKey } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
@@ -57,8 +58,7 @@ export const ActivityLogPage = () => {
       api.getActivityLog({
         page: pageParam,
         search: search.length > 0 ? search : undefined,
-        // sort_by is typed as keyof string due to RequestSortParams<ActivityLogSortKey> quirk
-        sort_by: activeSorting?.id as never,
+        sort_by: activeSorting?.id as ActivityLogSortKey,
         sort_order: activeSorting ? (activeSorting.desc ? 'desc' : 'asc') : undefined,
         event: filterParams.event as never,
         module: filterParams.module as never,

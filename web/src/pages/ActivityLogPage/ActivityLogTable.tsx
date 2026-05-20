@@ -249,18 +249,17 @@ export const ActivityLogTable = ({
           onChange={onSearchChange}
         />
       </TableTop>
-      {data.length === 0 ? (
+      <TableBody
+        table={table}
+        hasNextPage={hasNextPage}
+        onNextPage={onNextPage}
+        loadingNextPage={loadingNextPage}
+      />
+      {data.length === 0 && (
         <EmptyStateFlexible
           icon="log"
           title={m.activity_log_empty_title()}
           subtitle={m.activity_log_empty_subtitle()}
-        />
-      ) : (
-        <TableBody
-          table={table}
-          hasNextPage={hasNextPage}
-          onNextPage={onNextPage}
-          loadingNextPage={loadingNextPage}
         />
       )}
     </>
