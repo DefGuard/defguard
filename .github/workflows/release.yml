@@ -63,6 +63,7 @@ jobs:
         id: release
         uses: shogo82148/actions-create-release@6a396031bc74c57403da1018fec74d24c6aa03cd # v1
         with:
+          tag_name: v2.0.1-test
           draft: true
           generate_release_notes: true
 
@@ -111,7 +112,8 @@ jobs:
       # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          # VERSION=${GITHUB_REF_NAME#v}
+          VERSION="v2.0.1-test"
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
