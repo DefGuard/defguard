@@ -50,7 +50,7 @@ describe('posture checks page helpers', () => {
           disk_encryption_required: true,
           antivirus_required: true,
           ad_domain_joined_required: false,
-          windows_security_update_current: false,
+          windows_security_update_max_age: null,
         },
         {
           os_type: 'linux',
@@ -103,7 +103,7 @@ describe('posture checks page helpers', () => {
           disk_encryption_required: false,
           antivirus_required: false,
           ad_domain_joined_required: false,
-          windows_security_update_current: false,
+          windows_security_update_max_age: null,
         },
       ],
     };
@@ -244,7 +244,7 @@ describe('posture checks page helpers', () => {
           disk_encryption_required: true,
           antivirus_required: false,
           ad_domain_joined_required: true,
-          windows_security_update_current: true,
+          windows_security_update_max_age: null,
         },
         {
           os_type: 'android',
@@ -271,27 +271,27 @@ describe('posture checks page helpers', () => {
       operatingSystemState: {
         windows: {
           conditions: ['active-directory', 'disk-encryption'],
-          securityUpdates: true,
+          securityUpdateMaxAge: null,
           version: 11,
         },
         macos: {
           conditions: [],
-          securityUpdates: false,
+          securityUpdateMaxAge: null,
           version: 26,
         },
         linux: {
           conditions: [],
-          securityUpdates: false,
+          securityUpdateMaxAge: null,
           version: 7,
         },
         ios: {
           conditions: [],
-          securityUpdates: false,
+          securityUpdateMaxAge: null,
           version: 26,
         },
         android: {
           conditions: ['device-integrity'],
-          securityUpdates: false,
+          securityUpdateMaxAge: null,
           version: 15,
         },
       },
