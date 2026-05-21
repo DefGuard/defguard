@@ -332,8 +332,6 @@ jobs:
         HOME: /root
         RUSTUP_HOME: /root/.rustup
         CARGO_HOME: /root/.cargo
-    env:
-      RUSTC_WRAPPER: ""
 
     steps:
       - name: Install git
