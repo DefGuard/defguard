@@ -10,8 +10,8 @@ use defguard_common::db::{
     },
 };
 use defguard_common::gateway_types::{
-    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
-    PortRange as GwPortRange, Protocol as GwProtocol, SnatBinding,
+    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port,
+    Protocol as GwProtocol, SnatBinding,
 };
 use defguard_core::{
     enterprise::db::models::device_posture::{

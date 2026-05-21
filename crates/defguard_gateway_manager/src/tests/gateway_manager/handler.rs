@@ -2,7 +2,6 @@
 mod support;
 
 use defguard_common::db::models::device::{DeviceInfo, WireguardNetworkDevice};
-use defguard_common::gateway_types::WireguardPeer;
 use defguard_core::grpc::GatewayCommand;
 use defguard_proto::gateway::{UpdateType, core_response};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

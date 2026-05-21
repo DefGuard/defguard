@@ -843,7 +843,7 @@ pub async fn try_get_location_firewall_config(
         generate_firewall_rules_from_acls(location.id, location_acls, &mut *conn).await?;
     let snat_bindings = generate_user_snat_bindings_for_location(location.id, &mut *conn).await?;
     let firewall_config = FirewallConfig {
-        default_policy: default_policy,
+        default_policy,
         rules: firewall_rules,
         snat_bindings,
     };

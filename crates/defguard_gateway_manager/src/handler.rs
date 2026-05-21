@@ -1118,8 +1118,7 @@ mod tests {
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
     use super::{
-        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, WireguardPeer,
-        try_protos_into_stats_message,
+        GatewayHandler, GatewayUpdatesHandler, WireguardPeer, try_protos_into_stats_message,
     };
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
