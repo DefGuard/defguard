@@ -3,8 +3,6 @@ on:
   push:
     tags:
       - v*.*.*
-    branches:
-      - debian-12-deb
 
 permissions:
   contents: write
@@ -18,36 +16,36 @@ concurrency:
 
 
 jobs:
-  # build-docker-release:
-  #   # Ignore tags with -, like v1.0.0-alpha
-  #   # This job will build the docker container with the "latest" tag which
-  #   # is a tag used in production, thus it should only be run for full releases.
-  #   if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
-  #   name: Build Release Docker image
-  #   uses: ./.github/workflows/build-docker.yml
-  #   with:
-  #     tags: |
-  #       type=semver,pattern={{version}}
-  #       type=semver,pattern={{major}}.{{minor}}
-  #       type=semver,pattern={{major}}
-  #       type=sha
-  #     # Explicitly disable latest tag. It will be added otherwise.
-  #     flavor: |
-  #       latest=false
+  build-docker-release:
+    # Ignore tags with -, like v1.0.0-alpha
+    # This job will build the docker container with the "latest" tag which
+    # is a tag used in production, thus it should only be run for full releases.
+    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
+    name: Build Release Docker image
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}}
+        type=sha
+      # Explicitly disable latest tag. It will be added otherwise.
+      flavor: |
+        latest=false
 
-  # build-docker-prerelease:
-  #   # Only build tags with -, like v1.0.0-alpha
-  #   if: startsWith(github.ref, 'refs/tags/') && contains(github.ref, '-')
-  #   name: Build Pre-release Docker image
-  #   uses: ./.github/workflows/build-docker.yml
-  #   with:
-  #     tags: |
-  #       type=raw,value=pre-release
-  #       type=semver,pattern={{version}}
-  #       type=sha
-  #     # Explicitly disable latest tag. It will be added otherwise.
-  #     flavor: |
-  #       latest=false
+  build-docker-prerelease:
+    # Only build tags with -, like v1.0.0-alpha
+    if: startsWith(github.ref, 'refs/tags/') && contains(github.ref, '-')
+    name: Build Pre-release Docker image
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      tags: |
+        type=raw,value=pre-release
+        type=semver,pattern={{version}}
+        type=sha
+      # Explicitly disable latest tag. It will be added otherwise.
+      flavor: |
+        latest=false
 
   create-release:
     name: create-release
@@ -60,16 +58,15 @@ jobs:
         uses: shogo82148/actions-create-release@6a396031bc74c57403da1018fec74d24c6aa03cd # v1
         with:
           draft: true
-          tag_name: v2.0.1-test
           generate_release_notes: true
 
-  # create-sbom:
-  #   needs:
-  #     - create-release
-  #     - build-docker-release
-  #   uses: ./.github/workflows/sbom.yml
-  #   with:
-  #     upload_url: ${{ needs.create-release.outputs.upload_url }}
+  create-sbom:
+    needs:
+      - create-release
+      - build-docker-release
+    uses: ./.github/workflows/sbom.yml
+    with:
+      upload_url: ${{ needs.create-release.outputs.upload_url }}
 
   build-binaries:
     needs:
@@ -87,8 +84,7 @@ jobs:
       # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
-          # VERSION=${GITHUB_REF_NAME#v}
-          VERSION="2.0.1-test"
+          VERSION=${GITHUB_REF_NAME#v}
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -353,8 +349,7 @@ jobs:
 
       - name: Write release version
         run: |
-          # VERSION=${GITHUB_REF_NAME#v}
-          VERSION="2.0.1-test"
+          VERSION=${GITHUB_REF_NAME#v}
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
