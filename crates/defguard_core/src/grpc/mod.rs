@@ -208,7 +208,7 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
 }
 
 pub use defguard_common::gateway_event::{
-    GatewayCommand, send_multiple_gateway_commands, send_gateway_command,
+    GatewayCommand, send_gateway_command, send_multiple_gateway_commands,
 };
 
 /// If this location is marked as a service location, checks if all requirements are met for it to

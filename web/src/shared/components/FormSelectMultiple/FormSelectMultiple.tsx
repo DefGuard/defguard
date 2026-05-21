@@ -5,17 +5,17 @@ import type { SelectionKey } from '../SelectionSection/type';
 import { SelectMultiple } from '../SelectMultiple/SelectMultiple';
 import type { SelectMultipleProps } from '../SelectMultiple/types';
 
-type Props<T extends SelectionKey> = Omit<
-  SelectMultipleProps<T>,
+type Props<T extends SelectionKey, M = unknown> = Omit<
+  SelectMultipleProps<T, M>,
   'selected' | 'error' | 'onSelectionChange'
 > & {
   onSelectionChange?: (v: T[]) => void;
 };
 
-export const FormSelectMultiple = <T extends SelectionKey>({
+export const FormSelectMultiple = <T extends SelectionKey, M = unknown>({
   onSelectionChange,
   ...props
-}: Props<T>) => {
+}: Props<T, M>) => {
   const field = useFieldContext<T[]>();
   const error = useFormFieldError();
 

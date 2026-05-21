@@ -226,7 +226,7 @@ async fn enterprise_status_check(
                     firewall_config,
                 ))?;
             } else {
-                let new_peers = get_location_allowed_peers(&location, &mut *transaction).await?;
+                let new_peers = get_location_allowed_peers(&location, &mut transaction).await?;
                 gateway_tx.send(GatewayCommand::NetworkModified(
                     location.id,
                     location,
@@ -317,7 +317,7 @@ async fn expired_acl_rules_check(
             None => {
                 debug!(
                     "No firewall config generated for location {location}. Not sending a \
-                    gateway command"
+                    gateway event"
                 );
             }
         }

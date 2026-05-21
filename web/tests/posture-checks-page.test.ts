@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getInitialEditPostureCheckFormValues,
+  normalizeEditPostureCheckFormValues,
+} from '../src/pages/EditPostureCheckPage/form';
+import { shouldFetchPostureChecksEnterpriseData } from '../src/pages/PostureChecksPage/license';
+import {
   filterPostureChecks,
   getPostureCheckColumnFilterOptions,
   getPostureCheckOsLabel,
@@ -7,6 +12,7 @@ import {
   mapPostureCheckFilterValueToRequestValue,
   type PostureCheckRow,
 } from '../src/pages/PostureChecksPage/postureChecks';
+import { isPostureChecksListPath } from '../src/pages/PostureChecksPage/route';
 import {
   getPostureCheckVersionValues,
   PostureCheckOs,
@@ -44,7 +50,7 @@ describe('posture checks page helpers', () => {
           disk_encryption_required: true,
           antivirus_required: true,
           ad_domain_joined_required: false,
-          windows_security_update_current: false,
+          windows_security_update_max_age: null,
         },
         {
           os_type: 'linux',
@@ -66,6 +72,7 @@ describe('posture checks page helpers', () => {
     expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
       id: 1,
       name: 'First posture check',
+      locations: [2],
       windows: '11, Disk encryption, Antivirus',
       windowsFilters: [11, PostureCheckRequirement.DiskEncryption, 'Antivirus'],
       macos: '-',
@@ -96,7 +103,7 @@ describe('posture checks page helpers', () => {
           disk_encryption_required: false,
           antivirus_required: false,
           ad_domain_joined_required: false,
-          windows_security_update_current: false,
+          windows_security_update_max_age: null,
         },
       ],
     };
@@ -104,6 +111,7 @@ describe('posture checks page helpers', () => {
     expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
       id: 2,
       name: 'Second posture check',
+      locations: [],
       windows: '-',
       windowsFilters: [],
       macos: '-',
@@ -130,6 +138,7 @@ describe('posture checks page helpers', () => {
       {
         id: 99,
         name: 'First posture check',
+        locations: [1],
         windows: '11, Disk encryption, Antivirus',
         windowsFilters: [11, PostureCheckRequirement.DiskEncryption, 'Antivirus'],
         macos: '-',
@@ -146,6 +155,7 @@ describe('posture checks page helpers', () => {
       {
         id: 100,
         name: 'Second posture check',
+        locations: [],
         windows: '-',
         windowsFilters: [],
         macos: 'macOS 15 Sequoia, Device integrity',
@@ -217,5 +227,84 @@ describe('posture checks page helpers', () => {
     expect(
       mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
     ).toBe('Pre-release allowed');
+  });
+
+  it('maps an existing posture check into editable form state with assigned locations', () => {
+    const postureCheck: ApiDevicePosture = {
+      id: 5,
+      name: 'Edit posture check',
+      description: 'Existing policy',
+      min_client_version: '2.0',
+      allow_prerelease_client: true,
+      locations: [9, 3],
+      os_rules: [
+        {
+          os_type: 'windows',
+          min_os_version: 11,
+          disk_encryption_required: true,
+          antivirus_required: false,
+          ad_domain_joined_required: true,
+          windows_security_update_max_age: null,
+        },
+        {
+          os_type: 'android',
+          min_os_version: 15,
+          device_integrity_required: true,
+        },
+      ],
+    };
+
+    expect(
+      normalizeEditPostureCheckFormValues(
+        getInitialEditPostureCheckFormValues(
+          postureCheck,
+          getPostureCheckVersionValues(makeVersionMetadata()),
+        ),
+      ),
+    ).toEqual({
+      allowPrereleaseClient: true,
+      configuredOperatingSystems: ['windows', 'android'],
+      description: 'Existing policy',
+      locations: [3, 9],
+      minimumClientVersion: '2.0',
+      name: 'Edit posture check',
+      operatingSystemState: {
+        windows: {
+          conditions: ['active-directory', 'disk-encryption'],
+          securityUpdateMaxAge: null,
+          version: 11,
+        },
+        macos: {
+          conditions: [],
+          securityUpdateMaxAge: null,
+          version: 26,
+        },
+        linux: {
+          conditions: [],
+          securityUpdateMaxAge: null,
+          version: 7,
+        },
+        ios: {
+          conditions: [],
+          securityUpdateMaxAge: null,
+          version: 26,
+        },
+        android: {
+          conditions: ['device-integrity'],
+          securityUpdateMaxAge: null,
+          version: 15,
+        },
+      },
+    });
+  });
+
+  it('should render the list page only on the base posture checks route', () => {
+    expect(isPostureChecksListPath('/acl/posture-checks')).toBe(true);
+    expect(isPostureChecksListPath('/acl/posture-checks/5/edit')).toBe(false);
+  });
+
+  it('fetches enterprise-only posture data only when enterprise access is available', () => {
+    expect(shouldFetchPostureChecksEnterpriseData(true)).toBe(true);
+    expect(shouldFetchPostureChecksEnterpriseData(false)).toBe(false);
   });
 });

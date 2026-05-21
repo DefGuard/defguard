@@ -503,7 +503,7 @@ async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization
         .expect("timed out waiting for MFA disconnect gateway event")
         .expect("gateway event channel closed");
     match gateway_event {
-        GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device) => {
+        GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
             assert_eq!(location_id, location.id);
             assert_eq!(disconnected_device.id, device.id);
         }
@@ -570,7 +570,7 @@ async fn test_never_connected_mfa_new_sessions_disconnect_after_threshold(
         .expect("timed out waiting for MFA disconnect gateway event for new session")
         .expect("gateway event channel closed");
     match gateway_event {
-        GatewayCommand::MfaSessionDisconnected(location_id, disconnected_device) => {
+        GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
             assert_eq!(location_id, location.id);
             assert_eq!(disconnected_device.id, device.id);
         }

@@ -146,6 +146,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -184,7 +185,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_err!(gateway_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -198,6 +199,7 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -240,7 +242,7 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
         GatewayCommand::NetworkCreated(..)
     );
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -256,6 +258,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -293,7 +296,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // network configuration was created for admin and the allowed group member
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -329,7 +332,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
         GatewayCommand::NetworkModified(..)
     );
 
-    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+    let new_peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(new_peers.len(), 2);
@@ -365,7 +368,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
         GatewayCommand::NetworkModified(..)
     );
 
-    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+    let new_peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(new_peers.len(), 3);
@@ -402,7 +405,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
         GatewayCommand::NetworkModified(..)
     );
 
-    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+    let new_peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(new_peers.len(), 2);
@@ -418,6 +421,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -454,7 +458,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
         GatewayCommand::NetworkCreated(..)
     );
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -494,7 +498,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
         GatewayCommand::NetworkModified(..)
     );
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -511,6 +515,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -564,7 +569,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     );
     let network = response.network;
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -606,6 +611,7 @@ async fn test_import_mapping_devices(_: PgPoolOptions, options: PgConnectOptions
 
     let (client, client_state) = make_test_client(pool).await;
     let (users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -670,7 +676,7 @@ PersistentKeepalive = 300
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -718,6 +724,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -756,7 +763,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_err!(gateway_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -777,7 +784,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayCommand::DeviceDeleted(..));
     assert_err!(gateway_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 1);
@@ -795,7 +802,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 
     assert_err!(gateway_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 1);
@@ -815,7 +822,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayCommand::DeviceCreated(..));
     assert_err!(gateway_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -832,6 +839,7 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -869,7 +877,7 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
     );
     assert_err!(gateway_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -885,7 +893,7 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
 
     assert_err!(gateway_rx.try_recv());
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 4);
@@ -940,11 +948,12 @@ DNS = 10.0.0.2
 }
 
 #[sqlx::test]
-async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_delete_only_allowed_group_rejected(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
+    let mut conn = client_state.pool.acquire().await.unwrap();
 
     let mut gateway_rx = client_state.gateway_rx;
 
@@ -981,7 +990,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     let event = gateway_rx.try_recv().unwrap();
     assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
     assert_eq!(peers.len(), 2);
@@ -998,14 +1007,76 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
         .delete(format!("/api/v1/group/{allowed_group_id}"))
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // network configuration was created only for the admin device
-    let peers = get_location_allowed_peers(&network, &client_state.pool)
+    // network configuration remains unchanged
+    let peers = get_location_allowed_peers(&network, &mut conn)
         .await
         .unwrap();
-    assert_eq!(peers.len(), 1);
+    assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+}
+
+#[sqlx::test]
+async fn test_delete_allowed_group_when_location_keeps_other_groups(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+    setup_test_users(&client_state.pool).await;
+
+    let mut gateway_rx = client_state.gateway_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": false,
+            "allowed_groups": ["allowed group", "not allowed group"],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network: WireguardNetwork<Id> = response.json().await;
+    let event = gateway_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
+
+    let allowed_group_id = Group::find_by_name(&client_state.pool, "allowed group")
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let response = client
+        .delete(format!("/api/v1/group/{allowed_group_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let allowed_groups = network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["not allowed group"]);
 }
 
 #[sqlx::test]

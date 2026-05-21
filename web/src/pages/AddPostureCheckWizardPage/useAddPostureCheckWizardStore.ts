@@ -22,7 +22,7 @@ export type OperatingSystemConditionKey =
 
 export type OperatingSystemFormState = {
   conditions: OperatingSystemConditionKey[];
-  securityUpdates: boolean;
+  securityUpdateMaxAge: number | null;
   version: PostureCheckOsVersionValue | null;
 };
 
@@ -51,27 +51,27 @@ const createDefaultOperatingSystemState = (
 ): Record<PostureCheckOsValue, OperatingSystemFormState> => ({
   [PostureCheckOs.Windows]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: getCurrentOrLatestVersion(versionValues.windows),
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: getCurrentOrLatestVersion(versionValues.macos),
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: getCurrentOrLatestVersion(versionValues.linux),
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: getCurrentOrLatestVersion(versionValues.ios),
   },
   [PostureCheckOs.Android]: {
     conditions: [],
-    securityUpdates: false,
+    securityUpdateMaxAge: null,
     version: getCurrentOrLatestVersion(versionValues.android),
   },
 });

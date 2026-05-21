@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use defguard_common::db::{
-    Id,
+    Id, NoId,
     models::{
         device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
         user::User,
@@ -9,9 +9,15 @@ use defguard_common::db::{
         wireguard::{LocationMfaMode, WireguardNetwork},
     },
 };
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::gateway_types::{
-    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol, SnatBinding,
+    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+    PortRange as GwPortRange, Protocol as GwProtocol, SnatBinding,
+};
+use defguard_core::{
+    enterprise::db::models::device_posture::{
+        DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+    },
+    grpc::GatewayCommand,
 };
 use defguard_proto::{
     enterprise::firewall::FirewallConfig as ProtoFirewallConfig,
@@ -118,6 +124,34 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
     (device, device_network_info)
 }
 
+pub(crate) async fn create_authorized_posture_device_for_current_network(
+    context: &HandlerTestContext,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: &str,
+) -> (Device<Id>, DeviceNetworkInfo) {
+    let device = create_device_for_network(
+        context,
+        context.network.id,
+        device_name,
+        device_pubkey,
+        device_ip,
+    )
+    .await;
+    let network_device = WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
+        .await
+        .expect("failed to load posture device network info")
+        .expect("expected posture device network info");
+    let network_info = DeviceNetworkInfo::from_authorized_vpn_session(
+        context.network.id,
+        network_device.wireguard_ips,
+        preshared_key.to_owned(),
+    );
+
+    (device, network_info)
+}
+
 pub(crate) async fn create_device_info_for_network(
     context: &HandlerTestContext,
     network_id: Id,
@@ -183,6 +217,46 @@ pub(crate) async fn enable_internal_mfa_for_network(
         .await
         .expect("failed to enable MFA for test network");
     assert!(network.mfa_enabled());
+}
+
+pub(crate) async fn enable_linux_posture_for_network(
+    pool: &sqlx::PgPool,
+    network: &WireguardNetwork<Id>,
+) {
+    let policy = DevicePosture {
+        id: NoId,
+        name: "gateway-handler-test-posture".to_owned(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .expect("failed to save posture policy");
+
+    DevicePostureOsRule {
+        id: NoId,
+        posture_id: policy.id,
+        os_type: OsType::Linux,
+        min_os_version: None,
+        disk_encryption_required: Some(true),
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_max_age: None,
+        min_kernel_version: None,
+        device_integrity_required: None,
+    }
+    .save(pool)
+    .await
+    .expect("failed to save posture OS rule");
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.expect("failed to acquire connection"),
+        network.id,
+        &[policy.id],
+    )
+    .await
+    .expect("failed to assign posture policy to network");
 }
 
 pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(
@@ -372,7 +446,7 @@ pub(crate) fn build_test_firewall_config() -> FirewallConfig {
             source_addrs: vec![IpAddress::IpSubnet("10.10.0.0/24".to_owned())],
             destination_addrs: vec![IpAddress::Ip("198.51.100.20".to_owned())],
             destination_ports: vec![Port::Single(443)],
-            protocols: vec![Protocol::Tcp],
+            protocols: vec![GwProtocol::Tcp],
             verdict: FirewallPolicy::Deny,
             comment: Some("block test https destination".to_owned()),
             ip_version: IpVersion::Ipv4,
@@ -390,7 +464,6 @@ pub(crate) fn assert_firewall_modify_update(
     outbound: CoreResponse,
     expected_firewall_config: &FirewallConfig,
 ) {
-    // Convert expected native config to proto for comparison with the outbound proto payload
     let expected_proto: ProtoFirewallConfig = expected_firewall_config.clone().into();
     match outbound.payload {
         Some(core_response::Payload::Update(Update {

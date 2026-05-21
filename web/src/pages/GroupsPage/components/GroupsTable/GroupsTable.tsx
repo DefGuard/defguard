@@ -7,7 +7,7 @@ import {
 import { useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
-import type { GroupInfo, User } from '../../../../shared/api/types';
+import type { GroupInfo, NetworkLocation, User } from '../../../../shared/api/types';
 import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import type { MenuItemProps } from '../../../../shared/defguard-ui/components/Menu/types';
@@ -23,6 +23,7 @@ import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 
 type Props = {
   groups: GroupInfo[];
+  locations: NetworkLocation[];
   users: User[];
 };
 
@@ -30,7 +31,7 @@ type RowData = GroupInfo;
 
 const columnHelper = createColumnHelper<RowData>();
 
-export const GroupsTable = ({ groups, users }: Props) => {
+export const GroupsTable = ({ groups, locations, users }: Props) => {
   const [search, setSearch] = useState('');
   const reservedNames = useMemo(() => groups.map((g) => g.name), [groups]);
 
@@ -117,11 +118,33 @@ export const GroupsTable = ({ groups, users }: Props) => {
               icon: 'delete',
               variant: 'danger',
               onClick: () => {
+                const affectedLocations = locations.filter(
+                  (location) =>
+                    !location.allow_all_groups &&
+                    location.allowed_groups.includes(rowData.name),
+                );
+                const blockedLocations = affectedLocations.filter(
+                  (location) => location.allowed_groups.length === 1,
+                );
+                if (blockedLocations.length > 0) {
+                  openModal(ModalName.ConfirmAction, {
+                    title: m.modal_delete_group_title(),
+                    contentMd: m.modal_delete_group_blocked_body({ name: rowData.name }),
+                    actionPromise: () => api.group.deleteGroup(rowData.id),
+                    cancelProps: { text: m.controls_close() },
+                  });
+                  return;
+                }
                 openModal(ModalName.ConfirmAction, {
                   title: m.modal_delete_group_title(),
-                  contentMd: m.modal_delete_group_body({ name: rowData.name }),
+                  contentMd:
+                    affectedLocations.length > 0
+                      ? m.modal_delete_group_affected_locations_body({
+                          name: rowData.name,
+                        })
+                      : m.modal_delete_group_body({ name: rowData.name }),
                   actionPromise: () => api.group.deleteGroup(rowData.id),
-                  invalidateKeys: [['group'], ['group-info']],
+                  invalidateKeys: [['group'], ['group-info'], ['network']],
                   submitProps: { text: m.controls_delete(), variant: 'critical' },
                   onSuccess: () => Snackbar.default(m.modal_delete_group_success()),
                   onError: () => Snackbar.error(m.modal_delete_group_error()),
@@ -133,7 +156,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
         },
       }),
     ],
-    [reservedNames, users],
+    [locations, reservedNames, users],
   );
 
   const table = useReactTable({

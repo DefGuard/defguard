@@ -18,7 +18,7 @@ async fn test_matching_location_mfa_session_authorized_produces_peer_create(
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayCommand::MfaSessionAuthorized(
+        context.events_tx().send(GatewayCommand::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
@@ -64,7 +64,7 @@ async fn test_mfa_session_authorized_with_mismatched_network_id_is_ignored(
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayCommand::MfaSessionAuthorized(
+        context.events_tx().send(GatewayCommand::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
@@ -98,7 +98,7 @@ async fn test_matching_location_mfa_session_disconnected_produces_peer_delete(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayCommand::MfaSessionDisconnected(
+            .send(GatewayCommand::VpnSessionDeauthorized(
                 context.network.id,
                 device,
             )),

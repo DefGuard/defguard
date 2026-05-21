@@ -15,50 +15,6 @@
     gap: var(--spacing-xs);
     max-width: 42rem;
   }
-
-  .systems-list {
-    display: flex;
-    flex-flow: row wrap;
-    gap: var(--spacing-md);
-  }
-
-  .system-details {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
-  }
-
-  .section-text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .system-conditions {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
-  }
-
-  .condition-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-
-    .checkbox > .track.with-custom-label {
-      align-items: center;
-    }
-
-    .field-label {
-      padding-bottom: 0;
-      font: var(--t-body-sm-400);
-      color: var(--fg-default);
-
-      > span {
-        padding-left: 0;
-      }
-    }
-  }
 }
 
 .add-posture-check-client-version-step {
@@ -78,17 +34,9 @@
   flex-direction: column;
   gap: var(--spacing-3xl);
 
-  .details-track,
-  .details-fields {
+  .details-track {
     display: flex;
     flex-direction: column;
-  }
-
-  .details-track {
-    gap: var(--spacing-xl);
-  }
-
-  .details-fields {
     gap: var(--spacing-xl);
   }
 }

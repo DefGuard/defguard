@@ -42,7 +42,7 @@ const buildOperatingSystemRule = (
         ad_domain_joined_required: hasCondition(details.conditions, 'active-directory')
           ? true
           : null,
-        windows_security_update_current: details.securityUpdates ? true : null,
+        windows_security_update_max_age: details.securityUpdateMaxAge,
       };
     case PostureCheckOs.Macos:
       return {

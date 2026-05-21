@@ -156,7 +156,10 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         vec!["10.0.0.12"]
     );
     // generated IP for other existing device
-    assert_matches!(gateway_rx.try_recv().unwrap(), GatewayCommand::DeviceCreated(..));
+    assert_matches!(
+        gateway_rx.try_recv().unwrap(),
+        GatewayCommand::DeviceCreated(..)
+    );
     let user_device_2 = UserDevice::from_device(&pool, device_2)
         .await
         .unwrap()

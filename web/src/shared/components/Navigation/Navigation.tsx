@@ -86,6 +86,13 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_enrollment(),
         link: '/enrollment',
       },
+      {
+        id: 'posture_checks',
+        icon: 'connected-devices',
+        label: m.cmp_nav_item_posture_checks(),
+        link: '/acl/posture-checks',
+        licenseTier: LicenseTier.Enterprise,
+      },
     ],
   },
   {
@@ -112,13 +119,6 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_aliases(),
         link: '/acl/aliases',
         licenseTier: LicenseTier.Business,
-      },
-      {
-        id: 'posture_checks',
-        icon: 'connected-devices',
-        label: m.cmp_nav_item_posture_checks(),
-        link: '/acl/posture-checks',
-        licenseTier: LicenseTier.Enterprise,
       },
     ],
   },
@@ -223,11 +223,15 @@ export const Navigation = () => {
     }));
   }, [aliasesCount, destinationsCount, rulesCount]);
 
+  const rawVersion = useApp((s) => s.appInfo.version);
+  const semverVersion = rawVersion ? rawVersion.split('+')[0] : null;
+
   if (!isAdmin || !isOpen) return null;
   return (
     <div className="navigation">
       <div className="top">
         <NavLogo />
+        {semverVersion && <span className="version-badge">{semverVersion}</span>}
         <div className="control">
           <IconButton
             icon="hamburger"

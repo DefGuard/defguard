@@ -74,6 +74,7 @@ import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_auth
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 import { Route as AuthorizedDefaultGatewayGatewayIdEditRouteImport } from './routes/_authorized/_default/gateway/$gatewayId/edit'
 import { Route as AuthorizedDefaultEdgeEdgeIdEditRouteImport } from './routes/_authorized/_default/edge/$edgeId/edit'
+import { Route as AuthorizedDefaultAclPostureChecksPostureCheckIdEditRouteImport } from './routes/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
 
 const SnackbarRoute = SnackbarRouteImport.update({
   id: '/snackbar',
@@ -437,6 +438,12 @@ const AuthorizedDefaultEdgeEdgeIdEditRoute =
     path: '/edge/$edgeId/edit',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute =
+  AuthorizedDefaultAclPostureChecksPostureCheckIdEditRouteImport.update({
+    id: '/$postureCheckId/edit',
+    path: '/$postureCheckId/edit',
+    getParentRoute: () => AuthorizedDefaultAclPostureChecksRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -483,7 +490,7 @@ export interface FileRoutesByFullPath {
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
-  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
+  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -502,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -547,7 +555,7 @@ export interface FileRoutesByTo {
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
-  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
+  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -615,7 +624,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/_authorized/_default/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/_authorized/_default/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
-  '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
+  '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -634,6 +643,7 @@ export interface FileRoutesById {
   '/_authorized/_default/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/_authorized/_default/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/_authorized/_default/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -701,6 +711,7 @@ export interface FileRouteTypes {
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/acl/posture-checks/$postureCheckId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -765,6 +776,7 @@ export interface FileRouteTypes {
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/acl/posture-checks/$postureCheckId/edit'
   id:
     | '__root__'
     | '/'
@@ -832,6 +844,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/edge/$edgeId/edit'
     | '/_authorized/_default/gateway/$gatewayId/edit'
     | '/_authorized/_default/locations/$locationId/edit'
+    | '/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1306,8 +1319,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/posture-checks/$postureCheckId/edit': {
+      id: '/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
+      path: '/$postureCheckId/edit'
+      fullPath: '/acl/posture-checks/$postureCheckId/edit'
+      preLoaderRoute: typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRouteImport
+      parentRoute: typeof AuthorizedDefaultAclPostureChecksRoute
+    }
   }
 }
+
+interface AuthorizedDefaultAclPostureChecksRouteChildren {
+  AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute: typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
+}
+
+const AuthorizedDefaultAclPostureChecksRouteChildren: AuthorizedDefaultAclPostureChecksRouteChildren =
+  {
+    AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute:
+      AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute,
+  }
+
+const AuthorizedDefaultAclPostureChecksRouteWithChildren =
+  AuthorizedDefaultAclPostureChecksRoute._addFileChildren(
+    AuthorizedDefaultAclPostureChecksRouteChildren,
+  )
 
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
@@ -1327,7 +1362,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
   AuthorizedDefaultAclEditDestinationRoute: typeof AuthorizedDefaultAclEditDestinationRoute
   AuthorizedDefaultAclEditRuleRoute: typeof AuthorizedDefaultAclEditRuleRoute
-  AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRoute
+  AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
@@ -1369,7 +1404,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultAclEditDestinationRoute,
   AuthorizedDefaultAclEditRuleRoute: AuthorizedDefaultAclEditRuleRoute,
   AuthorizedDefaultAclPostureChecksRoute:
-    AuthorizedDefaultAclPostureChecksRoute,
+    AuthorizedDefaultAclPostureChecksRouteWithChildren,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,

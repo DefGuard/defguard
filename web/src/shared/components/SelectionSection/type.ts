@@ -24,6 +24,8 @@ export interface SelectionSectionProps<T extends SelectionKey, M = unknown> {
   selection: Set<T>;
   onChange: (value: Set<T>) => void;
   options: SelectionOption<T, M>[];
+  searchPlaceholder?: string;
+  visibleItemsLimit?: number;
   orderItems?: (items: SelectionOption<T, M>[]) => SelectionOption<T, M>[];
   renderItem?: SelectionSectionCustomRender<T, M>;
   enableDividers?: boolean;

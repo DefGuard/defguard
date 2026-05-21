@@ -66,7 +66,7 @@ describe('add posture check wizard store', () => {
     store.addConfiguredOperatingSystem(PostureCheckOs.Windows);
     store.updateOperatingSystemDetails(PostureCheckOs.Windows, {
       conditions: ['disk-encryption', 'antivirus'],
-      securityUpdates: true,
+      securityUpdateMaxAge: null,
       version: 10,
     });
 
@@ -76,7 +76,7 @@ describe('add posture check wizard store', () => {
     expect(useAddPostureCheckWizardStore.getState().operatingSystemState.windows).toEqual(
       {
         conditions: ['disk-encryption', 'antivirus'],
-        securityUpdates: true,
+        securityUpdateMaxAge: null,
         version: 10,
       },
     );

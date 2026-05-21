@@ -487,7 +487,7 @@ export interface LdapInfo {
 }
 
 export interface ApplicationInfo {
-  version: string;
+  version: string | null;
   network_present: boolean;
   smtp_enabled: boolean;
   external_openid_enabled: boolean;
@@ -756,6 +756,7 @@ export interface NetworkLocation {
   location_mfa_mode: LocationMfaModeValue;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
+  posture_checks: number[];
 }
 
 export interface EditNetworkLocation
@@ -768,6 +769,7 @@ export interface EditNetworkLocation
     | 'allowed_ips'
     | 'address'
     | 'has_devices'
+    | 'posture_checks'
   > {
   allowed_ips: string;
   address: string;
@@ -904,7 +906,7 @@ export type ApiDevicePostureOsRule =
       disk_encryption_required: boolean | null;
       antivirus_required: boolean | null;
       ad_domain_joined_required: boolean | null;
-      windows_security_update_current: boolean | null;
+      windows_security_update_max_age: number | null;
     }
   | {
       os_type: 'macos';
@@ -937,6 +939,10 @@ export interface ApiDevicePosture {
   allow_prerelease_client: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
+}
+
+export interface AssignPosturesData {
+  postures: number[];
 }
 
 export interface EditDevicePostureRequest {

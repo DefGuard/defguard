@@ -1,6 +1,7 @@
 use defguard_proto::enterprise::posture::{
     DevicePostureCheckRequest, DevicePostureData, UnavailableReason,
-    bool_check::Result as BoolResult, string_check::Result as StringResult,
+    bool_check::Result as BoolResult, int32_check::Result as Int32Result,
+    string_check::Result as StringResult,
 };
 use sqlx::PgPool;
 
@@ -51,6 +52,23 @@ fn resolve_string_check(
     match signal.and_then(|c| c.result.as_ref()) {
         Some(StringResult::Value(v)) => Ok(Some(v.clone())),
         Some(StringResult::Unavailable(code)) => match UnavailableReason::try_from(*code) {
+            Ok(UnavailableReason::NotApplicable) => Ok(None),
+            _ => Err(check_name),
+        },
+        None => Err(check_name),
+    }
+}
+
+/// Resolves an `Int32Check` signal.
+/// Returns `None` when the value is `NotApplicable` (skip the check silently).
+/// Returns `Err(check_name)` for unresolvable unavailability or absent field.
+fn resolve_int32_check(
+    signal: Option<&defguard_proto::enterprise::posture::Int32Check>,
+    check_name: &'static str,
+) -> Result<Option<i32>, &'static str> {
+    match signal.and_then(|c| c.result.as_ref()) {
+        Some(Int32Result::Value(v)) => Ok(Some(*v)),
+        Some(Int32Result::Unavailable(code)) => match UnavailableReason::try_from(*code) {
             Ok(UnavailableReason::NotApplicable) => Ok(None),
             _ => Err(check_name),
         },
@@ -148,14 +166,21 @@ fn evaluate_os_rule(
         }
     }
 
-    // windows_security_update_current
-    if rule.windows_security_update_current == Some(true) {
-        match resolve_bool_check(
-            data.windows_security_update_current.as_ref(),
-            "windows_security_update_current",
+    // windows_security_update_max_age
+    if let Some(required_max_age_days) = rule.windows_security_update_max_age {
+        match resolve_int32_check(
+            data.windows_security_update_age_days.as_ref(),
+            "windows_security_update_age_days",
         ) {
-            Ok(true) => {}
-            Ok(false) => failures.push(FailureReason::SecurityUpdateRequired),
+            Ok(Some(actual_age_days)) => {
+                if actual_age_days > required_max_age_days {
+                    failures.push(FailureReason::SecurityUpdateTooOld {
+                        required_max_age_days,
+                        actual_age_days,
+                    });
+                }
+            }
+            Ok(None) => {} // NotApplicable — skip
             Err(name) => failures.push(FailureReason::CheckUnavailable { check: name }),
         }
     }

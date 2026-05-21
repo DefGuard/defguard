@@ -323,7 +323,7 @@ impl SessionManager {
         debug!(
             "Sending MFA session disconnect event for device {device} in location {location} to gateway manager"
         );
-        let event = GatewayCommand::MfaSessionDisconnected(location.id, device.clone());
+        let event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
         self.gateway_tx.send(event)?;
         Ok(())
     }

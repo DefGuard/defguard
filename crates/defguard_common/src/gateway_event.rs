@@ -38,8 +38,8 @@ pub enum GatewayCommand {
     DeviceDeleted(DeviceInfo),
     FirewallConfigChanged(Id, FirewallConfig),
     FirewallDisabled(Id),
-    MfaSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
-    MfaSessionDisconnected(Id, Device<Id>),
+    VpnSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
+    VpnSessionDeauthorized(Id, Device<Id>),
 }
 
 /// Sends a [`GatewayCommand`] to the gateway manager service.

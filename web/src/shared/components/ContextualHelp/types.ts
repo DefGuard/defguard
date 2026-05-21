@@ -1,4 +1,6 @@
 export const ContextualHelpKey = {
+  // ACL posture checks
+  PostureChecksEdit: 'posture-checks-edit',
   // Main Settings tabs
   SettingsGeneral: 'settings-general',
   SettingsNotifications: 'settings-notifications',
