@@ -13,11 +13,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  SQLX_OFFLINE: "1"
-  # sccache
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
+
 
 jobs:
   build-docker-release:
@@ -79,7 +75,11 @@ jobs:
       - self-hosted
       - Linux
       - X64
-
+    env:
+      SQLX_OFFLINE: "1"
+      # sccache
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
@@ -305,4 +305,107 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
           asset_content_type: application/x-pkg
+          overwrite: true
+
+  ubuntu-22-04-build:
+    needs:
+      - create-release
+    runs-on:
+      - self-hosted
+      - Linux
+      - ${{ matrix.architecture }}
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [ARM64, X64]
+        include:
+          - architecture: ARM64
+            deb_arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+          - architecture: X64
+            deb_arch: amd64
+            rust_target: x86_64-unknown-linux-gnu
+    container:
+      image: ubuntu:22.04
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        HOME: /root
+        RUSTUP_HOME: /root/.rustup
+        CARGO_HOME: /root/.cargo
+
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y git curl ca-certificates libatomic1
+          git config --global --add safe.directory '*'
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          submodules: recursive
+
+      - name: Write release version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Install NodeJS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 26
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        with:
+          version: 11
+
+      # Change to '--frozen-lockfile' once this gets fixed:
+      # https://github.com/pnpm/action-setup/issues/40
+      - name: Build frontend
+        working-directory: web
+        run: |
+          pnpm install --ignore-scripts --no-frozen-lockfile
+          pnpm build
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Install build dependencies
+        run: |
+          apt-get install -y \
+            build-essential pkg-config \
+            libssl-dev \
+            protobuf-compiler libprotobuf-dev \
+            ruby ruby-dev rubygems rpm
+          gem install fpm --no-document
+
+      - name: Build binary
+        run: |
+          cargo build --locked --release --target ${{ matrix.rust_target }}
+
+      - name: Build DEB package (ubuntu-22-04-lts)
+        run: |
+          fpm \
+            --output-type deb \
+            --version "${{ env.VERSION }}" \
+            --architecture ${{ matrix.deb_arch }} \
+            --package defguard-${{ env.VERSION }}-${{ matrix.deb_arch }}_ubuntu-22-04-lts.deb \
+            --before-install linux/preinst \
+            --after-install linux/postinst \
+            --before-remove linux/prerm \
+            --after-remove linux/postrm \
+            "target/${{ matrix.rust_target }}/release/defguard=/usr/bin/defguard" \
+            "linux/defguard.service=/usr/lib/systemd/system/defguard.service" \
+            ".env.example=/etc/defguard/core.conf"
+
+      - name: Upload ubuntu-22-04-lts DEB
+        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-${{ matrix.deb_arch }}_ubuntu-22-04-lts.deb
+          asset_content_type: application/gzip
           overwrite: true
