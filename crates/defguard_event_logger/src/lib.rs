@@ -703,6 +703,7 @@ mod tests {
             true,
             false,
             false,
+            false,
             LocationMfaMode::Internal,
             ServiceLocationMode::Disabled,
         )

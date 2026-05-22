@@ -241,6 +241,7 @@ pub(crate) async fn create_network(
         data.allow_all_groups,
         data.acl_enabled,
         data.acl_default_allow,
+        data.allowed_ips_from_acl,
         data.location_mfa_mode,
         data.service_location_mode,
     )

@@ -58,6 +58,7 @@ async fn create_location(pool: &sqlx::PgPool) -> i64 {
         true,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )

@@ -1651,6 +1651,7 @@ mod tests {
             true,
             false,
             false,
+            false,
             LocationMfaMode::Internal,
             ServiceLocationMode::Disabled,
         )
@@ -1669,6 +1670,7 @@ mod tests {
             None,
             [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
+            false,
             false,
             false,
             LocationMfaMode::Disabled,

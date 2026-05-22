@@ -160,6 +160,7 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
         true,  // allow_all_groups
         false, // acl_enabled
         false, // acl_default_allow
+        false,
         LocationMfaMode::default(),
         ServiceLocationMode::default(),
     )
@@ -373,6 +374,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
         true,  // allow_all_groups
         false, // acl_enabled
         false, // acl_default_allow
+        false,
         LocationMfaMode::Internal,
         ServiceLocationMode::default(),
     )
@@ -396,6 +398,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
         true,  // allow_all_groups
         false, // acl_enabled
         false, // acl_default_allow
+        false,
         LocationMfaMode::External,
         ServiceLocationMode::default(),
     )

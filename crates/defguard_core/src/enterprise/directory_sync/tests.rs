@@ -61,6 +61,7 @@ mod test {
             true,
             false,
             false,
+            false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )
