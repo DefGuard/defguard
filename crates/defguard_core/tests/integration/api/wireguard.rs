@@ -22,6 +22,7 @@ use defguard_core::{
         license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
         limits::update_counts,
     },
+    events::ApiEventType,
     grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
@@ -1389,5 +1390,151 @@ async fn test_user_device_configs_excludes_mfa_locations(
     assert_ne!(
         configs[0].network_id, mfa_location.id,
         "MFA location config must not be returned"
+    );
+}
+
+#[sqlx::test]
+async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // Create location with flag enabled
+    let create_response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "acl-ips-location",
+            "address": "10.20.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.20.1",
+            "allowed_ips": "",
+            "dns": "",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": true,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(create_response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = create_response.json().await;
+    assert!(
+        location.allowed_ips_from_acl,
+        "flag should be true after create"
+    );
+
+    // Verify API event was emitted for location creation
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1, "expected exactly 1 event after create");
+    let (event_type, _user_id, _username) = &events[0];
+    assert_matches!(
+        event_type,
+        ApiEventType::VpnLocationAdded { location: event_location }
+            if event_location.id == location.id && event_location.allowed_ips_from_acl
+    );
+
+    // Edit: toggle flag to false
+    let edit_response_off = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&json!({
+            "name": "acl-ips-location",
+            "address": "10.20.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.20.1",
+            "allowed_ips": "",
+            "dns": "",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(edit_response_off.status(), StatusCode::OK);
+    let location_off: WireguardNetwork<Id> = edit_response_off.json().await;
+    assert!(
+        !location_off.allowed_ips_from_acl,
+        "flag should be false after toggle off"
+    );
+
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1, "expected exactly 1 event after edit off");
+    let (event_type, _user_id, _username) = &events[0];
+    assert_matches!(
+        event_type,
+        ApiEventType::VpnLocationModified { before: before_loc, after: after_loc }
+            if before_loc.id == location.id
+                && before_loc.allowed_ips_from_acl
+                && after_loc.id == location_off.id
+                && !after_loc.allowed_ips_from_acl
+    );
+
+    // Edit: toggle flag back to true
+    let edit_response_on = client
+        .put(format!("/api/v1/network/{}", location_off.id))
+        .json(&json!({
+            "name": "acl-ips-location",
+            "address": "10.20.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.20.1",
+            "allowed_ips": "",
+            "dns": "",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": true,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(edit_response_on.status(), StatusCode::OK);
+    let location_on: WireguardNetwork<Id> = edit_response_on.json().await;
+    assert!(
+        location_on.allowed_ips_from_acl,
+        "flag should be true after toggle back on"
+    );
+
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1, "expected exactly 1 event after edit on");
+    let (event_type, _user_id, _username) = &events[0];
+    assert_matches!(
+        event_type,
+        ApiEventType::VpnLocationModified { before: before_loc, after: after_loc }
+            if before_loc.id == location_off.id
+                && !before_loc.allowed_ips_from_acl
+                && after_loc.id == location_on.id
+                && after_loc.allowed_ips_from_acl
+    );
+
+    // Fetch location and verify flag persisted
+    let get_response = client
+        .get(format!("/api/v1/network/{}", location_on.id))
+        .send()
+        .await;
+    assert_eq!(get_response.status(), StatusCode::OK);
+    let fetched: WireguardNetwork<Id> = get_response.json().await;
+    assert!(
+        fetched.allowed_ips_from_acl,
+        "flag should persist across GET fetch"
     );
 }
