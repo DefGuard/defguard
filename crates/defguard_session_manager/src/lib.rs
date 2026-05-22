@@ -7,9 +7,9 @@ use defguard_common::{
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
         },
     },
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::grpc::GatewayEvent;
 use sqlx::{PgConnection, PgPool};
 use tokio::{
     sync::{
@@ -42,7 +42,7 @@ pub async fn run_session_manager(
     pool: PgPool,
     mut peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-    gateway_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
     let mut session_update_timer = interval(SESSION_UPDATE_INTERVAL);
@@ -103,7 +103,7 @@ pub async fn run_session_manager_iteration(
 pub struct SessionManager {
     pool: PgPool,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-    gateway_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
 }
 
 impl SessionManager {
@@ -111,7 +111,7 @@ impl SessionManager {
     pub fn new(
         pool: PgPool,
         session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-        gateway_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
     ) -> Self {
         Self {
             pool,
@@ -335,9 +335,9 @@ impl SessionManager {
         device: &Device<Id>,
     ) -> Result<(), SessionManagerError> {
         debug!(
-            "Sending VPN session deauthorization event for device {device} in location {location} to gateway manager"
+            "Sending MFA session disconnect event for device {device} in location {location} to gateway manager"
         );
-        let event = GatewayEvent::VpnSessionDeauthorized(location.id, device.clone());
+        let event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
         self.gateway_tx.send(event)?;
         Ok(())
     }

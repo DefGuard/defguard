@@ -1,20 +1,22 @@
+use defguard_common::{
+    db::{NoId, models::WireguardNetwork, setup_pool},
+    gateway_types::{
+        FirewallPolicy, IpAddress, IpRange, Port, PortRange as GwPortRange, Protocol as GwProtocol,
+    },
+};
+use defguard_proto::enterprise::firewall::Protocol as ProtoProtocol;
+use rand::thread_rng;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
     ops::RangeInclusive,
 };
 
-use defguard_common::db::{NoId, models::WireguardNetwork, setup_pool};
-use defguard_proto::enterprise::firewall::{
-    FirewallPolicy, IpAddress, IpRange, Port, Protocol, ip_address::Address,
-    port::Port as PortInner,
-};
-use rand::thread_rng;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use super::{create_acl_rule, create_test_users_and_devices, set_test_license_business};
 use crate::enterprise::{
     db::models::acl::{
-        AclAlias, AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AliasKind, RuleState,
+        AclAlias, AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AliasKind, PortRange,
+        RuleState,
     },
     firewall::{process_destination_addrs, try_get_location_firewall_config},
 };
@@ -50,21 +52,13 @@ fn test_process_destination_addrs_v4() {
     assert_eq!(
         destination_addrs.0,
         [
-            IpAddress {
-                address: Some(Address::IpSubnet("10.0.1.0/24".to_owned())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("10.0.2.0/24".to_owned())),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.3.255".to_owned(),
-                    end: "10.0.4.0".to_owned(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
-            },
+            IpAddress::IpSubnet("10.0.1.0/24".to_owned()),
+            IpAddress::IpSubnet("10.0.2.0/24".to_owned()),
+            IpAddress::IpRange(IpRange {
+                start: "10.0.3.255".to_owned(),
+                end: "10.0.4.0".to_owned(),
+            }),
+            IpAddress::IpSubnet("192.168.1.0/24".to_owned()),
         ]
     );
 
@@ -111,21 +105,11 @@ fn test_process_destination_addrs_v6() {
     assert_eq!(
         destination_addrs.1,
         [
-            IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:1::/64".to_owned())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:2::/64".to_owned())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:3::/64".to_owned())),
-            },
-            IpAddress {
-                address: Some(Address::Ip("2001:db8:4::1".to_owned()))
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:4::2/127".to_owned()))
-            }
+            IpAddress::IpSubnet("2001:db8:1::/64".to_owned()),
+            IpAddress::IpSubnet("2001:db8:2::/64".to_owned()),
+            IpAddress::IpSubnet("2001:db8:3::/64".to_owned()),
+            IpAddress::Ip("2001:db8:4::1".to_owned()),
+            IpAddress::IpSubnet("2001:db8:4::2/127".to_owned())
         ]
     );
 
@@ -195,29 +179,25 @@ async fn test_any_address_overwrites_manual_destination(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert!(allow_rule.destination_addrs.is_empty());
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert!(deny_rule.destination_addrs.is_empty());
 }
@@ -294,29 +274,25 @@ async fn test_any_address_overwrites_destination_alias_addrs(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert!(allow_rule.destination_addrs.is_empty());
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert!(deny_rule.destination_addrs.is_empty());
 }
@@ -390,35 +366,29 @@ async fn test_manual_destination_includes_component_alias_address_range(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
-    let expected_destination_addrs = [IpAddress {
-        address: Some(Address::IpRange(IpRange {
-            start: "10.2.0.255".to_owned(),
-            end: "10.2.1.0".to_owned(),
-        })),
-    }];
+    let expected_destination_addrs = [IpAddress::IpRange(IpRange {
+        start: "10.2.0.255".to_owned(),
+        end: "10.2.1.0".to_owned(),
+    })];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
 }
@@ -495,43 +465,35 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
     let expected_destination_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.2.0.255".to_owned(),
-                end: "10.2.1.0".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.3.0.255".to_owned(),
-                end: "10.3.1.0".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.2.0.255".to_owned(),
+            end: "10.2.1.0".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.3.0.255".to_owned(),
+            end: "10.3.1.0".to_owned(),
+        }),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
 }
@@ -560,10 +522,10 @@ async fn test_any_port_preserves_destination_addresses_and_protocols(
         allow_all_users: true,
         addresses: vec!["192.168.50.0/24".parse().unwrap()],
         ports: vec![
-            crate::enterprise::db::models::acl::PortRange::new(22, 22).into(),
-            crate::enterprise::db::models::acl::PortRange::new(443, 443).into(),
+            PortRange::new(22, 22).into(),
+            PortRange::new(443, 443).into(),
         ],
-        protocols: vec![Protocol::Tcp.into(), Protocol::Udp.into()],
+        protocols: vec![ProtoProtocol::Tcp as i32, ProtoProtocol::Udp as i32],
         any_address: false,
         any_port: true,
         any_protocol: false,
@@ -597,51 +559,34 @@ async fn test_any_port_preserves_destination_addresses_and_protocols(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
     let expected_destination_addrs = [
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.50.0/24".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.60.10/31".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.60.12/30".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.60.16/30".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::Ip("192.168.60.20".to_owned())),
-        },
+        IpAddress::IpSubnet("192.168.50.0/24".to_owned()),
+        IpAddress::IpSubnet("192.168.60.10/31".to_owned()),
+        IpAddress::IpSubnet("192.168.60.12/30".to_owned()),
+        IpAddress::IpSubnet("192.168.60.16/30".to_owned()),
+        IpAddress::Ip("192.168.60.20".to_owned()),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
     assert!(allow_rule.destination_ports.is_empty());
-    assert_eq!(
-        allow_rule.protocols,
-        [i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
-    );
+    assert_eq!(allow_rule.protocols, [GwProtocol::Tcp, GwProtocol::Udp]);
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
     assert!(deny_rule.destination_ports.is_empty());
@@ -678,7 +623,7 @@ async fn test_any_protocol_preserves_destination_addresses_and_ports(
             crate::enterprise::db::models::acl::PortRange::new(80, 80).into(),
             crate::enterprise::db::models::acl::PortRange::new(1000, 1005).into(),
         ],
-        protocols: vec![Protocol::Tcp.into(), Protocol::Udp.into()],
+        protocols: vec![ProtoProtocol::Tcp as i32, ProtoProtocol::Udp as i32],
         any_address: false,
         any_port: false,
         any_protocol: true,
@@ -709,52 +654,38 @@ async fn test_any_protocol_preserves_destination_addresses_and_ports(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
     let expected_destination_addrs = [
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.70.0/24".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::Ip("192.168.80.1".to_owned())),
-        },
+        IpAddress::IpSubnet("192.168.70.0/24".to_owned()),
+        IpAddress::Ip("192.168.80.1".to_owned()),
     ];
     let expected_ports = [
-        Port {
-            port: Some(PortInner::SinglePort(80)),
-        },
-        Port {
-            port: Some(PortInner::PortRange(
-                defguard_proto::enterprise::firewall::PortRange {
-                    start: 1000,
-                    end: 1005,
-                },
-            )),
-        },
+        Port::Single(80),
+        Port::Range(GwPortRange {
+            start: 1000,
+            end: 1005,
+        }),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
     assert_eq!(allow_rule.destination_ports, expected_ports);
     assert!(allow_rule.protocols.is_empty());
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
     assert!(deny_rule.destination_ports.is_empty());
@@ -787,7 +718,7 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
             crate::enterprise::db::models::acl::PortRange::new(22, 22).into(),
             crate::enterprise::db::models::acl::PortRange::new(443, 443).into(),
         ],
-        protocols: vec![Protocol::Tcp.into(), Protocol::Udp.into()],
+        protocols: vec![ProtoProtocol::Tcp as i32, ProtoProtocol::Udp as i32],
         any_address: false,
         any_port: true,
         any_protocol: false,
@@ -838,51 +769,34 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
     let expected_destination_addrs = [
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.90.0/24".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.91.10/31".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.91.12/30".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.91.16/30".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::Ip("192.168.91.20".to_owned())),
-        },
+        IpAddress::IpSubnet("192.168.90.0/24".to_owned()),
+        IpAddress::IpSubnet("192.168.91.10/31".to_owned()),
+        IpAddress::IpSubnet("192.168.91.12/30".to_owned()),
+        IpAddress::IpSubnet("192.168.91.16/30".to_owned()),
+        IpAddress::Ip("192.168.91.20".to_owned()),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
     assert!(allow_rule.destination_ports.is_empty());
-    assert_eq!(
-        allow_rule.protocols,
-        [i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
-    );
+    assert_eq!(allow_rule.protocols, [GwProtocol::Tcp, GwProtocol::Udp]);
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
     assert!(deny_rule.destination_ports.is_empty());
@@ -918,7 +832,7 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
             crate::enterprise::db::models::acl::PortRange::new(80, 80).into(),
             crate::enterprise::db::models::acl::PortRange::new(1000, 1005).into(),
         ],
-        protocols: vec![Protocol::Tcp.into(), Protocol::Udp.into()],
+        protocols: vec![ProtoProtocol::Tcp as i32, ProtoProtocol::Udp as i32],
         any_address: false,
         any_port: false,
         any_protocol: true,
@@ -959,52 +873,38 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            })),
-        },
-        IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            })),
-        },
+        IpAddress::IpRange(IpRange {
+            start: "10.0.1.1".to_owned(),
+            end: "10.0.1.2".to_owned(),
+        }),
+        IpAddress::IpRange(IpRange {
+            start: "10.0.2.1".to_owned(),
+            end: "10.0.2.2".to_owned(),
+        }),
     ];
     let expected_destination_addrs = [
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.110.0/24".to_owned())),
-        },
-        IpAddress {
-            address: Some(Address::Ip("192.168.120.1".to_owned())),
-        },
+        IpAddress::IpSubnet("192.168.110.0/24".to_owned()),
+        IpAddress::Ip("192.168.120.1".to_owned()),
     ];
     let expected_ports = [
-        Port {
-            port: Some(PortInner::SinglePort(80)),
-        },
-        Port {
-            port: Some(PortInner::PortRange(
-                defguard_proto::enterprise::firewall::PortRange {
-                    start: 1000,
-                    end: 1005,
-                },
-            )),
-        },
+        Port::Single(80),
+        Port::Range(GwPortRange {
+            start: 1000,
+            end: 1005,
+        }),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
     assert_eq!(allow_rule.destination_ports, expected_ports);
     assert!(allow_rule.protocols.is_empty());
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
     assert!(deny_rule.source_addrs.is_empty());
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
     assert!(deny_rule.destination_ports.is_empty());

@@ -8,7 +8,7 @@ use defguard_common::db::{
     },
     setup_pool,
 };
-use defguard_core::grpc::GatewayEvent;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::{Duration, timeout};
@@ -348,7 +348,7 @@ async fn test_never_connected_posture_new_session_disconnects_after_threshold(
         .expect("timed out waiting for posture disconnect gateway event for new session")
         .expect("gateway event channel closed");
     match gateway_event {
-        GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+        GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
             assert_eq!(location_id, location.id);
             assert_eq!(disconnected_device.id, device.id);
         }
@@ -417,7 +417,7 @@ async fn test_inactive_posture_connected_session_disconnects_and_clears_authoriz
         .expect("timed out waiting for posture disconnect gateway event")
         .expect("gateway event channel closed");
     match gateway_event {
-        GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+        GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
             assert_eq!(location_id, location.id);
             assert_eq!(disconnected_device.id, device.id);
         }

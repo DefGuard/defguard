@@ -2,6 +2,8 @@ pub mod auth;
 pub mod config;
 pub mod csv;
 pub mod db;
+pub mod gateway_event;
+pub mod gateway_types;
 pub mod globals;
 pub mod hex;
 pub mod messages;

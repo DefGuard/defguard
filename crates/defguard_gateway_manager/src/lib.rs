@@ -11,9 +11,9 @@ use std::{
 
 use defguard_common::{
     db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
@@ -656,14 +656,14 @@ mod unit_tests {
 /// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct GatewayTxSet {
-    events: Sender<GatewayEvent>,
+    events: Sender<GatewayCommand>,
     peer_stats: UnboundedSender<PeerStatsUpdate>,
 }
 
 impl GatewayTxSet {
     #[must_use]
     pub const fn new(
-        events: Sender<GatewayEvent>,
+        events: Sender<GatewayCommand>,
         peer_stats: UnboundedSender<PeerStatsUpdate>,
     ) -> Self {
         Self { events, peer_stats }

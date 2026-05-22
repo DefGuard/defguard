@@ -1,5 +1,7 @@
-use defguard_common::db::{Id, models::WireguardNetwork};
-use defguard_proto::gateway::Peer;
+use defguard_common::{
+    db::{Id, models::WireguardNetwork},
+    gateway_types::WireguardPeer,
+};
 use sqlx::{PgConnection, query};
 
 use crate::grpc::should_prevent_service_location_usage;
@@ -14,7 +16,7 @@ use crate::grpc::should_prevent_service_location_usage;
 pub async fn get_location_allowed_peers(
     location: &WireguardNetwork<Id>,
     conn: &mut PgConnection,
-) -> sqlx::Result<Vec<Peer>> {
+) -> sqlx::Result<Vec<WireguardPeer>> {
     debug!("Fetching all allowed peers for location {}", location.id);
 
     if should_prevent_service_location_usage(location) {
@@ -47,7 +49,7 @@ pub async fn get_location_allowed_peers(
 
         return Ok(rows
             .into_iter()
-            .map(|row| Peer {
+            .map(|row| WireguardPeer {
                 pubkey: row.pubkey,
                 allowed_ips: row.allowed_ips,
                 preshared_key: None,
@@ -87,7 +89,7 @@ pub async fn get_location_allowed_peers(
 
     Ok(rows
         .into_iter()
-        .map(|row| Peer {
+        .map(|row| WireguardPeer {
             pubkey: row.pubkey,
             allowed_ips: row.allowed_ips,
             preshared_key: Some(row.preshared_key),

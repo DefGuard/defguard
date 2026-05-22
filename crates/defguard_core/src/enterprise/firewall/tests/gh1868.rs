@@ -1,12 +1,14 @@
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
+        setup_pool,
+    },
+    gateway_types::{FirewallPolicy, IpVersion},
+};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::NaiveDateTime;
-use defguard_common::db::{
-    Id, NoId,
-    models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
-    setup_pool,
-};
-use defguard_proto::enterprise::firewall::{FirewallPolicy, IpVersion};
 use ipnetwork::IpNetwork;
 use rand::{Rng, rngs::ThreadRng, thread_rng};
 use sqlx::{
@@ -124,12 +126,12 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict(), FirewallPolicy::Allow);
-    assert_eq!(allow_rule.ip_version(), IpVersion::Ipv4);
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
+    assert_eq!(allow_rule.ip_version, IpVersion::Ipv4);
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict(), FirewallPolicy::Deny);
-    assert_eq!(allow_rule.ip_version(), IpVersion::Ipv4);
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
+    assert_eq!(allow_rule.ip_version, IpVersion::Ipv4);
 }
 
 #[sqlx::test]
@@ -184,12 +186,12 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
+    assert_eq!(allow_rule.ip_version, IpVersion::Ipv6);
 
     let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
+    assert_eq!(allow_rule.ip_version, IpVersion::Ipv6);
 }
 
 #[sqlx::test]
@@ -244,16 +246,16 @@ async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
     assert_eq!(generated_firewall_rules.len(), 4);
 
     let allow_rule_ipv4 = &generated_firewall_rules[0];
-    assert_eq!(allow_rule_ipv4.verdict(), FirewallPolicy::Allow);
-    assert_eq!(allow_rule_ipv4.ip_version(), IpVersion::Ipv4);
+    assert_eq!(allow_rule_ipv4.verdict, FirewallPolicy::Allow);
+    assert_eq!(allow_rule_ipv4.ip_version, IpVersion::Ipv4);
     let allow_rule_ipv6 = &generated_firewall_rules[1];
-    assert_eq!(allow_rule_ipv6.verdict(), FirewallPolicy::Allow);
-    assert_eq!(allow_rule_ipv6.ip_version(), IpVersion::Ipv6);
+    assert_eq!(allow_rule_ipv6.verdict, FirewallPolicy::Allow);
+    assert_eq!(allow_rule_ipv6.ip_version, IpVersion::Ipv6);
 
     let deny_rule_ipv4 = &generated_firewall_rules[2];
-    assert_eq!(deny_rule_ipv4.verdict(), FirewallPolicy::Deny);
-    assert_eq!(allow_rule_ipv4.ip_version(), IpVersion::Ipv4);
+    assert_eq!(deny_rule_ipv4.verdict, FirewallPolicy::Deny);
+    assert_eq!(allow_rule_ipv4.ip_version, IpVersion::Ipv4);
     let deny_rule_ipv6 = &generated_firewall_rules[3];
-    assert_eq!(deny_rule_ipv6.verdict(), FirewallPolicy::Deny);
-    assert_eq!(allow_rule_ipv6.ip_version(), IpVersion::Ipv6);
+    assert_eq!(deny_rule_ipv6.verdict, FirewallPolicy::Deny);
+    assert_eq!(allow_rule_ipv6.ip_version, IpVersion::Ipv6);
 }

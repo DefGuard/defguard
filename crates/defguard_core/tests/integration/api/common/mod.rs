@@ -30,7 +30,7 @@ use defguard_core::{
     db::AppEvent,
     enterprise::license::{License, LicenseTier, SupportType, set_cached_license},
     events::ApiEvent,
-    grpc::{GatewayEvent, WorkerState},
+    grpc::{GatewayCommand, WorkerState},
     handlers::{Auth, user::UserDetails},
 };
 use reqwest::{StatusCode, header::HeaderName};
@@ -60,7 +60,7 @@ pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri
 pub(crate) struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
-    pub wireguard_rx: Receiver<GatewayEvent>,
+    pub gateway_rx: Receiver<GatewayCommand>,
     pub test_user: User<Id>,
     #[allow(dead_code)]
     pub config: DefGuardConfig,
@@ -70,14 +70,14 @@ impl ClientState {
     pub fn new(
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
-        wireguard_rx: Receiver<GatewayEvent>,
+        gateway_rx: Receiver<GatewayCommand>,
         test_user: User<Id>,
         config: DefGuardConfig,
     ) -> Self {
         Self {
             pool,
             worker_state,
-            wireguard_rx,
+            gateway_rx,
             test_user,
             config,
         }
@@ -92,7 +92,7 @@ pub(crate) async fn make_base_client(
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (gateway_tx, gateway_rx) = broadcast::channel::<GatewayCommand>(16);
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -113,7 +113,7 @@ pub(crate) async fn make_base_client(
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
-        wg_rx,
+        gateway_rx,
         User::find_by_username(&pool, "hpotter")
             .await
             .unwrap()
@@ -146,7 +146,7 @@ pub(crate) async fn make_base_client(
     let webapp = build_webapp(
         tx,
         rx,
-        wg_tx,
+        gateway_tx,
         web_reload_tx,
         worker_state,
         pool,

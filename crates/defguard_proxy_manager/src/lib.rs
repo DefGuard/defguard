@@ -9,11 +9,11 @@ use std::{path::PathBuf, str::FromStr, sync::Mutex as StdMutex};
 use axum_extra::extract::cookie::Key;
 use defguard_common::{
     db::{Id, models::proxy::Proxy},
+    gateway_event::GatewayCommand,
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    events::BidiStreamEvent,
-    grpc::{GatewayEvent, proxy::client_mfa::ClientLoginSession},
+    events::BidiStreamEvent, grpc::proxy::client_mfa::ClientLoginSession,
     version::IncompatibleComponents,
 };
 use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
@@ -401,14 +401,14 @@ impl ProxyManager {
 /// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct ProxyTxSet {
-    wireguard: Sender<GatewayEvent>,
+    wireguard: Sender<GatewayCommand>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
 }
 
 impl ProxyTxSet {
     #[must_use]
     pub const fn new(
-        wireguard: Sender<GatewayEvent>,
+        wireguard: Sender<GatewayCommand>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {

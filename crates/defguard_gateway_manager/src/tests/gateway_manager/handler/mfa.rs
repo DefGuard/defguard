@@ -18,7 +18,7 @@ async fn test_matching_location_posture_vpn_session_authorized_produces_peer_cre
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::VpnSessionAuthorized(
+        context.events_tx().send(GatewayCommand::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
@@ -60,7 +60,7 @@ async fn test_matching_location_posture_vpn_session_authorized_without_psk_is_sk
     network_device.preshared_key = None;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::VpnSessionAuthorized(
+        context.events_tx().send(GatewayCommand::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
@@ -93,7 +93,7 @@ async fn test_matching_location_vpn_session_authorized_produces_peer_create(
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::VpnSessionAuthorized(
+        context.events_tx().send(GatewayCommand::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
@@ -139,7 +139,7 @@ async fn test_vpn_session_authorized_with_mismatched_network_id_is_ignored(
     .await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::VpnSessionAuthorized(
+        context.events_tx().send(GatewayCommand::VpnSessionAuthorized(
             context.network.id,
             device,
             network_device,
@@ -173,7 +173,7 @@ async fn test_matching_location_vpn_session_deauthorized_produces_peer_delete(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::VpnSessionDeauthorized(
+            .send(GatewayCommand::VpnSessionDeauthorized(
                 context.network.id,
                 device,
             )),

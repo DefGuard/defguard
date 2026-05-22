@@ -16,15 +16,18 @@ use axum::{
     response::Json,
 };
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        proxy::Proxy,
-        settings::{Settings, initialize_current_settings},
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            proxy::Proxy,
+            settings::{Settings, initialize_current_settings},
+        },
+        setup_pool,
     },
-    setup_pool,
+    gateway_event::GatewayCommand,
 };
-use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
+use defguard_core::events::BidiStreamEvent;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
     proxy_server,
@@ -381,7 +384,7 @@ impl Drop for MockProxyHarness {
 pub(crate) struct HandlerTestContext {
     pub(crate) pool: PgPool,
     pub(crate) proxy: Proxy<Id>,
-    pub(crate) wireguard_tx: broadcast::Sender<GatewayEvent>,
+    pub(crate) gateway_tx: broadcast::Sender<GatewayCommand>,
     pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
@@ -406,9 +409,9 @@ impl HandlerTestContext {
 
         let proxy = create_proxy(&pool).await;
 
-        let (wireguard_tx, _) = broadcast::channel(16);
+        let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(wireguard_tx.clone(), bidi_events_tx);
+        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -450,7 +453,7 @@ impl HandlerTestContext {
         Self {
             pool,
             proxy,
-            wireguard_tx,
+            gateway_tx,
             bidi_events_rx,
             mock_proxy: Some(mock_proxy),
             handler_task: Some(handler_task),
@@ -586,9 +589,9 @@ impl ManagerTestContext {
     pub(crate) async fn start(&mut self) {
         assert!(self.manager_task.is_none(), "proxy manager already started");
 
-        let (wireguard_tx, _) = broadcast::channel(16);
+        let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, _bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(wireguard_tx, bidi_events_tx);
+        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx);
 
         let incompatible_components = Arc::new(std::sync::RwLock::new(
             defguard_core::version::IncompatibleComponents::default(),

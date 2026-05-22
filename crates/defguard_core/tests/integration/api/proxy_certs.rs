@@ -30,7 +30,7 @@ use defguard_core::{
     db::AppEvent,
     enterprise::license::{License, LicenseTier, SupportType, set_cached_license},
     events::ApiEvent,
-    grpc::{GatewayEvent, WorkerState},
+    grpc::{GatewayCommand, WorkerState},
     handlers::Auth,
 };
 use reqwest::StatusCode;
@@ -114,7 +114,7 @@ async fn make_test_client_with_proxy_rx(
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, _wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (gateway_tx, _wg_rx) = broadcast::channel::<GatewayCommand>(16);
 
     let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
 
@@ -140,7 +140,7 @@ async fn make_test_client_with_proxy_rx(
     let webapp = build_webapp(
         tx,
         rx,
-        wg_tx,
+        gateway_tx,
         web_reload_tx,
         worker_state,
         pool.clone(),

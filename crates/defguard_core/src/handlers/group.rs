@@ -110,7 +110,7 @@ pub(crate) async fn bulk_assign_to_groups(
         }
     }
 
-    sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
+    sync_all_networks(&mut transaction, &appstate.gateway_tx).await?;
 
     transaction.commit().await?;
 
@@ -364,7 +364,7 @@ pub(crate) async fn create_group(
             .insert(&group_info.name);
     }
 
-    sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
+    sync_all_networks(&mut transaction, &appstate.gateway_tx).await?;
 
     transaction.commit().await?;
 
@@ -498,7 +498,7 @@ pub(crate) async fn modify_group(
             .insert(group.name.as_str());
     }
 
-    sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
+    sync_all_networks(&mut transaction, &appstate.gateway_tx).await?;
     let users_after = group.members(&mut *transaction).await?.clone();
     transaction.commit().await?;
 
@@ -608,7 +608,7 @@ pub(crate) async fn delete_group(
 
         // sync allowed devices for all locations
         let mut conn = appstate.pool.acquire().await?;
-        sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
+        sync_all_networks(&mut conn, &appstate.gateway_tx).await?;
 
         info!(
             "User {} deleted group {}",
@@ -665,7 +665,7 @@ pub(crate) async fn add_group_member(
             ldap_add_user_to_groups(&user, hashset![group.name.as_str()], &appstate.pool).await;
             ldap_update_user_state(&mut user, &appstate.pool).await;
             let mut conn = appstate.pool.acquire().await?;
-            sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
+            sync_all_networks(&mut conn, &appstate.gateway_tx).await?;
             info!("Added user: {} to group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,
@@ -728,7 +728,7 @@ pub(crate) async fn remove_group_member(
                 .await;
 
             let mut conn = appstate.pool.acquire().await?;
-            sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
+            sync_all_networks(&mut conn, &appstate.gateway_tx).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,

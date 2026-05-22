@@ -27,7 +27,7 @@ use crate::{
             ApiAclRule, EditAclRule, alias::EditAclAlias, destination::EditAclDestination,
         },
     },
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
 };
 
 #[derive(Debug, Error)]
@@ -547,7 +547,7 @@ impl AclRule {
             match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
-                    appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                    appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                         location.id,
                         firewall_config,
                     ));
@@ -555,7 +555,7 @@ impl AclRule {
                 None => {
                     debug!(
                         "No firewall config generated for location {location}. Not sending a \
-                        gateway event"
+                        gateway command"
                     );
                 }
             }
@@ -1828,7 +1828,7 @@ impl AclAlias {
             match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
-                    appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                    appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                         location.id,
                         firewall_config,
                     ));
@@ -1836,7 +1836,7 @@ impl AclAlias {
                 None => {
                     debug!(
                         "No firewall config generated for location {location}. Not sending a \
-                        gateway event"
+                        gateway command"
                     );
                 }
             }

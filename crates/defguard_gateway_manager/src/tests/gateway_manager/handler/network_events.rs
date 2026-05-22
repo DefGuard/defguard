@@ -8,7 +8,7 @@ async fn test_matching_location_network_deleted_event_produces_delete_update(
     let _ = context.complete_config_handshake().await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::NetworkDeleted(
+        context.events_tx().send(GatewayCommand::NetworkDeleted(
             context.network.id,
             context.network.name.clone(),
         )),
@@ -45,7 +45,7 @@ async fn test_matching_location_network_modified_event_produces_modify_update(
     modified_network.fwmark = 42;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::NetworkModified(
+        context.events_tx().send(GatewayCommand::NetworkModified(
             context.network.id,
             modified_network,
             Vec::new(),
@@ -92,7 +92,7 @@ async fn test_matching_location_network_created_event_produces_create_update(
     created_network.fwmark = 17;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::NetworkCreated(
+        context.events_tx().send(GatewayCommand::NetworkCreated(
             context.network.id,
             created_network,
         )),
@@ -145,7 +145,7 @@ async fn test_only_matching_handler_receives_network_modified_update(
     assert_send_ok!(
         matching_context
             .events_tx()
-            .send(GatewayEvent::NetworkModified(
+            .send(GatewayCommand::NetworkModified(
                 matching_context.network.id,
                 modified_network,
                 Vec::new(),
@@ -189,7 +189,7 @@ async fn test_different_location_network_created_event_is_ignored(
 
     let _ = context.complete_config_handshake().await;
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::NetworkCreated(
+        context.events_tx().send(GatewayCommand::NetworkCreated(
             other_network.id,
             other_network,
         )),
@@ -212,7 +212,7 @@ async fn test_different_location_network_deleted_event_is_ignored(
 
     let _ = context.complete_config_handshake().await;
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::NetworkDeleted(
+        context.events_tx().send(GatewayCommand::NetworkDeleted(
             other_network.id,
             other_network.name.clone(),
         )),
@@ -222,7 +222,7 @@ async fn test_different_location_network_deleted_event_is_ignored(
     context.mock_gateway_mut().expect_no_outbound().await;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayEvent::NetworkDeleted(
+        context.events_tx().send(GatewayCommand::NetworkDeleted(
             context.network.id,
             context.network.name.clone(),
         )),
