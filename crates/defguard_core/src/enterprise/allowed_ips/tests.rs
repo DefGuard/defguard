@@ -35,7 +35,7 @@ fn set_test_license_business() {
         limits: None,
         subscription: false,
         support_type: SupportType::Basic,
-        tier: LicenseTier::Business,
+        tier: LicenseTier::Enterprise,
         valid_until: None,
         version_date_limit: None,
     };

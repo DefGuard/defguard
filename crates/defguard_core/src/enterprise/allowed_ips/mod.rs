@@ -12,7 +12,7 @@ use sqlx::PgConnection;
 use thiserror::Error;
 
 #[cfg(not(test))]
-use crate::enterprise::is_business_license_active;
+use crate::enterprise::is_enterprise_license_active;
 use crate::enterprise::{
     firewall::get_location_active_acl_rules,
     utils::{extract_subnets_from_range, get_last_ip_in_v6_subnet, merge_ranges},
@@ -75,10 +75,9 @@ pub async fn get_allowed_ips_from_acl_rules(
     }
 
     #[cfg(not(test))]
-    // TODO: determine whether this is a business or enterprise feature before integration
-    if !is_business_license_active() {
+    if !is_enterprise_license_active() {
         debug!(
-            "Business license is not active, skipping AllowedIPs computation for location {}",
+            "Enterprise license is not active, skipping AllowedIPs computation for location {}",
             location.id
         );
         return Err(AllowedIpsError::LicenseInactive);
