@@ -172,6 +172,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -224,6 +225,7 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -281,6 +283,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -318,6 +321,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -351,6 +355,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -385,6 +390,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -434,6 +440,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -465,6 +472,7 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -732,6 +740,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -846,6 +855,7 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -958,6 +968,7 @@ async fn test_delete_only_allowed_group_rejected(_: PgPoolOptions, options: PgCo
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -1030,6 +1041,7 @@ async fn test_delete_allowed_group_when_location_keeps_other_groups(
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -1079,6 +1091,7 @@ async fn test_create_network_without_groups_rejected(_: PgPoolOptions, options: 
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };
@@ -1132,6 +1145,7 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };

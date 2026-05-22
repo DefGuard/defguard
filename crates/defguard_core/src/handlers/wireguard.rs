@@ -78,6 +78,7 @@ pub struct WireguardNetworkData {
     pub peer_disconnect_threshold: i32,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    pub allowed_ips_from_acl: bool,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
 }
@@ -362,6 +363,7 @@ pub(crate) async fn modify_network(
     network.allow_all_groups = data.allow_all_groups;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
+    network.allowed_ips_from_acl = data.allowed_ips_from_acl;
     network.service_location_mode = if data.location_mfa_mode == LocationMfaMode::Disabled {
         data.service_location_mode
     } else {

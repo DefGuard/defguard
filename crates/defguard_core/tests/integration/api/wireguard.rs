@@ -83,6 +83,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };
@@ -185,6 +186,7 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -223,6 +225,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::External,
         service_location_mode: ServiceLocationMode::Disabled,
     };
@@ -308,6 +311,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };
@@ -411,6 +415,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         peer_disconnect_threshold: INVALID_MFA_PEER_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };
@@ -466,6 +471,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         peer_disconnect_threshold: INVALID_MFA_PEER_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };
@@ -735,6 +741,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
         "location_mfa_mode": "disabled",
         "service_location_mode": "disabled"
     });
@@ -1063,6 +1070,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
         "location_mfa_mode": "disabled",
         "service_location_mode": "disabled"
     });
@@ -1090,6 +1098,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
         "location_mfa_mode": "disabled",
         "service_location_mode": "disabled"
     });
@@ -1220,6 +1229,7 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -1313,6 +1323,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -1339,6 +1350,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "internal",
             "service_location_mode": "disabled"
         }))

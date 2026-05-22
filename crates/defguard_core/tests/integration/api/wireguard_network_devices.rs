@@ -38,6 +38,7 @@ async fn make_first_network(client: &TestClient) -> TestResponse {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -65,6 +66,7 @@ async fn make_second_network(client: &TestClient) -> TestResponse {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -332,6 +334,7 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
         "location_mfa_mode": "disabled",
         "service_location_mode": "disabled"
     });
