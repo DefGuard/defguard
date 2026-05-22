@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    ops::RangeInclusive,
-};
+use std::{net::IpAddr, ops::RangeInclusive};
 
 use defguard_common::db::{
     Id,
@@ -29,22 +26,6 @@ pub enum AllowedIpsError {
     LicenseInactive,
     #[error(transparent)]
     DbError(#[from] sqlx::Error),
-}
-
-/// Returns the all-traffic networks for the given location's IP versions.
-fn all_traffic_networks(location: &WireguardNetwork<Id>) -> Vec<IpNetwork> {
-    let mut networks = Vec::new();
-    if location.address().iter().any(|a| a.is_ipv4()) {
-        networks.push(
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).expect("valid IPv4 default route"),
-        );
-    }
-    if location.address().iter().any(|a| a.is_ipv6()) {
-        networks.push(
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).expect("valid IPv6 default route"),
-        );
-    }
-    networks
 }
 
 /// Converts an [`IpNetwork`] to a [`RangeInclusive<IpAddr>`] covering all
@@ -108,10 +89,10 @@ pub async fn get_allowed_ips_from_acl_rules(
         if rule.use_manual_destination_settings {
             if rule.any_address {
                 debug!(
-                    "Rule {} has any_address enabled. Returning default route for user {}",
+                    "Rule {} has any_address enabled. Skipping manual destinations for user {}",
                     rule.id, user.id
                 );
-                return Ok(all_traffic_networks(location));
+                continue;
             }
             all_networks.extend(rule.addresses.iter().copied());
             all_ranges.extend(rule.address_ranges.iter().map(RangeInclusive::from));
@@ -120,10 +101,10 @@ pub async fn get_allowed_ips_from_acl_rules(
             for alias in &rule.aliases {
                 if alias.any_address {
                     debug!(
-                        "Alias {} in rule {} has any_address enabled. Returning default route for user {}",
+                        "Alias {} in rule {} has any_address enabled. Skipping for user {}",
                         alias.id, rule.id, user.id
                     );
-                    return Ok(all_traffic_networks(location));
+                    continue;
                 }
                 all_networks.extend(alias.addresses.iter().copied());
                 let alias_ranges = alias.get_destination_ranges(&mut *conn).await?;
@@ -135,10 +116,10 @@ pub async fn get_allowed_ips_from_acl_rules(
         for destination in &rule.destinations {
             if destination.any_address {
                 debug!(
-                    "Destination {} in rule {} has any_address enabled. Returning default route for user {}",
+                    "Destination {} in rule {} has any_address enabled. Skipping for user {}",
                     destination.id, rule.id, user.id
                 );
-                return Ok(all_traffic_networks(location));
+                continue;
             }
             all_networks.extend(destination.addresses.iter().copied());
             let dest_ranges = destination.get_destination_ranges(&mut *conn).await?;
