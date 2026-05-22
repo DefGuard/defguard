@@ -164,7 +164,7 @@ describe('edit location posture-checks section state', () => {
       },
       {
         label: 'macOS',
-        lines: ['macOS 15+', 'Disk encryption enabled', 'Device integrity enabled'],
+        lines: ['macOS 15+', 'Device integrity enabled'],
       },
       {
         label: 'Defguard',
