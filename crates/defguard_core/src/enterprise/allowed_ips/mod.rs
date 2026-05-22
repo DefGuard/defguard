@@ -152,3 +152,49 @@ pub async fn get_allowed_ips_from_acl_rules(
 
     Ok(result)
 }
+
+/// Computes the effective AllowedIPs for a user in a location, merging manual
+/// static IPs with ACL-generated IPs when the `allowed_ips_from_acl` flag is
+/// enabled on the location.
+///
+/// The manual (static) AllowedIPs defined on the network are always included.
+/// If `allowed_ips_from_acl` is true, an active enterprise license is present,
+/// and ACL is enabled on the location, ACL-derived IPs are computed and merged.
+/// Any errors during ACL computation are logged and the manual IPs are returned
+/// on their own.
+pub async fn get_effective_allowed_ips(
+    conn: &mut PgConnection,
+    network: &WireguardNetwork<Id>,
+    user: &User<Id>,
+) -> Vec<IpNetwork> {
+    let mut ips = network.allowed_ips.clone();
+
+    if network.allowed_ips_from_acl {
+        match get_allowed_ips_from_acl_rules(conn, network, user).await {
+            Ok(acl_ips) => ips.extend(acl_ips),
+            Err(AllowedIpsError::AclNotEnabled) => {
+                debug!(
+                    "ACL not enabled for location {}, skipping ACL AllowedIPs",
+                    network.id
+                );
+            }
+            Err(AllowedIpsError::LicenseInactive) => {
+                debug!(
+                    "Enterprise license not active for location {}, skipping ACL AllowedIPs",
+                    network.id
+                );
+            }
+            Err(AllowedIpsError::DbError(e)) => {
+                warn!(
+                    "DB error computing ACL AllowedIPs for location {}: {e}",
+                    network.id
+                );
+            }
+        }
+    }
+
+    // Deduplicate and sort for deterministic output.
+    ips.sort();
+    ips.dedup();
+    ips
+}

@@ -13,7 +13,7 @@ use sqlx::{
 use std::net::IpAddr;
 
 use crate::enterprise::{
-    allowed_ips::{AllowedIpsError, get_allowed_ips_from_acl_rules},
+    allowed_ips::{AllowedIpsError, get_allowed_ips_from_acl_rules, get_effective_allowed_ips},
     db::models::acl::{
         AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleGroup, AclRuleNetwork,
         AclRuleUser, AliasKind, AliasState, RuleState,
@@ -854,4 +854,107 @@ async fn test_any_address_destination_skipped(_: PgPoolOptions, options: PgConne
         result.is_empty(),
         "any_address destination should be skipped, got {result:?}"
     );
+}
+
+#[sqlx::test]
+async fn test_effective_allowed_ips_toggle_on(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Set manual allowed_ips on the location.
+    let mut location = WireguardNetwork::find_by_id(&pool, location.id)
+        .await
+        .unwrap()
+        .unwrap();
+    location.allowed_ips = vec!["10.100.0.0/16".parse().unwrap()];
+    location.allowed_ips_from_acl = true;
+    location.save(&pool).await.unwrap();
+
+    // ACL rule matching the user.
+    let destination = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-alice", vec![destination]);
+    create_acl_rule(&pool, rule, &[location.id], &[user.id], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
+
+    // Manual IPs always present, ACL IPs appended.
+    let expected = vec![
+        "10.100.0.0/16".parse().unwrap(),
+        "192.168.1.0/24".parse().unwrap(),
+    ];
+    assert_eq!(result, expected);
+}
+
+#[sqlx::test]
+async fn test_effective_allowed_ips_toggle_off(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    let mut location = WireguardNetwork::find_by_id(&pool, location.id)
+        .await
+        .unwrap()
+        .unwrap();
+    location.allowed_ips = vec!["10.100.0.0/16".parse().unwrap()];
+    location.allowed_ips_from_acl = false;
+    location.save(&pool).await.unwrap();
+
+    let destination = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-alice", vec![destination]);
+    create_acl_rule(&pool, rule, &[location.id], &[user.id], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
+
+    // Toggle off: only manual IPs.
+    assert_eq!(result, vec!["10.100.0.0/16".parse().unwrap()]);
+}
+
+#[sqlx::test]
+async fn test_effective_allowed_ips_no_matching_rules(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+    let other_user = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None);
+    let other_user = other_user.save(&pool).await.unwrap();
+
+    let mut location = WireguardNetwork::find_by_id(&pool, location.id)
+        .await
+        .unwrap()
+        .unwrap();
+    location.allowed_ips = vec!["10.100.0.0/16".parse().unwrap()];
+    location.allowed_ips_from_acl = true;
+    location.save(&pool).await.unwrap();
+
+    // Rule allows bob only, not alice.
+    let destination = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-bob", vec![destination]);
+    create_acl_rule(
+        &pool,
+        rule,
+        &[location.id],
+        &[other_user.id],
+        &[],
+        &[],
+        &[],
+        &[],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
+
+    // Toggle on but user doesn't match any rules: only manual IPs.
+    assert_eq!(result, vec!["10.100.0.0/16".parse().unwrap()]);
 }
