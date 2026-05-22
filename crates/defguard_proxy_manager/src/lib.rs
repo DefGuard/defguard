@@ -7,9 +7,9 @@ use std::{
 use std::{path::PathBuf, str::FromStr, sync::Mutex as StdMutex};
 
 use axum_extra::extract::cookie::Key;
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{Id, models::proxy::Proxy},
+    gateway_event::GatewayCommand,
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{

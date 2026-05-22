@@ -11,7 +11,6 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{
         Id, NoId,
@@ -20,6 +19,7 @@ use defguard_common::{
         },
         setup_pool,
     },
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_proto::gateway::{CoreRequest, CoreResponse, PeerStats, core_request, gateway_server};

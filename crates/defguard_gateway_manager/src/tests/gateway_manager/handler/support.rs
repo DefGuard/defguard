@@ -1,23 +1,23 @@
 use std::net::IpAddr;
 
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
-        user::User,
-        vpn_client_session::VpnClientSession,
-        wireguard::{LocationMfaMode, WireguardNetwork},
+use defguard_common::gateway_event::GatewayCommand;
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
+            user::User,
+            vpn_client_session::VpnClientSession,
+            wireguard::{LocationMfaMode, WireguardNetwork},
+        },
+    },
+    gateway_types::{
+        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port,
+        Protocol as GwProtocol, SnatBinding,
     },
 };
-use defguard_common::gateway_types::{
-    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port,
-    Protocol as GwProtocol, SnatBinding,
-};
-use defguard_core::{
-    enterprise::db::models::device_posture::{
-        DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
-    },
-    grpc::GatewayCommand,
+use defguard_core::enterprise::db::models::device_posture::{
+    DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
 };
 use defguard_proto::{
     enterprise::firewall::FirewallConfig as ProtoFirewallConfig,

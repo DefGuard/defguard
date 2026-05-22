@@ -10,8 +10,9 @@ use axum::{
     serve,
 };
 use axum_extra::extract::cookie::Key;
-use defguard_common::gateway_event::GatewayCommand;
-use defguard_common::{VERSION, db::models::Settings, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    VERSION, db::models::Settings, gateway_event::GatewayCommand, types::proxy::ProxyControlMessage,
+};
 use defguard_core::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,

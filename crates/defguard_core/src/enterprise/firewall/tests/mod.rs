@@ -1,17 +1,19 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::NaiveDateTime;
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, group::Group,
-        user::User,
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, group::Group,
+            user::User,
+        },
+        setup_pool,
     },
-    setup_pool,
-};
-use defguard_common::gateway_types::{
-    FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as GwPortRange,
-    Protocol as GwProtocol,
+    gateway_types::{
+        FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as GwPortRange,
+        Protocol as GwProtocol,
+    },
 };
 use defguard_proto::enterprise::firewall::Protocol as ProtoProtocol;
 use ipnetwork::IpNetwork;

@@ -16,15 +16,17 @@ use axum::{
     response::Json,
 };
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        proxy::Proxy,
-        settings::{Settings, initialize_current_settings},
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            proxy::Proxy,
+            settings::{Settings, initialize_current_settings},
+        },
+        setup_pool,
     },
-    setup_pool,
+    gateway_event::GatewayCommand,
 };
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_core::events::BidiStreamEvent;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,

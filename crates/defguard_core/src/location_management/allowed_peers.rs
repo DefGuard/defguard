@@ -1,5 +1,7 @@
-use defguard_common::db::{Id, models::WireguardNetwork};
-use defguard_common::gateway_types::WireguardPeer;
+use defguard_common::{
+    db::{Id, models::WireguardNetwork},
+    gateway_types::WireguardPeer,
+};
 use sqlx::{PgConnection, query};
 
 use crate::grpc::should_prevent_service_location_usage;

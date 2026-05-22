@@ -1,5 +1,4 @@
-use defguard_common::db::Id;
-use defguard_common::gateway_event::GatewayCommand;
+use defguard_common::{db::Id, gateway_event::GatewayCommand};
 use thiserror::Error;
 use tokio::sync::{broadcast::error::SendError as BroadcastSendError, mpsc::error::SendError};
 

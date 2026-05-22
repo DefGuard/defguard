@@ -1111,7 +1111,7 @@ mod tests {
         },
         setup_pool,
     };
-    use defguard_core::grpc::GatewayCommand;
+    use defguard_common::gateway_event::GatewayCommand;
     use defguard_proto::gateway::{Configuration, PeerStats, core_response};
     use prost_types::Timestamp;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

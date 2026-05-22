@@ -1,5 +1,4 @@
-use defguard_common::db::Id;
-use defguard_common::gateway_event::GatewayCommand;
+use defguard_common::{db::Id, gateway_event::GatewayCommand};
 use defguard_proto::{
     client_types::{ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod},
     proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},

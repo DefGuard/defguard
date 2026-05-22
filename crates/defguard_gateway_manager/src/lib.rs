@@ -9,9 +9,9 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_proto::gateway::gateway_client::GatewayClient;

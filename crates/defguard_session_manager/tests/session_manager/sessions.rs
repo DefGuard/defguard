@@ -8,7 +8,7 @@ use defguard_common::db::{
     },
     setup_pool,
 };
-use defguard_core::grpc::GatewayCommand;
+use defguard_common::gateway_event::GatewayCommand;
 use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::{Duration, timeout};

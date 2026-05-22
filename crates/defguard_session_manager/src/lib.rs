@@ -1,5 +1,4 @@
 use chrono::Utc;
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{
         Id,
@@ -8,6 +7,7 @@ use defguard_common::{
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
         },
     },
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use sqlx::{PgConnection, PgPool};
