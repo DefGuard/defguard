@@ -1,7 +1,12 @@
-import { useInfiniteQuery, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { ColumnFiltersState } from '@tanstack/react-table';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { Page } from '../../shared/components/Page/Page';
@@ -17,12 +22,14 @@ import {
 } from '../../shared/query';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
 import { shouldFetchPostureChecksEnterpriseData } from './license';
+import { PostureCheckDrawer } from './PostureCheckDrawer/PostureCheckDrawer';
 import { PostureChecksTable } from './PostureChecksTable';
 import {
   getPostureCheckColumnFilterOptions,
   getPostureCheckTableFilterMessages,
   mapApiDevicePostureToRow,
   mapPostureCheckFilterValueToRequestValue,
+  type PostureCheckRow,
 } from './postureChecks';
 import { getPostureCheckVersionValues } from './types';
 
@@ -57,6 +64,11 @@ const PostureChecksContent = () => {
     enabled: shouldFetchPostureChecksEnterpriseData(canUseEnterprise),
   });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [selectedRow, setSelectedRow] = useState<PostureCheckRow | null>(null);
+  const queryClient = useQueryClient();
+  const handleDrawerClose = useCallback(() => {
+    setSelectedRow(null);
+  }, []);
   const versionValues = useMemo(
     () => (versionMetadata ? getPostureCheckVersionValues(versionMetadata) : null),
     [versionMetadata],
@@ -101,9 +113,27 @@ const PostureChecksContent = () => {
   });
 
   const flatQueryData = useMemo(() => data?.pages.flat() ?? null, [data?.pages]);
-  const postureChecks = useMemo(
-    () => flatQueryData?.flatMap((page) => page.data).map(mapApiDevicePostureToRow) ?? [],
+  const flatPostures = useMemo(
+    () => flatQueryData?.flatMap((page) => page.data) ?? [],
     [flatQueryData],
+  );
+  const postureChecks = useMemo(
+    () => flatPostures.map(mapApiDevicePostureToRow),
+    [flatPostures],
+  );
+  const posturesById = useMemo(
+    () => new Map(flatPostures.map((posture) => [posture.id, posture])),
+    [flatPostures],
+  );
+  const handleRowClick = useCallback(
+    (row: PostureCheckRow) => {
+      const posture = posturesById.get(row.id);
+      if (posture) {
+        queryClient.setQueryData(['device-posture', row.id], posture);
+      }
+      setSelectedRow(row);
+    },
+    [posturesById, queryClient],
   );
   const lastItem = flatQueryData ? flatQueryData[flatQueryData.length - 1] : null;
   const pagination = lastItem ? lastItem.pagination : null;
@@ -128,30 +158,34 @@ const PostureChecksContent = () => {
   }
 
   return (
-    <TablePageLayout>
-      {postureChecks.length > 0 || columnFilters.length > 0 ? (
-        <PostureChecksTable
-          addButtonProps={addButtonProps}
-          columnFilterOptions={columnFilterOptions}
-          columnFilters={columnFilters}
-          filterMessages={filterMessages}
-          hasNextPage={pagination?.next_page !== null}
-          loadingNextPage={isFetchingNextPage}
-          onColumnFiltersChange={setColumnFilters}
-          onNextPage={() => {
-            fetchNextPage();
-          }}
-          postureChecks={postureChecks}
-        />
-      ) : (
-        <EmptyStateFlexible
-          icon="posture-checks"
-          title={m.posture_checks_empty_title()}
-          subtitle={m.posture_checks_empty_subtitle()}
-          primaryAction={addButtonProps}
-        />
-      )}
-    </TablePageLayout>
+    <>
+      <TablePageLayout>
+        {postureChecks.length > 0 || columnFilters.length > 0 ? (
+          <PostureChecksTable
+            addButtonProps={addButtonProps}
+            columnFilterOptions={columnFilterOptions}
+            columnFilters={columnFilters}
+            filterMessages={filterMessages}
+            hasNextPage={pagination?.next_page !== null}
+            loadingNextPage={isFetchingNextPage}
+            onColumnFiltersChange={setColumnFilters}
+            onNextPage={() => {
+              fetchNextPage();
+            }}
+            onRowClick={handleRowClick}
+            postureChecks={postureChecks}
+          />
+        ) : (
+          <EmptyStateFlexible
+            icon="posture-checks"
+            title={m.posture_checks_empty_title()}
+            subtitle={m.posture_checks_empty_subtitle()}
+            primaryAction={addButtonProps}
+          />
+        )}
+      </TablePageLayout>
+      <PostureCheckDrawer selectedRow={selectedRow} onClose={handleDrawerClose} />
+    </>
   );
 };
 
