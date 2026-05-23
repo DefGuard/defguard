@@ -15,6 +15,7 @@ use defguard_common::{
         },
     },
     utils::parse_network_address_list,
+    wg_config::create_wireguard_config,
 };
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
@@ -1356,7 +1357,11 @@ pub(crate) async fn download_config(
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
     if let Some(wireguard_network_device) = wireguard_network_device {
         info!("Created config for device {}({device_id})", device.name);
-        Ok(Device::create_config(&network, &wireguard_network_device))
+        Ok(create_wireguard_config(
+            &network,
+            &wireguard_network_device,
+            &network.allowed_ips,
+        ))
     } else {
         error!(
             "Failed to create config, no IP address found for device: {}({})",
@@ -1403,7 +1408,7 @@ pub(crate) async fn user_device_configs(
             "Created WireGuard config for user device {device_id} in location {}.",
             location.name
         );
-        let config = Device::create_config(&location, &location_device);
+        let config = create_wireguard_config(&location, &location_device, &location.allowed_ips);
         result.push(DeviceWireGuardConfig {
             network_id: location.id,
             network_name: location.name,

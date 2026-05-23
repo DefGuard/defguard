@@ -10,6 +10,7 @@ use defguard_common::{
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
+    wg_config::create_wireguard_config,
 };
 use defguard_proto::{
     client_types::{
@@ -102,7 +103,11 @@ pub async fn build_device_config_response(
                 Status::internal(format!("unexpected error: {err}"))
             })?;
             let config = ProtoDeviceConfig {
-                config: Device::create_config(&network, &wireguard_network_device),
+                config: create_wireguard_config(
+                    &network,
+                    &wireguard_network_device,
+                    &network.allowed_ips,
+                ),
                 network_id: network.id,
                 network_name: network.name,
                 assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
@@ -166,7 +171,11 @@ pub async fn build_device_config_response(
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
                 let config = ProtoDeviceConfig {
-                    config: Device::create_config(&network, &wireguard_network_device),
+                    config: create_wireguard_config(
+                        &network,
+                        &wireguard_network_device,
+                        &network.allowed_ips,
+                    ),
                     network_id: network.id,
                     network_name: network.name,
                     assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),

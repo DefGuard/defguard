@@ -19,6 +19,7 @@ use defguard_common::{
         },
     },
     utils::{SplitIp, split_ip},
+    wg_config::create_wireguard_config,
 };
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use serde_json::json;
@@ -158,7 +159,7 @@ pub(crate) async fn network_device_configs(
             "Created a WireGuard config for network device {device_id} in network {}.",
             network.name
         );
-        let config = Device::create_config(&network, &network_device);
+        let config = create_wireguard_config(&network, &network_device, &network.allowed_ips);
         let device_config = DeviceWireGuardConfig {
             network_id: network.id,
             network_name: network.name,

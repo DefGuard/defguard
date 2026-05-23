@@ -1,5 +1,6 @@
 use std::{collections::HashSet, fmt, net::IpAddr};
 
+use crate::wg_config::create_wireguard_config;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use ipnetwork::IpNetwork;
@@ -647,42 +648,6 @@ impl Device<Id> {
         self.description = other.description;
     }
 
-    /// Create WireGuard config for device.
-    #[must_use]
-    pub fn create_config(
-        network: &WireguardNetwork<Id>,
-        wireguard_network_device: &WireguardNetworkDevice,
-    ) -> String {
-        let dns = match &network.dns {
-            Some(dns) if !dns.is_empty() => format!("DNS = {dns}"),
-            _ => String::new(),
-        };
-
-        let allowed_ips = if network.allowed_ips.is_empty() {
-            String::new()
-        } else {
-            format!("AllowedIPs = {}\n", network.allowed_ips.as_csv())
-        };
-
-        format!(
-            "[Interface]\n\
-            PrivateKey = YOUR_PRIVATE_KEY\n\
-            Address = {}\n\
-            {dns}\n\
-            \n\
-            [Peer]\n\
-            PublicKey = {}\n\
-            {allowed_ips}\
-            Endpoint = {}:{}\n\
-            PersistentKeepalive = {}",
-            wireguard_network_device.wireguard_ips.as_csv(),
-            network.pubkey,
-            network.endpoint,
-            network.port,
-            network.keepalive_interval,
-        )
-    }
-
     pub async fn find_by_ip<'e, E>(
         executor: E,
         ip: IpAddr,
@@ -764,7 +729,8 @@ impl Device<Id> {
             .to_device_network_info_runtime(&mut *transaction, network)
             .await?;
 
-        let config = Self::create_config(network, &wireguard_network_device);
+        let config =
+            create_wireguard_config(network, &wireguard_network_device, &network.allowed_ips);
         let has_postures = network.has_postures(&mut *transaction).await?;
         let device_config = DeviceConfig {
             network_id: network.id,
@@ -797,7 +763,8 @@ impl Device<Id> {
             .to_device_network_info_runtime(&mut *transaction, network)
             .await?;
 
-        let config = Self::create_config(network, &wireguard_network_device);
+        let config =
+            create_wireguard_config(network, &wireguard_network_device, &network.allowed_ips);
         let has_postures = network.has_postures(&mut *transaction).await?;
         let device_config = DeviceConfig {
             network_id: network.id,
@@ -874,7 +841,8 @@ impl Device<Id> {
                 .await?;
             network_info.push(device_network_info);
 
-            let config = Self::create_config(&network, &wireguard_network_device);
+            let config =
+                create_wireguard_config(&network, &wireguard_network_device, &network.allowed_ips);
             let has_postures = network.has_postures(&mut *conn).await?;
             configs.push(DeviceConfig {
                 network_id: network.id,
