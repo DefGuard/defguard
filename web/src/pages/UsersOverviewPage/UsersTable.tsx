@@ -24,6 +24,7 @@ import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
+import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
 import type {
@@ -716,21 +717,59 @@ export const UsersTable = () => {
     <>
       <TableTop text={m.users_header_title()}>
         {table.getFilteredSelectedRowModel().rows.length > 0 && isPresent(groups) && (
-          <Button
+          <ButtonMenu
             variant="outlined"
-            text={m.users_bulk_assign_to_groups()}
-            iconLeft="add-group"
-            testId="bulk-assign"
-            onClick={() => {
-              const selectedUsers = table
-                .getFilteredSelectedRowModel()
-                .rows.map((row) => row.original.id);
-              openModal(ModalName.AssignGroupsToUsers, {
-                groups,
-                users: selectedUsers,
-                onSuccess: () => table.resetRowSelection(),
-              });
-            }}
+            text={m.users_bulk_actions()}
+            iconRight="arrow-small"
+            rotateIconOnOpen
+            placement="bottom-end"
+            testId="bulk-actions"
+            menuItems={[
+              {
+                items: [
+                  {
+                    text: m.users_bulk_assign_to_group(),
+                    icon: 'add-group',
+                    testId: 'bulk-assign-to-group',
+                    onClick: () => {
+                      const selectedUsers = table
+                        .getFilteredSelectedRowModel()
+                        .rows.map((row) => row.original.id);
+                      openModal(ModalName.AssignGroupsToUsers, {
+                        groups,
+                        users: selectedUsers,
+                        onSuccess: () => table.resetRowSelection(),
+                      });
+                    },
+                  },
+                  {
+                    text: m.users_bulk_start_enrollment(),
+                    icon: 'enrollment',
+                    testId: 'bulk-start-enrollment',
+                    onClick: () => {
+                      // TODO
+                    },
+                  },
+                  {
+                    text: m.users_bulk_disable(),
+                    icon: 'disabled',
+                    testId: 'bulk-disable',
+                    onClick: () => {
+                      // TODO
+                    },
+                  },
+                  {
+                    text: m.users_bulk_delete(),
+                    icon: 'delete',
+                    variant: 'danger',
+                    testId: 'bulk-delete',
+                    onClick: () => {
+                      // TODO
+                    },
+                  },
+                ],
+              },
+            ]}
           />
         )}
         <Search
