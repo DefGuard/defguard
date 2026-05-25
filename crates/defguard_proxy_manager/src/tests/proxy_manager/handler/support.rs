@@ -46,6 +46,7 @@ use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
+use defguard_core::device_access::join_device_to_all_networks;
 
 /// A strong password satisfying all `check_password_strength` requirements:
 /// ≥8 chars, digit, upper, lower, special character.
@@ -267,8 +268,11 @@ pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device
     .expect("failed to save test device");
     // Add to all networks that exist at this point so WireguardNetworkDevice
     // join rows are created (needed by build_device_config_response).
-    device
-        .add_to_all_networks(&mut conn)
+    let user = User::find_by_id(&mut *conn, user_id)
+        .await
+        .expect("failed to find user")
+        .expect("user not found");
+    join_device_to_all_networks(&mut conn, &device, &user)
         .await
         .expect("failed to add device to networks");
     device

@@ -12,21 +12,18 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use utoipa::ToSchema;
 
 use crate::{
     KEY_LENGTH,
-    csv::AsCsv,
     db::{
         Id, NoId,
         models::{
             ModelError, WireguardNetwork,
             user::User,
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
-            wireguard::{
-                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WireguardNetworkError,
-            },
+            wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
         },
     },
 };
@@ -982,12 +979,15 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{
-        models::{
-            gateway::Gateway, vpn_client_session::VpnClientMfaMethod,
-            vpn_session_stats::VpnSessionStats,
+    use crate::{
+        csv::AsCsv,
+        db::{
+            models::{
+                gateway::Gateway, vpn_client_session::VpnClientMfaMethod,
+                vpn_session_stats::VpnSessionStats,
+            },
+            setup_pool,
         },
-        setup_pool,
     };
 
     impl Device<Id> {
@@ -2449,8 +2449,12 @@ mod test {
             .save(&mut *conn)
             .await
             .unwrap();
-            // TODO: update test to use device_access::join_device_to_all_networks
-            // let (_, _) = device.add_to_all_networks(&mut conn).await.unwrap();
+
+            // Register device in the network.
+            network
+                .add_device_to_network(&mut conn, &device, None)
+                .await
+                .unwrap();
         }
 
         // This device won't fit in the address space.

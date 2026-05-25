@@ -713,20 +713,16 @@ impl EnrollmentServer {
                         );
                         Status::internal("unexpected error")
                     })?;
-            let device_config = build_device_config(
-                &mut *transaction,
-                &network,
-                &wireguard_network_device,
-                &user,
-            )
-            .await
-            .map_err(|err| {
-                error!(
-                    "Failed to build device config for device {} for user {}({:?}): {err}",
-                    device.name, user.username, user.id
-                );
-                Status::internal("unexpected error")
-            })?;
+            let device_config =
+                build_device_config(&mut transaction, &network, &wireguard_network_device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to build device config for device {} for user {}({:?}): {err}",
+                            device.name, user.username, user.id
+                        );
+                        Status::internal("unexpected error")
+                    })?;
             let device_network_info = wireguard_network_device
                 .to_device_network_info_runtime(&mut *transaction, &network)
                 .await
