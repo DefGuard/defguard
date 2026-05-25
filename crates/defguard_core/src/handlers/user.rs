@@ -15,6 +15,7 @@ use defguard_mail::templates;
 use humantime::parse_duration;
 use serde_json::json;
 use sqlx::PgPool;
+use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::{
@@ -62,12 +63,16 @@ pub(crate) const MAX_USERNAME_CHARS: usize = 64;
 /// - digits (0-9)
 /// - starts with non-special character
 /// - special characters: . - _
-/// - no whitespaces
-pub fn check_username(username: &str) -> Result<(), WebError> {
+
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct UserPasswordError(pub String);
+
+pub fn check_username(username: &str) -> Result<(), UserPasswordError> {
     // check length
     let length = username.len();
     if !(1..MAX_USERNAME_CHARS).contains(&length) {
-        return Err(WebError::Serialization(format!(
+        return Err(UserPasswordError(format!(
             "Username ({username}) has incorrect length"
         )));
     }
@@ -75,7 +80,7 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
     // check first character is a letter or digit
     if let Some(first_char) = username.chars().next() {
         if !first_char.is_ascii_alphanumeric() {
-            return Err(WebError::Serialization(
+            return Err(UserPasswordError(
                 "Username must not start with a special character".into(),
             ));
         }
@@ -86,32 +91,32 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
     {
-        return Err(WebError::Serialization(
+        return Err(UserPasswordError(
             "Username contains invalid characters".into(),
         ));
     }
 
     Ok(())
 }
-pub fn check_password_strength(password: &str) -> Result<(), WebError> {
+pub fn check_password_strength(password: &str) -> Result<(), UserPasswordError> {
     if !(8..=128).contains(&password.len()) {
-        return Err(WebError::Serialization("Incorrect password length".into()));
+        return Err(UserPasswordError("Incorrect password length".into()));
     }
     if !password.chars().any(|c| c.is_ascii_punctuation()) {
-        return Err(WebError::Serialization(
+        return Err(UserPasswordError(
             "No special characters in password".into(),
         ));
     }
     if !password.chars().any(|c| c.is_ascii_digit()) {
-        return Err(WebError::Serialization("No numbers in password".into()));
+        return Err(UserPasswordError("No numbers in password".into()));
     }
     if !password.chars().any(|c| c.is_ascii_lowercase()) {
-        return Err(WebError::Serialization(
+        return Err(UserPasswordError(
             "No lowercase characters in password".into(),
         ));
     }
     if !password.chars().any(|c| c.is_ascii_uppercase()) {
-        return Err(WebError::Serialization(
+        return Err(UserPasswordError(
             "No uppercase characters in password".into(),
         ));
     }
