@@ -164,6 +164,9 @@ pub struct UserFilterParams {
 #[utoipa::path(
     get,
     path = "/api/v1/user",
+    params(
+        ("groups" = Option<Vec<String>>, Query, description = "Filter users by group names (OR logic - returns users in any of the specified groups)"),
+    ),
     responses(
         (status = 200, description = "List of all users.", body = [UserInfo], example = json!(
         [
