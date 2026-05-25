@@ -10,7 +10,7 @@ use defguard_common::{
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
-    wg_config::create_wireguard_config,
+    device_config_gen::create_wireguard_config,
 };
 use defguard_proto::{
     client_types::{

@@ -561,7 +561,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generate network IPs for a device if it's allowed in network
-    pub(crate) async fn add_device_to_network(
+    pub async fn add_device_to_network(
         &self,
         conn: &mut PgConnection,
         device: &Device<Id>,

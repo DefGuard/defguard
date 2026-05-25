@@ -14,8 +14,8 @@ use defguard_common::{
             wireguard::{LocationMfaMode, MappedDevice, ServiceLocationMode},
         },
     },
+    device_config_gen::create_wireguard_config,
     utils::parse_network_address_list,
-    wg_config::create_wireguard_config,
 };
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;

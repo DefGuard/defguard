@@ -196,6 +196,7 @@ pub mod appstate;
 pub mod auth;
 pub mod cert_settings;
 pub mod db;
+pub mod device_access;
 pub mod enrollment_management;
 pub mod enterprise;
 pub mod error;

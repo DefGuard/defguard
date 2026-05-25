@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt, net::IpAddr};
 
-use crate::wg_config::create_wireguard_config;
+use crate::device_config_gen::create_wireguard_config;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use ipnetwork::IpNetwork;
@@ -969,7 +969,7 @@ impl Device<Id> {
     /// Assigns specific IP address to the device in specified [`WireguardNetwork`].
     /// This method is currently used only for network devices. For regular user
     /// devices use [`assign_next_network_ip`] method.
-    pub(crate) async fn assign_network_ips(
+    pub async fn assign_network_ips(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
