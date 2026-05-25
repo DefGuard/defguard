@@ -22,7 +22,7 @@ use crate::{
         firewall::FirewallError, license::LicenseError,
     },
     events::ApiEvent,
-    handlers::{openid_flow::OidcFlowError, user::UserPasswordError},
+    handlers::{openid_flow::OidcFlowError, user::ValidationError},
     location_management::LocationManagementError,
     user_management::UserManagementError,
 };
@@ -232,12 +232,23 @@ impl From<LocationManagementError> for WebError {
 
 impl From<UserManagementError> for WebError {
     fn from(err: UserManagementError) -> Self {
-        error!("{err}");
         match err {
-            UserManagementError::Db(e) => WebError::DbError(e.to_string()),
-            UserManagementError::Model(e) => WebError::ModelError(e.to_string()),
-            UserManagementError::Network(e) => WebError::from(e),
-            UserManagementError::Firewall(e) => WebError::FirewallError(e),
+            UserManagementError::Db(e) => {
+                error!("Database error: {e}");
+                WebError::DbError(e.to_string())
+            }
+            UserManagementError::Model(e) => {
+                error!("Model error: {e}");
+                WebError::ModelError(e.to_string())
+            }
+            UserManagementError::Network(e) => {
+                error!("WireGuard network error: {e}");
+                WebError::from(e)
+            }
+            UserManagementError::Firewall(e) => {
+                error!("Firewall error: {e}");
+                WebError::FirewallError(e)
+            }
         }
     }
 }
@@ -256,8 +267,8 @@ impl From<CertSettingsError> for WebError {
     }
 }
 
-impl From<UserPasswordError> for WebError {
-    fn from(err: UserPasswordError) -> Self {
+impl From<ValidationError> for WebError {
+    fn from(err: ValidationError) -> Self {
         WebError::BadRequest(err.0)
     }
 }

@@ -66,13 +66,13 @@ pub(crate) const MAX_USERNAME_CHARS: usize = 64;
 
 #[derive(Debug, Error)]
 #[error("{0}")]
-pub struct UserPasswordError(pub String);
+pub struct ValidationError(pub String);
 
-pub fn check_username(username: &str) -> Result<(), UserPasswordError> {
+pub fn check_username(username: &str) -> Result<(), ValidationError> {
     // check length
     let length = username.len();
     if !(1..MAX_USERNAME_CHARS).contains(&length) {
-        return Err(UserPasswordError(format!(
+        return Err(ValidationError(format!(
             "Username ({username}) has incorrect length"
         )));
     }
@@ -80,7 +80,7 @@ pub fn check_username(username: &str) -> Result<(), UserPasswordError> {
     // check first character is a letter or digit
     if let Some(first_char) = username.chars().next() {
         if !first_char.is_ascii_alphanumeric() {
-            return Err(UserPasswordError(
+            return Err(ValidationError(
                 "Username must not start with a special character".into(),
             ));
         }
@@ -91,32 +91,30 @@ pub fn check_username(username: &str) -> Result<(), UserPasswordError> {
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
     {
-        return Err(UserPasswordError(
+        return Err(ValidationError(
             "Username contains invalid characters".into(),
         ));
     }
 
     Ok(())
 }
-pub fn check_password_strength(password: &str) -> Result<(), UserPasswordError> {
+pub fn check_password_strength(password: &str) -> Result<(), ValidationError> {
     if !(8..=128).contains(&password.len()) {
-        return Err(UserPasswordError("Incorrect password length".into()));
+        return Err(ValidationError("Incorrect password length".into()));
     }
     if !password.chars().any(|c| c.is_ascii_punctuation()) {
-        return Err(UserPasswordError(
-            "No special characters in password".into(),
-        ));
+        return Err(ValidationError("No special characters in password".into()));
     }
     if !password.chars().any(|c| c.is_ascii_digit()) {
-        return Err(UserPasswordError("No numbers in password".into()));
+        return Err(ValidationError("No numbers in password".into()));
     }
     if !password.chars().any(|c| c.is_ascii_lowercase()) {
-        return Err(UserPasswordError(
+        return Err(ValidationError(
             "No lowercase characters in password".into(),
         ));
     }
     if !password.chars().any(|c| c.is_ascii_uppercase()) {
-        return Err(UserPasswordError(
+        return Err(ValidationError(
             "No uppercase characters in password".into(),
         ));
     }
