@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -80,16 +80,21 @@
       },
       {
         "ordinal": 15,
+        "name": "allowed_ips_from_acl",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "location_mfa_mode: _",
         "type_info": {
           "Custom": {
@@ -105,7 +110,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "service_location_mode: _",
         "type_info": {
           "Custom": {
@@ -122,9 +127,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -145,8 +148,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "d0f1dff40c9ebff747315a9230ca76689c92a45a6ead1f7b821ca680f8ac7055"
+  "hash": "1d8caa6cd7e086addb7c7ea3ededd0e22107416cf891ede02df654af3515e768"
 }
