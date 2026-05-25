@@ -6,14 +6,16 @@ use defguard_common::{
         Id,
         models::{
             BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
-            WireguardNetwork, device::DeviceInfo, polling_token::PollingToken,
+            WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            polling_token::PollingToken,
             wireguard::ServiceLocationMode,
         },
     },
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    device_access::join_device_to_all_networks,
+    device_access::{build_device_config, join_device_to_all_networks},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -697,18 +699,45 @@ impl EnrollmentServer {
                 );
             }
 
-            let (network_info, configs) = device
-                .get_network_configs(&network, &mut transaction)
+            let wireguard_network_device =
+                WireguardNetworkDevice::find(&mut *transaction, device.id, network.id)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to find WireguardNetworkDevice: {err}");
+                        Status::internal("unexpected error")
+                    })?
+                    .ok_or_else(|| {
+                        error!(
+                            "Device {} not found in network {}",
+                            device.name, network.name
+                        );
+                        Status::internal("unexpected error")
+                    })?;
+            let device_config = build_device_config(
+                &mut *transaction,
+                &network,
+                &wireguard_network_device,
+                &user,
+            )
+            .await
+            .map_err(|err| {
+                error!(
+                    "Failed to build device config for device {} for user {}({:?}): {err}",
+                    device.name, user.username, user.id
+                );
+                Status::internal("unexpected error")
+            })?;
+            let device_network_info = wireguard_network_device
+                .to_device_network_info_runtime(&mut *transaction, &network)
                 .await
                 .map_err(|err| {
-                    error!(
-                        "Failed to get network configs for device {} for user {}({:?}): {err}",
-                        device.name, user.username, user.id
-                    );
+                    error!("Failed to get device network info: {err}");
                     Status::internal("unexpected error")
                 })?;
+            let configs = vec![device_config];
+            let network_info = vec![device_network_info];
 
-            (device, vec![network_info], vec![configs])
+            (device, network_info, configs)
         } else {
             debug!(
                 "Creating new device for user {}({:?}): {}.",

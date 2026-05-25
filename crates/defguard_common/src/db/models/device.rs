@@ -1,6 +1,5 @@
 use std::{collections::HashSet, fmt, net::IpAddr};
 
-use crate::device_config_gen::create_wireguard_config;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use ipnetwork::IpNetwork;
@@ -714,152 +713,6 @@ impl Device<Id> {
         )
         .fetch_all(pool)
         .await
-    }
-
-    pub async fn get_network_configs(
-        &self,
-        network: &WireguardNetwork<Id>,
-        transaction: &mut PgConnection,
-    ) -> Result<(DeviceNetworkInfo, DeviceConfig), DeviceError> {
-        let wireguard_network_device =
-            WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
-                .await?
-                .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
-        let device_network_info = wireguard_network_device
-            .to_device_network_info_runtime(&mut *transaction, network)
-            .await?;
-
-        let config =
-            create_wireguard_config(network, &wireguard_network_device, &network.allowed_ips);
-        let has_postures = network.has_postures(&mut *transaction).await?;
-        let device_config = DeviceConfig {
-            network_id: network.id,
-            network_name: network.name.clone(),
-            config,
-            endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ips,
-            allowed_ips: network.allowed_ips.clone(),
-            pubkey: network.pubkey.clone(),
-            dns: network.dns.clone(),
-            keepalive_interval: network.keepalive_interval,
-            location_mfa_mode: network.location_mfa_mode.clone(),
-            service_location_mode: network.service_location_mode.clone(),
-            posture_check_required: has_postures,
-        };
-
-        Ok((device_network_info, device_config))
-    }
-
-    pub async fn add_to_network(
-        &self,
-        network: &WireguardNetwork<Id>,
-        ip: &[IpAddr],
-        transaction: &mut PgConnection,
-    ) -> Result<(DeviceNetworkInfo, DeviceConfig), DeviceError> {
-        let wireguard_network_device = self
-            .assign_network_ips(&mut *transaction, network, ip)
-            .await?;
-        let device_network_info = wireguard_network_device
-            .to_device_network_info_runtime(&mut *transaction, network)
-            .await?;
-
-        let config =
-            create_wireguard_config(network, &wireguard_network_device, &network.allowed_ips);
-        let has_postures = network.has_postures(&mut *transaction).await?;
-        let device_config = DeviceConfig {
-            network_id: network.id,
-            network_name: network.name.clone(),
-            config,
-            endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ips,
-            allowed_ips: network.allowed_ips.clone(),
-            pubkey: network.pubkey.clone(),
-            dns: network.dns.clone(),
-            keepalive_interval: network.keepalive_interval,
-            location_mfa_mode: network.location_mfa_mode.clone(),
-            service_location_mode: network.service_location_mode.clone(),
-            posture_check_required: has_postures,
-        };
-
-        Ok((device_network_info, device_config))
-    }
-
-    /// Add device to all existing networks.
-    pub async fn add_to_all_networks(
-        &self,
-        conn: &mut PgConnection,
-    ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
-        info!("Adding device {} to all existing networks", self.name);
-        let networks = WireguardNetwork::all(&mut *conn).await?;
-
-        let mut configs = Vec::new();
-        let mut network_info = Vec::new();
-        for network in networks {
-            debug!(
-                "Assigning IP for device {} (user {}) in network {network}",
-                self.name, self.user_id
-            );
-            // check for pubkey conflicts with networks
-            if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(self.wireguard_pubkey.clone()));
-            }
-            if WireguardNetworkDevice::find(&mut *conn, self.id, network.id)
-                .await?
-                .is_some()
-            {
-                debug!("Device {self} already has an IP within network {network}. Skipping...");
-                continue;
-            }
-
-            let wireguard_network_device = match network
-                .add_device_to_network(&mut *conn, self, None)
-                .await
-            {
-                Ok(device) => device,
-                Err(WireguardNetworkError::DeviceNotAllowed(_)) => {
-                    debug!("Device {self} is not allowed in network {network}, skipping");
-                    continue;
-                }
-                Err(WireguardNetworkError::DeviceError(DeviceError::NetworkFull(_))) => {
-                    warn!("Network {network} is full, no IP addresses available for device {self}");
-                    return Err(DeviceError::NetworkFull(network.name.clone()));
-                }
-                Err(err) => {
-                    warn!("Failed to add device {self} to network {network}: {err}");
-                    return Err(DeviceError::Unexpected(err.to_string()));
-                }
-            };
-
-            debug!(
-                "Assigned IPs {} for device {} (user {}) in network {network}",
-                wireguard_network_device.wireguard_ips.as_csv(),
-                self.name,
-                self.user_id
-            );
-            let device_network_info = wireguard_network_device
-                .to_device_network_info_runtime(&mut *conn, &network)
-                .await?;
-            network_info.push(device_network_info);
-
-            let config =
-                create_wireguard_config(&network, &wireguard_network_device, &network.allowed_ips);
-            let has_postures = network.has_postures(&mut *conn).await?;
-            configs.push(DeviceConfig {
-                network_id: network.id,
-                network_name: network.name,
-                config,
-                endpoint: format!("{}:{}", network.endpoint, network.port),
-                address: wireguard_network_device.wireguard_ips,
-                allowed_ips: network.allowed_ips,
-                pubkey: network.pubkey,
-                dns: network.dns,
-                keepalive_interval: network.keepalive_interval,
-                location_mfa_mode: network.location_mfa_mode.clone(),
-                service_location_mode: network.service_location_mode.clone(),
-                posture_check_required: has_postures,
-            });
-        }
-        Ok((network_info, configs))
     }
 
     /// Assign the next available IP address in each subnet of the network to this device.
@@ -2596,7 +2449,8 @@ mod test {
             .save(&mut *conn)
             .await
             .unwrap();
-            let (_, _) = device.add_to_all_networks(&mut conn).await.unwrap();
+            // TODO: update test to use device_access::join_device_to_all_networks
+            // let (_, _) = device.add_to_all_networks(&mut conn).await.unwrap();
         }
 
         // This device won't fit in the address space.
