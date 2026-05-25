@@ -12,6 +12,11 @@ const ALL_USERS_URL: &str = "https://console.jumpcloud.com/api/systemusers";
 const USER_GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/users/<USER_ID>/memberof";
 const USER_GROUP_MEMBERS_URL: &str =
     "https://console.jumpcloud.com/api/v2/usergroups/<GROUP_ID>/members";
+const EU_GROUPS_URL: &str = "https://console.eu.jumpcloud.com/api/v2/usergroups";
+const EU_ALL_USERS_URL: &str = "https://console.eu.jumpcloud.com/api/systemusers";
+const EU_USER_GROUPS_URL: &str = "https://console.eu.jumpcloud.com/api/v2/users/<USER_ID>/memberof";
+const EU_USER_GROUP_MEMBERS_URL: &str =
+    "https://console.eu.jumpcloud.com/api/v2/usergroups/<GROUP_ID>/members";
 const MAX_REQUESTS: usize = 50;
 const MAX_RESULTS: usize = 100;
 const API_KEY_HEADER: &str = "x-api-key";
@@ -117,16 +122,45 @@ struct GroupMemberThing {
 
 pub(crate) struct JumpCloudDirectorySync {
     api_key: String,
+    eu: bool,
 }
 
 impl JumpCloudDirectorySync {
     #[must_use]
-    pub fn new(api_key: String) -> Self {
+    pub fn new(api_key: String, eu: bool) -> Self {
         debug!(
             "Initializing JumpCloud directory sync with API key length: {}",
             api_key.len()
         );
-        Self { api_key }
+        Self { api_key, eu }
+    }
+
+    fn groups_url(&self) -> &'static str {
+        if self.eu { EU_GROUPS_URL } else { GROUPS_URL }
+    }
+
+    fn all_users_url(&self) -> &'static str {
+        if self.eu {
+            EU_ALL_USERS_URL
+        } else {
+            ALL_USERS_URL
+        }
+    }
+
+    fn user_groups_url(&self) -> &'static str {
+        if self.eu {
+            EU_USER_GROUPS_URL
+        } else {
+            USER_GROUPS_URL
+        }
+    }
+
+    fn user_group_members_url(&self) -> &'static str {
+        if self.eu {
+            EU_USER_GROUP_MEMBERS_URL
+        } else {
+            USER_GROUP_MEMBERS_URL
+        }
     }
 
     async fn query_group_members(
@@ -138,7 +172,9 @@ impl JumpCloudDirectorySync {
             group.name, group.id
         );
         let client = reqwest::Client::new();
-        let url = USER_GROUP_MEMBERS_URL.replace("<GROUP_ID>", &group.id);
+        let url = self
+            .user_group_members_url()
+            .replace("<GROUP_ID>", &group.id);
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
 
         debug!("Requesting group members from URL: {url}");
@@ -236,9 +272,9 @@ impl JumpCloudDirectorySync {
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
         debug!("Initial query parameters: {query:?}");
 
-        debug!("Sending initial request to: {GROUPS_URL}");
+        debug!("Sending initial request to: {}", self.groups_url());
         let response = client
-            .get(GROUPS_URL)
+            .get(self.groups_url())
             .header(API_KEY_HEADER, &self.api_key)
             .query(&query)
             .send()
@@ -260,7 +296,7 @@ impl JumpCloudDirectorySync {
             );
 
             let response = client
-                .get(GROUPS_URL)
+                .get(self.groups_url())
                 .header(API_KEY_HEADER, &self.api_key)
                 .query(&query)
                 .send()
@@ -295,10 +331,10 @@ impl JumpCloudDirectorySync {
 
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
         debug!("Initial query parameters for users: {query:?}");
-        debug!("Sending initial request to: {ALL_USERS_URL}");
+        debug!("Sending initial request to: {}", self.all_users_url());
 
         let response = client
-            .get(ALL_USERS_URL)
+            .get(self.all_users_url())
             .header(API_KEY_HEADER, &self.api_key)
             .query(&query)
             .send()
@@ -321,7 +357,7 @@ impl JumpCloudDirectorySync {
             debug!("Requesting page {} (skip: {skip_value}) for users", i + 1);
 
             let response = client
-                .get(ALL_USERS_URL)
+                .get(self.all_users_url())
                 .header(API_KEY_HEADER, &self.api_key)
                 .query(&query)
                 .send()
@@ -365,7 +401,7 @@ impl JumpCloudDirectorySync {
     async fn query_user_groups(&self, user_id: &str) -> Result<Vec<UserGroup>, DirectorySyncError> {
         debug!("Starting to query groups for user: {user_id}");
         let client = reqwest::Client::new();
-        let url = USER_GROUPS_URL.replace("<USER_ID>", user_id);
+        let url = self.user_groups_url().replace("<USER_ID>", user_id);
 
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
         debug!("Requesting user groups from URL: {url}");
@@ -444,10 +480,10 @@ impl JumpCloudDirectorySync {
     async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
         debug!("Testing connection to JumpCloud API");
         let client = reqwest::Client::new();
-        debug!("Sending test request to: {ALL_USERS_URL}");
+        debug!("Sending test request to: {}", self.all_users_url());
 
         let response = client
-            .get(ALL_USERS_URL)
+            .get(self.all_users_url())
             .header(API_KEY_HEADER, &self.api_key)
             .send()
             .await?;
@@ -470,10 +506,10 @@ impl JumpCloudDirectorySync {
 
         debug!("Querying JumpCloud for user with email: {email}");
         debug!("Using filter: {filter}");
-        debug!("Sending request to: {ALL_USERS_URL}");
+        debug!("Sending request to: {}", self.all_users_url());
 
         let response = client
-            .get(ALL_USERS_URL)
+            .get(self.all_users_url())
             .header(API_KEY_HEADER, &self.api_key)
             .query(&[("filter", &filter)])
             .send()
