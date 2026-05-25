@@ -2079,7 +2079,7 @@ impl AclAlias<Id> {
 }
 
 #[derive(Model)]
-pub(crate) struct AclRuleNetwork<I = NoId> {
+pub struct AclRuleNetwork<I = NoId> {
     #[allow(dead_code)]
     id: I,
     rule_id: Id,
@@ -2088,7 +2088,7 @@ pub(crate) struct AclRuleNetwork<I = NoId> {
 
 impl AclRuleNetwork {
     #[must_use]
-    pub(crate) fn new(rule_id: Id, network_id: Id) -> Self {
+    pub fn new(rule_id: Id, network_id: Id) -> Self {
         Self {
             id: NoId,
             rule_id,
@@ -2098,7 +2098,7 @@ impl AclRuleNetwork {
 }
 
 #[derive(Model)]
-pub(crate) struct AclRuleUser<I = NoId> {
+pub struct AclRuleUser<I = NoId> {
     #[allow(dead_code)]
     id: I,
     rule_id: Id,
@@ -2108,7 +2108,7 @@ pub(crate) struct AclRuleUser<I = NoId> {
 
 impl AclRuleUser {
     #[must_use]
-    pub(crate) fn new(rule_id: Id, user_id: Id, allow: bool) -> Self {
+    pub fn new(rule_id: Id, user_id: Id, allow: bool) -> Self {
         Self {
             id: NoId,
             rule_id,
