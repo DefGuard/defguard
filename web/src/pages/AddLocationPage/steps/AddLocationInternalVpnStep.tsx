@@ -6,12 +6,16 @@ import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseEnterpriseFeature } from '../../../shared/utils/license';
 import { smallestNetworkCapacity } from '../../../shared/utils/network';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
@@ -63,11 +67,15 @@ const formSchema = z.object({
         true,
       );
     }),
+  allowed_ips_from_acl: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationInternalVpnStep = () => {
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseEnterprise = canUseEnterpriseFeature(licenseInfo ?? null).result;
+
   const { data: devices } = useQuery({
     queryKey: ['device', 'all'],
     queryFn: api.device.getDevices,
@@ -80,6 +88,7 @@ export const AddLocationInternalVpnStep = () => {
         allowed_ips: s.allowed_ips,
         dns: s.dns,
         address: s.address,
+        allowed_ips_from_acl: s.allowed_ips_from_acl,
       }),
     ),
   );
@@ -140,6 +149,24 @@ export const AddLocationInternalVpnStep = () => {
               <field.FormInput
                 label={m.add_location_internal_vpn_label_allowed_ips()}
                 helper={m.add_location_internal_vpn_helper_allowed_ips()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          {isPresent(canUseEnterprise) && !canUseEnterprise &&
+            <p>
+              <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+                {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
+              </a>
+              {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
+            </p>
+          }
+          <form.AppField name="allowed_ips_from_acl">
+            {(field) => (
+              <field.FormCheckbox
+                text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+                disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
+                helper={m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
               />
             )}
           </form.AppField>
