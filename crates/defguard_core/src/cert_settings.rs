@@ -1,10 +1,12 @@
 use axum_server::tls_rustls::RustlsConfig;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use defguard_certs::{
-    CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair, parse_pem_certificate,
+    CertificateError, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
+    parse_pem_certificate,
 };
 use defguard_common::db::models::{
-    Certificates, CoreCertSource, ProxyCertSource, Settings, settings::update_current_settings,
+    Certificates, CoreCertSource, ProxyCertSource, Settings,
+    settings::{SettingsSaveError, update_current_settings},
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -17,21 +19,15 @@ pub enum CertSettingsError {
     #[error("Invalid certificate: {0}")]
     InvalidCert(String),
     #[error("Certificate error: {0}")]
-    Cert(#[from] defguard_certs::CertificateError),
+    Cert(#[from] CertificateError),
     #[error("URL parse error: {0}")]
     Url(String),
     #[error("Database error: {0}")]
     Db(#[from] sqlx::Error),
     #[error("Settings error: {0}")]
-    Settings(String),
+    Settings(#[from] SettingsSaveError),
     #[error("Not found: {0}")]
     NotFound(String),
-}
-
-impl From<defguard_common::db::models::settings::SettingsSaveError> for CertSettingsError {
-    fn from(err: defguard_common::db::models::settings::SettingsSaveError) -> Self {
-        CertSettingsError::Settings(err.to_string())
-    }
 }
 
 /// Parses an uploaded certificate, validates its key pair, and rejects invalid validity windows.
@@ -48,7 +44,7 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, Ce
     let info = CertificateInfo::from_der(cert_der.as_ref())?;
 
     // Validate cert dates
-    let now = chrono::Utc::now().naive_utc();
+    let now = Utc::now().naive_utc();
 
     if info.not_after <= info.not_before {
         return Err(CertSettingsError::InvalidCert(

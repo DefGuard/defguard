@@ -260,7 +260,7 @@ impl From<CertSettingsError> for WebError {
             CertSettingsError::InvalidCert(msg) => WebError::BadRequest(msg),
             CertSettingsError::Cert(e) => WebError::CertificateError(e),
             CertSettingsError::Url(e) => WebError::BadRequest(e),
-            CertSettingsError::Settings(e) => WebError::BadRequest(e),
+            CertSettingsError::Settings(e) => WebError::BadRequest(e.to_string()),
             CertSettingsError::Db(e) => WebError::DbError(e.to_string()),
             CertSettingsError::NotFound(msg) => WebError::ObjectNotFound(msg),
         }
