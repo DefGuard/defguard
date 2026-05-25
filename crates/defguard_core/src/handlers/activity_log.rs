@@ -71,7 +71,7 @@ impl fmt::Display for SortKey {
             Self::Location => "location",
             Self::Ip => "ip",
             Self::Event => "event",
-            Self::Module => "module",
+            Self::Module => "module::text",
             Self::Device => "device",
         })
     }
