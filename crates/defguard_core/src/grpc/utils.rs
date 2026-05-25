@@ -10,7 +10,6 @@ use defguard_common::{
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
-    device_config_gen::create_wireguard_config,
 };
 use defguard_proto::{
     client_types::{
@@ -24,6 +23,7 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
+    device_access::build_device_config,
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
@@ -98,39 +98,45 @@ pub async fn build_device_config_response(
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
-            let has_postures = network.has_postures(pool).await.map_err(|err| {
-                error!("Failed to check postures for network {}: {err}", network.id);
+
+            let mut conn = pool.acquire().await.map_err(|err| {
+                error!("Failed to acquire connection: {err}");
                 Status::internal(format!("unexpected error: {err}"))
             })?;
+
+            let device_config =
+                build_device_config(&mut conn, &network, &wireguard_network_device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to build device config: {err}");
+                        Status::internal(format!("unexpected error: {err}"))
+                    })?;
+
             let config = ProtoDeviceConfig {
-                config: create_wireguard_config(
-                    &network,
-                    &wireguard_network_device,
-                    &network.allowed_ips,
-                ),
-                network_id: network.id,
-                network_name: network.name,
-                assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
-                endpoint: format!("{}:{}", network.endpoint, network.port),
-                pubkey: network.pubkey,
-                allowed_ips: network.allowed_ips.as_csv(),
-                dns: network.dns,
-                keepalive_interval: network.keepalive_interval,
+                config: device_config.config,
+                network_id: device_config.network_id,
+                network_name: device_config.network_name,
+                assigned_ip: device_config.address.as_csv(),
+                endpoint: device_config.endpoint,
+                pubkey: device_config.pubkey,
+                allowed_ips: device_config.allowed_ips.as_csv(),
+                dns: device_config.dns,
+                keepalive_interval: device_config.keepalive_interval,
                 #[allow(deprecated)]
                 mfa_enabled,
                 location_mfa_mode: Some(
                     <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                        network.location_mfa_mode,
+                        device_config.location_mfa_mode,
                     )
                     .into(),
                 ),
                 service_location_mode: Some(
                     <ServiceLocationMode as Into<
                         defguard_proto::client_types::ServiceLocationMode,
-                    >>::into(network.service_location_mode)
+                    >>::into(device_config.service_location_mode)
                     .into(),
                 ),
-                posture_check_required: Some(has_postures),
+                posture_check_required: Some(device_config.posture_check_required),
             };
             configs.push(config);
         }
@@ -166,39 +172,44 @@ pub async fn build_device_config_response(
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             if let Some(wireguard_network_device) = wireguard_network_device {
-                let has_postures = network.has_postures(pool).await.map_err(|err| {
-                    error!("Failed to check postures for network {}: {err}", network.id);
+                let mut conn = pool.acquire().await.map_err(|err| {
+                    error!("Failed to acquire connection: {err}");
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
+
+                let device_config =
+                    build_device_config(&mut conn, &network, &wireguard_network_device, &user)
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to build device config: {err}");
+                            Status::internal(format!("unexpected error: {err}"))
+                        })?;
+
                 let config = ProtoDeviceConfig {
-                    config: create_wireguard_config(
-                        &network,
-                        &wireguard_network_device,
-                        &network.allowed_ips,
-                    ),
-                    network_id: network.id,
-                    network_name: network.name,
-                    assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
-                    endpoint: format!("{}:{}", network.endpoint, network.port),
-                    pubkey: network.pubkey,
-                    allowed_ips: network.allowed_ips.as_csv(),
-                    dns: network.dns,
-                    keepalive_interval: network.keepalive_interval,
+                    config: device_config.config,
+                    network_id: device_config.network_id,
+                    network_name: device_config.network_name,
+                    assigned_ip: device_config.address.as_csv(),
+                    endpoint: device_config.endpoint,
+                    pubkey: device_config.pubkey,
+                    allowed_ips: device_config.allowed_ips.as_csv(),
+                    dns: device_config.dns,
+                    keepalive_interval: device_config.keepalive_interval,
                     #[allow(deprecated)]
                     mfa_enabled,
                     location_mfa_mode: Some(
                         <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                            network.location_mfa_mode,
+                            device_config.location_mfa_mode,
                         )
                         .into(),
                     ),
                     service_location_mode: Some(
                         <ServiceLocationMode as Into<
                             defguard_proto::client_types::ServiceLocationMode,
-                        >>::into(network.service_location_mode)
+                        >>::into(device_config.service_location_mode)
                         .into(),
                     ),
-                    posture_check_required: Some(has_postures),
+                    posture_check_required: Some(device_config.posture_check_required),
                 };
                 configs.push(config);
             }

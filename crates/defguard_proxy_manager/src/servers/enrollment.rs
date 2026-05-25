@@ -13,6 +13,7 @@ use defguard_common::{
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    device_access::join_device_to_all_networks,
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -739,16 +740,16 @@ impl EnrollmentServer {
                 "Adding device {} to all existing user networks for user {}({:?}).",
                 device.wireguard_pubkey, user.username, user.id,
             );
-            let (network_info, configs) = device
-                .add_to_all_networks(&mut transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to add device {} to existing networks: {err}",
-                        device.name
-                    );
-                    Status::internal("unexpected error")
-                })?;
+            let (network_info, configs) =
+                join_device_to_all_networks(&mut transaction, &device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to add device {} to existing networks: {err}",
+                            device.name
+                        );
+                        Status::internal("unexpected error")
+                    })?;
             info!(
                 "Added device {} to all existing user networks for user {}({:?})",
                 device.wireguard_pubkey, user.username, user.id
