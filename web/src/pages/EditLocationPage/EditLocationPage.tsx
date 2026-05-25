@@ -162,6 +162,7 @@ const formSchema = z
     location_mfa_mode: z.enum(LocationMfaMode),
     service_location_mode: z.enum(LocationServiceMode),
     firewall: z.enum(LocationFirewall),
+    allowed_ips_from_acl: z.boolean(),
   })
   .superRefine((value, context) => {
     if (value.location_mfa_mode !== LocationMfaMode.Disabled) {
@@ -512,6 +513,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       port: location.port,
       service_location_mode: location.service_location_mode,
       firewall: locationToFirewall(location),
+      allowed_ips_from_acl: location.allowed_ips_from_acl,
     }),
     [location],
   );
@@ -636,6 +638,24 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormInput
                 label={m.add_location_internal_vpn_label_allowed_ips()}
                 helper={m.add_location_internal_vpn_helper_allowed_ips()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          {isPresent(canUseEnterprise) && !canUseEnterprise && (
+            <p>
+              <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+                {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
+              </a>
+              {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
+            </p>
+          )}
+          <form.AppField name="allowed_ips_from_acl">
+            {(field) => (
+              <field.FormCheckbox
+                text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+                disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
+                helper={m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
               />
             )}
           </form.AppField>
