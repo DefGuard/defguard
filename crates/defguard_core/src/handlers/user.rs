@@ -17,6 +17,8 @@ use serde_json::json;
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
+use serde::Deserialize;
+
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
     StartEnrollmentRequest, Username, user_for_admin_or_self,
@@ -145,6 +147,14 @@ impl UserDetails {
 
 /// List of all users
 ///
+/// Query params for filtering the user list.
+#[derive(Debug, Deserialize, Default)]
+pub struct UserFilterParams {
+    /// Filter users by group membership (OR logic - user in any listed group).
+    #[serde(default)]
+    pub groups: Vec<String>,
+}
+
 /// Retrieves list of users.
 ///
 /// # Returns
@@ -191,25 +201,34 @@ pub(crate) async fn list_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
+    filters: Query<UserFilterParams>,
 ) -> PaginatedApiResult<UserInfo> {
     let pagination = pagination.0;
+    let filters = filters.0;
 
-    debug!("Listing users");
+    debug!("Listing users with filters: {filters:?}");
 
-    let all_users = User::all_paginated(
-        &appstate.pool,
-        i64::from(pagination.per_page()),
-        i64::from(pagination.offset()),
-    )
-    .await?;
+    let limit = i64::from(pagination.per_page());
+    let offset = i64::from(pagination.offset());
+
+    let (all_users, count) = if !filters.groups.is_empty() {
+        (
+            User::all_filtered(&appstate.pool, limit, offset, &filters.groups).await?,
+            User::count_filtered(&appstate.pool, &filters.groups).await?,
+        )
+    } else {
+        (
+            User::all_paginated(&appstate.pool, limit, offset).await?,
+            User::count(&appstate.pool).await?,
+        )
+    };
+
     // Map [`User`] to [`UserInfo`].
     // TODO: too many queries – optimise.
     let mut users = Vec::with_capacity(all_users.len());
     for user in all_users {
         users.push(UserInfo::from_user(&appstate.pool, user).await?);
     }
-
-    let count = User::count(&appstate.pool).await?;
 
     info!("Listed users");
 
