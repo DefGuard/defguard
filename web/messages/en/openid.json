@@ -54,6 +54,8 @@
   "settings_openid_provider_helper_okta_directory_sync_client_private_key": "",
   "settings_openid_provider_label_jumpcloud_api_key": "JumpCloud API key",
   "settings_openid_provider_helper_jumpcloud_api_key": "",
+  "settings_openid_provider_label_jumpcloud_eu": "EU-based JumpCloud",
+  "settings_openid_provider_helper_jumpcloud_eu": "Enable this if your JumpCloud organization is hosted in the EU region.",
   "settings_openid_provider_create_account_title": "Automatically create an account on first sign-in with this external identity provider.",
   "settings_openid_provider_create_account_content": "If enabled, Defguard automatically creates an account when a user signs in for the first time with this external identity provider. Otherwise, the account must be created by an administrator first.",
   "settings_openid_provider_edit_title": "Edit external identity provider",
