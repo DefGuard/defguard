@@ -154,6 +154,9 @@ pub struct UserFilterParams {
     /// Filter users by group membership (OR logic - user in any listed group).
     #[serde(default)]
     pub groups: Vec<String>,
+    /// Filter users with no group memberships. Takes precedence over `groups`.
+    #[serde(default)]
+    pub no_group: bool,
 }
 
 /// Retrieves list of users.
@@ -167,6 +170,7 @@ pub struct UserFilterParams {
     path = "/api/v1/user",
     params(
         ("groups" = Option<Vec<String>>, Query, description = "Filter users by group names (OR logic - returns users in any of the specified groups)"),
+        ("no_group" = Option<bool>, Query, description = "Filter users with no group memberships (takes precedence over groups)"),
     ),
     responses(
         (status = 200, description = "List of all users.", body = [UserInfo], example = json!(
@@ -215,7 +219,12 @@ pub(crate) async fn list_users(
     let limit = i64::from(pagination.per_page());
     let offset = i64::from(pagination.offset());
 
-    let (all_users, count) = if !filters.groups.is_empty() {
+    let (all_users, count) = if filters.no_group {
+        (
+            User::all_filtered(&appstate.pool, limit, offset, &[], true).await?,
+            User::count_filtered(&appstate.pool, &[], true).await?,
+        )
+    } else if !filters.groups.is_empty() {
         (
             User::all_filtered(&appstate.pool, limit, offset, &filters.groups, false).await?,
             User::count_filtered(&appstate.pool, &filters.groups, false).await?,
