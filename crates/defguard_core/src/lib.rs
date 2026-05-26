@@ -165,9 +165,10 @@ use crate::{
         support::{configuration, logs},
         updates::outdated_components,
         user::{
-            add_user, change_password, change_self_password, delete_authorized_app,
-            delete_security_key, delete_user, get_user, list_users, me, modify_user,
-            reset_password, start_enrollment, start_remote_desktop_configuration,
+            add_user, bulk_delete_users, bulk_disable_users, bulk_start_enrollment,
+            change_password, change_self_password,
+            delete_authorized_app, delete_security_key, delete_user, get_user, list_users, me,
+            modify_user, reset_password, start_enrollment, start_remote_desktop_configuration,
             username_available,
         },
         webhooks::{
@@ -308,6 +309,9 @@ pub fn build_webapp(
                 post(start_remote_desktop_configuration),
             )
             .route("/user/available", post(username_available))
+            .route("/user/bulk-disable", post(bulk_disable_users))
+            .route("/user/bulk-delete", post(bulk_delete_users))
+            .route("/user/bulk-start-enrollment", post(bulk_start_enrollment))
             .route("/user/{username}", put(modify_user).delete(delete_user))
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
