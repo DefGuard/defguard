@@ -1408,7 +1408,6 @@ pub(crate) async fn bulk_disable_users(
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
     for user in users {
-        // skip users that are already disabled — no-op, no event
         if !user.is_active {
             continue;
         }

@@ -1,9 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use url::Url;
-
 use ipnetwork::IpNetwork;
 use serde::Serialize;
+use url::Url;
 
 /// Strip any `http://` or `https://` scheme prefix a user may have accidentally
 /// included in a hostname/IP field that expects a bare host, not a URL.
