@@ -1943,3 +1943,145 @@ async fn test_config_allowed_ips_from_acl_any_address_skipped(
         "config should NOT contain ::/0 from any_address rule, got: {allowed_ips}"
     );
 }
+
+/// When the enterprise license is not active, the config should only contain
+/// manual AllowedIPs even when the toggle is on.
+#[sqlx::test]
+async fn test_config_allowed_ips_from_acl_no_license(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    // Business license is set by make_test_client; no set_enterprise_license().
+    let (mut client, _client_state) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    let create_response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "acl-no-license",
+            "address": "10.70.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.70.1",
+            "allowed_ips": "10.100.0.0/16",
+            "dns": "",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": true,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": true,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(create_response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = create_response.json().await;
+
+    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    insert_acl_rule_for_location(&pool, location.id, destination).await;
+
+    let device_payload = json!({
+        "name": "acl-no-license-device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let device_response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(device_response.status(), StatusCode::CREATED);
+    let device_json: serde_json::Value = device_response.json().await;
+    let device_id = device_json["device"]["id"].as_i64().unwrap();
+
+    let config_response = client
+        .get(format!("/api/v1/device/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(config_response.status(), StatusCode::OK);
+    let configs: Vec<serde_json::Value> = config_response.json().await;
+    assert_eq!(configs.len(), 1);
+    let config_text = configs[0]["config"].as_str().unwrap();
+
+    let allowed_ips = parse_allowed_ips_from_config(config_text);
+    assert!(
+        allowed_ips.contains("10.100.0.0/16"),
+        "config should contain manual IP 10.100.0.0/16, got: {allowed_ips}"
+    );
+    assert!(
+        !allowed_ips.contains("192.168.1.0/24"),
+        "config should NOT contain ACL IP without enterprise license, got: {allowed_ips}"
+    );
+}
+
+/// When ACL is not enabled on the location but the toggle is on,
+/// the config should still only contain manual AllowedIPs.
+#[sqlx::test]
+async fn test_config_allowed_ips_from_acl_disabled(_: PgPoolOptions, options: PgConnectOptions) {
+    set_enterprise_license();
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    let create_response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "acl-disabled",
+            "address": "10.80.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.80.1",
+            "allowed_ips": "10.100.0.0/16",
+            "dns": "",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": true,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(create_response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = create_response.json().await;
+
+    let destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    insert_acl_rule_for_location(&pool, location.id, destination).await;
+
+    let device_payload = json!({
+        "name": "acl-disabled-device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let device_response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(device_response.status(), StatusCode::CREATED);
+    let device_json: serde_json::Value = device_response.json().await;
+    let device_id = device_json["device"]["id"].as_i64().unwrap();
+
+    let config_response = client
+        .get(format!("/api/v1/device/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(config_response.status(), StatusCode::OK);
+    let configs: Vec<serde_json::Value> = config_response.json().await;
+    assert_eq!(configs.len(), 1);
+    let config_text = configs[0]["config"].as_str().unwrap();
+
+    let allowed_ips = parse_allowed_ips_from_config(config_text);
+    assert!(
+        allowed_ips.contains("10.100.0.0/16"),
+        "config should contain manual IP 10.100.0.0/16, got: {allowed_ips}"
+    );
+    assert!(
+        !allowed_ips.contains("192.168.1.0/24"),
+        "config should NOT contain ACL IP when ACL disabled, got: {allowed_ips}"
+    );
+}
