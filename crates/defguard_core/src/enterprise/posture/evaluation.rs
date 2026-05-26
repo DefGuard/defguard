@@ -225,7 +225,7 @@ fn evaluate_os_rule(
 ///
 /// Returns [`PostureResult::Pass`] when no postures are assigned or all pass.
 /// Returns [`PostureResult::Fail`] with accumulated [`FailureReason`]s otherwise.
-pub async fn validate_posture(
+pub(crate) async fn validate_posture(
     pool: &PgPool,
     request: &DevicePostureCheckRequest,
 ) -> Result<PostureResult, PostureCheckError> {
@@ -265,7 +265,7 @@ pub async fn validate_posture(
     };
 
     let os_type = parse_os_type(&data.os_type);
-    let mut all_failures: Vec<FailureReason> = Vec::new();
+    let mut all_failures = Vec::new();
 
     for posture_id in posture_ids {
         let Some(policy) = DevicePosture::find_by_id(pool, posture_id).await? else {

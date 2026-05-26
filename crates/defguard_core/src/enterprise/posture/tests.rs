@@ -19,7 +19,7 @@ use crate::{
         },
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::{Counts, set_counts},
-        posture::validate_posture,
+        posture::evaluation::validate_posture,
     },
     grpc::proto::enterprise::license::LicenseLimits,
 };

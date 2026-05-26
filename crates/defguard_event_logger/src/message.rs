@@ -37,6 +37,7 @@ pub enum LoggerEvent {
     Defguard(Box<DefguardEvent>),
     Vpn(Box<VpnEvent>),
     Enrollment(Box<EnrollmentEvent>),
+    Client(Box<ClientEvent>),
 }
 
 /// Shared context that's included in all activity log events
@@ -361,6 +362,29 @@ pub enum DefguardEvent {
 pub enum ClientEvent {
     DesktopClientActivated { device_id: Id, device_name: String },
     DesktopClientUpdated { device_id: Id, device_name: String },
+    DevicePostureCheckPassed { device_id: Id, device_name: String },
+    DevicePostureCheckFailed { device_id: Id, device_name: String },
+}
+
+impl ClientEvent {
+    pub fn description(&self) -> Option<String> {
+        match self {
+            Self::DesktopClientActivated { .. } => None,
+            Self::DesktopClientUpdated { .. } => None,
+            Self::DevicePostureCheckPassed {
+                device_id,
+                device_name,
+            } => Some(format!(
+                "Device posture check passed for device {device_name} ({device_id}"
+            )),
+            Self::DevicePostureCheckFailed {
+                device_id,
+                device_name,
+            } => Some(format!(
+                "Device posture check failed for device {device_name} ({device_id}"
+            )),
+        }
+    }
 }
 
 /// Represents activity log events related to VPN

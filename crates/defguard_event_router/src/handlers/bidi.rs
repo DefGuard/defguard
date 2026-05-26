@@ -116,7 +116,10 @@ mod tests {
     };
     use defguard_common::gateway_event::GatewayCommand;
     use defguard_core::events::{BidiRequestContext, BidiStreamEventType};
-    use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
+    use tokio::sync::{
+        Notify, broadcast,
+        mpsc::{UnboundedReceiver, unbounded_channel},
+    };
 
     use super::*;
     use crate::RouterReceiverSet;
@@ -155,7 +158,7 @@ mod tests {
 
     fn sample_router() -> (
         EventRouter,
-        tokio::sync::mpsc::UnboundedReceiver<defguard_event_logger::message::EventLoggerMessage>,
+        UnboundedReceiver<defguard_event_logger::message::EventLoggerMessage>,
     ) {
         let (_api_tx, api_rx) = unbounded_channel();
         let (_bidi_tx, bidi_rx) = unbounded_channel();
