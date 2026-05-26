@@ -343,6 +343,65 @@ async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOption
 }
 
 #[sqlx::test]
+async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // no_group=true should return only hpotter (the only ungrouped user)
+    let response = client.get("/api/v1/user?no_group=true").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // no_group=false with groups filter - should work normally
+    let response = client
+        .get("/api/v1/user?no_group=false&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+
+    // Conflict: no_group=true with groups=admin - no_group wins, only ungrouped
+    let response = client
+        .get("/api/v1/user?no_group=true&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Unauthorized access
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/user?no_group=true").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
 async fn test_get_user(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
