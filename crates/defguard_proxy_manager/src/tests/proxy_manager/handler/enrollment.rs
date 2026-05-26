@@ -1,11 +1,11 @@
-use defguard_common::db::models::{
-    Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
-    settings::update_current_settings,
+use defguard_common::{
+    db::models::{
+        Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+        settings::update_current_settings,
+    },
+    gateway_event::GatewayCommand,
 };
-use defguard_core::{
-    events::{BidiStreamEventType, EnrollmentEvent},
-    grpc::GatewayEvent,
-};
+use defguard_core::events::{BidiStreamEventType, EnrollmentEvent};
 use defguard_proto::{
     client_types::{ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest},
     proxy::{CoreRequest, core_request, core_response},
@@ -263,8 +263,8 @@ async fn test_new_device_sends_gateway_device_created_event(
     // Start the enrollment session so Token::used_at is set.
     start_enrollment_session(&mut context, &token.id).await;
 
-    // Subscribe to gateway events BEFORE sending the request.
-    let mut gateway_rx = context.wireguard_tx.subscribe();
+    // Subscribe to gateway commands BEFORE sending the request.
+    let mut gateway_rx = context.gateway_tx.subscribe();
 
     let pubkey = "DhsoNUJPXGl2g5CdqrfE0d7r+AUSHyw5RlNgbXqHlKE=";
     context.mock_proxy().send_request(CoreRequest {
@@ -283,12 +283,12 @@ async fn test_new_device_sends_gateway_device_created_event(
     // Check that a DeviceCreated event was broadcast.
     let event = timeout(TEST_TIMEOUT, gateway_rx.recv())
         .await
-        .expect("timed out waiting for GatewayEvent::DeviceCreated")
-        .expect("gateway event channel closed");
+        .expect("timed out waiting for GatewayCommand::DeviceCreated")
+        .expect("gateway command channel closed");
 
     assert!(
-        matches!(event, GatewayEvent::DeviceCreated(_)),
-        "expected DeviceCreated gateway event, got: {event:?}"
+        matches!(event, GatewayCommand::DeviceCreated(_)),
+        "expected DeviceCreated gateway command, got: {event:?}"
     );
 
     context.finish().await.expect_server_finished().await;

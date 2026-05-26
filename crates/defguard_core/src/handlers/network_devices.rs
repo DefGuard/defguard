@@ -35,7 +35,7 @@ use crate::{
         firewall::try_get_location_firewall_config, limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{
         device_for_admin_or_self,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
@@ -677,7 +677,7 @@ pub(crate) async fn add_network_device(
     let (network_info, config) =
         join_device_to_network(&mut transaction, &device, &network, &user, &ips).await?;
 
-    appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+    appstate.send_gateway_command(GatewayCommand::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info: vec![network_info.clone()],
     }));
@@ -688,7 +688,7 @@ pub(crate) async fn add_network_device(
     if let Some(firewall_config) =
         try_get_location_firewall_config(&network, &mut transaction).await?
     {
-        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+        appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
             network.id,
             firewall_config,
         ));
@@ -785,14 +785,14 @@ pub async fn modify_network_device(
         wireguard_network_device.wireguard_ips = data.assigned_ips;
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
-        appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
+        appstate.send_gateway_command(GatewayCommand::DeviceModified(device_info));
 
         // send firewall update event if ACLs are enabled
         if device_network.acl_enabled {
             if let Some(firewall_config) =
                 try_get_location_firewall_config(&device_network, &mut transaction).await?
             {
-                appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                     device_network.id,
                     firewall_config,
                 ));

@@ -19,7 +19,7 @@ use crate::{
     db::{AppEvent, WebHook},
     error::WebError,
     events::ApiEvent,
-    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    grpc::{GatewayCommand, send_gateway_command, send_multiple_gateway_commands},
     version::IncompatibleComponents,
 };
 
@@ -29,7 +29,7 @@ const X_DEFGUARD_EVENT: &str = "x-defguard-event";
 pub struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
-    pub wireguard_tx: Sender<GatewayEvent>,
+    pub gateway_tx: Sender<GatewayCommand>,
     pub web_reload_tx: tokio::sync::broadcast::Sender<()>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
@@ -86,16 +86,16 @@ impl AppState {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server.
-    /// Convenience wrapper around [`send_wireguard_event`]
-    pub fn send_wireguard_event(&self, event: GatewayEvent) {
-        send_wireguard_event(event, &self.wireguard_tx);
+    /// Sends given `GatewayCommand` to be handled by gateway manager service.
+    /// Convenience wrapper around [`send_gateway_command`]
+    pub fn send_gateway_command(&self, command: GatewayCommand) {
+        send_gateway_command(command, &self.gateway_tx);
     }
 
-    /// Sends multiple events to be handled by gateway GRPC server.
-    /// Convenience wrapper around [`send_multiple_wireguard_events`]
-    pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
-        send_multiple_wireguard_events(events, &self.wireguard_tx);
+    /// Sends multiple commands to be handled by gateway manager service.
+    /// Convenience wrapper around [`send_multiple_gateway_commands`]
+    pub fn send_multiple_gateway_commands(&self, commands: Vec<GatewayCommand>) {
+        send_multiple_gateway_commands(commands, &self.gateway_tx);
     }
 
     /// Sends event to the main event router
@@ -118,7 +118,7 @@ impl AppState {
         pool: PgPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         web_reload_tx: tokio::sync::broadcast::Sender<()>,
         key: Key,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -132,7 +132,7 @@ impl AppState {
         Self {
             pool,
             tx,
-            wireguard_tx,
+            gateway_tx,
             web_reload_tx,
             failed_logins,
             key,

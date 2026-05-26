@@ -11,7 +11,7 @@ async fn test_matching_location_firewall_config_changed_event_produces_update(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::FirewallConfigChanged(
+            .send(GatewayCommand::FirewallConfigChanged(
                 context.network.id,
                 expected_firewall_config.clone(),
             )),
@@ -37,7 +37,7 @@ async fn test_matching_location_firewall_disabled_event_produces_disable_update(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::FirewallDisabled(context.network.id)),
+            .send(GatewayCommand::FirewallDisabled(context.network.id)),
         "failed to broadcast firewall disabled event"
     );
 
@@ -56,7 +56,7 @@ async fn test_different_location_firewall_config_changed_event_is_ignored(
     let expected_firewall_config = build_test_firewall_config();
 
     assert_firewall_event_for_different_network_is_ignored(options, move |other_network_id| {
-        GatewayEvent::FirewallConfigChanged(other_network_id, expected_firewall_config)
+        GatewayCommand::FirewallConfigChanged(other_network_id, expected_firewall_config)
     })
     .await;
 }
@@ -67,7 +67,7 @@ async fn test_different_location_firewall_disabled_event_is_ignored(
     options: PgConnectOptions,
 ) {
     assert_firewall_event_for_different_network_is_ignored(options, |other_network_id| {
-        GatewayEvent::FirewallDisabled(other_network_id)
+        GatewayCommand::FirewallDisabled(other_network_id)
     })
     .await;
 }

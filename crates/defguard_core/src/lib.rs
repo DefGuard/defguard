@@ -126,7 +126,7 @@ use crate::{
             create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
         },
     },
-    grpc::{GatewayEvent, WorkerState},
+    grpc::{GatewayCommand, WorkerState},
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -257,7 +257,7 @@ async fn openapi() -> Json<utoipa::openapi::OpenApi> {
 pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     web_reload_tx: tokio::sync::broadcast::Sender<()>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
@@ -735,7 +735,7 @@ pub fn build_webapp(
         pool.clone(),
         webhook_tx,
         webhook_rx,
-        wireguard_tx,
+        gateway_tx,
         web_reload_tx,
         key,
         failed_logins,
@@ -805,7 +805,7 @@ pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     web_reload_tx: tokio::sync::broadcast::Sender<()>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -823,7 +823,7 @@ pub async fn run_web_server(
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
-        wireguard_tx,
+        gateway_tx,
         web_reload_tx.clone(),
         worker_state,
         pool.clone(),

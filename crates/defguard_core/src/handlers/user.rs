@@ -775,7 +775,7 @@ pub(crate) async fn modify_user(
                 "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
-            sync_allowed_user_devices(&user, &mut transaction, &appstate.wireguard_tx).await?;
+            sync_allowed_user_devices(&user, &mut transaction, &appstate.gateway_tx).await?;
         }
 
         // remove API tokens when deactivating a user
@@ -908,7 +908,7 @@ pub(crate) async fn delete_user(
         } else {
             None
         };
-        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.wireguard_tx)
+        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.gateway_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));

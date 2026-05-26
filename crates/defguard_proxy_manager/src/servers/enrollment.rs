@@ -24,7 +24,7 @@ use defguard_core::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        GatewayEvent, InstanceInfo,
+        GatewayCommand, InstanceInfo,
         client_version::ClientFeature,
         utils::{build_device_config_response, parse_client_ip_agent},
     },
@@ -51,7 +51,7 @@ use tonic::Status;
 
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -59,12 +59,12 @@ impl EnrollmentServer {
     #[must_use]
     pub(crate) fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             pool,
-            wireguard_tx,
+            gateway_tx,
             bidi_event_tx,
         }
     }
@@ -99,10 +99,10 @@ impl EnrollmentServer {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server
-    pub(crate) fn send_wireguard_event(&self, event: GatewayEvent) {
-        if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending WireGuard event {err}");
+    /// Sends given `GatewayCommand` to be handled by gateway manager service
+    pub(crate) fn send_gateway_command(&self, event: GatewayCommand) {
+        if let Err(err) = self.gateway_tx.send(event) {
+            error!("Error sending Gateway command: {err}");
         }
     }
 
@@ -811,7 +811,7 @@ impl EnrollmentServer {
                         adding new device {}, user {}({})",
                         device.wireguard_pubkey, user.username, user.id
                     );
-                    self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                    self.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                         location_id,
                         firewall_config,
                     ));
@@ -823,7 +823,7 @@ impl EnrollmentServer {
             "Sending DeviceCreated event to gateway for device {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
         );
-        self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+        self.send_gateway_command(GatewayCommand::DeviceCreated(DeviceInfo {
             device: device.clone(),
             network_info,
         }));
@@ -1227,9 +1227,9 @@ mod test {
         settings.enrollment_send_welcome_email = false;
         update_current_settings(&pool, settings).await.unwrap();
 
-        let (wireguard_tx, _) = broadcast::channel(1);
+        let (gateway_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), wireguard_tx, bidi_event_tx);
+        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx);
 
         let mut transaction = pool.begin().await.unwrap();
         let result = server

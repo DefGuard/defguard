@@ -13,16 +13,14 @@
 //!    MPSC channel.
 //! 2. The router processes these events and forwards them to the appropriate services:
 //!    - Activity log events go to the event logger service
-//!    - WireGuard events go to the gateway service
+//!    - gateway commands go to the gateway service
 //!    - Mail events go to the mail service
 //!    - etc.
 
 use std::sync::Arc;
 
-use defguard_core::{
-    events::{ApiEvent, BidiStreamEvent},
-    grpc::GatewayEvent,
-};
+use defguard_common::gateway_event::GatewayCommand;
+use defguard_core::events::{ApiEvent, BidiStreamEvent};
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use defguard_session_manager::events::SessionManagerEvent;
 use error::EventRouterError;
@@ -63,7 +61,7 @@ impl RouterReceiverSet {
 struct EventRouter {
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     activity_log_stream_reload_notify: Arc<Notify>,
 }
 
@@ -89,13 +87,13 @@ impl EventRouter {
     fn new(
         receivers: RouterReceiverSet,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         activity_log_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
             receivers,
             event_logger_tx,
-            wireguard_tx,
+            gateway_tx,
             activity_log_stream_reload_notify,
         }
     }
@@ -140,7 +138,7 @@ impl EventRouter {
 pub async fn run_event_router(
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     activity_log_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
@@ -148,7 +146,7 @@ pub async fn run_event_router(
     let mut event_router = EventRouter::new(
         receivers,
         event_logger_tx,
-        wireguard_tx,
+        gateway_tx,
         activity_log_stream_reload_notify,
     );
 

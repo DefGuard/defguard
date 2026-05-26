@@ -17,6 +17,7 @@ use defguard_common::{
             settings::{initialize_current_settings, update_current_settings},
         },
     },
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
 };
@@ -30,7 +31,7 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent},
     gateway_config,
-    grpc::{GatewayEvent, WorkerState, run_grpc_server},
+    grpc::{WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,
@@ -210,7 +211,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // setup communication channels for services
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     // RX is discarded here since it can be derived from TX later on
-    let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayEvent>(256);
+    let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(256);
     let (event_logger_tx, event_logger_rx) = unbounded_channel::<EventLoggerMessage>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 

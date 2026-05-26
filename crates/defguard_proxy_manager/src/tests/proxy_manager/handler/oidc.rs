@@ -282,7 +282,7 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     set_public_proxy_url(&context.pool, &mock.base_url).await;
 
     // Subscribe to gateway events before sending MFA finish.
-    let _gateway_rx = context.wireguard_tx.subscribe();
+    let _gateway_rx = context.gateway_tx.subscribe();
 
     // ---- Step 1: ClientMfaStart with Oidc method ----
     let (_, mfa_token) = send_mfa_start(

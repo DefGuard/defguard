@@ -50,7 +50,7 @@ use crate::{
         posture::{PostureCheckError, PostureResult, validate_posture},
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{GatewayEvent, utils::parse_client_ip_agent},
+    grpc::{GatewayCommand, utils::parse_client_ip_agent},
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -82,7 +82,7 @@ pub struct ClientLoginSession {
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -103,14 +103,14 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         Self {
             pool,
-            wireguard_tx,
+            gateway_tx,
             sessions,
             remote_mfa_responses,
             bidi_event_tx,
@@ -745,8 +745,8 @@ impl ClientMfaServer {
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let event =
-            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.wireguard_tx.send(event).map_err(|err| {
+            GatewayCommand::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
+        self.gateway_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
@@ -932,8 +932,8 @@ impl ClientMfaServer {
         })?;
 
         let event =
-            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.wireguard_tx.send(event).map_err(|err| {
+            GatewayCommand::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
+        self.gateway_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
@@ -1028,8 +1028,8 @@ impl ClientMfaServer {
         // gateway update is only needed to remove peers that were authorized at runtime - MFA and posture-check sessions
         // this is needed to remove peers for both Connected and New sessions
         if requires_gateway_update {
-            let gateway_event = GatewayEvent::VpnSessionDeauthorized(location.id, device.clone());
-            self.wireguard_tx.send(gateway_event).map_err(|err| {
+            let gateway_event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
+            self.gateway_tx.send(gateway_event).map_err(|err| {
                 error!("Error sending WireGuard event: {err}");
                 Status::internal("unexpected error")
             })?;
@@ -1118,7 +1118,7 @@ mod tests {
             limits::{Counts, set_counts},
         },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
+        grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -1157,7 +1157,7 @@ mod tests {
             .try_recv()
             .expect("expected VPN authorization gateway event")
         {
-            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+            GatewayCommand::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(authorized_device.id, device.id);
                 assert_eq!(network_info.network_id, location.id);
@@ -1224,7 +1224,7 @@ mod tests {
             .try_recv()
             .expect("expected VPN deauthorization gateway event for replaced posture session")
         {
-            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1234,7 +1234,7 @@ mod tests {
             .try_recv()
             .expect("expected VPN authorization gateway event for replacement posture session")
         {
-            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+            GatewayCommand::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(authorized_device.id, device.id);
                 assert!(network_info.preshared_key.is_some());
@@ -1340,7 +1340,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced connected session");
         match gateway_event {
-            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1415,7 +1415,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced new session");
         match gateway_event {
-            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1508,9 +1508,9 @@ mod tests {
     ) -> (
         ClientMfaServer,
         tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-        tokio::sync::broadcast::Receiver<GatewayEvent>,
+        tokio::sync::broadcast::Receiver<GatewayCommand>,
     ) {
-        let (wireguard_tx, wireguard_rx) = broadcast::channel(8);
+        let (gateway_tx, gateway_rx) = broadcast::channel(8);
         let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
         let remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>> =
             Arc::default();
@@ -1519,13 +1519,13 @@ mod tests {
         (
             ClientMfaServer::new(
                 pool,
-                wireguard_tx,
+                gateway_tx,
                 bidi_event_tx,
                 remote_mfa_responses,
                 sessions,
             ),
             bidi_event_rx,
-            wireguard_rx,
+            gateway_rx,
         )
     }
 
@@ -1632,7 +1632,7 @@ mod tests {
         );
 
         match gateway_rx.try_recv() {
-            Ok(GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device)) => {
+            Ok(GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device)) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }

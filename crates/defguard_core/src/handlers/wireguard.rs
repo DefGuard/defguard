@@ -39,7 +39,7 @@ use crate::{
         limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{gateway::GatewayInfo, network_devices::DeviceWireGuardConfig},
     location_management::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
@@ -263,7 +263,7 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
 
     transaction.commit().await?;
 
@@ -385,7 +385,7 @@ pub(crate) async fn modify_network(
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
     let maybe_firewall_config =
         try_get_location_firewall_config(&network, &mut transaction).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkModified(
+    appstate.send_gateway_command(GatewayCommand::NetworkModified(
         network.id,
         network.clone(),
         peers,
@@ -452,7 +452,7 @@ pub(crate) async fn delete_network(
     }
     network.clone().delete(&mut *transaction).await?;
     transaction.commit().await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
+    appstate.send_gateway_command(GatewayCommand::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
@@ -659,7 +659,7 @@ pub(crate) async fn import_network(
         .await?;
 
     info!("New network {network} created");
-    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
 
     let reserved_ips = imported_devices
         .iter()
@@ -667,13 +667,13 @@ pub(crate) async fn import_network(
         .collect::<Vec<_>>();
     let (devices, gateway_events) =
         handle_imported_devices(&network, &mut transaction, imported_devices).await?;
-    appstate.send_multiple_wireguard_events(gateway_events);
+    appstate.send_multiple_gateway_commands(gateway_events);
 
     // assign IPs for other existing devices
     debug!("Assigning IPs in imported network for remaining existing devices");
     let gateway_events =
         sync_location_allowed_devices(&network, &mut transaction, Some(&reserved_ips)).await?;
-    appstate.send_multiple_wireguard_events(gateway_events);
+    appstate.send_multiple_gateway_commands(gateway_events);
     debug!("Assigned IPs in imported network for remaining existing devices");
 
     transaction.commit().await?;
@@ -720,7 +720,7 @@ pub(crate) async fn add_user_devices(
         // wrap loop in transaction to abort if a device is invalid
         let mut transaction = appstate.pool.begin().await?;
         let events = handle_mapped_devices(&network, &mut transaction, &mapped_devices).await?;
-        appstate.send_multiple_wireguard_events(events);
+        appstate.send_multiple_gateway_commands(events);
         transaction.commit().await?;
 
         info!(
@@ -876,7 +876,7 @@ pub(crate) async fn add_device(
     let (network_info, configs) =
         join_device_to_all_networks(&mut transaction, &device, &user).await?;
 
-    // prepare a list of gateway events to be sent
+    // prepare a list of gateway commands to be sent
     let mut events = Vec::new();
 
     // get all locations affected by device being added
@@ -897,7 +897,7 @@ pub(crate) async fn add_device(
                     "Sending firewall config update for location {location} affected by adding new \
                     user {username} devices"
                 );
-                events.push(GatewayEvent::FirewallConfigChanged(
+                events.push(GatewayCommand::FirewallConfigChanged(
                     location_id,
                     firewall_config,
                 ));
@@ -906,12 +906,12 @@ pub(crate) async fn add_device(
     }
 
     // add peer on relevant gateways
-    events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+    events.push(GatewayCommand::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info: network_info.clone(),
     }));
 
-    appstate.send_multiple_wireguard_events(events);
+    appstate.send_multiple_gateway_commands(events);
 
     let template_locations = configs
         .iter()
@@ -1066,7 +1066,7 @@ pub(crate) async fn modify_device(
             network_info.push(device_network_info);
         }
     }
-    appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
+    appstate.send_gateway_command(GatewayCommand::DeviceModified(DeviceInfo {
         device: device.clone(),
         network_info,
     }));
@@ -1191,7 +1191,7 @@ pub(crate) async fn delete_device(
                 debug!(
                     "Sending firewall config update for location {location} affected by deleting user {username} device"
                 );
-                events.push(GatewayEvent::FirewallConfigChanged(
+                events.push(GatewayCommand::FirewallConfigChanged(
                     location.id,
                     firewall_config,
                 ));
@@ -1200,10 +1200,10 @@ pub(crate) async fn delete_device(
     }
 
     let device_id = device_info.device.id;
-    events.push(GatewayEvent::DeviceDeleted(device_info.clone()));
+    events.push(GatewayCommand::DeviceDeleted(device_info.clone()));
 
-    // send generated gateway events
-    appstate.send_multiple_wireguard_events(events);
+    // send generated gateway commands
+    appstate.send_multiple_gateway_commands(events);
 
     // Emit event specific to the device type.
     match device.device_type {
