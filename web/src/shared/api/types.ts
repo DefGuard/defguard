@@ -531,6 +531,16 @@ export interface StartEnrollmentResponse {
   enrollment_token: string;
 }
 
+export interface BulkStartEnrollmentRequest {
+  users: number[];
+  send_enrollment_notification: boolean;
+}
+
+export interface BulkStartEnrollmentResponse {
+  started: number;
+  skipped: number;
+}
+
 export interface AddDeviceRequest {
   username: string;
   name: string;

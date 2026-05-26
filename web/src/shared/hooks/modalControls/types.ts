@@ -1,4 +1,5 @@
 import type { QueryKey } from '@tanstack/react-query';
+import type { AxiosResponse } from 'axios';
 import type { HTMLProps } from 'react';
 import type {
   AvailableLocationIpResponse,
@@ -21,13 +22,13 @@ import type { ButtonProps } from '../../defguard-ui/components/Button/types';
 export interface OpenConfirmActionModal {
   title: string;
   contentMd: string;
-  actionPromise: () => Promise<unknown>;
+  actionPromise: () => Promise<AxiosResponse>;
   invalidateKeys?: QueryKey[];
   cancelProps?: ButtonProps;
   submitProps?: ButtonProps;
   contentContainerProps?: HTMLProps<HTMLDivElement>;
-  onSuccess?: () => void;
-  onError?: () => void;
+  onSuccess?: (result: AxiosResponse) => void;
+  onError?: (message: string) => void;
 }
 
 export interface OpenEditDeviceModal {

@@ -16,7 +16,12 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { type Device, LocationMfaMode, type User } from '../../shared/api/types';
+import {
+  type BulkStartEnrollmentResponse,
+  type Device,
+  LocationMfaMode,
+  type User,
+} from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -702,6 +707,98 @@ export const UsersTable = () => {
     getRowCanExpand: (row) => row.original.devices.length > 0,
   });
 
+  const handleBulkStartEnrollment = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) return;
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_start_enrollment_title(),
+      contentMd: m.users_modal_bulk_start_enrollment_content({
+        count: selectedUsers.length,
+      }),
+      actionPromise: () =>
+        api.user.bulkStartEnrollment({
+          users: selectedUsers,
+          send_enrollment_notification: true,
+        }),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_start_enrollment(),
+      },
+      onSuccess: (result) => {
+        const { started, skipped } = result.data as BulkStartEnrollmentResponse;
+        const msg =
+          skipped > 0
+            ? m.users_bulk_start_enrollment_success_with_skipped({ started, skipped })
+            : m.users_bulk_start_enrollment_success({ started });
+        Snackbar.default(msg);
+        table.resetRowSelection();
+      },
+      onError: () => Snackbar.error(m.users_bulk_start_enrollment_error()),
+    });
+  }, [authUsername, table]);
+
+  const handleBulkDisable = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .filter((row) => row.original.is_active)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) {
+      Snackbar.warning(m.users_bulk_disable_no_eligible());
+      return;
+    }
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_disable_title(),
+      contentMd: m.users_modal_bulk_disable_content({ count: selectedUsers.length }),
+      actionPromise: () => api.user.bulkDisable(selectedUsers),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_disable(),
+        variant: 'critical',
+      },
+      onSuccess: () => {
+        Snackbar.default(m.users_bulk_disable_success());
+        table.resetRowSelection();
+      },
+      onError: () => Snackbar.error(m.users_bulk_disable_error()),
+    });
+  }, [authUsername, table]);
+
+  const handleBulkDelete = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) return;
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_delete_title(),
+      contentMd: m.users_modal_bulk_delete_content({ count: selectedUsers.length }),
+      actionPromise: () => api.user.bulkDelete(selectedUsers),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_delete(),
+        variant: 'critical',
+      },
+      onSuccess: () => {
+        Snackbar.default(m.users_bulk_delete_success());
+        table.resetRowSelection();
+      },
+      onError: () => Snackbar.error(m.users_bulk_delete_error()),
+    });
+  }, [authUsername, table]);
+
   const rows = table.getRowModel().rows;
 
   if (users.length === 0)
@@ -746,26 +843,20 @@ export const UsersTable = () => {
                     text: m.users_bulk_start_enrollment(),
                     icon: 'enrollment',
                     testId: 'bulk-start-enrollment',
-                    onClick: () => {
-                      // TODO
-                    },
+                    onClick: handleBulkStartEnrollment,
                   },
                   {
                     text: m.users_bulk_disable(),
                     icon: 'disabled',
                     testId: 'bulk-disable',
-                    onClick: () => {
-                      // TODO
-                    },
+                    onClick: handleBulkDisable,
                   },
                   {
                     text: m.users_bulk_delete(),
                     icon: 'delete',
                     variant: 'danger',
                     testId: 'bulk-delete',
-                    onClick: () => {
-                      // TODO
-                    },
+                    onClick: handleBulkDelete,
                   },
                 ],
               },
