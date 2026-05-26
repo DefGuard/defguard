@@ -1420,7 +1420,7 @@ pub(crate) async fn bulk_disable_users(
             token.delete(&mut *transaction).await?;
         }
 
-        disable_user(&mut user_to_disable, &mut transaction, &appstate.gateway_tx).await?;
+        disable_user(&mut user_to_disable, &mut transaction, &appstate.wireguard_tx).await?;
         events.push((before, user_to_disable));
     }
     transaction.commit().await?;
@@ -1509,7 +1509,7 @@ pub(crate) async fn bulk_delete_users(
         } else {
             None
         };
-        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.gateway_tx)
+        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.wireguard_tx)
             .await?;
         if let Some(noid_user) = user_for_ldap {
             ldap_targets.push(noid_user);
