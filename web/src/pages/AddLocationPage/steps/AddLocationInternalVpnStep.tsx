@@ -8,6 +8,7 @@ import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/De
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -153,20 +154,26 @@ export const AddLocationInternalVpnStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
-          {isPresent(canUseEnterprise) && !canUseEnterprise &&
+          {isPresent(canUseEnterprise) && !canUseEnterprise && (
             <p>
               <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
                 {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
               </a>
               {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
             </p>
-          }
+          )}
           <form.AppField name="allowed_ips_from_acl">
             {(field) => (
               <field.FormCheckbox
                 text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
                 disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
-                helper={m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
+                helperBlock={
+                  <Helper size={16}>
+                    <p>
+                      {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
+                    </p>
+                  </Helper>
+                }
               />
             )}
           </form.AppField>

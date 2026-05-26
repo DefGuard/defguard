@@ -24,6 +24,7 @@ import type {
 import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
 import { externalLink } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -655,7 +656,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormCheckbox
                 text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
                 disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
-                helper={m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
+                helperBlock={
+                  <Helper>
+                    <p>
+                      {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
+                    </p>
+                  </Helper>
+                }
               />
             )}
           </form.AppField>
