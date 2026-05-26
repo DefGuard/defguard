@@ -488,6 +488,10 @@ pub(crate) async fn start_enrollment(
         )));
     };
 
+    if user.has_password() {
+        return Err(WebError::BadRequest("already active".into()));
+    }
+
     debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 

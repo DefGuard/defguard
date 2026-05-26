@@ -731,7 +731,7 @@ export const UsersTable = () => {
         text: m.users_bulk_start_enrollment(),
       },
       onSuccess: (result) => {
-        const { started, skipped } = result.data as BulkStartEnrollmentResponse;
+        const { started, skipped } = (result as { data: BulkStartEnrollmentResponse }).data;
         const msg =
           skipped > 0
             ? m.users_bulk_start_enrollment_success_with_skipped({ started, skipped })
