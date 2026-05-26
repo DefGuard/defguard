@@ -1,14 +1,16 @@
 use std::net::SocketAddr;
 
 use chrono::{TimeDelta, Utc};
-use defguard_common::db::{
-    models::{
-        vpn_client_session::{VpnClientSession, VpnClientSessionState},
-        vpn_session_stats::VpnSessionStats,
+use defguard_common::{
+    db::{
+        models::{
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_session_stats::VpnSessionStats,
+        },
+        setup_pool,
     },
-    setup_pool,
+    gateway_event::GatewayCommand,
 };
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::{Duration, timeout};

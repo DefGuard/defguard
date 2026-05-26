@@ -1404,7 +1404,6 @@ pub(crate) async fn bulk_disable_users(
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
     for user in users {
-        // skip users that are already disabled — no-op, no event
         if !user.is_active {
             continue;
         }
@@ -1671,7 +1670,6 @@ mod test {
 
     #[test]
     fn test_username_validation() {
-        // valid usernames
         assert_ok!(check_username("zenek34"));
         assert_ok!(check_username("zenekXXX__"));
         assert_ok!(check_username("first.last"));
@@ -1682,7 +1680,6 @@ mod test {
         assert_ok!(check_username("32"));
         assert_ok!(check_username("a4"));
 
-        // invalid usernames
         assert_err!(check_username("__zenek"));
         assert_err!(check_username("zenek?"));
         assert_err!(check_username("MeMeMe!"));

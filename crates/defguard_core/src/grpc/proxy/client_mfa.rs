@@ -230,7 +230,7 @@ impl ClientMfaServer {
 
             // Posture check failed - return payload with reasons
             if let PostureResult::Fail(reasons) = posture_result {
-                let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+                let failed_checks = reasons.iter().map(std::string::ToString::to_string).collect();
                 return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
             }
         }

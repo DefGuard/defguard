@@ -1,3 +1,6 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
+use chrono::NaiveDateTime;
 use defguard_common::{
     db::{
         Id, NoId,
@@ -6,9 +9,6 @@ use defguard_common::{
     },
     gateway_types::{FirewallPolicy, IpVersion},
 };
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
-use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use rand::{Rng, rngs::ThreadRng, thread_rng};
 use sqlx::{

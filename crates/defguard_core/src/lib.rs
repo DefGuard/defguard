@@ -171,10 +171,9 @@ use crate::{
         updates::outdated_components,
         user::{
             add_user, bulk_delete_users, bulk_disable_users, bulk_start_enrollment,
-            change_password, change_self_password,
-            delete_authorized_app, delete_security_key, delete_user, get_user, list_users, me,
-            modify_user, reset_password, start_enrollment, start_remote_desktop_configuration,
-            username_available,
+            change_password, change_self_password, delete_authorized_app, delete_security_key,
+            delete_user, get_user, list_users, me, modify_user, reset_password, start_enrollment,
+            start_remote_desktop_configuration, username_available,
         },
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,

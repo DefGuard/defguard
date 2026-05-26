@@ -107,14 +107,16 @@ mod tests {
         sync::Arc,
     };
 
-    use defguard_common::db::{
-        Id, NoId,
-        models::{
-            Device, DeviceType, WireguardNetwork,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+    use defguard_common::{
+        db::{
+            Id, NoId,
+            models::{
+                Device, DeviceType, WireguardNetwork,
+                wireguard::{LocationMfaMode, ServiceLocationMode},
+            },
         },
+        gateway_event::GatewayCommand,
     };
-    use defguard_common::gateway_event::GatewayCommand;
     use defguard_core::events::{BidiRequestContext, BidiStreamEventType};
     use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
 

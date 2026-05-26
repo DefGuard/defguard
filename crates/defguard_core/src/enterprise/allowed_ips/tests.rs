@@ -1,3 +1,8 @@
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    sync::LazyLock,
+};
+
 use chrono::DateTime;
 use defguard_common::db::{
     Id, NoId,
@@ -9,10 +14,6 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
     query,
-};
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    sync::LazyLock,
 };
 
 use crate::enterprise::{
