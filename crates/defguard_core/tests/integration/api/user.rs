@@ -8,6 +8,7 @@ use defguard_common::{
             Device, DeviceType, MFAMethod, User, WebAuthn, WireguardNetwork,
             device::{AddDevice, WireguardNetworkDevice},
             gateway::Gateway,
+            group::Group,
             oauth2client::OAuth2Client,
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
@@ -260,6 +261,142 @@ async fn test_list_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Create an "engineering" group and assign hpotter to it.
+    // admin is already in the "admin" group via init_admin_user.
+    let engineering = Group::new("engineering").save(&pool).await.unwrap();
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    sqlx::query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+        .bind(engineering.id)
+        .bind(hpotter.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // Filter by admin group - should only return admin
+    let response = client.get("/api/v1/user?groups=admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // Filter by engineering group - should only return hpotter
+    let response = client.get("/api/v1/user?groups=engineering").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // Multiple groups (OR semantics) - should return both users
+    let response = client
+        .get("/api/v1/user?groups=admin&groups=engineering")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let mut usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    usernames.sort();
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 2);
+
+    // Nonexistent group - should return empty results
+    let response = client.get("/api/v1/user?groups=nonexistent").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 0);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
+
+    // Unauthorized access
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/user?groups=admin").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // no_group=true should return only hpotter (the only ungrouped user)
+    let response = client.get("/api/v1/user?no_group=true").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // no_group=false with groups filter - should work normally
+    let response = client
+        .get("/api/v1/user?no_group=false&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+
+    // Conflict: no_group=true with groups=admin - no_group wins, only ungrouped
+    let response = client
+        .get("/api/v1/user?no_group=true&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Unauthorized access
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/user?no_group=true").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     client.assert_event_queue_is_empty();
 }
