@@ -17,7 +17,10 @@ use rand::{
     prelude::Distribution,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
+use sqlx::{
+    FromRow, PgConnection, PgExecutor, PgPool, Postgres, QueryBuilder, Type, query, query_as,
+    query_scalar,
+};
 use thiserror::Error;
 use totp_lite::{Sha1, totp_custom};
 use tracing::{debug, error, info, warn};
@@ -1164,6 +1167,88 @@ impl User<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    /// Find all users with optional group and no-group filters.
+    /// When `no_group` is true, returns only users without any group membership
+    /// (takes precedence over `groups`). When `groups` is non-empty and `no_group`
+    /// is false, returns only users belonging to any of the specified groups (OR semantics).
+    pub async fn all_filtered<'e, E>(
+        executor: E,
+        limit: i64,
+        offset: i64,
+        groups: &[String],
+        no_group: bool,
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method, u.recovery_codes, \
+            u.is_active, u.openid_sub, \
+            u.from_ldap, u.ldap_pass_randomized, u.ldap_rdn, u.ldap_user_path, \
+            u.ldap_remote_enrollment_completed, u.enrollment_pending \
+            FROM \"user\" u WHERE 1=1 ",
+        );
+
+        if no_group {
+            query_builder.push(
+                " AND NOT EXISTS (SELECT 1 FROM group_user \
+                WHERE group_user.user_id = u.id) ",
+            );
+        } else if !groups.is_empty() {
+            query_builder.push(
+                " AND EXISTS (SELECT 1 FROM group_user gu \
+                INNER JOIN \"group\" g ON gu.group_id = g.id \
+                WHERE gu.user_id = u.id AND g.name = ANY(",
+            );
+            query_builder.push_bind(groups);
+            query_builder.push(")) ");
+        }
+
+        query_builder.push(" LIMIT ").push_bind(limit);
+        query_builder.push(" OFFSET ").push_bind(offset);
+
+        query_builder
+            .build_query_as::<Self>()
+            .fetch_all(executor)
+            .await
+    }
+
+    /// Count users with optional group and no-group filters.
+    pub async fn count_filtered<'e, E>(
+        executor: E,
+        groups: &[String],
+        no_group: bool,
+    ) -> sqlx::Result<i64>
+    where
+        E: PgExecutor<'e>,
+    {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("SELECT COUNT(*) FROM \"user\" u WHERE 1=1 ");
+
+        if no_group {
+            query_builder.push(
+                " AND NOT EXISTS (SELECT 1 FROM group_user \
+                WHERE group_user.user_id = u.id) ",
+            );
+        } else if !groups.is_empty() {
+            query_builder.push(
+                " AND EXISTS (SELECT 1 FROM group_user gu \
+                INNER JOIN \"group\" g ON gu.group_id = g.id \
+                WHERE gu.user_id = u.id AND g.name = ANY(",
+            );
+            query_builder.push_bind(groups);
+            query_builder.push(")) ");
+        }
+
+        let count = query_builder
+            .build_query_scalar::<i64>()
+            .fetch_one(executor)
+            .await?;
+        Ok(count)
     }
 
     #[must_use]
