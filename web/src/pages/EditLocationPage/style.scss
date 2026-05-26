@@ -110,5 +110,15 @@
     .buttons-group {
       align-items: flex-start;
     }
+
+    .acl-upsell-text {
+      span {
+        color: var(--fg-muted);
+      }
+
+      a {
+        color: var(--fg-action);
+      }
+    }
   }
 }

@@ -644,12 +644,17 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           {isPresent(canUseEnterprise) && !canUseEnterprise && (
-            <p>
-              <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
-                {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
-              </a>
-              {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
-            </p>
+            <>
+              <p className="acl-upsell-text">
+                <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
+                </a>
+                <span>
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
+                </span>
+              </p>
+              <SizedBox height={ThemeSpacing.Md} />
+            </>
           )}
           <form.AppField name="allowed_ips_from_acl">
             {(field) => (

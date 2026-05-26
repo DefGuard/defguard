@@ -21,6 +21,7 @@ import { smallestNetworkCapacity } from '../../../shared/utils/network';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
+import './style.scss';
 
 const formSchema = z.object({
   address: z
@@ -155,12 +156,17 @@ export const AddLocationInternalVpnStep = () => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           {isPresent(canUseEnterprise) && !canUseEnterprise && (
-            <p>
-              <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
-                {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
-              </a>
-              {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
-            </p>
+            <>
+              <p className="acl-upsell-text">
+                <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
+                </a>
+                <span>
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
+                </span>
+              </p>
+              <SizedBox height={ThemeSpacing.Md} />
+            </>
           )}
           <form.AppField name="allowed_ips_from_acl">
             {(field) => (
@@ -168,7 +174,7 @@ export const AddLocationInternalVpnStep = () => {
                 text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
                 disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
                 helperBlock={
-                  <Helper size={16}>
+                  <Helper>
                     <p>
                       {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
                     </p>
