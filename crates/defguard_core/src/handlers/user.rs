@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 
 use axum::{
-    extract::{Json, Path, Query, State},
+    extract::{Json, Path, State},
     http::StatusCode,
 };
+use axum_extra::extract::Query;
 use defguard_common::{
     db::{
         Id,
