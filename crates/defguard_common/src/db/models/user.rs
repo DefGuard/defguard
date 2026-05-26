@@ -1172,13 +1172,16 @@ impl User<Id> {
         .await
     }
 
-    /// Find all users filtered by group membership. When `groups` is non-empty,
-    /// returns only users belonging to any of the specified groups (OR semantics).
+    /// Find all users with optional group and no-group filters.
+    /// When `no_group` is true, returns only users without any group membership
+    /// (takes precedence over `groups`). When `groups` is non-empty and `no_group`
+    /// is false, returns only users belonging to any of the specified groups (OR semantics).
     pub async fn all_filtered<'e, E>(
         executor: E,
         limit: i64,
         offset: i64,
         groups: &[String],
+        no_group: bool,
     ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
@@ -1193,7 +1196,12 @@ impl User<Id> {
             FROM \"user\" u WHERE 1=1 ",
         );
 
-        if !groups.is_empty() {
+        if no_group {
+            query_builder.push(
+                " AND NOT EXISTS (SELECT 1 FROM group_user \
+                WHERE group_user.user_id = u.id) ",
+            );
+        } else if !groups.is_empty() {
             query_builder.push(
                 " AND EXISTS (SELECT 1 FROM group_user gu \
                 INNER JOIN \"group\" g ON gu.group_id = g.id \
@@ -1212,15 +1220,24 @@ impl User<Id> {
             .await
     }
 
-    /// Count users filtered by group membership.
-    pub async fn count_filtered<'e, E>(executor: E, groups: &[String]) -> sqlx::Result<i64>
+    /// Count users with optional group and no-group filters.
+    pub async fn count_filtered<'e, E>(
+        executor: E,
+        groups: &[String],
+        no_group: bool,
+    ) -> sqlx::Result<i64>
     where
         E: PgExecutor<'e>,
     {
         let mut query_builder: QueryBuilder<Postgres> =
             QueryBuilder::new("SELECT COUNT(*) FROM \"user\" u WHERE 1=1 ");
 
-        if !groups.is_empty() {
+        if no_group {
+            query_builder.push(
+                " AND NOT EXISTS (SELECT 1 FROM group_user \
+                WHERE group_user.user_id = u.id) ",
+            );
+        } else if !groups.is_empty() {
             query_builder.push(
                 " AND EXISTS (SELECT 1 FROM group_user gu \
                 INNER JOIN \"group\" g ON gu.group_id = g.id \

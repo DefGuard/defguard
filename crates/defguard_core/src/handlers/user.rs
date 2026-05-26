@@ -217,8 +217,8 @@ pub(crate) async fn list_users(
 
     let (all_users, count) = if !filters.groups.is_empty() {
         (
-            User::all_filtered(&appstate.pool, limit, offset, &filters.groups).await?,
-            User::count_filtered(&appstate.pool, &filters.groups).await?,
+            User::all_filtered(&appstate.pool, limit, offset, &filters.groups, false).await?,
+            User::count_filtered(&appstate.pool, &filters.groups, false).await?,
         )
     } else {
         (
