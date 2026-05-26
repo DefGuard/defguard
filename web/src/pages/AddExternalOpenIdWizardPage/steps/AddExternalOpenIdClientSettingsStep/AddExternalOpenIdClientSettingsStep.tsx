@@ -9,8 +9,13 @@ import {
 } from '../../../../shared/api/types';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { supportedSyncProviders } from '../../../../shared/constants';
+import {
+  jumpcloudProviderBaseUrl,
+  jumpcloudProviderBaseUrlEu,
+  supportedSyncProviders,
+} from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -229,6 +234,30 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               />
             )}
           </form.AppField>
+          {provider === OpenIdProviderKind.JumpCloud && (
+            <>
+              <SizedBox height={ThemeSpacing.Xl2} />
+              <form.Subscribe
+                selector={(s) => Boolean(s.values.base_url?.includes('eu.jumpcloud'))}
+              >
+                {(isEu) => (
+                  <InteractiveBlock
+                    variant="checkbox"
+                    value={isEu}
+                    onClick={() => {
+                      if (isEu) {
+                        form.setFieldValue('base_url', jumpcloudProviderBaseUrl);
+                      } else {
+                        form.setFieldValue('base_url', jumpcloudProviderBaseUrlEu);
+                      }
+                    }}
+                    title={m.settings_openid_provider_label_jumpcloud_eu()}
+                    content={m.settings_openid_provider_helper_jumpcloud_eu()}
+                  />
+                )}
+              </form.Subscribe>
+            </>
+          )}
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.Subscribe
             selector={(s) => ({
