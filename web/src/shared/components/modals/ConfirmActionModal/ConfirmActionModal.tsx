@@ -1,7 +1,9 @@
 import './style.scss';
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
+import type { ApiError } from '../../../api/types';
 import { Button } from '../../../defguard-ui/components/Button/Button';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { RenderMarkdown } from '../../../defguard-ui/components/RenderMarkdown/RenderMarkdown';
@@ -58,12 +60,12 @@ const ModalContent = ({ data }: { data: ModalData }) => {
     meta: {
       invalidate: data.invalidateKeys,
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       closeModal(modalNameValue);
-      data.onSuccess?.();
+      data.onSuccess?.(result);
     },
-    onError: (e) => {
-      data.onError?.();
+    onError: (e: AxiosError<ApiError>) => {
+      data.onError?.(e.response?.data?.msg ?? m.error_unknown());
       console.error(e);
     },
   });
