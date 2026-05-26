@@ -1,10 +1,15 @@
 import { omit } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import { EditPageControls } from '../../../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../../../shared/components/EditPageFormSection/EditPageFormSection';
+import {
+  jumpcloudProviderBaseUrl,
+  jumpcloudProviderBaseUrlEu,
+} from '../../../../shared/constants';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
+import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -69,6 +74,8 @@ export const EditJumpCloudProviderForm = ({
     };
   }, [provider]);
 
+  const [isEu, setIsEu] = useState(Boolean(provider.base_url?.includes('eu.jumpcloud')));
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -77,7 +84,11 @@ export const EditJumpCloudProviderForm = ({
       onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      let base_url = jumpcloudProviderBaseUrl;
+      if (isEu) {
+        base_url = jumpcloudProviderBaseUrlEu;
+      }
+      await onSubmit({ ...value, base_url });
     },
   });
 
@@ -141,6 +152,14 @@ export const EditJumpCloudProviderForm = ({
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <InteractiveBlock
+            variant="checkbox"
+            value={isEu}
+            onClick={() => setIsEu(!isEu)}
+            title={m.settings_openid_provider_label_jumpcloud_eu()}
+            content={m.settings_openid_provider_helper_jumpcloud_eu()}
+          />
         </EditPageFormSection>
         <EditPageFormSection label={m.settings_openid_provider_directory_sync_title()}>
           <form.AppField name="directory_sync_enabled">
