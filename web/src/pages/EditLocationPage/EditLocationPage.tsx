@@ -680,7 +680,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
         </EditPageFormSection>
         <EditPageFormSection label={m.add_location_step_network_settings_label()}>
           <form.AppField name="keepalive_interval">

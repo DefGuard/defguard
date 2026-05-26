@@ -192,7 +192,6 @@ export const AddLocationInternalVpnStep = () => {
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
           <Controls>
             <Button
               variant="outlined"
