@@ -68,31 +68,9 @@ pub async fn join_device_to_network(
         .to_device_network_info_runtime(&mut *conn, network)
         .await?;
 
-    let effective_ips = get_effective_allowed_ips(conn, network, user).await;
+    let device_config = build_device_config(conn, network, &wireguard_network_device, user).await?;
 
-    let config = create_wireguard_config(network, &wireguard_network_device, &effective_ips);
-    let has_postures = network
-        .has_postures(&mut *conn)
-        .await
-        .map_err(|e| DeviceError::Unexpected(e.to_string()))?;
-
-    Ok((
-        device_network_info,
-        DeviceConfig {
-            network_id: network.id,
-            network_name: network.name.clone(),
-            config,
-            endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ips.clone(),
-            allowed_ips: effective_ips,
-            pubkey: network.pubkey.clone(),
-            dns: network.dns.clone(),
-            keepalive_interval: network.keepalive_interval,
-            location_mfa_mode: network.location_mfa_mode.clone(),
-            service_location_mode: network.service_location_mode.clone(),
-            posture_check_required: has_postures,
-        },
-    ))
+    Ok((device_network_info, device_config))
 }
 
 /// Add a device to every network the user is allowed to join, generating
