@@ -634,6 +634,15 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="dns">
+            {(field) => (
+              <field.FormInput
+                label={m.add_location_internal_vpn_label_dns()}
+                helper={m.add_location_internal_vpn_helper_dns()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="allowed_ips">
             {(field) => (
               <field.FormInput
@@ -672,14 +681,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="dns">
-            {(field) => (
-              <field.FormInput
-                label={m.add_location_internal_vpn_label_dns()}
-                helper={m.add_location_internal_vpn_helper_dns()}
-              />
-            )}
-          </form.AppField>
         </EditPageFormSection>
         <EditPageFormSection label={m.add_location_step_network_settings_label()}>
           <form.AppField name="keepalive_interval">
