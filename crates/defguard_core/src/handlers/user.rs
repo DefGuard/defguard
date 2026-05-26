@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 
 use axum::{
-    extract::{Json, Path, Query, State},
+    extract::{Json, Path, State},
     http::StatusCode,
 };
+use axum_extra::extract::Query;
 use defguard_common::{
     db::{
         Id,
@@ -16,6 +17,8 @@ use humantime::parse_duration;
 use serde_json::json;
 use sqlx::PgPool;
 use utoipa::ToSchema;
+
+use serde::Deserialize;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
@@ -162,6 +165,17 @@ impl UserDetails {
 
 /// List of all users
 ///
+/// Query params for filtering the user list.
+#[derive(Debug, Deserialize, Default)]
+pub struct UserFilterParams {
+    /// Filter users by group membership (OR logic - user in any listed group).
+    #[serde(default)]
+    pub groups: Vec<String>,
+    /// Filter users with no group memberships. Takes precedence over `groups`.
+    #[serde(default)]
+    pub no_group: bool,
+}
+
 /// Retrieves list of users.
 ///
 /// # Returns
@@ -171,6 +185,10 @@ impl UserDetails {
 #[utoipa::path(
     get,
     path = "/api/v1/user",
+    params(
+        ("groups" = Option<Vec<String>>, Query, description = "Filter users by group names (OR logic - returns users in any of the specified groups)"),
+        ("no_group" = Option<bool>, Query, description = "Filter users with no group memberships (takes precedence over groups)"),
+    ),
     responses(
         (status = 200, description = "List of all users.", body = [UserInfo], example = json!(
         [
@@ -208,25 +226,39 @@ pub(crate) async fn list_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
+    filters: Query<UserFilterParams>,
 ) -> PaginatedApiResult<UserInfo> {
     let pagination = pagination.0;
+    let filters = filters.0;
 
-    debug!("Listing users");
+    debug!("Listing users with filters: {filters:?}");
 
-    let all_users = User::all_paginated(
-        &appstate.pool,
-        i64::from(pagination.per_page()),
-        i64::from(pagination.offset()),
-    )
-    .await?;
+    let limit = i64::from(pagination.per_page());
+    let offset = i64::from(pagination.offset());
+
+    let (all_users, count) = if filters.no_group {
+        (
+            User::all_filtered(&appstate.pool, limit, offset, &[], true).await?,
+            User::count_filtered(&appstate.pool, &[], true).await?,
+        )
+    } else if !filters.groups.is_empty() {
+        (
+            User::all_filtered(&appstate.pool, limit, offset, &filters.groups, false).await?,
+            User::count_filtered(&appstate.pool, &filters.groups, false).await?,
+        )
+    } else {
+        (
+            User::all_paginated(&appstate.pool, limit, offset).await?,
+            User::count(&appstate.pool).await?,
+        )
+    };
+
     // Map [`User`] to [`UserInfo`].
     // TODO: too many queries – optimise.
     let mut users = Vec::with_capacity(all_users.len());
     for user in all_users {
         users.push(UserInfo::from_user(&appstate.pool, user).await?);
     }
-
-    let count = User::count(&appstate.pool).await?;
 
     info!("Listed users");
 
