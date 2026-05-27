@@ -1399,6 +1399,7 @@ export interface GatewayInfo extends Gateway {
 
 export interface PaginationParams {
   page?: number;
+  per_page?: number;
 }
 
 export interface PaginationMeta {
@@ -1439,3 +1440,8 @@ export interface ActivityLogFilters {
 export type ActivityLogRequestParams = Partial<ActivityLogFilters> &
   RequestSortParams<ActivityLogSortKey> &
   PaginationParams;
+
+export interface UserListParams extends PaginationParams {
+  groups?: string[];
+  no_group?: boolean;
+}

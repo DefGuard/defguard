@@ -64,7 +64,7 @@ const ModalContent = ({ reservedEmails, reservedUsernames, user }: ModalData) =>
   const { mutateAsync } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: [['user'], ['user-overview']],
+      invalidate: [['user']],
     },
     onSuccess: () => {
       closeModal(modalName);

@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useSuspenseInfiniteQuery,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
@@ -48,7 +53,6 @@ import {
   getEnterpriseSettingsQueryOptions,
   getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
-  getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
@@ -59,7 +63,40 @@ type RowData = User;
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = () => {
-  const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const CUSTOM_NO_GROUPS = 'CUSTOM_NO_GROUPS';
+
+  const { groupsFilter, noGroupFilter } = useMemo(() => {
+    const selected =
+      (columnFilters.find((f) => f.id === 'groups')?.value as string[] | undefined) ?? [];
+    const noGroup = selected.includes(CUSTOM_NO_GROUPS);
+    const groups = selected.filter((v) => v !== CUSTOM_NO_GROUPS);
+    return { groupsFilter: groups, noGroupFilter: noGroup };
+  }, [columnFilters]);
+
+  const {
+    data: usersData,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useSuspenseInfiniteQuery({
+    queryKey: ['user', 'paged', { groups: groupsFilter, no_group: noGroupFilter }],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      api.user.getUsers({
+        page: pageParam,
+        ...(noGroupFilter && { no_group: true }),
+        ...(!noGroupFilter && groupsFilter.length > 0 && { groups: groupsFilter }),
+      }),
+    getNextPageParam: (lastPage) => lastPage.pagination.next_page,
+    getPreviousPageParam: (page) =>
+      page.pagination.current_page !== 1 ? page.pagination.current_page - 1 : null,
+  });
+
+  const users = useMemo(
+    () => usersData.pages.flatMap((page) => page.data),
+    [usersData.pages],
+  );
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: enterpriseSettings } = useQuery(getEnterpriseSettingsQueryOptions);
   const appInfo = useApp((s) => s.appInfo);
@@ -94,7 +131,6 @@ export const UsersTable = () => {
   );
 
   const [search, setSearch] = useState('');
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const tableFilterMessages = useMemo(
     () => ({
@@ -117,10 +153,18 @@ export const UsersTable = () => {
     [groups?.map, groups],
   );
 
+  const filterGroupsOptions = useMemo(
+    (): SelectionOption<string>[] => [
+      { id: CUSTOM_NO_GROUPS, label: 'No groups' },
+      ...(groups?.map((g) => ({ id: g.name, label: g.name })) ?? []),
+    ],
+    [groups],
+  );
+
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: [['user-overview'], ['user'], ['activity-log']],
+      invalidate: [['user'], ['activity-log']],
     },
   });
 
@@ -211,15 +255,9 @@ export const UsersTable = () => {
         minSize: 200,
         enableSorting: false,
         enableColumnFilter: isPresent(groups),
-        filterFn: 'arrIncludesSome',
+        filterFn: () => true, // filtering delegated to API
         meta: {
-          filterOptions:
-            groups?.map(
-              (group): SelectionOption<string> => ({
-                id: group.name,
-                label: group.name,
-              }),
-            ) ?? [],
+          filterOptions: filterGroupsOptions,
         },
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
@@ -275,7 +313,7 @@ export const UsersTable = () => {
                           active: false,
                           username: rowData.username,
                         }),
-                      invalidateKeys: [['user-overview'], ['user']],
+                      invalidateKeys: [['user']],
                       submitProps: {
                         text: m.users_row_menu_disable(),
                         variant: 'critical',
@@ -292,7 +330,7 @@ export const UsersTable = () => {
                           active: true,
                           username: rowData.username,
                         }),
-                      invalidateKeys: [['user-overview'], ['user']],
+                      invalidateKeys: [['user']],
                       submitProps: {
                         text: m.users_row_menu_enable(),
                       },
@@ -403,7 +441,7 @@ export const UsersTable = () => {
                       title: m.modal_delete_user_title(),
                       contentMd: m.modal_delete_user_body({ name: rowData.name }),
                       actionPromise: () => api.user.deleteUser(rowData.username),
-                      invalidateKeys: [['user-overview'], ['user'], ['enterprise_info']],
+                      invalidateKeys: [['user'], ['enterprise_info']],
                       submitProps: {
                         text: m.users_row_menu_delete(),
                         variant: 'critical',
@@ -469,13 +507,7 @@ export const UsersTable = () => {
                     name: rowData.name,
                   }),
                   actionPromise: () => api.user.disableMfa(rowData.username),
-                  invalidateKeys: [
-                    ['user-overview'],
-                    ['user'],
-                    ['session-info'],
-                    ['me'],
-                    ['activity-log'],
-                  ],
+                  invalidateKeys: [['user'], ['session-info'], ['me'], ['activity-log']],
                   submitProps: {
                     text: m.users_row_menu_disable_mfa(),
                     variant: 'critical',
@@ -501,6 +533,7 @@ export const UsersTable = () => {
       appInfo,
       authUsername,
       canModifyDevices,
+      filterGroupsOptions,
     ],
   );
 
@@ -577,7 +610,7 @@ export const UsersTable = () => {
             title: m.modal_delete_user_device_title(),
             contentMd: m.modal_delete_user_device_body({ name: device.name }),
             actionPromise: () => api.device.deleteDevice(device.id),
-            invalidateKeys: [['user-overview'], ['user'], ['network']],
+            invalidateKeys: [['user'], ['network']],
             submitProps: { text: m.controls_delete(), variant: 'critical' },
             onSuccess: () => Snackbar.default(m.user_device_delete_success()),
             onError: () => Snackbar.error(m.user_device_delete_failed()),
@@ -744,6 +777,11 @@ export const UsersTable = () => {
         table={table}
         renderExpandedRow={renderExpanded}
         expandedHeaders={expandedHeader}
+        hasNextPage={
+          usersData.pages[usersData.pages.length - 1]?.pagination.next_page !== null
+        }
+        loadingNextPage={isFetchingNextPage}
+        onNextPage={fetchNextPage}
       />
       {rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
         <EmptyStateFlexible

@@ -114,6 +114,7 @@ import type {
   User,
   UserChangePasswordRequest,
   UserDevice,
+  UserListParams,
   UserProfileResponse,
   ValidateDeviceIpsRequest,
   ValidateIpAssignmentRequest,
@@ -204,7 +205,8 @@ const api = {
         username,
       }),
     getMe: () => client.get<User>('/me'),
-    getUsers: () => fetchAllPages<User>('/user'),
+    getUsers: (params?: UserListParams) => fetchPage<User>('/user', params),
+    getAllUsers: () => fetchAllPages<User>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
