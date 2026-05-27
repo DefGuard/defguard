@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt};
 
 use axum::{
     extract::{Json, Path, State},
@@ -15,10 +15,10 @@ use defguard_common::{
 use defguard_mail::templates;
 use humantime::parse_duration;
 use serde_json::json;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, QueryBuilder, Type};
 use utoipa::ToSchema;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
@@ -148,6 +148,52 @@ impl UserDetails {
 
 /// List of all users
 ///
+/// Query params for sorting the user list.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub struct SortParams {
+    #[serde(default)]
+    pub sort_by: SortKey,
+    #[serde(default)]
+    pub sort_order: SortOrder,
+}
+
+#[derive(Debug, Deserialize, Type, Serialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SortKey {
+    #[default]
+    Username,
+    Name,
+    Email,
+}
+
+impl fmt::Display for SortKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Username => "username",
+            Self::Name => "first_name, last_name",
+            Self::Email => "email",
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum SortOrder {
+    Asc,
+    #[default]
+    Desc,
+}
+
+impl fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Asc => "ASC",
+            Self::Desc => "DESC",
+        })
+    }
+}
+
 /// Query params for filtering the user list.
 #[derive(Debug, Deserialize, Default)]
 pub struct UserFilterParams {
@@ -157,6 +203,8 @@ pub struct UserFilterParams {
     /// Filter users with no group memberships. Takes precedence over `groups`.
     #[serde(default)]
     pub no_group: bool,
+    /// Free-text search across username, first_name, last_name, and email.
+    pub search: Option<String>,
 }
 
 /// Retrieves list of users.
@@ -210,6 +258,7 @@ pub(crate) async fn list_users(
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
     filters: Query<UserFilterParams>,
+    sorting: Query<SortParams>,
 ) -> PaginatedApiResult<UserInfo> {
     let pagination = pagination.0;
     let filters = filters.0;
