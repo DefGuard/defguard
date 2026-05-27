@@ -218,10 +218,12 @@ impl ProxyHandler {
     fn retry_delay(&self) -> Duration {
         #[cfg(test)]
         {
-            return self.handler_retry_delay();
+            self.handler_retry_delay()
         }
-        #[cfg_attr(test, allow(unreachable_code))]
-        TEN_SECS
+        #[cfg(not(test))]
+        {
+            TEN_SECS
+        }
     }
 
     async fn connect_channel_mtls(

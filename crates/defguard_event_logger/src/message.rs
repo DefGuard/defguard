@@ -360,10 +360,23 @@ pub enum DefguardEvent {
 
 /// Represents activity log events related to client applications.
 pub enum ClientEvent {
-    DesktopClientActivated { device_id: Id, device_name: String },
-    DesktopClientUpdated { device_id: Id, device_name: String },
-    DevicePostureCheckPassed { device_id: Id, device_name: String },
-    DevicePostureCheckFailed { device_id: Id, device_name: String },
+    DesktopClientActivated {
+        device_id: Id,
+        device_name: String,
+    },
+    DesktopClientUpdated {
+        device_id: Id,
+        device_name: String,
+    },
+    DevicePostureCheckPassed {
+        device_id: Id,
+        device_name: String,
+    },
+    DevicePostureCheckFailed {
+        device_id: Id,
+        device_name: String,
+        failed_checks: Vec<String>,
+    },
 }
 
 /// Represents activity log events related to VPN.

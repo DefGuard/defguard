@@ -442,5 +442,6 @@ pub enum DesktopClientMfaEvent {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         device_posture_data: Option<DevicePostureData>,
+        failed_checks: Vec<String>,
     },
 }

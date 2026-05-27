@@ -102,11 +102,15 @@ impl EventRouter {
                     Some(location),
                 ),
                 DesktopClientMfaEvent::PostureCheckFailed {
-                    device, location, ..
+                    device,
+                    location,
+                    failed_checks,
+                    ..
                 } => (
                     LoggerEvent::Client(Box::new(ClientEvent::DevicePostureCheckFailed {
                         device_id: device.id,
                         device_name: device.name,
+                        failed_checks,
                     })),
                     Some(location),
                 ),

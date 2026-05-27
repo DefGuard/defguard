@@ -236,7 +236,7 @@ impl ClientMfaServer {
 
             match posture_result {
                 PostureResult::Fail(reasons) => {
-                    let failed_checks = reasons.iter().map(ToString::to_string).collect();
+                    let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
                     if let Err(err) = self.emit_event(BidiStreamEvent {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -244,6 +244,7 @@ impl ClientMfaServer {
                                 device: device.clone(),
                                 location: location.clone(),
                                 device_posture_data: request.posture_data.clone(),
+                                failed_checks: failed_checks.clone(),
                             },
                         )),
                     }) {

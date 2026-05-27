@@ -658,6 +658,7 @@ async fn process_batch(
                         ClientEvent::DevicePostureCheckFailed {
                             device_id,
                             device_name,
+                            ..
                         } => (
                             EventType::DevicePostureCheckFailed,
                             ClientDeviceMetadata {

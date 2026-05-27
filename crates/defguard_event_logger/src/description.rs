@@ -298,13 +298,15 @@ impl ClientEvent {
                 device_id,
                 device_name,
             } => Some(format!(
-                "Device posture check passed for device {device_name} ({device_id}"
+                "Device posture check passed for device {device_name} ({device_id})"
             )),
             Self::DevicePostureCheckFailed {
                 device_id,
                 device_name,
+                failed_checks,
             } => Some(format!(
-                "Device posture check failed for device {device_name} ({device_id}"
+                "Device posture check failed for device {device_name} ({device_id}): {}",
+                failed_checks.join(",")
             )),
         }
     }
