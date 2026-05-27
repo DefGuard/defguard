@@ -411,7 +411,7 @@ impl ClientMfaServer {
                     let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key)
                         .map_err(|e| {
                             error!(
-                                "Start biometric MFA failed! Challenge creation failed! Reason: {e}"
+                                "Start biometric MFA failed. Challenge creation failed. Reason: {e}"
                             );
                             Status::invalid_argument("Invalid public key")
                         })?;

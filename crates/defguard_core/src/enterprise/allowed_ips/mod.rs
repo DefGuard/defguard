@@ -34,12 +34,12 @@ pub enum AllowedIpsError {
 /// Returns the all-traffic networks for the given location's IP versions.
 fn all_traffic_networks(location: &WireguardNetwork<Id>) -> Vec<IpNetwork> {
     let mut networks = Vec::new();
-    if location.address().iter().any(ipnetwork::IpNetwork::is_ipv4) {
+    if location.address().iter().any(IpNetwork::is_ipv4) {
         networks.push(
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).expect("valid IPv4 default route"),
         );
     }
-    if location.address().iter().any(ipnetwork::IpNetwork::is_ipv6) {
+    if location.address().iter().any(IpNetwork::is_ipv6) {
         networks.push(
             IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).expect("valid IPv6 default route"),
         );
