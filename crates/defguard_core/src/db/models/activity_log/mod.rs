@@ -20,18 +20,18 @@ pub enum ActivityLogModule {
 ///
 /// To make searching and exporting the type is stored as text and not a custom Postgres enum.
 /// Variant names are renamed to `snake_case` so `UserLogin` becomes `user_login` in the DB table.
-#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[derive(Clone, Serialize, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EventType {
-    // authentication
+    // Authentication
     UserLogin,
     UserLoginFailed,
     UserMfaLogin,
     UserMfaLoginFailed,
     RecoveryCodeUsed,
     UserLogout,
-    // mfa management
+    // MFA management
     MfaDisabled,
     UserMfaDisabled,
     MfaTotpDisabled,
@@ -40,7 +40,7 @@ pub enum EventType {
     MfaEmailEnabled,
     MfaSecurityKeyAdded,
     MfaSecurityKeyRemoved,
-    // user management
+    // User management
     UserAdded,
     UserRemoved,
     UserModified,
@@ -48,7 +48,7 @@ pub enum EventType {
     PasswordChanged,
     PasswordChangedByAdmin,
     PasswordReset,
-    // device management
+    // Device management
     DeviceAdded,
     DeviceRemoved,
     DeviceModified,
@@ -129,6 +129,8 @@ pub enum EventType {
     DevicePostureDuplicated,
     DevicePostureLocationsAssigned,
     LocationPosturesAssigned,
+    DevicePostureCheckPassed,
+    DevicePostureCheckFailed,
 }
 
 #[derive(Model, FromRow, Serialize)]

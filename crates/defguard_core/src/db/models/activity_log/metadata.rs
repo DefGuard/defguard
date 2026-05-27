@@ -588,3 +588,9 @@ pub struct GatewayModifiedMetadata {
 pub struct GatewayDeletedMetadata {
     pub gateway: Gateway<Id>,
 }
+
+#[derive(Serialize)]
+pub struct ClientDeviceMetadata {
+    pub device_id: Id,
+    pub device_name: String,
+}

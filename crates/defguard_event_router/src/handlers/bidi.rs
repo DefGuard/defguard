@@ -1,7 +1,9 @@
 use defguard_core::events::{
     self, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent, PasswordResetEvent,
 };
-use defguard_event_logger::message::{EnrollmentEvent, EventContext, LoggerEvent, VpnEvent};
+use defguard_event_logger::message::{
+    ClientEvent, EnrollmentEvent, EventContext, LoggerEvent, VpnEvent,
+};
 use tracing::debug;
 
 use crate::{EventRouter, error::EventRouterError};
@@ -90,6 +92,28 @@ impl EventRouter {
 
                     (LoggerEvent::Vpn(Box::new(vpn_event)), Some(location))
                 }
+                DesktopClientMfaEvent::PostureCheckPassed {
+                    device, location, ..
+                } => (
+                    LoggerEvent::Client(Box::new(ClientEvent::DevicePostureCheckPassed {
+                        device_id: device.id,
+                        device_name: device.name,
+                    })),
+                    Some(location),
+                ),
+                DesktopClientMfaEvent::PostureCheckFailed {
+                    device,
+                    location,
+                    failed_checks,
+                    ..
+                } => (
+                    LoggerEvent::Client(Box::new(ClientEvent::DevicePostureCheckFailed {
+                        device_id: device.id,
+                        device_name: device.name,
+                        failed_checks,
+                    })),
+                    Some(location),
+                ),
             },
         };
 
@@ -116,7 +140,10 @@ mod tests {
     };
     use defguard_common::gateway_event::GatewayCommand;
     use defguard_core::events::{BidiRequestContext, BidiStreamEventType};
-    use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
+    use tokio::sync::{
+        Notify, broadcast,
+        mpsc::{UnboundedReceiver, unbounded_channel},
+    };
 
     use super::*;
     use crate::RouterReceiverSet;
@@ -155,7 +182,7 @@ mod tests {
 
     fn sample_router() -> (
         EventRouter,
-        tokio::sync::mpsc::UnboundedReceiver<defguard_event_logger::message::EventLoggerMessage>,
+        UnboundedReceiver<defguard_event_logger::message::EventLoggerMessage>,
     ) {
         let (_api_tx, api_rx) = unbounded_channel();
         let (_bidi_tx, bidi_rx) = unbounded_channel();

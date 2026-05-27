@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 
 /// Device posture check policy. Defines the security requirements a client
 /// device must satisfy before being allowed to connect to an assigned VPN location.
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, FromRow, Model, Serialize, ToSchema, PartialEq)]
 #[table(device_posture)]
 pub struct DevicePosture<I = NoId> {
     pub id: I,
@@ -27,7 +27,7 @@ pub enum OsType {
 }
 
 /// Per-OS security rule row belonging to a [`DevicePosture`] policy.
-#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, Model, Serialize, ToSchema, PartialEq)]
 #[table(device_posture_os_rule)]
 pub struct DevicePostureOsRule<I = NoId> {
     pub id: I,

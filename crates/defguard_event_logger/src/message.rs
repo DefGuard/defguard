@@ -37,6 +37,7 @@ pub enum LoggerEvent {
     Defguard(Box<DefguardEvent>),
     Vpn(Box<VpnEvent>),
     Enrollment(Box<EnrollmentEvent>),
+    Client(Box<ClientEvent>),
 }
 
 /// Shared context that's included in all activity log events
@@ -110,7 +111,7 @@ impl From<GrpcRequestContext> for EventContext {
     }
 }
 
-/// Represents activity log events related to actions performed in Web UI
+/// Represents activity log events related to actions performed in Web UI.
 pub enum DefguardEvent {
     UserLogin,
     UserLoginFailed {
@@ -357,13 +358,28 @@ pub enum DefguardEvent {
     },
 }
 
-/// Represents activity log events related to client applications
+/// Represents activity log events related to client applications.
 pub enum ClientEvent {
-    DesktopClientActivated { device_id: Id, device_name: String },
-    DesktopClientUpdated { device_id: Id, device_name: String },
+    DesktopClientActivated {
+        device_id: Id,
+        device_name: String,
+    },
+    DesktopClientUpdated {
+        device_id: Id,
+        device_name: String,
+    },
+    DevicePostureCheckPassed {
+        device_id: Id,
+        device_name: String,
+    },
+    DevicePostureCheckFailed {
+        device_id: Id,
+        device_name: String,
+        failed_checks: Vec<String>,
+    },
 }
 
-/// Represents activity log events related to VPN
+/// Represents activity log events related to VPN.
 pub enum VpnEvent {
     ClientMfaSuccess {
         location: WireguardNetwork<Id>,
@@ -394,7 +410,7 @@ pub enum VpnEvent {
     },
 }
 
-/// Represents activity log events related to user enrollment process
+/// Represents activity log events related to user enrollment process.
 #[allow(clippy::large_enum_variant)]
 pub enum EnrollmentEvent {
     EnrollmentStarted,

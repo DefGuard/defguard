@@ -57,10 +57,10 @@ impl RouterReceiverSet {
     }
 }
 
-#[allow(dead_code)]
 struct EventRouter {
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
+    #[allow(dead_code)]
     gateway_tx: Sender<GatewayCommand>,
     activity_log_stream_reload_notify: Arc<Notify>,
 }
@@ -81,9 +81,7 @@ impl EventRouter {
 
         Ok(())
     }
-}
 
-impl EventRouter {
     fn new(
         receivers: RouterReceiverSet,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,

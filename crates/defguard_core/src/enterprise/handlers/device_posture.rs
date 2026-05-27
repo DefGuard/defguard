@@ -383,7 +383,7 @@ fn apply_os_rule_filters(
             Some(requirement) => {
                 requirements.insert(requirement);
             }
-            None => versions.push(filter.to_string()),
+            None => versions.push(filter.clone()),
         }
     }
 
@@ -464,7 +464,7 @@ fn apply_device_posture_filters(
                 Some(requirement) => {
                     requirements.insert(requirement);
                 }
-                None => versions.push(filter.to_string()),
+                None => versions.push(filter.clone()),
             }
         }
 
