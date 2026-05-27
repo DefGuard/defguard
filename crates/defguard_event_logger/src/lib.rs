@@ -1,25 +1,31 @@
+use std::sync::Arc;
+
 use bytes::Bytes;
 use defguard_common::db::NoId;
-use defguard_core::db::models::activity_log::{
-    ActivityLogEvent, ActivityLogModule, EventType,
-    metadata::{
-        ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
-        ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
-        ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
-        EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GatewayDeletedMetadata,
-        GatewayModifiedMetadata, GroupAssignedMetadata, GroupMembersModifiedMetadata,
-        GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
-        MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
-        NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
-        OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
-        PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata,
-        UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata,
-        UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata,
-        VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
-        VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
-        WebHookStateChangedMetadata,
+use defguard_core::{
+    db::models::activity_log::{
+        ActivityLogEvent, ActivityLogModule, EventType,
+        metadata::{
+            ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
+            ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
+            ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
+            EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GatewayDeletedMetadata,
+            GatewayModifiedMetadata, GroupAssignedMetadata, GroupMembersModifiedMetadata,
+            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
+            MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
+            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
+            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
+            PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata,
+            ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
+            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
+            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
+            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
+        },
     },
+    events::{ApiEvent, BidiStreamEvent},
 };
+use defguard_session_manager::events::SessionManagerEvent;
 use description::{
     get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
 };
@@ -28,7 +34,7 @@ use message::{
     DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
 };
 use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{Notify, mpsc::UnboundedReceiver};
 use tracing::{debug, error, info, trace};
 
 pub mod description;
@@ -87,24 +93,35 @@ fn map_vpn_event(event: VpnEvent) -> (EventType, Option<serde_json::Value>) {
 }
 
 /// Run the event logger service
-///
-/// Runs in an infinite loop processing batches of activity log events. Any database errors
-/// are logged and the loop restarts rather than propagating the error.
 pub async fn run_event_logger(
     pool: PgPool,
-    mut event_logger_rx: UnboundedReceiver<EventLoggerMessage>,
+    api_event_rx: UnboundedReceiver<ApiEvent>,
+    bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+    session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
+    activity_log_stream_reload_notify: Arc<Notify>,
     activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
+    let (event_logger_tx, mut event_logger_rx) =
+        tokio::sync::mpsc::unbounded_channel::<EventLoggerMessage>();
+
+    // Spawn a task that reads from all three source channels and forwards
+    // translated messages to the internal channel.
+    tokio::spawn(translate_and_forward(
+        api_event_rx,
+        bidi_event_rx,
+        session_manager_event_rx,
+        activity_log_stream_reload_notify,
+        event_logger_tx,
+    ));
+
     info!("Starting activity log event logger service");
 
     loop {
-        // Collect multiple messages from the channel (up to MESSAGE_LIMIT at a time)
         let mut message_buffer = Vec::with_capacity(MESSAGE_LIMIT);
         let message_count = event_logger_rx
             .recv_many(&mut message_buffer, MESSAGE_LIMIT)
             .await;
 
-        // Channel has been closed, shut down gracefully
         if message_count == 0 {
             info!("Event logger channel closed, shutting down");
             return Ok(());
@@ -114,6 +131,49 @@ pub async fn run_event_logger(
 
         if let Err(e) = process_batch(&pool, message_buffer, &activity_log_messages_tx).await {
             error!("Failed to process activity log event batch, batch will be discarded: {e}");
+        }
+    }
+}
+
+/// Reads from all three event source channels, translates each event into
+/// an `EventLoggerMessage`, and forwards it to the batch processing loop.
+/// When any source channel closes, the task exits and the forwarding channel
+/// is dropped, causing the batch loop to shut down gracefully.
+async fn translate_and_forward(
+    mut api_event_rx: UnboundedReceiver<ApiEvent>,
+    mut bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+    mut session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
+    reload_notify: Arc<Notify>,
+    event_logger_tx: tokio::sync::mpsc::UnboundedSender<EventLoggerMessage>,
+) {
+    loop {
+        let message = tokio::select! {
+            event = api_event_rx.recv() => match event {
+                Some(e) => EventLoggerMessage::from_api_event(e, &reload_notify),
+                None => {
+                    error!("API event channel closed");
+                    break;
+                }
+            },
+            event = bidi_event_rx.recv() => match event {
+                Some(e) => EventLoggerMessage::from_bidi_event(e),
+                None => {
+                    error!("Bidi gRPC stream event channel closed");
+                    break;
+                }
+            },
+            event = session_manager_event_rx.recv() => match event {
+                Some(e) => EventLoggerMessage::from_session_manager_event(e),
+                None => {
+                    error!("Session manager event channel closed");
+                    break;
+                }
+            },
+        };
+
+        if event_logger_tx.send(message).is_err() {
+            debug!("Event logger channel closed, translation task shutting down");
+            break;
         }
     }
 }
