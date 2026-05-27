@@ -1,7 +1,8 @@
 import {
+  keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
-  useSuspenseInfiniteQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -10,10 +11,9 @@ import {
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   type Row,
   type RowSelectionState,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import clsx from 'clsx';
@@ -21,7 +21,12 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { type Device, LocationMfaMode, type User } from '../../shared/api/types';
+import {
+  type Device,
+  LocationMfaMode,
+  type User,
+  type UserSortKey,
+} from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -75,27 +80,48 @@ export const UsersTable = () => {
     return { groupsFilter: groups, noGroupFilter: noGroup };
   }, [columnFilters]);
 
+  const [search, setSearch] = useState('');
+
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
+
+  const sortParams = useMemo(() => {
+    const sort = sorting[0];
+    if (!sort) return {};
+    return {
+      sort_by: sort.id as UserSortKey,
+      sort_order: sort.desc ? ('desc' as const) : ('asc' as const),
+    };
+  }, [sorting]);
+
   const {
     data: usersData,
     fetchNextPage,
     isFetchingNextPage,
-  } = useSuspenseInfiniteQuery({
-    queryKey: ['user', 'paged', { groups: groupsFilter, no_group: noGroupFilter }],
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: [
+      'user',
+      'paged',
+      { groups: groupsFilter, no_group: noGroupFilter, search, ...sortParams },
+    ],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.user.getUsers({
         page: pageParam,
         ...(noGroupFilter && { no_group: true }),
         ...(!noGroupFilter && groupsFilter.length > 0 && { groups: groupsFilter }),
+        ...(search && { search }),
+        ...sortParams,
       }),
     getNextPageParam: (lastPage) => lastPage.pagination.next_page,
     getPreviousPageParam: (page) =>
       page.pagination.current_page !== 1 ? page.pagination.current_page - 1 : null,
+    placeholderData: keepPreviousData,
   });
 
   const users = useMemo(
-    () => usersData.pages.flatMap((page) => page.data),
-    [usersData.pages],
+    () => usersData?.pages.flatMap((page) => page.data) ?? [],
+    [usersData?.pages],
   );
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: enterpriseSettings } = useQuery(getEnterpriseSettingsQueryOptions);
@@ -124,8 +150,6 @@ export const UsersTable = () => {
     }),
     [license],
   );
-
-  const [search, setSearch] = useState('');
 
   const tableFilterMessages = useMemo(
     () => ({
@@ -686,27 +710,13 @@ export const UsersTable = () => {
   );
 
   const table = useReactTable({
-    initialState: {
-      sorting: [
-        {
-          id: 'name',
-          desc: false,
-        },
-      ],
-    },
     state: {
       rowSelection: selected,
       columnFilters: columnFilters,
-      globalFilter: search,
+      sorting,
     },
-    globalFilterFn: (row, _column, filterValue: string) => {
-      const u = row.original;
-      const lower = filterValue.toLowerCase();
-      return (
-        u.first_name.toLowerCase().includes(lower) ||
-        u.last_name.toLowerCase().includes(lower)
-      );
-    },
+    manualSorting: true,
+    manualFiltering: true,
     getRowId: (row) => String(row.id),
     meta: {
       filterMessages: tableFilterMessages,
@@ -717,15 +727,23 @@ export const UsersTable = () => {
     enableExpanding: true,
     columnResizeMode: 'onChange',
     onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
     onRowSelectionChange: setSelected,
-    getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.devices.length > 0,
   });
 
   const rows = table.getRowModel().rows;
+
+  if (isLoading)
+    return (
+      <EmptyStateFlexible
+        title={m.users_empty_title()}
+        subtitle={m.users_empty_subtitle()}
+        primaryAction={addButtonProps}
+      />
+    );
 
   if (users.length === 0)
     return (
@@ -769,7 +787,9 @@ export const UsersTable = () => {
         renderExpandedRow={renderExpanded}
         expandedHeaders={expandedHeader}
         hasNextPage={
-          usersData.pages[usersData.pages.length - 1]?.pagination.next_page !== null
+          usersData
+            ? usersData.pages[usersData.pages.length - 1]?.pagination.next_page !== null
+            : false
         }
         loadingNextPage={isFetchingNextPage}
         onNextPage={fetchNextPage}
