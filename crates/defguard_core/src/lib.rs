@@ -50,12 +50,12 @@ use handlers::{
         list_network_devices, modify_network_device, network_device_configs,
         start_network_device_setup, start_network_device_setup_for_device,
     },
+    reserved::check_reserved,
     session_info::get_session_info,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
     },
-    reserved::check_reserved,
     updates::check_new_version,
     wireguard::all_gateways_status,
     yubikey::{delete_yubikey, rename_yubikey},
