@@ -114,6 +114,7 @@ pub(crate) fn parse_wireguard_config(
         true,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )

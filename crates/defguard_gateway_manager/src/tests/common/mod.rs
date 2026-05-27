@@ -684,6 +684,7 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
+        false,
         Default::default(),
         Default::default(),
     )

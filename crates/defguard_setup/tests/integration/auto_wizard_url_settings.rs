@@ -73,6 +73,7 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )

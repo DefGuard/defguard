@@ -88,6 +88,7 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -201,6 +202,7 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -306,6 +308,7 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -405,6 +408,7 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))

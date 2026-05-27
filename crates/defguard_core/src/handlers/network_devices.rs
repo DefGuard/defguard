@@ -28,6 +28,7 @@ use super::{ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    device_access::{build_device_config, join_device_to_network},
     enrollment_management::start_desktop_configuration,
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -143,6 +144,12 @@ pub(crate) async fn network_device_configs(
     }
 
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    let user = User::find_by_id(&appstate.pool, device.user_id)
+        .await?
+        .ok_or(WebError::ObjectNotFound(format!(
+            "User {} not found",
+            device.user_id
+        )))?;
     let networks =
         WireguardNetwork::find_network_device_networks(&appstate.pool, device_id).await?;
 
@@ -158,12 +165,14 @@ pub(crate) async fn network_device_configs(
             "Created a WireGuard config for network device {device_id} in network {}.",
             network.name
         );
-        let config = Device::create_config(&network, &network_device);
+        let mut conn = appstate.pool.acquire().await?;
+        let device_config =
+            build_device_config(&mut conn, &network, &network_device, &user).await?;
         let device_config = DeviceWireGuardConfig {
-            network_id: network.id,
-            network_name: network.name,
-            config,
-            location_mfa_mode: network.location_mfa_mode.clone(),
+            network_id: device_config.network_id,
+            network_name: device_config.network_name,
+            config: device_config.config,
+            location_mfa_mode: device_config.location_mfa_mode,
         };
         result.push(device_config);
     }
@@ -492,9 +501,8 @@ pub(crate) async fn start_network_device_setup(
 
     network.can_assign_ips(&mut transaction, &ips, None).await?;
 
-    let (_, config) = device
-        .add_to_network(&network, &ips, &mut transaction)
-        .await?;
+    let (_, config) =
+        join_device_to_network(&mut transaction, &device, &network, &user, &ips).await?;
 
     info!(
         "User {} added a new unconfigured network device {device_name} with IPs {ips:?} to network \
@@ -666,9 +674,8 @@ pub(crate) async fn add_network_device(
         })?;
     network.can_assign_ips(&mut transaction, &ips, None).await?;
 
-    let (network_info, config) = device
-        .add_to_network(&network, &ips, &mut transaction)
-        .await?;
+    let (network_info, config) =
+        join_device_to_network(&mut transaction, &device, &network, &user, &ips).await?;
 
     appstate.send_gateway_command(GatewayCommand::DeviceCreated(DeviceInfo {
         device: device.clone(),

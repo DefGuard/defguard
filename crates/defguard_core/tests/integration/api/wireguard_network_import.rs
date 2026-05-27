@@ -1,11 +1,12 @@
 use std::net::IpAddr;
 
 use defguard_common::db::models::{
-    Device, DeviceType, WireguardNetwork,
+    Device, DeviceType, User, WireguardNetwork,
     device::UserDevice,
     wireguard::{LocationMfaMode, ServiceLocationMode},
 };
 use defguard_core::{
+    device_access::join_device_to_all_networks,
     grpc::GatewayCommand,
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
@@ -56,6 +57,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )
@@ -79,8 +81,11 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     .save(&mut *transaction)
     .await
     .unwrap();
-    device_1
-        .add_to_all_networks(&mut transaction)
+    let user = User::find_by_id(&mut *transaction, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    join_device_to_all_networks(&mut transaction, &device_1, &user)
         .await
         .unwrap();
 
@@ -95,8 +100,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     .save(&mut *transaction)
     .await
     .unwrap();
-    device_2
-        .add_to_all_networks(&mut transaction)
+    join_device_to_all_networks(&mut transaction, &device_2, &user)
         .await
         .unwrap();
 

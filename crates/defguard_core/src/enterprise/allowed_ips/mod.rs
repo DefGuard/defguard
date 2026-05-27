@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    ops::RangeInclusive,
-};
+use std::{net::IpAddr, ops::RangeInclusive};
 
 use defguard_common::db::{
     Id,
@@ -12,7 +9,7 @@ use sqlx::PgConnection;
 use thiserror::Error;
 
 #[cfg(not(test))]
-use crate::enterprise::is_business_license_active;
+use crate::enterprise::is_enterprise_license_active;
 use crate::enterprise::{
     firewall::get_location_active_acl_rules,
     utils::{extract_subnets_from_range, get_last_ip_in_v6_subnet, merge_ranges},
@@ -29,22 +26,6 @@ pub enum AllowedIpsError {
     LicenseInactive,
     #[error(transparent)]
     DbError(#[from] sqlx::Error),
-}
-
-/// Returns the all-traffic networks for the given location's IP versions.
-fn all_traffic_networks(location: &WireguardNetwork<Id>) -> Vec<IpNetwork> {
-    let mut networks = Vec::new();
-    if location.address().iter().any(IpNetwork::is_ipv4) {
-        networks.push(
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).expect("valid IPv4 default route"),
-        );
-    }
-    if location.address().iter().any(IpNetwork::is_ipv6) {
-        networks.push(
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).expect("valid IPv6 default route"),
-        );
-    }
-    networks
 }
 
 /// Converts an [`IpNetwork`] to a [`RangeInclusive<IpAddr>`] covering all
@@ -75,10 +56,9 @@ pub async fn get_allowed_ips_from_acl_rules(
     }
 
     #[cfg(not(test))]
-    // TODO: determine whether this is a business or enterprise feature before integration
-    if !is_business_license_active() {
+    if !is_enterprise_license_active() {
         debug!(
-            "Business license is not active, skipping AllowedIPs computation for location {}",
+            "Enterprise license is not active, skipping AllowedIPs computation for location {}",
             location.id
         );
         return Err(AllowedIpsError::LicenseInactive);
@@ -109,10 +89,10 @@ pub async fn get_allowed_ips_from_acl_rules(
         if rule.use_manual_destination_settings {
             if rule.any_address {
                 debug!(
-                    "Rule {} has any_address enabled. Returning default route for user {}",
+                    "Rule {} has any_address enabled. Skipping manual destinations for user {}",
                     rule.id, user.id
                 );
-                return Ok(all_traffic_networks(location));
+                continue;
             }
             all_networks.extend(rule.addresses.iter().copied());
             all_ranges.extend(rule.address_ranges.iter().map(RangeInclusive::from));
@@ -121,10 +101,10 @@ pub async fn get_allowed_ips_from_acl_rules(
             for alias in &rule.aliases {
                 if alias.any_address {
                     debug!(
-                        "Alias {} in rule {} has any_address enabled. Returning default route for user {}",
+                        "Alias {} in rule {} has any_address enabled. Skipping for user {}",
                         alias.id, rule.id, user.id
                     );
-                    return Ok(all_traffic_networks(location));
+                    continue;
                 }
                 all_networks.extend(alias.addresses.iter().copied());
                 let alias_ranges = alias.get_destination_ranges(&mut *conn).await?;
@@ -136,10 +116,10 @@ pub async fn get_allowed_ips_from_acl_rules(
         for destination in &rule.destinations {
             if destination.any_address {
                 debug!(
-                    "Destination {} in rule {} has any_address enabled. Returning default route for user {}",
+                    "Destination {} in rule {} has any_address enabled. Skipping for user {}",
                     destination.id, rule.id, user.id
                 );
-                return Ok(all_traffic_networks(location));
+                continue;
             }
             all_networks.extend(destination.addresses.iter().copied());
             let dest_ranges = destination.get_destination_ranges(&mut *conn).await?;
@@ -171,4 +151,50 @@ pub async fn get_allowed_ips_from_acl_rules(
     );
 
     Ok(result)
+}
+
+/// Computes the effective AllowedIPs for a user in a location, merging manual
+/// static IPs with ACL-generated IPs when the `allowed_ips_from_acl` flag is
+/// enabled on the location.
+///
+/// The manual (static) AllowedIPs defined on the network are always included.
+/// If `allowed_ips_from_acl` is true, an active enterprise license is present,
+/// and ACL is enabled on the location, ACL-derived IPs are computed and merged.
+/// Any errors during ACL computation are logged and the manual IPs are returned
+/// on their own.
+pub async fn get_effective_allowed_ips(
+    conn: &mut PgConnection,
+    network: &WireguardNetwork<Id>,
+    user: &User<Id>,
+) -> Vec<IpNetwork> {
+    let mut ips = network.allowed_ips.clone();
+
+    if network.allowed_ips_from_acl {
+        match get_allowed_ips_from_acl_rules(conn, network, user).await {
+            Ok(acl_ips) => ips.extend(acl_ips),
+            Err(AllowedIpsError::AclNotEnabled) => {
+                debug!(
+                    "ACL not enabled for location {}, skipping ACL AllowedIPs",
+                    network.id
+                );
+            }
+            Err(AllowedIpsError::LicenseInactive) => {
+                debug!(
+                    "Enterprise license not active for location {}, skipping ACL AllowedIPs",
+                    network.id
+                );
+            }
+            Err(AllowedIpsError::DbError(e)) => {
+                warn!(
+                    "DB error computing ACL AllowedIPs for location {}: {e}",
+                    network.id
+                );
+            }
+        }
+    }
+
+    // Deduplicate and sort for deterministic output.
+    ips.sort();
+    ips.dedup();
+    ips
 }

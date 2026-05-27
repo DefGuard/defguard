@@ -11,6 +11,7 @@ use defguard_mail::{
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
+use thiserror::Error;
 use tokio::fs::read_to_string;
 
 use super::{ApiResponse, ApiResult};
@@ -18,7 +19,6 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    error::WebError,
     server_config,
     support::dump_config,
 };
@@ -128,12 +128,21 @@ pub async fn send_support_data(
     })
 }
 
+/// Errors arising from automated mail operations.
+#[derive(Debug, Error)]
+pub enum MailError {
+    #[error("Database error: {0}")]
+    Db(#[from] sqlx::Error),
+    #[error("Template error: {0}")]
+    Template(#[from] defguard_mail::templates::TemplateError),
+}
+
 pub async fn send_gateway_disconnected_email(
     gateway_name: String,
     network_name: String,
     gateway_adress: &str,
     pool: &PgPool,
-) -> Result<(), WebError> {
+) -> Result<(), MailError> {
     debug!("Sending Gateway disconnected mail to all admin users");
     let mut conn = pool.begin().await?;
     let admin_users = User::find_admins(&mut *conn).await?;
@@ -156,7 +165,7 @@ pub async fn send_gateway_reconnected_email(
     network_name: String,
     gateway_adress: &str,
     pool: &PgPool,
-) -> Result<(), WebError> {
+) -> Result<(), MailError> {
     debug!("Sending Gateway reconnect mail to all admin users");
     let mut conn = pool.begin().await?;
     let admin_users = User::find_admins(&mut *conn).await?;
@@ -186,7 +195,7 @@ pub async fn get_admins_emails(pool: &PgPool) -> Result<Vec<String>, sqlx::Error
     .await
 }
 
-pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), WebError> {
+pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), MailError> {
     debug!("Sending blocked user import mail to all admin users");
     let admin_emails = get_admins_emails(pool).await?;
     let mut conn = pool.acquire().await?;

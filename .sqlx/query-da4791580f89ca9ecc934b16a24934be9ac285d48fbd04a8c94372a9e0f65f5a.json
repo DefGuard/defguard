@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at,  keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE name = $1",
   "describe": {
     "columns": [
       {
@@ -90,6 +90,11 @@
       },
       {
         "ordinal": 17,
+        "name": "allowed_ips_from_acl",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
         "name": "location_mfa_mode: LocationMfaMode",
         "type_info": {
           "Custom": {
@@ -105,7 +110,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "service_location_mode: ServiceLocationMode",
         "type_info": {
           "Custom": {
@@ -123,7 +128,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -145,8 +150,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "eedf2266dbae38e45b9bc4e9a41352324d9d3d567b4c35957997c0b52092cfe1"
+  "hash": "da4791580f89ca9ecc934b16a24934be9ac285d48fbd04a8c94372a9e0f65f5a"
 }

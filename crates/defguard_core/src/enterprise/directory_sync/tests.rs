@@ -6,7 +6,7 @@ mod test {
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
             models::{
-                Device, DeviceType, Session, SessionState, Settings, WireguardNetwork,
+                Device, DeviceType, Session, SessionState, Settings, User, WireguardNetwork,
                 settings::initialize_current_settings,
                 wireguard::{LocationMfaMode, ServiceLocationMode},
             },
@@ -19,6 +19,7 @@ mod test {
 
     use super::super::*;
     use crate::{
+        device_access::join_device_to_all_networks,
         enterprise::{
             db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind},
             license::{License, LicenseTier, SupportType, set_cached_license},
@@ -59,6 +60,7 @@ mod test {
             None,
             Vec::new(),
             true,
+            false,
             false,
             false,
             LocationMfaMode::Disabled,
@@ -123,7 +125,9 @@ mod test {
         .await
         .unwrap();
 
-        dev.add_to_all_networks(&mut transaction).await.unwrap();
+        join_device_to_all_networks(&mut transaction, &dev, &user)
+            .await
+            .unwrap();
 
         transaction.commit().await.unwrap();
 

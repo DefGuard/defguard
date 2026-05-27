@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -80,16 +80,21 @@
       },
       {
         "ordinal": 15,
+        "name": "allowed_ips_from_acl",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "location_mfa_mode: _",
         "type_info": {
           "Custom": {
@@ -105,7 +110,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "service_location_mode: _",
         "type_info": {
           "Custom": {
@@ -146,8 +151,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "c596fb41eda368b05afa2db5d960ed303def29a0ed50b6aac6113385e6bd0845"
+  "hash": "ff188a49f1e440cf3a2e0fe9e51c8e56219024ee49eda0217392ae8b7d22913e"
 }

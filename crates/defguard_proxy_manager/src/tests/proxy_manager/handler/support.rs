@@ -46,6 +46,8 @@ use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
+use defguard_core::device_access::join_device_to_all_networks;
+use defguard_core::enterprise::db::models::acl::{AclRule, AclRuleNetwork, RuleState};
 
 /// A strong password satisfying all `check_password_strength` requirements:
 /// ≥8 chars, digit, upper, lower, special character.
@@ -109,6 +111,20 @@ pub(crate) fn set_test_license_business() {
     set_cached_license(Some(license));
 }
 
+/// Install an Enterprise-tier license into the global cache for the duration
+/// of a test.
+pub(crate) fn set_test_license_enterprise() {
+    set_cached_license(Some(License {
+        customer_id: "test-customer-id".into(),
+        subscription: false,
+        valid_until: None,
+        limits: None,
+        version_date_limit: None,
+        tier: LicenseTier::Enterprise,
+        support_type: SupportType::Basic,
+    }));
+}
+
 /// Remove the global license (so tests that require no license can clear one
 /// that was previously set).
 pub(crate) fn clear_test_license() {
@@ -160,6 +176,7 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
         true,  // allow_all_groups
         false, // acl_enabled
         false, // acl_default_allow
+        false,
         LocationMfaMode::default(),
         ServiceLocationMode::default(),
     )
@@ -168,6 +185,50 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
     .save(pool)
     .await
     .expect("failed to save test wireguard network")
+}
+
+/// Create a network with ACL enabled, the ACL AllowedIPs toggle on, and
+/// a manual allowed_ips entry so that the test can verify ACL-derived IPs
+/// are merged alongside the manual ones.
+pub(crate) async fn create_acl_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    let mut network = create_network(pool).await;
+    network.acl_enabled = true;
+    network.allowed_ips_from_acl = true;
+    network.allowed_ips = vec!["10.100.0.0/16".parse::<IpNetwork>().unwrap()];
+    network.save(pool).await.unwrap();
+    WireguardNetwork::find_by_id(pool, network.id)
+        .await
+        .unwrap()
+        .unwrap()
+}
+
+/// Insert an applied ACL rule that allows all users and targets a specific
+/// location with the given destination address.
+pub(crate) async fn insert_acl_rule_for_network(
+    pool: &PgPool,
+    network_id: i64,
+    destination: IpNetwork,
+) {
+    let mut conn = pool.acquire().await.unwrap();
+    let rule = AclRule {
+        name: "test-acl-rule".into(),
+        state: RuleState::Applied,
+        enabled: true,
+        allow_all_users: true,
+        addresses: vec![destination],
+        any_address: false,
+        any_port: true,
+        any_protocol: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    }
+    .save(&mut *conn)
+    .await
+    .unwrap();
+    AclRuleNetwork::new(rule.id, network_id)
+        .save(&mut *conn)
+        .await
+        .unwrap();
 }
 
 /// Pre-generated valid 32-byte WireGuard public keys (base64, 44 chars each).
@@ -266,8 +327,11 @@ pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device
     .expect("failed to save test device");
     // Add to all networks that exist at this point so WireguardNetworkDevice
     // join rows are created (needed by build_device_config_response).
-    device
-        .add_to_all_networks(&mut conn)
+    let user = User::find_by_id(&mut *conn, user_id)
+        .await
+        .expect("failed to find user")
+        .expect("user not found");
+    join_device_to_all_networks(&mut conn, &device, &user)
         .await
         .expect("failed to add device to networks");
     device
@@ -373,6 +437,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
         true,  // allow_all_groups
         false, // acl_enabled
         false, // acl_default_allow
+        false,
         LocationMfaMode::Internal,
         ServiceLocationMode::default(),
     )
@@ -396,6 +461,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
         true,  // allow_all_groups
         false, // acl_enabled
         false, // acl_default_allow
+        false,
         LocationMfaMode::External,
         ServiceLocationMode::default(),
     )

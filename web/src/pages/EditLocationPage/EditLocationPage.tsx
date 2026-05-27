@@ -24,6 +24,7 @@ import type {
 import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
 import { externalLink } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -162,6 +163,7 @@ const formSchema = z
     location_mfa_mode: z.enum(LocationMfaMode),
     service_location_mode: z.enum(LocationServiceMode),
     firewall: z.enum(LocationFirewall),
+    allowed_ips_from_acl: z.boolean(),
   })
   .superRefine((value, context) => {
     if (value.location_mfa_mode !== LocationMfaMode.Disabled) {
@@ -512,6 +514,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       port: location.port,
       service_location_mode: location.service_location_mode,
       firewall: locationToFirewall(location),
+      allowed_ips_from_acl: location.allowed_ips_from_acl,
     }),
     [location],
   );
@@ -631,6 +634,15 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="dns">
+            {(field) => (
+              <field.FormInput
+                label={m.add_location_internal_vpn_label_dns()}
+                helper={m.add_location_internal_vpn_helper_dns()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="allowed_ips">
             {(field) => (
               <field.FormInput
@@ -640,11 +652,31 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="dns">
+          {isPresent(canUseEnterprise) && !canUseEnterprise && (
+            <>
+              <p className="acl-upsell-text">
+                <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
+                </a>
+                <span>
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
+                </span>
+              </p>
+              <SizedBox height={ThemeSpacing.Md} />
+            </>
+          )}
+          <form.AppField name="allowed_ips_from_acl">
             {(field) => (
-              <field.FormInput
-                label={m.add_location_internal_vpn_label_dns()}
-                helper={m.add_location_internal_vpn_helper_dns()}
+              <field.FormCheckbox
+                text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+                disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
+                helperBlock={
+                  <Helper>
+                    <p>
+                      {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
+                    </p>
+                  </Helper>
+                }
               />
             )}
           </form.AppField>

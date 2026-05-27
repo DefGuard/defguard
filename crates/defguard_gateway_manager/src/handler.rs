@@ -1131,6 +1131,7 @@ mod tests {
             true,
             false,
             false,
+            false,
             location_mfa_mode,
             ServiceLocationMode::Disabled,
         )
@@ -1159,6 +1160,7 @@ mod tests {
             "198.51.100.10".to_owned(),
             Some("1.1.1.1".to_owned()),
             ["0.0.0.0/0".parse().expect("valid allowed IP network")],
+            false,
             false,
             false,
             false,
