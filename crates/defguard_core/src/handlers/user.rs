@@ -161,8 +161,8 @@ pub struct SortParams {
 #[derive(Debug, Deserialize, Type, Serialize, ToSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum SortKey {
-    #[default]
     Username,
+    #[default]
     Name,
     Email,
 }
@@ -180,8 +180,8 @@ impl fmt::Display for SortKey {
 #[derive(Debug, Deserialize, Serialize, ToSchema, Default, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum SortOrder {
-    Asc,
     #[default]
+    Asc,
     Desc,
 }
 
@@ -220,7 +220,7 @@ pub struct UserFilterParams {
         ("groups" = Option<Vec<String>>, Query, description = "Filter users by group names (OR logic - returns users in any of the specified groups)"),
         ("no_group" = Option<bool>, Query, description = "Filter users with no group memberships (takes precedence over groups)"),
         ("search" = Option<String>, Query, description = "Free-text search across username, first name, last name, and email"),
-        ("sort_by" = Option<SortKey>, Query, description = "Sort key: username (default), name, or email"),
+        ("sort_by" = Option<SortKey>, Query, description = "Sort key: name (default), username, or email"),
         ("sort_order" = Option<SortOrder>, Query, description = "Sort direction: asc or desc (default)"),
     ),
     responses(
