@@ -3,54 +3,48 @@
 //! This module provides functions to generate human-readable descriptions for various
 //! types of events that occur within the system. These descriptions are used to provide usable
 //! context about what happened during each event.
-//!
-//! Each event type has its own description generator function that takes the event data
-//! and returns an optional description string. Some events may not require additional
-//! description beyond their event type name, in which case `None` is returned.
 
-use crate::message::{DefguardEvent, EnrollmentEvent, VpnEvent};
+use defguard_core::events::ApiEventType;
 
 #[must_use]
-pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
+pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
     match event {
-        DefguardEvent::UserLogin => None,
-        DefguardEvent::UserLoginFailed { message } => {
+        ApiEventType::UserLogin => None,
+        ApiEventType::UserLoginFailed { message } => {
             Some(format!("User login failed with: {message}"))
         }
-        DefguardEvent::UserMfaLogin { mfa_method } => {
+        ApiEventType::UserMfaLogin { mfa_method } => {
             Some(format!("User logged in using {mfa_method}"))
         }
-        DefguardEvent::UserMfaLoginFailed {
+        ApiEventType::UserMfaLoginFailed {
             mfa_method,
             message,
         } => Some(format!(
             "User login using {mfa_method} failed with: {message}"
         )),
-        DefguardEvent::RecoveryCodeLoginFailed => {
+        ApiEventType::RecoveryCodeLoginFailed => {
             Some("User login with recovery code failed".to_owned())
         }
-        DefguardEvent::UserLogout => None,
-        DefguardEvent::RecoveryCodeUsed => None,
-        DefguardEvent::PasswordChanged => None,
-        DefguardEvent::MfaDisabled => Some("Disabled own MFA".to_owned()),
-        DefguardEvent::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
-        DefguardEvent::MfaTotpEnabled => Some("User configured TOTP for MFA".to_owned()),
-        DefguardEvent::MfaTotpDisabled => Some("User disabled TOTP for MFA".to_owned()),
-        DefguardEvent::MfaEmailEnabled => Some("User configured email for MFA".to_owned()),
-        DefguardEvent::MfaEmailDisabled => Some("User disabled email for MFA".to_owned()),
-        DefguardEvent::PasswordChangedByAdmin { user } => {
+        ApiEventType::UserLogout => None,
+        ApiEventType::RecoveryCodeUsed => None,
+        ApiEventType::PasswordChanged => None,
+        ApiEventType::MfaDisabled => Some("Disabled own MFA".to_owned()),
+        ApiEventType::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
+        ApiEventType::MfaTotpEnabled => Some("User configured TOTP for MFA".to_owned()),
+        ApiEventType::MfaTotpDisabled => Some("User disabled TOTP for MFA".to_owned()),
+        ApiEventType::MfaEmailEnabled => Some("User configured email for MFA".to_owned()),
+        ApiEventType::MfaEmailDisabled => Some("User disabled email for MFA".to_owned()),
+        ApiEventType::PasswordChangedByAdmin { user } => {
             Some(format!("Password for user {user} was changed by an admin"))
         }
-        DefguardEvent::PasswordReset { user } => {
-            Some(format!("Password for user {user} was reset"))
-        }
-        DefguardEvent::MfaSecurityKeyAdded { key } => {
+        ApiEventType::PasswordReset { user } => Some(format!("Password for user {user} was reset")),
+        ApiEventType::MfaSecurityKeyAdded { key } => {
             Some(format!("Added MFA security key {}", key.name))
         }
-        DefguardEvent::MfaSecurityKeyRemoved { key } => {
+        ApiEventType::MfaSecurityKeyRemoved { key } => {
             Some(format!("Removed MFA security key {}", key.name))
         }
-        DefguardEvent::UserAdded { user } => {
+        ApiEventType::UserAdded { user } => {
             let self_enrollment_enabled = !user.is_enrolled();
             let enrollment_flag_text = if self_enrollment_enabled {
                 "enabled"
@@ -62,11 +56,9 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
                 user.email
             ))
         }
-        DefguardEvent::UserRemoved { user } => Some(format!("Removed user {user}")),
-        DefguardEvent::UserModified { before, after } => {
+        ApiEventType::UserRemoved { user } => Some(format!("Removed user {user}")),
+        ApiEventType::UserModified { before, after } => {
             let mut description = format!("Modified user {after}");
-
-            // check if status has changed
             if before.is_active != after.is_active {
                 let status_change_text = if after.is_active {
                     "enabled"
@@ -77,66 +69,66 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             }
             Some(description)
         }
-        DefguardEvent::UserGroupsModified {
+        ApiEventType::UserGroupsModified {
             user,
             before,
             after,
         } => Some(format!(
             "User groups modified! User:{user} Before: {before:?} After {after:?}"
         )),
-        DefguardEvent::UserDeviceAdded { owner, device } => {
+        ApiEventType::UserDeviceAdded { owner, device } => {
             Some(format!("Added device {device} for user {owner}"))
         }
-        DefguardEvent::UserDeviceRemoved { owner, device } => {
+        ApiEventType::UserDeviceRemoved { owner, device } => {
             Some(format!("Removed device {device} owned by user {owner}"))
         }
-        DefguardEvent::UserDeviceModified {
+        ApiEventType::UserDeviceModified {
             owner,
             before: _,
             after,
         } => Some(format!("Modified device {after} owned by user {owner}")),
-        DefguardEvent::NetworkDeviceAdded { device, location } => Some(format!(
+        ApiEventType::NetworkDeviceAdded { device, location } => Some(format!(
             "Added network device {device} to location {location}"
         )),
-        DefguardEvent::NetworkDeviceRemoved { device, location } => Some(format!(
+        ApiEventType::NetworkDeviceRemoved { device, location } => Some(format!(
             "Removed network device {device} from location {location}"
         )),
-        DefguardEvent::NetworkDeviceModified {
+        ApiEventType::NetworkDeviceModified {
             before: _,
             after,
             location,
         } => Some(format!(
             "Modified network device {after} in location {location}"
         )),
-        DefguardEvent::ActivityLogStreamCreated { stream } => Some(format!(
+        ApiEventType::ActivityLogStreamCreated { stream } => Some(format!(
             "Created {} activity log stream {}",
             stream.stream_type, stream.name
         )),
-        DefguardEvent::ActivityLogStreamModified { before: _, after } => Some(format!(
+        ApiEventType::ActivityLogStreamModified { before: _, after } => Some(format!(
             "Modified {} activity log stream {}",
             after.stream_type, after.name
         )),
-        DefguardEvent::ActivityLogStreamRemoved { stream } => Some(format!(
+        ApiEventType::ActivityLogStreamRemoved { stream } => Some(format!(
             "Removed {} activity log stream {}",
             stream.stream_type, stream.name
         )),
-        DefguardEvent::VpnLocationAdded { location } => {
+        ApiEventType::VpnLocationAdded { location } => {
             Some(format!("Added VPN location {location}"))
         }
-        DefguardEvent::VpnLocationRemoved { location } => {
+        ApiEventType::VpnLocationRemoved { location } => {
             Some(format!("Removed VPN location {location}"))
         }
-        DefguardEvent::VpnLocationModified { before: _, after } => {
+        ApiEventType::VpnLocationModified { before: _, after } => {
             Some(format!("VPN location {after} was modified"))
         }
-        DefguardEvent::ApiTokenAdded { owner, token } => {
+        ApiEventType::ApiTokenAdded { owner, token } => {
             Some(format!("Added API token {} for user {owner}", token.name))
         }
-        DefguardEvent::ApiTokenRemoved { owner, token } => Some(format!(
+        ApiEventType::ApiTokenRemoved { owner, token } => Some(format!(
             "Removed API token {} owned by user {owner}",
             token.name
         )),
-        DefguardEvent::ApiTokenRenamed {
+        ApiEventType::ApiTokenRenamed {
             owner,
             token: _,
             old_name,
@@ -144,53 +136,53 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         } => Some(format!(
             "API token owned by user {owner} was renamed from {old_name} to {new_name}",
         )),
-        DefguardEvent::OpenIdAppAdded { app } => {
+        ApiEventType::OpenIdAppAdded { app } => {
             Some(format!("Added OpenID application {}", app.name))
         }
-        DefguardEvent::OpenIdAppRemoved { app } => {
+        ApiEventType::OpenIdAppRemoved { app } => {
             Some(format!("Removed OpenID application {}", app.name))
         }
-        DefguardEvent::OpenIdAppModified { before: _, after } => {
+        ApiEventType::OpenIdAppModified { before: _, after } => {
             Some(format!("Modified OpenID application {}", after.name))
         }
-        DefguardEvent::OpenIdAppStateChanged { app, enabled } => {
+        ApiEventType::OpenIdAppStateChanged { app, enabled } => {
             let state = if *enabled { "Enabled" } else { "Disabled" };
             Some(format!("{} OpenID application {}", state, app.name))
         }
-        DefguardEvent::OpenIdProviderModified { provider } => {
+        ApiEventType::OpenIdProviderModified { provider } => {
             Some(format!("Modified OpenID provider {}", provider.name))
         }
-        DefguardEvent::OpenIdProviderRemoved { provider } => {
+        ApiEventType::OpenIdProviderRemoved { provider } => {
             Some(format!("Removed OpenID provider {}", provider.name))
         }
-        DefguardEvent::SettingsUpdated {
+        ApiEventType::SettingsUpdated {
             before: _,
             after: _,
         } => None,
-        DefguardEvent::SettingsUpdatedPartial {
+        ApiEventType::SettingsUpdatedPartial {
             before: _,
             after: _,
         } => None,
-        DefguardEvent::SettingsDefaultBrandingRestored => {
+        ApiEventType::SettingsDefaultBrandingRestored => {
             Some("Restored default branding settings".to_owned())
         }
-        DefguardEvent::GroupsBulkAssigned { users, groups } => Some(format!(
+        ApiEventType::GroupsBulkAssigned { users, groups } => Some(format!(
             "Assigned {} users to {} groups",
             users.len(),
             groups.len()
         )),
-        DefguardEvent::GroupAdded { group } => Some(format!("Added group {}", group.name)),
-        DefguardEvent::GroupModified { before: _, after } => {
+        ApiEventType::GroupAdded { group } => Some(format!("Added group {}", group.name)),
+        ApiEventType::GroupModified { before: _, after } => {
             Some(format!("Modified group {}", after.name))
         }
-        DefguardEvent::GroupRemoved { group } => Some(format!("Removed group {}", group.name)),
-        DefguardEvent::GroupMemberAdded { group, user } => {
+        ApiEventType::GroupRemoved { group } => Some(format!("Removed group {}", group.name)),
+        ApiEventType::GroupMemberAdded { group, user } => {
             Some(format!("Added user {user} to group {}", group.name))
         }
-        DefguardEvent::GroupMemberRemoved { group, user } => {
+        ApiEventType::GroupMemberRemoved { group, user } => {
             Some(format!("Removed user {user} from group {}", group.name))
         }
-        DefguardEvent::GroupMembersModified {
+        ApiEventType::GroupMembersModified {
             group,
             added,
             removed,
@@ -208,30 +200,30 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
                 .join(", "),
             group.name
         )),
-        DefguardEvent::WebHookAdded { webhook } => {
+        ApiEventType::WebHookAdded { webhook } => {
             Some(format!("Added webhook with URL {}", webhook.url))
         }
-        DefguardEvent::WebHookModified { before: _, after } => {
+        ApiEventType::WebHookModified { before: _, after } => {
             Some(format!("Modified webhook with URL {}", after.url))
         }
-        DefguardEvent::WebHookRemoved { webhook } => {
-            Some(format!("Removed webhook with ULR {}", webhook.url))
+        ApiEventType::WebHookRemoved { webhook } => {
+            Some(format!("Removed webhook with URL {}", webhook.url))
         }
-        DefguardEvent::WebHookStateChanged { webhook, enabled } => {
+        ApiEventType::WebHookStateChanged { webhook, enabled } => {
             let state = if *enabled { "Enabled" } else { "Disabled" };
             Some(format!("{} webhook with URL {}", state, webhook.url))
         }
-        DefguardEvent::AuthenticationKeyAdded { key } => Some(format!(
+        ApiEventType::AuthenticationKeyAdded { key } => Some(format!(
             "Added {} authentication key {}",
             key.key_type,
             key.name.clone().unwrap_or_default()
         )),
-        DefguardEvent::AuthenticationKeyRemoved { key } => Some(format!(
+        ApiEventType::AuthenticationKeyRemoved { key } => Some(format!(
             "Removed {} authentication key {}",
             key.key_type,
             key.name.clone().unwrap_or_default()
         )),
-        DefguardEvent::AuthenticationKeyRenamed {
+        ApiEventType::AuthenticationKeyRenamed {
             key,
             old_name,
             new_name,
@@ -241,114 +233,83 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             old_name.clone().unwrap_or_default(),
             new_name.clone().unwrap_or_default()
         )),
-        DefguardEvent::ClientConfigurationTokenAdded { user } => {
+        ApiEventType::ClientConfigurationTokenAdded { user } => {
             Some(format!("Added client configuration token for user {user}"))
         }
-        DefguardEvent::UserSnatBindingAdded { user, binding } => Some(format!(
+        ApiEventType::UserSnatBindingAdded { user, binding, .. } => Some(format!(
             "Devices owned by user {user} bound to public IP {}",
             binding.public_ip
         )),
-        DefguardEvent::UserSnatBindingRemoved { user, binding } => Some(format!(
+        ApiEventType::UserSnatBindingRemoved { user, binding, .. } => Some(format!(
             "Removed public IP {} binding for user {user}",
             binding.public_ip
         )),
-        DefguardEvent::UserSnatBindingModified {
+        ApiEventType::UserSnatBindingModified {
             user,
             before,
             after,
+            ..
         } => Some(format!(
             "Public IP bound to devices owned by user {user} changed from {} to {}",
             before.public_ip, after.public_ip
         )),
-        DefguardEvent::ProxyModified { before: _, after } => {
-            Some(format!("Modified proxy {after}"))
-        }
-        DefguardEvent::ProxyDeleted { proxy } => Some(format!("Deleted proxy {proxy}")),
-        DefguardEvent::GatewayModified { before: _, after } => {
+        ApiEventType::ProxyModified { before: _, after } => Some(format!("Modified proxy {after}")),
+        ApiEventType::ProxyDeleted { proxy } => Some(format!("Deleted proxy {proxy}")),
+        ApiEventType::GatewayModified { before: _, after } => {
             Some(format!("Modified gateway {after}"))
         }
-        DefguardEvent::GatewayDeleted { gateway } => Some(format!("Deleted gateway {gateway}")),
-        DefguardEvent::DevicePostureCreated { snapshot } => Some(format!(
+        ApiEventType::GatewayDeleted { gateway } => Some(format!("Deleted gateway {gateway}")),
+        ApiEventType::DevicePostureCreated { snapshot } => Some(format!(
             "Created device posture check {}",
             snapshot.device_posture.name
         )),
-        DefguardEvent::DevicePostureUpdated { after, .. } => Some(format!(
+        ApiEventType::DevicePostureUpdated { after, .. } => Some(format!(
             "Updated device posture check {}",
             after.device_posture.name
         )),
-        DefguardEvent::DevicePostureDeleted { snapshot } => Some(format!(
+        ApiEventType::DevicePostureDeleted { snapshot } => Some(format!(
             "Deleted device posture check {}",
             snapshot.device_posture.name
         )),
-        DefguardEvent::DevicePostureDuplicated { duplicate, .. } => Some(format!(
+        ApiEventType::DevicePostureDuplicated { duplicate, .. } => Some(format!(
             "Duplicated device posture check as {}",
             duplicate.device_posture.name
         )),
-        DefguardEvent::DevicePostureLocationsAssigned {
-            posture_id,
+        ApiEventType::DevicePostureLocationsAssigned {
+            device_posture,
             location_ids,
         } => Some(format!(
-            "Assigned {} location(s) to device posture check {posture_id}",
-            location_ids.len()
+            "Assigned {} location(s) to device posture check {}",
+            location_ids.len(),
+            device_posture.id
         )),
-        DefguardEvent::LocationPosturesAssigned {
-            location_id,
+        ApiEventType::LocationPosturesAssigned {
+            location,
             posture_ids,
         } => Some(format!(
-            "Assigned {} posture check(s) to location {location_id}",
-            posture_ids.len()
+            "Assigned {} posture check(s) to location {}",
+            posture_ids.len(),
+            location.id
         )),
-    }
-}
-
-#[must_use]
-pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
-    match event {
-        VpnEvent::ClientMfaSuccess {
-            location,
-            device,
-            method,
-        } => Some(format!(
-            "Device {device} completed MFA authorization for location {location} using {method}"
-        )),
-        VpnEvent::ClientMfaFailed {
-            location,
-            device,
-            method,
-            message,
-        } => Some(format!(
-            "Device {device} failed to connect to MFA location {location} using {method} with: {message}"
-        )),
-        VpnEvent::ConnectedToLocation { location, device } => {
-            Some(format!("Device {device} connected to location {location}"))
+        ApiEventType::EnrollmentTokenAdded { user } => {
+            Some(format!("Added enrollment token for user {user}"))
         }
-        VpnEvent::DisconnectedFromLocation { location, device } => Some(format!(
-            "Device {device} disconnected from location {location}"
-        )),
-        VpnEvent::MfaConnectedToLocation { location, device } => Some(format!(
-            "Device {device} connected to MFA location {location}"
-        )),
-        VpnEvent::MfaDisconnectedFromLocation { location, device } => Some(format!(
-            "Device {device} disconnected from MFA location {location}"
-        )),
     }
 }
 
 #[must_use]
-pub fn get_enrollment_event_description(event: &EnrollmentEvent) -> Option<String> {
+pub fn get_enrollment_event_description(
+    event: &defguard_core::events::EnrollmentEvent,
+) -> Option<String> {
     match event {
-        EnrollmentEvent::EnrollmentStarted => Some("User started enrollment process".to_owned()),
-        EnrollmentEvent::EnrollmentDeviceAdded { device } => {
+        defguard_core::events::EnrollmentEvent::EnrollmentStarted => {
+            Some("User started enrollment process".to_owned())
+        }
+        defguard_core::events::EnrollmentEvent::EnrollmentDeviceAdded { device } => {
             Some(format!("Added device {} during enrollment", device.name))
         }
-        EnrollmentEvent::EnrollmentCompleted => {
+        defguard_core::events::EnrollmentEvent::EnrollmentCompleted => {
             Some("User completed enrollment process".to_owned())
-        }
-        EnrollmentEvent::PasswordResetRequested
-        | EnrollmentEvent::PasswordResetStarted
-        | EnrollmentEvent::PasswordResetCompleted => None,
-        EnrollmentEvent::TokenAdded { user } => {
-            Some(format!("Added enrollment token for user {user}"))
         }
     }
 }

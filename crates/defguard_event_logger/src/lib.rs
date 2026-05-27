@@ -23,16 +23,15 @@ use defguard_core::{
             WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
     },
-    events::{ApiEvent, BidiStreamEvent},
+    events::{
+        ApiEvent, ApiEventType, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
+        PasswordResetEvent,
+    },
 };
-use defguard_session_manager::events::SessionManagerEvent;
-use description::{
-    get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
-};
+use defguard_session_manager::events::{SessionManagerEvent, SessionManagerEventType};
+use description::{get_api_event_description, get_enrollment_event_description};
 use error::EventLoggerError;
-use message::{
-    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
-};
+use message::{Event, EventContext, EventLoggerMessage};
 use sqlx::PgPool;
 use tokio::sync::{Notify, mpsc::UnboundedReceiver};
 use tracing::{debug, error, info, trace};
@@ -42,55 +41,6 @@ pub mod error;
 pub mod message;
 
 const MESSAGE_LIMIT: usize = 100;
-
-fn map_vpn_event(event: VpnEvent) -> (EventType, Option<serde_json::Value>) {
-    match event {
-        VpnEvent::ClientMfaFailed {
-            location,
-            device,
-            method,
-            message,
-        } => (
-            EventType::VpnClientMfaFailed,
-            serde_json::to_value(VpnClientMfaFailedMetadata {
-                location,
-                device,
-                method,
-                message,
-            })
-            .ok(),
-        ),
-        VpnEvent::ClientMfaSuccess {
-            location,
-            device,
-            method,
-        } => (
-            EventType::VpnClientMfaSuccess,
-            serde_json::to_value(VpnClientMfaMetadata {
-                location,
-                device,
-                method,
-            })
-            .ok(),
-        ),
-        VpnEvent::ConnectedToLocation { location, device } => (
-            EventType::VpnClientConnected,
-            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-        ),
-        VpnEvent::DisconnectedFromLocation { location, device } => (
-            EventType::VpnClientDisconnected,
-            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-        ),
-        VpnEvent::MfaConnectedToLocation { location, device } => (
-            EventType::VpnClientMfaConnected,
-            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-        ),
-        VpnEvent::MfaDisconnectedFromLocation { location, device } => (
-            EventType::VpnClientMfaDisconnected,
-            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-        ),
-    }
-}
 
 /// Run the event logger service
 pub async fn run_event_logger(
@@ -190,21 +140,21 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
     } = message.context;
 
     let (module, event, description, metadata) = match message.event {
-        LoggerEvent::Defguard(event) => {
+        Event::Api(event) => {
             let module = ActivityLogModule::Defguard;
-            let description = get_defguard_event_description(&event);
+            let description = get_api_event_description(&event);
 
-            let (event_type, metadata) = match *event {
-                DefguardEvent::UserLogin => (EventType::UserLogin, None),
-                DefguardEvent::UserLoginFailed { message } => (
+            let (event_type, metadata) = match event {
+                ApiEventType::UserLogin => (EventType::UserLogin, None),
+                ApiEventType::UserLoginFailed { message } => (
                     EventType::UserLoginFailed,
                     serde_json::to_value(LoginFailedMetadata { message }).ok(),
                 ),
-                DefguardEvent::UserMfaLogin { mfa_method } => (
+                ApiEventType::UserMfaLogin { mfa_method } => (
                     EventType::UserMfaLogin,
                     serde_json::to_value(MfaLoginMetadata { mfa_method }).ok(),
                 ),
-                DefguardEvent::UserMfaLoginFailed {
+                ApiEventType::UserMfaLoginFailed {
                     mfa_method,
                     message,
                 } => (
@@ -215,15 +165,15 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::RecoveryCodeLoginFailed => (
+                ApiEventType::RecoveryCodeLoginFailed => (
                     EventType::UserMfaLoginFailed,
                     serde_json::to_value(LoginFailedMetadata {
                         message: "Recovery code verification failed".to_owned(),
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserLogout => (EventType::UserLogout, None),
-                DefguardEvent::UserDeviceAdded { owner, device } => (
+                ApiEventType::UserLogout => (EventType::UserLogout, None),
+                ApiEventType::UserDeviceAdded { owner, device } => (
                     EventType::DeviceAdded,
                     serde_json::to_value(DeviceMetadata {
                         owner: owner.into(),
@@ -231,7 +181,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserDeviceRemoved { owner, device } => (
+                ApiEventType::UserDeviceRemoved { owner, device } => (
                     EventType::DeviceRemoved,
                     serde_json::to_value(DeviceMetadata {
                         owner: owner.into(),
@@ -239,7 +189,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserDeviceModified {
+                ApiEventType::UserDeviceModified {
                     owner,
                     before,
                     after,
@@ -252,7 +202,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserGroupsModified {
+                ApiEventType::UserGroupsModified {
                     user,
                     before,
                     after,
@@ -265,38 +215,38 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::RecoveryCodeUsed => (EventType::RecoveryCodeUsed, None),
-                DefguardEvent::PasswordChanged => (EventType::PasswordChanged, None),
-                DefguardEvent::PasswordChangedByAdmin { user } => (
+                ApiEventType::RecoveryCodeUsed => (EventType::RecoveryCodeUsed, None),
+                ApiEventType::PasswordChanged => (EventType::PasswordChanged, None),
+                ApiEventType::PasswordChangedByAdmin { user } => (
                     EventType::PasswordChangedByAdmin,
                     serde_json::to_value(PasswordChangedByAdminMetadata { user: user.into() }).ok(),
                 ),
-                DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
-                DefguardEvent::UserMfaDisabled { user } => (
+                ApiEventType::MfaDisabled => (EventType::MfaDisabled, None),
+                ApiEventType::UserMfaDisabled { user } => (
                     EventType::UserMfaDisabled,
                     serde_json::to_value(UserMfaDisabledMetadata { user: user.into() }).ok(),
                 ),
-                DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
-                DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
-                DefguardEvent::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),
-                DefguardEvent::MfaEmailDisabled => (EventType::MfaEmailDisabled, None),
-                DefguardEvent::MfaSecurityKeyAdded { key } => (
+                ApiEventType::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
+                ApiEventType::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
+                ApiEventType::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),
+                ApiEventType::MfaEmailDisabled => (EventType::MfaEmailDisabled, None),
+                ApiEventType::MfaSecurityKeyAdded { key } => (
                     EventType::MfaSecurityKeyAdded,
                     serde_json::to_value(MfaSecurityKeyMetadata { key: key.into() }).ok(),
                 ),
-                DefguardEvent::MfaSecurityKeyRemoved { key } => (
+                ApiEventType::MfaSecurityKeyRemoved { key } => (
                     EventType::MfaSecurityKeyRemoved,
                     serde_json::to_value(MfaSecurityKeyMetadata { key: key.into() }).ok(),
                 ),
-                DefguardEvent::AuthenticationKeyAdded { key } => (
+                ApiEventType::AuthenticationKeyAdded { key } => (
                     EventType::AuthenticationKeyAdded,
                     serde_json::to_value(AuthenticationKeyMetadata { key: key.into() }).ok(),
                 ),
-                DefguardEvent::AuthenticationKeyRemoved { key } => (
+                ApiEventType::AuthenticationKeyRemoved { key } => (
                     EventType::AuthenticationKeyRemoved,
                     serde_json::to_value(AuthenticationKeyMetadata { key: key.into() }).ok(),
                 ),
-                DefguardEvent::AuthenticationKeyRenamed {
+                ApiEventType::AuthenticationKeyRenamed {
                     key,
                     old_name,
                     new_name,
@@ -309,7 +259,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::ApiTokenAdded { owner, token } => (
+                ApiEventType::ApiTokenAdded { owner, token } => (
                     EventType::ApiTokenAdded,
                     serde_json::to_value(ApiTokenMetadata {
                         owner: owner.into(),
@@ -317,7 +267,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::ApiTokenRemoved { owner, token } => (
+                ApiEventType::ApiTokenRemoved { owner, token } => (
                     EventType::ApiTokenRemoved,
                     serde_json::to_value(ApiTokenMetadata {
                         owner: owner.into(),
@@ -325,7 +275,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::ApiTokenRenamed {
+                ApiEventType::ApiTokenRenamed {
                     owner,
                     token,
                     old_name,
@@ -340,15 +290,15 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserAdded { user } => (
+                ApiEventType::UserAdded { user } => (
                     EventType::UserAdded,
                     serde_json::to_value(UserMetadata { user: user.into() }).ok(),
                 ),
-                DefguardEvent::UserRemoved { user } => (
+                ApiEventType::UserRemoved { user } => (
                     EventType::UserRemoved,
                     serde_json::to_value(UserMetadata { user: user.into() }).ok(),
                 ),
-                DefguardEvent::UserModified { before, after } => (
+                ApiEventType::UserModified { before, after } => (
                     EventType::UserModified,
                     serde_json::to_value(UserModifiedMetadata {
                         before: before.into(),
@@ -356,15 +306,15 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::NetworkDeviceAdded { device, location } => (
+                ApiEventType::NetworkDeviceAdded { device, location } => (
                     EventType::NetworkDeviceAdded,
                     serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
                 ),
-                DefguardEvent::NetworkDeviceRemoved { device, location } => (
+                ApiEventType::NetworkDeviceRemoved { device, location } => (
                     EventType::NetworkDeviceRemoved,
                     serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
                 ),
-                DefguardEvent::NetworkDeviceModified {
+                ApiEventType::NetworkDeviceModified {
                     location,
                     before,
                     after,
@@ -377,27 +327,27 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::VpnLocationAdded { location } => (
+                ApiEventType::VpnLocationAdded { location } => (
                     EventType::VpnLocationAdded,
                     serde_json::to_value(VpnLocationMetadata { location }).ok(),
                 ),
-                DefguardEvent::VpnLocationRemoved { location } => (
+                ApiEventType::VpnLocationRemoved { location } => (
                     EventType::VpnLocationRemoved,
                     serde_json::to_value(VpnLocationMetadata { location }).ok(),
                 ),
-                DefguardEvent::VpnLocationModified { before, after } => (
+                ApiEventType::VpnLocationModified { before, after } => (
                     EventType::VpnLocationModified,
                     serde_json::to_value(VpnLocationModifiedMetadata { before, after }).ok(),
                 ),
-                DefguardEvent::OpenIdAppAdded { app } => (
+                ApiEventType::OpenIdAppAdded { app } => (
                     EventType::OpenIdAppAdded,
                     serde_json::to_value(OpenIdAppMetadata { app: app.into() }).ok(),
                 ),
-                DefguardEvent::OpenIdAppRemoved { app } => (
+                ApiEventType::OpenIdAppRemoved { app } => (
                     EventType::OpenIdAppRemoved,
                     serde_json::to_value(OpenIdAppMetadata { app: app.into() }).ok(),
                 ),
-                DefguardEvent::OpenIdAppModified { before, after } => (
+                ApiEventType::OpenIdAppModified { before, after } => (
                     EventType::OpenIdAppModified,
                     serde_json::to_value(OpenIdAppModifiedMetadata {
                         before: before.into(),
@@ -405,7 +355,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::OpenIdAppStateChanged { app, enabled } => (
+                ApiEventType::OpenIdAppStateChanged { app, enabled } => (
                     EventType::OpenIdAppStateChanged,
                     serde_json::to_value(OpenIdAppStateChangedMetadata {
                         app: app.into(),
@@ -413,21 +363,21 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::OpenIdProviderModified { provider } => (
+                ApiEventType::OpenIdProviderModified { provider } => (
                     EventType::OpenIdProviderModified,
                     serde_json::to_value(OpenIdProviderMetadata {
                         provider: provider.into(),
                     })
                     .ok(),
                 ),
-                DefguardEvent::OpenIdProviderRemoved { provider } => (
+                ApiEventType::OpenIdProviderRemoved { provider } => (
                     EventType::OpenIdProviderRemoved,
                     serde_json::to_value(OpenIdProviderMetadata {
                         provider: provider.into(),
                     })
                     .ok(),
                 ),
-                DefguardEvent::SettingsUpdatedPartial { before, after } => (
+                ApiEventType::SettingsUpdatedPartial { before, after } => (
                     EventType::SettingsUpdatedPartial,
                     serde_json::to_value(SettingsUpdateMetadata {
                         before: before.into(),
@@ -435,7 +385,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::SettingsUpdated { before, after } => (
+                ApiEventType::SettingsUpdated { before, after } => (
                     EventType::SettingsUpdated,
                     serde_json::to_value(SettingsUpdateMetadata {
                         before: before.into(),
@@ -443,24 +393,24 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::SettingsDefaultBrandingRestored => {
+                ApiEventType::SettingsDefaultBrandingRestored => {
                     (EventType::SettingsDefaultBrandingRestored, None)
                 }
-                DefguardEvent::ActivityLogStreamCreated { stream } => (
+                ApiEventType::ActivityLogStreamCreated { stream } => (
                     EventType::ActivityLogStreamCreated,
                     serde_json::to_value(ActivityLogStreamMetadata {
                         stream: stream.into(),
                     })
                     .ok(),
                 ),
-                DefguardEvent::ActivityLogStreamRemoved { stream } => (
+                ApiEventType::ActivityLogStreamRemoved { stream } => (
                     EventType::ActivityLogStreamRemoved,
                     serde_json::to_value(ActivityLogStreamMetadata {
                         stream: stream.into(),
                     })
                     .ok(),
                 ),
-                DefguardEvent::ActivityLogStreamModified { before, after } => (
+                ApiEventType::ActivityLogStreamModified { before, after } => (
                     EventType::ActivityLogStreamModified,
                     serde_json::to_value(ActivityLogStreamModifiedMetadata {
                         before: before.into(),
@@ -468,7 +418,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::GroupsBulkAssigned { users, groups } => (
+                ApiEventType::GroupsBulkAssigned { users, groups } => (
                     EventType::GroupsBulkAssigned,
                     serde_json::to_value(GroupsBulkAssignedMetadata {
                         users: users.into_iter().map(Into::into).collect(),
@@ -476,19 +426,19 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::GroupAdded { group } => (
+                ApiEventType::GroupAdded { group } => (
                     EventType::GroupAdded,
                     serde_json::to_value(GroupMetadata { group }).ok(),
                 ),
-                DefguardEvent::GroupModified { before, after } => (
+                ApiEventType::GroupModified { before, after } => (
                     EventType::GroupModified,
                     serde_json::to_value(GroupModifiedMetadata { before, after }).ok(),
                 ),
-                DefguardEvent::GroupRemoved { group } => (
+                ApiEventType::GroupRemoved { group } => (
                     EventType::GroupRemoved,
                     serde_json::to_value(GroupMetadata { group }).ok(),
                 ),
-                DefguardEvent::GroupMemberAdded { group, user } => (
+                ApiEventType::GroupMemberAdded { group, user } => (
                     EventType::GroupMemberAdded,
                     serde_json::to_value(GroupAssignedMetadata {
                         group,
@@ -496,7 +446,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::GroupMemberRemoved { group, user } => (
+                ApiEventType::GroupMemberRemoved { group, user } => (
                     EventType::GroupMemberRemoved,
                     serde_json::to_value(GroupAssignedMetadata {
                         group,
@@ -504,7 +454,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::GroupMembersModified {
+                ApiEventType::GroupMembersModified {
                     group,
                     added,
                     removed,
@@ -517,32 +467,32 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::WebHookAdded { webhook } => (
+                ApiEventType::WebHookAdded { webhook } => (
                     EventType::WebHookAdded,
                     serde_json::to_value(WebHookMetadata { webhook }).ok(),
                 ),
-                DefguardEvent::WebHookModified { before, after } => (
+                ApiEventType::WebHookModified { before, after } => (
                     EventType::WebHookModified,
                     serde_json::to_value(WebHookModifiedMetadata { before, after }).ok(),
                 ),
-                DefguardEvent::WebHookRemoved { webhook } => (
+                ApiEventType::WebHookRemoved { webhook } => (
                     EventType::WebHookRemoved,
                     serde_json::to_value(WebHookMetadata { webhook }).ok(),
                 ),
-                DefguardEvent::WebHookStateChanged { webhook, enabled } => (
+                ApiEventType::WebHookStateChanged { webhook, enabled } => (
                     EventType::WebHookStateChanged,
                     serde_json::to_value(WebHookStateChangedMetadata { webhook, enabled }).ok(),
                 ),
-                DefguardEvent::PasswordReset { user } => (
+                ApiEventType::PasswordReset { user } => (
                     EventType::PasswordReset,
                     serde_json::to_value(PasswordResetMetadata { user: user.into() }).ok(),
                 ),
-                DefguardEvent::ClientConfigurationTokenAdded { user } => (
+                ApiEventType::ClientConfigurationTokenAdded { user } => (
                     EventType::ClientConfigurationTokenAdded,
                     serde_json::to_value(ClientConfigurationTokenMetadata { user: user.into() })
                         .ok(),
                 ),
-                DefguardEvent::UserSnatBindingAdded { user, binding } => (
+                ApiEventType::UserSnatBindingAdded { user, binding, .. } => (
                     EventType::UserSnatBindingAdded,
                     serde_json::to_value(UserSnatBindingMetadata {
                         user: user.into(),
@@ -550,7 +500,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserSnatBindingRemoved { user, binding } => (
+                ApiEventType::UserSnatBindingRemoved { user, binding, .. } => (
                     EventType::UserSnatBindingRemoved,
                     serde_json::to_value(UserSnatBindingMetadata {
                         user: user.into(),
@@ -558,10 +508,11 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::UserSnatBindingModified {
+                ApiEventType::UserSnatBindingModified {
                     user,
                     before,
                     after,
+                    ..
                 } => (
                     EventType::UserSnatBindingModified,
                     serde_json::to_value(UserSnatBindingModifiedMetadata {
@@ -571,36 +522,36 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DefguardEvent::ProxyModified { before, after } => (
+                ApiEventType::ProxyModified { before, after } => (
                     EventType::ProxyModified,
                     serde_json::to_value(ProxyModifiedMetadata { before, after }).ok(),
                 ),
-                DefguardEvent::ProxyDeleted { proxy } => (
+                ApiEventType::ProxyDeleted { proxy } => (
                     EventType::ProxyDeleted,
                     serde_json::to_value(ProxyDeletedMetadata { proxy }).ok(),
                 ),
-                DefguardEvent::GatewayModified { before, after } => (
+                ApiEventType::GatewayModified { before, after } => (
                     EventType::GatewayModified,
                     serde_json::to_value(GatewayModifiedMetadata { before, after }).ok(),
                 ),
-                DefguardEvent::GatewayDeleted { gateway } => (
+                ApiEventType::GatewayDeleted { gateway } => (
                     EventType::GatewayDeleted,
                     serde_json::to_value(GatewayDeletedMetadata { gateway }).ok(),
                 ),
-                DefguardEvent::DevicePostureCreated { snapshot } => (
+                ApiEventType::DevicePostureCreated { snapshot } => (
                     EventType::DevicePostureCreated,
                     serde_json::to_value(snapshot).ok(),
                 ),
-                DefguardEvent::DevicePostureUpdated { before, after } => (
+                ApiEventType::DevicePostureUpdated { before, after } => (
                     EventType::DevicePostureUpdated,
                     serde_json::to_value(serde_json::json!({"before": before, "after": after}))
                         .ok(),
                 ),
-                DefguardEvent::DevicePostureDeleted { snapshot } => (
+                ApiEventType::DevicePostureDeleted { snapshot } => (
                     EventType::DevicePostureDeleted,
                     serde_json::to_value(snapshot).ok(),
                 ),
-                DefguardEvent::DevicePostureDuplicated {
+                ApiEventType::DevicePostureDuplicated {
                     original,
                     duplicate,
                 } => (
@@ -610,60 +561,186 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     )
                     .ok(),
                 ),
-                DefguardEvent::DevicePostureLocationsAssigned {
-                    posture_id,
+                ApiEventType::DevicePostureLocationsAssigned {
+                    device_posture,
                     location_ids,
                 } => (
                     EventType::DevicePostureLocationsAssigned,
                     serde_json::to_value(
-                        serde_json::json!({"posture_id": posture_id, "location_ids": location_ids}),
+                        serde_json::json!({"posture_id": device_posture.id, "location_ids": location_ids}),
                     )
                     .ok(),
                 ),
-                DefguardEvent::LocationPosturesAssigned {
-                    location_id,
+                ApiEventType::LocationPosturesAssigned {
+                    location,
                     posture_ids,
                 } => (
                     EventType::LocationPosturesAssigned,
                     serde_json::to_value(
-                        serde_json::json!({"location_id": location_id, "posture_ids": posture_ids}),
+                        serde_json::json!({"location_id": location.id, "posture_ids": posture_ids}),
                     )
                     .ok(),
                 ),
-            };
-            (module, event_type, description, metadata)
-        }
-        LoggerEvent::Vpn(event) => {
-            let module = ActivityLogModule::Vpn;
-            let description = get_vpn_event_description(&event);
-
-            let (event_type, metadata) = map_vpn_event(*event);
-            (module, event_type, description, metadata)
-        }
-        LoggerEvent::Enrollment(event) => {
-            let module = ActivityLogModule::Enrollment;
-            let description = get_enrollment_event_description(&event);
-
-            let (event_type, metadata) = match *event {
-                EnrollmentEvent::EnrollmentStarted => (EventType::EnrollmentStarted, None),
-                EnrollmentEvent::EnrollmentCompleted => (EventType::EnrollmentCompleted, None),
-                EnrollmentEvent::EnrollmentDeviceAdded { device } => (
-                    EventType::EnrollmentDeviceAdded,
-                    serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).ok(),
-                ),
-                EnrollmentEvent::PasswordResetRequested => {
-                    (EventType::PasswordResetRequested, None)
-                }
-                EnrollmentEvent::PasswordResetStarted => (EventType::PasswordResetStarted, None),
-                EnrollmentEvent::PasswordResetCompleted => {
-                    (EventType::PasswordResetCompleted, None)
-                }
-                EnrollmentEvent::TokenAdded { user } => (
+                ApiEventType::EnrollmentTokenAdded { user } => (
                     EventType::EnrollmentTokenAdded,
                     serde_json::to_value(EnrollmentTokenMetadata { user: user.into() }).ok(),
                 ),
             };
             (module, event_type, description, metadata)
+        }
+        Event::Bidi(BidiStreamEventType::DesktopClientMfa(event)) => {
+            let module = ActivityLogModule::Vpn;
+            let description = match &*event {
+                DesktopClientMfaEvent::Success {
+                    location,
+                    device,
+                    method,
+                } => Some(format!(
+                    "Device {device} completed MFA authorization for location {location} using {method}"
+                )),
+                DesktopClientMfaEvent::Failed {
+                    location,
+                    device,
+                    method,
+                    message,
+                } => Some(format!(
+                    "Device {device} failed to connect to MFA location {location} using {method} with: {message}"
+                )),
+                DesktopClientMfaEvent::Disconnected {
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    if *is_mfa_session {
+                        Some(format!(
+                            "Device {device} disconnected from MFA location {location}"
+                        ))
+                    } else {
+                        Some(format!(
+                            "Device {device} disconnected from location {location}"
+                        ))
+                    }
+                }
+            };
+            let (event_type, metadata) = match *event {
+                DesktopClientMfaEvent::Success {
+                    location,
+                    device,
+                    method,
+                } => (
+                    EventType::VpnClientMfaSuccess,
+                    serde_json::to_value(VpnClientMfaMetadata {
+                        location,
+                        device,
+                        method,
+                    })
+                    .ok(),
+                ),
+                DesktopClientMfaEvent::Failed {
+                    location,
+                    device,
+                    method,
+                    message,
+                } => (
+                    EventType::VpnClientMfaFailed,
+                    serde_json::to_value(VpnClientMfaFailedMetadata {
+                        location,
+                        device,
+                        method,
+                        message,
+                    })
+                    .ok(),
+                ),
+                DesktopClientMfaEvent::Disconnected {
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    if is_mfa_session {
+                        (
+                            EventType::VpnClientMfaDisconnected,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    } else {
+                        (
+                            EventType::VpnClientDisconnected,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    }
+                }
+            };
+            (module, event_type, description, metadata)
+        }
+        Event::SessionManager {
+            event,
+            location,
+            device,
+        } => {
+            let module = ActivityLogModule::Vpn;
+            let description = match event {
+                SessionManagerEventType::ClientConnected => {
+                    Some(format!("Device {device} connected to location {location}"))
+                }
+                SessionManagerEventType::ClientDisconnected => Some(format!(
+                    "Device {device} disconnected from location {location}"
+                )),
+                SessionManagerEventType::MfaClientConnected => Some(format!(
+                    "Device {device} connected to MFA location {location}"
+                )),
+                SessionManagerEventType::MfaClientDisconnected => Some(format!(
+                    "Device {device} disconnected from MFA location {location}"
+                )),
+            };
+            let (event_type, metadata) = match event {
+                SessionManagerEventType::ClientConnected => (
+                    EventType::VpnClientConnected,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
+                SessionManagerEventType::ClientDisconnected => (
+                    EventType::VpnClientDisconnected,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
+                SessionManagerEventType::MfaClientConnected => (
+                    EventType::VpnClientMfaConnected,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
+                SessionManagerEventType::MfaClientDisconnected => (
+                    EventType::VpnClientMfaDisconnected,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
+            };
+            (module, event_type, description, metadata)
+        }
+        Event::Bidi(BidiStreamEventType::Enrollment(event)) => {
+            let module = ActivityLogModule::Enrollment;
+            let description = get_enrollment_event_description(&event);
+
+            let (event_type, metadata) = match *event {
+                defguard_core::events::EnrollmentEvent::EnrollmentStarted => {
+                    (EventType::EnrollmentStarted, None)
+                }
+                defguard_core::events::EnrollmentEvent::EnrollmentCompleted => {
+                    (EventType::EnrollmentCompleted, None)
+                }
+                defguard_core::events::EnrollmentEvent::EnrollmentDeviceAdded { device } => (
+                    EventType::EnrollmentDeviceAdded,
+                    serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).ok(),
+                ),
+            };
+            (module, event_type, description, metadata)
+        }
+        Event::Bidi(BidiStreamEventType::PasswordReset(event)) => {
+            let module = ActivityLogModule::Enrollment;
+            let (event_type, _) = match *event {
+                PasswordResetEvent::PasswordResetRequested => {
+                    (EventType::PasswordResetRequested, None::<serde_json::Value>)
+                }
+                PasswordResetEvent::PasswordResetStarted => (EventType::PasswordResetStarted, None),
+                PasswordResetEvent::PasswordResetCompleted => {
+                    (EventType::PasswordResetCompleted, None)
+                }
+            };
+            (module, event_type, None, None)
         }
     };
 
@@ -774,22 +851,6 @@ mod tests {
     }
 
     #[test]
-    fn maps_mfa_vpn_connect_and_disconnect_events() {
-        let location = sample_location();
-        let device = sample_device();
-
-        let (event_type, _) = map_vpn_event(VpnEvent::MfaConnectedToLocation {
-            location: location.clone(),
-            device: device.clone(),
-        });
-        assert!(matches!(event_type, EventType::VpnClientMfaConnected));
-
-        let (event_type, _) =
-            map_vpn_event(VpnEvent::MfaDisconnectedFromLocation { location, device });
-        assert!(matches!(event_type, EventType::VpnClientMfaDisconnected));
-    }
-
-    #[test]
     fn activity_log_event_serialization_supports_null_ip() {
         let event = ActivityLogEvent {
             id: NoId,
@@ -835,14 +896,19 @@ mod tests {
         let message = EventLoggerMessage::from_bidi_event(event);
 
         match message.event {
-            LoggerEvent::Vpn(event) => match *event {
-                VpnEvent::MfaDisconnectedFromLocation { location, device } => {
+            Event::Bidi(BidiStreamEventType::DesktopClientMfa(event)) => match *event {
+                DesktopClientMfaEvent::Disconnected {
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    assert!(is_mfa_session);
                     assert_eq!(location.id, sample_location().id);
                     assert_eq!(device.id, sample_device().id);
                 }
-                _ => panic!("expected MFA disconnect vpn event"),
+                _ => panic!("expected disconnect event"),
             },
-            _ => panic!("expected vpn logger event"),
+            _ => panic!("expected bidi event"),
         }
     }
 
@@ -862,14 +928,19 @@ mod tests {
         let message = EventLoggerMessage::from_bidi_event(event);
 
         match message.event {
-            LoggerEvent::Vpn(event) => match *event {
-                VpnEvent::DisconnectedFromLocation { location, device } => {
+            Event::Bidi(BidiStreamEventType::DesktopClientMfa(event)) => match *event {
+                DesktopClientMfaEvent::Disconnected {
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    assert!(!is_mfa_session);
                     assert_eq!(location.id, sample_location().id);
                     assert_eq!(device.id, sample_device().id);
                 }
-                _ => panic!("expected standard disconnect vpn event"),
+                _ => panic!("expected disconnect event"),
             },
-            _ => panic!("expected vpn logger event"),
+            _ => panic!("expected bidi event"),
         }
     }
 }
