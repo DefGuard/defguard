@@ -281,6 +281,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
           iconRight={IconKind.ArrowSmall}
           iconRightRotation="down"
           menuItems={menuItems}
+          placement="top-start"
         />
         <Button variant="secondary" text="Close" onClick={onClose} />
       </div>
