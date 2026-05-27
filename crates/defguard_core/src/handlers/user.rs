@@ -158,7 +158,7 @@ pub struct SortParams {
     pub sort_order: SortOrder,
 }
 
-#[derive(Debug, Deserialize, Type, Serialize, Default)]
+#[derive(Debug, Deserialize, Type, Serialize, ToSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum SortKey {
     #[default]
@@ -177,7 +177,7 @@ impl fmt::Display for SortKey {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Type)]
+#[derive(Debug, Deserialize, Serialize, ToSchema, Default, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum SortOrder {
     Asc,
@@ -219,6 +219,9 @@ pub struct UserFilterParams {
     params(
         ("groups" = Option<Vec<String>>, Query, description = "Filter users by group names (OR logic - returns users in any of the specified groups)"),
         ("no_group" = Option<bool>, Query, description = "Filter users with no group memberships (takes precedence over groups)"),
+        ("search" = Option<String>, Query, description = "Free-text search across username, first name, last name, and email"),
+        ("sort_by" = Option<SortKey>, Query, description = "Sort key: username (default), name, or email"),
+        ("sort_order" = Option<SortOrder>, Query, description = "Sort direction: asc or desc (default)"),
     ),
     responses(
         (status = 200, description = "List of all users.", body = [UserInfo], example = json!(
@@ -262,28 +265,42 @@ pub(crate) async fn list_users(
 ) -> PaginatedApiResult<UserInfo> {
     let pagination = pagination.0;
     let filters = filters.0;
+    let sorting = sorting.0;
 
-    debug!("Listing users with filters: {filters:?}");
+    debug!("Listing users with filters: {filters:?} and sorting {sorting:?}");
 
-    let limit = i64::from(pagination.per_page());
-    let offset = i64::from(pagination.offset());
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+        u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
+        u.totp_secret, u.email_mfa_secret, u.mfa_method, u.recovery_codes, \
+        u.is_active, u.openid_sub, \
+        u.from_ldap, u.ldap_pass_randomized, u.ldap_rdn, u.ldap_user_path, \
+        u.ldap_remote_enrollment_completed, u.enrollment_pending \
+        FROM \"user\" u WHERE 1=1 ",
+    );
 
-    let (all_users, count) = if filters.no_group {
-        (
-            User::all_filtered(&appstate.pool, limit, offset, &[], true).await?,
-            User::count_filtered(&appstate.pool, &[], true).await?,
-        )
-    } else if !filters.groups.is_empty() {
-        (
-            User::all_filtered(&appstate.pool, limit, offset, &filters.groups, false).await?,
-            User::count_filtered(&appstate.pool, &filters.groups, false).await?,
-        )
-    } else {
-        (
-            User::all_paginated(&appstate.pool, limit, offset).await?,
-            User::count(&appstate.pool).await?,
-        )
-    };
+    apply_filters(&mut query_builder, &filters);
+    apply_sorting(&mut query_builder, &sorting);
+
+    query_builder
+        .push(" LIMIT ")
+        .push_bind(i64::from(pagination.per_page()));
+    query_builder
+        .push(" OFFSET ")
+        .push_bind(i64::from(pagination.offset()));
+
+    let all_users = query_builder
+        .build_query_as::<User<Id>>()
+        .fetch_all(&appstate.pool)
+        .await?;
+
+    let mut count_query_builder: QueryBuilder<Postgres> =
+        QueryBuilder::new("SELECT COUNT(*) FROM \"user\" u WHERE 1=1 ");
+    apply_filters(&mut count_query_builder, &filters);
+    let count: i64 = count_query_builder
+        .build_query_scalar()
+        .fetch_one(&appstate.pool)
+        .await?;
 
     // Map [`User`] to [`UserInfo`].
     // TODO: too many queries – optimise.
@@ -295,6 +312,48 @@ pub(crate) async fn list_users(
     info!("Listed users");
 
     Ok(PaginatedApiResponse::new(users, pagination, count as u32))
+}
+
+/// Adds optional filtering statements to SQL query based on request query params.
+fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &UserFilterParams) {
+    debug!("Applying query filters: {filters:?}");
+
+    if filters.no_group {
+        query_builder.push(
+            " AND NOT EXISTS (SELECT 1 FROM group_user \
+            WHERE group_user.user_id = u.id) ",
+        );
+    } else if !filters.groups.is_empty() {
+        query_builder.push(
+            " AND EXISTS (SELECT 1 FROM group_user gu \
+            INNER JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE gu.user_id = u.id AND g.name = ANY(",
+        );
+        query_builder.push_bind(filters.groups.clone());
+        query_builder.push(")) ");
+    }
+
+    if let Some(search_term) = &filters.search {
+        query_builder
+            .push(
+                " AND CONCAT(u.username, ' ', u.first_name, ' ', u.last_name, ' ', u.email) ILIKE ",
+            )
+            .push_bind(format!("%{search_term}%"))
+            .push(" ");
+    }
+}
+
+/// Adds ORDER BY clause to SQL query based on request query params.
+fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParams) {
+    debug!("Applying query sorting: {sorting:?}");
+
+    query_builder
+        .push(" ORDER BY ")
+        .push(sorting.sort_by.to_string())
+        .push(" ")
+        .push(sorting.sort_order.to_string())
+        .push(", u.id ")
+        .push(sorting.sort_order.to_string());
 }
 
 /// Get user
