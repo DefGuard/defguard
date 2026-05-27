@@ -1380,6 +1380,98 @@ async fn test_bulk_disable_users(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_bulk_enable_users(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: Some("1234".into()),
+            password: Some("Password1234543$!".into()),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let added_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let added_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+
+    // disable both users first so there is something to re-enable
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let disabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(!disabled_dumbledore.is_active);
+    assert!(!disabled_mcgonagall.is_active);
+
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let enabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let enabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(enabled_dumbledore.is_active);
+    assert!(enabled_mcgonagall.is_active);
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: added_dumbledore.clone(),
+        },
+        ApiEventType::UserAdded {
+            user: added_mcgonagall.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_dumbledore,
+            after: disabled_dumbledore.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_mcgonagall,
+            after: disabled_mcgonagall.clone(),
+        },
+        ApiEventType::UserModified {
+            before: disabled_dumbledore,
+            after: enabled_dumbledore,
+        },
+        ApiEventType::UserModified {
+            before: disabled_mcgonagall,
+            after: enabled_mcgonagall,
+        },
+    ]);
+}
+
+#[sqlx::test]
+async fn test_bulk_enable_unknown_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
 async fn test_bulk_disable_rejects_self(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, pool) = make_client_with_db(pool).await;
@@ -1755,6 +1847,45 @@ async fn test_bulk_disable_deduplicates_ids(_: PgPoolOptions, options: PgConnect
 
     let dumbledore_after = get_db_user(&pool, "adumbledore").await;
     assert!(!dumbledore_after.is_active);
+}
+
+#[sqlx::test]
+async fn test_bulk_enable_deduplicates_ids(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // disable the user so re-enabling has an effect
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Send the same ID twice; must not trigger the "unknown user" 400.
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    assert!(dumbledore_after.is_active);
 }
 
 #[sqlx::test]
