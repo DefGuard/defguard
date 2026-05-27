@@ -92,6 +92,7 @@ impl GrpcRequestContext {
 }
 
 #[derive(Debug, PartialEq)]
+#[cfg_attr(test, derive(strum_macros::EnumCount))]
 pub enum ApiEventType {
     UserLogin,
     UserLoginFailed {
@@ -393,6 +394,7 @@ pub struct BidiStreamEvent {
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
 #[derive(Debug)]
+#[cfg_attr(test, derive(strum_macros::EnumCount))]
 pub enum BidiStreamEventType {
     Enrollment(Box<EnrollmentEvent>),
     PasswordReset(Box<PasswordResetEvent>),
@@ -400,6 +402,7 @@ pub enum BidiStreamEventType {
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(strum_macros::EnumCount))]
 pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentDeviceAdded { device: Device<Id> },
@@ -407,6 +410,7 @@ pub enum EnrollmentEvent {
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(strum_macros::EnumCount))]
 pub enum PasswordResetEvent {
     PasswordResetRequested,
     PasswordResetStarted,
@@ -416,6 +420,7 @@ pub enum PasswordResetEvent {
 pub type ClientMFAMethod = MfaMethod;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(strum_macros::EnumCount))]
 pub enum DesktopClientMfaEvent {
     Success {
         device: Device<Id>,

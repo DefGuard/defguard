@@ -1671,6 +1671,8 @@ dependencies = [
  "defguard_core",
  "ipnetwork",
  "sqlx",
+ "strum",
+ "strum_macros",
  "thiserror 2.0.18",
  "tokio",
  "tracing",

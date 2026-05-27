@@ -52,6 +52,7 @@ pub struct SessionManagerEventContext {
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(strum_macros::EnumCount))]
 pub enum SessionManagerEventType {
     ClientConnected,
     ClientDisconnected,
