@@ -363,7 +363,7 @@ pub(crate) fn assert_peer_update(
                 peer.allowed_ips,
                 expected_allowed_ips
                     .iter()
-                    .map(std::string::ToString::to_string)
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>()
             );
             assert_eq!(peer.preshared_key.as_deref(), expected_preshared_key);
