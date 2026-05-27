@@ -170,9 +170,9 @@ pub enum SortKey {
 impl fmt::Display for SortKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::Username => "username",
-            Self::Name => "first_name, last_name",
-            Self::Email => "email",
+            Self::Username => "u.username",
+            Self::Name => "u.first_name",
+            Self::Email => "u.email",
         })
     }
 }
@@ -351,7 +351,15 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         .push(" ORDER BY ")
         .push(sorting.sort_by.to_string())
         .push(" ")
-        .push(sorting.sort_order.to_string())
+        .push(sorting.sort_order.to_string());
+
+    if matches!(sorting.sort_by, SortKey::Name) {
+        query_builder
+            .push(", u.last_name ")
+            .push(sorting.sort_order.to_string());
+    }
+
+    query_builder
         .push(", u.id ")
         .push(sorting.sort_order.to_string());
 }

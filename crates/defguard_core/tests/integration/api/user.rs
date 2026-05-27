@@ -517,6 +517,22 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
     // DefGuard < Harry alphabetically
     assert_eq!(usernames, vec!["admin", "hpotter"]);
 
+    // Sort by name descending (first_name, last_name)
+    let response = client
+        .get("/api/v1/user?sort_by=name&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // Harry > DefGuard alphabetically
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
     // Sort by email descending
     let response = client
         .get("/api/v1/user?sort_by=email&sort_order=desc")
