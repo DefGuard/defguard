@@ -488,10 +488,6 @@ pub(crate) async fn start_enrollment(
         )));
     };
 
-    if user.has_password() {
-        return Err(WebError::BadRequest("already active".into()));
-    }
-
     debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
@@ -1420,7 +1416,12 @@ pub(crate) async fn bulk_disable_users(
             token.delete(&mut *transaction).await?;
         }
 
-        disable_user(&mut user_to_disable, &mut transaction, &appstate.wireguard_tx).await?;
+        disable_user(
+            &mut user_to_disable,
+            &mut transaction,
+            &appstate.wireguard_tx,
+        )
+        .await?;
         events.push((before, user_to_disable));
     }
     transaction.commit().await?;
@@ -1431,6 +1432,85 @@ pub(crate) async fn bulk_disable_users(
 
     info!(
         "User {} bulk-disabled {} user(s)",
+        session.user.username,
+        events.len()
+    );
+    for (before, after) in events {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::UserModified { before, after }),
+        })?;
+    }
+
+    Ok(ApiResponse::default())
+}
+
+/// Bulk enable users
+///
+/// Enables every user listed in `BulkUserOperationRequest`. Admin only.
+/// The request is rejected with 400 if any of the supplied ids does not exist.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/bulk-enable",
+    request_body = BulkUserOperationRequest,
+    responses(
+        (status = 200, description = "Users enabled."),
+        (status = 400, description = "Bad request. List contains unknown user ids.", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_enable_users(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Json(mut data): Json<BulkUserOperationRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} bulk-enabling {} user(s)",
+        session.user.username,
+        data.users.len()
+    );
+
+    data.users.sort_unstable();
+    data.users.dedup();
+
+    let users = User::find_by_ids(&appstate.pool, &data.users).await?;
+
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that don't exist in db.".into(),
+        ));
+    }
+
+    let mut events = Vec::with_capacity(users.len());
+    let mut transaction = appstate.pool.begin().await?;
+    for user in users {
+        if user.is_active {
+            continue;
+        }
+        let before = user.clone();
+        let mut user_to_enable = user;
+        user_to_enable.is_active = true;
+        user_to_enable.save(&mut *transaction).await?;
+        sync_allowed_user_devices(&user_to_enable, &mut transaction, &appstate.wireguard_tx)
+            .await?;
+        events.push((before, user_to_enable));
+    }
+    transaction.commit().await?;
+
+    for (_, user) in &mut events {
+        Box::pin(ldap_update_user_state(user, &appstate.pool)).await;
+    }
+
+    info!(
+        "User {} bulk-enabled {} user(s)",
         session.user.username,
         events.len()
     );

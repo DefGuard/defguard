@@ -20,6 +20,7 @@ import {
   type BulkStartEnrollmentResponse,
   type Device,
   LocationMfaMode,
+  type StartEnrollmentResponse,
   type User,
 } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
@@ -451,18 +452,49 @@ export const UsersTable = () => {
               ],
             });
           }
-          if (rowData.enrolled && canModifyDevices) {
-            menuItems.splice(1, 0, {
-              items: [
-                {
-                  text: m.user_row_menu_add_new_device(),
-                  icon: IconKind.AddDevice,
-                  onClick: () => {
-                    openModal(ModalName.AddNewDevice, rowData);
-                  },
+          if (rowData.enrolled) {
+            const enrolledItems: MenuItemProps[] = [];
+            if (canModifyDevices) {
+              enrolledItems.push({
+                text: m.user_row_menu_add_new_device(),
+                icon: IconKind.AddDevice,
+                onClick: () => {
+                  openModal(ModalName.AddNewDevice, rowData);
                 },
-              ],
+              });
+            }
+            enrolledItems.push({
+              text: m.users_row_menu_trigger_re_enrollment(),
+              icon: IconKind.AddUser,
+              onClick: () => {
+                openModal(ModalName.ConfirmAction, {
+                  title: m.users_modal_trigger_re_enrollment_title(),
+                  contentMd: m.users_modal_trigger_re_enrollment_content({
+                    name: rowData.name,
+                  }),
+                  actionPromise: () =>
+                    api.user.startEnrollment({
+                      send_enrollment_notification: false,
+                      username: rowData.username,
+                    }),
+                  invalidateKeys: [['user-overview'], ['user']],
+                  submitProps: {
+                    text: m.users_row_menu_trigger_re_enrollment(),
+                    variant: 'critical',
+                  },
+                  onSuccess: (result) => {
+                    openModal(ModalName.SelfEnrollmentToken, {
+                      user: rowData,
+                      appInfo,
+                      enrollmentResponse: (result as { data: StartEnrollmentResponse })
+                        .data,
+                    });
+                  },
+                  onError: () => Snackbar.error(m.users_trigger_re_enrollment_error()),
+                });
+              },
             });
+            menuItems.splice(1, 0, { items: enrolledItems });
           }
           if (rowData.mfa_enabled) {
             accountStatusMenuGroup.items.splice(1, 0, {
@@ -738,7 +770,6 @@ export const UsersTable = () => {
             ? m.users_bulk_start_enrollment_success_with_skipped({ started, skipped })
             : m.users_bulk_start_enrollment_success({ started });
         Snackbar.default(msg);
-        table.resetRowSelection();
       },
       onError: () => Snackbar.error(m.users_bulk_start_enrollment_error()),
     });
@@ -768,11 +799,34 @@ export const UsersTable = () => {
       },
       onSuccess: () => {
         Snackbar.default(m.users_bulk_disable_success());
-        table.resetRowSelection();
       },
       onError: () => Snackbar.error(m.users_bulk_disable_error()),
     });
   }, [authUsername, table]);
+
+  const handleBulkEnable = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => !row.original.is_active)
+      .map((row) => row.original.id);
+    if (selectedUsers.length === 0) {
+      Snackbar.warning(m.users_bulk_enable_no_eligible());
+      return;
+    }
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_enable_title(),
+      contentMd: m.users_modal_bulk_enable_content({ count: selectedUsers.length }),
+      actionPromise: () => api.user.bulkEnable(selectedUsers),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_enable(),
+      },
+      onSuccess: () => {
+        Snackbar.default(m.users_bulk_enable_success());
+      },
+      onError: () => Snackbar.error(m.users_bulk_enable_error()),
+    });
+  }, [table]);
 
   const handleBulkDelete = useCallback(() => {
     const selectedRows = table.getFilteredSelectedRowModel().rows;
@@ -794,7 +848,6 @@ export const UsersTable = () => {
       },
       onSuccess: () => {
         Snackbar.default(m.users_bulk_delete_success());
-        table.resetRowSelection();
       },
       onError: () => Snackbar.error(m.users_bulk_delete_error()),
     });
@@ -819,8 +872,8 @@ export const UsersTable = () => {
             variant="outlined"
             text={m.users_bulk_actions()}
             iconRight="arrow-small"
-            rotateIconOnOpen
-            placement="bottom-end"
+            iconRightRotation="down"
+            placement="bottom-start"
             testId="bulk-actions"
             menuItems={[
               {
@@ -836,7 +889,6 @@ export const UsersTable = () => {
                       openModal(ModalName.AssignGroupsToUsers, {
                         groups,
                         users: selectedUsers,
-                        onSuccess: () => table.resetRowSelection(),
                       });
                     },
                   },
@@ -845,6 +897,12 @@ export const UsersTable = () => {
                     icon: 'enrollment',
                     testId: 'bulk-start-enrollment',
                     onClick: handleBulkStartEnrollment,
+                  },
+                  {
+                    text: m.users_bulk_enable(),
+                    icon: 'check-circle',
+                    testId: 'bulk-enable',
+                    onClick: handleBulkEnable,
                   },
                   {
                     text: m.users_bulk_disable(),
