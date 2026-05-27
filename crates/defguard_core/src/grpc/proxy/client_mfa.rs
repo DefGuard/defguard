@@ -236,7 +236,10 @@ impl ClientMfaServer {
 
             match posture_result {
                 PostureResult::Fail(reasons) => {
-                    let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+                    let failed_checks = reasons
+                        .iter()
+                        .map(std::string::ToString::to_string)
+                        .collect();
                     if let Err(err) = self.emit_event(BidiStreamEvent {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(

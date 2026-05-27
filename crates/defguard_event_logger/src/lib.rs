@@ -26,9 +26,6 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
 
 use self::{
-    description::{
-        get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
-    },
     error::EventLoggerError,
     message::{
         ClientEvent, DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent,
@@ -36,7 +33,7 @@ use self::{
     },
 };
 
-pub mod description;
+mod description;
 pub mod error;
 pub mod message;
 
@@ -148,7 +145,7 @@ async fn process_batch(
             let (module, event, description, metadata) = match message.event {
                 LoggerEvent::Defguard(event) => {
                     let module = ActivityLogModule::Defguard;
-                    let description = get_defguard_event_description(&event);
+                    let description = event.description();
 
                     let (event_type, metadata) = match *event {
                         DefguardEvent::UserLogin => (EventType::UserLogin, None),
@@ -588,14 +585,14 @@ async fn process_batch(
                 }
                 LoggerEvent::Vpn(event) => {
                     let module = ActivityLogModule::Vpn;
-                    let description = get_vpn_event_description(&event);
+                    let description = event.description();
 
                     let (event_type, metadata) = map_vpn_event(*event);
                     (module, event_type, description, metadata)
                 }
                 LoggerEvent::Enrollment(event) => {
                     let module = ActivityLogModule::Enrollment;
-                    let description = get_enrollment_event_description(&event);
+                    let description = event.description();
 
                     let (event_type, metadata) = match *event {
                         EnrollmentEvent::EnrollmentStarted => (EventType::EnrollmentStarted, None),

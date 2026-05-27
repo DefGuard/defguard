@@ -124,7 +124,7 @@ fn evaluate_os_rule(
                 Some(true) => match major_version_meets_minimum(required, &actual) {
                     Some(true) => {}
                     Some(false) => {
-                        failures.push(FailureReason::OsVersionTooOld { required, actual })
+                        failures.push(FailureReason::OsVersionTooOld { required, actual });
                     }
                     None => failures.push(FailureReason::CheckUnavailable {
                         check: "os_version (unparseable)",
@@ -199,7 +199,7 @@ fn evaluate_os_rule(
                 Some(true) => match major_version_meets_minimum(required, &actual) {
                     Some(true) => {}
                     Some(false) => {
-                        failures.push(FailureReason::KernelVersionTooOld { required, actual })
+                        failures.push(FailureReason::KernelVersionTooOld { required, actual });
                     }
                     None => failures.push(FailureReason::CheckUnavailable {
                         check: "linux_kernel_version (unparseable)",
@@ -253,15 +253,12 @@ pub(crate) async fn validate_posture(
         return Err(PostureCheckError::NoActiveEnterpriseLicense);
     }
 
-    let data = match request.device_posture_data.as_ref() {
-        Some(d) => d,
-        None => {
-            info!(
-                "Missing posture data - posture check failed for device {}",
-                request.pubkey
-            );
-            return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
-        }
+    let Some(data) = request.device_posture_data.as_ref() else {
+        info!(
+            "Missing posture data - posture check failed for device {}",
+            request.pubkey
+        );
+        return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
     };
 
     let os_type = parse_os_type(&data.os_type);

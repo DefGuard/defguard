@@ -366,27 +366,6 @@ pub enum ClientEvent {
     DevicePostureCheckFailed { device_id: Id, device_name: String },
 }
 
-impl ClientEvent {
-    pub fn description(&self) -> Option<String> {
-        match self {
-            Self::DesktopClientActivated { .. } => None,
-            Self::DesktopClientUpdated { .. } => None,
-            Self::DevicePostureCheckPassed {
-                device_id,
-                device_name,
-            } => Some(format!(
-                "Device posture check passed for device {device_name} ({device_id}"
-            )),
-            Self::DevicePostureCheckFailed {
-                device_id,
-                device_name,
-            } => Some(format!(
-                "Device posture check failed for device {device_name} ({device_id}"
-            )),
-        }
-    }
-}
-
 /// Represents activity log events related to VPN.
 pub enum VpnEvent {
     ClientMfaSuccess {
