@@ -23,7 +23,7 @@ pub(crate) struct CheckReservedParams {
 
 async fn email_exists(pool: &PgPool, email: &str) -> Result<bool, sqlx::Error> {
     let exists = sqlx::query_scalar!(
-        r#"SELECT EXISTS(SELECT 1 FROM "user" WHERE email = $1) AS "exists!""#,
+        r#"SELECT EXISTS(SELECT 1 FROM "user" WHERE LOWER(email) = LOWER($1)) AS "exists!""#,
         email
     )
     .fetch_one(pool)

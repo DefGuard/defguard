@@ -135,7 +135,7 @@ const ModalContent = ({ user }: ModalData) => {
             <form.AppField
               name="username"
               validators={{
-                onChangeAsync: async ({ value }) => {
+                onSubmitAsync: async ({ value }) => {
                   if (value === user.username) return undefined;
                   if (!value || !patternSafeUsernameCharacters.test(value))
                     return undefined;
@@ -146,7 +146,6 @@ const ModalContent = ({ user }: ModalData) => {
                     return m.form_error_username_taken();
                   }
                 },
-                onChangeAsyncDebounceMs: 500,
               }}
             >
               {(field) => (
@@ -160,7 +159,7 @@ const ModalContent = ({ user }: ModalData) => {
             <form.AppField
               name="email"
               validators={{
-                onChangeAsync: async ({ value }) => {
+                onSubmitAsync: async ({ value }) => {
                   if (value === user.email) return undefined;
                   if (!value?.includes('@')) return undefined;
                   try {
@@ -170,7 +169,6 @@ const ModalContent = ({ user }: ModalData) => {
                     return m.form_error_email_reserved();
                   }
                 },
-                onChangeAsyncDebounceMs: 500,
               }}
             >
               {(field) => (

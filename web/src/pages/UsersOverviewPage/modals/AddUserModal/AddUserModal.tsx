@@ -373,17 +373,6 @@ const AddUserModalForm = () => {
             <form.AppField
               name="username"
               validators={{
-                onChangeAsync: async ({ value }) => {
-                  if (!value || !patternSafeUsernameCharacters.test(value))
-                    return undefined;
-                  try {
-                    await api.reserved.check({ resource: 'username', value });
-                    return undefined;
-                  } catch {
-                    return m.form_error_username_taken();
-                  }
-                },
-                onChangeAsyncDebounceMs: 500,
                 onSubmitAsync: async ({ value }) => {
                   if (!value || !patternSafeUsernameCharacters.test(value))
                     return undefined;
@@ -408,7 +397,7 @@ const AddUserModalForm = () => {
             <form.AppField
               name="email"
               validators={{
-                onChangeAsync: async ({ value }) => {
+                onSubmitAsync: async ({ value }) => {
                   if (!value?.includes('@')) return undefined;
                   try {
                     await api.reserved.check({ resource: 'email', value });
@@ -417,7 +406,6 @@ const AddUserModalForm = () => {
                     return m.form_error_email_reserved();
                   }
                 },
-                onChangeAsyncDebounceMs: 500,
               }}
             >
               {(field) => (
