@@ -739,6 +739,8 @@ mod tests {
     use ipnetwork::IpNetwork;
     use serde_json::Value;
 
+    use defguard_core::events::{BidiRequestContext, BidiStreamEventType, DesktopClientMfaEvent};
+
     use super::*;
 
     fn sample_device() -> Device<i64> {
@@ -807,5 +809,68 @@ mod tests {
         let serialized = serde_json::to_value(event).expect("activity log event should serialize");
 
         assert_eq!(serialized.get("ip"), Some(&Value::Null));
+    }
+
+    fn sample_bidi_context() -> BidiRequestContext {
+        BidiRequestContext::new(
+            1,
+            "alice".to_owned(),
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            "desktop-app".to_owned(),
+        )
+    }
+
+    #[test]
+    fn maps_disconnect_bidi_events_from_mfa_sessions_to_mfa_disconnect_logger_events() {
+        let event = BidiStreamEvent {
+            context: sample_bidi_context(),
+            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                DesktopClientMfaEvent::Disconnected {
+                    location: sample_location(),
+                    device: sample_device(),
+                    is_mfa_session: true,
+                },
+            )),
+        };
+
+        let message = EventLoggerMessage::from_bidi_event(event);
+
+        match message.event {
+            LoggerEvent::Vpn(event) => match *event {
+                VpnEvent::MfaDisconnectedFromLocation { location, device } => {
+                    assert_eq!(location.id, sample_location().id);
+                    assert_eq!(device.id, sample_device().id);
+                }
+                _ => panic!("expected MFA disconnect vpn event"),
+            },
+            _ => panic!("expected vpn logger event"),
+        }
+    }
+
+    #[test]
+    fn maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect_logger_events() {
+        let event = BidiStreamEvent {
+            context: sample_bidi_context(),
+            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                DesktopClientMfaEvent::Disconnected {
+                    location: sample_location(),
+                    device: sample_device(),
+                    is_mfa_session: false,
+                },
+            )),
+        };
+
+        let message = EventLoggerMessage::from_bidi_event(event);
+
+        match message.event {
+            LoggerEvent::Vpn(event) => match *event {
+                VpnEvent::DisconnectedFromLocation { location, device } => {
+                    assert_eq!(location.id, sample_location().id);
+                    assert_eq!(device.id, sample_device().id);
+                }
+                _ => panic!("expected standard disconnect vpn event"),
+            },
+            _ => panic!("expected vpn logger event"),
+        }
     }
 }
