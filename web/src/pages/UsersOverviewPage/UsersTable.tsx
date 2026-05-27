@@ -104,8 +104,6 @@ export const UsersTable = () => {
   const authUsername = useAuth((s) => s.user?.username);
   const canModifyDevices =
     isAdmin || enterpriseSettings?.admin_device_management === false;
-  const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
-  const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -120,14 +118,11 @@ export const UsersTable = () => {
         ) {
           openModal(ModalName.LimitReached);
         } else {
-          useAddUserModal.getState().open({
-            reservedEmails,
-            reservedUsernames,
-          });
+          useAddUserModal.getState().open();
         }
       },
     }),
-    [reservedEmails, reservedUsernames, license],
+    [license],
   );
 
   const [search, setSearch] = useState('');
@@ -350,8 +345,6 @@ export const UsersTable = () => {
               onClick: () => {
                 openModal(ModalName.EditUserModal, {
                   user: rowData,
-                  reservedEmails,
-                  reservedUsernames,
                 });
               },
             },
@@ -525,8 +518,6 @@ export const UsersTable = () => {
     ],
     [
       navigate,
-      reservedEmails,
-      reservedUsernames,
       groupsOptions,
       handleEditGroups,
       groups,

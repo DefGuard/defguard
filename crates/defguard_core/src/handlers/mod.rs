@@ -47,6 +47,7 @@ pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub mod proxy;
+pub(crate) mod reserved;
 pub mod resource_display;
 pub mod session_info;
 pub mod settings;

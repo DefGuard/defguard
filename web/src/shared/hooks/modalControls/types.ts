@@ -67,8 +67,6 @@ export interface OpenCEGroupModal {
 
 export interface OpenEditUserModal {
   user: User;
-  reservedUsernames: string[];
-  reservedEmails: string[];
 }
 
 export interface OpenCEOpenIdClientModal {

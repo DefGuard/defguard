@@ -36,6 +36,8 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
+  CheckReservedParams,
+  CheckReservedResponse,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -565,6 +567,10 @@ const api = {
       ),
     getExternalSslInfo: () =>
       client.get<GetExternalSslInfoResponse>('/migration/external_url_settings'),
+  },
+  reserved: {
+    check: (params: CheckReservedParams) =>
+      client.get<CheckReservedResponse>('/reserved', { params }),
   },
   checkLicense: (data: { license: string }) =>
     client.post<LicenseCheckResponse>('/license/check', data),

@@ -12,7 +12,6 @@ import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { TextStyle, ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import {
@@ -60,7 +59,7 @@ export const EditUserModal = () => {
   );
 };
 
-const ModalContent = ({ reservedEmails, reservedUsernames, user }: ModalData) => {
+const ModalContent = ({ user }: ModalData) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
@@ -79,28 +78,13 @@ const ModalContent = ({ reservedEmails, reservedUsernames, user }: ModalData) =>
           .trim()
           .min(1, m.form_error_required())
           .max(64, m.form_error_max_len({ length: 64 }))
-          .regex(patternSafeUsernameCharacters, m.form_error_forbidden_char())
-          .refine((value) => {
-            if (value === user.username) return true;
-            return !reservedUsernames.includes(value);
-          }, m.form_error_username_taken()),
-        email: z
-          .email()
-          .trim()
-          .min(1, m.form_error_required())
-          .refine((value) => {
-            // ignore default value
-            if (value === user.email) return true;
-            if (isPresent(reservedEmails)) {
-              return !reservedEmails.includes(value.toLowerCase());
-            }
-            return true;
-          }, m.form_error_email_reserved()),
+          .regex(patternSafeUsernameCharacters, m.form_error_forbidden_char()),
+        email: z.email().trim().min(1, m.form_error_required()),
         last_name: z.string().trim().min(1, m.form_error_required()),
         first_name: z.string().trim().min(1, m.form_error_required()),
         phone: z.string().trim(),
       }),
-    [reservedEmails, user.email, reservedUsernames, user.username],
+    [],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -147,7 +131,23 @@ const ModalContent = ({ reservedEmails, reservedUsernames, user }: ModalData) =>
           <AppText font={TextStyle.TBodySm500}>{m.modal_edit_user_login_pref()}</AppText>
           <SizedBox height={ThemeSpacing.Lg} />
           <EvenSplit parts={2}>
-            <form.AppField name="username">
+            <form.AppField
+              name="username"
+              validators={{
+                onChangeAsync: async ({ value }) => {
+                  if (value === user.username) return undefined;
+                  if (!value || !patternSafeUsernameCharacters.test(value))
+                    return undefined;
+                  try {
+                    await api.reserved.check({ resource: 'username', value });
+                    return undefined;
+                  } catch {
+                    return m.form_error_username_taken();
+                  }
+                },
+                onChangeAsyncDebounceMs: 500,
+              }}
+            >
               {(field) => (
                 <field.FormInput
                   required
@@ -156,7 +156,22 @@ const ModalContent = ({ reservedEmails, reservedUsernames, user }: ModalData) =>
                 />
               )}
             </form.AppField>
-            <form.AppField name="email">
+            <form.AppField
+              name="email"
+              validators={{
+                onChangeAsync: async ({ value }) => {
+                  if (value === user.email) return undefined;
+                  if (!value?.includes('@')) return undefined;
+                  try {
+                    await api.reserved.check({ resource: 'email', value });
+                    return undefined;
+                  } catch {
+                    return m.form_error_email_reserved();
+                  }
+                },
+                onChangeAsyncDebounceMs: 500,
+              }}
+            >
               {(field) => (
                 <field.FormInput
                   required

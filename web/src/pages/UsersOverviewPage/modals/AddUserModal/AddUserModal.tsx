@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
@@ -244,9 +244,6 @@ const EnrollmentChoice = () => {
 
 const AddUserModalForm = () => {
   const enrollmentEnabled = useAddUserModal((s) => s.enrollUser);
-  const reservedEmails = useAddUserModal((s) => s.reservedEmails);
-  const reservedUsernamesStart = useAddUserModal((s) => s.reservedUsernames);
-  const reservedUsernames = useRef<string[]>(reservedUsernamesStart);
   const [assignToGroups, setAssignToGroups] = useState(false);
 
   const { mutateAsync: addUserMutation } = useMutation({
@@ -268,16 +265,7 @@ const AddUserModalForm = () => {
             .regex(patternSafeUsernameCharacters, m.form_error_forbidden_char()),
           // check in refine
           password: z.string(),
-          email: z
-            .email()
-            .trim()
-            .min(1, m.form_error_required())
-            .refine((value) => {
-              if (isPresent(reservedEmails)) {
-                return !reservedEmails.includes(value.toLowerCase());
-              }
-              return true;
-            }, m.form_error_email_reserved()),
+          email: z.email().trim().min(1, m.form_error_required()),
           last_name: z.string().trim().min(1, m.form_error_required()),
           first_name: z.string().trim().min(1, m.form_error_required()),
           phone: z.string().trim(),
@@ -308,15 +296,8 @@ const AddUserModalForm = () => {
               });
             }
           }
-          if (reservedUsernames.current.includes(val.username)) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['username'],
-              message: m.form_error_username_taken(),
-            });
-          }
         }),
-    [reservedEmails, enrollmentEnabled],
+    [enrollmentEnabled],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -340,19 +321,7 @@ const AddUserModalForm = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
-    onSubmit: async ({ value, formApi }) => {
-      let usernameAvailable: boolean;
-      try {
-        await api.user.usernameAvailable(value.username);
-        usernameAvailable = true;
-      } catch (_e) {
-        usernameAvailable = false;
-      }
-      if (!usernameAvailable) {
-        reservedUsernames.current.push(value.username);
-        formApi.validateField('username', 'submit');
-        return;
-      }
+    onSubmit: async ({ value }) => {
       const clean = removeEmptyStrings(value);
       const { data: created } = await addUserMutation(clean);
       const groups = await api.group.getGroups();
@@ -401,7 +370,32 @@ const AddUserModalForm = () => {
           <p>{m.modal_add_user_section_login()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <EvenSplit parts={2}>
-            <form.AppField name="username">
+            <form.AppField
+              name="username"
+              validators={{
+                onChangeAsync: async ({ value }) => {
+                  if (!value || !patternSafeUsernameCharacters.test(value))
+                    return undefined;
+                  try {
+                    await api.reserved.check({ resource: 'username', value });
+                    return undefined;
+                  } catch {
+                    return m.form_error_username_taken();
+                  }
+                },
+                onChangeAsyncDebounceMs: 500,
+                onSubmitAsync: async ({ value }) => {
+                  if (!value || !patternSafeUsernameCharacters.test(value))
+                    return undefined;
+                  try {
+                    await api.reserved.check({ resource: 'username', value });
+                    return undefined;
+                  } catch {
+                    return m.form_error_username_taken();
+                  }
+                },
+              }}
+            >
               {(field) => (
                 <field.FormInput
                   data-testid="field-username"
@@ -411,7 +405,21 @@ const AddUserModalForm = () => {
                 />
               )}
             </form.AppField>
-            <form.AppField name="email">
+            <form.AppField
+              name="email"
+              validators={{
+                onChangeAsync: async ({ value }) => {
+                  if (!value?.includes('@')) return undefined;
+                  try {
+                    await api.reserved.check({ resource: 'email', value });
+                    return undefined;
+                  } catch {
+                    return m.form_error_email_reserved();
+                  }
+                },
+                onChangeAsyncDebounceMs: 500,
+              }}
+            >
               {(field) => (
                 <field.FormInput
                   data-testid="field-email"

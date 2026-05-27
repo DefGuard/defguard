@@ -6,6 +6,17 @@ import type {
 
 export type Resource = object & { id: number };
 
+export type CheckResource = 'email' | 'username';
+
+export interface CheckReservedParams {
+  resource: CheckResource;
+  value: string;
+}
+
+export interface CheckReservedResponse {
+  available: boolean;
+}
+
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };

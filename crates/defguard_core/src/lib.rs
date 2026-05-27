@@ -55,6 +55,7 @@ use handlers::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
     },
+    reserved::check_reserved,
     updates::check_new_version,
     wireguard::all_gateways_status,
     yubikey::{delete_yubikey, rename_yubikey},
@@ -300,6 +301,7 @@ pub fn build_webapp(
             .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/recovery", post(recovery_code))
             // /user
+            .route("/reserved", get(check_reserved))
             .route("/user", get(list_users).post(add_user))
             .route("/user/{username}", get(get_user))
             .route("/user/{username}/start_enrollment", post(start_enrollment))
