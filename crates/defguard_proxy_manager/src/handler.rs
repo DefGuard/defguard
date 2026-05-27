@@ -926,8 +926,8 @@ impl ProxyHandler {
                                 }
                                 Err(err) => {
                                     error!(
-                                        "Proxy requested an OpenID authentication info for a callback \
-                                    URL that couldn't be built. Details: {err}"
+                                        "Proxy requested an OpenID authentication info for a \
+                                        callback URL that couldn't be built. Details: {err}"
                                     );
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,

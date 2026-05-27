@@ -21,18 +21,20 @@ use defguard_core::db::models::activity_log::{
         WebHookStateChangedMetadata,
     },
 };
-use description::{
-    get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
-};
-use error::EventLoggerError;
-use message::{
-    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
-};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
 
-use crate::message::ClientEvent;
+use self::{
+    description::{
+        get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
+    },
+    error::EventLoggerError,
+    message::{
+        ClientEvent, DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent,
+        VpnEvent,
+    },
+};
 
 pub mod description;
 pub mod error;
