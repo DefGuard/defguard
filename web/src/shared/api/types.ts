@@ -1376,6 +1376,8 @@ export type ActivityLogSortKey =
   | 'module'
   | 'device';
 
+export type UserSortKey = 'username' | 'name' | 'email';
+
 export interface Edge {
   id: number;
   name: string;
@@ -1457,4 +1459,7 @@ export type ActivityLogRequestParams = Partial<ActivityLogFilters> &
 export interface UserListParams extends PaginationParams {
   groups?: string[];
   no_group?: boolean;
+  search?: string;
+  sort_by?: UserSortKey;
+  sort_order?: SortDirectionValue;
 }
