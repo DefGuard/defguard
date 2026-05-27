@@ -8,7 +8,7 @@ use defguard_common::db::{
         gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
     },
 };
-use defguard_proto::client_types::MfaMethod;
+use defguard_proto::{client_types::MfaMethod, enterprise::posture::DevicePostureData};
 
 use crate::{
     db::WebHook,
@@ -436,9 +436,11 @@ pub enum DesktopClientMfaEvent {
     PostureCheckPassed {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
+        device_posture_data: Option<DevicePostureData>,
     },
     PostureCheckFailed {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
+        device_posture_data: Option<DevicePostureData>,
     },
 }

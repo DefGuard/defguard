@@ -92,14 +92,18 @@ impl EventRouter {
 
                     (LoggerEvent::Vpn(Box::new(vpn_event)), Some(location))
                 }
-                DesktopClientMfaEvent::PostureCheckPassed { device, location } => (
+                DesktopClientMfaEvent::PostureCheckPassed {
+                    device, location, ..
+                } => (
                     LoggerEvent::Client(Box::new(ClientEvent::DevicePostureCheckPassed {
                         device_id: device.id,
                         device_name: device.name,
                     })),
                     Some(location),
                 ),
-                DesktopClientMfaEvent::PostureCheckFailed { device, location } => (
+                DesktopClientMfaEvent::PostureCheckFailed {
+                    device, location, ..
+                } => (
                     LoggerEvent::Client(Box::new(ClientEvent::DevicePostureCheckFailed {
                         device_id: device.id,
                         device_name: device.name,

@@ -246,6 +246,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::PostureCheckFailed {
                                 device: device.clone(),
                                 location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
                             },
                         )),
                     }) {
@@ -260,6 +261,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::PostureCheckPassed {
                                 device: device.clone(),
                                 location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
                             },
                         )),
                     }) {
