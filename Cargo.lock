@@ -1358,7 +1358,6 @@ dependencies = [
  "defguard_common",
  "defguard_core",
  "defguard_event_logger",
- "defguard_event_router",
  "defguard_gateway_manager",
  "defguard_proxy_manager",
  "defguard_session_manager",
@@ -1523,19 +1522,6 @@ dependencies = [
  "ipnetwork",
  "serde_json",
  "sqlx",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "defguard_event_router"
-version = "0.0.0"
-dependencies = [
- "defguard_common",
- "defguard_core",
- "defguard_event_logger",
- "defguard_session_manager",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
