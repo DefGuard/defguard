@@ -166,6 +166,7 @@ impl ClientMfaServer {
     pub async fn start_client_mfa_login(
         &mut self,
         request: ClientMfaStartRequest,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaStartOutcome, Status> {
         debug!("Starting desktop client login: {request:?}");
         // fetch location
@@ -229,10 +230,39 @@ impl ClientMfaServer {
                     }
                 })?;
 
-            // Posture check failed - return payload with reasons
-            if let PostureResult::Fail(reasons) = posture_result {
-                let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
-                return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+            let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+            let context =
+                BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
+
+            match posture_result {
+                PostureResult::Fail(reasons) => {
+                    let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckFailed {
+                                device: device.clone(),
+                                location: location.clone(),
+                            },
+                        )),
+                    }) {
+                        error!("Failed to emit DevicePostureCheckFailed event: {err}");
+                    }
+                    return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+                }
+                PostureResult::Pass => {
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckPassed {
+                                device: device.clone(),
+                                location: location.clone(),
+                            },
+                        )),
+                    }) {
+                        error!("Failed to emit DevicePostureCheckPassed event: {err}");
+                    }
+                }
             }
         }
 

@@ -662,7 +662,7 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .client_mfa
-                                .start_client_mfa_login(request)
+                                .start_client_mfa_login(request, received.device_info)
                                 .await
                             {
                                 Ok(ClientMfaStartOutcome::Approved(response_payload)) => {

@@ -433,4 +433,12 @@ pub enum DesktopClientMfaEvent {
         location: WireguardNetwork<Id>,
         is_mfa_session: bool,
     },
+    PostureCheckPassed {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+    PostureCheckFailed {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
 }
