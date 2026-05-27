@@ -4,7 +4,7 @@ use defguard_common::db::{
 };
 use defguard_mail::templates::{desktop_start_mail, new_account_mail};
 use reqwest::Url;
-use sqlx::{PgConnection, PgExecutor};
+use sqlx::{PgConnection, PgExecutor, PgPool};
 
 use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError};
 
@@ -22,12 +22,6 @@ pub async fn start_user_enrollment(
 ) -> Result<String, TokenError> {
     info!("User {admin} started a new enrollment process for user {user}.");
     debug!("Notify user by mail about the enrollment process: {send_user_notification}");
-    debug!("Check if {user} is enrolled.");
-    if user.is_enrolled() {
-        debug!("User {user} that you want to start enrollment process for is already enrolled.");
-        return Err(TokenError::AlreadyActive);
-    }
-
     debug!("Verify that {user} is an active user.");
     if !user.is_active {
         warn!("Can't create enrollment token for disabled user {user}");
@@ -171,6 +165,49 @@ pub async fn start_desktop_configuration(
     );
 
     Ok(desktop_configuration.id)
+}
+
+/// Send an enrollment invitation email for a token that has already been committed to the DB.
+/// Errors are logged and swallowed so callers do not need to handle mail failures.
+pub async fn send_enrollment_invitation(
+    token_id: &str,
+    email: &str,
+    pool: &PgPool,
+    enrollment_service_url: Url,
+) {
+    let token = match Token::find_by_id(pool, token_id).await {
+        Ok(t) => t,
+        Err(err) => {
+            error!("Failed to fetch enrollment token {token_id} for notification: {err}");
+            return;
+        }
+    };
+    let mut conn = match pool.acquire().await {
+        Ok(c) => c,
+        Err(err) => {
+            error!("Failed to acquire DB connection for enrollment notification: {err}");
+            return;
+        }
+    };
+    let base_message_context = match token.get_welcome_message_context(&mut conn).await {
+        Ok(ctx) => ctx,
+        Err(err) => {
+            error!("Failed to build enrollment message context for token {token_id}: {err}");
+            return;
+        }
+    };
+    match new_account_mail(
+        email,
+        &mut conn,
+        base_message_context,
+        enrollment_service_url,
+        token_id,
+    )
+    .await
+    {
+        Ok(()) => info!("Sent enrollment invitation to {email}"),
+        Err(err) => error!("Failed to send enrollment invitation to {email}: {err}"),
+    }
 }
 
 // Remove unused tokens when triggering user enrollment

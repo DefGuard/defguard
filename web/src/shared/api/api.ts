@@ -34,6 +34,7 @@ import type {
   AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
+  BulkStartEnrollmentRequest,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
   CountResponse,
@@ -254,6 +255,11 @@ const api = {
       });
     },
     deleteUser: (username: string) => client.delete(`/user/${username}`),
+    bulkDisable: (users: number[]) => client.post('/user/bulk-disable', { users }),
+    bulkEnable: (users: number[]) => client.post('/user/bulk-enable', { users }),
+    bulkDelete: (users: number[]) => client.post('/user/bulk-delete', { users }),
+    bulkStartEnrollment: (data: BulkStartEnrollmentRequest) =>
+      client.post('/user/bulk-start-enrollment', data),
     mfa: {
       totp: {
         disable: (username: string) => client.delete(`/user/${username}/totp`),

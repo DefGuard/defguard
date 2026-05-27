@@ -16,7 +16,13 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { type Device, LocationMfaMode, type User } from '../../shared/api/types';
+import {
+  type BulkStartEnrollmentResponse,
+  type Device,
+  LocationMfaMode,
+  type StartEnrollmentResponse,
+  type User,
+} from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -24,6 +30,7 @@ import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
+import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
 import type {
@@ -445,18 +452,49 @@ export const UsersTable = () => {
               ],
             });
           }
-          if (rowData.enrolled && canModifyDevices) {
-            menuItems.splice(1, 0, {
-              items: [
-                {
-                  text: m.user_row_menu_add_new_device(),
-                  icon: IconKind.AddDevice,
-                  onClick: () => {
-                    openModal(ModalName.AddNewDevice, rowData);
-                  },
+          if (rowData.enrolled) {
+            const enrolledItems: MenuItemProps[] = [];
+            if (canModifyDevices) {
+              enrolledItems.push({
+                text: m.user_row_menu_add_new_device(),
+                icon: IconKind.AddDevice,
+                onClick: () => {
+                  openModal(ModalName.AddNewDevice, rowData);
                 },
-              ],
+              });
+            }
+            enrolledItems.push({
+              text: m.users_row_menu_trigger_re_enrollment(),
+              icon: IconKind.AddUser,
+              onClick: () => {
+                openModal(ModalName.ConfirmAction, {
+                  title: m.users_modal_trigger_re_enrollment_title(),
+                  contentMd: m.users_modal_trigger_re_enrollment_content({
+                    name: rowData.name,
+                  }),
+                  actionPromise: () =>
+                    api.user.startEnrollment({
+                      send_enrollment_notification: false,
+                      username: rowData.username,
+                    }),
+                  invalidateKeys: [['user-overview'], ['user']],
+                  submitProps: {
+                    text: m.users_row_menu_trigger_re_enrollment(),
+                    variant: 'critical',
+                  },
+                  onSuccess: (result) => {
+                    openModal(ModalName.SelfEnrollmentToken, {
+                      user: rowData,
+                      appInfo,
+                      enrollmentResponse: (result as { data: StartEnrollmentResponse })
+                        .data,
+                    });
+                  },
+                  onError: () => Snackbar.error(m.users_trigger_re_enrollment_error()),
+                });
+              },
             });
+            menuItems.splice(1, 0, { items: enrolledItems });
           }
           if (rowData.mfa_enabled) {
             accountStatusMenuGroup.items.splice(1, 0, {
@@ -701,6 +739,120 @@ export const UsersTable = () => {
     getRowCanExpand: (row) => row.original.devices.length > 0,
   });
 
+  const handleBulkStartEnrollment = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) return;
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_start_enrollment_title(),
+      contentMd: m.users_modal_bulk_start_enrollment_content({
+        count: selectedUsers.length,
+      }),
+      actionPromise: () =>
+        api.user.bulkStartEnrollment({
+          users: selectedUsers,
+          send_enrollment_notification: true,
+        }),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_start_enrollment(),
+      },
+      onSuccess: (result) => {
+        const { started, skipped } = (result as { data: BulkStartEnrollmentResponse })
+          .data;
+        const msg =
+          skipped > 0
+            ? m.users_bulk_start_enrollment_success_with_skipped({ started, skipped })
+            : m.users_bulk_start_enrollment_success({ started });
+        Snackbar.default(msg);
+      },
+      onError: () => Snackbar.error(m.users_bulk_start_enrollment_error()),
+    });
+  }, [authUsername, table]);
+
+  const handleBulkDisable = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .filter((row) => row.original.is_active)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) {
+      Snackbar.warning(m.users_bulk_disable_no_eligible());
+      return;
+    }
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_disable_title(),
+      contentMd: m.users_modal_bulk_disable_content({ count: selectedUsers.length }),
+      actionPromise: () => api.user.bulkDisable(selectedUsers),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_disable(),
+        variant: 'critical',
+      },
+      onSuccess: () => {
+        Snackbar.default(m.users_bulk_disable_success());
+      },
+      onError: () => Snackbar.error(m.users_bulk_disable_error()),
+    });
+  }, [authUsername, table]);
+
+  const handleBulkEnable = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => !row.original.is_active)
+      .map((row) => row.original.id);
+    if (selectedUsers.length === 0) {
+      Snackbar.warning(m.users_bulk_enable_no_eligible());
+      return;
+    }
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_enable_title(),
+      contentMd: m.users_modal_bulk_enable_content({ count: selectedUsers.length }),
+      actionPromise: () => api.user.bulkEnable(selectedUsers),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_enable(),
+      },
+      onSuccess: () => {
+        Snackbar.default(m.users_bulk_enable_success());
+      },
+      onError: () => Snackbar.error(m.users_bulk_enable_error()),
+    });
+  }, [table]);
+
+  const handleBulkDelete = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) return;
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_delete_title(),
+      contentMd: m.users_modal_bulk_delete_content({ count: selectedUsers.length }),
+      actionPromise: () => api.user.bulkDelete(selectedUsers),
+      invalidateKeys: [['user-overview'], ['user']],
+      submitProps: {
+        text: m.users_bulk_delete(),
+        variant: 'critical',
+      },
+      onSuccess: () => {
+        Snackbar.default(m.users_bulk_delete_success());
+      },
+      onError: () => Snackbar.error(m.users_bulk_delete_error()),
+    });
+  }, [authUsername, table]);
+
   const rows = table.getRowModel().rows;
 
   if (users.length === 0)
@@ -716,21 +868,58 @@ export const UsersTable = () => {
     <>
       <TableTop text={m.users_header_title()}>
         {table.getFilteredSelectedRowModel().rows.length > 0 && isPresent(groups) && (
-          <Button
+          <ButtonMenu
             variant="outlined"
-            text={m.users_bulk_assign_to_groups()}
-            iconLeft="add-group"
-            testId="bulk-assign"
-            onClick={() => {
-              const selectedUsers = table
-                .getFilteredSelectedRowModel()
-                .rows.map((row) => row.original.id);
-              openModal(ModalName.AssignGroupsToUsers, {
-                groups,
-                users: selectedUsers,
-                onSuccess: () => table.resetRowSelection(),
-              });
-            }}
+            text={m.users_bulk_actions()}
+            iconRight="arrow-small"
+            iconRightRotation="down"
+            placement="bottom-start"
+            testId="bulk-actions"
+            menuItems={[
+              {
+                items: [
+                  {
+                    text: m.users_bulk_assign_to_group(),
+                    icon: 'add-group',
+                    testId: 'bulk-assign-to-group',
+                    onClick: () => {
+                      const selectedUsers = table
+                        .getFilteredSelectedRowModel()
+                        .rows.map((row) => row.original.id);
+                      openModal(ModalName.AssignGroupsToUsers, {
+                        groups,
+                        users: selectedUsers,
+                      });
+                    },
+                  },
+                  {
+                    text: m.users_bulk_start_enrollment(),
+                    icon: 'enrollment',
+                    testId: 'bulk-start-enrollment',
+                    onClick: handleBulkStartEnrollment,
+                  },
+                  {
+                    text: m.users_bulk_enable(),
+                    icon: 'check-circle',
+                    testId: 'bulk-enable',
+                    onClick: handleBulkEnable,
+                  },
+                  {
+                    text: m.users_bulk_disable(),
+                    icon: 'disabled',
+                    testId: 'bulk-disable',
+                    onClick: handleBulkDisable,
+                  },
+                  {
+                    text: m.users_bulk_delete(),
+                    icon: 'delete',
+                    variant: 'danger',
+                    testId: 'bulk-delete',
+                    onClick: handleBulkDelete,
+                  },
+                ],
+              },
+            ]}
           />
         )}
         <Search

@@ -31,7 +31,9 @@ use crate::{
         AppEvent,
         models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     },
-    enrollment_management::{start_desktop_configuration, start_user_enrollment},
+    enrollment_management::{
+        send_enrollment_invitation, start_desktop_configuration, start_user_enrollment,
+    },
     enterprise::{
         db::models::api_tokens::ApiToken,
         handlers::CanManageDevices,
@@ -49,8 +51,23 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
-    user_management::{delete_user_and_cleanup_devices, sync_allowed_user_devices},
+    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
+
+#[derive(Deserialize, ToSchema)]
+pub(crate) struct BulkUserOperationRequest {
+    pub users: Vec<Id>,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub(crate) struct BulkStartEnrollmentRequest {
+    pub users: Vec<Id>,
+    /// Whether to send enrollment email to each user (uses user's stored email).
+    #[serde(default)]
+    pub send_enrollment_notification: bool,
+    /// Optional token expiration override (humantime, e.g. "24h"). Falls back to system setting.
+    pub token_expiration_time: Option<String>,
+}
 
 /// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64
 /// characters according to the X.520 standard and many LDAP implementations like Active Directory.
@@ -1360,6 +1377,405 @@ pub(crate) async fn delete_authorized_app(
         );
         Err(WebError::ObjectNotFound("Authorized app not found".into()))
     }
+}
+
+/// Bulk disable users
+///
+/// Disables every user listed in `BulkUserOperationRequest`. Admin only.
+/// The session user cannot disable themselves; the request is rejected
+/// with 400 if the session user's id is in the list. The request is also
+/// rejected with 400 if any of the supplied ids does not exist.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/bulk-disable",
+    request_body = BulkUserOperationRequest,
+    responses(
+        (status = 200, description = "Users disabled."),
+        (status = 400, description = "Bad request. List contains the session user or unknown user ids.", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_disable_users(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Json(mut data): Json<BulkUserOperationRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} bulk-disabling {} user(s)",
+        session.user.username,
+        data.users.len()
+    );
+
+    if data.users.contains(&session.user.id) {
+        debug!(
+            "User {} attempted to disable themselves via bulk-disable",
+            session.user.username
+        );
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
+    }
+
+    data.users.sort_unstable();
+    data.users.dedup();
+
+    let users = User::find_by_ids(&appstate.pool, &data.users).await?;
+
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that don't exist in db.".into(),
+        ));
+    }
+
+    let mut events = Vec::with_capacity(users.len());
+    let mut transaction = appstate.pool.begin().await?;
+    for user in users {
+        if !user.is_active {
+            continue;
+        }
+        let before = user.clone();
+        let mut user_to_disable = user;
+
+        // remove API tokens when deactivating a user (mirrors modify_user)
+        let api_tokens = ApiToken::find_by_user_id(&mut *transaction, user_to_disable.id).await?;
+        for token in api_tokens {
+            token.delete(&mut *transaction).await?;
+        }
+
+        disable_user(
+            &mut user_to_disable,
+            &mut transaction,
+            &appstate.wireguard_tx,
+        )
+        .await?;
+        events.push((before, user_to_disable));
+    }
+    transaction.commit().await?;
+
+    for (_, user) in &mut events {
+        Box::pin(ldap_update_user_state(user, &appstate.pool)).await;
+    }
+
+    info!(
+        "User {} bulk-disabled {} user(s)",
+        session.user.username,
+        events.len()
+    );
+    for (before, after) in events {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::UserModified { before, after }),
+        })?;
+    }
+
+    Ok(ApiResponse::default())
+}
+
+/// Bulk enable users
+///
+/// Enables every user listed in `BulkUserOperationRequest`. Admin only.
+/// The request is rejected with 400 if any of the supplied ids does not exist.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/bulk-enable",
+    request_body = BulkUserOperationRequest,
+    responses(
+        (status = 200, description = "Users enabled."),
+        (status = 400, description = "Bad request. List contains unknown user ids.", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_enable_users(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Json(mut data): Json<BulkUserOperationRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} bulk-enabling {} user(s)",
+        session.user.username,
+        data.users.len()
+    );
+
+    data.users.sort_unstable();
+    data.users.dedup();
+
+    let users = User::find_by_ids(&appstate.pool, &data.users).await?;
+
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that don't exist in db.".into(),
+        ));
+    }
+
+    let mut events = Vec::with_capacity(users.len());
+    let mut transaction = appstate.pool.begin().await?;
+    for user in users {
+        if user.is_active {
+            continue;
+        }
+        let before = user.clone();
+        let mut user_to_enable = user;
+        user_to_enable.is_active = true;
+        user_to_enable.save(&mut *transaction).await?;
+        sync_allowed_user_devices(&user_to_enable, &mut transaction, &appstate.wireguard_tx)
+            .await?;
+        events.push((before, user_to_enable));
+    }
+    transaction.commit().await?;
+
+    for (_, user) in &mut events {
+        Box::pin(ldap_update_user_state(user, &appstate.pool)).await;
+    }
+
+    info!(
+        "User {} bulk-enabled {} user(s)",
+        session.user.username,
+        events.len()
+    );
+    for (before, after) in events {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::UserModified { before, after }),
+        })?;
+    }
+
+    Ok(ApiResponse::default())
+}
+
+/// Bulk delete users
+///
+/// Deletes every user listed in `BulkUserOperationRequest`. Admin only.
+/// The session user cannot delete themselves; the request is rejected
+/// with 400 if the session user's id is in the list. The request is also
+/// rejected with 400 if any of the supplied ids does not exist.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/bulk-delete",
+    request_body = BulkUserOperationRequest,
+    responses(
+        (status = 200, description = "Users deleted."),
+        (status = 400, description = "Bad request. List contains the session user or unknown user ids.", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_delete_users(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Json(mut data): Json<BulkUserOperationRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} bulk-deleting {} user(s)",
+        session.user.username,
+        data.users.len()
+    );
+
+    if data.users.contains(&session.user.id) {
+        debug!(
+            "User {} attempted to delete themselves via bulk-delete",
+            session.user.username
+        );
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
+    }
+
+    data.users.sort_unstable();
+    data.users.dedup();
+
+    let users = User::find_by_ids(&appstate.pool, &data.users).await?;
+
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that don't exist in db.".into(),
+        ));
+    }
+
+    let mut transaction = appstate.pool.begin().await?;
+    let mut ldap_targets = Vec::new();
+    let mut removed_usernames = Vec::new();
+    let mut removed_users = Vec::new();
+    for user in users {
+        let username = user.username.clone();
+        let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
+            Some(user.clone().as_noid())
+        } else {
+            None
+        };
+        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.wireguard_tx)
+            .await?;
+        if let Some(noid_user) = user_for_ldap {
+            ldap_targets.push(noid_user);
+        }
+        removed_usernames.push(username);
+        removed_users.push(user);
+    }
+    transaction.commit().await?;
+    update_counts(&appstate.pool).await?;
+
+    for username in &removed_usernames {
+        appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
+    }
+    for noid_user in &ldap_targets {
+        ldap_delete_user(noid_user, &appstate.pool).await;
+    }
+
+    info!(
+        "User {} bulk-deleted {} user(s)",
+        session.user.username,
+        removed_users.len()
+    );
+    for user in removed_users {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::UserRemoved { user }),
+        })?;
+    }
+
+    Ok(ApiResponse::default())
+}
+
+/// Bulk start enrollment
+///
+/// Starts the self-enrollment process for every user listed in
+/// `BulkStartEnrollmentRequest`. Admin only.
+///
+/// Disabled users are skipped and counted in the `skipped` response field;
+/// already-enrolled users are re-enrolled (enrollment_pending reset to true).
+/// The request is rejected with 400 if any of the supplied ids does not exist
+/// or if the session user's id is in the list.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/bulk-start-enrollment",
+    request_body = BulkStartEnrollmentRequest,
+    responses(
+        (status = 200, description = "Enrollment started.", body = ApiResponse, example = json!({"started": 3, "skipped": 1})),
+        (status = 400, description = "Bad request. List contains the session user or unknown user ids.", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_start_enrollment(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Json(mut data): Json<BulkStartEnrollmentRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} bulk-starting enrollment for {} user(s)",
+        session.user.username,
+        data.users.len()
+    );
+
+    if data.users.contains(&session.user.id) {
+        debug!(
+            "User {} attempted to start their own enrollment via bulk-start-enrollment",
+            session.user.username
+        );
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
+    }
+
+    data.users.sort_unstable();
+    data.users.dedup();
+
+    let users = User::find_by_ids(&appstate.pool, &data.users).await?;
+
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that don't exist in db.".into(),
+        ));
+    }
+
+    let settings = Settings::get_current_settings();
+    let token_expiration_time_seconds = match data.token_expiration_time {
+        Some(time) => parse_duration(&time)
+            .map_err(|err| {
+                error!("Failed to parse token expiration time {time}: {err}");
+                WebError::BadRequest("Failed to parse token expiration time".to_owned())
+            })?
+            .as_secs(),
+        None => settings.enrollment_token_timeout().as_secs(),
+    };
+    let public_proxy_url = settings.proxy_public_url()?;
+
+    let mut started = Vec::with_capacity(users.len());
+    let mut pending_notifications: Vec<(String, String)> = Vec::new();
+    let mut skipped = 0;
+    let mut transaction = appstate.pool.begin().await?;
+    for mut user in users {
+        if !user.is_active {
+            debug!("Skipping bulk enrollment for {}: disabled", user.username);
+            skipped += 1;
+            continue;
+        }
+        let email = if data.send_enrollment_notification {
+            Some(user.email.clone())
+        } else {
+            None
+        };
+        let token_id = start_user_enrollment(
+            &mut user,
+            &mut transaction,
+            &session.user,
+            email.clone(),
+            token_expiration_time_seconds,
+            public_proxy_url.clone(),
+            false, // notifications sent post-commit to avoid email/DB state mismatch
+        )
+        .await?;
+        if let Some(addr) = email {
+            pending_notifications.push((token_id, addr));
+        }
+        started.push(user);
+    }
+    transaction.commit().await?;
+
+    info!(
+        "User {} bulk-started enrollment for {} user(s) ({} skipped)",
+        session.user.username,
+        started.len(),
+        skipped
+    );
+    for (token_id, email) in pending_notifications {
+        send_enrollment_invitation(&token_id, &email, &appstate.pool, public_proxy_url.clone())
+            .await;
+    }
+    for user in started.iter().cloned() {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::EnrollmentTokenAdded { user }),
+        })?;
+    }
+
+    Ok(ApiResponse::new(
+        json!({ "started": started.len(), "skipped": skipped }),
+        StatusCode::OK,
+    ))
 }
 
 #[cfg(test)]
