@@ -122,6 +122,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub connected_at: Option<NaiveDateTime>,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    pub allowed_ips_from_acl: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
     #[model(enum)]
@@ -163,6 +164,7 @@ impl fmt::Debug for WireguardNetwork<Id> {
             .field("connected_at", &self.connected_at)
             .field("acl_enabled", &self.acl_enabled)
             .field("acl_default_allow", &self.acl_default_allow)
+            .field("allowed_ips_from_acl", &self.allowed_ips_from_acl)
             .field("keepalive_interval", &self.keepalive_interval)
             .field("peer_disconnect_threshold", &self.peer_disconnect_threshold)
             .field("location_mfa_mode", &self.location_mfa_mode)
@@ -221,6 +223,7 @@ impl WireguardNetwork {
         allow_all_groups: bool,
         acl_enabled: bool,
         acl_default_allow: bool,
+        allowed_ips_from_acl: bool,
         location_mfa_mode: LocationMfaMode,
         service_location_mode: ServiceLocationMode,
     ) -> Self
@@ -247,6 +250,7 @@ impl WireguardNetwork {
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_enabled,
             acl_default_allow,
+            allowed_ips_from_acl,
             location_mfa_mode,
             service_location_mode,
         }
@@ -339,6 +343,7 @@ impl WireguardNetwork<Id> {
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
             allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            allowed_ips_from_acl, \
             location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
@@ -367,6 +372,7 @@ impl WireguardNetwork<Id> {
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
             allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            allowed_ips_from_acl, \
             location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
@@ -393,6 +399,7 @@ impl WireguardNetwork<Id> {
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
             allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            allowed_ips_from_acl, \
             location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
@@ -415,6 +422,7 @@ impl WireguardNetwork<Id> {
             "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
             allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            allowed_ips_from_acl, \
             location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM aclrulenetwork r \
@@ -553,7 +561,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generate network IPs for a device if it's allowed in network
-    pub(crate) async fn add_device_to_network(
+    pub async fn add_device_to_network(
         &self,
         conn: &mut PgConnection,
         device: &Device<Id>,
@@ -1277,6 +1285,7 @@ impl WireguardNetwork<Id> {
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
             allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            allowed_ips_from_acl, \
             location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
@@ -1488,6 +1497,7 @@ impl Default for WireguardNetwork {
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_enabled: false,
             acl_default_allow: false,
+            allowed_ips_from_acl: false,
             location_mfa_mode: LocationMfaMode::default(),
             service_location_mode: ServiceLocationMode::default(),
         }

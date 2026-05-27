@@ -240,6 +240,7 @@ async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )
@@ -366,6 +367,7 @@ async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgCon
         String::new(),
         None,
         [IpNetwork::from_str("10.1.1.0/24").unwrap()],
+        false,
         false,
         false,
         false,

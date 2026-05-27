@@ -133,6 +133,7 @@ pub(crate) async fn create_location_with_mfa_mode(
         true,
         false,
         false,
+        false,
         location_mfa_mode,
         ServiceLocationMode::Disabled,
     )

@@ -196,6 +196,7 @@ pub mod appstate;
 pub mod auth;
 pub mod cert_settings;
 pub mod db;
+pub mod device_access;
 pub mod enrollment_management;
 pub mod enterprise;
 pub mod error;
@@ -1002,6 +1003,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             true,
             false,
             false,
+            false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )
@@ -1103,6 +1105,7 @@ pub async fn init_vpn_location(
                 true,
                 false,
                 false,
+                false,
                 LocationMfaMode::Disabled,
                 ServiceLocationMode::Disabled,
             )
@@ -1141,6 +1144,7 @@ pub async fn init_vpn_location(
             args.dns.clone(),
             args.allowed_ips.clone(),
             true,
+            false,
             false,
             false,
             LocationMfaMode::Disabled,

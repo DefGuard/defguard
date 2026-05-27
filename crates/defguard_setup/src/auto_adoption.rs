@@ -985,6 +985,7 @@ id={} for new gateway",
             true,
             false,
             false,
+            false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )

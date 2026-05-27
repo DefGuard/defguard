@@ -167,6 +167,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         true,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )
@@ -180,6 +181,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         None,
         Vec::new(),
         true,
+        false,
         false,
         false,
         LocationMfaMode::Disabled,

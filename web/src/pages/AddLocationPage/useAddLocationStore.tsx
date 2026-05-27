@@ -33,6 +33,7 @@ const defaults: StoreValues = {
   peer_disconnect_threshold: 300,
   acl_default_allow: true,
   acl_enabled: false,
+  allowed_ips_from_acl: false,
   address: '',
   allowed_groups: [],
   allowed_ips: '',

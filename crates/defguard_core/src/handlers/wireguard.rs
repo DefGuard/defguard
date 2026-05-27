@@ -9,7 +9,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceConfig, DeviceType, WireguardNetwork,
+            Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
             wireguard::{LocationMfaMode, MappedDevice, ServiceLocationMode},
         },
@@ -26,6 +26,7 @@ use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    device_access::{build_device_config, join_device_to_all_networks},
     enterprise::{
         db::models::{
             device_posture::DevicePostureLocation, enterprise_settings::EnterpriseSettings,
@@ -78,6 +79,7 @@ pub struct WireguardNetworkData {
     pub peer_disconnect_threshold: i32,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    pub allowed_ips_from_acl: bool,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
 }
@@ -241,6 +243,7 @@ pub(crate) async fn create_network(
         data.allow_all_groups,
         data.acl_enabled,
         data.acl_default_allow,
+        data.allowed_ips_from_acl,
         data.location_mfa_mode,
         data.service_location_mode,
     )
@@ -361,6 +364,7 @@ pub(crate) async fn modify_network(
     network.allow_all_groups = data.allow_all_groups;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
+    network.allowed_ips_from_acl = data.allowed_ips_from_acl;
     network.service_location_mode = if data.location_mfa_mode == LocationMfaMode::Disabled {
         data.service_location_mode
     } else {
@@ -869,7 +873,8 @@ pub(crate) async fn add_device(
     .save(&mut *transaction)
     .await?;
 
-    let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
+    let (network_info, configs) =
+        join_device_to_all_networks(&mut transaction, &device, &user).await?;
 
     // prepare a list of gateway commands to be sent
     let mut events = Vec::new();
@@ -1349,11 +1354,20 @@ pub(crate) async fn download_config(
 
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    let user = User::find_by_id(&appstate.pool, device.user_id)
+        .await?
+        .ok_or(WebError::ObjectNotFound(format!(
+            "User {} not found",
+            device.user_id
+        )))?;
     let wireguard_network_device =
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
     if let Some(wireguard_network_device) = wireguard_network_device {
         info!("Created config for device {}({device_id})", device.name);
-        Ok(Device::create_config(&network, &wireguard_network_device))
+        let mut conn = appstate.pool.acquire().await?;
+        let device_config =
+            build_device_config(&mut conn, &network, &wireguard_network_device, &user).await?;
+        Ok(device_config.config)
     } else {
         error!(
             "Failed to create config, no IP address found for device: {}({})",
@@ -1386,6 +1400,12 @@ pub(crate) async fn user_device_configs(
     }
 
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    let user = User::find_by_id(&appstate.pool, device.user_id)
+        .await?
+        .ok_or(WebError::ObjectNotFound(format!(
+            "User {} not found",
+            device.user_id
+        )))?;
     let locations = WireguardNetwork::find_user_device_networks(&appstate.pool, device_id).await?;
 
     let mut result = Vec::new();
@@ -1400,12 +1420,14 @@ pub(crate) async fn user_device_configs(
             "Created WireGuard config for user device {device_id} in location {}.",
             location.name
         );
-        let config = Device::create_config(&location, &location_device);
+        let mut conn = appstate.pool.acquire().await?;
+        let device_config =
+            build_device_config(&mut conn, &location, &location_device, &user).await?;
         result.push(DeviceWireGuardConfig {
-            network_id: location.id,
-            network_name: location.name,
-            config,
-            location_mfa_mode: location.location_mfa_mode.clone(),
+            network_id: device_config.network_id,
+            network_name: device_config.network_name,
+            config: device_config.config,
+            location_mfa_mode: device_config.location_mfa_mode,
         });
     }
 

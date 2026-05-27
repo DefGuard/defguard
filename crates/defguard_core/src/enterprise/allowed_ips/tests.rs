@@ -10,13 +10,10 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query,
 };
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    sync::LazyLock,
-};
+use std::net::IpAddr;
 
 use crate::enterprise::{
-    allowed_ips::{AllowedIpsError, get_allowed_ips_from_acl_rules},
+    allowed_ips::{AllowedIpsError, get_allowed_ips_from_acl_rules, get_effective_allowed_ips},
     db::models::acl::{
         AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleGroup, AclRuleNetwork,
         AclRuleUser, AliasKind, AliasState, RuleState,
@@ -24,18 +21,13 @@ use crate::enterprise::{
     license::{License, LicenseTier, SupportType, set_cached_license},
 };
 
-static IPV4_DEFAULT_ROUTE: LazyLock<IpNetwork> =
-    LazyLock::new(|| IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap());
-static IPV6_DEFAULT_ROUTE: LazyLock<IpNetwork> =
-    LazyLock::new(|| IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap());
-
 fn set_test_license_business() {
     let license = License {
         customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
         limits: None,
         subscription: false,
         support_type: SupportType::Basic,
-        tier: LicenseTier::Business,
+        tier: LicenseTier::Enterprise,
         valid_until: None,
         version_date_limit: None,
     };
@@ -374,11 +366,11 @@ async fn test_deny_all_users(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-async fn test_any_address_returns_all_traffic(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_any_address_skipped(_: PgPoolOptions, options: PgConnectOptions) {
     set_test_license_business();
     let pool = setup_pool(options).await;
 
-    // Dual-stack location so we can assert both networks are returned.
+    // Dual-stack location.
     let mut location = WireguardNetwork::default()
         .set_address([
             "10.0.0.1/24".parse().unwrap(),
@@ -391,7 +383,7 @@ async fn test_any_address_returns_all_traffic(_: PgPoolOptions, options: PgConne
     let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
     let user = user.save(&pool).await.unwrap();
 
-    // Rule with any_address - should short-circuit to all-traffic networks.
+    // Rule with any_address - this destination should be skipped.
     let any_address_rule = AclRule {
         name: "any-address".into(),
         state: RuleState::Applied,
@@ -415,7 +407,7 @@ async fn test_any_address_returns_all_traffic(_: PgPoolOptions, options: PgConne
     )
     .await;
 
-    // A second rule that would add extra addresses - should never be reached.
+    // A second rule with a concrete destination - should be included.
     let extra_rule = AclRule {
         allow_all_users: true,
         ..applied_rule_with_addresses("extra", vec!["192.168.99.0/24".parse().unwrap()])
@@ -427,20 +419,18 @@ async fn test_any_address_returns_all_traffic(_: PgPoolOptions, options: PgConne
         .await
         .unwrap();
 
-    // Expect exactly the default routes for both IP versions present on the location.
-    let expected = vec![*IPV4_DEFAULT_ROUTE, *IPV6_DEFAULT_ROUTE];
+    // The any_address rule is skipped. Only the concrete destination from the extra rule
+    // should appear. Default routes 0.0.0.0/0 and ::/0 should NOT be present.
+    let expected = vec!["192.168.99.0/24".parse().unwrap()];
     assert_eq!(result, expected);
 }
 
 #[sqlx::test]
-async fn test_any_address_respects_location_ip_version(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_any_address_skipped_ipv4_only(_: PgPoolOptions, options: PgConnectOptions) {
     set_test_license_business();
     let pool = setup_pool(options).await;
 
-    // IPv4-only location - should only return 0.0.0.0/0, not ::/0.
+    // IPv4-only location with a single any_address rule.
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
 
     let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
@@ -464,10 +454,10 @@ async fn test_any_address_respects_location_ip_version(
         .await
         .unwrap();
 
-    assert_eq!(result, vec![*IPV4_DEFAULT_ROUTE]);
+    // The any_address rule is skipped. No concrete destinations remain, so the result is empty.
     assert!(
-        !result.contains(&*IPV6_DEFAULT_ROUTE),
-        "IPv4-only location should not include ::/0"
+        result.is_empty(),
+        "any_address rule should be skipped, expected empty result, got {result:?}"
     );
 }
 
@@ -777,4 +767,194 @@ async fn test_acl_not_enabled_returns_error(_: PgPoolOptions, options: PgConnect
         matches!(result, Err(AllowedIpsError::AclNotEnabled)),
         "expected AclNotEnabled error, got {result:?}"
     );
+}
+
+#[sqlx::test]
+async fn test_any_address_alias_skipped(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Alias with any_address - should be skipped.
+    let alias = AclAlias {
+        name: "any-alias".into(),
+        kind: AliasKind::Component,
+        state: AliasState::Applied,
+        any_address: true,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Rule with the any_address alias plus a concrete destination.
+    let rule = AclRule {
+        allow_all_users: true,
+        ..applied_rule_with_addresses("rule-with-any-alias", vec!["10.20.0.0/16".parse().unwrap()])
+    };
+    let rule_id = create_acl_rule(&pool, rule, &[location.id], &[], &[], &[], &[], &[]).await;
+    link_alias_to_rule(&pool, rule_id, alias.id).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // The any_address alias is skipped. Only the concrete address remains.
+    assert_eq!(result, vec!["10.20.0.0/16".parse().unwrap()]);
+}
+
+#[sqlx::test]
+async fn test_any_address_destination_skipped(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Destination with any_address - should be skipped.
+    let destination = AclAlias {
+        name: "any-dest".into(),
+        kind: AliasKind::Destination,
+        state: AliasState::Applied,
+        any_address: true,
+        addresses: vec!["192.168.50.0/24".parse().unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Rule using the any_address destination (use_manual_destination_settings=false).
+    let rule = AclRule {
+        name: "rule-with-any-dest".into(),
+        state: RuleState::Applied,
+        enabled: true,
+        allow_all_users: true,
+        any_address: false,
+        any_port: true,
+        any_protocol: true,
+        use_manual_destination_settings: false,
+        ..Default::default()
+    };
+    let rule_id = create_acl_rule(&pool, rule, &[location.id], &[], &[], &[], &[], &[]).await;
+    link_alias_to_rule(&pool, rule_id, destination.id).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
+        .await
+        .unwrap();
+
+    // The any_address destination is skipped. No concrete destinations remain.
+    assert!(
+        result.is_empty(),
+        "any_address destination should be skipped, got {result:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_effective_allowed_ips_toggle_on(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    // Set manual allowed_ips on the location.
+    let mut location = WireguardNetwork::find_by_id(&pool, location.id)
+        .await
+        .unwrap()
+        .unwrap();
+    location.allowed_ips = vec!["10.100.0.0/16".parse().unwrap()];
+    location.allowed_ips_from_acl = true;
+    location.save(&pool).await.unwrap();
+
+    // ACL rule matching the user.
+    let destination = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-alice", vec![destination]);
+    create_acl_rule(&pool, rule, &[location.id], &[user.id], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
+
+    // Manual IPs always present, ACL IPs appended.
+    let expected = vec![
+        "10.100.0.0/16".parse().unwrap(),
+        "192.168.1.0/24".parse().unwrap(),
+    ];
+    assert_eq!(result, expected);
+}
+
+#[sqlx::test]
+async fn test_effective_allowed_ips_toggle_off(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+
+    let mut location = WireguardNetwork::find_by_id(&pool, location.id)
+        .await
+        .unwrap()
+        .unwrap();
+    location.allowed_ips = vec!["10.100.0.0/16".parse().unwrap()];
+    location.allowed_ips_from_acl = false;
+    location.save(&pool).await.unwrap();
+
+    let destination = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-alice", vec![destination]);
+    create_acl_rule(&pool, rule, &[location.id], &[user.id], &[], &[], &[], &[]).await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
+
+    // Toggle off: only manual IPs.
+    assert_eq!(result, vec!["10.100.0.0/16".parse().unwrap()]);
+}
+
+#[sqlx::test]
+async fn test_effective_allowed_ips_no_matching_rules(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let location = create_acl_location(&pool, "10.0.0.1/24").await;
+    let user = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
+    let user = user.save(&pool).await.unwrap();
+    let other_user = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None);
+    let other_user = other_user.save(&pool).await.unwrap();
+
+    let mut location = WireguardNetwork::find_by_id(&pool, location.id)
+        .await
+        .unwrap()
+        .unwrap();
+    location.allowed_ips = vec!["10.100.0.0/16".parse().unwrap()];
+    location.allowed_ips_from_acl = true;
+    location.save(&pool).await.unwrap();
+
+    // Rule allows bob only, not alice.
+    let destination = "192.168.1.0/24".parse().unwrap();
+    let rule = applied_rule_with_addresses("allow-bob", vec![destination]);
+    create_acl_rule(
+        &pool,
+        rule,
+        &[location.id],
+        &[other_user.id],
+        &[],
+        &[],
+        &[],
+        &[],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
+
+    // Toggle on but user doesn't match any rules: only manual IPs.
+    assert_eq!(result, vec!["10.100.0.0/16".parse().unwrap()]);
 }

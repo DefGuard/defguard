@@ -5,7 +5,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError,
+            Device, DeviceError, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError,
             device::{DeviceInfo, WireguardNetworkDevice},
             user::User,
             wireguard::MappedDevice,
@@ -17,6 +17,7 @@ use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
+    device_access::join_device_to_all_networks,
     enterprise::firewall::{FirewallError, try_get_location_firewall_config},
     grpc::{GatewayCommand, send_multiple_gateway_commands},
     wg_config::ImportedDevice,
@@ -360,7 +361,16 @@ pub(crate) async fn handle_mapped_devices(
         }
 
         // Assign IP addresses in other networks.
-        let (mut all_network_info, _configs) = device.add_to_all_networks(&mut *conn).await?;
+        let user = User::find_by_id(&mut *conn, device.user_id)
+            .await?
+            .ok_or_else(|| {
+                WireguardNetworkError::DeviceError(DeviceError::Unexpected(format!(
+                    "User {} not found",
+                    device.user_id
+                )))
+            })?;
+        let (mut all_network_info, _configs) =
+            join_device_to_all_networks(&mut *conn, &device, &user).await?;
 
         network_info.append(&mut all_network_info);
 

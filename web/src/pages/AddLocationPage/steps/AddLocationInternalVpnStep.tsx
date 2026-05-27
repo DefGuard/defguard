@@ -6,16 +6,22 @@ import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseEnterpriseFeature } from '../../../shared/utils/license';
 import { smallestNetworkCapacity } from '../../../shared/utils/network';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
+import './style.scss';
 
 const formSchema = z.object({
   address: z
@@ -63,11 +69,15 @@ const formSchema = z.object({
         true,
       );
     }),
+  allowed_ips_from_acl: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationInternalVpnStep = () => {
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseEnterprise = canUseEnterpriseFeature(licenseInfo ?? null).result;
+
   const { data: devices } = useQuery({
     queryKey: ['device', 'all'],
     queryFn: api.device.getDevices,
@@ -80,6 +90,7 @@ export const AddLocationInternalVpnStep = () => {
         allowed_ips: s.allowed_ips,
         dns: s.dns,
         address: s.address,
+        allowed_ips_from_acl: s.allowed_ips_from_acl,
       }),
     ),
   );
@@ -131,6 +142,15 @@ export const AddLocationInternalVpnStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="dns">
+            {(field) => (
+              <field.FormInput
+                label={m.add_location_internal_vpn_label_dns()}
+                helper={m.add_location_internal_vpn_helper_dns()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <DescriptionBlock title={m.add_location_internal_vpn_allowed_ips_title()}>
             <p>{m.add_location_internal_vpn_allowed_ips_description()}</p>
           </DescriptionBlock>
@@ -144,11 +164,31 @@ export const AddLocationInternalVpnStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="dns">
+          {isPresent(canUseEnterprise) && !canUseEnterprise && (
+            <>
+              <p className="acl-upsell-text">
+                <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell_link()}
+                </a>
+                <span>
+                  {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_upsell()}
+                </span>
+              </p>
+              <SizedBox height={ThemeSpacing.Md} />
+            </>
+          )}
+          <form.AppField name="allowed_ips_from_acl">
             {(field) => (
-              <field.FormInput
-                label={m.add_location_internal_vpn_label_dns()}
-                helper={m.add_location_internal_vpn_helper_dns()}
+              <field.FormCheckbox
+                text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+                disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
+                helperBlock={
+                  <Helper>
+                    <p>
+                      {m.add_location_internal_vpn_allowed_ips_from_firewall_rules_tooltip()}
+                    </p>
+                  </Helper>
+                }
               />
             )}
           </form.AppField>

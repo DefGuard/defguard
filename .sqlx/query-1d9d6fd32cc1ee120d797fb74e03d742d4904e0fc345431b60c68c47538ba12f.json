@@ -1,11 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"mtu\" = $9,\"fwmark\" = $10,\"allowed_ips\" = $11,\"allow_all_groups\" = $12,\"connected_at\" = $13,\"acl_enabled\" = $14,\"acl_default_allow\" = $15,\"keepalive_interval\" = $16,\"peer_disconnect_threshold\" = $17,\"location_mfa_mode\" = $18,\"service_location_mode\" = $19 WHERE id = $1",
+  "query": "INSERT INTO \"wireguard_network\" (\"name\",\"address\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\",\"service_location_mode\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
         "InetArray",
         "Int4",
@@ -18,6 +23,7 @@
         "InetArray",
         "Bool",
         "Timestamp",
+        "Bool",
         "Bool",
         "Bool",
         "Int4",
@@ -48,7 +54,9 @@
         }
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "68612652f823a456563f91e69f99a0cb01b856ebf973cca2dd6ab9ec46a98e33"
+  "hash": "1d9d6fd32cc1ee120d797fb74e03d742d4904e0fc345431b60c68c47538ba12f"
 }
