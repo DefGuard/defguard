@@ -88,6 +88,7 @@ import type {
   OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
+  PublicKeyCredentialJSON,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   ResourceDisplay,
@@ -594,5 +595,3 @@ const api = {
 } as const;
 
 export default api;
-
-type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;

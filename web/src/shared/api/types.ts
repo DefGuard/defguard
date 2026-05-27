@@ -518,6 +518,8 @@ export interface UpdateInfo {
   notes: string;
 }
 
+export type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;
+
 export interface WebauthnRegisterStartResponse {
   publicKey: PublicKeyCredentialCreationOptionsJSON;
 }
@@ -528,7 +530,7 @@ export interface WebauthnRegisterFinishRequest {
 }
 
 export interface WebauthnLoginStartResponse {
-  publicKey: PublicKeyCredentialJSON;
+  publicKey: PublicKeyCredentialRequestOptionsJSON;
 }
 
 export interface StartEnrollmentRequest {
