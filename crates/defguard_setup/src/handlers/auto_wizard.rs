@@ -81,6 +81,7 @@ pub(crate) async fn apply_internal_url_settings(
         },
     )
     .await
+    .map_err(WebError::from)
 }
 
 /// Updates internal URL settings and configures SSL for the core web server.
@@ -194,6 +195,7 @@ pub(crate) async fn apply_external_url_settings(
         },
     )
     .await
+    .map_err(WebError::from)
 }
 
 /// Returns external SSL certificate info (for the "Download CA certificate" step).

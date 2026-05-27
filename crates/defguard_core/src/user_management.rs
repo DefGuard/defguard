@@ -5,21 +5,37 @@ use defguard_common::db::{
     models::{User, WireguardNetwork, device::DeviceInfo},
 };
 use sqlx::PgConnection;
+use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
-    error::WebError,
+    enterprise::{
+        firewall::{FirewallError, try_get_location_firewall_config},
+        limits::update_counts,
+    },
     grpc::{GatewayCommand, send_gateway_command, send_multiple_gateway_commands},
     location_management::sync_allowed_devices_for_user,
 };
+
+/// Errors arising from user management operations.
+#[derive(Debug, Error)]
+pub enum UserManagementError {
+    #[error("Database error: {0}")]
+    Db(#[from] sqlx::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] defguard_common::db::models::ModelError),
+    #[error("WireGuard network error: {0}")]
+    Network(#[from] defguard_common::db::models::WireguardNetworkError),
+    #[error("Firewall error: {0}")]
+    Firewall(#[from] FirewallError),
+}
 
 /// Deletes the user and cleans up his devices from gateways
 pub async fn delete_user_and_cleanup_devices(
     user: User<Id>,
     conn: &mut PgConnection,
     gateway_tx: &Sender<GatewayCommand>,
-) -> Result<(), WebError> {
+) -> Result<(), UserManagementError> {
     let username = user.username.clone();
     debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
     let devices = user.devices(&mut *conn).await?;
@@ -70,7 +86,7 @@ pub async fn disable_user(
     user: &mut User<Id>,
     conn: &mut PgConnection,
     gateway_tx: &Sender<GatewayCommand>,
-) -> Result<(), WebError> {
+) -> Result<(), UserManagementError> {
     user.is_active = false;
     user.save(&mut *conn).await?;
     user.logout_all_sessions(&mut *conn).await?;
@@ -83,7 +99,7 @@ pub async fn sync_allowed_user_devices(
     user: &User<Id>,
     conn: &mut PgConnection,
     gateway_tx: &Sender<GatewayCommand>,
-) -> Result<(), WebError> {
+) -> Result<(), UserManagementError> {
     debug!("Syncing allowed devices of user {}", user.username);
     let locations = WireguardNetwork::all(&mut *conn).await?;
     for location in locations {

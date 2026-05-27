@@ -43,6 +43,7 @@ use serde::{
     ser::{Serialize, Serializer},
 };
 use sqlx::PgPool;
+use thiserror::Error;
 
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
@@ -114,8 +115,23 @@ pub type DefguardIdTokenFields = IdTokenFields<
 pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;
 pub struct OAuth2ClientExtractor(Option<OAuth2Client<Id>>);
 
+/// Errors arising from OpenID Connect flow helpers.
+#[derive(Debug, Error)]
+pub(crate) enum OidcFlowError {
+    #[error("signing key unavailable: {0}")]
+    SigningKey(String),
+    #[error("invalid redirect URI")]
+    InvalidRedirectUri,
+    #[error("internal error: {0}")]
+    Internal(String),
+    #[error("url error: {0}")]
+    Url(String),
+    #[error("database error: {0}")]
+    Db(#[from] sqlx::Error),
+}
+
 #[allow(deprecated)]
-fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, WebError> {
+fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, OidcFlowError> {
     if server_config().hmac {
         Ok(None)
     } else {
@@ -124,7 +140,7 @@ fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, WebError> {
             .map(Some)
             .map_err(|err| {
                 error!("OpenID signing key is unavailable: {err}");
-                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+                OidcFlowError::SigningKey(err.to_string())
             })
     }
 }
@@ -367,9 +383,8 @@ async fn generate_auth_code_redirect(
     appstate: AppState,
     data: AuthenticationRequest,
     user_id: Id,
-) -> Result<String, WebError> {
-    let mut url =
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
+) -> Result<String, OidcFlowError> {
+    let mut url = Url::parse(&data.redirect_uri).map_err(|_| OidcFlowError::InvalidRedirectUri)?;
     let auth_code = AuthCode::new(
         user_id,
         data.client_id,
@@ -411,13 +426,13 @@ fn redirect_to<T: AsRef<str>>(
 fn login_redirect(
     data: &AuthenticationRequest,
     private_cookies: PrivateCookieJar,
-) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
+) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), OidcFlowError> {
     let config = server_config();
     let settings = Settings::get_current_settings();
-    let url = Settings::url()?;
+    let url = Settings::url().map_err(|e| OidcFlowError::Url(e.to_string()))?;
     let base_url = url.join("/api/v1/oauth/authorize").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
-        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        OidcFlowError::Internal(err.to_string())
     })?;
     let mut cookie = Cookie::build((
         SIGN_IN_COOKIE_NAME,
@@ -428,9 +443,12 @@ fn login_redirect(
     ))
     .path("/")
     .secure(
-        config
-            .cookie_insecure
-            .map_or(settings.cookie_secure()?, |insecure| !insecure),
+        config.cookie_insecure.map_or(
+            settings
+                .cookie_secure()
+                .map_err(|e| OidcFlowError::Url(e.to_string()))?,
+            |insecure| !insecure,
+        ),
     )
     .same_site(SameSite::Lax)
     .http_only(true)
@@ -510,7 +528,8 @@ pub async fn authorization(
                                             "MFA not verified for user id {}, redirecting to login",
                                             session.user_id
                                         );
-                                        return login_redirect(&data, private_cookies);
+                                        return login_redirect(&data, private_cookies)
+                                            .map_err(WebError::from);
                                     }
 
                                     // If session is present check if app is in user authorized
@@ -588,7 +607,7 @@ pub async fn authorization(
     }
 
     let mut url = if is_redirect_allowed {
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
+        Url::parse(&data.redirect_uri).map_err(|_| OidcFlowError::InvalidRedirectUri)?
     } else {
         // Don't allow open redirects (DG25-17)
         Settings::url()?
@@ -612,7 +631,7 @@ pub struct GroupClaims {
 
 impl AdditionalClaims for GroupClaims {}
 
-async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
+async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, OidcFlowError> {
     let groups = user.member_of_names(pool).await?;
     Ok(GroupClaims {
         groups: Some(groups),
@@ -1083,7 +1102,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
 
 // Must be served under /.well-known/openid-configuration
 pub async fn openid_configuration() -> ApiResult {
-    let url = Settings::url()?;
+    let url = Settings::url().map_err(|e| OidcFlowError::Url(e.to_string()))?;
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(url.clone()),
         AuthUrl::from_url(url.join("api/v1/oauth/authorize")?),
