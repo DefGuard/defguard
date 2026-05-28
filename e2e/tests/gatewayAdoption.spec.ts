@@ -42,6 +42,7 @@ test.describe('Gateway Adoption', () => {
         peer_disconnect_threshold: 300,
         acl_enabled: false,
         acl_default_allow: false,
+        allowed_ips_from_acl: false,
         location_mfa_mode: 'disabled',
         service_location_mode: 'disabled',
       },
