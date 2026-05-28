@@ -1,7 +1,7 @@
 /// Minimum defguard desktop client versions available for posture rules.
-/// FIXME: 2.0 does not actually exist, remove before release
-pub const CLIENT_VERSIONS: &[&str] = &["1.6", "2.0", "2.1"];
+pub const CLIENT_VERSIONS: &[&str] = &["2.1"];
 
+/// Minimum OS versions available for posture checks.
 pub const WINDOWS_OS_VERSIONS: &[i32] = &[10, 11];
 pub const MACOS_OS_VERSIONS: &[i32] = &[13, 14, 15, 26];
 pub const IOS_OS_VERSIONS: &[i32] = &[17, 18, 26];
