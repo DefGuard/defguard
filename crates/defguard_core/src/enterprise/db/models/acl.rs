@@ -17,17 +17,17 @@ use sqlx::{
     query, query_as, query_scalar,
 };
 use thiserror::Error;
+use tokio::sync::broadcast::Sender;
 use utoipa::ToSchema;
 
 use crate::{
-    appstate::AppState,
     enterprise::{
         firewall::{FirewallError, try_get_location_firewall_config},
         handlers::acl::{
             ApiAclRule, EditAclRule, alias::EditAclAlias, destination::EditAclDestination,
         },
     },
-    grpc::GatewayCommand,
+    grpc::{GatewayCommand, send_gateway_command},
 };
 
 #[derive(Debug, Error)]
@@ -515,10 +515,11 @@ impl AclRule {
     pub async fn apply_rules(
         rules: &[Id],
         actor: &str,
-        appstate: &AppState,
+        pool: &PgPool,
+        gateway_tx: &Sender<GatewayCommand>,
     ) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
-        let mut transaction = appstate.pool.begin().await?;
+        let mut transaction = pool.begin().await?;
 
         // prepare variable for collecting affected locations
         let mut affected_locations = HashSet::new();
@@ -547,10 +548,10 @@ impl AclRule {
             match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
-                    appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
-                        location.id,
-                        firewall_config,
-                    ));
+                    send_gateway_command(
+                        GatewayCommand::FirewallConfigChanged(location.id, firewall_config),
+                        gateway_tx,
+                    );
                 }
                 None => {
                     debug!(
@@ -1777,13 +1778,14 @@ impl AclAlias {
         aliases: &[Id],
         kind: AliasKind,
         actor: &str,
-        appstate: &AppState,
+        pool: &PgPool,
+        gateway_tx: &Sender<GatewayCommand>,
     ) -> Result<(), AclError> {
         debug!(
             "Applying {} ACL aliases of kind {kind:?}: {aliases:?}",
             aliases.len(),
         );
-        let mut transaction = appstate.pool.begin().await?;
+        let mut transaction = pool.begin().await?;
 
         // prepare variable for collecting affected rules
         // we are unable to use `HashSet` because `PgRange` does not implement `Hash` trait
@@ -1828,10 +1830,10 @@ impl AclAlias {
             match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
-                    appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
-                        location.id,
-                        firewall_config,
-                    ));
+                    send_gateway_command(
+                        GatewayCommand::FirewallConfigChanged(location.id, firewall_config),
+                        gateway_tx,
+                    );
                 }
                 None => {
                     debug!(
