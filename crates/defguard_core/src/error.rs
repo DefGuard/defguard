@@ -15,13 +15,16 @@ use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
+    cert_settings::CertSettingsError,
     db::models::enrollment::TokenError,
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
         firewall::FirewallError, license::LicenseError,
     },
     events::ApiEvent,
+    handlers::{openid_flow::OidcFlowError, user::ValidationError},
     location_management::LocationManagementError,
+    user_management::UserManagementError,
 };
 
 /// Represents kinds of error that occurred
@@ -180,8 +183,8 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications
             | SettingsValidationError::CannotEnableLdapRemoteEnrollment
             | SettingsValidationError::CannotEnableLdapRemoteEnrollmentInvite
-            | SettingsValidationError::CannotEnableLdap => Self::BadRequest(err.to_string()),
-            SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
+            | SettingsValidationError::CannotEnableLdap
+            | SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
         }
     }
 }
@@ -223,6 +226,61 @@ impl From<LocationManagementError> for WebError {
                 wireguard_network_error.into()
             }
             LocationManagementError::ModelError(model_error) => model_error.into(),
+        }
+    }
+}
+
+impl From<UserManagementError> for WebError {
+    fn from(err: UserManagementError) -> Self {
+        match err {
+            UserManagementError::Db(e) => {
+                error!("Database error: {e}");
+                WebError::DbError(e.to_string())
+            }
+            UserManagementError::Model(e) => {
+                error!("Model error: {e}");
+                WebError::ModelError(e.to_string())
+            }
+            UserManagementError::Network(e) => {
+                error!("WireGuard network error: {e}");
+                WebError::from(e)
+            }
+            UserManagementError::Firewall(e) => {
+                error!("Firewall error: {e}");
+                WebError::FirewallError(e)
+            }
+        }
+    }
+}
+
+impl From<CertSettingsError> for WebError {
+    fn from(err: CertSettingsError) -> Self {
+        error!("{err}");
+        match err {
+            CertSettingsError::InvalidCert(msg) => WebError::BadRequest(msg),
+            CertSettingsError::Cert(e) => WebError::CertificateError(e),
+            CertSettingsError::Url(e) => WebError::BadRequest(e),
+            CertSettingsError::Settings(e) => WebError::BadRequest(e.to_string()),
+            CertSettingsError::Db(e) => WebError::DbError(e.to_string()),
+            CertSettingsError::NotFound(msg) => WebError::ObjectNotFound(msg),
+        }
+    }
+}
+
+impl From<ValidationError> for WebError {
+    fn from(err: ValidationError) -> Self {
+        WebError::BadRequest(err.0)
+    }
+}
+
+impl From<OidcFlowError> for WebError {
+    fn from(err: OidcFlowError) -> Self {
+        match err {
+            OidcFlowError::SigningKey(_msg) => WebError::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            OidcFlowError::InvalidRedirectUri => WebError::Http(StatusCode::BAD_REQUEST),
+            OidcFlowError::Internal(_msg) => WebError::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            OidcFlowError::Db(e) => WebError::DbError(e.to_string()),
+            OidcFlowError::Url(_e) => WebError::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }

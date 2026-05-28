@@ -94,10 +94,6 @@ const conditionDefinitions = (): Record<PostureCheckOsValue, ConditionDefinition
   ],
   [PostureCheckOs.Macos]: [
     {
-      id: 'disk-encryption',
-      label: m.posture_checks_wizard_operating_systems_condition_disk_encryption(),
-    },
-    {
       id: 'device-integrity',
       label: m.posture_checks_wizard_operating_systems_condition_device_integrity(),
     },
@@ -109,12 +105,7 @@ const conditionDefinitions = (): Record<PostureCheckOsValue, ConditionDefinition
     },
   ],
   [PostureCheckOs.Ios]: [],
-  [PostureCheckOs.Android]: [
-    {
-      id: 'device-integrity',
-      label: m.posture_checks_wizard_operating_systems_condition_device_integrity(),
-    },
-  ],
+  [PostureCheckOs.Android]: [],
 });
 
 const getVersionOptions = (

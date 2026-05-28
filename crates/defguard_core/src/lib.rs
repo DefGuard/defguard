@@ -126,7 +126,7 @@ use crate::{
             create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
         },
     },
-    grpc::{GatewayEvent, WorkerState},
+    grpc::{GatewayCommand, WorkerState},
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -196,6 +196,7 @@ pub mod appstate;
 pub mod auth;
 pub mod cert_settings;
 pub mod db;
+pub mod device_access;
 pub mod enrollment_management;
 pub mod enterprise;
 pub mod error;
@@ -256,7 +257,7 @@ async fn openapi() -> Json<utoipa::openapi::OpenApi> {
 pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     web_reload_tx: tokio::sync::broadcast::Sender<()>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
@@ -734,7 +735,7 @@ pub fn build_webapp(
         pool.clone(),
         webhook_tx,
         webhook_rx,
-        wireguard_tx,
+        gateway_tx,
         web_reload_tx,
         key,
         failed_logins,
@@ -804,7 +805,7 @@ pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     web_reload_tx: tokio::sync::broadcast::Sender<()>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -822,7 +823,7 @@ pub async fn run_web_server(
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
-        wireguard_tx,
+        gateway_tx,
         web_reload_tx.clone(),
         worker_state,
         pool.clone(),
@@ -1002,13 +1003,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             true,
             false,
             false,
+            false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
         .unwrap();
-        network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_owned();
-        network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_owned();
+        "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".clone_into(&mut network.pubkey);
+        "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".clone_into(&mut network.prvkey);
         network
             .save(&mut *transaction)
             .await
@@ -1103,6 +1105,7 @@ pub async fn init_vpn_location(
                 true,
                 false,
                 false,
+                false,
                 LocationMfaMode::Disabled,
                 ServiceLocationMode::Disabled,
             )
@@ -1141,6 +1144,7 @@ pub async fn init_vpn_location(
             args.dns.clone(),
             args.allowed_ips.clone(),
             true,
+            false,
             false,
             false,
             LocationMfaMode::Disabled,

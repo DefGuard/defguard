@@ -10,14 +10,15 @@ use axum::{
     serve,
 };
 use axum_extra::extract::cookie::Key;
-use defguard_common::{VERSION, db::models::Settings, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    VERSION, db::models::Settings, gateway_event::GatewayCommand, types::proxy::ProxyControlMessage,
+};
 use defguard_core::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::handlers::openid_login::{auth_callback, get_auth_info},
     events::ApiEvent,
-    grpc::GatewayEvent,
     handle_404,
     handlers::{
         auth::{
@@ -60,7 +61,7 @@ use crate::handlers::{
 pub struct MigrationWebapp {
     pub router: Router,
     _event_rx: mpsc::UnboundedReceiver<ApiEvent>,
-    _wireguard_rx: broadcast::Receiver<GatewayEvent>,
+    _gateway_rx: broadcast::Receiver<GatewayCommand>,
     _proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
 }
 
@@ -72,7 +73,7 @@ pub fn build_migration_webapp(
     let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     let (webhook_tx, webhook_rx) = mpsc::unbounded_channel::<AppEvent>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<ApiEvent>();
-    let (wireguard_tx, wireguard_rx) = broadcast::channel::<GatewayEvent>(64);
+    let (gateway_tx, gateway_rx) = broadcast::channel::<GatewayCommand>(64);
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
     let (proxy_control_tx, proxy_control_rx) = mpsc::channel(32);
     let incompatible_components = Arc::new(RwLock::new(IncompatibleComponents::default()));
@@ -86,7 +87,7 @@ pub fn build_migration_webapp(
         pool.clone(),
         webhook_tx,
         webhook_rx,
-        wireguard_tx.clone(),
+        gateway_tx.clone(),
         web_reload_tx,
         key,
         failed_logins.clone(),
@@ -175,7 +176,7 @@ pub fn build_migration_webapp(
     MigrationWebapp {
         router,
         _event_rx: event_rx,
-        _wireguard_rx: wireguard_rx,
+        _gateway_rx: gateway_rx,
         _proxy_control_rx: proxy_control_rx,
     }
 }

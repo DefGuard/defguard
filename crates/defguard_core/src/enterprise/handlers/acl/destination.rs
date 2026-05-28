@@ -448,7 +448,8 @@ pub(crate) async fn apply_acl_destinations(
         &data.destinations,
         AliasKind::Destination,
         &session.user.username,
-        &appstate,
+        &appstate.pool,
+        &appstate.gateway_tx,
     )
     .await
     .map_err(|err| {

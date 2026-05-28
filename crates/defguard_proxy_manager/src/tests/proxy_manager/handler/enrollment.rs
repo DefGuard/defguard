@@ -1,23 +1,25 @@
-use defguard_common::db::models::{
-    Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
-    settings::update_current_settings,
+use defguard_common::{
+    db::models::{
+        Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+        settings::update_current_settings,
+    },
+    gateway_event::GatewayCommand,
 };
-use defguard_core::{
-    events::{BidiStreamEventType, EnrollmentEvent},
-    grpc::GatewayEvent,
-};
+use defguard_core::events::{BidiStreamEventType, EnrollmentEvent};
 use defguard_proto::{
     client_types::{ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest},
     proxy::{CoreRequest, core_request, core_response},
 };
+use ipnetwork::IpNetwork;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 
 use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,
-    complete_proxy_handshake, configure_ldap, configure_smtp, create_enrollment_token,
-    create_network, create_polling_token, create_user, create_user_with_device, make_device_info,
-    send_activate_user, send_code_mfa_setup_finish, send_code_mfa_setup_start,
+    complete_proxy_handshake, configure_ldap, configure_smtp, create_acl_network,
+    create_enrollment_token, create_network, create_polling_token, create_user,
+    create_user_with_device, insert_acl_rule_for_network, make_device_info, send_activate_user,
+    send_code_mfa_setup_finish, send_code_mfa_setup_start, set_test_license_enterprise,
     start_enrollment_session, totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
@@ -261,8 +263,8 @@ async fn test_new_device_sends_gateway_device_created_event(
     // Start the enrollment session so Token::used_at is set.
     start_enrollment_session(&mut context, &token.id).await;
 
-    // Subscribe to gateway events BEFORE sending the request.
-    let mut gateway_rx = context.wireguard_tx.subscribe();
+    // Subscribe to gateway commands BEFORE sending the request.
+    let mut gateway_rx = context.gateway_tx.subscribe();
 
     let pubkey = "DhsoNUJPXGl2g5CdqrfE0d7r+AUSHyw5RlNgbXqHlKE=";
     context.mock_proxy().send_request(CoreRequest {
@@ -281,12 +283,12 @@ async fn test_new_device_sends_gateway_device_created_event(
     // Check that a DeviceCreated event was broadcast.
     let event = timeout(TEST_TIMEOUT, gateway_rx.recv())
         .await
-        .expect("timed out waiting for GatewayEvent::DeviceCreated")
-        .expect("gateway event channel closed");
+        .expect("timed out waiting for GatewayCommand::DeviceCreated")
+        .expect("gateway command channel closed");
 
     assert!(
-        matches!(event, GatewayEvent::DeviceCreated(_)),
-        "expected DeviceCreated gateway event, got: {event:?}"
+        matches!(event, GatewayCommand::DeviceCreated(_)),
+        "expected DeviceCreated gateway command, got: {event:?}"
     );
 
     context.finish().await.expect_server_finished().await;
@@ -867,6 +869,57 @@ async fn test_activate_non_ldap_user_does_not_set_ldap_remote_enrollment_complet
     assert!(
         updated.is_enrolled(),
         "non-LDAP user with password must be enrolled after activation"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// When enrolling a new device on a location with the ACL AllowedIPs toggle
+/// enabled, the returned config should contain both manual and ACL-derived IPs.
+#[sqlx::test]
+async fn test_enrollment_config_includes_acl_allowed_ips(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    set_test_license_enterprise();
+
+    let network = create_acl_network(&context.pool).await;
+    let acl_destination: IpNetwork = "192.168.1.0/24".parse().unwrap();
+    insert_acl_rule_for_network(&context.pool, network.id, acl_destination).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let pubkey = "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=";
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "ACL Test Device".to_owned(),
+            pubkey: pubkey.to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+    assert!(
+        !cfg.configs.is_empty(),
+        "DeviceConfigResponse should contain at least one network config"
+    );
+
+    let allowed_ips = &cfg.configs[0].allowed_ips;
+    assert!(
+        allowed_ips.contains("10.100.0.0/16"),
+        "config allowed_ips should contain manual IP 10.100.0.0/16, got: {allowed_ips}"
+    );
+    assert!(
+        allowed_ips.contains("192.168.1.0/24"),
+        "config allowed_ips should contain ACL-derived IP 192.168.1.0/24, got: {allowed_ips}"
     );
 
     context.finish().await.expect_server_finished().await;

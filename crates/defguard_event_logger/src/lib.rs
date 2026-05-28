@@ -5,14 +5,15 @@ use defguard_core::db::models::activity_log::{
     metadata::{
         ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
         ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
-        ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
-        EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GatewayDeletedMetadata,
-        GatewayModifiedMetadata, GroupAssignedMetadata, GroupMembersModifiedMetadata,
-        GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
-        MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
-        NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
-        OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
-        PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata,
+        ClientConfigurationTokenMetadata, ClientDeviceMetadata, DeviceMetadata,
+        DeviceModifiedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata,
+        GatewayDeletedMetadata, GatewayModifiedMetadata, GroupAssignedMetadata,
+        GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
+        GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata, MfaLoginMetadata,
+        MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
+        OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
+        OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
+        ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata,
         UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata,
         UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata,
         VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
@@ -20,18 +21,19 @@ use defguard_core::db::models::activity_log::{
         WebHookStateChangedMetadata,
     },
 };
-use description::{
-    get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
-};
-use error::EventLoggerError;
-use message::{
-    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
-};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
 
-pub mod description;
+use self::{
+    error::EventLoggerError,
+    message::{
+        ClientEvent, DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent,
+        VpnEvent,
+    },
+};
+
+mod description;
 pub mod error;
 pub mod message;
 
@@ -143,7 +145,7 @@ async fn process_batch(
             let (module, event, description, metadata) = match message.event {
                 LoggerEvent::Defguard(event) => {
                     let module = ActivityLogModule::Defguard;
-                    let description = get_defguard_event_description(&event);
+                    let description = event.description();
 
                     let (event_type, metadata) = match *event {
                         DefguardEvent::UserLogin => (EventType::UserLogin, None),
@@ -583,14 +585,14 @@ async fn process_batch(
                 }
                 LoggerEvent::Vpn(event) => {
                     let module = ActivityLogModule::Vpn;
-                    let description = get_vpn_event_description(&event);
+                    let description = event.description();
 
                     let (event_type, metadata) = map_vpn_event(*event);
                     (module, event_type, description, metadata)
                 }
                 LoggerEvent::Enrollment(event) => {
                     let module = ActivityLogModule::Enrollment;
-                    let description = get_enrollment_event_description(&event);
+                    let description = event.description();
 
                     let (event_type, metadata) = match *event {
                         EnrollmentEvent::EnrollmentStarted => (EventType::EnrollmentStarted, None),
@@ -617,6 +619,60 @@ async fn process_batch(
                         ),
                     };
                     (module, event_type, description, metadata)
+                }
+                LoggerEvent::Client(event) => {
+                    let module = ActivityLogModule::Client;
+                    let description = event.description();
+
+                    let (event_type, metadata) = match *event {
+                        ClientEvent::DesktopClientActivated {
+                            device_id,
+                            device_name,
+                        } => (
+                            EventType::DeviceAdded,
+                            ClientDeviceMetadata {
+                                device_id,
+                                device_name,
+                            },
+                        ),
+                        ClientEvent::DesktopClientUpdated {
+                            device_id,
+                            device_name,
+                        } => (
+                            EventType::DeviceModified,
+                            ClientDeviceMetadata {
+                                device_id,
+                                device_name,
+                            },
+                        ),
+                        ClientEvent::DevicePostureCheckPassed {
+                            device_id,
+                            device_name,
+                        } => (
+                            EventType::DevicePostureCheckPassed,
+                            ClientDeviceMetadata {
+                                device_id,
+                                device_name,
+                            },
+                        ),
+                        ClientEvent::DevicePostureCheckFailed {
+                            device_id,
+                            device_name,
+                            ..
+                        } => (
+                            EventType::DevicePostureCheckFailed,
+                            ClientDeviceMetadata {
+                                device_id,
+                                device_name,
+                            },
+                        ),
+                    };
+                    (
+                        module,
+                        event_type,
+                        description,
+                        serde_json::to_value(metadata).ok(),
+                    )
                 }
             };
 
@@ -701,6 +757,7 @@ mod tests {
             None,
             [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
+            false,
             false,
             false,
             LocationMfaMode::Internal,

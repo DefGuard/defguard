@@ -19,7 +19,7 @@ use crate::{
         },
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::{Counts, set_counts},
-        posture::validate_posture,
+        posture::evaluation::validate_posture,
     },
     grpc::proto::enterprise::license::LicenseLimits,
 };
@@ -56,6 +56,7 @@ async fn create_location(pool: &sqlx::PgPool) -> i64 {
         None,
         Vec::<ipnetwork::IpNetwork>::new(),
         true,
+        false,
         false,
         false,
         LocationMfaMode::Disabled,
@@ -556,10 +557,10 @@ async fn pass_known_client_version_meets_minimum(_: PgPoolOptions, options: PgCo
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some("1.6"), true).await;
+    save_linux_policy(&pool, location_id, None, Some("2.1"), true).await;
 
     let mut data = linux_posture_data("6.1.0", true);
-    data.defguard_client_version = "1.6.3".to_owned();
+    data.defguard_client_version = "2.1.2".to_owned();
 
     let result = validate_posture(&pool, &make_request(location_id, Some(data)))
         .await
@@ -567,7 +568,7 @@ async fn pass_known_client_version_meets_minimum(_: PgPoolOptions, options: PgCo
 
     assert!(
         matches!(result, super::PostureResult::Pass),
-        "expected Pass for client 1.6.3 against required 1.6"
+        "expected Pass for client 2.1.2 against required 2.1"
     );
 }
 
@@ -863,10 +864,10 @@ async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     set_enterprise_license();
     let location_id = create_location(&pool).await;
 
-    save_linux_policy(&pool, location_id, None, Some("2.0"), true).await;
+    save_linux_policy(&pool, location_id, None, Some("2.2"), true).await;
 
     let mut data = linux_posture_data("22.04", true);
-    data.defguard_client_version = "1.6.0".to_owned();
+    data.defguard_client_version = "2.1.2".to_owned();
 
     let result = validate_posture(&pool, &make_request(location_id, Some(data)))
         .await
@@ -875,7 +876,7 @@ async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     assert!(matches!(
         result,
         super::PostureResult::Fail(ref reasons) if reasons.len() == 1
-            && matches!(reasons[0], super::FailureReason::ClientVersionTooOld { ref required, .. } if required == "2.0")
+            && matches!(reasons[0], super::FailureReason::ClientVersionTooOld { ref required, .. } if required == "2.2")
     ));
 }
 

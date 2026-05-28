@@ -10,6 +10,7 @@ use super::support::{
     set_test_license_business,
 };
 use crate::tests::common::HandlerTestContext;
+use defguard_core::device_access::join_device_to_all_networks;
 
 #[sqlx::test]
 async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: PgConnectOptions) {
@@ -173,8 +174,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
     // Re-run add_to_all_networks so the device gets a WireguardNetworkDevice
     // row for the newly created network (required for config-building).
     let mut conn = context.pool.acquire().await.expect("acquire connection");
-    device
-        .add_to_all_networks(&mut conn)
+    join_device_to_all_networks(&mut conn, &device, &_user)
         .await
         .expect("add device to all networks");
 

@@ -5,21 +5,37 @@ use defguard_common::db::{
     models::{User, WireguardNetwork, device::DeviceInfo},
 };
 use sqlx::PgConnection;
+use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
-    error::WebError,
-    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    enterprise::{
+        firewall::{FirewallError, try_get_location_firewall_config},
+        limits::update_counts,
+    },
+    grpc::{GatewayCommand, send_gateway_command, send_multiple_gateway_commands},
     location_management::sync_allowed_devices_for_user,
 };
+
+/// Errors arising from user management operations.
+#[derive(Debug, Error)]
+pub enum UserManagementError {
+    #[error("Database error: {0}")]
+    Db(#[from] sqlx::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] defguard_common::db::models::ModelError),
+    #[error("WireGuard network error: {0}")]
+    Network(#[from] defguard_common::db::models::WireguardNetworkError),
+    #[error("Firewall error: {0}")]
+    Firewall(#[from] FirewallError),
+}
 
 /// Deletes the user and cleans up his devices from gateways
 pub async fn delete_user_and_cleanup_devices(
     user: User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayEvent>,
-) -> Result<(), WebError> {
+    gateway_tx: &Sender<GatewayCommand>,
+) -> Result<(), UserManagementError> {
     let username = user.username.clone();
     debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
     let devices = user.devices(&mut *conn).await?;
@@ -33,7 +49,7 @@ pub async fn delete_user_and_cleanup_devices(
         for network_info in &device_info.network_info {
             affected_location_ids.insert(network_info.network_id);
         }
-        events.push(GatewayEvent::DeviceDeleted(device_info));
+        events.push(GatewayCommand::DeviceDeleted(device_info));
     }
 
     user.delete(&mut *conn).await?;
@@ -49,7 +65,7 @@ pub async fn delete_user_and_cleanup_devices(
                 debug!(
                     "Sending firewall config update for location {location} affected by deleting user {username} devices"
                 );
-                events.push(GatewayEvent::FirewallConfigChanged(
+                events.push(GatewayCommand::FirewallConfigChanged(
                     location_id,
                     firewall_config,
                 ));
@@ -57,7 +73,7 @@ pub async fn delete_user_and_cleanup_devices(
         }
     }
 
-    send_multiple_wireguard_events(events, wg_tx);
+    send_multiple_gateway_commands(events, gateway_tx);
     info!(
         "The user {} has been deleted and his devices removed from gateways.",
         &username
@@ -69,12 +85,12 @@ pub async fn delete_user_and_cleanup_devices(
 pub async fn disable_user(
     user: &mut User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayEvent>,
-) -> Result<(), WebError> {
+    gateway_tx: &Sender<GatewayCommand>,
+) -> Result<(), UserManagementError> {
     user.is_active = false;
     user.save(&mut *conn).await?;
     user.logout_all_sessions(&mut *conn).await?;
-    sync_allowed_user_devices(user, conn, wg_tx).await?;
+    sync_allowed_user_devices(user, conn, gateway_tx).await?;
     Ok(())
 }
 
@@ -82,8 +98,8 @@ pub async fn disable_user(
 pub async fn sync_allowed_user_devices(
     user: &User<Id>,
     conn: &mut PgConnection,
-    wg_tx: &Sender<GatewayEvent>,
-) -> Result<(), WebError> {
+    gateway_tx: &Sender<GatewayCommand>,
+) -> Result<(), UserManagementError> {
     debug!("Syncing allowed devices of user {}", user.username);
     let locations = WireguardNetwork::all(&mut *conn).await?;
     for location in locations {
@@ -93,16 +109,16 @@ pub async fn sync_allowed_user_devices(
         // check if any peers were updated
         if !gateway_events.is_empty() {
             // send peer update events
-            send_multiple_wireguard_events(gateway_events, wg_tx);
+            send_multiple_gateway_commands(gateway_events, gateway_tx);
         }
 
         // send firewall config update if ACLs & enterprise features are enabled
         if let Some(firewall_config) =
             try_get_location_firewall_config(&location, &mut *conn).await?
         {
-            send_wireguard_event(
-                GatewayEvent::FirewallConfigChanged(location.id, firewall_config),
-                wg_tx,
+            send_gateway_command(
+                GatewayCommand::FirewallConfigChanged(location.id, firewall_config),
+                gateway_tx,
             );
         }
     }

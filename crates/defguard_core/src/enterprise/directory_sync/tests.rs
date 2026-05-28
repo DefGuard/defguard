@@ -6,7 +6,7 @@ mod test {
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
             models::{
-                Device, DeviceType, Session, SessionState, Settings, WireguardNetwork,
+                Device, DeviceType, Session, SessionState, Settings, User, WireguardNetwork,
                 settings::initialize_current_settings,
                 wireguard::{LocationMfaMode, ServiceLocationMode},
             },
@@ -19,6 +19,7 @@ mod test {
 
     use super::super::*;
     use crate::{
+        device_access::join_device_to_all_networks,
         enterprise::{
             db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind},
             license::{License, LicenseTier, SupportType, set_cached_license},
@@ -59,6 +60,7 @@ mod test {
             None,
             Vec::new(),
             true,
+            false,
             false,
             false,
             LocationMfaMode::Disabled,
@@ -123,7 +125,9 @@ mod test {
         .await
         .unwrap();
 
-        dev.add_to_all_networks(&mut transaction).await.unwrap();
+        join_device_to_all_networks(&mut transaction, &dev, &user)
+            .await
+            .unwrap();
 
         transaction.commit().await.unwrap();
 
@@ -146,7 +150,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -167,7 +171,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &gateway_tx, &all_users)
             .await
             .unwrap();
 
@@ -176,7 +180,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         // No events
-        assert!(wg_rx.try_recv().is_err());
+        assert!(gateway_rx.try_recv().is_err());
     }
 
     // Delete users, keep admins
@@ -186,7 +190,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -208,7 +212,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &gateway_tx, &all_users)
             .await
             .unwrap();
 
@@ -216,8 +220,8 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_none());
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
-        let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
+        let event = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2.id);
         } else {
             panic!("Expected a DeviceDeleted event");
@@ -229,7 +233,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
         User::init_admin_user(&pool, "pass123").await.unwrap();
 
         let _ = make_test_provider(
@@ -254,7 +258,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &gateway_tx, &all_users)
             .await
             .unwrap();
 
@@ -270,8 +274,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         // Check that we received a device deleted event for whichever admin was removed
-        let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
+        let event = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert!(dev.device.user_id == user1.id || dev.device.user_id == user3.id);
         } else {
             panic!("Expected a DeviceDeleted event");
@@ -284,7 +288,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -308,7 +312,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &gateway_tx, &all_users)
             .await
             .unwrap();
 
@@ -324,8 +328,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         // Check for device deletion events
-        let event1 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event1 {
+        let event1 = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event1 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user2.id
@@ -335,8 +339,8 @@ mod test {
             panic!("Expected a DeviceDeleted event");
         }
 
-        let event2 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event2 {
+        let event2 = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event2 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user2.id
@@ -353,7 +357,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Disable,
@@ -395,20 +399,20 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &gateway_tx, &all_users)
             .await
             .unwrap();
 
         // Check for device disconnection events
-        let event1 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event1 {
+        let event1 = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event1 {
             assert!(dev.device.user_id == user2.id || dev.device.user_id == testuserdisabled.id);
         } else {
             panic!("Expected a DeviceDisconnected event");
         }
 
-        let event2 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event2 {
+        let event2 = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event2 {
             assert!(dev.device.user_id == user2.id || dev.device.user_id == testuserdisabled.id);
         } else {
             panic!("Expected a DeviceDisconnected event");
@@ -436,7 +440,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16); // Added mut wg_rx
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16); // Added mut gateway_rx
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -468,13 +472,13 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &gateway_tx, &all_users)
             .await
             .unwrap();
 
         // Check for device disconnection events
-        let event1 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event1 {
+        let event1 = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event1 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user3.id
@@ -484,8 +488,8 @@ mod test {
             panic!("Expected a DeviceDisconnected event");
         }
 
-        let event2 = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event2 {
+        let event2 = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event2 {
             assert!(
                 dev.device.user_id == user1.id
                     || dev.device.user_id == user3.id
@@ -514,7 +518,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -530,7 +534,7 @@ mod test {
         make_test_user_and_device("testuser2", &pool).await;
         make_test_user_and_device("testuserdisabled", &pool).await;
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_groups(&client, &pool, &wg_tx, Some(&all_users))
+        sync_all_users_groups(&client, &pool, &gateway_tx, Some(&all_users))
             .await
             .unwrap();
 
@@ -571,7 +575,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -585,7 +589,7 @@ mod test {
         let user = make_test_user_and_device("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        sync_user_groups_if_configured(&user, &pool, &wg_tx)
+        sync_user_groups_if_configured(&user, &pool, &gateway_tx)
             .await
             .unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
@@ -600,7 +604,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -614,7 +618,7 @@ mod test {
         let user = make_test_user_and_device("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
     }
@@ -625,7 +629,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -648,24 +652,24 @@ mod test {
         let user2_pre_sync = make_test_user_and_device("user2", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
         assert!(user2.is_none());
         let mut transaction = pool.begin().await.unwrap();
-        sync_allowed_user_devices(&user, &mut transaction, &wg_tx)
+        sync_allowed_user_devices(&user, &mut transaction, &gateway_tx)
             .await
             .unwrap();
         transaction.commit().await.unwrap();
-        let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
+        let event = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2_pre_sync.id);
         } else {
             panic!("Expected DeviceDeleted event");
         }
-        let event = wg_rx.try_recv();
-        if let Ok(GatewayEvent::DeviceCreated(dev)) = event {
+        let event = gateway_rx.try_recv();
+        if let Ok(GatewayCommand::DeviceCreated(dev)) = event {
             panic!("Unexpected DeviceCreated event: {dev:?}");
         }
     }
@@ -676,7 +680,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -691,7 +695,7 @@ mod test {
         make_test_user_and_device("user2", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
@@ -704,7 +708,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -724,7 +728,7 @@ mod test {
         assert_eq!(user_groups.len(), 1);
         assert!(user.is_admin(&pool).await.unwrap());
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
 
         // He should still be an admin as it's the last one
         assert!(user.is_admin(&pool).await.unwrap());
@@ -733,7 +737,7 @@ mod test {
         let user2 = make_test_user_and_device("testuser2", &pool).await;
         user2.add_to_group(&pool, &admin_grp).await.unwrap();
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
 
         let admins = User::find_admins(&pool).await.unwrap();
         // There should be only one admin left
@@ -742,7 +746,7 @@ mod test {
         let defguard_user = make_test_user_and_device("defguard", &pool).await;
         make_admin(&pool, &defguard_user).await;
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
     }
 
     #[sqlx::test]
@@ -751,7 +755,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -768,7 +772,7 @@ mod test {
         make_admin(&pool, &defguard_user).await;
         assert!(defguard_user.is_admin(&pool).await.unwrap());
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
 
         // The user should still be an admin
         assert!(defguard_user.is_admin(&pool).await.unwrap());
@@ -780,7 +784,7 @@ mod test {
             .await
             .unwrap();
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
         let user = User::find_by_username(&pool, "defguard").await.unwrap();
         assert!(user.is_none());
     }
@@ -791,7 +795,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
 
         // disable prefetching users
         make_test_provider(
@@ -809,14 +813,14 @@ mod test {
         let defguard_users = User::all(&pool).await.unwrap();
         assert!(defguard_users.is_empty());
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
 
         // no users in Defguard after sync
         let defguard_users = User::all(&pool).await.unwrap();
         assert!(defguard_users.is_empty());
 
         // No events
-        assert!(wg_rx.try_recv().is_err());
+        assert!(gateway_rx.try_recv().is_err());
     }
 
     #[sqlx::test]
@@ -825,7 +829,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
 
         // enable prefetching users
         make_test_provider(
@@ -843,14 +847,14 @@ mod test {
         let defguard_users = User::all(&pool).await.unwrap();
         assert!(defguard_users.is_empty());
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
 
         // all active directory users were synced
         let defguard_users = User::all(&pool).await.unwrap();
         assert_eq!(defguard_users.len(), 3);
 
         // No events
-        assert!(wg_rx.try_recv().is_err());
+        assert!(gateway_rx.try_recv().is_err());
     }
 
     #[sqlx::test]
@@ -862,7 +866,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config);
-        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
 
         // enable prefetching users
         make_test_provider(
@@ -892,7 +896,7 @@ mod test {
         set_cached_license(Some(license));
         update_counts(&pool).await.unwrap();
 
-        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        do_directory_sync(&pool, &gateway_tx).await.unwrap();
         update_counts(&pool).await.unwrap();
 
         let user_count = get_counts().user();
@@ -902,6 +906,6 @@ mod test {
         assert_eq!(defguard_users.len(), user_limit as usize);
 
         // No events
-        assert!(wg_rx.try_recv().is_err());
+        assert!(gateway_rx.try_recv().is_err());
     }
 }

@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{Device, WireguardNetwork},
 };
 use defguard_core::{
-    grpc::GatewayEvent,
+    grpc::GatewayCommand,
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
@@ -38,6 +38,7 @@ async fn make_first_network(client: &TestClient) -> TestResponse {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -65,6 +66,7 @@ async fn make_second_network(client: &TestClient) -> TestResponse {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
             "location_mfa_mode": "disabled",
             "service_location_mode": "disabled"
         }))
@@ -98,7 +100,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, client_state) = make_test_client(pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut gateway_rx = client_state.gateway_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -108,13 +110,13 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let response = make_first_network(&client).await;
     let network_1: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_1.name, "network");
-    let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    let event = gateway_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
     let response = make_second_network(&client).await;
     let network_2: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_2.name, "network-2");
-    let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    let event = gateway_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayCommand::NetworkCreated(..));
 
     // ip suggestions
     let response = client.get("/api/v1/device/network/ip/1").send().await;
@@ -201,8 +203,8 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let configured = json["device"]["configured"].as_bool().unwrap();
     let config_text = json["config"]["config"].as_str().unwrap();
     assert!(configured);
-    let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    let event = gateway_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayCommand::DeviceCreated(..));
 
     // download WG config
     let response = client.get("/api/v1/device/network/1/config").send().await;
@@ -238,8 +240,8 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     assert_eq!(device.name, "device-1");
     assert_eq!(device.description, Some("new description".to_owned()));
-    let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceModified(..));
+    let event = gateway_rx.try_recv().unwrap();
+    assert_matches!(event, GatewayCommand::DeviceModified(..));
 
     // Make sure the device is only in the selected network
     let device_networks =
@@ -332,6 +334,7 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
         "location_mfa_mode": "disabled",
         "service_location_mode": "disabled"
     });

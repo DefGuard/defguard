@@ -9,7 +9,7 @@ pub mod version_list;
 #[cfg(test)]
 mod tests;
 
-pub use evaluation::validate_posture;
+pub(crate) use evaluation::validate_posture;
 
 #[derive(Debug, Error)]
 pub enum PostureCheckError {
@@ -100,7 +100,7 @@ impl fmt::Display for FailureReason {
     }
 }
 
-pub enum PostureResult {
+pub(crate) enum PostureResult {
     Pass,
     Fail(Vec<FailureReason>),
 }

@@ -669,6 +669,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
             true,
             false,
             false,
+            false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )
@@ -1215,6 +1216,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
         None,
         Vec::new(),
         true,
+        false,
         false,
         false,
         LocationMfaMode::Disabled,

@@ -753,6 +753,7 @@ export interface NetworkLocation {
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
   acl_default_allow: boolean;
+  allowed_ips_from_acl: boolean;
   location_mfa_mode: LocationMfaModeValue;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
@@ -1514,6 +1515,7 @@ export interface ActivityLogFilters {
   search: string;
 }
 
-export type ActivityLogRequestParams = Partial<ActivityLogFilters> &
-  RequestSortParams<ActivityLogSortKey> &
-  PaginationParams;
+export type ActivityLogRequestParams = Partial<ActivityLogFilters> & {
+  sort_by?: ActivityLogSortKey;
+  sort_order?: SortDirectionValue;
+} & PaginationParams;

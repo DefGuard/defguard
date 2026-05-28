@@ -484,12 +484,17 @@ pub(crate) async fn apply_acl_rules(
         "User {} applying ACL rules: {:?}",
         session.user.username, data.rules
     );
-    AclRule::apply_rules(&data.rules, &session.user.username, &appstate)
-        .await
-        .map_err(|err| {
-            error!("Error applying ACL rules {data:?}: {err}");
-            err
-        })?;
+    AclRule::apply_rules(
+        &data.rules,
+        &session.user.username,
+        &appstate.pool,
+        &appstate.gateway_tx,
+    )
+    .await
+    .map_err(|err| {
+        error!("Error applying ACL rules {data:?}: {err}");
+        err
+    })?;
     info!(
         "User {} applied ACL rules: {:?}",
         session.user.username, data.rules

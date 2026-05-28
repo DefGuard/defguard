@@ -1,25 +1,26 @@
 use std::net::IpAddr;
 
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
-        user::User,
-        vpn_client_session::VpnClientSession,
-        wireguard::{LocationMfaMode, WireguardNetwork},
+use defguard_common::gateway_event::GatewayCommand;
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
+            user::User,
+            vpn_client_session::VpnClientSession,
+            wireguard::{LocationMfaMode, WireguardNetwork},
+        },
+    },
+    gateway_types::{
+        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port,
+        Protocol as GwProtocol, SnatBinding,
     },
 };
-use defguard_core::{
-    enterprise::db::models::device_posture::{
-        DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
-    },
-    grpc::GatewayEvent,
+use defguard_core::enterprise::db::models::device_posture::{
+    DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
 };
 use defguard_proto::{
-    enterprise::firewall::{
-        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol,
-        SnatBinding, ip_address::Address, port::Port as PortInner,
-    },
+    enterprise::firewall::FirewallConfig as ProtoFirewallConfig,
     gateway::{
         CoreResponse, Update, UpdateType, core_response,
         update::{self},
@@ -263,7 +264,7 @@ pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    build_event: fn(DeviceInfo) -> GatewayEvent,
+    build_event: fn(DeviceInfo) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     assert_eq!(context.events_tx().receiver_count(), 0);
@@ -288,7 +289,7 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    build_event: fn(DeviceInfo) -> GatewayEvent,
+    build_event: fn(DeviceInfo) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     let other_network = context.create_other_network().await;
@@ -316,7 +317,7 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
 
 pub(crate) async fn assert_firewall_event_for_different_network_is_ignored(
     options: PgConnectOptions,
-    build_event: impl FnOnce(Id) -> GatewayEvent,
+    build_event: impl FnOnce(Id) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     let other_network = context.create_other_network().await;
@@ -362,7 +363,7 @@ pub(crate) fn assert_peer_update(
                 peer.allowed_ips,
                 expected_allowed_ips
                     .iter()
-                    .map(std::string::ToString::to_string)
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>()
             );
             assert_eq!(peer.preshared_key.as_deref(), expected_preshared_key);
@@ -439,28 +440,20 @@ pub(crate) fn assert_network_modify_update(
 
 pub(crate) fn build_test_firewall_config() -> FirewallConfig {
     FirewallConfig {
-        default_policy: i32::from(FirewallPolicy::Allow),
+        default_policy: FirewallPolicy::Allow,
         rules: vec![FirewallRule {
             id: 101,
-            source_addrs: vec![IpAddress {
-                address: Some(Address::IpSubnet("10.10.0.0/24".to_owned())),
-            }],
-            destination_addrs: vec![IpAddress {
-                address: Some(Address::Ip("198.51.100.20".to_owned())),
-            }],
-            destination_ports: vec![Port {
-                port: Some(PortInner::SinglePort(443)),
-            }],
-            protocols: vec![i32::from(Protocol::Tcp)],
-            verdict: i32::from(FirewallPolicy::Deny),
+            source_addrs: vec![IpAddress::IpSubnet("10.10.0.0/24".to_owned())],
+            destination_addrs: vec![IpAddress::Ip("198.51.100.20".to_owned())],
+            destination_ports: vec![Port::Single(443)],
+            protocols: vec![GwProtocol::Tcp],
+            verdict: FirewallPolicy::Deny,
             comment: Some("block test https destination".to_owned()),
-            ip_version: i32::from(IpVersion::Ipv4),
+            ip_version: IpVersion::Ipv4,
         }],
         snat_bindings: vec![SnatBinding {
             id: 202,
-            source_addrs: vec![IpAddress {
-                address: Some(Address::IpSubnet("10.10.0.0/24".to_owned())),
-            }],
+            source_addrs: vec![IpAddress::IpSubnet("10.10.0.0/24".to_owned())],
             public_ip: "203.0.113.44".to_owned(),
             comment: Some("test snat binding".to_owned()),
         }],
@@ -471,6 +464,7 @@ pub(crate) fn assert_firewall_modify_update(
     outbound: CoreResponse,
     expected_firewall_config: &FirewallConfig,
 ) {
+    let expected_proto: ProtoFirewallConfig = expected_firewall_config.clone().into();
     match outbound.payload {
         Some(core_response::Payload::Update(Update {
             update_type,
@@ -479,22 +473,19 @@ pub(crate) fn assert_firewall_modify_update(
             assert_eq!(update_type, UpdateType::Modify as i32);
             assert_eq!(
                 firewall_config.default_policy,
-                expected_firewall_config.default_policy
+                expected_proto.default_policy
             );
-            assert_eq!(
-                firewall_config.rules.len(),
-                expected_firewall_config.rules.len()
-            );
+            assert_eq!(firewall_config.rules.len(), expected_proto.rules.len());
             assert_eq!(
                 firewall_config.snat_bindings.len(),
-                expected_firewall_config.snat_bindings.len()
+                expected_proto.snat_bindings.len()
             );
 
             let firewall_rule = firewall_config
                 .rules
                 .first()
                 .expect("expected firewall rule in update payload");
-            let expected_firewall_rule = expected_firewall_config
+            let expected_firewall_rule = expected_proto
                 .rules
                 .first()
                 .expect("expected firewall rule in test config");
@@ -520,7 +511,7 @@ pub(crate) fn assert_firewall_modify_update(
                 .snat_bindings
                 .first()
                 .expect("expected SNAT binding in update payload");
-            let expected_snat_binding = expected_firewall_config
+            let expected_snat_binding = expected_proto
                 .snat_bindings
                 .first()
                 .expect("expected SNAT binding in test config");

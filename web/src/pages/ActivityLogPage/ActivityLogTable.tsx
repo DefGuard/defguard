@@ -1,21 +1,27 @@
 import {
+  type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
+  type OnChangeFn,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
-import { activityLogEventDisplay } from '../../shared/api/activity-log-types';
-import type {
-  ActivityLogEvent,
-  ActivityLogFilters,
-  PaginationMeta,
-} from '../../shared/api/types';
+import {
+  ActivityLogEventType,
+  type ActivityLogEventTypeValue,
+  ActivityLogModule,
+  type ActivityLogModuleValue,
+  activityLogEventDisplay,
+} from '../../shared/api/activity-log-types';
+import type { ActivityLogEvent } from '../../shared/api/types';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { useApiToTableState } from '../../shared/defguard-ui/hooks/useApiToTableState';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../shared/utils/displayDate';
 import { formatIpForDisplay } from '../../shared/utils/formatIpForDisplay';
@@ -25,6 +31,22 @@ type RowData = ActivityLogEvent;
 const columnHelper = createColumnHelper<RowData>();
 const missingValuePlaceholder = '—';
 const activityLogTimestampFormat = 'DD/MM/YYYY | HH:mm:ss';
+
+const eventFilterOptions: SelectionOption<ActivityLogEventTypeValue>[] = Object.values(
+  ActivityLogEventType,
+).map((event) => ({
+  id: event,
+  label: activityLogEventDisplay[event],
+  searchFields: [activityLogEventDisplay[event]],
+}));
+
+const moduleFilterOptions: SelectionOption<ActivityLogModuleValue>[] = Object.values(
+  ActivityLogModule,
+).map((module) => ({
+  id: module,
+  label: module,
+  searchFields: [module],
+}));
 
 const renderOptionalTableValue = (
   value: string | null | undefined,
@@ -39,27 +61,40 @@ const renderOptionalTableValue = (
 
 interface Props {
   data: RowData[];
-  filters: Partial<ActivityLogFilters>;
-  pagination: PaginationMeta;
   hasNextPage: boolean;
   loadingNextPage: boolean;
   onNextPage: () => void;
+  search: string;
+  onSearchChange: (val: string) => void;
+  sortingState: SortingState;
+  onSortingChange: OnChangeFn<SortingState>;
+  columnFilters: ColumnFiltersState;
+  onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
+  locationFilterOptions: SelectionOption<string>[];
 }
 
 export const ActivityLogTable = ({
   data,
-  filters,
-  pagination,
   loadingNextPage,
   hasNextPage,
   onNextPage,
+  search,
+  onSearchChange,
+  sortingState,
+  onSortingChange,
+  columnFilters,
+  onColumnFiltersChange,
+  locationFilterOptions,
 }: Props) => {
-  const { sortingState } = useApiToTableState<RowData>({
-    ...filters,
-    ...pagination,
-    defaultSortingKey: 'timestamp',
-  });
-
+  const tableFilterMessages = useMemo(
+    () => ({
+      searchPlaceholder: m.controls_search(),
+      clearButton: m.controls_reset(),
+      applyButton: m.controls_submit(),
+      emptyState: m.search_empty_common_title(),
+    }),
+    [],
+  );
   const columns = useMemo(
     () => [
       columnHelper.accessor('timestamp', {
@@ -78,6 +113,7 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('username', {
         header: m.activity_log_col_user(),
+        enableSorting: true,
         minSize: 150,
         cell: (info) => (
           <TableCell>
@@ -87,6 +123,7 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('ip', {
         header: m.activity_log_col_ip(),
+        enableSorting: true,
         minSize: 150,
         cell: (info) => {
           const value = info.getValue();
@@ -100,7 +137,12 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('location', {
         header: m.activity_log_col_location(),
+        enableSorting: true,
+        enableColumnFilter: true,
         minSize: 130,
+        meta: {
+          filterOptions: locationFilterOptions,
+        },
         cell: (info) => {
           const value = info.getValue();
           return (
@@ -112,7 +154,12 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('event', {
         header: m.activity_log_col_event(),
+        enableSorting: true,
+        enableColumnFilter: true,
         minSize: 190,
+        meta: {
+          filterOptions: eventFilterOptions,
+        },
         cell: (info) => {
           const event = info.getValue();
           return (
@@ -124,7 +171,12 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('module', {
         header: m.activity_log_col_module(),
+        enableSorting: true,
+        enableColumnFilter: true,
         minSize: 120,
+        meta: {
+          filterOptions: moduleFilterOptions,
+        },
         cell: (info) => {
           const value = info.getValue();
           return (
@@ -163,12 +215,13 @@ export const ActivityLogTable = ({
         ),
       }),
     ],
-    [],
+    [locationFilterOptions],
   );
 
   const table = useReactTable({
     state: {
       sorting: sortingState,
+      columnFilters,
     },
     data,
     columns,
@@ -177,26 +230,38 @@ export const ActivityLogTable = ({
     enableRowSelection: false,
     enableExpanding: false,
     enableSorting: true,
+    manualSorting: true,
+    enableSortingRemoval: false,
+    onSortingChange,
+    manualFiltering: true,
+    onColumnFiltersChange,
+    meta: {
+      filterMessages: tableFilterMessages,
+    },
   });
-
-  if (data.length === 0)
-    return (
-      <EmptyStateFlexible
-        icon="log"
-        title={m.activity_log_empty_title()}
-        subtitle={m.activity_log_empty_subtitle()}
-      />
-    );
 
   return (
     <>
-      <TableTop text={m.activity_log_table_title()}></TableTop>
+      <TableTop text={m.activity_log_table_title()}>
+        <Search
+          placeholder={m.controls_search()}
+          initialValue={search}
+          onChange={onSearchChange}
+        />
+      </TableTop>
       <TableBody
         table={table}
         hasNextPage={hasNextPage}
         onNextPage={onNextPage}
         loadingNextPage={loadingNextPage}
       />
+      {data.length === 0 && (
+        <EmptyStateFlexible
+          icon="log"
+          title={m.activity_log_empty_title()}
+          subtitle={m.activity_log_empty_subtitle()}
+        />
+      )}
     </>
   );
 };

@@ -31,7 +31,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     grpc::{
-        GatewayEvent,
+        GatewayCommand,
         proxy::client_mfa::{
             ClientLoginSession, ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome,
         },
@@ -218,10 +218,12 @@ impl ProxyHandler {
     fn retry_delay(&self) -> Duration {
         #[cfg(test)]
         {
-            return self.handler_retry_delay();
+            self.handler_retry_delay()
         }
-        #[cfg_attr(test, allow(unreachable_code))]
-        TEN_SECS
+        #[cfg(not(test))]
+        {
+            TEN_SECS
+        }
     }
 
     async fn connect_channel_mtls(
@@ -473,7 +475,7 @@ impl ProxyHandler {
     async fn message_loop(
         &mut self,
         tx: UnboundedSender<CoreResponse>,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         resp_stream: &mut Streaming<CoreRequest>,
     ) -> Result<(), ProxyError> {
         let pool = self.pool.clone();
@@ -662,7 +664,7 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .client_mfa
-                                .start_client_mfa_login(request)
+                                .start_client_mfa_login(request, received.device_info)
                                 .await
                             {
                                 Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
@@ -872,7 +874,7 @@ impl ProxyHandler {
                                             if let Err(err) = sync_user_groups_if_configured(
                                                 &user,
                                                 &pool,
-                                                &wireguard_tx,
+                                                &gateway_tx,
                                             )
                                             .await
                                             {
@@ -926,8 +928,8 @@ impl ProxyHandler {
                                 }
                                 Err(err) => {
                                     error!(
-                                        "Proxy requested an OpenID authentication info for a callback \
-                                    URL that couldn't be built. Details: {err}"
+                                        "Proxy requested an OpenID authentication info for a \
+                                        callback URL that couldn't be built. Details: {err}"
                                     );
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,

@@ -6,13 +6,16 @@ use defguard_common::{
         Id,
         models::{
             BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
-            WireguardNetwork, device::DeviceInfo, polling_token::PollingToken,
+            WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            polling_token::PollingToken,
             wireguard::ServiceLocationMode,
         },
     },
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    device_access::{build_device_config, join_device_to_all_networks},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -21,7 +24,7 @@ use defguard_core::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        GatewayEvent, InstanceInfo,
+        GatewayCommand, InstanceInfo,
         client_version::ClientFeature,
         utils::{build_device_config_response, parse_client_ip_agent},
     },
@@ -48,7 +51,7 @@ use tonic::Status;
 
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -56,12 +59,12 @@ impl EnrollmentServer {
     #[must_use]
     pub(crate) fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             pool,
-            wireguard_tx,
+            gateway_tx,
             bidi_event_tx,
         }
     }
@@ -96,10 +99,10 @@ impl EnrollmentServer {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server
-    pub(crate) fn send_wireguard_event(&self, event: GatewayEvent) {
-        if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending WireGuard event {err}");
+    /// Sends given `GatewayCommand` to be handled by gateway manager service
+    pub(crate) fn send_gateway_command(&self, event: GatewayCommand) {
+        if let Err(err) = self.gateway_tx.send(event) {
+            error!("Error sending Gateway command: {err}");
         }
     }
 
@@ -696,18 +699,41 @@ impl EnrollmentServer {
                 );
             }
 
-            let (network_info, configs) = device
-                .get_network_configs(&network, &mut transaction)
+            let wireguard_network_device =
+                WireguardNetworkDevice::find(&mut *transaction, device.id, network.id)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to find WireguardNetworkDevice: {err}");
+                        Status::internal("unexpected error")
+                    })?
+                    .ok_or_else(|| {
+                        error!(
+                            "Device {} not found in network {}",
+                            device.name, network.name
+                        );
+                        Status::internal("unexpected error")
+                    })?;
+            let device_config =
+                build_device_config(&mut transaction, &network, &wireguard_network_device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to build device config for device {} for user {}({:?}): {err}",
+                            device.name, user.username, user.id
+                        );
+                        Status::internal("unexpected error")
+                    })?;
+            let device_network_info = wireguard_network_device
+                .to_device_network_info_runtime(&mut *transaction, &network)
                 .await
                 .map_err(|err| {
-                    error!(
-                        "Failed to get network configs for device {} for user {}({:?}): {err}",
-                        device.name, user.username, user.id
-                    );
+                    error!("Failed to get device network info: {err}");
                     Status::internal("unexpected error")
                 })?;
+            let configs = vec![device_config];
+            let network_info = vec![device_network_info];
 
-            (device, vec![network_info], vec![configs])
+            (device, network_info, configs)
         } else {
             debug!(
                 "Creating new device for user {}({:?}): {}.",
@@ -739,16 +765,16 @@ impl EnrollmentServer {
                 "Adding device {} to all existing user networks for user {}({:?}).",
                 device.wireguard_pubkey, user.username, user.id,
             );
-            let (network_info, configs) = device
-                .add_to_all_networks(&mut transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to add device {} to existing networks: {err}",
-                        device.name
-                    );
-                    Status::internal("unexpected error")
-                })?;
+            let (network_info, configs) =
+                join_device_to_all_networks(&mut transaction, &device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to add device {} to existing networks: {err}",
+                            device.name
+                        );
+                        Status::internal("unexpected error")
+                    })?;
             info!(
                 "Added device {} to all existing user networks for user {}({:?})",
                 device.wireguard_pubkey, user.username, user.id
@@ -785,7 +811,7 @@ impl EnrollmentServer {
                         adding new device {}, user {}({})",
                         device.wireguard_pubkey, user.username, user.id
                     );
-                    self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                    self.send_gateway_command(GatewayCommand::FirewallConfigChanged(
                         location_id,
                         firewall_config,
                     ));
@@ -797,7 +823,7 @@ impl EnrollmentServer {
             "Sending DeviceCreated event to gateway for device {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
         );
-        self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+        self.send_gateway_command(GatewayCommand::DeviceCreated(DeviceInfo {
             device: device.clone(),
             network_info,
         }));
@@ -1201,9 +1227,9 @@ mod test {
         settings.enrollment_send_welcome_email = false;
         update_current_settings(&pool, settings).await.unwrap();
 
-        let (wireguard_tx, _) = broadcast::channel(1);
+        let (gateway_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), wireguard_tx, bidi_event_tx);
+        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx);
 
         let mut transaction = pool.begin().await.unwrap();
         let result = server

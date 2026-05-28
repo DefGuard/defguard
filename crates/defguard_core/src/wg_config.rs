@@ -114,6 +114,7 @@ pub(crate) fn parse_wireguard_config(
         true,
         false,
         false,
+        false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )
@@ -121,7 +122,7 @@ pub(crate) fn parse_wireguard_config(
     network.mtu = mtu;
     network.fwmark = fwmark;
     network.pubkey = pubkey;
-    network.prvkey = prvkey.to_owned();
+    prvkey.clone_into(&mut network.prvkey);
 
     // Parse Devices
     let peer_sections = config.section_all(Some("Peer"));

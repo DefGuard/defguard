@@ -50,7 +50,7 @@ use crate::{
         posture::{PostureCheckError, PostureResult, validate_posture},
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{GatewayEvent, utils::parse_client_ip_agent},
+    grpc::{GatewayCommand, utils::parse_client_ip_agent},
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -82,7 +82,7 @@ pub struct ClientLoginSession {
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    gateway_tx: Sender<GatewayCommand>,
     pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -103,14 +103,14 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayEvent>,
+        gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         Self {
             pool,
-            wireguard_tx,
+            gateway_tx,
             sessions,
             remote_mfa_responses,
             bidi_event_tx,
@@ -140,11 +140,12 @@ impl ClientMfaServer {
         Ok(claims.client_id)
     }
 
+    /// Emit given event to the channel.
     pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         Ok(self.bidi_event_tx.send(event)?)
     }
 
-    /// Allows proxy to verify if token is valid and active
+    /// Allows Edge to verify if token is valid and active.
     #[instrument(skip_all)]
     pub async fn validate_mfa_token(
         &mut self,
@@ -165,6 +166,7 @@ impl ClientMfaServer {
     pub async fn start_client_mfa_login(
         &mut self,
         request: ClientMfaStartRequest,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaStartOutcome, Status> {
         debug!("Starting desktop client login: {request:?}");
         // fetch location
@@ -228,10 +230,42 @@ impl ClientMfaServer {
                     }
                 })?;
 
-            // Posture check failed - return payload with reasons
-            if let PostureResult::Fail(reasons) = posture_result {
-                let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
-                return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+            let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+            let context =
+                BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
+
+            match posture_result {
+                PostureResult::Fail(reasons) => {
+                    let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckFailed {
+                                device: device.clone(),
+                                location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
+                                failed_checks: failed_checks.clone(),
+                            },
+                        )),
+                    }) {
+                        error!("Failed to emit DevicePostureCheckFailed event: {err}");
+                    }
+                    return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+                }
+                PostureResult::Pass => {
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckPassed {
+                                device: device.clone(),
+                                location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
+                            },
+                        )),
+                    }) {
+                        error!("Failed to emit DevicePostureCheckPassed event: {err}");
+                    }
+                }
             }
         }
 
@@ -273,7 +307,7 @@ impl ClientMfaServer {
                 );
 
                 return Err(Status::invalid_argument(
-                    "selected MFA method not supported by location",
+                    "selected MFA method is not supported by location",
                 ));
             }
         }
@@ -290,7 +324,7 @@ impl ClientMfaServer {
                     selected_mobile_auth = Some(found);
                 } else {
                     return Err(Status::invalid_argument(
-                        "Select MFA method not available for the device.",
+                        "Select MFA method is not available for the device.",
                     ));
                 }
             }
@@ -301,7 +335,7 @@ impl ClientMfaServer {
                     .map_err(|_| Status::internal("unexpected error"))?;
                 if result.is_empty() {
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
             }
@@ -309,7 +343,7 @@ impl ClientMfaServer {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
             }
@@ -317,7 +351,7 @@ impl ClientMfaServer {
                 if !user.email_mfa_enabled {
                     error!("Email MFA not enabled for user {}", user.username);
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
                 // Generate the code and send it via email.
@@ -343,7 +377,7 @@ impl ClientMfaServer {
                 if !is_business_license_active() {
                     error!("OIDC MFA method requires enterprise feature to be enabled");
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
 
@@ -357,7 +391,7 @@ impl ClientMfaServer {
                 {
                     error!("OIDC provider is not configured");
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
             }
@@ -374,12 +408,13 @@ impl ClientMfaServer {
         let biometric_challenge: Option<BiometricChallenge> = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
                 Some(mobile_auth) => {
-                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key).map_err(|e| {
-                        error!(
-                            "Start biometric mfa failed ! Challenge creation failed ! Reason: {e}"
-                        );
-                        Status::invalid_argument("Invalid public key")
-                    })?;
+                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key)
+                        .map_err(|e| {
+                            error!(
+                                "Start biometric MFA failed. Challenge creation failed. Reason: {e}"
+                            );
+                            Status::invalid_argument("Invalid public key")
+                        })?;
                     Some(challenge)
                 }
                 None => {
@@ -745,8 +780,8 @@ impl ClientMfaServer {
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let event =
-            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.wireguard_tx.send(event).map_err(|err| {
+            GatewayCommand::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
+        self.gateway_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
@@ -889,10 +924,7 @@ impl ClientMfaServer {
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect();
+            let failed_checks = reasons.iter().map(ToString::to_string).collect();
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 
@@ -932,8 +964,8 @@ impl ClientMfaServer {
         })?;
 
         let event =
-            GatewayEvent::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.wireguard_tx.send(event).map_err(|err| {
+            GatewayCommand::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
+        self.gateway_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
@@ -1028,8 +1060,8 @@ impl ClientMfaServer {
         // gateway update is only needed to remove peers that were authorized at runtime - MFA and posture-check sessions
         // this is needed to remove peers for both Connected and New sessions
         if requires_gateway_update {
-            let gateway_event = GatewayEvent::VpnSessionDeauthorized(location.id, device.clone());
-            self.wireguard_tx.send(gateway_event).map_err(|err| {
+            let gateway_event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
+            self.gateway_tx.send(gateway_event).map_err(|err| {
                 error!("Error sending WireGuard event: {err}");
                 Status::internal("unexpected error")
             })?;
@@ -1118,7 +1150,7 @@ mod tests {
             limits::{Counts, set_counts},
         },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
+        grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -1157,7 +1189,7 @@ mod tests {
             .try_recv()
             .expect("expected VPN authorization gateway event")
         {
-            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+            GatewayCommand::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(authorized_device.id, device.id);
                 assert_eq!(network_info.network_id, location.id);
@@ -1224,7 +1256,7 @@ mod tests {
             .try_recv()
             .expect("expected VPN deauthorization gateway event for replaced posture session")
         {
-            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1234,7 +1266,7 @@ mod tests {
             .try_recv()
             .expect("expected VPN authorization gateway event for replacement posture session")
         {
-            GatewayEvent::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
+            GatewayCommand::VpnSessionAuthorized(location_id, authorized_device, network_info) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(authorized_device.id, device.id);
                 assert!(network_info.preshared_key.is_some());
@@ -1340,7 +1372,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced connected session");
         match gateway_event {
-            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1415,7 +1447,7 @@ mod tests {
             .try_recv()
             .expect("expected MFA gateway disconnect event for replaced new session");
         match gateway_event {
-            GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device) => {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1508,9 +1540,9 @@ mod tests {
     ) -> (
         ClientMfaServer,
         tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-        tokio::sync::broadcast::Receiver<GatewayEvent>,
+        tokio::sync::broadcast::Receiver<GatewayCommand>,
     ) {
-        let (wireguard_tx, wireguard_rx) = broadcast::channel(8);
+        let (gateway_tx, gateway_rx) = broadcast::channel(8);
         let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
         let remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>> =
             Arc::default();
@@ -1519,13 +1551,13 @@ mod tests {
         (
             ClientMfaServer::new(
                 pool,
-                wireguard_tx,
+                gateway_tx,
                 bidi_event_tx,
                 remote_mfa_responses,
                 sessions,
             ),
             bidi_event_rx,
-            wireguard_rx,
+            gateway_rx,
         )
     }
 
@@ -1632,7 +1664,7 @@ mod tests {
         );
 
         match gateway_rx.try_recv() {
-            Ok(GatewayEvent::VpnSessionDeauthorized(location_id, disconnected_device)) => {
+            Ok(GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device)) => {
                 assert_eq!(location_id, location.id);
                 assert_eq!(disconnected_device.id, device.id);
             }
@@ -1649,6 +1681,7 @@ mod tests {
             None,
             [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
+            false,
             false,
             false,
             LocationMfaMode::Internal,
@@ -1669,6 +1702,7 @@ mod tests {
             None,
             [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
+            false,
             false,
             false,
             LocationMfaMode::Disabled,

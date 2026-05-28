@@ -18,7 +18,7 @@ async fn test_device_created_for_network_produces_peer_create_update(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::DeviceCreated(device_info)),
+            .send(GatewayCommand::DeviceCreated(device_info)),
         "failed to broadcast created device event"
     );
 
@@ -46,7 +46,7 @@ async fn test_device_created_before_config_handshake_is_ignored(
         "created-before-config-device",
         "tND8hJQhYnI8naBTo59He43zYldagfjlwmSxWEc01Cc=",
         "10.10.0.11",
-        GatewayEvent::DeviceCreated,
+        GatewayCommand::DeviceCreated,
     )
     .await;
 }
@@ -69,10 +69,11 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
     )
     .await;
 
-    let mut network_device = WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
-        .await
-        .expect("failed to load device network info")
-        .expect("expected device network info for modified device");
+    let mut network_device =
+        WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
+            .await
+            .expect("failed to load device network info")
+            .expect("expected device network info for modified device");
     network_device.wireguard_ips = vec![parse_test_ip("10.10.0.21")];
     network_device
         .update(&context.pool)
@@ -86,7 +87,7 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::DeviceModified(device_info)),
+            .send(GatewayCommand::DeviceModified(device_info)),
         "failed to broadcast modified device event"
     );
 
@@ -114,7 +115,7 @@ async fn test_device_modified_before_config_handshake_is_ignored(
         "modified-before-config-device",
         "wyFOHCec/Fi9s+cARikVO71JhyYtYMk0FrQx3fK2PTM=",
         "10.10.0.22",
-        GatewayEvent::DeviceModified,
+        GatewayCommand::DeviceModified,
     )
     .await;
 }
@@ -138,7 +139,7 @@ async fn test_device_deleted_for_network_produces_peer_delete_update(
     assert_send_ok!(
         context
             .events_tx()
-            .send(GatewayEvent::DeviceDeleted(device_info)),
+            .send(GatewayCommand::DeviceDeleted(device_info)),
         "failed to broadcast deleted device event"
     );
 
@@ -166,7 +167,7 @@ async fn test_device_deleted_before_config_handshake_is_ignored(
         "deleted-before-config-device",
         "m84QJmDMkqdCj8AB2NTE8F55W7M/i3CaaD3eQbQdInY=",
         "10.10.0.31",
-        GatewayEvent::DeviceDeleted,
+        GatewayCommand::DeviceDeleted,
     )
     .await;
 }
@@ -181,7 +182,7 @@ async fn test_device_created_for_different_network_is_ignored(
         "created-other-network-device",
         "W6wBmd8wgTwvCyGqDRXk6Hf4OMqDUbUn2XWKnG5wVVQ=",
         "10.11.0.10",
-        GatewayEvent::DeviceCreated,
+        GatewayCommand::DeviceCreated,
     )
     .await;
 }
@@ -196,7 +197,7 @@ async fn test_device_modified_for_different_network_is_ignored(
         "modified-other-network-device",
         "yjuzq0cLk3Ww5oQcqK6YkSKwXnqQ1V9OlSMFAEkr0lU=",
         "10.11.0.20",
-        GatewayEvent::DeviceModified,
+        GatewayCommand::DeviceModified,
     )
     .await;
 }
@@ -211,7 +212,7 @@ async fn test_device_deleted_for_different_network_is_ignored(
         "deleted-other-network-device",
         "Jtp+K8xnFXuF4cae+tVGZNwoSM2fXjJbRl3sI6rdcAQ=",
         "10.11.0.30",
-        GatewayEvent::DeviceDeleted,
+        GatewayCommand::DeviceDeleted,
     )
     .await;
 }
