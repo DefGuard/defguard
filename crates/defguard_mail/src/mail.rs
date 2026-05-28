@@ -15,8 +15,8 @@ use tera::{Context, Tera, Value};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
-use super::SmtpSettings;
-use crate::{
+use super::{
+    SmtpSettings,
     mail_context::MailContext,
     qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
@@ -259,7 +259,7 @@ impl Mail {
         .port(settings.port)
         .timeout(Some(SMTP_TIMEOUT));
 
-        // Skip credentials if any of them is empty
+        // Skip credentials if any of them is empty.
         let builder = if let (Some(user), Some(password)) = (settings.user, settings.password) {
             builder.credentials(Credentials::new(user, password))
         } else {

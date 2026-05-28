@@ -7,7 +7,6 @@
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 
 use crate::mail::MailError;
-pub use crate::mail::{Attachment, Mail};
 
 pub mod mail;
 pub(crate) mod mail_context;

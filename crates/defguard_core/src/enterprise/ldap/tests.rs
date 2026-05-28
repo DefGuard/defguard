@@ -30,6 +30,7 @@ use crate::{
 };
 
 const PASSWORD: &str = "test_password";
+const PROXY_URL: &str = "http://proxy.example.com";
 
 fn make_test_user(
     username: &str,
@@ -3515,7 +3516,7 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
     settings.ldap_remote_enrollment_enabled = true;
     settings.ldap_remote_enrollment_send_invite = true;
     // Provide a valid proxy URL so proxy_public_url() succeeds.
-    settings.public_proxy_url = "http://proxy.example.com".into();
+    settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
 
     make_test_admin(&pool, "sync_admin_invite").await;
@@ -3578,7 +3579,7 @@ async fn test_sync_invite_skipped_when_no_admin_exists(
     configure_smtp_and_ldap(&mut settings);
     settings.ldap_remote_enrollment_enabled = true;
     settings.ldap_remote_enrollment_send_invite = true;
-    settings.public_proxy_url = "http://proxy.example.com".into();
+    settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
 
     // Deliberately do NOT create any admin user.
@@ -3627,7 +3628,7 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
     configure_smtp_and_ldap(&mut settings);
     settings.ldap_remote_enrollment_enabled = true;
     settings.ldap_remote_enrollment_send_invite = true;
-    settings.public_proxy_url = "http://proxy.example.com".into();
+    settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
 
     make_test_admin(&pool, "login_admin_invite").await;
@@ -3699,7 +3700,7 @@ async fn test_ldap_login_does_not_send_invite_for_existing_user(
     configure_smtp_and_ldap(&mut settings);
     settings.ldap_remote_enrollment_enabled = true;
     settings.ldap_remote_enrollment_send_invite = true;
-    settings.public_proxy_url = "http://proxy.example.com".into();
+    settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
 
     make_test_admin(&pool, "login_admin_existing").await;

@@ -82,7 +82,7 @@ pub enum SettingsInitializationError {
     Invalid(&'static str, &'static str),
 }
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug)]
 pub enum SettingsUrlError {
     #[error("Unable to parse defguard_url `{0}`")]
     InvalidDefguardUrl(String),

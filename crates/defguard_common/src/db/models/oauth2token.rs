@@ -20,7 +20,7 @@ impl OAuth2Token {
     pub fn new(oauth2authorizedapp_id: Id, redirect_uri: String, scope: String) -> Self {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
-        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
+        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
         Self {
             oauth2authorizedapp_id,
             access_token: gen_alphanumeric(24),
@@ -37,7 +37,7 @@ impl OAuth2Token {
         let timeout = settings.authentication_timeout();
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
-        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
+        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
         self.expires_in = expiration.timestamp();
 
         query!(

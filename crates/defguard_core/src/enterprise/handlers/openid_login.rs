@@ -128,13 +128,14 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
     // Discover the provider metadata based on a known base issuer URL.
     // The URL should be in the form of e.g. https://accounts.google.com.
     // The URL shouldn't contain the ".well-known" part – it will be added automatically.
-    match CoreProviderMetadata::discover_async(issuer_url, &async_http_client).await {
-        Ok(provider_metadata) => Ok(provider_metadata),
-        Err(err) => Err(WebError::Authorization(format!(
-            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. \
-            Error details: {err}",
-        ))),
-    }
+    CoreProviderMetadata::discover_async(issuer_url, &async_http_client)
+        .await
+        .map_err(|err| {
+            WebError::Authorization(format!(
+                "Failed to discover provider metadata, make sure the URL is correct: {url}. \
+                Error details: {err}",
+            ))
+        })
 }
 
 /// Build a state with optional embedded data. Useful for passing additional information around the

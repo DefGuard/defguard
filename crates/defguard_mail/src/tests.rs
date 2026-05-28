@@ -20,7 +20,10 @@ use sqlx::{
 use tera::Context;
 use tokio::time::sleep;
 
-use super::{Attachment, mail::MailMessage, templates};
+use super::{
+    mail::{Attachment, MailMessage},
+    templates,
+};
 
 #[test]
 fn dg25_8_server_side_template_injection() {

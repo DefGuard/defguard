@@ -71,7 +71,7 @@ md4 = "0.10"
 openidconnect = { version = "4.0", default-features = false, features = [
     "reqwest",
 ] }
-os_info = "3.12"
+os_info = "3.15"
 parse_link_header = "0.4"
 paste = "1.0"
 pgp = { version = "0.19", default-features = false }
