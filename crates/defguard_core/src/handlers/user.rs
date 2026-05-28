@@ -14,11 +14,10 @@ use defguard_common::{
 };
 use defguard_mail::templates;
 use humantime::parse_duration;
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::PgPool;
 use utoipa::ToSchema;
-
-use serde::Deserialize;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
@@ -827,14 +826,24 @@ pub(crate) async fn modify_user(
     let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
 
     if ldap_sync_allowed {
-        ldap_handle_user_modify(&old_username, &mut user, &appstate.pool, &appstate.wireguard_tx)
-            .await;
+        ldap_handle_user_modify(
+            &old_username,
+            &mut user,
+            &appstate.pool,
+            &appstate.wireguard_tx,
+        )
+        .await;
     }
 
     maybe_update_rdn(&mut user);
     user.save(&appstate.pool).await?;
 
-    Box::pin(ldap_update_user_state(&mut user, &appstate.pool, &appstate.wireguard_tx)).await;
+    Box::pin(ldap_update_user_state(
+        &mut user,
+        &appstate.pool,
+        &appstate.wireguard_tx,
+    ))
+    .await;
 
     if group_diff.changed() || status_changing {
         if !group_diff.added.is_empty() {

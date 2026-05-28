@@ -67,7 +67,6 @@ fn enable_password_storage() {
     }
 }
 
-
 async fn set_sync_settings(pool: &PgPool, sync_group: &str, authoritative: bool) {
     set_ldap_settings(pool).await;
     let mut settings = Settings::get_current_settings();

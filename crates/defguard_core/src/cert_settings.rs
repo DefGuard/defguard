@@ -426,9 +426,8 @@ mod tests {
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use crate::error::WebError;
-
     use super::{extract_hostname, refresh_core_self_signed_cert, refresh_proxy_self_signed_cert};
+    use crate::error::WebError;
 
     fn make_ca() -> CertificateAuthority<'static> {
         CertificateAuthority::new("Test CA", "test@example.com", 365).expect("failed to create CA")

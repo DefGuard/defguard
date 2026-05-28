@@ -127,7 +127,9 @@ pub(crate) async fn ldap_update_users_state(
     let _ = Box::pin(with_ldap_status(pool, async {
         debug!("Updating users state in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection.update_users_state(users, pool, wg_tx).await?;
+        ldap_connection
+            .update_users_state(users, pool, wg_tx)
+            .await?;
         Ok(())
     }))
     .await;
