@@ -304,7 +304,10 @@ impl DirectorySyncClient {
                         "JumpCloud directory has all the configuration needed, proceeding with \
                         creating the sync client"
                     );
-                    let client = jumpcloud::JumpCloudDirectorySync::new(key.clone());
+                    let client = jumpcloud::JumpCloudDirectorySync::new(
+                        key.clone(),
+                        jumpcloud::api_host_for(&provider_settings.base_url),
+                    );
                     debug!("JumpCloud directory sync client created");
                     Ok(Self::JumpCloud(client))
                 } else {
