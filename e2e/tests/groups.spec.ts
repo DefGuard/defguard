@@ -59,9 +59,7 @@ test.describe('Test groups', () => {
     await apiCreateUser(page, testUser);
     await apiCreateUser(page, testUser2);
     await page.goto(routes.base + routes.identity.users);
-    const firstUser = page
-      .locator('.virtual-row')
-      .filter({ hasText: testUser.username });
+    const firstUser = page.locator('.virtual-row').filter({ hasText: testUser.username });
     await firstUser.locator('.checkbox').click();
     const secondUser = page
       .locator('.virtual-row')
@@ -82,5 +80,4 @@ test.describe('Test groups', () => {
     await expect(firstUser).toContainText(group_name);
     await expect(secondUser).toContainText(group_name);
   });
-
 });

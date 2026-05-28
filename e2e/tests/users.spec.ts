@@ -24,9 +24,7 @@ test.describe('Test users bulk actions', () => {
     await apiCreateUser(page, testUser2);
     await page.goto(routes.base + routes.identity.users);
 
-    const firstUser = page
-      .locator('.virtual-row')
-      .filter({ hasText: testUser.username });
+    const firstUser = page.locator('.virtual-row').filter({ hasText: testUser.username });
     const secondUser = page
       .locator('.virtual-row')
       .filter({ hasText: testUser2.username });
@@ -60,9 +58,7 @@ test.describe('Test users bulk actions', () => {
     await apiCreateUser(page, testUser2);
     await page.goto(routes.base + routes.identity.users);
 
-    const firstUser = page
-      .locator('.virtual-row')
-      .filter({ hasText: testUser.username });
+    const firstUser = page.locator('.virtual-row').filter({ hasText: testUser.username });
     const secondUser = page
       .locator('.virtual-row')
       .filter({ hasText: testUser2.username });
@@ -107,9 +103,7 @@ test.describe('Test users bulk actions', () => {
     await apiCreateUser(page, testUser2);
     await page.goto(routes.base + routes.identity.users);
 
-    const firstUser = page
-      .locator('.virtual-row')
-      .filter({ hasText: testUser.username });
+    const firstUser = page.locator('.virtual-row').filter({ hasText: testUser.username });
     const secondUser = page
       .locator('.virtual-row')
       .filter({ hasText: testUser2.username });
