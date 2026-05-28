@@ -16,6 +16,7 @@ mod openid;
 mod openid_login;
 mod proxy;
 mod proxy_certs;
+mod resources;
 mod settings;
 mod snat;
 mod user;

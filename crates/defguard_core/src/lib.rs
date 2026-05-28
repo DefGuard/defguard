@@ -50,6 +50,7 @@ use handlers::{
         list_network_devices, modify_network_device, network_device_configs,
         start_network_device_setup, start_network_device_setup_for_device,
     },
+    reserved::check_reserved,
     session_info::get_session_info,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
@@ -301,6 +302,7 @@ pub fn build_webapp(
             .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/recovery", post(recovery_code))
             // /user
+            .route("/reserved", get(check_reserved))
             .route("/user", get(list_users).post(add_user))
             .route("/user/{username}", get(get_user))
             .route("/user/{username}/start_enrollment", post(start_enrollment))

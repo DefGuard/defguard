@@ -6,6 +6,17 @@ import type {
 
 export type Resource = object & { id: number };
 
+export type CheckResource = 'email' | 'username';
+
+export interface CheckReservedParams {
+  resource: CheckResource;
+  value: string;
+}
+
+export interface CheckReservedResponse {
+  available: boolean;
+}
+
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
@@ -507,6 +518,8 @@ export interface UpdateInfo {
   notes: string;
 }
 
+export type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;
+
 export interface WebauthnRegisterStartResponse {
   publicKey: PublicKeyCredentialCreationOptionsJSON;
 }
@@ -517,7 +530,7 @@ export interface WebauthnRegisterFinishRequest {
 }
 
 export interface WebauthnLoginStartResponse {
-  publicKey: PublicKeyCredentialJSON;
+  publicKey: PublicKeyCredentialRequestOptionsJSON;
 }
 
 export interface StartEnrollmentRequest {
@@ -1373,6 +1386,8 @@ export type ActivityLogSortKey =
   | 'module'
   | 'device';
 
+export type UserSortKey = 'username' | 'name' | 'email';
+
 export interface Edge {
   id: number;
   name: string;
@@ -1409,6 +1424,7 @@ export interface GatewayInfo extends Gateway {
 
 export interface PaginationParams {
   page?: number;
+  per_page?: number;
 }
 
 export interface PaginationMeta {
@@ -1449,3 +1465,11 @@ export interface ActivityLogFilters {
 export type ActivityLogRequestParams = Partial<ActivityLogFilters> &
   RequestSortParams<ActivityLogSortKey> &
   PaginationParams;
+
+export interface UserListParams extends PaginationParams {
+  groups?: string[];
+  no_group?: boolean;
+  search?: string;
+  sort_by?: UserSortKey;
+  sort_order?: SortDirectionValue;
+}

@@ -1,14 +1,19 @@
-import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   type Row,
   type RowSelectionState,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import clsx from 'clsx';
@@ -22,6 +27,7 @@ import {
   LocationMfaMode,
   type StartEnrollmentResponse,
   type User,
+  type UserSortKey,
 } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
@@ -55,7 +61,6 @@ import {
   getEnterpriseSettingsQueryOptions,
   getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
-  getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
@@ -66,7 +71,61 @@ type RowData = User;
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = () => {
-  const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const CUSTOM_NO_GROUPS = 'CUSTOM_NO_GROUPS';
+
+  const { groupsFilter, noGroupFilter } = useMemo(() => {
+    const selected =
+      (columnFilters.find((f) => f.id === 'groups')?.value as string[] | undefined) ?? [];
+    const noGroup = selected.includes(CUSTOM_NO_GROUPS);
+    const groups = selected.filter((v) => v !== CUSTOM_NO_GROUPS);
+    return { groupsFilter: groups, noGroupFilter: noGroup };
+  }, [columnFilters]);
+
+  const [search, setSearch] = useState('');
+
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
+
+  const sortParams = useMemo(() => {
+    const sort = sorting[0];
+    if (!sort) return {};
+    return {
+      sort_by: sort.id as UserSortKey,
+      sort_order: sort.desc ? ('desc' as const) : ('asc' as const),
+    };
+  }, [sorting]);
+
+  const {
+    data: usersData,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: [
+      'user',
+      'paged',
+      { groups: groupsFilter, no_group: noGroupFilter, search, ...sortParams },
+    ],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      api.user.getUsers({
+        page: pageParam,
+        ...(noGroupFilter && { no_group: true }),
+        ...(!noGroupFilter && groupsFilter.length > 0 && { groups: groupsFilter }),
+        ...(search && { search }),
+        ...sortParams,
+      }),
+    getNextPageParam: (lastPage) => lastPage.pagination.next_page,
+    getPreviousPageParam: (page) =>
+      page.pagination.current_page !== 1 ? page.pagination.current_page - 1 : null,
+    placeholderData: keepPreviousData,
+  });
+
+  const users = useMemo(
+    () => usersData?.pages.flatMap((page) => page.data) ?? [],
+    [usersData?.pages],
+  );
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: enterpriseSettings } = useQuery(getEnterpriseSettingsQueryOptions);
   const appInfo = useApp((s) => s.appInfo);
@@ -74,8 +133,6 @@ export const UsersTable = () => {
   const authUsername = useAuth((s) => s.user?.username);
   const canModifyDevices =
     isAdmin || enterpriseSettings?.admin_device_management === false;
-  const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
-  const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -90,18 +147,12 @@ export const UsersTable = () => {
         ) {
           openModal(ModalName.LimitReached);
         } else {
-          useAddUserModal.getState().open({
-            reservedEmails,
-            reservedUsernames,
-          });
+          useAddUserModal.getState().open();
         }
       },
     }),
-    [reservedEmails, reservedUsernames, license],
+    [license],
   );
-
-  const [search, setSearch] = useState('');
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const tableFilterMessages = useMemo(
     () => ({
@@ -124,10 +175,20 @@ export const UsersTable = () => {
     [groups?.map, groups],
   );
 
+  const filterGroupsOptions = useMemo(
+    (): SelectionOption<string>[] => [
+      { id: CUSTOM_NO_GROUPS, label: 'No groups' },
+      ...(groups?.map((g) => ({ id: g.name, label: g.name })) ?? []),
+    ],
+    [groups],
+  );
+
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
+    onSuccess: () => Snackbar.default(m.users_edit_success()),
+    onError: () => Snackbar.error(m.users_edit_error()),
     meta: {
-      invalidate: [['user-overview'], ['user'], ['activity-log']],
+      invalidate: [['user'], ['activity-log']],
     },
   });
 
@@ -218,15 +279,9 @@ export const UsersTable = () => {
         minSize: 200,
         enableSorting: false,
         enableColumnFilter: isPresent(groups),
-        filterFn: 'arrIncludesSome',
+        filterFn: () => true, // filtering delegated to API
         meta: {
-          filterOptions:
-            groups?.map(
-              (group): SelectionOption<string> => ({
-                id: group.name,
-                label: group.name,
-              }),
-            ) ?? [],
+          filterOptions: filterGroupsOptions,
         },
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
@@ -276,13 +331,15 @@ export const UsersTable = () => {
                   if (rowData.is_active) {
                     openModal(ModalName.ConfirmAction, {
                       title: m.users_modal_disable_title(),
-                      contentMd: m.users_modal_disable_content({ name: rowData.name }),
+                      contentMd: m.users_modal_disable_content({
+                        name: rowData.name,
+                      }),
                       actionPromise: () =>
                         api.user.activeStateChange({
                           active: false,
                           username: rowData.username,
                         }),
-                      invalidateKeys: [['user-overview'], ['user']],
+                      invalidateKeys: [['user']],
                       submitProps: {
                         text: m.users_row_menu_disable(),
                         variant: 'critical',
@@ -293,13 +350,15 @@ export const UsersTable = () => {
                   } else {
                     openModal(ModalName.ConfirmAction, {
                       title: m.users_modal_enable_title(),
-                      contentMd: m.users_modal_enable_content({ name: rowData.name }),
+                      contentMd: m.users_modal_enable_content({
+                        name: rowData.name,
+                      }),
                       actionPromise: () =>
                         api.user.activeStateChange({
                           active: true,
                           username: rowData.username,
                         }),
-                      invalidateKeys: [['user-overview'], ['user']],
+                      invalidateKeys: [['user']],
                       submitProps: {
                         text: m.users_row_menu_enable(),
                       },
@@ -319,8 +378,6 @@ export const UsersTable = () => {
               onClick: () => {
                 openModal(ModalName.EditUserModal, {
                   user: rowData,
-                  reservedEmails,
-                  reservedUsernames,
                 });
               },
             },
@@ -408,9 +465,11 @@ export const UsersTable = () => {
                   onClick: () => {
                     openModal(ModalName.ConfirmAction, {
                       title: m.modal_delete_user_title(),
-                      contentMd: m.modal_delete_user_body({ name: rowData.name }),
+                      contentMd: m.modal_delete_user_body({
+                        name: rowData.name,
+                      }),
                       actionPromise: () => api.user.deleteUser(rowData.username),
-                      invalidateKeys: [['user-overview'], ['user'], ['enterprise_info']],
+                      invalidateKeys: [['user'], ['enterprise_info']],
                       submitProps: {
                         text: m.users_row_menu_delete(),
                         variant: 'critical',
@@ -507,13 +566,7 @@ export const UsersTable = () => {
                     name: rowData.name,
                   }),
                   actionPromise: () => api.user.disableMfa(rowData.username),
-                  invalidateKeys: [
-                    ['user-overview'],
-                    ['user'],
-                    ['session-info'],
-                    ['me'],
-                    ['activity-log'],
-                  ],
+                  invalidateKeys: [['user'], ['session-info'], ['me'], ['activity-log']],
                   submitProps: {
                     text: m.users_row_menu_disable_mfa(),
                     variant: 'critical',
@@ -531,14 +584,13 @@ export const UsersTable = () => {
     ],
     [
       navigate,
-      reservedEmails,
-      reservedUsernames,
       groupsOptions,
       handleEditGroups,
       groups,
       appInfo,
       authUsername,
       canModifyDevices,
+      filterGroupsOptions,
     ],
   );
 
@@ -615,7 +667,7 @@ export const UsersTable = () => {
             title: m.modal_delete_user_device_title(),
             contentMd: m.modal_delete_user_device_body({ name: device.name }),
             actionPromise: () => api.device.deleteDevice(device.id),
-            invalidateKeys: [['user-overview'], ['user'], ['network']],
+            invalidateKeys: [['user'], ['network']],
             submitProps: { text: m.controls_delete(), variant: 'critical' },
             onSuccess: () => Snackbar.default(m.user_device_delete_success()),
             onError: () => Snackbar.error(m.user_device_delete_failed()),
@@ -700,27 +752,13 @@ export const UsersTable = () => {
   );
 
   const table = useReactTable({
-    initialState: {
-      sorting: [
-        {
-          id: 'name',
-          desc: false,
-        },
-      ],
-    },
     state: {
       rowSelection: selected,
       columnFilters: columnFilters,
-      globalFilter: search,
+      sorting,
     },
-    globalFilterFn: (row, _column, filterValue: string) => {
-      const u = row.original;
-      const lower = filterValue.toLowerCase();
-      return (
-        u.first_name.toLowerCase().includes(lower) ||
-        u.last_name.toLowerCase().includes(lower)
-      );
-    },
+    manualSorting: true,
+    manualFiltering: true,
     getRowId: (row) => String(row.id),
     meta: {
       filterMessages: tableFilterMessages,
@@ -731,9 +769,8 @@ export const UsersTable = () => {
     enableExpanding: true,
     columnResizeMode: 'onChange',
     onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
     onRowSelectionChange: setSelected,
-    getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.devices.length > 0,
@@ -767,7 +804,10 @@ export const UsersTable = () => {
           .data;
         const msg =
           skipped > 0
-            ? m.users_bulk_start_enrollment_success_with_skipped({ started, skipped })
+            ? m.users_bulk_start_enrollment_success_with_skipped({
+                started,
+                skipped,
+              })
             : m.users_bulk_start_enrollment_success({ started });
         Snackbar.default(msg);
       },
@@ -790,7 +830,9 @@ export const UsersTable = () => {
     }
     openModal(ModalName.ConfirmAction, {
       title: m.users_modal_bulk_disable_title(),
-      contentMd: m.users_modal_bulk_disable_content({ count: selectedUsers.length }),
+      contentMd: m.users_modal_bulk_disable_content({
+        count: selectedUsers.length,
+      }),
       actionPromise: () => api.user.bulkDisable(selectedUsers),
       invalidateKeys: [['user-overview'], ['user']],
       submitProps: {
@@ -815,7 +857,9 @@ export const UsersTable = () => {
     }
     openModal(ModalName.ConfirmAction, {
       title: m.users_modal_bulk_enable_title(),
-      contentMd: m.users_modal_bulk_enable_content({ count: selectedUsers.length }),
+      contentMd: m.users_modal_bulk_enable_content({
+        count: selectedUsers.length,
+      }),
       actionPromise: () => api.user.bulkEnable(selectedUsers),
       invalidateKeys: [['user-overview'], ['user']],
       submitProps: {
@@ -839,7 +883,9 @@ export const UsersTable = () => {
     if (selectedUsers.length === 0) return;
     openModal(ModalName.ConfirmAction, {
       title: m.users_modal_bulk_delete_title(),
-      contentMd: m.users_modal_bulk_delete_content({ count: selectedUsers.length }),
+      contentMd: m.users_modal_bulk_delete_content({
+        count: selectedUsers.length,
+      }),
       actionPromise: () => api.user.bulkDelete(selectedUsers),
       invalidateKeys: [['user-overview'], ['user']],
       submitProps: {
@@ -854,6 +900,15 @@ export const UsersTable = () => {
   }, [authUsername, table]);
 
   const rows = table.getRowModel().rows;
+
+  if (isLoading)
+    return (
+      <EmptyStateFlexible
+        title={m.users_empty_title()}
+        subtitle={m.users_empty_subtitle()}
+        primaryAction={addButtonProps}
+      />
+    );
 
   if (users.length === 0)
     return (
@@ -933,6 +988,13 @@ export const UsersTable = () => {
         table={table}
         renderExpandedRow={renderExpanded}
         expandedHeaders={expandedHeader}
+        hasNextPage={
+          usersData
+            ? usersData.pages[usersData.pages.length - 1]?.pagination.next_page !== null
+            : false
+        }
+        loadingNextPage={isFetchingNextPage}
+        onNextPage={fetchNextPage}
       />
       {rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
         <EmptyStateFlexible

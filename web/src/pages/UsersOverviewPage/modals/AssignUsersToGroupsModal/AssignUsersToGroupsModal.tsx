@@ -59,7 +59,7 @@ const ModalContent = ({ groups, users, onSuccess }: ModalData) => {
       onSuccess?.();
     },
     meta: {
-      invalidate: [['user-overview'], ['user'], ['activity-log']],
+      invalidate: [['user'], ['activity-log']],
     },
   });
 

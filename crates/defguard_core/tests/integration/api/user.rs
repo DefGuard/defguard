@@ -402,6 +402,198 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
 }
 
 #[sqlx::test]
+async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // Search by username
+    let response = client.get("/api/v1/user?search=admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+
+    // Search by first name
+    let response = client.get("/api/v1/user?search=Harry").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Search by last name
+    let response = client.get("/api/v1/user?search=Potter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Search by email
+    let response = client.get("/api/v1/user?search=h.potter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Search by non-existent term
+    let response = client.get("/api/v1/user?search=nonexistent").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 0);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // Sort by username ascending
+    let response = client
+        .get("/api/v1/user?sort_by=username&sort_order=asc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+
+    // Sort by username descending
+    let response = client
+        .get("/api/v1/user?sort_by=username&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
+    // Sort by name ascending (first_name, last_name)
+    let response = client
+        .get("/api/v1/user?sort_by=name&sort_order=asc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // DefGuard < Harry alphabetically
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+
+    // Sort by name descending (first_name, last_name)
+    let response = client
+        .get("/api/v1/user?sort_by=name&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // Harry > DefGuard alphabetically
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
+    // Sort by email descending
+    let response = client
+        .get("/api/v1/user?sort_by=email&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // h.potter@hogwart.edu.uk > admin@defguard alphabetically
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
+    // Default sort (no params) should still work
+    let response = client.get("/api/v1/user").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 2);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_search_with_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // Search "admin" within admin group only - should return admin
+    let response = client
+        .get("/api/v1/user?search=admin&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // Search "Potter" within admin group only - admin is not Potter, should be empty
+    let response = client
+        .get("/api/v1/user?search=Potter&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 0);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
 async fn test_get_user(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 

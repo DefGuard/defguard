@@ -176,7 +176,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             title: m.modal_delete_user_device_title(),
             contentMd: m.modal_delete_user_device_body({ name: row.name }),
             actionPromise: () => api.device.deleteDevice(row.id),
-            invalidateKeys: [['user-overview'], ['user', username], ['network']],
+            invalidateKeys: [['user', username], ['network']],
             submitProps: { text: m.controls_delete(), variant: 'critical' },
             onSuccess: () => Snackbar.default(m.user_device_delete_success()),
             onError: () => Snackbar.error(m.user_device_delete_failed()),
