@@ -90,7 +90,8 @@ export const PostureChecksTable = ({
   });
 
   const { mutate: duplicatePosture } = useMutation({
-    mutationFn: (postureCheckId: number) => api.devicePosture.duplicateDevicePosture(postureCheckId),
+    mutationFn: (postureCheckId: number) =>
+      api.devicePosture.duplicateDevicePosture(postureCheckId),
     meta: {
       invalidate: [['device-posture'], ['network']],
     },
@@ -289,7 +290,7 @@ export const PostureChecksTable = ({
         },
       }),
     ],
-    [assignLocations, columnFilterOptions, locationOptions, navigate],
+    [assignLocations, columnFilterOptions, locationOptions, navigate, duplicatePosture],
   );
 
   const table = useReactTable({
