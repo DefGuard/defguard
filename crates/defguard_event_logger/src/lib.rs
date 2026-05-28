@@ -817,15 +817,15 @@ mod tests {
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     };
+    use defguard_session_manager::events::SessionManagerEventType;
     use ipnetwork::IpNetwork;
     use serde_json::Value;
 
-    use defguard_core::events::{
-        BidiRequestContext, BidiStreamEventType, DesktopClientMfaEvent,
-        EnrollmentEvent as CoreEnrollmentEvent, PasswordResetEvent,
-    };
     use defguard_core::{
-        db::models::webhook::WebHook,
+        db::models::{
+            activity_log::{ActivityLogEvent, ActivityLogModule, EventType},
+            webhook::WebHook,
+        },
         enterprise::db::models::{
             activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
             api_tokens::ApiToken,
@@ -835,10 +835,17 @@ mod tests {
             },
             snat::UserSnatBinding,
         },
+        events::{
+            ApiEventType, BidiRequestContext, BidiStreamEvent, BidiStreamEventType,
+            DesktopClientMfaEvent, EnrollmentEvent as CoreEnrollmentEvent, PasswordResetEvent,
+        },
     };
     use strum::EnumCount;
 
-    use super::*;
+    use crate::{
+        map_to_activity_log_event,
+        message::{Event, EventContext, EventLoggerMessage},
+    };
 
     fn sample_device() -> Device<i64> {
         Device::new(
@@ -872,7 +879,7 @@ mod tests {
     }
 
     #[test]
-    fn activity_log_event_serialization_supports_null_ip() {
+    fn test_activity_log_event_serialization_supports_null_ip() {
         let event = ActivityLogEvent {
             id: NoId,
             timestamp: Utc::now().naive_utc(),
@@ -902,7 +909,7 @@ mod tests {
     }
 
     #[test]
-    fn maps_disconnect_bidi_events_from_mfa_sessions_to_mfa_disconnect_logger_events() {
+    fn test_maps_disconnect_bidi_events_from_mfa_sessions_to_mfa_disconnect_logger_events() {
         let event = BidiStreamEvent {
             context: sample_bidi_context(),
             event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -934,7 +941,8 @@ mod tests {
     }
 
     #[test]
-    fn maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect_logger_events() {
+    fn test_maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect_logger_events()
+    {
         let event = BidiStreamEvent {
             context: sample_bidi_context(),
             event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -2029,7 +2037,7 @@ mod tests {
         let location = sample_location();
         let device = sample_device();
 
-        fn sm_msg(
+        fn session_manager_msg(
             event: SessionManagerEventType,
             loc: WireguardNetwork<i64>,
             dev: Device<i64>,
@@ -2047,7 +2055,7 @@ mod tests {
         let cases = vec![
             EventTestCase {
                 name: "ClientConnected",
-                message: sm_msg(
+                message: session_manager_msg(
                     SessionManagerEventType::ClientConnected,
                     location.clone(),
                     device.clone(),
@@ -2058,7 +2066,7 @@ mod tests {
             },
             EventTestCase {
                 name: "ClientDisconnected",
-                message: sm_msg(
+                message: session_manager_msg(
                     SessionManagerEventType::ClientDisconnected,
                     location.clone(),
                     device.clone(),
@@ -2069,7 +2077,7 @@ mod tests {
             },
             EventTestCase {
                 name: "MfaClientConnected",
-                message: sm_msg(
+                message: session_manager_msg(
                     SessionManagerEventType::MfaClientConnected,
                     location.clone(),
                     device.clone(),
@@ -2080,7 +2088,7 @@ mod tests {
             },
             EventTestCase {
                 name: "MfaClientDisconnected",
-                message: sm_msg(
+                message: session_manager_msg(
                     SessionManagerEventType::MfaClientDisconnected,
                     location,
                     device,
