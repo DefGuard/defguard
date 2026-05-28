@@ -148,10 +148,7 @@ impl JumpCloudDirectorySync {
     }
 
     fn user_groups_url(&self, user_id: &str) -> String {
-        format!(
-            "https://{}/api/v2/users/{user_id}/memberof",
-            self.api_host
-        )
+        format!("https://{}/api/v2/users/{user_id}/memberof", self.api_host)
     }
 
     fn user_group_members_url(&self, group_id: &str) -> String {
