@@ -19,6 +19,7 @@ use defguard_session_manager::events::{
 ///
 /// The logger matches on these directly when building activity log entries.
 /// No translation — source types are the single source of truth.
+#[allow(clippy::large_enum_variant)]
 pub enum Event {
     Api(ApiEventType),
     Bidi(BidiStreamEventType),

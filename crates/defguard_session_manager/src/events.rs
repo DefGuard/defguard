@@ -51,8 +51,7 @@ pub struct SessionManagerEventContext {
     pub public_ip: Option<IpAddr>,
 }
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(strum_macros::EnumCount))]
+#[derive(Debug, strum_macros::EnumCount)]
 pub enum SessionManagerEventType {
     ClientConnected,
     ClientDisconnected,

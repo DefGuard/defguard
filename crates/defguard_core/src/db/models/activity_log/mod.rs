@@ -6,7 +6,7 @@ use sqlx::{FromRow, Type};
 
 pub mod metadata;
 
-#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
 #[sqlx(type_name = "activity_log_module", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
 pub enum ActivityLogModule {
@@ -20,7 +20,7 @@ pub enum ActivityLogModule {
 ///
 /// To make searching and exporting the type is stored as text and not a custom Postgres enum.
 /// Variant names are renamed to `snake_case` so `UserLogin` becomes `user_login` in the DB table.
-#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EventType {
