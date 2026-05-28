@@ -79,6 +79,7 @@ pub struct WireguardNetworkData {
     pub peer_disconnect_threshold: i32,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    #[serde(default)]
     pub allowed_ips_from_acl: bool,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
