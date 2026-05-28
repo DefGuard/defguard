@@ -182,6 +182,8 @@ export const UsersTable = () => {
 
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
+    onSuccess: () => Snackbar.default(m.users_edit_success()),
+    onError: () => Snackbar.error(m.users_edit_error()),
     meta: {
       invalidate: [['user'], ['activity-log']],
     },
@@ -326,7 +328,9 @@ export const UsersTable = () => {
                   if (rowData.is_active) {
                     openModal(ModalName.ConfirmAction, {
                       title: m.users_modal_disable_title(),
-                      contentMd: m.users_modal_disable_content({ name: rowData.name }),
+                      contentMd: m.users_modal_disable_content({
+                        name: rowData.name,
+                      }),
                       actionPromise: () =>
                         api.user.activeStateChange({
                           active: false,
@@ -343,7 +347,9 @@ export const UsersTable = () => {
                   } else {
                     openModal(ModalName.ConfirmAction, {
                       title: m.users_modal_enable_title(),
-                      contentMd: m.users_modal_enable_content({ name: rowData.name }),
+                      contentMd: m.users_modal_enable_content({
+                        name: rowData.name,
+                      }),
                       actionPromise: () =>
                         api.user.activeStateChange({
                           active: true,
@@ -456,7 +462,9 @@ export const UsersTable = () => {
                   onClick: () => {
                     openModal(ModalName.ConfirmAction, {
                       title: m.modal_delete_user_title(),
-                      contentMd: m.modal_delete_user_body({ name: rowData.name }),
+                      contentMd: m.modal_delete_user_body({
+                        name: rowData.name,
+                      }),
                       actionPromise: () => api.user.deleteUser(rowData.username),
                       invalidateKeys: [['user'], ['enterprise_info']],
                       submitProps: {
