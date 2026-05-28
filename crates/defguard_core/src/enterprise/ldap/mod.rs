@@ -15,15 +15,19 @@ use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
+use tokio::sync::broadcast::Sender;
 
 use self::error::LdapError;
-use crate::enterprise::{
-    is_business_license_active,
-    ldap::model::{
-        extract_dn_path, ldap_sync_allowed_for_user, user_as_ldap_attrs, user_as_ldap_mod,
-        user_from_searchentry,
+use crate::{
+    enterprise::{
+        is_business_license_active,
+        ldap::model::{
+            UAC_NORMAL_ACCOUNT, extract_dn_path, ldap_sync_allowed_for_user, uac_from_entry,
+            uac_with_active, user_as_ldap_attrs, user_as_ldap_mod, user_from_searchentry,
+        },
+        limits::update_counts,
     },
-    limits::update_counts,
+    grpc::GatewayEvent,
 };
 
 #[cfg(not(test))]
@@ -40,7 +44,10 @@ pub mod utils;
 ///
 /// This function may trigger either full and incremental sync based on the current sync status.
 /// Sets LDAP sync status to OutOfSync if any errors occur during the process.
-pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
+pub(crate) async fn do_ldap_sync(
+    pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
+) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();
 
@@ -86,7 +93,7 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         }
     };
 
-    if let Err(err) = ldap_connection.sync(pool, is_ldap_desynced()).await {
+    if let Err(err) = ldap_connection.sync(pool, is_ldap_desynced(), wg_tx).await {
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(err);
     }
@@ -164,6 +171,7 @@ pub struct LDAPConfig {
     pub ldap_member_attr: String,
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
     pub ldap_uses_ad: bool,
+    pub ldap_sync_account_status: bool,
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
 }
@@ -184,6 +192,7 @@ impl Default for LDAPConfig {
             ldap_member_attr: "memberOf".to_string(),
             ldap_user_auxiliary_obj_classes: Vec::new(),
             ldap_uses_ad: false,
+            ldap_sync_account_status: false,
             ldap_user_rdn_attr: None,
             ldap_sync_groups: Vec::new(),
         }
@@ -336,6 +345,7 @@ impl TryFrom<Settings> for LDAPConfig {
             )?,
             ldap_user_auxiliary_obj_classes: settings.ldap_user_auxiliary_obj_classes,
             ldap_uses_ad: settings.ldap_uses_ad,
+            ldap_sync_account_status: settings.ldap_sync_account_status,
             ldap_user_rdn_attr: settings.ldap_user_rdn_attr,
             ldap_sync_groups: settings.ldap_sync_groups,
         })
@@ -363,8 +373,11 @@ impl LDAPConnection {
         &mut self,
         users: Vec<&mut User<Id>>,
         pool: &PgPool,
+        wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), LdapError> {
         debug!("Updating users state in LDAP");
+
+        let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
 
         for user in users {
             let user_sync_allowed = ldap_sync_allowed_for_user(user, pool).await?;
@@ -372,13 +385,22 @@ impl LDAPConnection {
             let user_groups = user.member_of_names(pool).await?;
             let user_in_sync_groups = self.user_in_ldap_sync_groups(user).await?;
 
-            // User is disabled in Defguard
-            // If they exist in LDAP, remove them
-            // Don't use "user_sync_allowed" here as it will never execute if the user is disabled
-            // We are interested in the user changing the state from active to disabled
-            if user_in_sync_groups && user.is_enrolled() && !user.is_active && user_exists_in_ldap {
-                debug!("User {user} is disabled in Defguard, removing from LDAP");
-                self.delete_user(user).await?;
+            // An enrolled, in-scope LDAP user who has just been disabled in Defguard. We detect
+            // this before `user_sync_allowed` because disabled users are filtered out there, and
+            // we'd otherwise miss the active->disabled transition.
+            let user_disabled_in_defguard = user_in_sync_groups
+                && user_exists_in_ldap
+                && user.is_enrolled()
+                && !user.is_active;
+
+            if user_disabled_in_defguard {
+                if sync_account_status {
+                    debug!("User {user} is disabled in Defguard, flagging AD account as disabled");
+                    self.set_ad_account_status(user, false).await?;
+                } else {
+                    debug!("User {user} is disabled in Defguard, removing from LDAP");
+                    self.delete_user(user).await?;
+                }
                 continue;
             }
 
@@ -387,9 +409,13 @@ impl LDAPConnection {
                 continue;
             }
 
-            // No sync groups defined or user already belongs to them,
-            // Add the user if they don't exist in LDAP already but are active in Defguard
             if !user_exists_in_ldap {
+                // With account status sync, disabled users stay in sync scope but must not be
+                // freshly created in LDAP as enabled accounts.
+                if !user.is_active {
+                    debug!("User {user} is disabled in Defguard and absent from LDAP, skipping");
+                    continue;
+                }
                 debug!("User {user} is not in LDAP, adding to LDAP");
                 self.add_user(user, None, pool).await?;
                 for group in user_groups {
@@ -399,12 +425,13 @@ impl LDAPConnection {
             }
 
             // We may bring user into the synchronization scope, sync his data (email, groups, etc.)
-            // based on the authority.
+            // based on the authority. Account-status reconciliation also happens inside
+            // sync_user_data via apply_user_modifications.
             if user_exists_in_ldap {
                 debug!(
                     "User {user} is in LDAP and is allowed to be synced, synchronizing his data"
                 );
-                self.sync_user_data(user, pool).await?;
+                self.sync_user_data(user, pool, wg_tx).await?;
                 debug!("User {user} data synchronized");
             }
         }
@@ -540,7 +567,7 @@ impl LDAPConnection {
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search: {username}");
             self.test_bind_user(&entry.dn, password).await?;
-            user_from_searchentry(&entry, username, Some(password))
+            user_from_searchentry(&entry, username, Some(password), &self.config)
         } else {
             Err(LdapError::ObjectNotFound(format!(
                 "User {username} not found",
@@ -564,7 +591,7 @@ impl LDAPConnection {
         }
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search by username: {username}");
-            user_from_searchentry(&entry, username, None)
+            user_from_searchentry(&entry, username, None, &self.config)
         } else {
             Err(LdapError::ObjectNotFound(format!(
                 "User {username} not found"
@@ -580,7 +607,7 @@ impl LDAPConnection {
         match self.get(&dn).await? {
             Some(entry) => {
                 info!("Found LDAP user with DN: {dn}");
-                user_from_searchentry(&entry, &user.username, None)
+                user_from_searchentry(&entry, &user.username, None, &self.config)
             }
             None => Err(LdapError::ObjectNotFound(format!("User {dn} not found"))),
         }
@@ -733,6 +760,41 @@ impl LDAPConnection {
         Ok(())
     }
 
+    /// Toggles only the `ACCOUNTDISABLE` bit of `userAccountControl`, preserving other flags.
+    pub(crate) async fn set_ad_account_status<I>(
+        &mut self,
+        user: &User<I>,
+        active: bool,
+    ) -> Result<(), LdapError> {
+        let user_dn = self.config.user_dn_for_user(user);
+        let entry = self
+            .get(&user_dn)
+            .await?
+            .ok_or_else(|| LdapError::ObjectNotFound(format!("User {user_dn} not found")))?;
+        // Missing/unparseable userAccountControl falls back to the default enabled value.
+        let current = uac_from_entry(&entry).unwrap_or(UAC_NORMAL_ACCOUNT);
+        let new_uac = uac_with_active(current, active);
+        if new_uac == current {
+            debug!(
+                "AD account status for {user} already up to date (userAccountControl={current})"
+            );
+            return Ok(());
+        }
+        debug!("Setting userAccountControl for {user} from {current} to {new_uac}");
+        self.modify(
+            &user_dn,
+            &user_dn,
+            vec![Mod::Replace(
+                "userAccountControl".to_string(),
+                hashset![new_uac.to_string()],
+            )],
+        )
+        .await?;
+        info!("Updated AD account status for {user} (active={active})");
+
+        Ok(())
+    }
+
     /// Changes user password in LDAP.
     /// Handles both Active Directory (unicodePwd) and standard LDAP (userPassword/sambaNTPassword)
     /// formats.
@@ -822,8 +884,10 @@ impl LDAPConnection {
             .map(String::as_str)
             .collect::<HashSet<_>>();
 
-        for member_ref in member_refs {
-            group_attrs.push((member_group_attr.as_str(), hashset![member_ref]));
+        // All member DNs must go into a single attribute entry; LDAP rejects an add request that
+        // lists the same attribute description more than once.
+        if !member_refs.is_empty() {
+            group_attrs.push((member_group_attr.as_str(), member_refs));
         }
 
         self.add(&dn, group_attrs).await?;

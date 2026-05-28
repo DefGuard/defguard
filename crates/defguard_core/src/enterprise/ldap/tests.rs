@@ -9,6 +9,7 @@ use defguard_common::{
 };
 use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::sync::broadcast::{Receiver, Sender, channel};
 
 use super::{
     model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
@@ -26,7 +27,7 @@ use crate::{
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::get_counts,
     },
-    grpc::proto::enterprise::license::LicenseLimits,
+    grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
 };
 
 const PASSWORD: &str = "test_password";
@@ -79,6 +80,11 @@ fn configure_smtp_and_ldap(settings: &mut Settings) {
     settings.ldap_group_obj_class = Some("posixGroup".into());
     settings.ldap_group_member_attr = Some("memberUid".into());
     settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
+}
+
+/// Bind both halves: a dropped receiver makes `Sender::send` fail and swallow events.
+fn wg_test_channel() -> (Sender<GatewayEvent>, Receiver<GatewayEvent>) {
+    channel(256)
 }
 
 fn set_test_license_business() {
@@ -304,6 +310,7 @@ fn test_using_username_as_rdn() {
 async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
     let config = ldap_conn.config.clone();
 
@@ -355,6 +362,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 &mut active_user_in_ldap,
             ],
             &pool,
+            &wg_tx,
         )
         .await
         .unwrap();
@@ -387,7 +395,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     ldap_conn
-        .update_users_state(vec![&mut active_user_in_ldap], &pool)
+        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx)
         .await
         .unwrap();
 
@@ -414,7 +422,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
 
     active_user_in_ldap.is_active = false;
     ldap_conn
-        .update_users_state(vec![&mut active_user_in_ldap], &pool)
+        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx)
         .await
         .unwrap();
 
@@ -456,7 +464,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     active_user_in_ldap.is_active = false;
 
     ldap_conn
-        .update_users_state(vec![&mut active_user_in_ldap], &pool)
+        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx)
         .await
         .unwrap();
 
@@ -491,7 +499,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         .remove_test_user(&active_user_in_ldap.clone().as_noid(), &config);
 
     ldap_conn
-        .update_users_state(vec![&mut another_active_user_in_ldap], &pool)
+        .update_users_state(vec![&mut another_active_user_in_ldap], &pool, &wg_tx)
         .await
         .unwrap();
 
@@ -1761,6 +1769,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
 
@@ -1791,7 +1800,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             .test_client_mut()
             .add_test_user(&ldap_user, &config);
 
-        ldap_conn.sync(&pool, false).await.unwrap();
+        ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
         // verify that the user path was updated and ID remains the same
         let updated_user = User::find_by_id(&pool, original_id).await.unwrap().unwrap();
@@ -1828,7 +1837,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             .test_client_mut()
             .add_test_user(&ldap_user, &config);
 
-        ldap_conn.sync(&pool, false).await.unwrap();
+        ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
         let updated_user = User::find_by_id(&pool, original_id).await.unwrap().unwrap();
         assert_eq!(updated_user.id, original_id);
@@ -1864,7 +1873,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             .test_client_mut()
             .add_test_user(&ldap_user, &config);
 
-        ldap_conn.sync(&pool, false).await.unwrap();
+        ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
         // verify user still exists with same ID and path remains consistent
         let updated_user = User::find_by_id(&pool, original_id).await.unwrap().unwrap();
@@ -1922,7 +1931,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             .test_client_mut()
             .add_test_user(&ldap_user5, &config);
 
-        ldap_conn.sync(&pool, false).await.unwrap();
+        ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
         let updated_user4 = User::find_by_id(&pool, original_id4)
             .await
@@ -1972,7 +1981,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             .test_client_mut()
             .add_test_user(&ldap_user, &config);
 
-        ldap_conn.sync(&pool, false).await.unwrap();
+        ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
         // verify user still exists with same ID and correct path
         let updated_user = User::find_by_id(&pool, original_id).await.unwrap().unwrap();
@@ -2007,7 +2016,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
         let users_before = User::all(&pool).await.unwrap();
         let count_before = users_before.len();
 
-        ldap_conn.sync(&pool, false).await.unwrap();
+        ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
         let users_after = User::all(&pool).await.unwrap();
         assert_eq!(users_after.len(), count_before + 1);
@@ -2030,6 +2039,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
 #[sqlx::test]
 async fn test_sync_simple_nested_ou_changes(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
 
@@ -2071,7 +2081,7 @@ async fn test_sync_simple_nested_ou_changes(_: PgPoolOptions, options: PgConnect
         &config,
     );
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     // user1 should be updated
     let updated_user1 = User::find_by_id(&pool, user1.id).await.unwrap().unwrap();
@@ -2108,6 +2118,7 @@ async fn test_sync_incremental_with_nested_ou_conflicts(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
 
@@ -2155,7 +2166,7 @@ async fn test_sync_incremental_with_nested_ou_conflicts(
         .test_client_mut()
         .add_test_user(&ldap_user3, &config);
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     // user1: should get updated attributes and path from intersecting users
     let updated_user1 = User::find_by_id(&pool, user1.id).await.unwrap().unwrap();
@@ -2197,6 +2208,7 @@ async fn test_sync_defguard_authority_with_complex_nested_ous(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
 
     let mut settings = Settings::get_current_settings();
@@ -2271,7 +2283,7 @@ async fn test_sync_defguard_authority_with_complex_nested_ous(
     let initial_ldap_users = ldap_conn.get_all_users().await.unwrap();
     let initial_count = initial_ldap_users.len();
 
-    ldap_conn.sync(&pool, true).await.unwrap();
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
 
     // intersecting users still exist in Defguard with same IDs
     let updated_user1 = User::find_by_id(&pool, user1.id).await.unwrap().unwrap();
@@ -2326,6 +2338,7 @@ async fn test_sync_defguard_authority_with_complex_nested_ous(
 #[sqlx::test]
 async fn test_sync_with_ou_path_edge_cases(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
     let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
     let config = ldap_conn.config.clone();
@@ -2373,7 +2386,7 @@ async fn test_sync_with_ou_path_edge_cases(_: PgPoolOptions, options: PgConnectO
         .test_client_mut()
         .add_test_user(&ldap_user4, &config);
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     let updated_user2 = User::find_by_id(&pool, user2.id).await.unwrap().unwrap();
     assert_eq!(updated_user2.id, user2.id); // Same user
@@ -2415,6 +2428,7 @@ async fn test_sync_group_membership_with_intersecting_users(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
 
@@ -2463,7 +2477,7 @@ async fn test_sync_group_membership_with_intersecting_users(
         &config,
     );
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     let updated_user1 = User::find_by_id(&pool, user1.id).await.unwrap().unwrap();
     assert_eq!(updated_user1.id, user1.id);
@@ -2495,6 +2509,7 @@ async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
 
     let user_limit = 1;
@@ -2532,7 +2547,7 @@ async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
         .test_client_mut()
         .add_test_user(&ldap_only_user, &config);
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     let user_count_after_sync = get_counts().user();
 
@@ -2662,7 +2677,9 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = user_from_searchentry(&entry, "user1", Some("password123")).unwrap();
+        let user =
+            user_from_searchentry(&entry, "user1", Some("password123"), &LDAPConfig::default())
+                .unwrap();
 
         assert_eq!(user.username, "user1");
         assert_eq!(user.last_name, "lastname1");
@@ -2685,7 +2702,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = user_from_searchentry(&entry, "user1", None).unwrap();
+        let user = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default()).unwrap();
 
         assert_eq!(user.username, "user1");
         assert_eq!(user.last_name, "lastname1");
@@ -2707,7 +2724,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = user_from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2727,7 +2744,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = user_from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2747,7 +2764,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = user_from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2768,7 +2785,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = user_from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2789,7 +2806,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = user_from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2807,7 +2824,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = user_from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2829,7 +2846,7 @@ fn test_from_searchentry() {
         };
 
         // Test with invalid username (contains special characters)
-        let result = user_from_searchentry(&entry, "user@#$%", None);
+        let result = user_from_searchentry(&entry, "user@#$%", None, &LDAPConfig::default());
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2851,7 +2868,9 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = user_from_searchentry(&entry, "user1", Some("password123")).unwrap();
+        let user =
+            user_from_searchentry(&entry, "user1", Some("password123"), &LDAPConfig::default())
+                .unwrap();
 
         assert_eq!(user.username, "user1");
         assert_eq!(user.last_name, "lastname1");
@@ -2879,7 +2898,9 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = user_from_searchentry(&entry, "user1", Some("mypassword")).unwrap();
+        let user =
+            user_from_searchentry(&entry, "user1", Some("mypassword"), &LDAPConfig::default())
+                .unwrap();
 
         assert_eq!(user.username, "user1");
         assert!(user.password_hash.is_some());
@@ -2915,7 +2936,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = user_from_searchentry(&entry, "user1", None).unwrap();
+        let user = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default()).unwrap();
 
         // Should use the first value when multiple values are present
         assert_eq!(user.last_name, "lastname1");
@@ -2938,7 +2959,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = user_from_searchentry(&entry, "testuser", None).unwrap();
+        let user = user_from_searchentry(&entry, "testuser", None, &LDAPConfig::default()).unwrap();
 
         // Verify LDAP-specific fields are properly set
         assert!(user.from_ldap);
@@ -3444,6 +3465,7 @@ async fn test_sync_does_not_send_invite_when_flags_disabled(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
 
     // Create an admin so find_admins() would have something to return - we want to prove
@@ -3460,7 +3482,7 @@ async fn test_sync_does_not_send_invite_when_flags_disabled(
         .test_client_mut()
         .add_test_user(&ldap_user, &config);
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     // User must be saved to Defguard.
     let saved = User::find_by_username(&pool, "sync_invite_disabled_user")
@@ -3484,6 +3506,7 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
 
     let mut settings = Settings::get_current_settings();
@@ -3504,7 +3527,7 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
         .test_client_mut()
         .add_test_user(&ldap_user, &config);
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     let saved = User::find_by_username(&pool, "sync_invite_sendoff_user")
         .await
@@ -3527,6 +3550,7 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
 #[sqlx::test]
 async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
 
     let mut settings = Settings::get_current_settings();
@@ -3549,7 +3573,7 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         .test_client_mut()
         .add_test_user(&ldap_user, &config);
 
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     let saved = User::find_by_username(&pool, "sync_invite_user")
         .await
@@ -3573,7 +3597,7 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
     );
 
     // Second sync: user already exists in Defguard - must NOT create a second token.
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(
@@ -3591,6 +3615,7 @@ async fn test_sync_invite_skipped_when_no_admin_exists(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
     let _ = initialize_current_settings(&pool).await;
 
     let mut settings = Settings::get_current_settings();
@@ -3613,7 +3638,7 @@ async fn test_sync_invite_skipped_when_no_admin_exists(
         .add_test_user(&ldap_user, &config);
 
     // Sync must succeed even with no admins.
-    ldap_conn.sync(&pool, false).await.unwrap();
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
 
     // User must still be created.
     let saved = User::find_by_username(&pool, "sync_invite_noadmin_user")
@@ -3754,5 +3779,69 @@ async fn test_ldap_login_does_not_send_invite_for_existing_user(
     assert!(
         tokens.is_empty(),
         "Expected no enrollment token for a returning LDAP user, got {tokens:?}"
+    );
+}
+
+/// With AD account status sync enabled, an incremental sync (LDAP authority) must mirror the
+/// Active Directory disabled/enabled state onto the matching Defguard user, both disabling a
+/// user that was disabled in AD and re-enabling one that was re-enabled in AD.
+#[sqlx::test]
+async fn test_sync_ad_account_status_disable_and_reenable(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_uses_ad = true;
+    settings.ldap_sync_account_status = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = true;
+    ldap_conn.config.ldap_sync_account_status = true;
+    let config = ldap_conn.config.clone();
+
+    // Active, enrolled Defguard user that also exists in AD.
+    let mut user = make_test_user(
+        "ad_status_user",
+        Some("ad_status_user".to_string()),
+        Some("ou=users,dc=example,dc=com".to_string()),
+    );
+    user.from_ldap = true;
+    user.is_active = true;
+    let user = user.save(&pool).await.unwrap();
+
+    // Represent the user as disabled in AD (userAccountControl ACCOUNTDISABLE bit set).
+    let mut ldap_user = user.clone().as_noid();
+    ldap_user.is_active = false;
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    let synced = User::find_by_id(&pool, user.id).await.unwrap().unwrap();
+    assert!(
+        !synced.is_active,
+        "User disabled in AD should be disabled in Defguard"
+    );
+
+    // Now the user is re-enabled in AD.
+    let mut ldap_user = user.clone().as_noid();
+    ldap_user.is_active = true;
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    let synced = User::find_by_id(&pool, user.id).await.unwrap().unwrap();
+    assert!(
+        synced.is_active,
+        "User re-enabled in AD should be re-enabled in Defguard"
     );
 }

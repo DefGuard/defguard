@@ -8,7 +8,9 @@ use defguard_common::db::models::{User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::{extract_rdn_value, user_as_ldap_attrs};
+use crate::enterprise::ldap::model::{
+    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, user_as_ldap_attrs,
+};
 
 /// Extract attribute value from LDAP filter
 ///
@@ -491,17 +493,29 @@ impl LDAPConnection {
                     &config.ldap_username_attr,
                     &rdn_attr,
                 );
+                let mut attrs = attrs
+                    .iter()
+                    .map(|(k, v)| {
+                        (
+                            k.to_string(),
+                            v.iter()
+                                .map(std::string::ToString::to_string)
+                                .collect::<Vec<String>>(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                // Simulate the AD userAccountControl attribute so account status sync is exercised.
+                if config.ldap_uses_ad && config.ldap_sync_account_status {
+                    let uac = if user.is_active {
+                        UAC_NORMAL_ACCOUNT
+                    } else {
+                        UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
+                    };
+                    attrs.push(("userAccountControl".to_string(), vec![uac.to_string()]));
+                }
                 users.push(SearchEntry {
                     dn: dn.clone(),
-                    attrs: attrs
-                        .iter()
-                        .map(|(k, v)| {
-                            (
-                                k.to_string(),
-                                v.iter().map(std::string::ToString::to_string).collect(),
-                            )
-                        })
-                        .collect(),
+                    attrs: attrs.into_iter().collect(),
                     bin_attrs: HashMap::new(),
                 });
             }
@@ -559,7 +573,7 @@ pub(super) fn user_to_test_attrs<I>(
     } else {
         String::new()
     };
-    user_as_ldap_attrs(
+    let mut attrs = user_as_ldap_attrs(
         user,
         &ssha_password,
         &nt_password,
@@ -575,7 +589,20 @@ pub(super) fn user_to_test_attrs<I>(
             v.iter().map(std::string::ToString::to_string).collect(),
         )
     })
-    .collect()
+    .collect::<Vec<_>>();
+
+    // Simulate the AD userAccountControl attribute so account status sync can be exercised.
+    if config.ldap_uses_ad && config.ldap_sync_account_status {
+        use crate::hashset;
+        let uac = if user.is_active {
+            UAC_NORMAL_ACCOUNT
+        } else {
+            UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
+        };
+        attrs.push(("userAccountControl".to_string(), hashset![uac.to_string()]));
+    }
+
+    attrs
 }
 
 #[cfg(test)]

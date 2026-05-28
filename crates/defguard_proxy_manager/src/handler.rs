@@ -873,7 +873,7 @@ impl ProxyHandler {
                                                     user.username,
                                                 );
                                             } else {
-                                                ldap_update_user_state(&mut user, &pool).await;
+                                                ldap_update_user_state(&mut user, &pool, &wireguard_tx).await;
                                             }
                                             debug!("Cleared unused tokens for {}.", user.username);
                                             debug!(

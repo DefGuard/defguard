@@ -8,6 +8,7 @@ use defguard_common::db::{
     models::{User, group::Group},
 };
 use sqlx::PgPool;
+use tokio::sync::broadcast::Sender;
 
 use super::{LDAPConnection, error::LdapError};
 use crate::{
@@ -17,6 +18,7 @@ use crate::{
         license::get_cached_license,
         limits::get_counts,
     },
+    grpc::GatewayEvent,
 };
 
 fn reached_user_license_limit() -> Option<(u32, u32)> {
@@ -107,17 +109,25 @@ pub(crate) async fn login_through_ldap_with_connection(
 }
 
 /// Convenience wrapper around [`ldap_update_users_state`] to update a single user.
-pub async fn ldap_update_user_state(user: &mut User<Id>, pool: &PgPool) {
+pub async fn ldap_update_user_state(
+    user: &mut User<Id>,
+    pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
+) {
     let vec = vec![user];
-    Box::pin(ldap_update_users_state(vec, pool)).await;
+    Box::pin(ldap_update_users_state(vec, pool, wg_tx)).await;
 }
 
 /// See the [`LDAPConnection::update_users_state`] function for details.
-pub(crate) async fn ldap_update_users_state(users: Vec<&mut User<Id>>, pool: &PgPool) {
+pub(crate) async fn ldap_update_users_state(
+    users: Vec<&mut User<Id>>,
+    pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
+) {
     let _ = Box::pin(with_ldap_status(pool, async {
         debug!("Updating users state in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection.update_users_state(users, pool).await?;
+        ldap_connection.update_users_state(users, pool, wg_tx).await?;
         Ok(())
     }))
     .await;
@@ -177,6 +187,7 @@ pub(crate) async fn ldap_handle_user_modify(
     old_username: &str,
     current_user: &mut User<Id>,
     pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
 ) {
     let _: Result<(), LdapError> = Box::pin(with_ldap_status(pool, async {
         debug!("Handling user modify for {old_username} in LDAP");
@@ -190,7 +201,7 @@ pub(crate) async fn ldap_handle_user_modify(
                 stale"
             );
             ldap_connection
-                .update_users_state(vec![current_user], pool)
+                .update_users_state(vec![current_user], pool, wg_tx)
                 .await?;
         }
         ldap_connection

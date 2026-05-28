@@ -116,6 +116,7 @@ const formSchema = z.object({
     }),
   ),
   ldap_uses_ad: z.boolean(),
+  ldap_sync_account_status: z.boolean(),
   ldap_user_rdn_attr: z.string().trim().nullable(),
   ldap_sync_groups: z.string().trim().nullable(),
   ldap_remote_enrollment_enabled: z.boolean(),
@@ -157,6 +158,7 @@ const PageForm = () => {
       ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
       ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
+      ldap_sync_account_status: settings?.ldap_sync_account_status ?? false,
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
       ldap_sync_groups: settings?.ldap_sync_groups.join(', ') || null,
       ldap_remote_enrollment_enabled: settings?.ldap_remote_enrollment_enabled ?? false,
@@ -404,6 +406,21 @@ const PageForm = () => {
               )}
             </form.AppField>
           </EvenSplit>
+          <form.Subscribe selector={(s) => s.values.ldap_uses_ad}>
+            {(usesAd) => (
+              <>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <form.AppField name="ldap_sync_account_status">
+                  {(field) => (
+                    <field.FormCheckbox
+                      text={m.settings_ldap_checkbox_sync_account_status()}
+                      disabled={!usesAd}
+                    />
+                  )}
+                </form.AppField>
+              </>
+            )}
+          </form.Subscribe>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="groups">
@@ -531,6 +548,7 @@ const PageForm = () => {
                       />
                     )}
                   </form.AppField>
+
                 </Fold>
               </>
             )}

@@ -827,13 +827,14 @@ pub(crate) async fn modify_user(
     let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
 
     if ldap_sync_allowed {
-        ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
+        ldap_handle_user_modify(&old_username, &mut user, &appstate.pool, &appstate.wireguard_tx)
+            .await;
     }
 
     maybe_update_rdn(&mut user);
     user.save(&appstate.pool).await?;
 
-    Box::pin(ldap_update_user_state(&mut user, &appstate.pool)).await;
+    Box::pin(ldap_update_user_state(&mut user, &appstate.pool, &appstate.wireguard_tx)).await;
 
     if group_diff.changed() || status_changing {
         if !group_diff.added.is_empty() {

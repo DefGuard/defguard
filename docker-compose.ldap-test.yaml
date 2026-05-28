@@ -1,0 +1,40 @@
+# Ephemeral Postgres + OpenLDAP for the LDAP integration tests.
+# Deliberately has NO persistent data volume: every `up` starts from a clean
+# directory so bitnami re-applies ldap/init.ldif and the memberof overlay.
+# Used by `just test-ldap` (locally) and the test-ldap CI job.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: defguard
+      POSTGRES_USER: defguard
+      POSTGRES_PASSWORD: defguard
+    command: postgres -c max_connections=400
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  openldap:
+    image: bitnamilegacy/openldap:2.6
+    user: root
+    environment:
+      LDAP_ADMIN_PASSWORD: "pass123"
+    ports:
+      - "389:1389"
+    # The memberof overlay is enabled at runtime by ldap/entrypoint/enable_memberof.sh.
+    volumes:
+      - ./ldap/entrypoint:/docker-entrypoint-initdb.d:ro
+      - ./ldap/init.ldif:/ldifs/init.ldif:ro
+    healthcheck:
+      # Succeeds only once init.ldif's base DN is queryable, so `--wait` blocks until data is loaded.
+      test:
+        [
+          "CMD-SHELL",
+          "ldapsearch -x -H ldap://localhost:1389 -D cn=admin,dc=example,dc=org -w pass123 -b dc=example,dc=org -s base >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s

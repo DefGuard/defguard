@@ -79,6 +79,7 @@ use defguard_common::db::{
     },
 };
 use sqlx::{PgConnection, PgPool};
+use tokio::sync::broadcast::Sender;
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
@@ -91,7 +92,9 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
+    grpc::GatewayEvent,
     hashset,
+    user_management::{disable_user, sync_allowed_user_devices},
 };
 
 async fn get_or_create_group(
@@ -473,16 +476,43 @@ pub fn get_ldap_sync_interval() -> u64 {
 }
 
 impl super::LDAPConnection {
-    /// Applies user modifications to users that are present in both LDAP and Defguard
+    /// Applies user modifications to users that are present in both LDAP and Defguard.
     async fn apply_user_modifications(
         &mut self,
         mut intersecting_users: Vec<(User, User<Id>)>,
         authority: Authority,
         pool: &PgPool,
+        wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), LdapError> {
+        let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
         let mut transaction = pool.begin().await?;
 
         for (ldap_user, defguard_user) in &mut intersecting_users {
+            if sync_account_status && ldap_user.is_active != defguard_user.is_active {
+                match authority {
+                    Authority::LDAP => {
+                        if ldap_user.is_active {
+                            debug!("Enabling Defguard user {defguard_user} based on AD status");
+                            defguard_user.is_active = true;
+                            defguard_user.save(&mut *transaction).await?;
+                            sync_allowed_user_devices(defguard_user, &mut transaction, wg_tx)
+                                .await
+                                .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
+                        } else {
+                            debug!("Disabling Defguard user {defguard_user} based on AD status");
+                            disable_user(defguard_user, &mut transaction, wg_tx)
+                                .await
+                                .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
+                        }
+                    }
+                    Authority::Defguard => {
+                        debug!("Applying Defguard account status to AD for {defguard_user}");
+                        self.set_ad_account_status(defguard_user, defguard_user.is_active)
+                            .await?;
+                    }
+                }
+            }
+
             if attrs_different(defguard_user, ldap_user, &self.config) {
                 debug!(
                     "User {defguard_user} attributes differ between LDAP and Defguard, merging..."
@@ -514,6 +544,7 @@ impl super::LDAPConnection {
         &mut self,
         user: &User<Id>,
         pool: &PgPool,
+        wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), LdapError> {
         debug!("Syncing user data for {user}");
         let settings = Settings::get_current_settings();
@@ -547,7 +578,7 @@ impl super::LDAPConnection {
             .map(|g| (g.clone(), hashset![&ldap_user]))
             .collect::<HashMap<_, _>>();
 
-        self.apply_user_modifications(intersecting_users, authority, pool)
+        self.apply_user_modifications(intersecting_users, authority, pool, wg_tx)
             .await?;
 
         let changes = compute_group_sync_changes(
@@ -636,7 +667,12 @@ impl super::LDAPConnection {
     }
 
     /// Synchronizes users and groups between Defguard and LDAP
-    pub(crate) async fn sync(&mut self, pool: &PgPool, full: bool) -> Result<(), LdapError> {
+    pub async fn sync(
+        &mut self,
+        pool: &PgPool,
+        full: bool,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), LdapError> {
         let settings = Settings::get_current_settings();
         let authority = if full {
             let settings_authority = if settings.ldap_is_authoritative {
@@ -718,7 +754,7 @@ impl super::LDAPConnection {
         let intersecting_users =
             extract_intersecting_users(&mut all_defguard_users, &mut all_ldap_users, &self.config);
 
-        self.apply_user_modifications(intersecting_users, authority, pool)
+        self.apply_user_modifications(intersecting_users, authority, pool, wg_tx)
             .await?;
 
         let user_changes = compute_user_sync_changes(
@@ -941,7 +977,7 @@ impl super::LDAPConnection {
                     LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
                 })?;
 
-            match user_from_searchentry(&entry, username, None) {
+            match user_from_searchentry(&entry, username, None, &self.config) {
                 Ok(user) => all_users.push(user),
                 Err(err) => {
                     warn!(
