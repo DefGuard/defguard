@@ -143,6 +143,12 @@ pub enum ApiEventType {
         before: Vec<String>,
         after: Vec<String>,
     },
+    UserEnabled {
+        user: User<Id>,
+    },
+    UserDisabled {
+        user: User<Id>,
+    },
     UserDeviceAdded {
         owner: User<Id>,
         device: Device<Id>,

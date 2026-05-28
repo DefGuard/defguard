@@ -45,6 +45,8 @@ pub enum EventType {
     UserRemoved,
     UserModified,
     UserGroupsModified,
+    UserEnabled,
+    UserDisabled,
     PasswordChanged,
     PasswordChangedByAdmin,
     PasswordReset,

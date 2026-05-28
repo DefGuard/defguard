@@ -76,6 +76,8 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         } => Some(format!(
             "User groups modified! User:{user} Before: {before:?} After {after:?}"
         )),
+        ApiEventType::UserEnabled { user } => Some(format!("Enabled user {user}")),
+        ApiEventType::UserDisabled { user } => Some(format!("Disabled user {user}")),
         ApiEventType::UserDeviceAdded { owner, device } => {
             Some(format!("Added device {device} for user {owner}"))
         }

@@ -556,6 +556,20 @@ fn api_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("modified"),
         },
         EventTestCase {
+            name: "UserEnabled",
+            message: api_message(ApiEventType::UserEnabled { user: user.clone() }),
+            event_type: EventType::UserEnabled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Enabled"),
+        },
+        EventTestCase {
+            name: "UserDisabled",
+            message: api_message(ApiEventType::UserDisabled { user: user.clone() }),
+            event_type: EventType::UserDisabled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Disabled"),
+        },
+        EventTestCase {
             name: "UserDeviceAdded",
             message: api_message(ApiEventType::UserDeviceAdded {
                 owner: user.clone(),

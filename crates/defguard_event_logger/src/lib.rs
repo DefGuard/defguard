@@ -215,6 +215,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
+                ApiEventType::UserEnabled { user } => (
+                    EventType::UserEnabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                ApiEventType::UserDisabled { user } => (
+                    EventType::UserDisabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
                 ApiEventType::RecoveryCodeUsed => (EventType::RecoveryCodeUsed, None),
                 ApiEventType::PasswordChanged => (EventType::PasswordChanged, None),
                 ApiEventType::PasswordChangedByAdmin { user } => (
