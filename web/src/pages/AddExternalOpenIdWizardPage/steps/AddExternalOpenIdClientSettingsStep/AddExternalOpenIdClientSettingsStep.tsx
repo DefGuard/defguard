@@ -10,18 +10,18 @@ import {
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import {
-  jumpcloudProviderBaseUrl,
-  jumpcloudProviderBaseUrlEu,
+  detectJumpcloudRegion,
+  jumpcloudBaseUrls,
   supportedSyncProviders,
 } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import {
   formatMicrosoftBaseUrl,
+  jumpcloudRegionOptions,
   providerUsernameHandlingOptions,
   validateExternalProviderWizard,
 } from '../../consts';
@@ -79,6 +79,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
           create_account: z.boolean(m.form_error_invalid()),
           username_handling: z.enum(OpenIdProviderUsernameHandling),
           microsoftTenantId: z.string().trim().nullable(),
+          jumpcloud_region: z.enum(['us', 'eu', 'in']),
         })
         .superRefine((values, ctx) => {
           if (provider === OpenIdProviderKind.Microsoft) {
@@ -111,6 +112,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       display_name: storeData.display_name,
       microsoftTenantId: storeData.microsoftTenantId ?? null,
       username_handling: storeData.username_handling,
+      jumpcloud_region: detectJumpcloudRegion(storeData.base_url),
     }),
     [storeData],
   );
@@ -123,14 +125,14 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      if (provider === OpenIdProviderKind.JumpCloud) {
+        value.base_url = jumpcloudBaseUrls[value.jumpcloud_region];
+      }
       if (supportedSyncProviders.has(provider)) {
         next(value);
       } else {
         const storeState = useAddExternalOpenIdStore.getState().providerState;
-        await mutateAsync({
-          ...storeState,
-          ...value,
-        });
+        await mutateAsync({ ...storeState, ...value });
       }
     },
   });
@@ -224,6 +226,20 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               />
             )}
           </form.AppField>
+          {provider === OpenIdProviderKind.JumpCloud && (
+            <>
+              <SizedBox height={ThemeSpacing.Xl2} />
+              <form.AppField name="jumpcloud_region">
+                {(field) => (
+                  <field.FormSelect
+                    options={jumpcloudRegionOptions}
+                    label={m.settings_openid_provider_label_jumpcloud_region()}
+                    helper={m.settings_openid_provider_helper_jumpcloud_region()}
+                  />
+                )}
+              </form.AppField>
+            </>
+          )}
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="create_account">
             {(field) => (
@@ -234,30 +250,6 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               />
             )}
           </form.AppField>
-          {provider === OpenIdProviderKind.JumpCloud && (
-            <>
-              <SizedBox height={ThemeSpacing.Xl2} />
-              <form.Subscribe
-                selector={(s) => Boolean(s.values.base_url?.includes('eu.jumpcloud'))}
-              >
-                {(isEu) => (
-                  <InteractiveBlock
-                    variant="checkbox"
-                    value={isEu}
-                    onClick={() => {
-                      if (isEu) {
-                        form.setFieldValue('base_url', jumpcloudProviderBaseUrl);
-                      } else {
-                        form.setFieldValue('base_url', jumpcloudProviderBaseUrlEu);
-                      }
-                    }}
-                    title={m.settings_openid_provider_label_jumpcloud_eu()}
-                    content={m.settings_openid_provider_helper_jumpcloud_eu()}
-                  />
-                )}
-              </form.Subscribe>
-            </>
-          )}
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.Subscribe
             selector={(s) => ({

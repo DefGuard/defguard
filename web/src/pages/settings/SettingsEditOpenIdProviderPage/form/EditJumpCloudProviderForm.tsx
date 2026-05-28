@@ -1,15 +1,11 @@
 import { omit } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import { EditPageControls } from '../../../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../../../shared/components/EditPageFormSection/EditPageFormSection';
-import {
-  jumpcloudProviderBaseUrl,
-  jumpcloudProviderBaseUrlEu,
-} from '../../../../shared/constants';
+import { detectJumpcloudRegion, jumpcloudBaseUrls } from '../../../../shared/constants';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
-import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -17,6 +13,7 @@ import { formChangeLogic } from '../../../../shared/formLogic';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
+  jumpcloudRegionOptions,
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
@@ -28,6 +25,7 @@ import type { EditProviderFormProps } from '../types';
 const basicSchema = z
   .object({
     directory_sync_enabled: z.boolean(),
+    jumpcloud_region: z.enum(['us', 'eu', 'in']),
   })
   .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
 
@@ -71,10 +69,9 @@ export const EditJumpCloudProviderForm = ({
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
       jumpcloud_api_key: provider.jumpcloud_api_key ?? '',
+      jumpcloud_region: detectJumpcloudRegion(provider.base_url),
     };
   }, [provider]);
-
-  const [isEu, setIsEu] = useState(Boolean(provider.base_url?.includes('eu.jumpcloud')));
 
   const form = useAppForm({
     defaultValues,
@@ -84,11 +81,10 @@ export const EditJumpCloudProviderForm = ({
       onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
-      let base_url = jumpcloudProviderBaseUrl;
-      if (isEu) {
-        base_url = jumpcloudProviderBaseUrlEu;
-      }
-      await onSubmit({ ...value, base_url });
+      await onSubmit({
+        ...value,
+        base_url: jumpcloudBaseUrls[value.jumpcloud_region],
+      });
     },
   });
 
@@ -143,6 +139,16 @@ export const EditJumpCloudProviderForm = ({
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="jumpcloud_region">
+            {(field) => (
+              <field.FormSelect
+                options={jumpcloudRegionOptions}
+                label={m.settings_openid_provider_label_jumpcloud_region()}
+                helper={m.settings_openid_provider_helper_jumpcloud_region()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="create_account">
             {(field) => (
               <field.FormInteractiveBlock
@@ -152,14 +158,6 @@ export const EditJumpCloudProviderForm = ({
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <InteractiveBlock
-            variant="checkbox"
-            value={isEu}
-            onClick={() => setIsEu(!isEu)}
-            title={m.settings_openid_provider_label_jumpcloud_eu()}
-            content={m.settings_openid_provider_helper_jumpcloud_eu()}
-          />
         </EditPageFormSection>
         <EditPageFormSection label={m.settings_openid_provider_directory_sync_title()}>
           <form.AppField name="directory_sync_enabled">
