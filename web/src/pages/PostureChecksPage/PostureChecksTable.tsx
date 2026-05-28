@@ -89,6 +89,18 @@ export const PostureChecksTable = ({
     },
   });
 
+  const { mutate: duplicatePosture } = useMutation({
+    mutationFn: (postureCheckId: number) => api.devicePosture.duplicateDevicePosture(postureCheckId),
+    meta: {
+      invalidate: [['device-posture'], ['network']],
+    },
+    onSuccess: () => {
+      Snackbar.default(m.posture_checks_duplication_success());
+    },
+    onError: () => {
+      Snackbar.error(m.posture_checks_duplication_failed());
+    },
+  });
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -224,7 +236,7 @@ export const PostureChecksTable = ({
                   text: 'Duplicate',
                   icon: IconKind.Duplicate,
                   onClick: () => {
-                    Snackbar.default(`Duplicate is not available yet for "${row.name}".`);
+                    duplicatePosture(row.id);
                   },
                 },
                 {
