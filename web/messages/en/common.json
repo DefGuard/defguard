@@ -86,5 +86,6 @@
   "sucessfull_enrollment_email": "Enrollment email sent successfully",
   "failed_to_start_enrollment": "Failed to start enrollment",
   "misc_recommended": "Recommended",
-  "footer_copyright": "Copyright © {year} Defguard Sp. z o.o."
+  "footer_copyright": "Copyright © {year} Defguard Sp. z o.o.",
+  "error_unknown": "An unknown error occurred"
 }

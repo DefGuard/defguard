@@ -1,814 +1,1053 @@
 import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useSuspenseQuery,
-} from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+	keepPreviousData,
+	useInfiniteQuery,
+	useMutation,
+	useQuery,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import {
-  type ColumnFiltersState,
-  createColumnHelper,
-  getCoreRowModel,
-  getExpandedRowModel,
-  type Row,
-  type RowSelectionState,
-  type SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
-import clsx from 'clsx';
-import { orderBy } from 'lodash-es';
-import { useCallback, useMemo, useState } from 'react';
-import { m } from '../../paraglide/messages';
-import api from '../../shared/api/api';
+	type ColumnFiltersState,
+	createColumnHelper,
+	getCoreRowModel,
+	getExpandedRowModel,
+	type Row,
+	type RowSelectionState,
+	type SortingState,
+	useReactTable,
+} from "@tanstack/react-table";
+import clsx from "clsx";
+import { orderBy } from "lodash-es";
+import { useCallback, useMemo, useState } from "react";
+import { m } from "../../paraglide/messages";
+import api from "../../shared/api/api";
 import {
-  type Device,
-  LocationMfaMode,
-  type User,
-  type UserSortKey,
-} from '../../shared/api/types';
-import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type { SelectionOption } from '../../shared/components/SelectionSection/type';
-import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
-import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
-import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
-import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
-import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
+	type BulkStartEnrollmentResponse,
+	type Device,
+	LocationMfaMode,
+	type StartEnrollmentResponse,
+	type User,
+	type UserSortKey,
+} from "../../shared/api/types";
+import { useSelectionModal } from "../../shared/components/modals/SelectionModal/useSelectionModal";
+import type { SelectionOption } from "../../shared/components/SelectionSection/type";
+import { TableValuesListCell } from "../../shared/components/TableValuesListCell/TableValuesListCell";
+import { Avatar } from "../../shared/defguard-ui/components/Avatar/Avatar";
+import { Badge } from "../../shared/defguard-ui/components/Badge/Badge";
+import { Button } from "../../shared/defguard-ui/components/Button/Button";
+import type { ButtonProps } from "../../shared/defguard-ui/components/Button/types";
+import { ButtonMenu } from "../../shared/defguard-ui/components/ButtonMenu/MenuButton";
+import { EmptyStateFlexible } from "../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible";
+import { Icon, IconKind } from "../../shared/defguard-ui/components/Icon";
 import type {
-  MenuItemProps,
-  MenuItemsGroup,
-} from '../../shared/defguard-ui/components/Menu/types';
-import { Search } from '../../shared/defguard-ui/components/Search/Search';
-import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
-import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
-import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
-import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
-import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeVariable } from '../../shared/defguard-ui/types';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
-import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { useApp } from '../../shared/hooks/useApp';
-import { useAuth } from '../../shared/hooks/useAuth';
+	MenuItemProps,
+	MenuItemsGroup,
+} from "../../shared/defguard-ui/components/Menu/types";
+import { Search } from "../../shared/defguard-ui/components/Search/Search";
+import { tableEditColumnSize } from "../../shared/defguard-ui/components/table/consts";
+import { TableBody } from "../../shared/defguard-ui/components/table/TableBody/TableBody";
+import { TableCell } from "../../shared/defguard-ui/components/table/TableCell/TableCell";
+import { TableEditCell } from "../../shared/defguard-ui/components/table/TableEditCell/TableEditCell";
+import { TableRowContainer } from "../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer";
+import { TableTop } from "../../shared/defguard-ui/components/table/TableTop/TableTop";
+import { Snackbar } from "../../shared/defguard-ui/providers/snackbar/snackbar";
+import { ThemeVariable } from "../../shared/defguard-ui/types";
+import { isPresent } from "../../shared/defguard-ui/utils/isPresent";
+import { openModal } from "../../shared/hooks/modalControls/modalsSubjects";
+import { ModalName } from "../../shared/hooks/modalControls/modalTypes";
+import { useApp } from "../../shared/hooks/useApp";
+import { useAuth } from "../../shared/hooks/useAuth";
 import {
-  getEnterpriseSettingsQueryOptions,
-  getGroupsInfoQueryOptions,
-  getLicenseInfoQueryOptions,
-} from '../../shared/query';
-import { displayDate } from '../../shared/utils/displayDate';
-import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
-import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
+	getEnterpriseSettingsQueryOptions,
+	getGroupsInfoQueryOptions,
+	getLicenseInfoQueryOptions,
+} from "../../shared/query";
+import { displayDate } from "../../shared/utils/displayDate";
+import {
+	isDeviceOnline,
+	isUserOnline,
+} from "../../shared/utils/userOnlineStatus";
+import { useAddUserModal } from "./modals/AddUserModal/useAddUserModal";
 
 type RowData = User;
 
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = () => {
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
-  const CUSTOM_NO_GROUPS = 'CUSTOM_NO_GROUPS';
+	const CUSTOM_NO_GROUPS = "CUSTOM_NO_GROUPS";
 
-  const { groupsFilter, noGroupFilter } = useMemo(() => {
-    const selected =
-      (columnFilters.find((f) => f.id === 'groups')?.value as string[] | undefined) ?? [];
-    const noGroup = selected.includes(CUSTOM_NO_GROUPS);
-    const groups = selected.filter((v) => v !== CUSTOM_NO_GROUPS);
-    return { groupsFilter: groups, noGroupFilter: noGroup };
-  }, [columnFilters]);
+	const { groupsFilter, noGroupFilter } = useMemo(() => {
+		const selected =
+			(columnFilters.find((f) => f.id === "groups")?.value as
+				| string[]
+				| undefined) ?? [];
+		const noGroup = selected.includes(CUSTOM_NO_GROUPS);
+		const groups = selected.filter((v) => v !== CUSTOM_NO_GROUPS);
+		return { groupsFilter: groups, noGroupFilter: noGroup };
+	}, [columnFilters]);
 
-  const [search, setSearch] = useState('');
+	const [search, setSearch] = useState("");
 
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
+	const [sorting, setSorting] = useState<SortingState>([
+		{ id: "name", desc: false },
+	]);
 
-  const sortParams = useMemo(() => {
-    const sort = sorting[0];
-    if (!sort) return {};
-    return {
-      sort_by: sort.id as UserSortKey,
-      sort_order: sort.desc ? ('desc' as const) : ('asc' as const),
-    };
-  }, [sorting]);
+	const sortParams = useMemo(() => {
+		const sort = sorting[0];
+		if (!sort) return {};
+		return {
+			sort_by: sort.id as UserSortKey,
+			sort_order: sort.desc ? ("desc" as const) : ("asc" as const),
+		};
+	}, [sorting]);
 
-  const {
-    data: usersData,
-    fetchNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useInfiniteQuery({
-    queryKey: [
-      'user',
-      'paged',
-      { groups: groupsFilter, no_group: noGroupFilter, search, ...sortParams },
-    ],
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      api.user.getUsers({
-        page: pageParam,
-        ...(noGroupFilter && { no_group: true }),
-        ...(!noGroupFilter && groupsFilter.length > 0 && { groups: groupsFilter }),
-        ...(search && { search }),
-        ...sortParams,
-      }),
-    getNextPageParam: (lastPage) => lastPage.pagination.next_page,
-    getPreviousPageParam: (page) =>
-      page.pagination.current_page !== 1 ? page.pagination.current_page - 1 : null,
-    placeholderData: keepPreviousData,
-  });
+	const {
+		data: usersData,
+		fetchNextPage,
+		isFetchingNextPage,
+		isLoading,
+	} = useInfiniteQuery({
+		queryKey: [
+			"user",
+			"paged",
+			{ groups: groupsFilter, no_group: noGroupFilter, search, ...sortParams },
+		],
+		initialPageParam: 1,
+		queryFn: ({ pageParam }) =>
+			api.user.getUsers({
+				page: pageParam,
+				...(noGroupFilter && { no_group: true }),
+				...(!noGroupFilter &&
+					groupsFilter.length > 0 && { groups: groupsFilter }),
+				...(search && { search }),
+				...sortParams,
+			}),
+		getNextPageParam: (lastPage) => lastPage.pagination.next_page,
+		getPreviousPageParam: (page) =>
+			page.pagination.current_page !== 1
+				? page.pagination.current_page - 1
+				: null,
+		placeholderData: keepPreviousData,
+	});
 
-  const users = useMemo(
-    () => usersData?.pages.flatMap((page) => page.data) ?? [],
-    [usersData?.pages],
-  );
-  const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
-  const { data: enterpriseSettings } = useQuery(getEnterpriseSettingsQueryOptions);
-  const appInfo = useApp((s) => s.appInfo);
-  const isAdmin = useAuth((s) => s.isAdmin);
-  const authUsername = useAuth((s) => s.user?.username);
-  const canModifyDevices =
-    isAdmin || enterpriseSettings?.admin_device_management === false;
+	const users = useMemo(
+		() => usersData?.pages.flatMap((page) => page.data) ?? [],
+		[usersData?.pages],
+	);
+	const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
+	const { data: enterpriseSettings } = useQuery(
+		getEnterpriseSettingsQueryOptions,
+	);
+	const appInfo = useApp((s) => s.appInfo);
+	const isAdmin = useAuth((s) => s.isAdmin);
+	const authUsername = useAuth((s) => s.user?.username);
+	const canModifyDevices =
+		isAdmin || enterpriseSettings?.admin_device_management === false;
 
-  const addButtonProps = useMemo(
-    (): ButtonProps => ({
-      variant: 'primary',
-      text: m.users_add(),
-      iconLeft: 'add-user',
-      testId: 'add-user',
-      onClick: () => {
-        if (
-          license?.limits &&
-          license.limits.users.current >= license.limits.users.limit
-        ) {
-          openModal(ModalName.LimitReached);
-        } else {
-          useAddUserModal.getState().open();
-        }
-      },
-    }),
-    [license],
-  );
+	const addButtonProps = useMemo(
+		(): ButtonProps => ({
+			variant: "primary",
+			text: m.users_add(),
+			iconLeft: "add-user",
+			testId: "add-user",
+			onClick: () => {
+				if (
+					license?.limits &&
+					license.limits.users.current >= license.limits.users.limit
+				) {
+					openModal(ModalName.LimitReached);
+				} else {
+					useAddUserModal.getState().open();
+				}
+			},
+		}),
+		[license],
+	);
 
-  const tableFilterMessages = useMemo(
-    () => ({
-      searchPlaceholder: m.controls_search(),
-      clearButton: m.controls_reset(),
-      applyButton: m.controls_submit(),
-      emptyState: m.search_empty_common_title(),
-    }),
-    [],
-  );
+	const tableFilterMessages = useMemo(
+		() => ({
+			searchPlaceholder: m.controls_search(),
+			clearButton: m.controls_reset(),
+			applyButton: m.controls_submit(),
+			emptyState: m.search_empty_common_title(),
+		}),
+		[],
+	);
 
-  const { data: groups } = useQuery(getGroupsInfoQueryOptions);
+	const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
-  const groupsOptions = useMemo(
-    (): SelectionOption<string>[] =>
-      groups?.map((g) => ({
-        id: g.name,
-        label: g.name,
-      })) ?? [],
-    [groups?.map, groups],
-  );
+	const groupsOptions = useMemo(
+		(): SelectionOption<string>[] =>
+			groups?.map((g) => ({
+				id: g.name,
+				label: g.name,
+			})) ?? [],
+		[groups?.map, groups],
+	);
 
-  const filterGroupsOptions = useMemo(
-    (): SelectionOption<string>[] => [
-      { id: CUSTOM_NO_GROUPS, label: 'No groups' },
-      ...(groups?.map((g) => ({ id: g.name, label: g.name })) ?? []),
-    ],
-    [groups],
-  );
+	const filterGroupsOptions = useMemo(
+		(): SelectionOption<string>[] => [
+			{ id: CUSTOM_NO_GROUPS, label: "No groups" },
+			...(groups?.map((g) => ({ id: g.name, label: g.name })) ?? []),
+		],
+		[groups],
+	);
 
-  const { mutate: editUser } = useMutation({
-    mutationFn: api.user.editUser,
-    onSuccess: () => Snackbar.default(m.users_edit_success()),
-    onError: () => Snackbar.error(m.users_edit_error()),
-    meta: {
-      invalidate: [['user'], ['activity-log']],
-    },
-  });
+	const { mutate: editUser } = useMutation({
+		mutationFn: api.user.editUser,
+		onSuccess: () => Snackbar.default(m.users_edit_success()),
+		onError: () => Snackbar.error(m.users_edit_error()),
+		meta: {
+			invalidate: [["user"], ["activity-log"]],
+		},
+	});
 
-  const handleEditGroups = useCallback(
-    async (user: RowData, groups: string[]) => {
-      const freshUser = (await api.user.getUser(user.username)).data.user;
-      freshUser.groups = groups;
-      editUser({
-        username: freshUser.username,
-        body: freshUser,
-      });
-    },
-    [editUser],
-  );
+	const handleEditGroups = useCallback(
+		async (user: RowData, groups: string[]) => {
+			const freshUser = (await api.user.getUser(user.username)).data.user;
+			freshUser.groups = groups;
+			editUser({
+				username: freshUser.username,
+				body: freshUser,
+			});
+		},
+		[editUser],
+	);
 
-  const navigate = useNavigate({ from: '/users' });
-  const [selected, setSelected] = useState<RowSelectionState>({});
+	const navigate = useNavigate({ from: "/users" });
+	const [selected, setSelected] = useState<RowSelectionState>({});
 
-  const columns = useMemo(
-    () => [
-      columnHelper.accessor('name', {
-        header: m.users_col_name(),
-        enableSorting: true,
-        sortingFn: 'text',
-        minSize: 250,
-        meta: {
-          flex: true,
-        },
-        cell: (info) => {
-          const rowData = info.row.original;
-          const online = isUserOnline(rowData);
+	const columns = useMemo(
+		() => [
+			columnHelper.accessor("name", {
+				header: m.users_col_name(),
+				enableSorting: true,
+				sortingFn: "text",
+				minSize: 250,
+				meta: {
+					flex: true,
+				},
+				cell: (info) => {
+					const rowData = info.row.original;
+					const online = isUserOnline(rowData);
 
-          return (
-            <TableCell>
-              <Avatar
-                size="default"
-                variant="initials"
-                firstName={rowData.first_name}
-                lastName={rowData.last_name}
-                online={online}
-              />
-              <span>{info.getValue()}</span>
-            </TableCell>
-          );
-        },
-      }),
-      columnHelper.accessor('is_active', {
-        header: m.col_status(),
-        size: 100,
-        minSize: 100,
-        cell: (info) => (
-          <TableCell>
-            {info.getValue() ? (
-              <Badge variant="success" text={m.state_active()} />
-            ) : (
-              <Badge variant="critical" text={m.state_disabled()} />
-            )}
-          </TableCell>
-        ),
-      }),
-      columnHelper.accessor('username', {
-        header: m.users_col_login(),
-        size: 170,
-        minSize: 100,
-        enableSorting: true,
-        sortingFn: 'text',
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue()}</span>
-          </TableCell>
-        ),
-      }),
-      columnHelper.accessor('email', {
-        header: m.form_label_email(),
-        size: 200,
-        minSize: 150,
-        enableSorting: true,
-        sortingFn: 'text',
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue()}</span>
-          </TableCell>
-        ),
-      }),
-      columnHelper.accessor('groups', {
-        header: m.users_col_groups(),
-        size: 370,
-        minSize: 200,
-        enableSorting: false,
-        enableColumnFilter: isPresent(groups),
-        filterFn: () => true, // filtering delegated to API
-        meta: {
-          filterOptions: filterGroupsOptions,
-        },
-        cell: (info) => <TableValuesListCell values={info.getValue()} />,
-      }),
-      columnHelper.accessor('mfa_enabled', {
-        header: m.users_col_mfa(),
-        size: 56,
-        minSize: 56,
-        cell: (info) => (
-          <TableCell className="cell-with-check-icons">
-            {info.getValue() ? (
-              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
-            ) : null}
-          </TableCell>
-        ),
-      }),
-      columnHelper.accessor('enrolled', {
-        header: m.users_col_enrolled(),
-        size: 150,
-        minSize: 125,
-        cell: (info) => (
-          <TableCell>
-            {info.getValue() ? (
-              <Badge text={m.state_enrolled()} />
-            ) : (
-              <Badge text={m.state_pending()} icon="pending" variant="warning" showIcon />
-            )}
-          </TableCell>
-        ),
-      }),
-      columnHelper.display({
-        id: 'edit',
-        size: tableEditColumnSize,
-        header: '',
-        enableSorting: false,
-        enableResizing: false,
-        cell: (info) => {
-          const rowData = info.row.original;
-          const accountStatusMenuGroup: MenuItemsGroup = {
-            items: [
-              {
-                text: rowData.is_active
-                  ? m.users_row_menu_disable()
-                  : m.users_row_menu_enable(),
-                icon: rowData.is_active ? 'disabled' : 'check-circle',
-                testId: 'change-account-status',
-                onClick: () => {
-                  if (rowData.is_active) {
-                    openModal(ModalName.ConfirmAction, {
-                      title: m.users_modal_disable_title(),
-                      contentMd: m.users_modal_disable_content({
-                        name: rowData.name,
-                      }),
-                      actionPromise: () =>
-                        api.user.activeStateChange({
-                          active: false,
-                          username: rowData.username,
-                        }),
-                      invalidateKeys: [['user']],
-                      submitProps: {
-                        text: m.users_row_menu_disable(),
-                        variant: 'critical',
-                      },
-                      onSuccess: () => Snackbar.default(m.users_disable_success()),
-                      onError: () => Snackbar.error(m.users_disable_error()),
-                    });
-                  } else {
-                    openModal(ModalName.ConfirmAction, {
-                      title: m.users_modal_enable_title(),
-                      contentMd: m.users_modal_enable_content({
-                        name: rowData.name,
-                      }),
-                      actionPromise: () =>
-                        api.user.activeStateChange({
-                          active: true,
-                          username: rowData.username,
-                        }),
-                      invalidateKeys: [['user']],
-                      submitProps: {
-                        text: m.users_row_menu_enable(),
-                      },
-                      onSuccess: () => Snackbar.default(m.users_enable_success()),
-                      onError: () => Snackbar.error(m.users_enable_error()),
-                    });
-                  }
-                },
-              },
-            ],
-          };
+					return (
+						<TableCell>
+							<Avatar
+								size="default"
+								variant="initials"
+								firstName={rowData.first_name}
+								lastName={rowData.last_name}
+								online={online}
+							/>
+							<span>{info.getValue()}</span>
+						</TableCell>
+					);
+				},
+			}),
+			columnHelper.accessor("is_active", {
+				header: m.col_status(),
+				size: 100,
+				minSize: 100,
+				cell: (info) => (
+					<TableCell>
+						{info.getValue() ? (
+							<Badge variant="success" text={m.state_active()} />
+						) : (
+							<Badge variant="critical" text={m.state_disabled()} />
+						)}
+					</TableCell>
+				),
+			}),
+			columnHelper.accessor("username", {
+				header: m.users_col_login(),
+				size: 170,
+				minSize: 100,
+				enableSorting: true,
+				sortingFn: "text",
+				cell: (info) => (
+					<TableCell>
+						<span>{info.getValue()}</span>
+					</TableCell>
+				),
+			}),
+			columnHelper.accessor("email", {
+				header: m.form_label_email(),
+				size: 200,
+				minSize: 150,
+				enableSorting: true,
+				sortingFn: "text",
+				cell: (info) => (
+					<TableCell>
+						<span>{info.getValue()}</span>
+					</TableCell>
+				),
+			}),
+			columnHelper.accessor("groups", {
+				header: m.users_col_groups(),
+				size: 370,
+				minSize: 200,
+				enableSorting: false,
+				enableColumnFilter: isPresent(groups),
+				filterFn: () => true, // filtering delegated to API
+				meta: {
+					filterOptions: filterGroupsOptions,
+				},
+				cell: (info) => <TableValuesListCell values={info.getValue()} />,
+			}),
+			columnHelper.accessor("mfa_enabled", {
+				header: m.users_col_mfa(),
+				size: 56,
+				minSize: 56,
+				cell: (info) => (
+					<TableCell className="cell-with-check-icons">
+						{info.getValue() ? (
+							<Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+						) : null}
+					</TableCell>
+				),
+			}),
+			columnHelper.accessor("enrolled", {
+				header: m.users_col_enrolled(),
+				size: 150,
+				minSize: 125,
+				cell: (info) => (
+					<TableCell>
+						{info.getValue() ? (
+							<Badge text={m.state_enrolled()} />
+						) : (
+							<Badge
+								text={m.state_pending()}
+								icon="pending"
+								variant="warning"
+								showIcon
+							/>
+						)}
+					</TableCell>
+				),
+			}),
+			columnHelper.display({
+				id: "edit",
+				size: tableEditColumnSize,
+				header: "",
+				enableSorting: false,
+				enableResizing: false,
+				cell: (info) => {
+					const rowData = info.row.original;
+					const accountStatusMenuGroup: MenuItemsGroup = {
+						items: [
+							{
+								text: rowData.is_active
+									? m.users_row_menu_disable()
+									: m.users_row_menu_enable(),
+								icon: rowData.is_active ? "disabled" : "check-circle",
+								testId: "change-account-status",
+								onClick: () => {
+									if (rowData.is_active) {
+										openModal(ModalName.ConfirmAction, {
+											title: m.users_modal_disable_title(),
+											contentMd: m.users_modal_disable_content({
+												name: rowData.name,
+											}),
+											actionPromise: () =>
+												api.user.activeStateChange({
+													active: false,
+													username: rowData.username,
+												}),
+											invalidateKeys: [["user"]],
+											submitProps: {
+												text: m.users_row_menu_disable(),
+												variant: "critical",
+											},
+											onSuccess: () =>
+												Snackbar.default(m.users_disable_success()),
+											onError: () => Snackbar.error(m.users_disable_error()),
+										});
+									} else {
+										openModal(ModalName.ConfirmAction, {
+											title: m.users_modal_enable_title(),
+											contentMd: m.users_modal_enable_content({
+												name: rowData.name,
+											}),
+											actionPromise: () =>
+												api.user.activeStateChange({
+													active: true,
+													username: rowData.username,
+												}),
+											invalidateKeys: [["user"]],
+											submitProps: {
+												text: m.users_row_menu_enable(),
+											},
+											onSuccess: () =>
+												Snackbar.default(m.users_enable_success()),
+											onError: () => Snackbar.error(m.users_enable_error()),
+										});
+									}
+								},
+							},
+						],
+					};
 
-          const userMainActionsItems: MenuItemProps[] = [
-            {
-              text: m.users_row_menu_edit(),
-              icon: 'edit',
-              onClick: () => {
-                openModal(ModalName.EditUserModal, {
-                  user: rowData,
-                });
-              },
-            },
-            {
-              text: m.users_row_menu_change_password(),
-              icon: 'lock-open',
-              testId: 'change-password',
-              onClick: () => {
-                openModal(ModalName.ChangePassword, {
-                  adminForm: rowData.username !== authUsername,
-                  user: rowData,
-                });
-              },
-            },
-            {
-              text: m.users_row_menu_go_profile(),
-              icon: 'profile',
-              onClick: () => {
-                navigate({
-                  to: '/user/$username',
-                  params: {
-                    username: rowData.username,
-                  },
-                });
-              },
-            },
-            {
-              text: m.users_row_menu_edit_groups(),
-              icon: 'add-group',
-              testId: 'edit-groups',
-              onClick: () => {
-                useSelectionModal.setState({
-                  isOpen: true,
-                  options: groupsOptions,
-                  title: m.modal_edit_user_groups_title(),
-                  selected: new Set(rowData.groups),
-                  onSubmit: (selected) => {
-                    handleEditGroups(rowData, selected as string[]);
-                  },
-                });
-              },
-            },
-          ];
+					const userMainActionsItems: MenuItemProps[] = [
+						{
+							text: m.users_row_menu_edit(),
+							icon: "edit",
+							onClick: () => {
+								openModal(ModalName.EditUserModal, {
+									user: rowData,
+								});
+							},
+						},
+						{
+							text: m.users_row_menu_change_password(),
+							icon: "lock-open",
+							testId: "change-password",
+							onClick: () => {
+								openModal(ModalName.ChangePassword, {
+									adminForm: rowData.username !== authUsername,
+									user: rowData,
+								});
+							},
+						},
+						{
+							text: m.users_row_menu_go_profile(),
+							icon: "profile",
+							onClick: () => {
+								navigate({
+									to: "/user/$username",
+									params: {
+										username: rowData.username,
+									},
+								});
+							},
+						},
+						{
+							text: m.users_row_menu_edit_groups(),
+							icon: "add-group",
+							testId: "edit-groups",
+							onClick: () => {
+								useSelectionModal.setState({
+									isOpen: true,
+									options: groupsOptions,
+									title: m.modal_edit_user_groups_title(),
+									selected: new Set(rowData.groups),
+									onSubmit: (selected) => {
+										handleEditGroups(rowData, selected as string[]);
+									},
+								});
+							},
+						},
+					];
 
-          if (rowData.devices.length > 0) {
-            userMainActionsItems.push({
-              text: m.users_row_menu_ip_settings(),
-              icon: IconKind.Gateway,
-              testId: 'assign-ip',
-              onClick: async () => {
-                const response = await api.device.getUserDeviceIps(rowData.username);
-                openModal(ModalName.AssignUserIP, {
-                  user: rowData,
-                  locationData: response.data,
-                  hasDevices: rowData.devices.length > 0,
-                });
-              },
-            });
-          }
+					if (rowData.devices.length > 0) {
+						userMainActionsItems.push({
+							text: m.users_row_menu_ip_settings(),
+							icon: IconKind.Gateway,
+							testId: "assign-ip",
+							onClick: async () => {
+								const response = await api.device.getUserDeviceIps(
+									rowData.username,
+								);
+								openModal(ModalName.AssignUserIP, {
+									user: rowData,
+									locationData: response.data,
+									hasDevices: rowData.devices.length > 0,
+								});
+							},
+						});
+					}
 
-          const menuItems: MenuItemsGroup[] = [
-            {
-              items: userMainActionsItems,
-            },
-            {
-              items: [
-                {
-                  text: m.users_row_menu_add_auth(),
-                  icon: 'key',
-                  onClick: () => {
-                    openModal(ModalName.AddAuthKey, {
-                      username: rowData.username,
-                    });
-                  },
-                },
-              ],
-            },
-            accountStatusMenuGroup,
-            {
-              items: [
-                {
-                  text: m.users_row_menu_delete(),
-                  icon: 'delete',
-                  variant: 'danger',
-                  onClick: () => {
-                    openModal(ModalName.ConfirmAction, {
-                      title: m.modal_delete_user_title(),
-                      contentMd: m.modal_delete_user_body({
-                        name: rowData.name,
-                      }),
-                      actionPromise: () => api.user.deleteUser(rowData.username),
-                      invalidateKeys: [['user'], ['enterprise_info']],
-                      submitProps: {
-                        text: m.users_row_menu_delete(),
-                        variant: 'critical',
-                      },
-                      onSuccess: () => Snackbar.default(m.modal_delete_user_success()),
-                      onError: () => Snackbar.error(m.modal_delete_user_error()),
-                    });
-                  },
-                },
-              ],
-            },
-          ];
+					const menuItems: MenuItemsGroup[] = [
+						{
+							items: userMainActionsItems,
+						},
+						{
+							items: [
+								{
+									text: m.users_row_menu_add_auth(),
+									icon: "key",
+									onClick: () => {
+										openModal(ModalName.AddAuthKey, {
+											username: rowData.username,
+										});
+									},
+								},
+							],
+						},
+						accountStatusMenuGroup,
+						{
+							items: [
+								{
+									text: m.users_row_menu_delete(),
+									icon: "delete",
+									variant: "danger",
+									onClick: () => {
+										openModal(ModalName.ConfirmAction, {
+											title: m.modal_delete_user_title(),
+											contentMd: m.modal_delete_user_body({
+												name: rowData.name,
+											}),
+											actionPromise: () =>
+												api.user.deleteUser(rowData.username),
+											invalidateKeys: [["user"], ["enterprise_info"]],
+											submitProps: {
+												text: m.users_row_menu_delete(),
+												variant: "critical",
+											},
+											onSuccess: () =>
+												Snackbar.default(m.modal_delete_user_success()),
+											onError: () =>
+												Snackbar.error(m.modal_delete_user_error()),
+										});
+									},
+								},
+							],
+						},
+					];
 
-          if (!rowData.enrolled) {
-            menuItems.splice(1, 0, {
-              items: [
-                {
-                  text: m.users_row_menu_initiate_self_enrollment(),
-                  icon: IconKind.AddUser,
-                  onClick: () => {
-                    api.user
-                      .startEnrollment({
-                        send_enrollment_notification: false,
-                        username: rowData.username,
-                      })
-                      .then((response) => {
-                        openModal(ModalName.SelfEnrollmentToken, {
-                          user: rowData,
-                          appInfo,
-                          enrollmentResponse: response.data,
-                        });
-                      })
-                      .catch((error) => {
-                        Snackbar.error(m.failed_to_start_enrollment());
-                        console.error(error);
-                      });
-                  },
-                },
-              ],
-            });
-          }
-          if (rowData.enrolled && canModifyDevices) {
-            menuItems.splice(1, 0, {
-              items: [
-                {
-                  text: m.user_row_menu_add_new_device(),
-                  icon: IconKind.AddDevice,
-                  onClick: () => {
-                    openModal(ModalName.AddNewDevice, rowData);
-                  },
-                },
-              ],
-            });
-          }
-          if (rowData.mfa_enabled) {
-            accountStatusMenuGroup.items.splice(1, 0, {
-              text: m.users_row_menu_disable_mfa(),
-              icon: 'disable-mfa',
-              onClick: () => {
-                openModal(ModalName.ConfirmAction, {
-                  title: m.users_modal_disable_mfa_title(),
-                  contentMd: m.users_modal_disable_mfa_content({
-                    name: rowData.name,
-                  }),
-                  actionPromise: () => api.user.disableMfa(rowData.username),
-                  invalidateKeys: [['user'], ['session-info'], ['me'], ['activity-log']],
-                  submitProps: {
-                    text: m.users_row_menu_disable_mfa(),
-                    variant: 'critical',
-                  },
-                  onSuccess: () => Snackbar.default(m.users_disable_mfa_success()),
-                  onError: () => Snackbar.error(m.users_disable_mfa_error()),
-                });
-              },
-            });
-          }
+					if (!rowData.enrolled) {
+						menuItems.splice(1, 0, {
+							items: [
+								{
+									text: m.users_row_menu_initiate_self_enrollment(),
+									icon: IconKind.AddUser,
+									onClick: () => {
+										api.user
+											.startEnrollment({
+												send_enrollment_notification: false,
+												username: rowData.username,
+											})
+											.then((response) => {
+												openModal(ModalName.SelfEnrollmentToken, {
+													user: rowData,
+													appInfo,
+													enrollmentResponse: response.data,
+												});
+											})
+											.catch((error) => {
+												Snackbar.error(m.failed_to_start_enrollment());
+												console.error(error);
+											});
+									},
+								},
+							],
+						});
+					}
+					if (rowData.enrolled) {
+						const enrolledItems: MenuItemProps[] = [];
+						if (canModifyDevices) {
+							enrolledItems.push({
+								text: m.user_row_menu_add_new_device(),
+								icon: IconKind.AddDevice,
+								onClick: () => {
+									openModal(ModalName.AddNewDevice, rowData);
+								},
+							});
+						}
+						enrolledItems.push({
+							text: m.users_row_menu_trigger_re_enrollment(),
+							icon: IconKind.AddUser,
+							onClick: () => {
+								openModal(ModalName.ConfirmAction, {
+									title: m.users_modal_trigger_re_enrollment_title(),
+									contentMd: m.users_modal_trigger_re_enrollment_content({
+										name: rowData.name,
+									}),
+									actionPromise: () =>
+										api.user.startEnrollment({
+											send_enrollment_notification: false,
+											username: rowData.username,
+										}),
+									invalidateKeys: [["user-overview"], ["user"]],
+									submitProps: {
+										text: m.users_row_menu_trigger_re_enrollment(),
+										variant: "critical",
+									},
+									onSuccess: (result) => {
+										openModal(ModalName.SelfEnrollmentToken, {
+											user: rowData,
+											appInfo,
+											enrollmentResponse: (
+												result as { data: StartEnrollmentResponse }
+											).data,
+										});
+									},
+									onError: () =>
+										Snackbar.error(m.users_trigger_re_enrollment_error()),
+								});
+							},
+						});
+						menuItems.splice(1, 0, { items: enrolledItems });
+					}
+					if (rowData.mfa_enabled) {
+						accountStatusMenuGroup.items.splice(1, 0, {
+							text: m.users_row_menu_disable_mfa(),
+							icon: "disable-mfa",
+							onClick: () => {
+								openModal(ModalName.ConfirmAction, {
+									title: m.users_modal_disable_mfa_title(),
+									contentMd: m.users_modal_disable_mfa_content({
+										name: rowData.name,
+									}),
+									actionPromise: () => api.user.disableMfa(rowData.username),
+									invalidateKeys: [
+										["user"],
+										["session-info"],
+										["me"],
+										["activity-log"],
+									],
+									submitProps: {
+										text: m.users_row_menu_disable_mfa(),
+										variant: "critical",
+									},
+									onSuccess: () =>
+										Snackbar.default(m.users_disable_mfa_success()),
+									onError: () => Snackbar.error(m.users_disable_mfa_error()),
+								});
+							},
+						});
+					}
 
-          return <TableEditCell menuItems={menuItems} />;
-        },
-      }),
-    ],
-    [
-      navigate,
-      groupsOptions,
-      handleEditGroups,
-      groups,
-      appInfo,
-      authUsername,
-      canModifyDevices,
-      filterGroupsOptions,
-    ],
-  );
+					return <TableEditCell menuItems={menuItems} />;
+				},
+			}),
+		],
+		[
+			navigate,
+			groupsOptions,
+			handleEditGroups,
+			groups,
+			appInfo,
+			authUsername,
+			canModifyDevices,
+			filterGroupsOptions,
+		],
+	);
 
-  const expandedHeader = useMemo(
-    () => [
-      m.users_col_assigned(),
-      '',
-      m.users_col_ip(),
-      m.users_col_connected_through(),
-      m.users_col_connected_date(),
-      '',
-    ],
-    [],
-  );
+	const expandedHeader = useMemo(
+		() => [
+			m.users_col_assigned(),
+			"",
+			m.users_col_ip(),
+			m.users_col_connected_through(),
+			m.users_col_connected_date(),
+			"",
+		],
+		[],
+	);
 
-  const makeDeviceRowMenu = useCallback(
-    (
-      device: Device,
-      username: string,
-      reservedDeviceNames: string[],
-      reservedPubkeys: string[],
-    ): MenuItemsGroup[] => {
-      const items: MenuItemProps[] = [
-        {
-          text: m.controls_edit(),
-          icon: 'edit',
-          onClick: () => {
-            openModal(ModalName.EditUserDevice, {
-              device,
-              reservedNames: reservedDeviceNames,
-              reservedPubkeys,
-              username,
-            });
-          },
-        },
-        {
-          text: m.profile_devices_menu_ip_settings(),
-          icon: 'gateway',
-          testId: 'assign-device-ip',
-          onClick: () => {
-            api.device
-              .getDeviceIps(username, device.id)
-              .then(({ data: locationData }) => {
-                openModal(ModalName.AssignUserDeviceIP, {
-                  device,
-                  username,
-                  locationData,
-                });
-              })
-              .catch((error) => {
-                Snackbar.error(m.profile_devices_ip_settings_load_failed());
-                console.error(error);
-              });
-          },
-        },
-      ];
+	const makeDeviceRowMenu = useCallback(
+		(
+			device: Device,
+			username: string,
+			reservedDeviceNames: string[],
+			reservedPubkeys: string[],
+		): MenuItemsGroup[] => {
+			const items: MenuItemProps[] = [
+				{
+					text: m.controls_edit(),
+					icon: "edit",
+					onClick: () => {
+						openModal(ModalName.EditUserDevice, {
+							device,
+							reservedNames: reservedDeviceNames,
+							reservedPubkeys,
+							username,
+						});
+					},
+				},
+				{
+					text: m.profile_devices_menu_ip_settings(),
+					icon: "gateway",
+					testId: "assign-device-ip",
+					onClick: () => {
+						api.device
+							.getDeviceIps(username, device.id)
+							.then(({ data: locationData }) => {
+								openModal(ModalName.AssignUserDeviceIP, {
+									device,
+									username,
+									locationData,
+								});
+							})
+							.catch((error) => {
+								Snackbar.error(m.profile_devices_ip_settings_load_failed());
+								console.error(error);
+							});
+					},
+				},
+			];
 
-      if (device.networks.some((n) => n.location_mfa_mode === LocationMfaMode.Disabled)) {
-        items.push({
-          text: m.profile_devices_menu_show_config(),
-          onClick: () => {
-            api.device.getDeviceConfigs(device).then((modalData) => {
-              openModal(ModalName.UserDeviceConfig, modalData);
-            });
-          },
-          icon: 'config',
-        });
-      }
+			if (
+				device.networks.some(
+					(n) => n.location_mfa_mode === LocationMfaMode.Disabled,
+				)
+			) {
+				items.push({
+					text: m.profile_devices_menu_show_config(),
+					onClick: () => {
+						api.device.getDeviceConfigs(device).then((modalData) => {
+							openModal(ModalName.UserDeviceConfig, modalData);
+						});
+					},
+					icon: "config",
+				});
+			}
 
-      items.push({
-        text: m.controls_delete(),
-        onClick: () => {
-          openModal(ModalName.ConfirmAction, {
-            title: m.modal_delete_user_device_title(),
-            contentMd: m.modal_delete_user_device_body({ name: device.name }),
-            actionPromise: () => api.device.deleteDevice(device.id),
-            invalidateKeys: [['user'], ['network']],
-            submitProps: { text: m.controls_delete(), variant: 'critical' },
-            onSuccess: () => Snackbar.default(m.user_device_delete_success()),
-            onError: () => Snackbar.error(m.user_device_delete_failed()),
-          });
-        },
-        variant: 'danger',
-        icon: 'delete',
-      });
+			items.push({
+				text: m.controls_delete(),
+				onClick: () => {
+					openModal(ModalName.ConfirmAction, {
+						title: m.modal_delete_user_device_title(),
+						contentMd: m.modal_delete_user_device_body({ name: device.name }),
+						actionPromise: () => api.device.deleteDevice(device.id),
+						invalidateKeys: [["user"], ["network"]],
+						submitProps: { text: m.controls_delete(), variant: "critical" },
+						onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+						onError: () => Snackbar.error(m.user_device_delete_failed()),
+					});
+				},
+				variant: "danger",
+				icon: "delete",
+			});
 
-      return [{ items }];
-    },
-    [],
-  );
+			return [{ items }];
+		},
+		[],
+	);
 
-  const renderExpanded = useCallback(
-    (row: Row<RowData>, isLast = false) => {
-      const username = row.original.username;
-      const reservedDeviceNames = row.original.devices.map((d) => d.name);
-      const reservedPubkeys = row.original.devices.map((d) => d.wireguard_pubkey);
-      return row.original.devices.map((device, deviceIndex) => {
-        const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
-        const deviceOnline = isDeviceOnline(device);
-        const latestNetwork = orderBy(
-          device.networks.filter((n) => isPresent(n.last_connected_at)),
-          (d) => d.last_connected_at,
-          ['desc'],
-        )[0];
-        const neverConnected = m.profile_devices_col_never_connected();
-        const ip = latestNetwork?.last_connected_ip ?? neverConnected;
-        const locationName = latestNetwork?.last_connected_at
-          ? latestNetwork.network_name
-          : neverConnected;
-        const connectionDate = latestNetwork?.last_connected_at
-          ? displayDate(latestNetwork.last_connected_at)
-          : neverConnected;
-        const menuItems = makeDeviceRowMenu(
-          device,
-          username,
-          reservedDeviceNames,
-          reservedPubkeys,
-        );
-        return (
-          <TableRowContainer
-            className={clsx({ last: lastRow })}
-            key={device.id}
-            assignColumnSizing
-          >
-            <TableCell empty />
-            <TableCell alignContent="center" noPadding>
-              <Icon icon="enter" />
-            </TableCell>
-            <TableCell>
-              <div className="expanded-device-icon-wrapper">
-                <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
-                {deviceOnline && (
-                  <span className="expanded-device-online-indicator" aria-hidden="true" />
-                )}
-              </div>
-              <span>{device.name}</span>
-            </TableCell>
-            <TableCell empty />
-            <TableCell>
-              <span>{ip}</span>
-            </TableCell>
-            <TableCell>
-              <span>{locationName}</span>
-            </TableCell>
-            <TableCell>
-              <span>{connectionDate}</span>
-            </TableCell>
-            <TableCell empty />
-            {canModifyDevices ? (
-              <TableEditCell menuItems={menuItems} />
-            ) : (
-              <TableCell empty />
-            )}
-          </TableRowContainer>
-        );
-      });
-    },
-    [canModifyDevices, makeDeviceRowMenu],
-  );
+	const renderExpanded = useCallback(
+		(row: Row<RowData>, isLast = false) => {
+			const username = row.original.username;
+			const reservedDeviceNames = row.original.devices.map((d) => d.name);
+			const reservedPubkeys = row.original.devices.map(
+				(d) => d.wireguard_pubkey,
+			);
+			return row.original.devices.map((device, deviceIndex) => {
+				const lastRow =
+					isLast && deviceIndex === row.original.devices.length - 1;
+				const deviceOnline = isDeviceOnline(device);
+				const latestNetwork = orderBy(
+					device.networks.filter((n) => isPresent(n.last_connected_at)),
+					(d) => d.last_connected_at,
+					["desc"],
+				)[0];
+				const neverConnected = m.profile_devices_col_never_connected();
+				const ip = latestNetwork?.last_connected_ip ?? neverConnected;
+				const locationName = latestNetwork?.last_connected_at
+					? latestNetwork.network_name
+					: neverConnected;
+				const connectionDate = latestNetwork?.last_connected_at
+					? displayDate(latestNetwork.last_connected_at)
+					: neverConnected;
+				const menuItems = makeDeviceRowMenu(
+					device,
+					username,
+					reservedDeviceNames,
+					reservedPubkeys,
+				);
+				return (
+					<TableRowContainer
+						className={clsx({ last: lastRow })}
+						key={device.id}
+						assignColumnSizing
+					>
+						<TableCell empty />
+						<TableCell alignContent="center" noPadding>
+							<Icon icon="enter" />
+						</TableCell>
+						<TableCell>
+							<div className="expanded-device-icon-wrapper">
+								<Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
+								{deviceOnline && (
+									<span
+										className="expanded-device-online-indicator"
+										aria-hidden="true"
+									/>
+								)}
+							</div>
+							<span>{device.name}</span>
+						</TableCell>
+						<TableCell empty />
+						<TableCell>
+							<span>{ip}</span>
+						</TableCell>
+						<TableCell>
+							<span>{locationName}</span>
+						</TableCell>
+						<TableCell>
+							<span>{connectionDate}</span>
+						</TableCell>
+						<TableCell empty />
+						{canModifyDevices ? (
+							<TableEditCell menuItems={menuItems} />
+						) : (
+							<TableCell empty />
+						)}
+					</TableRowContainer>
+				);
+			});
+		},
+		[canModifyDevices, makeDeviceRowMenu],
+	);
 
-  const table = useReactTable({
-    state: {
-      rowSelection: selected,
-      columnFilters: columnFilters,
-      sorting,
-    },
-    manualSorting: true,
-    manualFiltering: true,
-    getRowId: (row) => String(row.id),
-    meta: {
-      filterMessages: tableFilterMessages,
-    },
-    columns,
-    data: users,
-    enableRowSelection: true,
-    enableExpanding: true,
-    columnResizeMode: 'onChange',
-    onColumnFiltersChange: setColumnFilters,
-    onSortingChange: setSorting,
-    onRowSelectionChange: setSelected,
-    getCoreRowModel: getCoreRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    getRowCanExpand: (row) => row.original.devices.length > 0,
-  });
+	const table = useReactTable({
+		state: {
+			rowSelection: selected,
+			columnFilters: columnFilters,
+			sorting,
+		},
+		manualSorting: true,
+		manualFiltering: true,
+		getRowId: (row) => String(row.id),
+		meta: {
+			filterMessages: tableFilterMessages,
+		},
+		columns,
+		data: users,
+		enableRowSelection: true,
+		enableExpanding: true,
+		columnResizeMode: "onChange",
+		onColumnFiltersChange: setColumnFilters,
+		onSortingChange: setSorting,
+		onRowSelectionChange: setSelected,
+		getCoreRowModel: getCoreRowModel(),
+		getExpandedRowModel: getExpandedRowModel(),
+		getRowCanExpand: (row) => row.original.devices.length > 0,
+	});
 
-  const rows = table.getRowModel().rows;
+	const handleBulkStartEnrollment = useCallback(() => {
+		const selectedRows = table.getFilteredSelectedRowModel().rows;
+		const selectedUsers = selectedRows
+			.filter((row) => row.original.username !== authUsername)
+			.map((row) => row.original.id);
+		if (selectedRows.some((row) => row.original.username === authUsername)) {
+			Snackbar.error(m.users_bulk_self_excluded());
+		}
+		if (selectedUsers.length === 0) return;
+		openModal(ModalName.ConfirmAction, {
+			title: m.users_modal_bulk_start_enrollment_title(),
+			contentMd: m.users_modal_bulk_start_enrollment_content({
+				count: selectedUsers.length,
+			}),
+			actionPromise: () =>
+				api.user.bulkStartEnrollment({
+					users: selectedUsers,
+					send_enrollment_notification: true,
+				}),
+			invalidateKeys: [["user-overview"], ["user"]],
+			submitProps: {
+				text: m.users_bulk_start_enrollment(),
+			},
+			onSuccess: (result) => {
+				const { started, skipped } = (
+					result as { data: BulkStartEnrollmentResponse }
+				).data;
+				const msg =
+					skipped > 0
+						? m.users_bulk_start_enrollment_success_with_skipped({
+								started,
+								skipped,
+							})
+						: m.users_bulk_start_enrollment_success({ started });
+				Snackbar.default(msg);
+			},
+			onError: () => Snackbar.error(m.users_bulk_start_enrollment_error()),
+		});
+	}, [authUsername, table]);
 
-  if (isLoading)
-    return (
-      <EmptyStateFlexible
-        title={m.users_empty_title()}
-        subtitle={m.users_empty_subtitle()}
-        primaryAction={addButtonProps}
-      />
-    );
+	const handleBulkDisable = useCallback(() => {
+		const selectedRows = table.getFilteredSelectedRowModel().rows;
+		const selectedUsers = selectedRows
+			.filter((row) => row.original.username !== authUsername)
+			.filter((row) => row.original.is_active)
+			.map((row) => row.original.id);
+		if (selectedRows.some((row) => row.original.username === authUsername)) {
+			Snackbar.error(m.users_bulk_self_excluded());
+		}
+		if (selectedUsers.length === 0) {
+			Snackbar.warning(m.users_bulk_disable_no_eligible());
+			return;
+		}
+		openModal(ModalName.ConfirmAction, {
+			title: m.users_modal_bulk_disable_title(),
+			contentMd: m.users_modal_bulk_disable_content({
+				count: selectedUsers.length,
+			}),
+			actionPromise: () => api.user.bulkDisable(selectedUsers),
+			invalidateKeys: [["user-overview"], ["user"]],
+			submitProps: {
+				text: m.users_bulk_disable(),
+				variant: "critical",
+			},
+			onSuccess: () => {
+				Snackbar.default(m.users_bulk_disable_success());
+			},
+			onError: () => Snackbar.error(m.users_bulk_disable_error()),
+		});
+	}, [authUsername, table]);
 
-  if (users.length === 0)
-    return (
-      <EmptyStateFlexible
-        title={m.users_empty_title()}
-        subtitle={m.users_empty_subtitle()}
-        primaryAction={addButtonProps}
-      />
-    );
+	const handleBulkEnable = useCallback(() => {
+		const selectedRows = table.getFilteredSelectedRowModel().rows;
+		const selectedUsers = selectedRows
+			.filter((row) => !row.original.is_active)
+			.map((row) => row.original.id);
+		if (selectedUsers.length === 0) {
+			Snackbar.warning(m.users_bulk_enable_no_eligible());
+			return;
+		}
+		openModal(ModalName.ConfirmAction, {
+			title: m.users_modal_bulk_enable_title(),
+			contentMd: m.users_modal_bulk_enable_content({
+				count: selectedUsers.length,
+			}),
+			actionPromise: () => api.user.bulkEnable(selectedUsers),
+			invalidateKeys: [["user-overview"], ["user"]],
+			submitProps: {
+				text: m.users_bulk_enable(),
+			},
+			onSuccess: () => {
+				Snackbar.default(m.users_bulk_enable_success());
+			},
+			onError: () => Snackbar.error(m.users_bulk_enable_error()),
+		});
+	}, [table]);
 
-  return (
-    <>
-      <TableTop text={m.users_header_title()}>
-        {table.getFilteredSelectedRowModel().rows.length > 0 && isPresent(groups) && (
-          <Button
-            variant="outlined"
-            text={m.users_bulk_assign_to_groups()}
-            iconLeft="add-group"
-            testId="bulk-assign"
-            onClick={() => {
-              const selectedUsers = table
-                .getFilteredSelectedRowModel()
-                .rows.map((row) => row.original.id);
-              openModal(ModalName.AssignGroupsToUsers, {
-                groups,
-                users: selectedUsers,
-                onSuccess: () => table.resetRowSelection(),
-              });
-            }}
-          />
-        )}
-        <Search
-          placeholder={m.users_search_placeholder()}
-          initialValue={search}
-          onChange={setSearch}
-        />
-        <Button {...addButtonProps} />
-      </TableTop>
-      <TableBody
-        table={table}
-        renderExpandedRow={renderExpanded}
-        expandedHeaders={expandedHeader}
-        hasNextPage={
-          usersData
-            ? usersData.pages[usersData.pages.length - 1]?.pagination.next_page !== null
-            : false
-        }
-        loadingNextPage={isFetchingNextPage}
-        onNextPage={fetchNextPage}
-      />
-      {rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
-        <EmptyStateFlexible
-          icon="search"
-          title={m.search_empty_common_title()}
-          subtitle={m.search_empty_common_subtitle()}
-        />
-      )}
-    </>
-  );
+	const handleBulkDelete = useCallback(() => {
+		const selectedRows = table.getFilteredSelectedRowModel().rows;
+		const selectedUsers = selectedRows
+			.filter((row) => row.original.username !== authUsername)
+			.map((row) => row.original.id);
+		if (selectedRows.some((row) => row.original.username === authUsername)) {
+			Snackbar.error(m.users_bulk_self_excluded());
+		}
+		if (selectedUsers.length === 0) return;
+		openModal(ModalName.ConfirmAction, {
+			title: m.users_modal_bulk_delete_title(),
+			contentMd: m.users_modal_bulk_delete_content({
+				count: selectedUsers.length,
+			}),
+			actionPromise: () => api.user.bulkDelete(selectedUsers),
+			invalidateKeys: [["user-overview"], ["user"]],
+			submitProps: {
+				text: m.users_bulk_delete(),
+				variant: "critical",
+			},
+			onSuccess: () => {
+				Snackbar.default(m.users_bulk_delete_success());
+			},
+			onError: () => Snackbar.error(m.users_bulk_delete_error()),
+		});
+	}, [authUsername, table]);
+
+	const rows = table.getRowModel().rows;
+
+	if (isLoading)
+		return (
+			<EmptyStateFlexible
+				title={m.users_empty_title()}
+				subtitle={m.users_empty_subtitle()}
+				primaryAction={addButtonProps}
+			/>
+		);
+
+	if (users.length === 0)
+		return (
+			<EmptyStateFlexible
+				title={m.users_empty_title()}
+				subtitle={m.users_empty_subtitle()}
+				primaryAction={addButtonProps}
+			/>
+		);
+
+	return (
+		<>
+			<TableTop text={m.users_header_title()}>
+				{table.getFilteredSelectedRowModel().rows.length > 0 &&
+					isPresent(groups) && (
+						<ButtonMenu
+							variant="outlined"
+							text={m.users_bulk_actions()}
+							iconRight="arrow-small"
+							iconRightRotation="down"
+							placement="bottom-start"
+							testId="bulk-actions"
+							menuItems={[
+								{
+									items: [
+										{
+											text: m.users_bulk_assign_to_group(),
+											icon: "add-group",
+											testId: "bulk-assign-to-group",
+											onClick: () => {
+												const selectedUsers = table
+													.getFilteredSelectedRowModel()
+													.rows.map((row) => row.original.id);
+												openModal(ModalName.AssignGroupsToUsers, {
+													groups,
+													users: selectedUsers,
+												});
+											},
+										},
+										{
+											text: m.users_bulk_start_enrollment(),
+											icon: "enrollment",
+											testId: "bulk-start-enrollment",
+											onClick: handleBulkStartEnrollment,
+										},
+										{
+											text: m.users_bulk_enable(),
+											icon: "check-circle",
+											testId: "bulk-enable",
+											onClick: handleBulkEnable,
+										},
+										{
+											text: m.users_bulk_disable(),
+											icon: "disabled",
+											testId: "bulk-disable",
+											onClick: handleBulkDisable,
+										},
+										{
+											text: m.users_bulk_delete(),
+											icon: "delete",
+											variant: "danger",
+											testId: "bulk-delete",
+											onClick: handleBulkDelete,
+										},
+									],
+								},
+							]}
+						/>
+					)}
+				<Search
+					placeholder={m.users_search_placeholder()}
+					initialValue={search}
+					onChange={setSearch}
+				/>
+				<Button {...addButtonProps} />
+			</TableTop>
+			<TableBody
+				table={table}
+				renderExpandedRow={renderExpanded}
+				expandedHeaders={expandedHeader}
+				hasNextPage={
+					usersData
+						? usersData.pages[usersData.pages.length - 1]?.pagination
+								.next_page !== null
+						: false
+				}
+				loadingNextPage={isFetchingNextPage}
+				onNextPage={fetchNextPage}
+			/>
+			{rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
+				<EmptyStateFlexible
+					icon="search"
+					title={m.search_empty_common_title()}
+					subtitle={m.search_empty_common_subtitle()}
+				/>
+			)}
+		</>
+	);
 };
