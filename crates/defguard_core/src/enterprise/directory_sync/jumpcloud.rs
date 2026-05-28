@@ -7,19 +7,23 @@ use super::{
     parse_response,
 };
 
-const GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/usergroups";
-const ALL_USERS_URL: &str = "https://console.jumpcloud.com/api/systemusers";
-const USER_GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/users/<USER_ID>/memberof";
-const USER_GROUP_MEMBERS_URL: &str =
-    "https://console.jumpcloud.com/api/v2/usergroups/<GROUP_ID>/members";
-const EU_GROUPS_URL: &str = "https://console.eu.jumpcloud.com/api/v2/usergroups";
-const EU_ALL_USERS_URL: &str = "https://console.eu.jumpcloud.com/api/systemusers";
-const EU_USER_GROUPS_URL: &str = "https://console.eu.jumpcloud.com/api/v2/users/<USER_ID>/memberof";
-const EU_USER_GROUP_MEMBERS_URL: &str =
-    "https://console.eu.jumpcloud.com/api/v2/usergroups/<GROUP_ID>/members";
+const DEFAULT_API_HOST: &str = "console.jumpcloud.com";
+const EU_API_HOST: &str = "console.eu.jumpcloud.com";
+const IN_API_HOST: &str = "console.in.jumpcloud.com";
 const MAX_REQUESTS: usize = 50;
 const MAX_RESULTS: usize = 100;
 const API_KEY_HEADER: &str = "x-api-key";
+
+/// Picks the JumpCloud API host based on the OIDC base URL the admin configured.
+pub(crate) fn api_host_for(base_url: &str) -> &'static str {
+    if base_url.contains("eu.jumpcloud") {
+        return EU_API_HOST;
+    }
+    if base_url.contains("in.jumpcloud") {
+        return IN_API_HOST;
+    }
+    DEFAULT_API_HOST
+}
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "UPPERCASE")]
@@ -122,45 +126,39 @@ struct GroupMemberThing {
 
 pub(crate) struct JumpCloudDirectorySync {
     api_key: String,
-    eu: bool,
+    api_host: &'static str,
 }
 
 impl JumpCloudDirectorySync {
     #[must_use]
-    pub fn new(api_key: String, eu: bool) -> Self {
+    pub fn new(api_key: String, api_host: &'static str) -> Self {
         debug!(
             "Initializing JumpCloud directory sync with API key length: {}",
             api_key.len()
         );
-        Self { api_key, eu }
+        Self { api_key, api_host }
     }
 
-    fn groups_url(&self) -> &'static str {
-        if self.eu { EU_GROUPS_URL } else { GROUPS_URL }
+    fn groups_url(&self) -> String {
+        format!("https://{}/api/v2/usergroups", self.api_host)
     }
 
-    fn all_users_url(&self) -> &'static str {
-        if self.eu {
-            EU_ALL_USERS_URL
-        } else {
-            ALL_USERS_URL
-        }
+    fn all_users_url(&self) -> String {
+        format!("https://{}/api/systemusers", self.api_host)
     }
 
-    fn user_groups_url(&self) -> &'static str {
-        if self.eu {
-            EU_USER_GROUPS_URL
-        } else {
-            USER_GROUPS_URL
-        }
+    fn user_groups_url(&self, user_id: &str) -> String {
+        format!(
+            "https://{}/api/v2/users/{user_id}/memberof",
+            self.api_host
+        )
     }
 
-    fn user_group_members_url(&self) -> &'static str {
-        if self.eu {
-            EU_USER_GROUP_MEMBERS_URL
-        } else {
-            USER_GROUP_MEMBERS_URL
-        }
+    fn user_group_members_url(&self, group_id: &str) -> String {
+        format!(
+            "https://{}/api/v2/usergroups/{group_id}/members",
+            self.api_host
+        )
     }
 
     async fn query_group_members(
@@ -172,9 +170,7 @@ impl JumpCloudDirectorySync {
             group.name, group.id
         );
         let client = reqwest::Client::new();
-        let url = self
-            .user_group_members_url()
-            .replace("<GROUP_ID>", &group.id);
+        let url = self.user_group_members_url(&group.id);
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
 
         debug!("Requesting group members from URL: {url}");
@@ -401,7 +397,7 @@ impl JumpCloudDirectorySync {
     async fn query_user_groups(&self, user_id: &str) -> Result<Vec<UserGroup>, DirectorySyncError> {
         debug!("Starting to query groups for user: {user_id}");
         let client = reqwest::Client::new();
-        let url = self.user_groups_url().replace("<USER_ID>", user_id);
+        let url = self.user_groups_url(user_id);
 
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
         debug!("Requesting user groups from URL: {url}");
