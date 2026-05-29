@@ -190,7 +190,7 @@ pub(super) fn compute_user_sync_changes(
             match authority {
                 Authority::LDAP => {
                     // Skip inactive/not enrolled users when deleting from LDAP
-                    if user.is_active && user.is_enrolled() {
+                    if user.is_active && user.is_enrolled_or_ldap_pending() {
                         debug!(
                             "User {} is active and enrolled, removing from Defguard",
                             user.username
@@ -205,7 +205,7 @@ pub(super) fn compute_user_sync_changes(
                 }
                 Authority::Defguard => {
                     // Skip inactive users when adding to LDAP
-                    if user.is_active && user.is_enrolled() {
+                    if user.is_active && user.is_enrolled_or_ldap_pending() {
                         debug!(
                             "User {} is active and enrolled, adding to LDAP",
                             user.username
