@@ -307,6 +307,18 @@ impl<I> User<I> {
         false
     }
 
+    /// Like [`Self::is_enrolled`], but also treats LDAP-origin users whose enrollment is
+    /// still pending as eligible for synchronization.
+    ///
+    /// LDAP can create users that are enrollment-pending by default
+    /// (https://github.com/DefGuard/defguard/issues/2967). They already exist in the
+    /// directory, so they must stay in scope for synchronization even before they finish
+    /// enrolling, otherwise their group membership and account status drift out of sync.
+    #[must_use]
+    pub fn is_enrolled_or_ldap_pending(&self) -> bool {
+        self.is_enrolled() || (self.from_ldap && self.enrollment_pending)
+    }
+
     #[must_use]
     pub fn ldap_rdn_value(&self) -> &str {
         if let Some(ldap_rdn) = &self.ldap_rdn {

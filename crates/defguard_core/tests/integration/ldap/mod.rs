@@ -7,7 +7,7 @@ use defguard_common::{
     db::{
         models::{
             Settings, User,
-            group::Group,
+            group::{Group, Permission},
             settings::{initialize_current_settings, set_settings},
         },
         setup_pool,
@@ -74,6 +74,37 @@ async fn set_sync_settings(pool: &PgPool, sync_group: &str, authoritative: bool)
     settings.ldap_is_authoritative = authoritative;
     settings.ldap_sync_groups = vec![sync_group.to_string()];
     set_settings(Some(settings));
+}
+
+fn enable_secure_enrollment() {
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = true;
+    settings.smtp_server = Some("smtp.example.com".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_sender = Some("noreply@test.defguard".into());
+    settings.public_proxy_url = "http://proxy.example.com".into();
+    set_settings(Some(settings));
+}
+
+async fn create_active_admin(pool: &PgPool, username: &str) {
+    let admin_group = Group::new("secure_enroll_admins").save(pool).await.unwrap();
+    admin_group
+        .set_permission(pool, Permission::IsAdmin, true)
+        .await
+        .unwrap();
+    let admin = User::new(
+        username,
+        Some("pass123"),
+        "Admin",
+        "User",
+        &format!("{username}@test.defguard"),
+        None,
+    )
+    .save(pool)
+    .await
+    .unwrap();
+    admin.add_to_group(pool, &admin_group).await.unwrap();
 }
 
 fn user_dn<I>(conn: &LDAPConnection, user: &User<I>) -> String {
@@ -1059,4 +1090,189 @@ async fn test_sync_defguard_authority_is_idempotent(_: PgPoolOptions, options: P
 
     let _ = ldap_conn.delete_user(&ldap_user_second).await;
     let _ = ldap_conn.delete_group("idem_push_grp").await;
+}
+
+/// A user invited through "allow secure enrollment" (`ldap_remote_enrollment_enabled`) is
+/// enrollment-pending after being pulled in, yet must stay within LDAP sync scope.
+///
+/// Before the fix, `is_enrolled()` resolves to `false` on `enrollment_pending`, so such a
+/// user was dropped from sync entirely: subsequent directory changes (here, an attribute edit in
+/// LDAP) never reached Defguard. The whole scenario:
+///   1. Secure enrollment + invite enabled, LDAP authority, one sync group.
+///   2. The user lives only in LDAP and belongs to the sync group.
+///   3. First sync pulls the user into Defguard, marks them `enrollment_pending`, and mirrors the
+///      group membership.
+///   4. The user's surname is changed in LDAP.
+///   5. A second sync must propagate that change to Defguard - which only happens if the
+///      still-pending user is treated as in scope (and the user must not be deleted).
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_keeps_enrollment_pending_ldap_user_in_scope(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    set_sync_settings(&pool, "secure_enroll_grp", true).await;
+    enable_secure_enrollment();
+    create_active_admin(&pool, "secure_enroll_admin").await;
+
+    // The sync group must exist in Defguard for the membership to be mirrored.
+    Group::new("secure_enroll_grp").save(&pool).await.unwrap();
+
+    let mut user = User::new(
+        "secure_enroll_user",
+        Some("pass123"),
+        "Secure",
+        "Enroll",
+        "secure_enroll@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    ldap_conn.config.ldap_sync_groups = vec![String::from("secure_enroll_grp")];
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("secure_enroll_grp").await;
+
+    // Provision the user in LDAP and in the sync group, then drop the Defguard copy so the first
+    // sync pulls them in fresh (as an LDAP-origin user).
+    ldap_conn
+        .add_user(&mut user, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user_to_group(&user, "secure_enroll_grp")
+        .await
+        .unwrap();
+    user.clone().delete(&pool).await.unwrap();
+
+    // First sync: pull the LDAP-only user into Defguard. Secure enrollment + invite are on and an
+    // active admin exists, so the user is marked enrollment-pending.
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+
+    let pulled = User::find_by_username(&pool, "secure_enroll_user")
+        .await
+        .unwrap()
+        .expect("LDAP user should have been pulled into Defguard");
+    assert!(pulled.from_ldap);
+    assert!(
+        pulled.enrollment_pending,
+        "secure enrollment invite should mark the pulled user as enrollment-pending"
+    );
+    assert!(
+        !pulled.is_enrolled(),
+        "an enrollment-pending user is not yet enrolled"
+    );
+    assert!(
+        pulled
+            .member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&String::from("secure_enroll_grp")),
+        "first sync should mirror the LDAP group membership"
+    );
+
+    // Change the user's surname in LDAP, keeping them in the sync group.
+    let mut ldap_side = pulled.clone();
+    ldap_side.last_name = String::from("Renamed");
+    ldap_conn
+        .modify_user(&pulled.username, &ldap_side)
+        .await
+        .unwrap();
+
+    // Second sync: the attribute change must reach Defguard. This only happens when the
+    // still-pending user remains in sync scope - the regression this guards against.
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    let after = User::find_by_username(&pool, "secure_enroll_user")
+        .await
+        .unwrap()
+        .expect("pending LDAP user must not be deleted while still present in LDAP");
+    assert_eq!(
+        after.last_name, "Renamed",
+        "attribute change for an enrollment-pending LDAP user must propagate to Defguard"
+    );
+    assert!(
+        after
+            .member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&String::from("secure_enroll_grp")),
+        "the pending user should still belong to the sync group"
+    );
+    assert!(
+        after.enrollment_pending,
+        "the user should still be enrollment-pending after sync"
+    );
+
+    let _ = ldap_conn.delete_user(&after).await;
+    let _ = ldap_conn.delete_group("secure_enroll_grp").await;
+}
+
+/// The converse of `test_sync_keeps_enrollment_pending_ldap_user_in_scope`: the
+/// enrollment-pending allowance is scoped to LDAP-origin users only. A Defguard-native user
+/// (`from_ldap = false`) with a pending enrollment is not yet a real account and must NOT be
+/// pushed into LDAP, even under Defguard authority. Clearing the pending flag then lets the same
+/// user through, proving it is the flag that holds them back.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_does_not_push_pending_defguard_user_to_ldap(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    // Defguard authority: a full sync pushes in-scope Defguard-only users into LDAP.
+    set_sync_settings(&pool, "no_push_grp", false).await;
+
+    let group = Group::new("no_push_grp").save(&pool).await.unwrap();
+    // The user has a password, so the only thing keeping them out of sync is the pending flag.
+    let mut user = User::new(
+        "no_push_user",
+        Some("pass123"),
+        "NoPush",
+        "User",
+        "no_push@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    user.enrollment_pending = true;
+    user.save(&pool).await.unwrap();
+    user.add_to_group(&pool, &group).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("no_push_grp").await;
+
+    // While pending, the Defguard-native user must not be created in LDAP.
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    assert!(
+        ldap_conn
+            .get_user_by_username("no_push_user")
+            .await
+            .is_err(),
+        "an enrollment-pending Defguard-native user must not be pushed to LDAP"
+    );
+
+    // Clearing the pending flag makes the user enrolled (they have a password), so the next sync
+    // pushes them - confirming the pending flag was the sole reason they were held back.
+    user.enrollment_pending = false;
+    user.save(&pool).await.unwrap();
+
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    let pushed = ldap_conn
+        .get_user_by_username("no_push_user")
+        .await
+        .expect("once no longer pending, the Defguard user must be pushed to LDAP");
+    assert_eq!(pushed.email, "no_push@test.defguard");
+
+    let _ = ldap_conn.delete_user(&pushed).await;
+    let _ = ldap_conn.delete_group("no_push_grp").await;
 }

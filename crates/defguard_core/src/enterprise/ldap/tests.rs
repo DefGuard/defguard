@@ -3489,6 +3489,49 @@ async fn test_ldap_sync_allowed_enrolled_via_ldap(_: PgPoolOptions, options: PgC
     assert!(result);
 }
 
+/// LDAP can create users that are enrollment-pending by default. They already exist in the directory,
+/// so they must stay in scope for synchronization even before they finish enrolling.
+#[sqlx::test]
+async fn test_ldap_sync_allowed_ldap_pending_enrollment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut user = make_test_user("testuser", None, None);
+    user.is_active = true;
+    user.password_hash = None;
+    user.openid_sub = None;
+    user.from_ldap = true;
+    user.enrollment_pending = true;
+    let user = user.save(&pool).await.unwrap();
+
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
+    assert!(result);
+}
+
+/// A non-LDAP user with pending enrollment is not yet a real account and must stay out of sync.
+#[sqlx::test]
+async fn test_ldap_sync_disallowed_non_ldap_pending_enrollment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut user = make_test_user("testuser", None, None);
+    user.is_active = true;
+    user.password_hash = None;
+    user.openid_sub = None;
+    user.from_ldap = false;
+    user.enrollment_pending = true;
+    let user = user.save(&pool).await.unwrap();
+
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
+    assert!(!result);
+}
+
 #[sqlx::test]
 async fn test_ldap_sync_allowed_all_conditions_false(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
