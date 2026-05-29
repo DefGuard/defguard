@@ -1001,7 +1001,7 @@ pub async fn duplicate_device_posture(
 
     let duplicate = DevicePosture {
         id: NoId,
-        name: format!("{} (copy)", original.name),
+        name: format!("Copy of {}", original.name),
         description: original.description.clone(),
         min_client_version: original.min_client_version.clone(),
         allow_prerelease_client: original.allow_prerelease_client,

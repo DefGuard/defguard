@@ -83,6 +83,25 @@ export const PostureChecksTable = ({
     },
   });
 
+  const { mutate: duplicatePosture } = useMutation({
+    mutationFn: api.devicePosture.duplicateDevicePosture,
+    meta: {
+      invalidate: [['device-posture'], ['network']],
+    },
+    onSuccess: (response) => {
+      const posture = response.data;
+      Snackbar.default(m.posture_checks_duplication_success());
+      navigate({
+        to: '/acl/posture-checks/$postureCheckId/edit',
+        params: {
+          postureCheckId: String(posture.id),
+        },
+      });
+    },
+    onError: () => {
+      Snackbar.error(m.posture_checks_duplication_failed());
+    },
+  });
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -202,13 +221,21 @@ export const PostureChecksTable = ({
             navigate,
             assignLocations: (locations) =>
               assignLocations({ postureCheckId: row.id, locations }),
+            duplicatePosture: () => duplicatePosture(row.id),
           });
 
           return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],
-    [assignLocations, columnFilterOptions, locationOptions, navigate, onRowClick],
+    [
+      assignLocations,
+      columnFilterOptions,
+      locationOptions,
+      navigate,
+      onRowClick,
+      duplicatePosture,
+    ],
   );
 
   const table = useReactTable({

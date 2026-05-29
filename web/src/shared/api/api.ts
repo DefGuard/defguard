@@ -442,6 +442,8 @@ const api = {
     addDevicePosture: (data: EditDevicePostureRequest) =>
       client.post<ApiDevicePosture>('/device-posture', removeEmptyStrings(data)),
     deleteDevicePosture: (id: number) => client.delete(`/device-posture/${id}`),
+    duplicateDevicePosture: (id: number) =>
+      client.post<ApiDevicePosture>(`/device-posture/${id}/duplicate`),
     editDevicePosture: (id: number, data: EditDevicePostureRequest) =>
       client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
     getDevicePosture: (id: number) =>

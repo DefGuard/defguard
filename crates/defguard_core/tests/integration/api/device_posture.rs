@@ -285,7 +285,7 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
     let copy: ApiDevicePosture = response.json().await;
 
     assert_ne!(copy.id, original.id);
-    assert_eq!(copy.name, "Original (copy)");
+    assert_eq!(copy.name, "Copy of Original");
     assert_eq!(copy.description, original.description);
     assert_eq!(copy.min_client_version, original.min_client_version);
     assert_eq!(
@@ -309,7 +309,7 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         duplicate: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id: copy.id,
-                name: "Original (copy)".to_owned(),
+                name: "Copy of Original".to_owned(),
                 description: Some("original desc".to_owned()),
                 min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
                 allow_prerelease_client: false,
