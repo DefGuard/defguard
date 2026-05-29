@@ -1065,6 +1065,7 @@ export interface SettingsLDAP {
   ldap_tls_verify_cert: boolean;
   ldap_sync_interval: number;
   ldap_uses_ad: boolean;
+  ldap_sync_account_status: boolean;
   ldap_user_rdn_attr: string | null;
   ldap_sync_groups: string[];
   ldap_remote_enrollment_enabled: boolean;

@@ -18,6 +18,9 @@ on:
       - "*.md"
       - "LICENSE"
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on:
@@ -227,10 +230,64 @@ jobs:
             --archive-file nextest-archive.tar.zst \
             --partition hash:${{ matrix.partition }}/8
 
+  test-ldap:
+    needs: build
+
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:large
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Download test archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: nextest-archive
+
+      - name: Download cargo-nextest binary
+        run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf -
+
+      - name: Start Postgres and OpenLDAP
+        run: docker compose -p defguard-ldap -f docker-compose.ldap-test.yaml up -d --wait db openldap
+
+      - name: Run LDAP integration tests
+        run: |
+          docker run --rm \
+            --network defguard-ldap_default \
+            -v "$PWD:/src" -w /src \
+            -v "$PWD/cargo-nextest:/usr/local/cargo/bin/cargo-nextest:ro" \
+            -e CARGO_TERM_COLOR=always \
+            -e SQLX_OFFLINE=true \
+            -e DATABASE_URL=postgres://defguard:defguard@db:5432/defguard \
+            -e LDAP_URL=ldap://openldap:1389 \
+            -e LDAP_BIND_USERNAME=cn=admin,dc=example,dc=org \
+            -e LDAP_BIND_PASSWORD=pass123 \
+            -e LDAP_USER_SEARCH_BASE=ou=users,dc=example,dc=org \
+            -e LDAP_GROUP_SEARCH_BASE=ou=groups,dc=example,dc=org \
+            -e LDAP_USER_CLASS=inetOrgPerson \
+            -e LDAP_GROUP_CLASS=groupOfUniqueNames \
+            -e LDAP_USERNAME_ATTR=cn \
+            -e LDAP_GROUPNAME_ATTR=cn \
+            -e LDAP_MEMBER_ATTR=memberOf \
+            -e LDAP_GROUP_MEMBER_ATTR=uniqueMember \
+            public.ecr.aws/docker/library/rust:1 \
+            cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --run-ignored only -E 'package(defguard_core) and test(/^ldap::/)'
+
+      - name: Stop compose
+        if: always()
+        run: docker compose -p defguard-ldap -f docker-compose.ldap-test.yaml down -v
+
   cleanup:
-    needs: test
+    needs: [test, test-ldap]
     if: needs.test.result == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
       - name: Delete test archive artifact
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7

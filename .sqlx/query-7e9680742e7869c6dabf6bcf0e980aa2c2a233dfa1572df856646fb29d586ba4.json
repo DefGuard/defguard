@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, enrollment_token_timeout_hours, password_reset_token_timeout_hours, enrollment_session_timeout_minutes, password_reset_session_timeout_minutes FROM \"settings\" WHERE id = 1",
+  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, ldap_sync_account_status, ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, enrollment_token_timeout_hours, password_reset_token_timeout_hours, enrollment_session_timeout_minutes, password_reset_session_timeout_minutes FROM \"settings\" WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -256,26 +256,31 @@
       },
       {
         "ordinal": 46,
+        "name": "ldap_sync_account_status",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 47,
         "name": "ldap_user_rdn_attr",
         "type_info": "Text"
       },
       {
-        "ordinal": 47,
+        "ordinal": 48,
         "name": "ldap_sync_groups",
         "type_info": "TextArray"
       },
       {
-        "ordinal": 48,
+        "ordinal": 49,
         "name": "ldap_remote_enrollment_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 49,
+        "ordinal": 50,
         "name": "ldap_remote_enrollment_send_invite",
         "type_info": "Bool"
       },
       {
-        "ordinal": 50,
+        "ordinal": 51,
         "name": "openid_username_handling: OpenIdUsernameHandling",
         "type_info": {
           "Custom": {
@@ -291,77 +296,77 @@
         }
       },
       {
-        "ordinal": 51,
+        "ordinal": 52,
         "name": "defguard_url",
         "type_info": "Text"
       },
       {
-        "ordinal": 52,
+        "ordinal": 53,
         "name": "default_admin_group_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 53,
+        "ordinal": 54,
         "name": "authentication_period_days",
         "type_info": "Int4"
       },
       {
-        "ordinal": 54,
+        "ordinal": 55,
         "name": "mfa_code_timeout_seconds",
         "type_info": "Int4"
       },
       {
-        "ordinal": 55,
+        "ordinal": 56,
         "name": "public_proxy_url",
         "type_info": "Text"
       },
       {
-        "ordinal": 56,
+        "ordinal": 57,
         "name": "default_admin_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 57,
+        "ordinal": 58,
         "name": "secret_key",
         "type_info": "Text"
       },
       {
-        "ordinal": 58,
+        "ordinal": 59,
         "name": "openid_signing_key_der",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 59,
+        "ordinal": 60,
         "name": "enable_stats_purge",
         "type_info": "Bool"
       },
       {
-        "ordinal": 60,
+        "ordinal": 61,
         "name": "stats_purge_frequency_hours",
         "type_info": "Int4"
       },
       {
-        "ordinal": 61,
+        "ordinal": 62,
         "name": "stats_purge_threshold_days",
         "type_info": "Int4"
       },
       {
-        "ordinal": 62,
+        "ordinal": 63,
         "name": "enrollment_token_timeout_hours",
         "type_info": "Int4"
       },
       {
-        "ordinal": 63,
+        "ordinal": 64,
         "name": "password_reset_token_timeout_hours",
         "type_info": "Int4"
       },
       {
-        "ordinal": 64,
+        "ordinal": 65,
         "name": "enrollment_session_timeout_minutes",
         "type_info": "Int4"
       },
       {
-        "ordinal": 65,
+        "ordinal": 66,
         "name": "password_reset_session_timeout_minutes",
         "type_info": "Int4"
       }
@@ -416,6 +421,7 @@
       false,
       false,
       false,
+      false,
       true,
       false,
       false,
@@ -438,5 +444,5 @@
       false
     ]
   },
-  "hash": "94632716a5f1088ff341bd74a48aab41ede332cf22af3fa9ac264c9c9b6a47f2"
+  "hash": "7e9680742e7869c6dabf6bcf0e980aa2c2a233dfa1572df856646fb29d586ba4"
 }

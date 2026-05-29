@@ -46,6 +46,8 @@ pub enum LdapError {
     LicenseUserLimitReached(u32, u32),
     #[error("User {0} does not belong to the defined synchronization groups in {1}")]
     UserNotInLDAPSyncGroups(String, &'static str),
+    #[error("Failed to update user account status during LDAP sync: {0}")]
+    UserStatusUpdate(String),
 }
 
 impl From<ldap3::LdapError> for LdapError {

@@ -596,6 +596,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     Box::pin(ldap_update_users_state(
         affected_users.iter_mut().collect::<Vec<_>>(),
         pool,
+        wg_tx,
     ))
     .await;
     info!("Syncing all users' groups done.");
@@ -890,11 +891,13 @@ async fn sync_all_users_state(
     Box::pin(ldap_update_users_state(
         modified_users.iter_mut().collect::<Vec<_>>(),
         pool,
+        wg_tx,
     ))
     .await;
     Box::pin(ldap_update_users_state(
         created_users.iter_mut().collect::<Vec<_>>(),
         pool,
+        wg_tx,
     ))
     .await;
 

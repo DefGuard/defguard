@@ -221,6 +221,7 @@ pub struct Settings {
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
     pub ldap_uses_ad: bool,
+    pub ldap_sync_account_status: bool,
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
@@ -316,6 +317,7 @@ impl fmt::Debug for Settings {
             .field("ldap_sync_enabled", &self.ldap_sync_enabled)
             .field("ldap_is_authoritative", &self.ldap_is_authoritative)
             .field("ldap_uses_ad", &self.ldap_uses_ad)
+            .field("ldap_sync_account_status", &self.ldap_sync_account_status)
             .field("ldap_sync_interval", &self.ldap_sync_interval)
             .field(
                 "ldap_user_auxiliary_obj_classes",
@@ -509,6 +511,7 @@ impl Settings {
             ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
+            ldap_sync_account_status, \
             ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             defguard_url, \
@@ -637,7 +640,8 @@ impl Settings {
             enrollment_token_timeout_hours = $63, \
             password_reset_token_timeout_hours = $64, \
             enrollment_session_timeout_minutes = $65, \
-            password_reset_session_timeout_minutes = $66 \
+            password_reset_session_timeout_minutes = $66, \
+            ldap_sync_account_status = $67 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -705,6 +709,7 @@ impl Settings {
             self.password_reset_token_timeout_hours,
             self.enrollment_session_timeout_minutes,
             self.password_reset_session_timeout_minutes,
+            self.ldap_sync_account_status,
         )
         .execute(executor)
         .await?;
