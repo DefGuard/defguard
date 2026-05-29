@@ -700,6 +700,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                           title: m.acl_rule_select_predefined_destinations(),
                           isOpen: true,
                           options: destinationsOptions ?? [],
+                          selected: new Set(field.state.value),
                           itemGap: 12,
                           enableDividers: true,
                           onSubmit: (selection) =>

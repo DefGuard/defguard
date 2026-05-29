@@ -291,7 +291,7 @@ const PageForm = () => {
             </form.AppField>
             <form.Subscribe selector={(s) => s.values.ldap_uses_ad}>
               {(usesAd) =>
-                isPresent(usesAd) && usesAd ? (
+                usesAd && (
                   <form.AppField name="ldap_sync_account_status">
                     {(field) => (
                       <field.FormCheckbox
@@ -299,7 +299,7 @@ const PageForm = () => {
                       />
                     )}
                   </form.AppField>
-                ) : null
+                )
               }
             </form.Subscribe>
           </div>
