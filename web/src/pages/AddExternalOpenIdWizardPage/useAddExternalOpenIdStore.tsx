@@ -12,7 +12,7 @@ import {
 import {
   externalProviderName,
   googleProviderBaseUrl,
-  jumpcloudProviderBaseUrl,
+  jumpcloudBaseUrls,
   supportedSyncProviders,
 } from '../../shared/constants';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
@@ -131,7 +131,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
           case 'Microsoft':
             break;
           case 'JumpCloud':
-            initialProviderState.base_url = jumpcloudProviderBaseUrl;
+            initialProviderState.base_url = jumpcloudBaseUrls.us;
             break;
           case 'Okta':
             break;

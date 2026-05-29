@@ -50,6 +50,7 @@ use handlers::{
         list_network_devices, modify_network_device, network_device_configs,
         start_network_device_setup, start_network_device_setup_for_device,
     },
+    reserved::check_reserved,
     session_info::get_session_info,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
@@ -165,7 +166,8 @@ use crate::{
         support::{configuration, logs},
         updates::outdated_components,
         user::{
-            add_user, change_password, change_self_password, delete_authorized_app,
+            add_user, bulk_delete_users, bulk_disable_users, bulk_enable_users,
+            bulk_start_enrollment, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, get_user, list_users, me, modify_user,
             reset_password, start_enrollment, start_remote_desktop_configuration,
             username_available,
@@ -300,6 +302,7 @@ pub fn build_webapp(
             .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/recovery", post(recovery_code))
             // /user
+            .route("/reserved", get(check_reserved))
             .route("/user", get(list_users).post(add_user))
             .route("/user/{username}", get(get_user))
             .route("/user/{username}/start_enrollment", post(start_enrollment))
@@ -308,6 +311,10 @@ pub fn build_webapp(
                 post(start_remote_desktop_configuration),
             )
             .route("/user/available", post(username_available))
+            .route("/user/bulk-disable", post(bulk_disable_users))
+            .route("/user/bulk-enable", post(bulk_enable_users))
+            .route("/user/bulk-delete", post(bulk_delete_users))
+            .route("/user/bulk-start-enrollment", post(bulk_start_enrollment))
             .route("/user/{username}", put(modify_user).delete(delete_user))
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
