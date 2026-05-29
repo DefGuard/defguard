@@ -61,6 +61,7 @@ impl EventLoggerMessage {
     }
 
     /// Translate a bidirectional gRPC stream event into a logger message.
+    #[must_use]
     pub fn from_bidi_event(bidi_event: BidiStreamEvent) -> Self {
         let BidiStreamEvent { context, event } = bidi_event;
 
@@ -84,6 +85,7 @@ impl EventLoggerMessage {
     }
 
     /// Translate a session manager event into a logger message.
+    #[must_use]
     pub fn from_session_manager_event(session_event: SessionManagerEvent) -> Self {
         let location = session_event.context.location.clone();
         let device = session_event.context.device.clone();
