@@ -517,8 +517,10 @@ export interface WebauthnRegisterFinishRequest {
 }
 
 export interface WebauthnLoginStartResponse {
-  publicKey: PublicKeyCredentialJSON;
+  publicKey: PublicKeyCredentialRequestOptionsJSON;
 }
+
+export type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;
 
 export interface StartEnrollmentRequest {
   username: string;
