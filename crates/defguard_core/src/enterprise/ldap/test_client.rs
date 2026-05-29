@@ -9,7 +9,7 @@ use ldap3::{Mod, SearchEntry};
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, user_as_ldap_attrs,
+    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active, user_as_ldap_attrs,
 };
 
 /// Extract attribute value from LDAP filter
@@ -421,7 +421,7 @@ impl LDAPConnection {
     {
         self.test_client.take_write_failure()?;
         let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_string();
-        let mods = mods
+        let mods: Vec<Mod<String>> = mods
             .into_iter()
             .map(|modification| match modification {
                 Mod::Add(attr, set) => {
@@ -436,6 +436,20 @@ impl LDAPConnection {
                 Mod::Increment(attr, value) => Mod::Increment(to_string(attr), to_string(value)),
             })
             .collect();
+
+        // Reflect account status writes in the stored object so reads see writes, like real LDAP.
+        if let Some(Object::User(user)) = self.test_client.objects.get_mut(old_dn) {
+            for modification in &mods {
+                if let Mod::Replace(attr, values) = modification {
+                    if attr == "userAccountControl" {
+                        if let Some(uac) = values.iter().next().and_then(|v| v.parse::<u32>().ok())
+                        {
+                            user.is_active = uac_is_active(uac);
+                        }
+                    }
+                }
+            }
+        }
 
         self.test_client.add_event(LdapEvent::ObjectModified {
             old_dn: old_dn.to_string(),

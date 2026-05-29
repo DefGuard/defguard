@@ -402,6 +402,20 @@ impl LDAPConnection {
                 continue;
             }
 
+            // An enrolled, in-scope LDAP user who has just been re-enabled in Defguard. Push the
+            // enable to AD here so the data sync below doesn't see a still-disabled AD account and
+            // revert Defguard back to disabled under LDAP authority.
+            let user_enabled_in_defguard = sync_account_status
+                && user_in_sync_groups
+                && user_exists_in_ldap
+                && user.is_enrolled()
+                && user.is_active;
+
+            if user_enabled_in_defguard {
+                debug!("User {user} is enabled in Defguard, flagging AD account as enabled");
+                self.set_ad_account_status(user, true).await?;
+            }
+
             if !user_sync_allowed {
                 debug!("User {user} is not allowed to be synced, skipping");
                 continue;

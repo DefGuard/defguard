@@ -3902,6 +3902,68 @@ async fn test_sync_ad_account_status_disable_and_reenable(
     assert_incremental_sync_converges(&mut ldap_conn, &pool, &wg_tx).await;
 }
 
+/// Enabling a user in Defguard must push the enabled status to AD instead of letting the
+/// subsequent data sync read the still-disabled AD account and revert Defguard back to disabled
+/// under LDAP authority. Regression test: previously `update_users_state` only had a branch for the
+/// disable transition, so a re-enable was immediately undone and the user stayed disabled.
+#[sqlx::test]
+async fn test_enable_in_defguard_pushes_status_to_ad(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    // LDAP authority: this is the path where the data sync would otherwise pull the stale AD
+    // status back and revert the just-enabled Defguard user.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_uses_ad = true;
+    settings.ldap_sync_account_status = true;
+    settings.ldap_sync_enabled = true;
+    settings.ldap_is_authoritative = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = true;
+    ldap_conn.config.ldap_sync_account_status = true;
+    let config = ldap_conn.config.clone();
+
+    // Active, enrolled Defguard user that also exists in AD.
+    let mut user = make_test_user(
+        "FirstName",
+        Some("FirstName".to_string()),
+        Some("ou=users,dc=example,dc=com".to_string()),
+    );
+    user.from_ldap = true;
+    user.is_active = true;
+    let mut user = user.save(&pool).await.unwrap();
+
+    // The AD account is still flagged as disabled.
+    let mut ldap_user = user.clone().as_noid();
+    ldap_user.is_active = false;
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn
+        .update_users_state(vec![&mut user], &pool, &wg_tx)
+        .await
+        .unwrap();
+
+    let synced = User::find_by_id(&pool, user.id).await.unwrap().unwrap();
+    assert!(
+        synced.is_active,
+        "User enabled in Defguard must not be reverted to disabled by the AD sync"
+    );
+
+    let ad_user = ldap_conn.get_user_by_dn(&user).await.unwrap();
+    assert!(
+        ad_user.is_active,
+        "Enabling a user in Defguard must flag the AD account as enabled"
+    );
+
+    assert_incremental_sync_converges(&mut ldap_conn, &pool, &wg_tx).await;
+}
+
 /// A failing LDAP write during sync must surface as an error so the caller can mark the instance
 /// `OutOfSync`; once the LDAP side recovers, the next full sync must succeed and clear the desync.
 /// This exercises the damage-control path the whole sync design relies on.
