@@ -3,41 +3,115 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
-    models::{
-        AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
-    },
+    models::{Device, WireguardNetwork},
 };
-use defguard_core::{
-    db::WebHook,
-    enterprise::db::models::{
-        activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        device_posture::DevicePostureSnapshot, openid_provider::OpenIdProvider,
-        snat::UserSnatBinding,
-    },
-    events::{ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext},
+use tokio::sync::Notify;
+
+use defguard_core::events::{
+    ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
+    BidiStreamEventType, DesktopClientMfaEvent, GrpcRequestContext,
 };
-use defguard_session_manager::events::SessionManagerEventContext;
+use defguard_session_manager::events::{
+    SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType,
+};
+
+/// Thin wrapper around source event types.
+///
+/// The logger matches on these directly when building activity log entries.
+/// No translation — source types are the single source of truth.
+#[allow(clippy::large_enum_variant)]
+pub enum Event {
+    Api(ApiEventType),
+    Bidi(BidiStreamEventType),
+    SessionManager {
+        event: SessionManagerEventType,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+}
 
 /// Messages that can be sent to the event logger
 pub struct EventLoggerMessage {
     pub context: EventContext,
-    pub event: LoggerEvent,
+    pub event: Event,
 }
 
 impl EventLoggerMessage {
-    #[must_use]
-    pub fn new(context: EventContext, event: LoggerEvent) -> Self {
-        Self { context, event }
+    /// Translate an API event into a logger message.
+    ///
+    /// Side effect: calls `reload_notify.notify_waiters()` when the event is an
+    /// activity log stream configuration change.
+    pub fn from_api_event(api_event: ApiEvent, reload_notify: &Notify) -> Self {
+        // Side effect: activity log stream configuration changed
+        if matches!(
+            *api_event.event,
+            ApiEventType::ActivityLogStreamCreated { .. }
+                | ApiEventType::ActivityLogStreamModified { .. }
+                | ApiEventType::ActivityLogStreamRemoved { .. }
+        ) {
+            reload_notify.notify_waiters();
+        }
+
+        let location = extract_api_location(&api_event.event);
+
+        EventLoggerMessage {
+            context: EventContext::from_api_context(api_event.context, location),
+            event: Event::Api(*api_event.event),
+        }
+    }
+
+    /// Translate a bidirectional gRPC stream event into a logger message.
+    pub fn from_bidi_event(bidi_event: BidiStreamEvent) -> Self {
+        let BidiStreamEvent { context, event } = bidi_event;
+
+        let location = match &event {
+            BidiStreamEventType::DesktopClientMfa(mfa) => match mfa.as_ref() {
+                DesktopClientMfaEvent::Success { location, .. }
+                | DesktopClientMfaEvent::Failed { location, .. }
+                | DesktopClientMfaEvent::Disconnected { location, .. }
+                | DesktopClientMfaEvent::PostureCheckPassed { location, .. }
+                | DesktopClientMfaEvent::PostureCheckFailed { location, .. } => {
+                    Some(location.clone())
+                }
+            },
+            _ => None,
+        };
+
+        EventLoggerMessage {
+            context: EventContext::from_bidi_context(context, location),
+            event: Event::Bidi(event),
+        }
+    }
+
+    /// Translate a session manager event into a logger message.
+    pub fn from_session_manager_event(session_event: SessionManagerEvent) -> Self {
+        let location = session_event.context.location.clone();
+        let device = session_event.context.device.clone();
+        EventLoggerMessage {
+            context: EventContext::from_session_manager_context(session_event.context),
+            event: Event::SessionManager {
+                event: session_event.event,
+                location,
+                device,
+            },
+        }
     }
 }
 
-/// Possible activity log event types split by module
-pub enum LoggerEvent {
-    Defguard(Box<DefguardEvent>),
-    Vpn(Box<VpnEvent>),
-    Enrollment(Box<EnrollmentEvent>),
-    Client(Box<ClientEvent>),
+/// Extract location from an API event variant, if it carries one.
+fn extract_api_location(event: &ApiEventType) -> Option<WireguardNetwork<Id>> {
+    match event {
+        ApiEventType::NetworkDeviceAdded { location, .. } => Some(location.clone()),
+        ApiEventType::NetworkDeviceModified { location, .. } => Some(location.clone()),
+        ApiEventType::NetworkDeviceRemoved { location, .. } => Some(location.clone()),
+        ApiEventType::VpnLocationAdded { location } => Some(location.clone()),
+        ApiEventType::VpnLocationRemoved { location } => Some(location.clone()),
+        ApiEventType::VpnLocationModified { after, .. } => Some(after.clone()),
+        ApiEventType::UserSnatBindingAdded { location, .. } => Some(location.clone()),
+        ApiEventType::UserSnatBindingRemoved { location, .. } => Some(location.clone()),
+        ApiEventType::UserSnatBindingModified { location, .. } => Some(location.clone()),
+        _ => None,
+    }
 }
 
 /// Shared context that's included in all activity log events
@@ -109,315 +183,4 @@ impl From<GrpcRequestContext> for EventContext {
             device: format!("{} (ID {})", val.device_name, val.device_id),
         }
     }
-}
-
-/// Represents activity log events related to actions performed in Web UI.
-pub enum DefguardEvent {
-    UserLogin,
-    UserLoginFailed {
-        message: String,
-    },
-    UserLogout,
-    UserMfaLogin {
-        mfa_method: MFAMethod,
-    },
-    UserMfaLoginFailed {
-        mfa_method: MFAMethod,
-        message: String,
-    },
-    RecoveryCodeLoginFailed,
-    RecoveryCodeUsed,
-    PasswordChangedByAdmin {
-        user: User<Id>,
-    },
-    PasswordChanged,
-    PasswordReset {
-        user: User<Id>,
-    },
-    MfaDisabled,
-    UserMfaDisabled {
-        user: User<Id>,
-    },
-    MfaTotpDisabled,
-    MfaTotpEnabled,
-    MfaEmailDisabled,
-    MfaEmailEnabled,
-    MfaSecurityKeyAdded {
-        key: WebAuthn<Id>,
-    },
-    MfaSecurityKeyRemoved {
-        key: WebAuthn<Id>,
-    },
-    UserAdded {
-        user: User<Id>,
-    },
-    UserRemoved {
-        user: User<Id>,
-    },
-    UserModified {
-        before: User<Id>,
-        after: User<Id>,
-    },
-    UserGroupsModified {
-        user: User<Id>,
-        before: Vec<String>,
-        after: Vec<String>,
-    },
-    UserDeviceAdded {
-        owner: User<Id>,
-        device: Device<Id>,
-    },
-    UserDeviceRemoved {
-        owner: User<Id>,
-        device: Device<Id>,
-    },
-    UserDeviceModified {
-        owner: User<Id>,
-        before: Device<Id>,
-        after: Device<Id>,
-    },
-    NetworkDeviceAdded {
-        device: Device<Id>,
-        location: WireguardNetwork<Id>,
-    },
-    NetworkDeviceRemoved {
-        device: Device<Id>,
-        location: WireguardNetwork<Id>,
-    },
-    NetworkDeviceModified {
-        before: Device<Id>,
-        after: Device<Id>,
-        location: WireguardNetwork<Id>,
-    },
-    ActivityLogStreamCreated {
-        stream: ActivityLogStream<Id>,
-    },
-    ActivityLogStreamModified {
-        before: ActivityLogStream<Id>,
-        after: ActivityLogStream<Id>,
-    },
-    ActivityLogStreamRemoved {
-        stream: ActivityLogStream<Id>,
-    },
-    VpnLocationAdded {
-        location: WireguardNetwork<Id>,
-    },
-    VpnLocationRemoved {
-        location: WireguardNetwork<Id>,
-    },
-    VpnLocationModified {
-        before: WireguardNetwork<Id>,
-        after: WireguardNetwork<Id>,
-    },
-    ApiTokenAdded {
-        owner: User<Id>,
-        token: ApiToken<Id>,
-    },
-    ApiTokenRemoved {
-        owner: User<Id>,
-        token: ApiToken<Id>,
-    },
-    ApiTokenRenamed {
-        owner: User<Id>,
-        token: ApiToken<Id>,
-        old_name: String,
-        new_name: String,
-    },
-    OpenIdAppAdded {
-        app: OAuth2Client<Id>,
-    },
-    OpenIdAppRemoved {
-        app: OAuth2Client<Id>,
-    },
-    OpenIdAppModified {
-        before: OAuth2Client<Id>,
-        after: OAuth2Client<Id>,
-    },
-    OpenIdAppStateChanged {
-        app: OAuth2Client<Id>,
-        enabled: bool,
-    },
-    OpenIdProviderModified {
-        provider: OpenIdProvider<Id>,
-    },
-    OpenIdProviderRemoved {
-        provider: OpenIdProvider<Id>,
-    },
-    SettingsUpdated {
-        before: Settings,
-        after: Settings,
-    },
-    SettingsUpdatedPartial {
-        before: Settings,
-        after: Settings,
-    },
-    SettingsDefaultBrandingRestored,
-    GroupsBulkAssigned {
-        users: Vec<User<Id>>,
-        groups: Vec<Group<Id>>,
-    },
-    GroupAdded {
-        group: Group<Id>,
-    },
-    GroupModified {
-        before: Group<Id>,
-        after: Group<Id>,
-    },
-    GroupRemoved {
-        group: Group<Id>,
-    },
-    GroupMemberAdded {
-        group: Group<Id>,
-        user: User<Id>,
-    },
-    GroupMemberRemoved {
-        group: Group<Id>,
-        user: User<Id>,
-    },
-    GroupMembersModified {
-        group: Group<Id>,
-        added: Vec<User<Id>>,
-        removed: Vec<User<Id>>,
-    },
-    WebHookAdded {
-        webhook: WebHook<Id>,
-    },
-    WebHookModified {
-        before: WebHook<Id>,
-        after: WebHook<Id>,
-    },
-    WebHookRemoved {
-        webhook: WebHook<Id>,
-    },
-    WebHookStateChanged {
-        webhook: WebHook<Id>,
-        enabled: bool,
-    },
-    AuthenticationKeyAdded {
-        key: AuthenticationKey<Id>,
-    },
-    AuthenticationKeyRemoved {
-        key: AuthenticationKey<Id>,
-    },
-    AuthenticationKeyRenamed {
-        key: AuthenticationKey<Id>,
-        old_name: Option<String>,
-        new_name: Option<String>,
-    },
-    ClientConfigurationTokenAdded {
-        user: User<Id>,
-    },
-    UserSnatBindingAdded {
-        user: User<Id>,
-        binding: UserSnatBinding<Id>,
-    },
-    UserSnatBindingRemoved {
-        user: User<Id>,
-        binding: UserSnatBinding<Id>,
-    },
-    UserSnatBindingModified {
-        user: User<Id>,
-        before: UserSnatBinding<Id>,
-        after: UserSnatBinding<Id>,
-    },
-    ProxyModified {
-        before: Proxy<Id>,
-        after: Proxy<Id>,
-    },
-    ProxyDeleted {
-        proxy: Proxy<Id>,
-    },
-    GatewayModified {
-        before: Gateway<Id>,
-        after: Gateway<Id>,
-    },
-    GatewayDeleted {
-        gateway: Gateway<Id>,
-    },
-    DevicePostureCreated {
-        snapshot: DevicePostureSnapshot,
-    },
-    DevicePostureUpdated {
-        before: DevicePostureSnapshot,
-        after: DevicePostureSnapshot,
-    },
-    DevicePostureDeleted {
-        snapshot: DevicePostureSnapshot,
-    },
-    DevicePostureDuplicated {
-        original: DevicePostureSnapshot,
-        duplicate: DevicePostureSnapshot,
-    },
-    DevicePostureLocationsAssigned {
-        posture_id: Id,
-        location_ids: Vec<Id>,
-    },
-    LocationPosturesAssigned {
-        location_id: Id,
-        posture_ids: Vec<Id>,
-    },
-}
-
-/// Represents activity log events related to client applications.
-pub enum ClientEvent {
-    DesktopClientActivated {
-        device_id: Id,
-        device_name: String,
-    },
-    DesktopClientUpdated {
-        device_id: Id,
-        device_name: String,
-    },
-    DevicePostureCheckPassed {
-        device_id: Id,
-        device_name: String,
-    },
-    DevicePostureCheckFailed {
-        device_id: Id,
-        device_name: String,
-        failed_checks: Vec<String>,
-    },
-}
-
-/// Represents activity log events related to VPN.
-pub enum VpnEvent {
-    ClientMfaSuccess {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-        method: ClientMFAMethod,
-    },
-    ClientMfaFailed {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-        method: ClientMFAMethod,
-        message: String,
-    },
-    ConnectedToLocation {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
-    DisconnectedFromLocation {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
-    MfaConnectedToLocation {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
-    MfaDisconnectedFromLocation {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
-}
-
-/// Represents activity log events related to user enrollment process.
-#[allow(clippy::large_enum_variant)]
-pub enum EnrollmentEvent {
-    EnrollmentStarted,
-    EnrollmentDeviceAdded { device: Device<Id> },
-    EnrollmentCompleted,
-    PasswordResetRequested,
-    PasswordResetStarted,
-    PasswordResetCompleted,
-    TokenAdded { user: User<Id> },
 }

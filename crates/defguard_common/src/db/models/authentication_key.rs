@@ -27,7 +27,7 @@ impl fmt::Display for AuthenticationKeyType {
 #[table(authentication_key)]
 pub struct AuthenticationKey<I = NoId> {
     pub id: I,
-    pub yubikey_id: Option<i64>,
+    pub yubikey_id: Option<Id>,
     pub name: Option<String>,
     pub user_id: Id,
     pub key: String,
@@ -42,7 +42,7 @@ impl AuthenticationKey {
         key: String,
         name: Option<String>,
         key_type: AuthenticationKeyType,
-        yubikey_id: Option<i64>,
+        yubikey_id: Option<Id>,
     ) -> Self {
         Self {
             id: NoId,

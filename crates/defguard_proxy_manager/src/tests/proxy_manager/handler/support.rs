@@ -206,7 +206,7 @@ pub(crate) async fn create_acl_network(pool: &PgPool) -> WireguardNetwork<Id> {
 /// location with the given destination address.
 pub(crate) async fn insert_acl_rule_for_network(
     pool: &PgPool,
-    network_id: i64,
+    network_id: Id,
     destination: IpNetwork,
 ) {
     let mut conn = pool.acquire().await.unwrap();

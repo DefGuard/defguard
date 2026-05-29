@@ -17,14 +17,14 @@ pub mod error;
 
 #[derive(Serialize)]
 pub struct LocationDevices {
-    pub location_id: i64,
+    pub location_id: Id,
     pub location_name: String,
     pub devices: Vec<DeviceIps>,
 }
 
 #[derive(Serialize)]
 pub struct DeviceIps {
-    pub device_id: i64,
+    pub device_id: Id,
     pub device_name: String,
     pub wireguard_ips: Vec<SplitIp>,
 }
@@ -34,16 +34,16 @@ pub struct DeviceIps {
 /// without wrapping IPs in an inner device array.
 #[derive(Serialize)]
 pub struct DeviceLocationIp {
-    pub location_id: i64,
+    pub location_id: Id,
     pub location_name: String,
     pub wireguard_ips: Vec<SplitIp>,
 }
 
 #[derive(FromRow)]
 struct DeviceIpRow {
-    location_id: i64,
+    location_id: Id,
     location_name: String,
-    device_id: i64,
+    device_id: Id,
     device_name: String,
     wireguard_ips: Vec<IpAddr>,
 }

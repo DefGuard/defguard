@@ -609,7 +609,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     #[test]
     fn test_csr_verify_hostname_dns_ok() {
         let key = generate_key_pair().unwrap();
-        let csr = Csr::new(&key, &["proxy.example.com".to_owned()], vec![]).unwrap();
+        let csr = Csr::new(&key, &["proxy.example.com".to_owned()], Vec::new()).unwrap();
         assert!(
             csr.verify_hostname("proxy.example.com").is_ok(),
             "matching DNS SAN should pass"
@@ -619,7 +619,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     #[test]
     fn test_csr_verify_hostname_ip_ok() {
         let key = generate_key_pair().unwrap();
-        let csr = Csr::new(&key, &["10.0.0.1".to_owned()], vec![]).unwrap();
+        let csr = Csr::new(&key, &["10.0.0.1".to_owned()], Vec::new()).unwrap();
         assert!(
             csr.verify_hostname("10.0.0.1").is_ok(),
             "matching IP SAN should pass"
@@ -629,7 +629,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     #[test]
     fn test_csr_verify_hostname_mismatch() {
         let key = generate_key_pair().unwrap();
-        let csr = Csr::new(&key, &["evil.attacker.com".to_owned()], vec![]).unwrap();
+        let csr = Csr::new(&key, &["evil.attacker.com".to_owned()], Vec::new()).unwrap();
         assert!(
             csr.verify_hostname("proxy.example.com").is_err(),
             "mismatched DNS SAN should fail"
@@ -733,7 +733,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let csr = Csr::new(
             &key,
             &["proxy.example.com".to_owned(), "evil.extra.com".to_owned()],
-            vec![],
+            Vec::new(),
         )
         .unwrap();
         assert!(

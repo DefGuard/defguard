@@ -3,6 +3,8 @@
 //! These are domain types; conversion to protobuf wire types happens at the
 //! serialization boundary (gateway manager) via `From` impls in `defguard_proto`.
 
+use crate::db::Id;
+
 /// A WireGuard peer entry to be configured on a gateway.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WireguardPeer {
@@ -85,7 +87,7 @@ pub enum Port {
 /// A single ACL-derived firewall rule to be enforced on a gateway.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FirewallRule {
-    pub id: i64,
+    pub id: Id,
     pub source_addrs: Vec<IpAddress>,
     pub destination_addrs: Vec<IpAddress>,
     pub destination_ports: Vec<Port>,
@@ -98,7 +100,7 @@ pub struct FirewallRule {
 /// Source NAT binding that rewrites the source IP of matching VPN traffic.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SnatBinding {
-    pub id: i64,
+    pub id: Id,
     pub source_addrs: Vec<IpAddress>,
     pub public_ip: String,
     pub comment: Option<String>,
