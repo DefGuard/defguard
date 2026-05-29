@@ -486,7 +486,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
 
     let response = client
         .get(
-            "/api/v1/device-posture?windows=10&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=1.6&defguard=Pre-release%20allowed",
+            "/api/v1/device-posture?windows=10&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=2.1&defguard=Pre-release%20allowed",
         )
         .send()
         .await;

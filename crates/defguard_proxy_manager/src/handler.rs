@@ -218,10 +218,12 @@ impl ProxyHandler {
     fn retry_delay(&self) -> Duration {
         #[cfg(test)]
         {
-            return self.handler_retry_delay();
+            self.handler_retry_delay()
         }
-        #[cfg_attr(test, allow(unreachable_code))]
-        TEN_SECS
+        #[cfg(not(test))]
+        {
+            TEN_SECS
+        }
     }
 
     async fn connect_channel_mtls(
@@ -662,7 +664,7 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .client_mfa
-                                .start_client_mfa_login(request)
+                                .start_client_mfa_login(request, received.device_info)
                                 .await
                             {
                                 Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
@@ -926,8 +928,8 @@ impl ProxyHandler {
                                 }
                                 Err(err) => {
                                     error!(
-                                        "Proxy requested an OpenID authentication info for a callback \
-                                    URL that couldn't be built. Details: {err}"
+                                        "Proxy requested an OpenID authentication info for a \
+                                        callback URL that couldn't be built. Details: {err}"
                                     );
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,

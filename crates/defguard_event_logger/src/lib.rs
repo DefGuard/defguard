@@ -8,16 +8,17 @@ use defguard_core::{
         metadata::{
             ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
             ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
-            ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
-            EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GatewayDeletedMetadata,
-            GatewayModifiedMetadata, GroupAssignedMetadata, GroupMembersModifiedMetadata,
-            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
-            MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
-            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
-            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
-            PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata,
-            ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
-            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            ClientConfigurationTokenMetadata, ClientDeviceMetadata, DeviceMetadata,
+            DeviceModifiedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata,
+            GatewayDeletedMetadata, GatewayModifiedMetadata, GroupAssignedMetadata,
+            GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
+            GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata,
+            MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
+            NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
+            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
+            PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata,
+            SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata,
+            UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
             UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
             VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
             WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
@@ -629,6 +630,17 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         ))
                     }
                 }
+                DesktopClientMfaEvent::PostureCheckPassed { device, .. } => {
+                    Some(format!("Device posture check passed for device {device}"))
+                }
+                DesktopClientMfaEvent::PostureCheckFailed {
+                    device,
+                    failed_checks,
+                    ..
+                } => Some(format!(
+                    "Device posture check failed for device {device}: {}",
+                    failed_checks.join(",")
+                )),
             };
             let (event_type, metadata) = match *event {
                 DesktopClientMfaEvent::Success {
@@ -676,6 +688,22 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         )
                     }
                 }
+                DesktopClientMfaEvent::PostureCheckPassed { device, .. } => (
+                    EventType::DevicePostureCheckPassed,
+                    serde_json::to_value(ClientDeviceMetadata {
+                        device_id: device.id,
+                        device_name: device.name.clone(),
+                    })
+                    .ok(),
+                ),
+                DesktopClientMfaEvent::PostureCheckFailed { device, .. } => (
+                    EventType::DevicePostureCheckFailed,
+                    serde_json::to_value(ClientDeviceMetadata {
+                        device_id: device.id,
+                        device_name: device.name.clone(),
+                    })
+                    .ok(),
+                ),
             };
             (module, event_type, description, metadata)
         }

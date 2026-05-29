@@ -105,12 +105,7 @@ const conditionDefinitions = (): Record<PostureCheckOsValue, ConditionDefinition
     },
   ],
   [PostureCheckOs.Ios]: [],
-  [PostureCheckOs.Android]: [
-    {
-      id: 'device-integrity',
-      label: m.posture_checks_wizard_operating_systems_condition_device_integrity(),
-    },
-  ],
+  [PostureCheckOs.Android]: [],
 });
 
 const getVersionOptions = (

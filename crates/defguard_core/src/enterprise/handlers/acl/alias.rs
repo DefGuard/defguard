@@ -411,7 +411,8 @@ pub(crate) async fn apply_acl_aliases(
         &data.aliases,
         AliasKind::Component,
         &session.user.username,
-        &appstate,
+        &appstate.pool,
+        &appstate.gateway_tx,
     )
     .await
     .map_err(|err| {

@@ -1214,15 +1214,48 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 BidiStreamEventType::DesktopClientMfa(Box::new(
                     DesktopClientMfaEvent::Disconnected {
                         location: location.clone(),
-                        device,
+                        device: device.clone(),
                         is_mfa_session: true,
                     },
                 )),
-                Some(location),
+                Some(location.clone()),
             ),
             event_type: EventType::VpnClientMfaDisconnected,
             module: ActivityLogModule::Vpn,
             description_contains: Some("disconnected"),
+        },
+        EventTestCase {
+            name: "DevicePostureCheckPassed",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::PostureCheckPassed {
+                        device: device.clone(),
+                        location: location.clone(),
+                        device_posture_data: None,
+                    },
+                )),
+                Some(location.clone()),
+            ),
+            event_type: EventType::DevicePostureCheckPassed,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("posture check passed"),
+        },
+        EventTestCase {
+            name: "DevicePostureCheckFailed",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::PostureCheckFailed {
+                        device,
+                        location: location.clone(),
+                        device_posture_data: None,
+                        failed_checks: vec!["check1".into()],
+                    },
+                )),
+                Some(location.clone()),
+            ),
+            event_type: EventType::DevicePostureCheckFailed,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("posture check failed"),
         },
     ];
 

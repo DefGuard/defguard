@@ -1009,8 +1009,8 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
         .unwrap();
-        network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_owned();
-        network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_owned();
+        "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".clone_into(&mut network.pubkey);
+        "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".clone_into(&mut network.prvkey);
         network
             .save(&mut *transaction)
             .await

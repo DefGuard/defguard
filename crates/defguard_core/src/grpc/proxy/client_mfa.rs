@@ -140,11 +140,12 @@ impl ClientMfaServer {
         Ok(claims.client_id)
     }
 
+    /// Emit given event to the channel.
     pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         Ok(self.bidi_event_tx.send(event)?)
     }
 
-    /// Allows proxy to verify if token is valid and active
+    /// Allows Edge to verify if token is valid and active.
     #[instrument(skip_all)]
     pub async fn validate_mfa_token(
         &mut self,
@@ -165,6 +166,7 @@ impl ClientMfaServer {
     pub async fn start_client_mfa_login(
         &mut self,
         request: ClientMfaStartRequest,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaStartOutcome, Status> {
         debug!("Starting desktop client login: {request:?}");
         // fetch location
@@ -228,10 +230,42 @@ impl ClientMfaServer {
                     }
                 })?;
 
-            // Posture check failed - return payload with reasons
-            if let PostureResult::Fail(reasons) = posture_result {
-                let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
-                return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+            let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+            let context =
+                BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
+
+            match posture_result {
+                PostureResult::Fail(reasons) => {
+                    let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckFailed {
+                                device: device.clone(),
+                                location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
+                                failed_checks: failed_checks.clone(),
+                            },
+                        )),
+                    }) {
+                        error!("Failed to emit DevicePostureCheckFailed event: {err}");
+                    }
+                    return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+                }
+                PostureResult::Pass => {
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckPassed {
+                                device: device.clone(),
+                                location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
+                            },
+                        )),
+                    }) {
+                        error!("Failed to emit DevicePostureCheckPassed event: {err}");
+                    }
+                }
             }
         }
 
@@ -273,7 +307,7 @@ impl ClientMfaServer {
                 );
 
                 return Err(Status::invalid_argument(
-                    "selected MFA method not supported by location",
+                    "selected MFA method is not supported by location",
                 ));
             }
         }
@@ -290,7 +324,7 @@ impl ClientMfaServer {
                     selected_mobile_auth = Some(found);
                 } else {
                     return Err(Status::invalid_argument(
-                        "Select MFA method not available for the device.",
+                        "Select MFA method is not available for the device.",
                     ));
                 }
             }
@@ -301,7 +335,7 @@ impl ClientMfaServer {
                     .map_err(|_| Status::internal("unexpected error"))?;
                 if result.is_empty() {
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
             }
@@ -309,7 +343,7 @@ impl ClientMfaServer {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
             }
@@ -317,7 +351,7 @@ impl ClientMfaServer {
                 if !user.email_mfa_enabled {
                     error!("Email MFA not enabled for user {}", user.username);
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
                 // Generate the code and send it via email.
@@ -343,7 +377,7 @@ impl ClientMfaServer {
                 if !is_business_license_active() {
                     error!("OIDC MFA method requires enterprise feature to be enabled");
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
 
@@ -357,7 +391,7 @@ impl ClientMfaServer {
                 {
                     error!("OIDC provider is not configured");
                     return Err(Status::invalid_argument(
-                        "selected MFA method not available",
+                        "selected MFA method is not available",
                     ));
                 }
             }
@@ -374,12 +408,13 @@ impl ClientMfaServer {
         let biometric_challenge: Option<BiometricChallenge> = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
                 Some(mobile_auth) => {
-                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key).map_err(|e| {
-                        error!(
-                            "Start biometric mfa failed ! Challenge creation failed ! Reason: {e}"
-                        );
-                        Status::invalid_argument("Invalid public key")
-                    })?;
+                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key)
+                        .map_err(|e| {
+                            error!(
+                                "Start biometric MFA failed. Challenge creation failed. Reason: {e}"
+                            );
+                            Status::invalid_argument("Invalid public key")
+                        })?;
                     Some(challenge)
                 }
                 None => {
@@ -889,10 +924,7 @@ impl ClientMfaServer {
 
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect();
+            let failed_checks = reasons.iter().map(ToString::to_string).collect();
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 

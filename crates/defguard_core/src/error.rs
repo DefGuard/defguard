@@ -183,8 +183,8 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications
             | SettingsValidationError::CannotEnableLdapRemoteEnrollment
             | SettingsValidationError::CannotEnableLdapRemoteEnrollmentInvite
-            | SettingsValidationError::CannotEnableLdap => Self::BadRequest(err.to_string()),
-            SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
+            | SettingsValidationError::CannotEnableLdap
+            | SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
         }
     }
 }

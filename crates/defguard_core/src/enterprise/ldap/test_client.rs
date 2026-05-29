@@ -376,12 +376,7 @@ impl LDAPConnection {
             dn: dn.to_owned(),
             attrs: attrs
                 .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k.to_owned(),
-                        v.iter().map(std::string::ToString::to_string).collect(),
-                    )
-                })
+                .map(|(k, v)| (k.to_owned(), v.iter().map(ToString::to_string).collect()))
                 .collect(),
         });
         Ok(())
@@ -484,7 +479,7 @@ impl LDAPConnection {
                     user,
                     "",
                     "",
-                    classes.iter().map(std::string::String::as_str).collect(),
+                    classes.iter().map(String::as_str).collect(),
                     false,
                     &config.ldap_username_attr,
                     &rdn_attr,
@@ -493,12 +488,7 @@ impl LDAPConnection {
                     dn: dn.clone(),
                     attrs: attrs
                         .iter()
-                        .map(|(k, v)| {
-                            (
-                                k.to_string(),
-                                v.iter().map(std::string::ToString::to_string).collect(),
-                            )
-                        })
+                        .map(|(k, v)| (k.to_string(), v.iter().map(ToString::to_string).collect()))
                         .collect(),
                     bin_attrs: HashMap::new(),
                 });
@@ -561,18 +551,13 @@ pub(super) fn user_to_test_attrs<I>(
         user,
         &ssha_password,
         &nt_password,
-        classes.iter().map(std::string::String::as_str).collect(),
+        classes.iter().map(String::as_str).collect(),
         false,
         &config.ldap_username_attr,
         &rdn_attr,
     )
     .into_iter()
-    .map(|(k, v)| {
-        (
-            k.to_owned(),
-            v.iter().map(std::string::ToString::to_string).collect(),
-        )
-    })
+    .map(|(k, v)| (k.to_owned(), v.iter().map(ToString::to_string).collect()))
     .collect()
 }
 
