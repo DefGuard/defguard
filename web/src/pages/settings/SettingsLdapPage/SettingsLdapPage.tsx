@@ -275,13 +275,6 @@ const PageForm = () => {
                 <field.FormCheckbox text={m.settings_ldap_checkbox_use_starttls()} />
               )}
             </form.AppField>
-            <form.AppField name="ldap_uses_ad">
-              {(field) => (
-                <field.FormCheckbox
-                  text={m.settings_ldap_checkbox_server_is_active_directory()}
-                />
-              )}
-            </form.AppField>
             <form.AppField name="ldap_tls_verify_cert">
               {(field) => (
                 <field.FormCheckbox
@@ -289,6 +282,26 @@ const PageForm = () => {
                 />
               )}
             </form.AppField>
+            <form.AppField name="ldap_uses_ad">
+              {(field) => (
+                <field.FormCheckbox
+                  text={m.settings_ldap_checkbox_server_is_active_directory()}
+                />
+              )}
+            </form.AppField>
+            <form.Subscribe selector={(s) => s.values.ldap_uses_ad}>
+              {(usesAd) =>
+                usesAd ? (
+                  <form.AppField name="ldap_sync_account_status">
+                    {(field) => (
+                      <field.FormCheckbox
+                        text={m.settings_ldap_checkbox_sync_account_status()}
+                      />
+                    )}
+                  </form.AppField>
+                ) : null
+              }
+            </form.Subscribe>
           </div>
           <SizedBox height={ThemeSpacing.Xl2} />
           <EvenSplit>
@@ -406,21 +419,6 @@ const PageForm = () => {
               )}
             </form.AppField>
           </EvenSplit>
-          <form.Subscribe selector={(s) => s.values.ldap_uses_ad}>
-            {(usesAd) => (
-              <>
-                <SizedBox height={ThemeSpacing.Xl} />
-                <form.AppField name="ldap_sync_account_status">
-                  {(field) => (
-                    <field.FormCheckbox
-                      text={m.settings_ldap_checkbox_sync_account_status()}
-                      disabled={!usesAd}
-                    />
-                  )}
-                </form.AppField>
-              </>
-            )}
-          </form.Subscribe>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="groups">
