@@ -715,7 +715,7 @@ async fn test_address_range_decomposed_to_cidrs(_: PgPoolOptions, options: PgCon
     // the minimal set of covering subnets.
     let rule = AclRule {
         allow_all_users: true,
-        ..applied_rule_with_addresses("range-rule", vec![])
+        ..applied_rule_with_addresses("range-rule", Vec::new())
     };
     create_acl_rule(
         &pool,

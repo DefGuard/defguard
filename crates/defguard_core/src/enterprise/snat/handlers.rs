@@ -28,7 +28,7 @@ use crate::{
 /// List all SNAT bindings for a WireGuard location
 ///
 /// # Returns
-/// - `Vec<UserSnatBinding<i64>>` object
+/// - `Vec<UserSnatBinding<Id>>` object
 ///
 /// - `WebError` if error occurs
 #[utoipa::path(
@@ -85,7 +85,7 @@ pub struct NewUserSnatBinding {
 /// Create snat binding basing on `NewUserSnatBinding` object.
 ///
 /// # Returns
-/// - `UserSnatBinding<i64>` object
+/// - `UserSnatBinding<Id>` object
 ///
 /// - `WebError` if error occurs
 #[utoipa::path(

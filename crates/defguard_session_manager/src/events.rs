@@ -5,6 +5,7 @@ use defguard_common::db::{
     Id,
     models::{Device, User, WireguardNetwork},
 };
+use strum::EnumCount;
 
 #[derive(Debug)]
 pub struct SessionManagerEvent {
@@ -51,7 +52,7 @@ pub struct SessionManagerEventContext {
     pub public_ip: Option<IpAddr>,
 }
 
-#[derive(Debug, strum_macros::EnumCount)]
+#[derive(Debug, EnumCount)]
 pub enum SessionManagerEventType {
     ClientConnected,
     ClientDisconnected,

@@ -9,6 +9,7 @@ use defguard_common::db::{
     },
 };
 use defguard_proto::{client_types::MfaMethod, enterprise::posture::DevicePostureData};
+use strum::EnumCount;
 
 use crate::{
     db::WebHook,
@@ -91,7 +92,7 @@ impl GrpcRequestContext {
     }
 }
 
-#[derive(Debug, PartialEq, strum_macros::EnumCount)]
+#[derive(Debug, PartialEq, EnumCount)]
 pub enum ApiEventType {
     UserLogin,
     UserLoginFailed {
@@ -398,21 +399,21 @@ pub struct BidiStreamEvent {
 /// Wrapper enum for different types of events emitted by the bidi stream.
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
-#[derive(Debug, strum_macros::EnumCount)]
+#[derive(Debug, EnumCount)]
 pub enum BidiStreamEventType {
     Enrollment(Box<EnrollmentEvent>),
     PasswordReset(Box<PasswordResetEvent>),
     DesktopClientMfa(Box<DesktopClientMfaEvent>),
 }
 
-#[derive(Debug, strum_macros::EnumCount)]
+#[derive(Debug, EnumCount)]
 pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentDeviceAdded { device: Device<Id> },
     EnrollmentCompleted,
 }
 
-#[derive(Debug, strum_macros::EnumCount)]
+#[derive(Debug, EnumCount)]
 pub enum PasswordResetEvent {
     PasswordResetRequested,
     PasswordResetStarted,
@@ -421,7 +422,7 @@ pub enum PasswordResetEvent {
 
 pub type ClientMFAMethod = MfaMethod;
 
-#[derive(Debug, strum_macros::EnumCount)]
+#[derive(Debug, EnumCount)]
 pub enum DesktopClientMfaEvent {
     Success {
         device: Device<Id>,

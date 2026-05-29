@@ -23,17 +23,17 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
             "User login using {mfa_method} failed with: {message}"
         )),
         ApiEventType::RecoveryCodeLoginFailed => {
-            Some("User login with recovery code failed".to_owned())
+            Some("User login with recovery code failed".into())
         }
         ApiEventType::UserLogout => None,
         ApiEventType::RecoveryCodeUsed => None,
         ApiEventType::PasswordChanged => None,
-        ApiEventType::MfaDisabled => Some("Disabled own MFA".to_owned()),
+        ApiEventType::MfaDisabled => Some("Disabled own MFA".into()),
         ApiEventType::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
-        ApiEventType::MfaTotpEnabled => Some("User configured TOTP for MFA".to_owned()),
-        ApiEventType::MfaTotpDisabled => Some("User disabled TOTP for MFA".to_owned()),
-        ApiEventType::MfaEmailEnabled => Some("User configured email for MFA".to_owned()),
-        ApiEventType::MfaEmailDisabled => Some("User disabled email for MFA".to_owned()),
+        ApiEventType::MfaTotpEnabled => Some("User configured TOTP for MFA".into()),
+        ApiEventType::MfaTotpDisabled => Some("User disabled TOTP for MFA".into()),
+        ApiEventType::MfaEmailEnabled => Some("User configured email for MFA".into()),
+        ApiEventType::MfaEmailDisabled => Some("User disabled email for MFA".into()),
         ApiEventType::PasswordChangedByAdmin { user } => {
             Some(format!("Password for user {user} was changed by an admin"))
         }
@@ -166,7 +166,7 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
             after: _,
         } => None,
         ApiEventType::SettingsDefaultBrandingRestored => {
-            Some("Restored default branding settings".to_owned())
+            Some("Restored default branding settings".into())
         }
         ApiEventType::GroupsBulkAssigned { users, groups } => Some(format!(
             "Assigned {} users to {} groups",
@@ -305,13 +305,13 @@ pub fn get_enrollment_event_description(
 ) -> Option<String> {
     match event {
         defguard_core::events::EnrollmentEvent::EnrollmentStarted => {
-            Some("User started enrollment process".to_owned())
+            Some("User started enrollment process".into())
         }
         defguard_core::events::EnrollmentEvent::EnrollmentDeviceAdded { device } => {
             Some(format!("Added device {} during enrollment", device.name))
         }
         defguard_core::events::EnrollmentEvent::EnrollmentCompleted => {
-            Some("User completed enrollment process".to_owned())
+            Some("User completed enrollment process".into())
         }
     }
 }

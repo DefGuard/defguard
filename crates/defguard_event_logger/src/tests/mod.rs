@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use chrono::Utc;
 use defguard_common::db::{
-    NoId,
+    Id, NoId,
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, User, WebAuthn,
         WireguardNetwork,
@@ -43,7 +43,7 @@ use crate::{
     message::{Event, EventContext, EventLoggerMessage},
 };
 
-fn sample_device() -> Device<i64> {
+fn sample_device() -> Device<Id> {
     Device::new(
         "vpn-device".to_owned(),
         "pubkey".to_owned(),
@@ -55,7 +55,7 @@ fn sample_device() -> Device<i64> {
     .with_id(20)
 }
 
-fn sample_location() -> WireguardNetwork<i64> {
+fn sample_location() -> WireguardNetwork<Id> {
     WireguardNetwork::new(
         "vpn-location".to_owned(),
         51820,
@@ -272,7 +272,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         directory_sync_target: DirectorySyncTarget::All,
         okta_private_jwk: None,
         okta_dirsync_client_id: None,
-        directory_sync_group_match: vec![],
+        directory_sync_group_match: Vec::new(),
         jumpcloud_api_key: None,
         prefetch_users: false,
     };
@@ -315,8 +315,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         id: 1,
         client_id: "cid".into(),
         client_secret: "cs".into(),
-        redirect_uri: vec![],
-        scope: vec![],
+        redirect_uri: Vec::new(),
+        scope: Vec::new(),
         name: "app".into(),
         enabled: true,
     };
@@ -358,7 +358,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         id: 1,
         user_id: 1,
         name: "k".into(),
-        passkey: vec![],
+        passkey: Vec::new(),
     };
     let posture = DevicePosture {
         id: 1,
@@ -369,8 +369,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
     };
     let posture_snapshot = DevicePostureSnapshot {
         device_posture: posture.clone(),
-        os_rules: vec![],
-        location_ids: vec![],
+        os_rules: Vec::new(),
+        location_ids: Vec::new(),
     };
     let posture_snapshot2 = DevicePostureSnapshot {
         device_posture: DevicePosture {
@@ -380,8 +380,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
             min_client_version: None,
             allow_prerelease_client: true,
         },
-        os_rules: vec![],
-        location_ids: vec![],
+        os_rules: Vec::new(),
+        location_ids: Vec::new(),
     };
 
     let cases = vec![
@@ -548,8 +548,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
             name: "UserGroupsModified",
             message: api_message(ApiEventType::UserGroupsModified {
                 user: user.clone(),
-                before: vec![],
-                after: vec![],
+                before: Vec::new(),
+                after: Vec::new(),
             }),
             event_type: EventType::UserGroupsModified,
             module: ActivityLogModule::Defguard,
@@ -861,7 +861,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
             message: api_message(ApiEventType::GroupMembersModified {
                 group: admin_group,
                 added: vec![user.clone()],
-                removed: vec![],
+                removed: Vec::new(),
             }),
             event_type: EventType::GroupMembersModified,
             module: ActivityLogModule::Defguard,
@@ -1092,7 +1092,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
 
     fn bidi_msg(
         stream_event: BidiStreamEventType,
-        loc: Option<WireguardNetwork<i64>>,
+        loc: Option<WireguardNetwork<Id>>,
     ) -> EventLoggerMessage {
         EventLoggerMessage {
             context: EventContext::from_bidi_context(
@@ -1273,8 +1273,8 @@ fn session_manager_cases() -> Vec<EventTestCase> {
 
     fn session_manager_msg(
         event: SessionManagerEventType,
-        loc: WireguardNetwork<i64>,
-        dev: Device<i64>,
+        loc: WireguardNetwork<Id>,
+        dev: Device<Id>,
     ) -> EventLoggerMessage {
         EventLoggerMessage {
             context: test_context(),

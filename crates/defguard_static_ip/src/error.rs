@@ -1,12 +1,12 @@
-use defguard_common::db::models::wireguard::NetworkAddressError;
+use defguard_common::db::{Id, models::wireguard::NetworkAddressError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum StaticIpError {
     #[error("Network (location) with ID {0} not found")]
-    NetworkNotFound(i64),
+    NetworkNotFound(Id),
     #[error("Device {0} is not assigned to network {1}")]
-    DeviceNotInNetwork(i64, i64),
+    DeviceNotInNetwork(Id, Id),
     #[error(transparent)]
     InvalidIpAssignment(#[from] NetworkAddressError),
     #[error(transparent)]
