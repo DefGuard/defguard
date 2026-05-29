@@ -207,9 +207,7 @@ pub async fn user_from_claims(
     callback_url: Url,
 ) -> Result<User<Id>, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
-        return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_owned(),
-        ));
+        return Err(WebError::ObjectNotFound("OpenID provider not set".into()));
     };
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
     let async_http_client = get_async_http_client()?;
@@ -286,7 +284,7 @@ pub async fn user_from_claims(
         "Email not found in the information returned from provider. Make sure your provider is \
         configured correctly and that you have granted the necessary permissions to retrieve \
         such information."
-            .to_owned(),
+            .into(),
     ))?;
 
     // Get the *sub* claim from the token.
@@ -356,7 +354,7 @@ pub async fn user_from_claims(
                     );
                     // Extract the username from the email address
                     let username = email.split('@').next().ok_or(WebError::BadRequest(
-                        "Failed to extract username from email address".to_owned(),
+                        "Failed to extract username from email address".into(),
                     ))?;
                     debug!("Username extracted from email ({email:?}): {username})");
                     username
@@ -495,9 +493,7 @@ pub async fn get_auth_info(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let provider = OpenIdProvider::get_current(&appstate.pool).await?;
     let Some(provider) = provider else {
-        return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_owned(),
-        ));
+        return Err(WebError::ObjectNotFound("OpenID provider not set".into()));
     };
 
     let config = server_config();
