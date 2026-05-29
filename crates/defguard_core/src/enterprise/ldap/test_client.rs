@@ -172,11 +172,29 @@ pub struct TestClient {
     pub(super) objects: HashMap<String, Object>,
     // DN: DN
     pub(super) memberships: HashMap<String, HashSet<String>>,
+    // Number of upcoming write operations (add/modify/delete) that should fail with an injected
+    // error. Used to simulate a transient LDAP outage and exercise the desync/recovery path.
+    fail_next_writes: usize,
 }
 
 impl TestClient {
     fn add_event(&mut self, event: LdapEvent) {
         self.events.push(event);
+    }
+
+    /// Makes the next `n` write operations (add/modify/delete) fail with an injected LDAP error.
+    pub(super) fn fail_next_writes(&mut self, n: usize) {
+        self.fail_next_writes = n;
+    }
+
+    /// Consumes one injected failure if any are pending, returning an error in that case.
+    fn take_write_failure(&mut self) -> Result<(), LdapError> {
+        if self.fail_next_writes > 0 {
+            self.fail_next_writes -= 1;
+            Err(LdapError::Ldap("injected test failure".to_string()))
+        } else {
+            Ok(())
+        }
     }
 
     pub(super) fn events_match(&self, expected: &[LdapEvent], order_matters: bool) -> bool {
@@ -376,6 +394,7 @@ impl LDAPConnection {
         dn: &str,
         attrs: Vec<(&str, HashSet<&str>)>,
     ) -> Result<(), LdapError> {
+        self.test_client.take_write_failure()?;
         self.test_client.add_event(LdapEvent::ObjectAdded {
             dn: dn.to_string(),
             attrs: attrs
@@ -400,6 +419,7 @@ impl LDAPConnection {
     where
         S: AsRef<[u8]> + Eq + Hash,
     {
+        self.test_client.take_write_failure()?;
         let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_string();
         let mods = mods
             .into_iter()
@@ -426,6 +446,7 @@ impl LDAPConnection {
     }
 
     pub(super) async fn delete(&mut self, dn: &str) -> Result<(), LdapError> {
+        self.test_client.take_write_failure()?;
         self.test_client
             .add_event(LdapEvent::ObjectDeleted { dn: dn.to_string() });
         Ok(())

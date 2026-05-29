@@ -2,7 +2,10 @@ use std::{collections::HashMap, str::FromStr};
 
 use defguard_common::{
     db::{
-        models::{group::Permission, settings::initialize_current_settings},
+        models::{
+            group::Permission,
+            settings::{LdapSyncStatus, initialize_current_settings},
+        },
         setup_pool,
     },
     secret::SecretStringWrapper,
@@ -15,7 +18,7 @@ use super::{
     model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
     sync::{
         Authority, compute_group_sync_changes, compute_user_sync_changes,
-        extract_intersecting_users,
+        extract_intersecting_users, is_ldap_desynced, set_ldap_sync_status,
     },
     test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
     *,
@@ -98,6 +101,55 @@ fn set_test_license_business() {
         support_type: SupportType::Basic,
     };
     set_cached_license(Some(license));
+}
+
+/// Snapshot of the Defguard-side state relevant to LDAP sync, used to assert idempotency.
+/// Each entry is (username, is_active, first_name, last_name, email, sorted group names).
+async fn defguard_sync_snapshot(
+    pool: &PgPool,
+) -> Vec<(String, bool, String, String, String, Vec<String>)> {
+    let mut users = User::all(pool).await.unwrap();
+    users.sort_by(|a, b| a.username.cmp(&b.username));
+    let mut snapshot = Vec::new();
+    for user in users {
+        let mut groups = user.member_of_names(pool).await.unwrap();
+        groups.sort();
+        snapshot.push((
+            user.username.clone(),
+            user.is_active,
+            user.first_name.clone(),
+            user.last_name.clone(),
+            user.email.clone(),
+            groups,
+        ));
+    }
+    snapshot
+}
+
+/// Asserts that an incremental (LDAP-authority) sync has reached a fixed point: running it
+/// again must emit no further LDAP operations and must not change any Defguard-side state.
+///
+/// This is the core anti-regression invariant for the sync engine. A failure here means a sync
+/// that never converges (e.g. an attribute or DN comparison that always reports a difference),
+/// which in production causes perpetual write churn between Defguard and LDAP.
+async fn assert_incremental_sync_converges(
+    ldap_conn: &mut super::LDAPConnection,
+    pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
+) {
+    let before = defguard_sync_snapshot(pool).await;
+    ldap_conn.test_client_mut().clear_events();
+    ldap_conn.sync(pool, false, wg_tx).await.unwrap();
+    let events = ldap_conn.test_client.get_events();
+    assert!(
+        events.is_empty(),
+        "second incremental sync was not a no-op, emitted LDAP operations: {events:?}"
+    );
+    let after = defguard_sync_snapshot(pool).await;
+    assert_eq!(
+        before, after,
+        "second incremental sync mutated Defguard state, sync is not idempotent"
+    );
 }
 
 #[test]
@@ -2110,6 +2162,8 @@ async fn test_sync_simple_nested_ou_changes(_: PgPoolOptions, options: PgConnect
     assert!(user2_groups.contains(&"developers".to_string()));
 
     assert!(ldap_conn.test_client.get_events().is_empty());
+
+    assert_incremental_sync_converges(&mut ldap_conn, &pool, &wg_tx).await;
 }
 
 #[sqlx::test]
@@ -3843,5 +3897,69 @@ async fn test_sync_ad_account_status_disable_and_reenable(
     assert!(
         synced.is_active,
         "User re-enabled in AD should be re-enabled in Defguard"
+    );
+
+    assert_incremental_sync_converges(&mut ldap_conn, &pool, &wg_tx).await;
+}
+
+/// A failing LDAP write during sync must surface as an error so the caller can mark the instance
+/// `OutOfSync`; once the LDAP side recovers, the next full sync must succeed and clear the desync.
+/// This exercises the damage-control path the whole sync design relies on.
+#[sqlx::test]
+async fn test_sync_failure_marks_desynced_and_recovers(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    // Defguard authority so the new user is pushed to LDAP, giving us a write operation to fail.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_is_authoritative = false;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+
+    // A Defguard-only user that a full Defguard-authority sync will try to add to LDAP.
+    make_test_user("recover_user", None, None)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    set_ldap_sync_status(LdapSyncStatus::InSync, &pool)
+        .await
+        .unwrap();
+
+    // Simulate a transient LDAP outage hitting the next write operation.
+    ldap_conn.test_client_mut().fail_next_writes(1);
+
+    let result = ldap_conn.sync(&pool, true, &wg_tx).await;
+    assert!(
+        result.is_err(),
+        "sync should fail when an LDAP write operation fails"
+    );
+
+    // Mirror the do_ldap_sync wrapper: a failed sync marks the instance out of sync.
+    set_ldap_sync_status(LdapSyncStatus::OutOfSync, &pool)
+        .await
+        .unwrap();
+    assert!(
+        is_ldap_desynced(),
+        "instance should be desynced after a failed sync"
+    );
+
+    // LDAP has recovered: the follow-up full sync (triggered by the desync) must now succeed.
+    ldap_conn
+        .sync(&pool, is_ldap_desynced(), &wg_tx)
+        .await
+        .unwrap();
+    set_ldap_sync_status(LdapSyncStatus::InSync, &pool)
+        .await
+        .unwrap();
+    assert!(
+        !is_ldap_desynced(),
+        "instance should be back in sync after recovery"
     );
 }

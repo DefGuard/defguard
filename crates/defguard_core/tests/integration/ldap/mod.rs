@@ -907,3 +907,156 @@ async fn test_sync_does_not_recreate_disabled_user_after_legacy_delete(
 
     let _ = ldap_conn.delete_group("status_idempotent_grp").await;
 }
+
+/// Snapshot of the Defguard-side state relevant to LDAP sync, used to assert idempotency against a
+/// real directory. Each entry is (username, is_active, first_name, last_name, email, sorted groups).
+async fn defguard_state(pool: &PgPool) -> Vec<(String, bool, String, String, String, Vec<String>)> {
+    let mut users = User::all(pool).await.unwrap();
+    users.sort_by(|a, b| a.username.cmp(&b.username));
+    let mut snapshot = Vec::new();
+    for user in users {
+        let mut groups = user.member_of_names(pool).await.unwrap();
+        groups.sort();
+        snapshot.push((
+            user.username.clone(),
+            user.is_active,
+            user.first_name.clone(),
+            user.last_name.clone(),
+            user.email.clone(),
+            groups,
+        ));
+    }
+    snapshot
+}
+
+/// Pulling from a real directory must reach a fixed point: a second incremental (LDAP-authority)
+/// sync must not change any Defguard-side state. A failure here means the pull path never converges
+/// against the actual attribute/DN encoding the server returns (e.g. a comparison that always
+/// reports a difference), which in production causes perpetual write churn.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_ldap_authority_is_idempotent(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    set_sync_settings(&pool, "idem_pull_grp", true).await;
+
+    Group::new("idem_pull_grp").save(&pool).await.unwrap();
+    let mut user = User::new(
+        "idem_pull_user",
+        Some("pass123"),
+        "Pull",
+        "Idem",
+        "idem_pull@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("idem_pull_grp").await;
+    ldap_conn
+        .add_user(&mut user, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user_to_group(&user, "idem_pull_grp")
+        .await
+        .unwrap();
+    // Remove from Defguard so the user exists only in LDAP, within the synced group's scope.
+    user.clone().delete(&pool).await.unwrap();
+
+    // First sync pulls the LDAP-only user into Defguard.
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    let after_first = defguard_state(&pool).await;
+    assert!(
+        after_first.iter().any(|u| u.0 == "idem_pull_user"),
+        "first sync should have pulled the LDAP user into Defguard"
+    );
+
+    // Second sync must be a no-op: Defguard-side state stays byte-for-byte identical.
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+    let after_second = defguard_state(&pool).await;
+    assert_eq!(
+        after_first, after_second,
+        "second LDAP-authority sync was not idempotent"
+    );
+
+    let pulled = User::find_by_username(&pool, "idem_pull_user")
+        .await
+        .unwrap()
+        .unwrap();
+    let _ = ldap_conn.delete_user(&pulled).await;
+    let _ = ldap_conn.delete_group("idem_pull_grp").await;
+}
+
+/// Pushing to a real directory must reach a fixed point: a second Defguard-authority sync must not
+/// change Defguard state nor rewrite the LDAP entry. This catches a push path that never converges
+/// against the server's actual attribute encoding (perpetual modify churn).
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_defguard_authority_is_idempotent(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    set_sync_settings(&pool, "idem_push_grp", false).await;
+
+    let group = Group::new("idem_push_grp").save(&pool).await.unwrap();
+    let user = User::new(
+        "idem_push_user",
+        Some("pass123"),
+        "Push",
+        "Idem",
+        "idem_push@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    user.add_to_group(&pool, &group).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("idem_push_grp").await;
+
+    // First sync pushes the Defguard-only user and membership into LDAP.
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    let ldap_user_first = ldap_conn
+        .get_user_by_username("idem_push_user")
+        .await
+        .unwrap();
+    let ldap_groups_first = ldap_conn
+        .get_user_groups(&user_dn(&ldap_conn, &ldap_user_first))
+        .await
+        .unwrap();
+    let defguard_first = defguard_state(&pool).await;
+
+    // Second sync must not churn either side.
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    let ldap_user_second = ldap_conn
+        .get_user_by_username("idem_push_user")
+        .await
+        .unwrap();
+    let ldap_groups_second = ldap_conn
+        .get_user_groups(&user_dn(&ldap_conn, &ldap_user_second))
+        .await
+        .unwrap();
+    let defguard_second = defguard_state(&pool).await;
+
+    assert_eq!(
+        defguard_first, defguard_second,
+        "second Defguard-authority sync mutated Defguard state"
+    );
+    assert_eq!(ldap_user_first.first_name, ldap_user_second.first_name);
+    assert_eq!(ldap_user_first.last_name, ldap_user_second.last_name);
+    assert_eq!(ldap_user_first.email, ldap_user_second.email);
+    assert_eq!(
+        ldap_groups_first, ldap_groups_second,
+        "second Defguard-authority sync changed LDAP group membership"
+    );
+
+    let _ = ldap_conn.delete_user(&ldap_user_second).await;
+    let _ = ldap_conn.delete_group("idem_push_grp").await;
+}
