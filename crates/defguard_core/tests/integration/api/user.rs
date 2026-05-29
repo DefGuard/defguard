@@ -378,20 +378,22 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
         .collect();
     assert_eq!(usernames, vec!["admin"]);
 
-    // Conflict: no_group=true with groups=admin - no_group wins, only ungrouped
+    // Combined: no_group=true with groups=admin - returns union (ungrouped + in group)
     let response = client
         .get("/api/v1/user?no_group=true&groups=admin")
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let body: serde_json::Value = response.json().await;
-    let usernames: Vec<&str> = body["data"]
+    let mut usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
         .iter()
         .map(|u| u["username"].as_str().unwrap())
         .collect();
-    assert_eq!(usernames, vec!["hpotter"]);
+    usernames.sort();
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 2);
 
     // Unauthorized access
     client.login_user("hpotter", "pass123").await;
