@@ -14,12 +14,10 @@ use defguard_common::{
 };
 use defguard_mail::templates;
 use humantime::parse_duration;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{PgPool, Postgres, QueryBuilder, Type};
 use utoipa::ToSchema;
-
-use serde::{Deserialize, Serialize};
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
@@ -1587,7 +1585,7 @@ pub(crate) async fn bulk_disable_users(
     transaction.commit().await?;
 
     for (_, user) in &mut events {
-        Box::pin(ldap_update_user_state(user, &appstate.pool)).await;
+        Box::pin(ldap_update_user_state(user, &appstate.pool, &appstate.wireguard_tx)).await;
     }
 
     info!(
@@ -1666,7 +1664,7 @@ pub(crate) async fn bulk_enable_users(
     transaction.commit().await?;
 
     for (_, user) in &mut events {
-        Box::pin(ldap_update_user_state(user, &appstate.pool)).await;
+        Box::pin(ldap_update_user_state(user, &appstate.pool, &appstate.wireguard_tx)).await;
     }
 
     info!(
