@@ -404,6 +404,56 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
 }
 
 #[sqlx::test]
+async fn test_list_users_no_group_multi_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Create a "qa" group and a new user rweasley assigned to it.
+    // Existing state: admin is in "admin" group, hpotter is ungrouped.
+    let qa = Group::new("qa").save(&pool).await.unwrap();
+    let rweasley = User::new(
+        "rweasley",
+        Some("pass123"),
+        "Weasley",
+        "Ron",
+        "r.weasley@hogwart.edu.uk",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+        .bind(qa.id)
+        .bind(rweasley.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // Combined no_group + multiple groups: should return users in admin, users in qa,
+    // and users with no group (hpotter).
+    let response = client
+        .get("/api/v1/user?no_group=true&groups=admin&groups=qa")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let mut usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    usernames.sort();
+    assert_eq!(usernames, vec!["admin", "hpotter", "rweasley"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 3);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
 async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let mut client = make_client(pool).await;
