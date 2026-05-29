@@ -216,7 +216,8 @@ pub struct UserFilterParams {
     /// Filter users by group membership (OR logic - user in any listed group).
     #[serde(default)]
     pub groups: Vec<String>,
-    /// Filter users with no group memberships. Takes precedence over `groups`.
+    /// Filter users with no group memberships. When combined with `groups`, returns the union
+    /// (users in the specified groups OR users with no groups).
     #[serde(default)]
     pub no_group: bool,
     /// Free-text search across username, first_name, last_name, and email.
@@ -234,7 +235,7 @@ pub struct UserFilterParams {
     path = "/api/v1/user",
     params(
         ("groups" = Option<Vec<String>>, Query, description = "Filter users by group names (OR logic - returns users in any of the specified groups)"),
-        ("no_group" = Option<bool>, Query, description = "Filter users with no group memberships (takes precedence over groups)"),
+        ("no_group" = Option<bool>, Query, description = "Filter users with no group memberships. When combined with groups, returns the union (users in specified groups OR users with no groups)."),
         ("search" = Option<String>, Query, description = "Free-text search across username, first name, last name, and email"),
         ("sort_by" = Option<SortKey>, Query, description = "Sort key: name (default), username, or email"),
         ("sort_order" = Option<SortOrder>, Query, description = "Sort direction: asc or desc (default)"),
@@ -334,12 +335,25 @@ pub(crate) async fn list_users(
 fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &UserFilterParams) {
     debug!("Applying query filters: {filters:?}");
 
-    if filters.no_group {
+    let has_no_group = filters.no_group;
+    let has_groups = !filters.groups.is_empty();
+
+    if has_no_group && has_groups {
+        query_builder.push(
+            " AND (NOT EXISTS (SELECT 1 FROM group_user \
+            WHERE group_user.user_id = u.id) \
+            OR EXISTS (SELECT 1 FROM group_user gu \
+            INNER JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE gu.user_id = u.id AND g.name = ANY(",
+        );
+        query_builder.push_bind(filters.groups.clone());
+        query_builder.push("))) ");
+    } else if has_no_group {
         query_builder.push(
             " AND NOT EXISTS (SELECT 1 FROM group_user \
             WHERE group_user.user_id = u.id) ",
         );
-    } else if !filters.groups.is_empty() {
+    } else if has_groups {
         query_builder.push(
             " AND EXISTS (SELECT 1 FROM group_user gu \
             INNER JOIN \"group\" g ON gu.group_id = g.id \
