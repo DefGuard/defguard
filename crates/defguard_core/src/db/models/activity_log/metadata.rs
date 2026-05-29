@@ -510,7 +510,7 @@ pub struct AuthenticationKeyMetadata {
 #[derive(Serialize)]
 pub struct AuthenticationKeyNoSecrets {
     pub id: Id,
-    pub yubikey_id: Option<i64>,
+    pub yubikey_id: Option<Id>,
     pub name: Option<String>,
     pub user_id: Id,
     pub key_type: AuthenticationKeyType,

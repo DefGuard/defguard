@@ -125,7 +125,7 @@ pub fn check_password_strength(password: &str) -> Result<(), ValidationError> {
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct UserDetails {
     pub user: UserInfo,
-    pub biometric_enabled_devices: Vec<i64>,
+    pub biometric_enabled_devices: Vec<Id>,
     #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
 }
@@ -742,13 +742,13 @@ pub(crate) async fn modify_user(
     let ldap_sync_allowed = ldap_sync_allowed_for_user(&user, &mut *transaction).await?;
 
     // remove authorized apps if needed
-    let request_app_ids: Vec<i64> = user_info
+    let request_app_ids: Vec<Id> = user_info
         .authorized_apps
         .iter()
         .map(|app| app.oauth2client_id)
         .collect();
     let db_apps = user.oauth2authorizedapps(&mut *transaction).await?;
-    let removed_apps: Vec<i64> = db_apps
+    let removed_apps: Vec<Id> = db_apps
         .iter()
         .filter(|app| !request_app_ids.contains(&app.oauth2client_id))
         .map(|app| app.oauth2client_id)
@@ -853,12 +853,25 @@ pub(crate) async fn modify_user(
     }
 
     appstate.emit_event(ApiEvent {
-        context,
+        context: context.clone(),
         event: Box::new(ApiEventType::UserModified {
             before,
-            after: user,
+            after: user.clone(),
         }),
     })?;
+
+    if status_changing {
+        let event = if user.is_active {
+            ApiEventType::UserEnabled { user }
+        } else {
+            ApiEventType::UserDisabled { user }
+        };
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(event),
+        })?;
+    }
+
     Ok(ApiResponse::default())
 }
 

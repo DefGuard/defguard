@@ -14,7 +14,10 @@ use rsa::{
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::{VERSION, db::models::Settings};
+use crate::{
+    VERSION,
+    db::{Id, models::Settings},
+};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -237,13 +240,13 @@ pub struct InitVpnLocationArgs {
     #[arg(long)]
     pub allowed_ips: Vec<IpNetwork>,
     #[arg(long)]
-    pub id: Option<i64>,
+    pub id: Option<Id>,
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct GatewayConfigArgs {
     #[arg(long)]
-    pub location_id: i64,
+    pub location_id: Id,
 }
 
 impl DefGuardConfig {

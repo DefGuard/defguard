@@ -37,8 +37,7 @@ use defguard_core::{
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
-use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
-use defguard_event_router::{RouterReceiverSet, run_event_router};
+use defguard_event_logger::run_event_logger;
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
@@ -212,7 +211,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     // RX is discarded here since it can be derived from TX later on
     let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(256);
-    let (event_logger_tx, event_logger_rx) = unbounded_channel::<EventLoggerMessage>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
@@ -296,18 +294,14 @@ async fn main() -> Result<(), anyhow::Error> {
             bail!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx, web_reload_tx.clone()) =>
             bail!("Utility thread returned early: {res:?}"),
-        res = run_event_router(
-            RouterReceiverSet::new(
-                api_event_rx,
-                bidi_event_rx,
-                session_manager_event_rx
-            ),
-            event_logger_tx,
-            gateway_tx.clone(),
-            activity_log_stream_reload_notify.clone()
-        ) => bail!("Event router returned early: {res:?}"),
-        res = run_event_logger(pool.clone(), event_logger_rx, activity_log_messages_tx.clone()) =>
-            bail!("Activity log event logger returned early: {res:?}"),
+        res = run_event_logger(
+            pool.clone(),
+            api_event_rx,
+            bidi_event_rx,
+            session_manager_event_rx,
+            activity_log_stream_reload_notify.clone(),
+            activity_log_messages_tx.clone()
+        ) => bail!("Activity log event logger returned early: {res:?}"),
         res = run_activity_log_stream_manager(
             pool.clone(),
             activity_log_stream_reload_notify.clone(),

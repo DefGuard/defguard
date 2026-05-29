@@ -1,13 +1,16 @@
 use axum::{Extension, Json};
 use defguard_certs::{PemLabel, der_to_pem};
 use defguard_common::{
-    db::models::{
-        Certificates, WireguardNetwork,
-        initial_setup_wizard::InitialSetupStep,
-        settings::update_current_settings,
-        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-        wireguard::LocationMfaMode,
-        wizard::{ActiveWizard, Wizard},
+    db::{
+        Id,
+        models::{
+            Certificates, WireguardNetwork,
+            initial_setup_wizard::InitialSetupStep,
+            settings::update_current_settings,
+            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+            wireguard::LocationMfaMode,
+            wizard::{ActiveWizard, Wizard},
+        },
     },
     utils::{parse_address_list, parse_network_address_list},
 };
@@ -242,7 +245,7 @@ pub async fn set_vpn_settings(
     info!("Applying Auto-adoption wizard VPN settings");
 
     let first_network_id =
-        query_scalar::<_, i64>("SELECT id FROM wireguard_network ORDER BY id ASC LIMIT 1")
+        query_scalar::<_, Id>("SELECT id FROM wireguard_network ORDER BY id ASC LIMIT 1")
             .fetch_optional(&pool)
             .await?
             .ok_or_else(|| {
@@ -314,7 +317,7 @@ pub async fn set_mfa_settings(
     info!("Applying Auto-adoption wizard MFA settings");
 
     let first_network_id =
-        query_scalar::<_, i64>("SELECT id FROM wireguard_network ORDER BY id ASC LIMIT 1")
+        query_scalar::<_, Id>("SELECT id FROM wireguard_network ORDER BY id ASC LIMIT 1")
             .fetch_optional(&pool)
             .await?
             .ok_or_else(|| {

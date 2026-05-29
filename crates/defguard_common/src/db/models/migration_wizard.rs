@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query};
 
+use crate::db::Id;
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub enum MigrationWizardStep {
     #[default]
@@ -32,8 +34,8 @@ pub enum MigrationWizardStep {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MigrationWizardLocationState {
-    pub(crate) locations: Vec<i64>,
-    pub(crate) current_location: i64,
+    pub(crate) locations: Vec<Id>,
+    pub(crate) current_location: Id,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

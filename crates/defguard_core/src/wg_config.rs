@@ -3,9 +3,12 @@ use std::net::IpAddr;
 use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
 use defguard_common::{
     KEY_LENGTH,
-    db::models::{
-        Device, WireguardNetwork,
-        wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
+    db::{
+        Id,
+        models::{
+            Device, WireguardNetwork,
+            wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
+        },
     },
 };
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -14,7 +17,7 @@ use x25519_dalek::{PublicKey, StaticSecret};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ImportedDevice {
-    pub user_id: Option<i64>,
+    pub user_id: Option<Id>,
     pub name: String,
     pub wireguard_pubkey: String,
     pub wireguard_ips: Vec<IpAddr>,

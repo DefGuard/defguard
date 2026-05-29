@@ -219,9 +219,8 @@ export const getDevicePostureVersionMetadataQueryOptions = queryOptions({
 
 export const getDevicePostureQueryOptions = (id: number) =>
   queryOptions({
-    queryFn: () => api.devicePosture.getDevicePosture(id),
+    queryFn: () => api.devicePosture.getDevicePosture(id).then((resp) => resp.data),
     queryKey: ['device-posture', id],
-    select: (resp) => resp.data,
   });
 
 export const getOpenIdProvidersQueryOptions = queryOptions({

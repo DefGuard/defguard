@@ -26,7 +26,7 @@ pub(crate) struct AuthenticationKeyInfo {
     key: String,
     user_id: Id,
     yubikey_serial: Option<String>,
-    yubikey_id: Option<i64>,
+    yubikey_id: Option<Id>,
     yubikey_name: Option<String>,
 }
 
