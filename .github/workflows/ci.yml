@@ -246,10 +246,8 @@ jobs:
         with:
           name: nextest-archive
 
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
-        with:
-          tool: cargo-nextest
+      - name: Download cargo-nextest binary
+        run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf -
 
       - name: Start Postgres and OpenLDAP
         run: docker compose -p defguard-ldap -f docker-compose.ldap-test.yaml up -d --wait db openldap
@@ -259,11 +257,11 @@ jobs:
           docker run --rm \
             --network defguard-ldap_default \
             -v "$PWD:/src" -w /src \
-            -v "$HOME/.cargo/bin/cargo-nextest:/usr/local/cargo/bin/cargo-nextest:ro" \
+            -v "$PWD/cargo-nextest:/usr/local/cargo/bin/cargo-nextest:ro" \
             -e CARGO_TERM_COLOR=always \
             -e SQLX_OFFLINE=true \
             -e DATABASE_URL=postgres://defguard:defguard@db:5432/defguard \
-            -e LDAP_URL=ldap://opebnldap:1389 \
+            -e LDAP_URL=ldap://openldap:1389 \
             -e LDAP_BIND_USERNAME=cn=admin,dc=example,dc=org \
             -e LDAP_BIND_PASSWORD=pass123 \
             -e LDAP_USER_SEARCH_BASE=ou=users,dc=example,dc=org \
