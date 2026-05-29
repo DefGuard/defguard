@@ -1585,7 +1585,12 @@ pub(crate) async fn bulk_disable_users(
     transaction.commit().await?;
 
     for (_, user) in &mut events {
-        Box::pin(ldap_update_user_state(user, &appstate.pool, &appstate.wireguard_tx)).await;
+        Box::pin(ldap_update_user_state(
+            user,
+            &appstate.pool,
+            &appstate.wireguard_tx,
+        ))
+        .await;
     }
 
     info!(
@@ -1664,7 +1669,12 @@ pub(crate) async fn bulk_enable_users(
     transaction.commit().await?;
 
     for (_, user) in &mut events {
-        Box::pin(ldap_update_user_state(user, &appstate.pool, &appstate.wireguard_tx)).await;
+        Box::pin(ldap_update_user_state(
+            user,
+            &appstate.pool,
+            &appstate.wireguard_tx,
+        ))
+        .await;
     }
 
     info!(
