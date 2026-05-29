@@ -1050,6 +1050,9 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
             before: old_test_user,
             after: new_test_user.clone(),
         },
+        ApiEventType::UserDisabled {
+            user: new_test_user,
+        },
     ]);
 }
 
@@ -1320,4 +1323,79 @@ async fn test_modify_user_admin_updates_self(_: PgPoolOptions, options: PgConnec
         before: old_user,
         after: updated,
     }]);
+}
+
+/// Admin disabling a user emits both UserModified and UserDisabled events.
+#[sqlx::test]
+async fn test_modify_user_admin_disables_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    let old_user = get_db_user(&pool, "hpotter").await;
+    assert!(old_user.is_active);
+
+    user_details.user.is_active = false;
+
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated = get_db_user(&pool, "hpotter").await;
+    assert!(!updated.is_active);
+
+    client.verify_api_events(&[
+        ApiEventType::UserModified {
+            before: old_user,
+            after: updated.clone(),
+        },
+        ApiEventType::UserDisabled { user: updated },
+    ]);
+}
+
+/// Admin enabling a previously disabled user emits both UserModified and UserEnabled events.
+#[sqlx::test]
+async fn test_modify_user_admin_enables_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // First disable the user via the API
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    user_details.user.is_active = false;
+    client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    client.drain_all_events();
+
+    // Now re-enable
+    user_details = fetch_user_details(&client, "hpotter").await;
+    let old_user = get_db_user(&pool, "hpotter").await;
+    assert!(!old_user.is_active);
+
+    user_details.user.is_active = true;
+
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated = get_db_user(&pool, "hpotter").await;
+    assert!(updated.is_active);
+
+    client.verify_api_events(&[
+        ApiEventType::UserModified {
+            before: old_user,
+            after: updated.clone(),
+        },
+        ApiEventType::UserEnabled { user: updated },
+    ]);
 }

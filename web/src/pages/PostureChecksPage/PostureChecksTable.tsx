@@ -1,5 +1,5 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
   createColumnHelper,
@@ -11,12 +11,9 @@ import {
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { IconKind } from '../../shared/defguard-ui/components/Icon';
-import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
@@ -24,14 +21,9 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLocationsQueryOptions } from '../../shared/query';
-import {
-  getDeletePostureCheckModalData,
-  type PostureCheckColumnFilterOptions,
-  type PostureCheckRow,
-} from './postureChecks';
+import { buildPostureCheckMenuItems } from './postureCheckMenu';
+import type { PostureCheckColumnFilterOptions, PostureCheckRow } from './postureChecks';
 import './style.scss';
 
 type Props = {
@@ -43,6 +35,7 @@ type Props = {
   loadingNextPage: boolean;
   onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   onNextPage: () => void;
+  onRowClick: (row: PostureCheckRow) => void;
   postureChecks: PostureCheckRow[];
 };
 
@@ -57,6 +50,7 @@ export const PostureChecksTable = ({
   loadingNextPage,
   onColumnFiltersChange,
   onNextPage,
+  onRowClick,
   postureChecks,
 }: Props) => {
   const navigate = useNavigate();
@@ -115,15 +109,12 @@ export const PostureChecksTable = ({
         minSize: 306,
         cell: (info) => (
           <TableCell>
-            <Link
-              to="/acl/posture-checks/$postureCheckId/edit"
-              params={{
-                postureCheckId: String(info.row.original.id),
-              }}
+            <button
               className="posture-check-link"
+              onClick={() => onRowClick(info.row.original)}
             >
               {info.getValue()}
-            </Link>
+            </button>
           </TableCell>
         ),
       }),
@@ -224,79 +215,27 @@ export const PostureChecksTable = ({
         enableResizing: false,
         cell: (info) => {
           const row = info.row.original;
-          const menuItems: MenuItemsGroup[] = [
-            {
-              items: [
-                {
-                  text: m.controls_edit(),
-                  icon: 'edit',
-                  onClick: () => {
-                    void navigate({
-                      to: '/acl/posture-checks/$postureCheckId/edit',
-                      params: {
-                        postureCheckId: String(row.id),
-                      },
-                    });
-                  },
-                },
-                {
-                  text: 'Duplicate',
-                  icon: IconKind.Duplicate,
-                  onClick: () => {
-                    duplicatePosture(row.id);
-                  },
-                },
-                {
-                  text: m.posture_checks_row_menu_assign_locations(),
-                  icon: 'add-location',
-                  onClick: () => {
-                    useSelectionModal.setState({
-                      isOpen: true,
-                      title: m.modal_assign_posture_check_locations_title(),
-                      options: locationOptions,
-                      selected: new Set(row.locations),
-                      onSubmit: (selected) => {
-                        assignLocations({
-                          postureCheckId: row.id,
-                          locations: selected as number[],
-                        });
-                      },
-                    });
-                  },
-                },
-              ],
-            },
-            {
-              items: [
-                {
-                  text: m.controls_delete(),
-                  icon: 'delete',
-                  variant: 'danger',
-                  onClick: () => {
-                    const assignedLocationNames = locationOptions
-                      .filter((location) => row.locations.includes(location.id))
-                      .map((location) => location.label);
-
-                    openModal(ModalName.ConfirmAction, {
-                      ...getDeletePostureCheckModalData(row, assignedLocationNames),
-                      onSuccess: () => {
-                        Snackbar.default(m.modal_delete_posture_check_success());
-                      },
-                      onError: () => {
-                        Snackbar.error(m.modal_delete_posture_check_error());
-                      },
-                    });
-                  },
-                },
-              ],
-            },
-          ];
+          const menuItems = buildPostureCheckMenuItems({
+            row,
+            locationOptions,
+            navigate,
+            assignLocations: (locations) =>
+              assignLocations({ postureCheckId: row.id, locations }),
+            duplicatePosture: () => duplicatePosture(row.id),
+          });
 
           return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],
-    [assignLocations, columnFilterOptions, locationOptions, navigate, duplicatePosture],
+    [
+      assignLocations,
+      columnFilterOptions,
+      locationOptions,
+      navigate,
+      onRowClick,
+      duplicatePosture,
+    ],
   );
 
   const table = useReactTable({

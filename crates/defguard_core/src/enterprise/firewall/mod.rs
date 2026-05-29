@@ -209,7 +209,7 @@ async fn get_manual_destination_rules(
     source_addrs: (&[IpAddress], &[IpAddress]),
     aliases: Vec<AclAlias<Id>>,
     mut addresses: Vec<IpNetwork>,
-    address_ranges: Vec<AclRuleDestinationRange<i64>>,
+    address_ranges: Vec<AclRuleDestinationRange<Id>>,
     mut ports: Vec<PortRange>,
     mut protocols: Vec<i32>,
     any_address: bool,

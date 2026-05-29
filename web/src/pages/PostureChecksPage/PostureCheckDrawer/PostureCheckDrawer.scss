@@ -1,0 +1,125 @@
+#modals-root > .modal-root .drawer-modal.posture-check-drawer {
+  width: 500px;
+
+  > .modal-content {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+.posture-check-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--spacing-xl);
+}
+
+.drawer-block {
+  padding: var(--spacing-xl) 0;
+}
+
+.drawer-description {
+  font: var(--t-body-sm-400);
+  color: var(--fg-faded);
+  white-space: pre-wrap;
+}
+
+.drawer-os-section,
+.drawer-locations {
+  .os-name {
+    font: var(--t-body-sm-500);
+    color: var(--fg-neutral);
+  }
+}
+
+.drawer-os-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  .os-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .os-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding-left: 28px;
+  }
+
+  .os-row {
+    display: flex;
+    align-items: center;
+
+    &:has(.os-row-value-list) {
+      align-items: flex-start;
+    }
+
+    .os-row-label {
+      flex: 0 0 119px;
+      font: var(--t-body-xs-500);
+      color: var(--fg-disabled);
+    }
+
+    .os-row-value {
+      font: var(--t-body-sm-400);
+      color: var(--fg-default);
+      flex: 1;
+    }
+
+    .os-row-value-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      flex: 1;
+
+      .os-row-value {
+        flex: unset;
+      }
+    }
+  }
+}
+
+.drawer-locations {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+
+  &:has(.locations-empty) {
+    align-items: center;
+  }
+
+  .locations-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    width: 119px;
+  }
+
+  .locations-value {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .locations-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
+
+  .locations-empty {
+    font: var(--t-body-sm-400);
+    color: var(--fg-disabled);
+  }
+}
+
+.posture-check-drawer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xl);
+  border-top: 1px solid var(--border-disabled);
+}
