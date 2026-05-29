@@ -852,24 +852,22 @@ pub(crate) async fn modify_user(
         })?;
     }
 
-    let user_clone = user.clone();
-    let context_clone = context.clone();
     appstate.emit_event(ApiEvent {
-        context,
+        context: context.clone(),
         event: Box::new(ApiEventType::UserModified {
             before,
-            after: user,
+            after: user.clone(),
         }),
     })?;
 
     if status_changing {
-        let event = if user_clone.is_active {
-            ApiEventType::UserEnabled { user: user_clone }
+        let event = if user.is_active {
+            ApiEventType::UserEnabled { user }
         } else {
-            ApiEventType::UserDisabled { user: user_clone }
+            ApiEventType::UserDisabled { user }
         };
         appstate.emit_event(ApiEvent {
-            context: context_clone,
+            context,
             event: Box::new(event),
         })?;
     }
