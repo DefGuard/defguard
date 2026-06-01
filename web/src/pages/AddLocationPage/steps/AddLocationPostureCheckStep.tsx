@@ -11,7 +11,7 @@ import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { useState } from 'react';
@@ -21,7 +21,12 @@ import { cloneDeep, omit } from 'lodash-es';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
+import { Card } from '../../../shared/components/Card/Card';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
+import type { ApiDevicePosture } from '../../../shared/api/types';
 
+// TODO
 const formSchema = z.object({
   keepalive_interval: z
     .number(m.form_error_required())
@@ -36,6 +41,10 @@ export const AddLocationPostureCheckStep = () => {
   const locationType = useAddLocationStore((s) => s.locationType);
   const [addPostures, setAddPostures] = useState(false);
   const [showGateway, setShowGateway] = useState(false);
+  const { data: postures } = useQuery({
+    queryFn: api.devicePosture.getDevicePostures,
+    queryKey: ['device-posture'],
+  });
   const navigate = useNavigate();
 
   const { mutate, isPending } = useMutation({
@@ -60,6 +69,8 @@ export const AddLocationPostureCheckStep = () => {
       }
     },
   });
+
+  // TODO
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
@@ -124,6 +135,10 @@ export const AddLocationPostureCheckStep = () => {
         // TODO
         disabled={false}
       />
+      <Fold open={addPostures}>
+        <SizedBox height={ThemeSpacing.Xl2} />
+        {postures && <PostureSelection postures={postures} />}
+      </Fold>
       <Divider spacing={ThemeSpacing.Xl2} />
       <ActionCard
         imageSrc={actionCardImage}
@@ -170,3 +185,29 @@ export const AddLocationPostureCheckStep = () => {
     </WizardCard>
   );
 };
+
+interface PostureSelectionProps {
+  postures: ApiDevicePosture[],
+}
+const PostureSelection = ({ postures }: PostureSelectionProps) => {
+
+  return (
+    <Card>
+      {postures.map((posture) => (
+        <>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <Checkbox
+            key={posture.id}
+            active={false}
+            text={posture.name}
+            helperBlock={
+              <Helper>
+                <p>{m.test_placeholder_extreme()}</p>
+              </Helper>
+            }
+            />
+        </>
+      ))}
+    </Card>
+  );
+}
