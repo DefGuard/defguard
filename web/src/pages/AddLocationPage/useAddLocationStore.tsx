@@ -12,6 +12,7 @@ type StoreValues = {
   isWelcome: boolean;
   activeStep: AddLocationPageStepValue;
   locationType: 'regular' | 'service';
+  posture_checks: number[];
 } & EditNetworkLocation;
 
 type StoreMethods = {
@@ -41,6 +42,7 @@ const defaults: StoreValues = {
   endpoint: '',
   location_mfa_mode: LocationMfaMode.Disabled,
   service_location_mode: LocationServiceMode.Disabled,
+  posture_checks: [],
 };
 
 export const useAddLocationStore = create<StoreMethods & StoreValues>()(

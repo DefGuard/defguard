@@ -1,46 +1,31 @@
-import z from 'zod';
-import { useShallow } from 'zustand/react/shallow';
-import actionCardImage from '../assets/gateway-setup-action-card.png';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { cloneDeep, omit } from 'lodash-es';
+import { type Dispatch, type SetStateAction, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
+import type { ApiDevicePosture } from '../../../shared/api/types';
+import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
+import { Card } from '../../../shared/components/Card/Card';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
+import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { useAppForm } from '../../../shared/form';
-import { formChangeLogic } from '../../../shared/formLogic';
-import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
-import { useAddLocationStore } from '../useAddLocationStore';
-import { useMutation, useQuery } from '@tanstack/react-query';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
-import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
-import { useState } from 'react';
-import api from '../../../shared/api/api';
-import { useNavigate } from '@tanstack/react-router';
-import { cloneDeep, omit } from 'lodash-es';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
-import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
-import { Card } from '../../../shared/components/Card/Card';
-import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
-import type { ApiDevicePosture } from '../../../shared/api/types';
-
-// TODO
-const formSchema = z.object({
-  keepalive_interval: z
-    .number(m.form_error_required())
-    .max(65535, m.form_error_port_max()),
-  mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
-  fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
-});
-
-type FormFields = z.infer<typeof formSchema>;
+import actionCardImage from '../assets/gateway-setup-action-card.png';
+import { AddLocationPageStep } from '../types';
+import { useAddLocationStore } from '../useAddLocationStore';
 
 export const AddLocationPostureCheckStep = () => {
-  const locationType = useAddLocationStore((s) => s.locationType);
   const [addPostures, setAddPostures] = useState(false);
   const [showGateway, setShowGateway] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const { data: postures } = useQuery({
     queryFn: api.devicePosture.getDevicePostures,
     queryKey: ['device-posture'],
@@ -70,37 +55,6 @@ export const AddLocationPostureCheckStep = () => {
     },
   });
 
-  // TODO
-  const defaultValues = useAddLocationStore(
-    useShallow(
-      (s): FormFields => ({
-        keepalive_interval: s.keepalive_interval,
-        mtu: s.mtu,
-        fwmark: s.fwmark,
-      }),
-    ),
-  );
-  const form = useAppForm({
-    defaultValues,
-    validationLogic: formChangeLogic,
-    validators: {
-      onSubmit: formSchema,
-      onChange: formSchema,
-    },
-    onSubmit: ({ value }) => {
-      let targetStep: AddLocationPageStepValue;
-      if (locationType === 'regular') {
-        targetStep = AddLocationPageStep.Mfa;
-      } else {
-        targetStep = AddLocationPageStep.ServiceLocationSettings;
-      }
-      useAddLocationStore.setState({
-        ...value,
-        activeStep: targetStep,
-      });
-    },
-  });
-
   const handleSubmit = () => {
     // TODO: set postures on the store
     const storageState = cloneDeep(
@@ -112,7 +66,7 @@ export const AddLocationPostureCheckStep = () => {
       ]),
     );
     mutate(storageState);
-  }
+  };
 
   return (
     <WizardCard>
@@ -137,7 +91,13 @@ export const AddLocationPostureCheckStep = () => {
       />
       <Fold open={addPostures}>
         <SizedBox height={ThemeSpacing.Xl2} />
-        {postures && <PostureSelection postures={postures} />}
+        {postures && (
+          <PostureSelection
+            postures={postures}
+            selected={selected}
+            onChange={setSelected}
+          />
+        )}
       </Fold>
       <Divider spacing={ThemeSpacing.Xl2} />
       <ActionCard
@@ -153,44 +113,37 @@ export const AddLocationPostureCheckStep = () => {
           }}
         />
       </ActionCard>
-          <Controls>
-            <Button
-              variant="outlined"
-              text={m.controls_back()}
-              onClick={() => {
-                useAddLocationStore.setState({
-                  activeStep: AddLocationPageStep.InternalVpnSettings,
-                  ...form.state.values,
-                });
-              }}
-            />
-            <div className="right">
-              {/*<Button
-                text={m.controls_continue()}
-                testId="finish"
-                onClick={() => {
-                  handleSubmit();
-                }}
-              />*/}
-              <Button
-                testId="create-location"
-                text={m.add_location_create_location()}
-                loading={isPending}
-                onClick={() => {
-                  handleSubmit();
-                }}
-              />
-            </div>
-          </Controls>
+      <Controls>
+        <Button
+          variant="outlined"
+          text={m.controls_back()}
+          onClick={() => {
+            useAddLocationStore.setState({
+              activeStep: AddLocationPageStep.Firewall,
+            });
+          }}
+        />
+        <div className="right">
+          <Button
+            testId="create-location"
+            text={m.add_location_create_location()}
+            loading={isPending}
+            onClick={() => {
+              handleSubmit();
+            }}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };
 
 interface PostureSelectionProps {
-  postures: ApiDevicePosture[],
+  postures: ApiDevicePosture[];
+  selected: Set<number>;
+  onChange: Dispatch<SetStateAction<Set<number>>>;
 }
-const PostureSelection = ({ postures }: PostureSelectionProps) => {
-
+const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProps) => {
   return (
     <Card>
       {postures.map((posture) => (
@@ -198,16 +151,26 @@ const PostureSelection = ({ postures }: PostureSelectionProps) => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <Checkbox
             key={posture.id}
-            active={false}
+            active={selected.has(posture.id)}
             text={posture.name}
+            onClick={() => {
+              const next = new Set(selected);
+              if (next.has(posture.id)) {
+                next.delete(posture.id);
+              } else {
+                next.add(posture.id);
+              }
+
+              onChange(next);
+            }}
             helperBlock={
               <Helper>
                 <p>{m.test_placeholder_extreme()}</p>
               </Helper>
             }
-            />
+          />
         </>
       ))}
     </Card>
   );
-}
+};
