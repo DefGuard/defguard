@@ -1,13 +1,14 @@
 import './style.scss';
-import { Reorder, useDragControls } from 'motion/react';
+import { useQuery } from '@tanstack/react-query';
+import { Reorder } from 'motion/react';
 import { sort } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
-import { Helper } from '../../defguard-ui/components/Helper/Helper';
-import { Icon } from '../../defguard-ui/components/Icon';
-import { ThemeSpacing, ThemeVariable } from '../../defguard-ui/types';
+import { useApp } from '../../hooks/useApp';
+import { getLicenseInfoQueryOptions } from '../../query';
+import { canUseEnterpriseFeature } from '../../utils/license';
+import { LocationMfaConfigurationStep } from './components/LocationMfaConfigurationStep';
 import { LocationMfaMethodsMenu } from './components/LocationMfaMethodsMenu';
 import type {
   LocationMfaConfigurationProps,
@@ -21,13 +22,30 @@ type InternalStepsMap = Map<string, LocationMfaConfigurationStepData>;
 const mapToSortedArray = (map: InternalStepsMap): LocationMfaConfigurationStepData[] =>
   sort(Array.from(map.values()), (s) => s.order);
 
-const availableOptions = Object.values(LocationMfaMethod) as LocationMfaMethodValue[];
+const deleteAndReorder = (
+  map: InternalStepsMap,
+  deleted: LocationMfaConfigurationStepData,
+): void => {
+  map.delete(deleted.id);
+  for (const [key, s] of map) {
+    if (s.order > deleted.order) map.set(key, { ...s, order: s.order - 1 });
+  }
+};
 
 export const LocationMfaConfiguration = ({
   onChange,
   steps,
   error,
 }: LocationMfaConfigurationProps) => {
+  const smtpAvailable = useApp((s) => s.appInfo.smtp_enabled);
+
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+
+  const isEnterprise = useMemo(
+    () => canUseEnterpriseFeature(licenseInfo ?? null),
+    [licenseInfo],
+  );
+
   const [internalSteps, setInternalSteps] = useState<InternalStepsMap>(
     () => new Map(steps.map((step) => [step.id, step])),
   );
@@ -48,13 +66,7 @@ export const LocationMfaConfiguration = ({
       if (!step) return;
 
       const next: InternalStepsMap = new Map(internalSteps);
-      next.delete(id);
-
-      for (const [key, s] of next) {
-        if (s.order > step.order) {
-          next.set(key, { ...s, order: s.order - 1 });
-        }
-      }
+      deleteAndReorder(next, step);
 
       setInternalSteps(next);
       onChange(mapToSortedArray(next));
@@ -63,7 +75,8 @@ export const LocationMfaConfiguration = ({
   );
 
   const onAddStep = useCallback(
-    (id: string, initialFactor: LocationMfaMethodValue) => {
+    (initialFactor: LocationMfaMethodValue) => {
+      const id = crypto.randomUUID();
       const next: InternalStepsMap = new Map(internalSteps);
       next.set(id, { id, order: next.size + 1, factors: [initialFactor] });
 
@@ -93,7 +106,12 @@ export const LocationMfaConfiguration = ({
       if (!step) return;
 
       const next: InternalStepsMap = new Map(internalSteps);
-      next.set(stepId, { ...step, factors: step.factors.filter((f) => f !== factor) });
+      const remaining = step.factors.filter((f) => f !== factor);
+      if (remaining.length === 0) {
+        deleteAndReorder(next, step);
+      } else {
+        next.set(stepId, { ...step, factors: remaining });
+      }
 
       setInternalSteps(next);
       onChange(mapToSortedArray(next));
@@ -109,20 +127,75 @@ export const LocationMfaConfiguration = ({
   );
 
   const availableMethods = useMemo(
-    () => availableOptions.filter((method) => !usedFactors.has(method)),
+    () =>
+      [
+        LocationMfaMethod.Email,
+        LocationMfaMethod.MobileConfirm,
+        LocationMfaMethod.Totp,
+        LocationMfaMethod.Biometry,
+        LocationMfaMethod.Tpm,
+        LocationMfaMethod.OpenId,
+        // HardwareKey ('hardware_key') is not yet supported in the UI
+      ].filter((method) => !usedFactors.has(method)),
     [usedFactors],
   );
 
+  const buildOption = useCallback(
+    (method: LocationMfaMethodValue, onClick: () => void) => {
+      const isEmailWithoutSmtp = method === LocationMfaMethod.Email && !smtpAvailable;
+      let disabledHelper: string | undefined;
+      let disabled = false;
+
+      if (isEmailWithoutSmtp) {
+        disabledHelper = m.cmp_location_mfa_smtp_disabled();
+        disabled = true;
+      }
+
+      if (!isEnterprise) {
+        if (method === LocationMfaMethod.Tpm || method === LocationMfaMethod.OpenId) {
+          disabled = true;
+          disabledHelper = m.cmp_location_mfa_enterprise_required();
+        }
+      }
+      return {
+        text: locationMfaMethodLabels[method],
+        disabled,
+        disabledHelper,
+        onClick,
+      };
+    },
+    [isEnterprise, smtpAvailable],
+  );
+
+  const methodGroups = useMemo(() => {
+    if (isEnterprise) {
+      return [{ header: undefined, items: availableMethods }];
+    }
+
+    const planMethods = [
+      LocationMfaMethod.Email,
+      LocationMfaMethod.MobileConfirm,
+      LocationMfaMethod.Totp,
+      LocationMfaMethod.Biometry,
+    ].filter((m) => availableMethods.includes(m));
+
+    const higherPlanMethods = [LocationMfaMethod.Tpm, LocationMfaMethod.OpenId].filter(
+      (m) => availableMethods.includes(m),
+    );
+
+    return [
+      { header: { text: 'Available in your plan' }, items: planMethods },
+      { header: { text: 'Available in higher plans' }, items: higherPlanMethods },
+    ];
+  }, [availableMethods, isEnterprise]);
+
   const addStepMenuOptions = useMemo(
-    () => [
-      {
-        items: availableMethods.map((key) => ({
-          text: locationMfaMethodLabels[key],
-          onClick: () => onAddStep(key, key),
-        })),
-      },
-    ],
-    [availableMethods, onAddStep],
+    () =>
+      methodGroups.map((group) => ({
+        ...group,
+        items: group.items.map((method) => buildOption(method, () => onAddStep(method))),
+      })),
+    [methodGroups, buildOption, onAddStep],
   );
 
   return (
@@ -138,10 +211,11 @@ export const LocationMfaConfiguration = ({
             <LocationMfaConfigurationStep
               key={step.id}
               step={step}
-              availableFactors={availableMethods}
+              methodGroups={methodGroups}
               onDeleteStep={onDeleteStep}
               onAddFactor={onAddFactor}
               onDeleteFactor={onDeleteFactor}
+              buildOption={buildOption}
             />
           ))}
         </Reorder.Group>
@@ -160,85 +234,5 @@ export const LocationMfaConfiguration = ({
       )}
       <FieldError error={error} />
     </div>
-  );
-};
-
-const LocationMfaConfigurationStep = ({
-  step,
-  availableFactors,
-  onDeleteStep,
-  onAddFactor,
-  onDeleteFactor,
-}: {
-  step: LocationMfaConfigurationStepData;
-  availableFactors: LocationMfaMethodValue[];
-  onDeleteStep: (id: string) => void;
-  onAddFactor: (stepId: string, factor: LocationMfaMethodValue) => void;
-  onDeleteFactor: (stepId: string, factor: LocationMfaMethodValue) => void;
-}) => {
-  const dragControls = useDragControls();
-
-  const addFactorMenuOptions = useMemo(
-    () => [
-      {
-        items: availableFactors.map((factor) => ({
-          text: locationMfaMethodLabels[factor],
-          onClick: () => onAddFactor(step.id, factor),
-        })),
-      },
-    ],
-    [availableFactors, onAddFactor, step.id],
-  );
-
-  return (
-    <Reorder.Item
-      value={step}
-      dragListener={false}
-      dragControls={dragControls}
-      className="mfa-step-card"
-      data-testid={`step-${step.id}`}
-    >
-      <div className="top">
-        <button className="drag-button" onPointerDown={(e) => dragControls.start(e)}>
-          <Icon icon="dnd" size={20} />
-        </button>
-        <p>{`Step ${step.order}`}</p>
-        <button className="dispose-button" onClick={() => onDeleteStep(step.id)}>
-          <Icon icon="delete" />
-        </button>
-      </div>
-      <Divider spacing={ThemeSpacing.Lg} />
-      <div className="factors">
-        {step.factors.map((factor) => (
-          <div key={factor} className="factor">
-            <div className="track">
-              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
-              <p>{locationMfaMethodLabels[factor]}</p>
-              <div className="right">
-                <p>Mobile only</p>
-                <button
-                  className="dispose-button"
-                  onClick={() => onDeleteFactor(step.id, factor)}
-                >
-                  <Icon icon="close" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      {availableFactors.length > 0 && (
-        <div className="footer">
-          <LocationMfaMethodsMenu
-            kind="plain"
-            label="+ Add factor"
-            options={addFactorMenuOptions}
-          />
-          <Helper>
-            <p>{m.test_placeholder_long()}</p>
-          </Helper>
-        </div>
-      )}
-    </Reorder.Item>
   );
 };

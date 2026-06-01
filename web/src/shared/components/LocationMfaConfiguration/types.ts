@@ -1,3 +1,5 @@
+import type { MenuItemProps } from '../../defguard-ui/components/Menu/types';
+
 export const LocationMfaMethod = {
   Totp: 'totp',
   Tpm: 'tpm',
@@ -27,11 +29,19 @@ export interface LocationMfaConfigurationStepData {
   factors: LocationMfaMethodValue[];
 }
 
-export interface LocationMfaConfigurationStepProps
-  extends LocationMfaConfigurationStepData {
-  onAdd: (factor: LocationMfaMethodValue) => void;
-  onDelete: (step: LocationMfaConfigurationStepProps['id']) => void;
-}
+export type LocationMfaMethodGroup = {
+  header?: { text: string };
+  items: LocationMfaMethodValue[];
+};
+
+export type LocationMfaConfigurationStepProps = {
+  step: LocationMfaConfigurationStepData;
+  methodGroups: LocationMfaMethodGroup[];
+  onDeleteStep: (id: string) => void;
+  onAddFactor: (stepId: string, factor: LocationMfaMethodValue) => void;
+  onDeleteFactor: (stepId: string, factor: LocationMfaMethodValue) => void;
+  buildOption: (method: LocationMfaMethodValue, onClick: () => void) => MenuItemProps;
+};
 
 export type LocationMfaConfigurationProps = {
   steps: LocationMfaConfigurationStepData[];
