@@ -49,6 +49,8 @@
   "add_location_mfa_internal_content": "Uses the MFA methods configured in your Defguard profile.",
   "add_location_mfa_external_title": "External Identity Provider Authentication",
   "add_location_mfa_external_content": "Requires configuring an external identity provider in the settings, such as Google, Microsoft Entra ID, Okta, or JumpCloud.",
+  "add_location_step_posture_check_label": "Posture check",
+  "add_location_step_posture_check_description": "Define who can connect to your network.",
   "location_add": "Add Location",
   "location_col_gateway_status": "Gateway status",
   "location_col_gateway_ip": "Gateway IP",

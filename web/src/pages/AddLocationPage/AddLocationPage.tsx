@@ -17,6 +17,7 @@ import { AddLocationStartStep } from './steps/AddLocationStartStep';
 import { AddLocationWelcomeStep } from './steps/AddLocationWelcomeStep';
 import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 import { useAddLocationStore } from './useAddLocationStore';
+import { AddLocationPostureCheckStep } from './steps/AddLocationPostureCheckStep';
 
 export const AddLocationPage = () => {
   const navigate = useNavigate();
@@ -92,6 +93,12 @@ export const AddLocationPage = () => {
         label: m.add_location_step_firewall_label(),
         description: m.add_location_step_firewall_description(),
       },
+      postureCheck: {
+        id: AddLocationPageStep.PostureCheck,
+        order: 7,
+        label: m.add_location_step_posture_check_label(),
+        description: m.add_location_step_posture_check_description(),
+      },
     }),
     [locationType],
   );
@@ -105,6 +112,7 @@ export const AddLocationPage = () => {
       mfa: <AddLocationMfaStep />,
       networkSettings: <AddLocationNetworkStep />,
       serviceLocationSettings: <AddLocationServiceStep />,
+      postureCheck: <AddLocationPostureCheckStep />,
     }),
     [],
   );

@@ -6,6 +6,7 @@ export const AddLocationPageStep = {
   ServiceLocationSettings: 'serviceLocationSettings',
   AccessControl: 'accessControl',
   Firewall: 'firewall',
+  PostureCheck: 'postureCheck',
 } as const;
 
 export type AddLocationPageStepValue =
