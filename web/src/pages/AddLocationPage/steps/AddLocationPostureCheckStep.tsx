@@ -1,5 +1,6 @@
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import actionCardImage from '../assets/gateway-setup-action-card.png';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
@@ -10,6 +11,16 @@ import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
+import { useMutation } from '@tanstack/react-query';
+import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
+import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
+import { useState } from 'react';
+import api from '../../../shared/api/api';
+import { useNavigate } from '@tanstack/react-router';
+import { cloneDeep, omit } from 'lodash-es';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
+import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
 
 const formSchema = z.object({
   keepalive_interval: z
@@ -23,7 +34,32 @@ type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationPostureCheckStep = () => {
   const locationType = useAddLocationStore((s) => s.locationType);
+  const [addPostures, setAddPostures] = useState(false);
+  const [showGateway, setShowGateway] = useState(false);
+  const navigate = useNavigate();
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: api.location.addLocation,
+    meta: {
+      invalidate: [['network'], ['enterprise_info']],
+    },
+    onSuccess: ({ data }) => {
+      if (showGateway) {
+        useGatewayWizardStore.getState().start({ network_id: data.id });
+        navigate({ to: '/setup-gateway', replace: true }).then(() => {
+          setTimeout(() => {
+            useAddLocationStore.getState().reset();
+          }, 100);
+        });
+      } else {
+        navigate({ to: '/locations', replace: true }).then(() => {
+          setTimeout(() => {
+            useAddLocationStore.getState().reset();
+          }, 100);
+        });
+      }
+    },
+  });
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
@@ -54,46 +90,54 @@ export const AddLocationPostureCheckStep = () => {
     },
   });
 
+  const handleSubmit = () => {
+    // TODO: set postures on the store
+    const storageState = cloneDeep(
+      omit(useAddLocationStore.getState(), [
+        'start',
+        'reset',
+        'activeStep',
+        'locationType',
+      ]),
+    );
+    mutate(storageState);
+  }
+
   return (
     <WizardCard>
-      <form
-        onSubmit={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          form.handleSubmit();
+      <Radio
+        active={!addPostures}
+        onClick={() => {
+          setAddPostures(false);
         }}
+        text={m.add_location_postures_dont_assign()}
+        // TODO
+        disabled={false}
+      />
+      <SizedBox height={ThemeSpacing.Md} />
+      <Radio
+        active={addPostures}
+        onClick={() => {
+          setAddPostures(true);
+        }}
+        text={m.add_location_postures_assign()}
+        // TODO
+        disabled={false}
+      />
+      <Divider spacing={ThemeSpacing.Xl2} />
+      <ActionCard
+        imageSrc={actionCardImage}
+        title={m.add_location_firewall_gateway_activation_title()}
+        subtitle={m.add_location_firewall_gateway_activation_subtitle()}
       >
-        <form.AppForm>
-          <form.AppField name="keepalive_interval">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.location_network_label_keepalive_interval()}
-                helper={m.location_network_helper_keepalive_interval()}
-                type="number"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="mtu">
-            {(field) => (
-              <field.FormInput
-                label={m.location_network_label_mtu()}
-                helper={m.location_network_helper_mtu()}
-                type="number"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="fwmark">
-            {(field) => (
-              <field.FormInput
-                label={m.location_network_label_fwmark()}
-                helper={m.location_network_helper_fwmark()}
-                type="number"
-              />
-            )}
-          </form.AppField>
+        <Checkbox
+          text={m.add_location_firewall_gateway_activation_checkbox()}
+          active={showGateway}
+          onClick={() => {
+            setShowGateway((s) => !s);
+          }}
+        />
+      </ActionCard>
           <Controls>
             <Button
               variant="outlined"
@@ -106,17 +150,23 @@ export const AddLocationPostureCheckStep = () => {
               }}
             />
             <div className="right">
-              <Button
+              {/*<Button
                 text={m.controls_continue()}
                 testId="finish"
+                onClick={() => {
+                  handleSubmit();
+                }}
+              />*/}
+              <Button
+                testId="create-location"
+                text={m.add_location_create_location()}
+                loading={isPending}
                 onClick={() => {
                   handleSubmit();
                 }}
               />
             </div>
           </Controls>
-        </form.AppForm>
-      </form>
     </WizardCard>
   );
 };

@@ -37,29 +37,6 @@ export const AddLocationFirewallStep = () => {
   }, [licenseInfo]);
   const firewallLocked = isPresent(canUseFeature) && !canUseFeature;
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: api.location.addLocation,
-    meta: {
-      invalidate: [['network'], ['enterprise_info']],
-    },
-    onSuccess: ({ data }) => {
-      if (showGateway) {
-        useGatewayWizardStore.getState().start({ network_id: data.id });
-        navigate({ to: '/setup-gateway', replace: true }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      } else {
-        navigate({ to: '/locations', replace: true }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      }
-    },
-  });
-
   const saveChanges = useCallback((value: Choice) => {
     const enabled = value !== 'disable';
     const allowed = value === 'enabled-allowed';
@@ -72,17 +49,25 @@ export const AddLocationFirewallStep = () => {
   const handleSubmit = () => {
     const enabled = state !== 'disable';
     const allowed = state === 'enabled-allowed';
-    const storageState = cloneDeep(
-      omit(useAddLocationStore.getState(), [
-        'start',
-        'reset',
-        'activeStep',
-        'locationType',
-      ]),
-    );
-    storageState.acl_enabled = enabled;
-    storageState.acl_default_allow = allowed;
-    mutate(storageState);
+    useAddLocationStore.setState({
+      acl_enabled: enabled,
+      acl_default_allow: allowed,
+      activeStep: AddLocationPageStep.PostureCheck,
+    })
+
+    // const enabled = state !== 'disable';
+    // const allowed = state === 'enabled-allowed';
+    // const storageState = cloneDeep(
+    //   omit(useAddLocationStore.getState(), [
+    //     'start',
+    //     'reset',
+    //     'activeStep',
+    //     'locationType',
+    //   ]),
+    // );
+    // storageState.acl_enabled = enabled;
+    // storageState.acl_default_allow = allowed;
+    // mutate(storageState);
   };
 
   return (
@@ -131,25 +116,10 @@ export const AddLocationFirewallStep = () => {
         text={m.location_firewall_option_default_deny()}
         disabled={firewallLocked}
       />
-      <Divider spacing={ThemeSpacing.Xl2} />
-      <ActionCard
-        imageSrc={actionCardImage}
-        title={m.add_location_firewall_gateway_activation_title()}
-        subtitle={m.add_location_firewall_gateway_activation_subtitle()}
-      >
-        <Checkbox
-          text={m.add_location_firewall_gateway_activation_checkbox()}
-          active={showGateway}
-          onClick={() => {
-            setShowGateway((s) => !s);
-          }}
-        />
-      </ActionCard>
       <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
-          disabled={isPending}
           onClick={() => {
             saveChanges(state);
             useAddLocationStore.setState({
@@ -160,8 +130,7 @@ export const AddLocationFirewallStep = () => {
         <div className="right">
           <Button
             testId="create-location"
-            text={m.add_location_create_location()}
-            loading={isPending}
+            text={m.controls_continue()}
             onClick={() => {
               handleSubmit();
             }}
