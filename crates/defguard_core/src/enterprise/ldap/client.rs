@@ -256,7 +256,13 @@ impl LDAPConnection {
                             }
                         })
                         .collect::<HashSet<_>>();
-                    memberships.insert(groupname, members);
+                    // Union rather than overwrite: under a broad group search base several LDAP
+                    // groups can share one name across different subtrees (e.g. a per-site group),
+                    // and they all map onto the single Defguard group of that name.
+                    memberships
+                        .entry(groupname)
+                        .or_insert_with(HashSet::new)
+                        .extend(members);
                 } else {
                     warn!("LDAP group {groupname} missing group member attribute, skipping");
                 }
@@ -351,6 +357,24 @@ impl LDAPConnection {
         Ok(members)
     }
 
+    /// Resolves the actual DN(s) of a group by name within the group search base.
+    ///
+    /// `LDAPConfig::group_dn` builds a DN by concatenation, which only matches when the
+    /// group sits directly under the group search base. AD stores each user's `memberOf`
+    /// as the group's full DN, so when the base is broad (e.g. the domain root) and the
+    /// group is nested deeper, the constructed DN matches nothing and every user is
+    /// silently filtered out. Resolving the real DN by search keeps the filter correct
+    /// regardless of where the group lives beneath the base.
+    async fn resolve_group_dns(&mut self, groupname: &str) -> Result<Vec<String>, LdapError> {
+        let groupname_escaped = ldap_escape(groupname);
+        let filter = format!(
+            "(&(objectClass={})({}={}))",
+            self.config.ldap_group_obj_class, self.config.ldap_groupname_attr, groupname_escaped
+        );
+        let entries = self.search_groups(&filter).await?;
+        Ok(entries.into_iter().map(|entry| entry.dn).collect())
+    }
+
     pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
         let filter = if self.config.ldap_sync_groups.is_empty() {
             debug!("No LDAP sync groups defined, searching for all users in the base DN");
@@ -360,14 +384,31 @@ impl LDAPConnection {
                 "LDAP sync groups are defined, filtering users by those groups: {:?}",
                 self.config.ldap_sync_groups
             );
+            let sync_groups = self.config.ldap_sync_groups.clone();
             let mut group_filters = Vec::new();
-            for group in &self.config.ldap_sync_groups {
-                let group_dn = self.config.group_dn(group);
-                let group_dn_escaped = ldap_escape(&group_dn);
-                group_filters.push(format!(
-                    "({}={})",
-                    self.config.ldap_member_attr, group_dn_escaped
-                ));
+            for group in &sync_groups {
+                let group_dns = self.resolve_group_dns(group).await?;
+                if group_dns.is_empty() {
+                    warn!(
+                        "Sync group {group} not found under group search base {}; its \
+                        members will not be synced",
+                        self.config.ldap_group_search_base
+                    );
+                }
+                for group_dn in group_dns {
+                    let group_dn_escaped = ldap_escape(&group_dn);
+                    group_filters.push(format!(
+                        "({}={})",
+                        self.config.ldap_member_attr, group_dn_escaped
+                    ));
+                }
+            }
+            if group_filters.is_empty() {
+                warn!(
+                    "None of the configured sync groups were found under the group search \
+                    base; no users will be synced"
+                );
+                return Ok(Vec::new());
             }
             debug!("Using the following group filters for user search: {group_filters:?}");
             format!(
