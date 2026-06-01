@@ -6,8 +6,9 @@ use std::{
 
 use defguard_common::db::models::{Settings, User};
 use ldap3::{
-    LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry, adapters::PagedResults, drive,
-    ldap_escape,
+    LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry,
+    adapters::{Adapter, EntriesOnly, PagedResults},
+    drive, ldap_escape,
 };
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
@@ -58,7 +59,11 @@ impl LDAPConnection {
         debug!("LDAP user search result: {result:?}");
         debug!("Found users: {entries:?}");
 
-        Ok(entries.into_iter().map(SearchEntry::construct).collect())
+        Ok(entries
+            .into_iter()
+            .filter(|e| !e.is_ref() && !e.is_intermediate())
+            .map(SearchEntry::construct)
+            .collect())
     }
 
     pub(crate) async fn get(&mut self, dn: &str) -> Result<Option<SearchEntry>, LdapError> {
@@ -72,6 +77,7 @@ impl LDAPConnection {
             Ok(ldap_result) => match ldap_result.success() {
                 Ok((mut entries, result)) => {
                     debug!("LDAP search result: {result:?}");
+                    entries.retain(|e| !e.is_ref() && !e.is_intermediate());
                     if let Some(entry) = entries.pop() {
                         debug!("Found LDAP object with DN {dn}: {entry:?}");
                         Ok(Some(SearchEntry::construct(entry)))
@@ -160,7 +166,11 @@ impl LDAPConnection {
             .success()?;
         debug!("LDAP group search result: {res}");
         info!("Performed LDAP group search with filter = {filter}");
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+        Ok(rs
+            .into_iter()
+            .filter(|e| !e.is_ref() && !e.is_intermediate())
+            .map(SearchEntry::construct)
+            .collect())
     }
 
     /// Creates LDAP object with specified distinguished name and attributes.
@@ -305,10 +315,14 @@ impl LDAPConnection {
             self.config.ldap_group_search_base
         );
         let attrs = [&self.config.ldap_group_member_attr];
+        let adapters: Vec<Box<dyn Adapter<_, _>>> = vec![
+            Box::new(EntriesOnly::new()),
+            Box::new(PagedResults::new(STREAMING_PAGE_SIZE)),
+        ];
         let mut search_stream = self
             .ldap
             .streaming_search_with(
-                PagedResults::new(STREAMING_PAGE_SIZE),
+                adapters,
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
                 &filter,
@@ -368,10 +382,14 @@ impl LDAPConnection {
             self.config.ldap_user_search_base
         );
         let attrs = ["*", &self.config.ldap_member_attr];
+        let adapters: Vec<Box<dyn Adapter<_, _>>> = vec![
+            Box::new(EntriesOnly::new()),
+            Box::new(PagedResults::new(STREAMING_PAGE_SIZE)),
+        ];
         let mut search_stream = self
             .ldap
             .streaming_search_with(
-                PagedResults::new(STREAMING_PAGE_SIZE),
+                adapters,
                 &self.config.ldap_user_search_base,
                 Scope::Subtree,
                 &filter,
@@ -403,10 +421,14 @@ impl LDAPConnection {
             &self.config.ldap_groupname_attr,
             &self.config.ldap_group_member_attr,
         ];
+        let adapters: Vec<Box<dyn Adapter<_, _>>> = vec![
+            Box::new(EntriesOnly::new()),
+            Box::new(PagedResults::new(STREAMING_PAGE_SIZE)),
+        ];
         let mut search_stream = self
             .ldap
             .streaming_search_with(
-                PagedResults::new(STREAMING_PAGE_SIZE),
+                adapters,
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
                 &filter,
