@@ -111,9 +111,9 @@ export const UsersTable = () => {
     queryFn: ({ pageParam }) =>
       api.user.getUsers({
         page: pageParam,
-        ...(noGroupFilter && { no_group: true }),
-        ...(!noGroupFilter && groupsFilter.length > 0 && { groups: groupsFilter }),
-        ...(search && { search }),
+        no_group: noGroupFilter ? true : undefined,
+        groups: groupsFilter,
+        search: search.length ? search : undefined,
         ...sortParams,
       }),
     getNextPageParam: (lastPage) => lastPage.pagination.next_page,
@@ -910,7 +910,7 @@ export const UsersTable = () => {
       />
     );
 
-  if (users.length === 0)
+  if (users.length === 0 && search?.length === 0 && columnFilters.length === 0)
     return (
       <EmptyStateFlexible
         title={m.users_empty_title()}
