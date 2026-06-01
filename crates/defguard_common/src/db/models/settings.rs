@@ -11,7 +11,7 @@ use rsa::{
 };
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Deserializer, Serialize};
-use sqlx::{PgExecutor, PgPool, Type, query, query_as};
+use sqlx::{FromRow, PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
@@ -167,8 +167,21 @@ where
     Ok(Some(Option::deserialize(deserializer)?))
 }
 
-#[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
-#[patch(attribute(derive(Deserialize, Serialize, Debug)))]
+#[derive(Clone, Default, Debug, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+#[patch(attribute(derive(Debug, Deserialize, Serialize)))]
+pub struct SmtpSettings {
+    pub smtp_server: Option<String>,
+    pub smtp_port: Option<i32>,
+    pub smtp_encryption: SmtpEncryption,
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
+    pub smtp_user: Option<String>,
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
+    pub smtp_password: Option<SecretStringWrapper>,
+    pub smtp_sender: Option<String>,
+}
+
+#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+#[patch(attribute(derive(Debug, Deserialize, Serialize)))]
 pub struct Settings {
     // Modules
     pub openid_enabled: bool,
@@ -182,14 +195,10 @@ pub struct Settings {
     pub main_logo_url: String,
     pub nav_logo_url: String,
     // SMTP
-    pub smtp_server: Option<String>,
-    pub smtp_port: Option<i32>,
-    pub smtp_encryption: SmtpEncryption,
-    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
-    pub smtp_user: Option<String>,
-    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
-    pub smtp_password: Option<SecretStringWrapper>,
-    pub smtp_sender: Option<String>,
+    #[patch(nesting, attribute(serde(flatten)))]
+    #[serde(flatten)]
+    #[sqlx(flatten)]
+    pub smtp: SmtpSettings,
     // Enrollment
     pub enrollment_vpn_step_optional: bool,
     pub enrollment_welcome_message: Option<String>,
@@ -270,12 +279,12 @@ impl fmt::Debug for Settings {
             .field("instance_name", &self.instance_name)
             .field("main_logo_url", &self.main_logo_url)
             .field("nav_logo_url", &self.nav_logo_url)
-            .field("smtp_server", &self.smtp_server)
-            .field("smtp_port", &self.smtp_port)
-            .field("smtp_encryption", &self.smtp_encryption)
-            .field("smtp_user", &self.smtp_user)
-            .field("smtp_password", &self.smtp_password)
-            .field("smtp_sender", &self.smtp_sender)
+            .field("smtp_server", &self.smtp.smtp_server)
+            .field("smtp_port", &self.smtp.smtp_port)
+            .field("smtp_encryption", &self.smtp.smtp_encryption)
+            .field("smtp_user", &self.smtp.smtp_user)
+            .field("smtp_password", &self.smtp.smtp_password)
+            .field("smtp_sender", &self.smtp.smtp_sender)
             .field(
                 "enrollment_vpn_step_optional",
                 &self.enrollment_vpn_step_optional,
@@ -489,32 +498,26 @@ impl Settings {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Self,
+        query_as::<_, Self>(
             "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, \
             challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
-            smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, \
-            smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, \
+            smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, \
-            uuid, ldap_url, ldap_bind_username, \
-            ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
+            uuid, ldap_url, ldap_bind_username, ldap_bind_password, \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
             ldap_group_member_attr, ldap_member_attr, openid_create_account, \
             license, gateway_disconnect_notifications_enabled, ldap_use_starttls, \
             ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled, \
-            ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
-            ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
+            ldap_sync_status, ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
-            openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            defguard_url, \
+            openid_username_handling, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url, \
-            default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, \
+            public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -647,12 +650,12 @@ impl Settings {
             self.instance_name,
             self.main_logo_url,
             self.nav_logo_url,
-            self.smtp_server,
-            self.smtp_port,
-            &self.smtp_encryption as &SmtpEncryption,
-            self.smtp_user,
-            &self.smtp_password as &Option<SecretStringWrapper>,
-            self.smtp_sender,
+            self.smtp.smtp_server,
+            self.smtp.smtp_port,
+            &self.smtp.smtp_encryption as &SmtpEncryption,
+            self.smtp.smtp_user,
+            &self.smtp.smtp_password as &Option<SecretStringWrapper>,
+            self.smtp.smtp_sender,
             self.enrollment_vpn_step_optional,
             self.enrollment_welcome_message,
             self.enrollment_welcome_email,
@@ -774,11 +777,11 @@ impl Settings {
     /// Meant to be used to check if sending emails is enabled in current instance.
     #[must_use]
     pub fn smtp_configured(&self) -> bool {
-        self.smtp_server.is_some()
-            && self.smtp_port.is_some()
-            && self.smtp_sender.is_some()
-            && self.smtp_server != Some(String::new())
-            && self.smtp_sender != Some(String::new())
+        self.smtp.smtp_server.is_some()
+            && self.smtp.smtp_port.is_some()
+            && self.smtp.smtp_sender.is_some()
+            && self.smtp.smtp_server != Some(String::new())
+            && self.smtp.smtp_sender != Some(String::new())
     }
 
     /// Check if all required LDAP options are configured.
@@ -1102,21 +1105,21 @@ mod test {
         assert!(!settings.smtp_configured());
 
         // incomplete SMTP config
-        settings.smtp_server = Some("localhost".into());
-        settings.smtp_port = Some(587);
+        settings.smtp.smtp_server = Some("localhost".into());
+        settings.smtp.smtp_port = Some(587);
         assert!(!settings.smtp_configured());
 
         // no-auth SMTP config
-        settings.smtp_sender = Some("no-reply@defguard.net".into());
+        settings.smtp.smtp_sender = Some("no-reply@defguard.net".into());
         assert!(settings.smtp_configured());
 
         // add non-default encryption
-        settings.smtp_encryption = SmtpEncryption::StartTls;
+        settings.smtp.smtp_encryption = SmtpEncryption::StartTls;
         assert!(settings.smtp_configured());
 
         // add auth info
-        settings.smtp_user = Some("smtp_user".into());
-        settings.smtp_password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
+        settings.smtp.smtp_user = Some("smtp_user".into());
+        settings.smtp.smtp_password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
         assert!(settings.smtp_configured());
     }
 

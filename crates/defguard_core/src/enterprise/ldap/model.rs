@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{Settings, User},
 };
 use ldap3::{Mod, SearchEntry};
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, query_as};
 
 use super::{
     LDAPConfig,
@@ -270,15 +270,13 @@ pub(super) async fn get_users_without_ldap_path<'e, E>(executor: E) -> sqlx::Res
 where
     E: PgExecutor<'e>,
 {
-    sqlx::query_as!(
+    query_as!(
         User,
-        "
-            SELECT id, username, password_hash, last_name, first_name, email, phone, \
-            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
-            FROM \"user\" WHERE ldap_user_path IS NULL
-            ",
+        "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+        mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+        mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+        from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
+        FROM \"user\" WHERE ldap_user_path IS NULL",
     )
     .fetch_all(executor)
     .await

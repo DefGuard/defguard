@@ -540,11 +540,11 @@ mod tests {
             .expect("failed to initialize settings");
         let mut settings = Settings::get_current_settings();
         settings.public_proxy_url = format!("https://{hostname}");
-        settings.smtp_server = Some("smtp.example.com".into());
-        settings.smtp_port = Some(587);
-        settings.smtp_sender = Some("noreply@example.com".into());
-        settings.smtp_user = Some(String::new());
-        settings.smtp_password = Some(SecretStringWrapper::from_str("").unwrap());
+        settings.smtp.smtp_server = Some("smtp.example.com".into());
+        settings.smtp.smtp_port = Some(587);
+        settings.smtp.smtp_sender = Some("noreply@example.com".into());
+        settings.smtp.smtp_user = Some(String::new());
+        settings.smtp.smtp_password = Some(SecretStringWrapper::from_str("").unwrap());
         defguard_common::db::models::settings::set_settings(Some(settings));
     }
 

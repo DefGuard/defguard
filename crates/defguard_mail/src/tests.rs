@@ -45,13 +45,13 @@ async fn set_smtp_settings(pool: &PgPool) {
     initialize_current_settings(pool).await.unwrap();
 
     let mut settings = Settings::get_current_settings();
-    settings.smtp_server = env::var("SMTP_SERVER").ok();
-    settings.smtp_port = Some(env::var("SMTP_PORT").map_or(587, |s| s.parse().unwrap()));
-    settings.smtp_encryption = SmtpEncryption::StartTls;
-    settings.smtp_user = env::var("SMTP_USER").ok();
-    settings.smtp_password =
+    settings.smtp.smtp_server = env::var("SMTP_SERVER").ok();
+    settings.smtp.smtp_port = Some(env::var("SMTP_PORT").map_or(587, |s| s.parse().unwrap()));
+    settings.smtp.smtp_encryption = SmtpEncryption::StartTls;
+    settings.smtp.smtp_user = env::var("SMTP_USER").ok();
+    settings.smtp.smtp_password =
         Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
-    settings.smtp_sender = env::var("SMTP_FROM").ok();
+    settings.smtp.smtp_sender = env::var("SMTP_FROM").ok();
     set_settings(Some(settings));
 }
 

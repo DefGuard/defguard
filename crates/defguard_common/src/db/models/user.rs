@@ -1689,9 +1689,9 @@ mod test {
         // Feature enabled, ldap_remote_enrollment_completed=false
         // → LDAP user is NOT yet enrolled.
         let mut settings = Settings::get_current_settings();
-        settings.smtp_server = Some("smtp.example.com".into());
-        settings.smtp_port = Some(587);
-        settings.smtp_sender = Some("noreply@example.com".into());
+        settings.smtp.smtp_server = Some("smtp.example.com".into());
+        settings.smtp.smtp_port = Some(587);
+        settings.smtp.smtp_sender = Some("noreply@example.com".into());
         settings.ldap_url = Some("ldap://localhost".into());
         settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
         settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());

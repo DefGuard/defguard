@@ -1471,7 +1471,7 @@ impl AclRuleInfo<Id> {
 
     /// Returns the list of explicitly configured allowed network devices or
     /// a list of all devices if 'allow_all_network_devices' flag is enabled.
-    pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
+    pub(crate) async fn get_all_allowed_devices<'e, E: PgExecutor<'e>>(
         &self,
         executor: E,
         location_id: Id,
@@ -1503,7 +1503,7 @@ impl AclRuleInfo<Id> {
 
     /// Returns the list of explicitly configured denied network devices or
     /// a list of all devices if 'deny_all_network_devices' flag is enabled.
-    pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
+    pub(crate) async fn get_all_denied_devices<'e, E: PgExecutor<'e>>(
         &self,
         executor: E,
         location_id: Id,
@@ -1876,11 +1876,11 @@ impl TryFrom<&EditAclAlias> for AclAlias {
 
 impl AclAlias<Id> {
     /// Fetch [`AclAlias`] of a given kind.
-    pub async fn all_of_kind<'e, E>(executor: E, kind: AliasKind) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn all_of_kind<'e, E>(executor: E, kind: AliasKind) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query_as::<_, Self>(
+        query_as::<_, Self>(
             "SELECT id, parent_id, name, kind, state, addresses, ports, protocols, any_address, \
             any_port, any_protocol, modified_at, modified_by \
             FROM aclalias WHERE kind = $1",
@@ -1894,11 +1894,11 @@ impl AclAlias<Id> {
         executor: E,
         id: Id,
         kind: AliasKind,
-    ) -> Result<Option<Self>, sqlx::Error>
+    ) -> sqlx::Result<Option<Self>>
     where
-        E: sqlx::PgExecutor<'e>,
+        E: PgExecutor<'e>,
     {
-        sqlx::query_as::<_, Self>(
+        query_as::<_, Self>(
             "SELECT id, parent_id, name, kind, state, addresses, ports, protocols, any_address, \
             any_port, any_protocol, modified_at, modified_by \
             FROM aclalias WHERE id = $1 AND kind = $2",

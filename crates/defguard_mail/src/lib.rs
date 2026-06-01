@@ -29,17 +29,20 @@ impl SmtpSettings {
     /// Constructs `SmtpSettings` from `Settings`. Returns error if `SmtpSettings` are incomplete.
     pub(crate) fn from_settings(settings: Settings) -> Result<Self, MailError> {
         if let (Some(server), Some(port), Some(sender)) = (
-            settings.smtp_server,
-            settings.smtp_port,
-            settings.smtp_sender,
+            settings.smtp.smtp_server,
+            settings.smtp.smtp_port,
+            settings.smtp.smtp_sender,
         ) {
             let port = port.try_into().map_err(|_| MailError::InvalidPort(port))?;
             Ok(Self {
                 server,
                 port,
-                encryption: settings.smtp_encryption,
-                user: settings.smtp_user,
-                password: settings.smtp_password.map(|p| p.expose_secret().to_owned()),
+                encryption: settings.smtp.smtp_encryption,
+                user: settings.smtp.smtp_user,
+                password: settings
+                    .smtp
+                    .smtp_password
+                    .map(|p| p.expose_secret().to_owned()),
                 sender,
             })
         } else {

@@ -78,14 +78,14 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     assert_eq!(response.status(), StatusCode::OK);
     let settings: Settings = response.json().await;
     assert_eq!(
-        settings.smtp_user,
+        settings.smtp.smtp_user,
         Some("testuser".to_owned()),
         "smtp_user should be set after initial PATCH"
     );
     // smtp_password is redacted in the API response; verify via DB
     let from_db = Settings::get(&pool).await.unwrap().unwrap();
     assert!(
-        from_db.smtp_password.is_some(),
+        from_db.smtp.smtp_password.is_some(),
         "smtp_password should be set in DB after initial PATCH"
     );
 
@@ -98,11 +98,11 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     // assert both fields are cleared in the DB
     let from_db = Settings::get(&pool).await.unwrap().unwrap();
     assert!(
-        from_db.smtp_user.is_none(),
+        from_db.smtp.smtp_user.is_none(),
         "smtp_user should be cleared to None after PATCH with null"
     );
     assert!(
-        from_db.smtp_password.is_none(),
+        from_db.smtp.smtp_password.is_none(),
         "smtp_password should be cleared to None after PATCH with null"
     );
 
@@ -232,9 +232,9 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
 
     // configure SMTP via direct DB mutation (same pattern used for test setup in auth tests)
     let mut settings = Settings::get_current_settings();
-    settings.smtp_server = Some("smtp.example.com".into());
-    settings.smtp_port = Some(587);
-    settings.smtp_sender = Some("noreply@example.com".into());
+    settings.smtp.smtp_server = Some("smtp.example.com".into());
+    settings.smtp.smtp_port = Some(587);
+    settings.smtp.smtp_sender = Some("noreply@example.com".into());
     update_current_settings(&client_state.pool, settings)
         .await
         .unwrap();
