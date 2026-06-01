@@ -56,5 +56,8 @@
   "cmp_helper_search": "",
   "cmp_contextual_help_faq": "FAQ",
   "cmp_contextual_help_related_docs": "Related documentation",
-  "cmp_contextual_help_best_practices": "Best practices"
+  "cmp_contextual_help_best_practices": "Best practices",
+  "cmp_location_mfa_smtp_disabled": "SMTP is not configured",
+  "cmp_location_mfa_enterprise_required": "Upgrade to Enterprise license",
+  "cmp_location_mfa_step_helper": "All factors in a step must be verified. Steps are completed in order."
 }
