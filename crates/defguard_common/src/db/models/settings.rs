@@ -167,17 +167,41 @@ where
     Ok(Some(Option::deserialize(deserializer)?))
 }
 
-#[derive(Clone, Default, Debug, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
 #[patch(attribute(derive(Debug, Deserialize, Serialize)))]
 pub struct SmtpSettings {
-    pub smtp_server: Option<String>,
-    pub smtp_port: Option<i32>,
-    pub smtp_encryption: SmtpEncryption,
-    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
-    pub smtp_user: Option<String>,
-    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
-    pub smtp_password: Option<SecretStringWrapper>,
-    pub smtp_sender: Option<String>,
+    #[serde(rename = "smtp_server")]
+    #[sqlx(rename = "smtp_server")]
+    #[patch(attribute(serde(rename = "smtp_server")))]
+    pub server: Option<String>,
+    #[serde(rename = "smtp_port")]
+    #[sqlx(rename = "smtp_port")]
+    #[patch(attribute(serde(rename = "smtp_port")))]
+    pub port: Option<i32>,
+    #[serde(rename = "smtp_encryption")]
+    #[sqlx(rename = "smtp_encryption")]
+    #[patch(attribute(serde(rename = "smtp_encryption")))]
+    pub encryption: SmtpEncryption,
+    #[serde(rename = "smtp_user")]
+    #[sqlx(rename = "smtp_user")]
+    #[patch(attribute(serde(
+        rename = "smtp_user",
+        deserialize_with = "deserialize_optional_field",
+        default
+    )))]
+    pub user: Option<String>,
+    #[serde(rename = "smtp_password")]
+    #[sqlx(rename = "smtp_password")]
+    #[patch(attribute(serde(
+        rename = "smtp_password",
+        deserialize_with = "deserialize_optional_field",
+        default
+    )))]
+    pub password: Option<SecretStringWrapper>,
+    #[serde(rename = "smtp_sender")]
+    #[sqlx(rename = "smtp_sender")]
+    #[patch(attribute(serde(rename = "smtp_sender")))]
+    pub sender: Option<String>,
 }
 
 #[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
@@ -279,12 +303,12 @@ impl fmt::Debug for Settings {
             .field("instance_name", &self.instance_name)
             .field("main_logo_url", &self.main_logo_url)
             .field("nav_logo_url", &self.nav_logo_url)
-            .field("smtp_server", &self.smtp.smtp_server)
-            .field("smtp_port", &self.smtp.smtp_port)
-            .field("smtp_encryption", &self.smtp.smtp_encryption)
-            .field("smtp_user", &self.smtp.smtp_user)
-            .field("smtp_password", &self.smtp.smtp_password)
-            .field("smtp_sender", &self.smtp.smtp_sender)
+            .field("smtp_server", &self.smtp.server)
+            .field("smtp_port", &self.smtp.port)
+            .field("smtp_encryption", &self.smtp.encryption)
+            .field("smtp_user", &self.smtp.user)
+            .field("smtp_password", &self.smtp.password)
+            .field("smtp_sender", &self.smtp.sender)
             .field(
                 "enrollment_vpn_step_optional",
                 &self.enrollment_vpn_step_optional,
@@ -650,12 +674,12 @@ impl Settings {
             self.instance_name,
             self.main_logo_url,
             self.nav_logo_url,
-            self.smtp.smtp_server,
-            self.smtp.smtp_port,
-            &self.smtp.smtp_encryption as &SmtpEncryption,
-            self.smtp.smtp_user,
-            &self.smtp.smtp_password as &Option<SecretStringWrapper>,
-            self.smtp.smtp_sender,
+            self.smtp.server,
+            self.smtp.port,
+            &self.smtp.encryption as &SmtpEncryption,
+            self.smtp.user,
+            &self.smtp.password as &Option<SecretStringWrapper>,
+            self.smtp.sender,
             self.enrollment_vpn_step_optional,
             self.enrollment_welcome_message,
             self.enrollment_welcome_email,
@@ -777,11 +801,11 @@ impl Settings {
     /// Meant to be used to check if sending emails is enabled in current instance.
     #[must_use]
     pub fn smtp_configured(&self) -> bool {
-        self.smtp.smtp_server.is_some()
-            && self.smtp.smtp_port.is_some()
-            && self.smtp.smtp_sender.is_some()
-            && self.smtp.smtp_server != Some(String::new())
-            && self.smtp.smtp_sender != Some(String::new())
+        self.smtp.server.is_some()
+            && self.smtp.port.is_some()
+            && self.smtp.sender.is_some()
+            && self.smtp.server != Some(String::new())
+            && self.smtp.sender != Some(String::new())
     }
 
     /// Check if all required LDAP options are configured.
@@ -1105,21 +1129,21 @@ mod test {
         assert!(!settings.smtp_configured());
 
         // incomplete SMTP config
-        settings.smtp.smtp_server = Some("localhost".into());
-        settings.smtp.smtp_port = Some(587);
+        settings.smtp.server = Some("localhost".into());
+        settings.smtp.port = Some(587);
         assert!(!settings.smtp_configured());
 
         // no-auth SMTP config
-        settings.smtp.smtp_sender = Some("no-reply@defguard.net".into());
+        settings.smtp.sender = Some("no-reply@defguard.net".into());
         assert!(settings.smtp_configured());
 
         // add non-default encryption
-        settings.smtp.smtp_encryption = SmtpEncryption::StartTls;
+        settings.smtp.encryption = SmtpEncryption::StartTls;
         assert!(settings.smtp_configured());
 
         // add auth info
-        settings.smtp.smtp_user = Some("smtp_user".into());
-        settings.smtp.smtp_password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
+        settings.smtp.user = Some("smtp_user".into());
+        settings.smtp.password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
         assert!(settings.smtp_configured());
     }
 

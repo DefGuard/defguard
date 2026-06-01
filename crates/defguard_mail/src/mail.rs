@@ -2,7 +2,7 @@ use std::{str::FromStr, time::Duration};
 
 use defguard_common::db::models::{
     MFAMethod, Settings,
-    settings::{SmtpEncryption, defaults::WELCOME_EMAIL_SUBJECT},
+    settings::{SmtpEncryption, SmtpSettings, defaults::WELCOME_EMAIL_SUBJECT},
 };
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
@@ -16,7 +16,6 @@ use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
 use super::{
-    SmtpSettings,
     mail_context::MailContext,
     qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
@@ -197,22 +196,15 @@ impl Mail {
         let (to, subject) = (self.to.clone(), self.subject.clone());
         debug!("Sending mail to: {to}, subject: {subject}");
 
-        // fetch SMTP settings
-        let settings = Settings::get_current_settings();
-        let settings = match SmtpSettings::from_settings(settings) {
-            Ok(settings) => settings,
-            Err(err @ MailError::SmtpNotConfigured) => {
-                warn!("SMTP not configured, email sending skipped");
-                return Err(err);
-            }
-            Err(err) => {
-                error!("Error retrieving SMTP settings: {err}");
-                return Err(err);
-            }
+        // SMTP settings
+        let smtp_settings = Settings::get_current_settings().smtp;
+        let Some(sender) = &smtp_settings.sender else {
+            warn!("SMTP not configured, email sending skipped");
+            return Err(MailError::SmtpNotConfigured);
         };
 
         // Construct lettre Message
-        let message = match self.into_message(&settings.sender) {
+        let message = match self.into_message(sender) {
             Ok(message) => message,
             Err(err) => {
                 error!("Failed to build message to: {to}, subject: {subject}, error: {err}");
@@ -220,7 +212,7 @@ impl Mail {
             }
         };
         // Build mailer and send the message
-        match Self::mailer(settings) {
+        match Self::mailer(smtp_settings) {
             Ok(mailer) => match mailer.send(message).await {
                 Ok(response) => {
                     info!("Mail sent to: {to}, subject: {subject}, response: {response:?}");
@@ -251,17 +243,21 @@ impl Mail {
     fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         type Builder = AsyncSmtpTransport<Tokio1Executor>;
 
+        let (Some(server), Some(port)) = (settings.server, settings.port) else {
+            return Err(MailError::SmtpNotConfigured);
+        };
+
         let builder = match settings.encryption {
-            SmtpEncryption::None => Builder::builder_dangerous(&settings.server),
-            SmtpEncryption::StartTls => Builder::starttls_relay(&settings.server)?,
-            SmtpEncryption::ImplicitTls => Builder::relay(&settings.server)?,
+            SmtpEncryption::None => Builder::builder_dangerous(&server),
+            SmtpEncryption::StartTls => Builder::starttls_relay(&server)?,
+            SmtpEncryption::ImplicitTls => Builder::relay(&server)?,
         }
-        .port(settings.port)
+        .port(port.try_into().map_err(|_| MailError::InvalidPort(port))?)
         .timeout(Some(SMTP_TIMEOUT));
 
         // Skip credentials if any of them is empty.
         let builder = if let (Some(user), Some(password)) = (settings.user, settings.password) {
-            builder.credentials(Credentials::new(user, password))
+            builder.credentials(Credentials::new(user, password.expose_secret().into()))
         } else {
             debug!("SMTP credentials were not provided, skipping username/password authentication");
             builder

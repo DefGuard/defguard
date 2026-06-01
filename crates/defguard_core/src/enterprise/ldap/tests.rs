@@ -66,9 +66,9 @@ async fn make_test_admin(pool: &sqlx::PgPool, username: &str) -> User<Id> {
 }
 
 fn configure_smtp_and_ldap(settings: &mut Settings) {
-    settings.smtp.smtp_server = Some("smtp.example.com".into());
-    settings.smtp.smtp_port = Some(587);
-    settings.smtp.smtp_sender = Some("noreply@example.com".into());
+    settings.smtp.server = Some("smtp.example.com".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("noreply@example.com".into());
     settings.ldap_url = Some("ldap://localhost".into());
     settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
     settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());

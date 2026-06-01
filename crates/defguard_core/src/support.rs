@@ -29,7 +29,7 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
     // App settings DB records
     let settings = match Settings::get(&mut *conn).await {
         Ok(Some(mut settings)) => {
-            settings.smtp.smtp_password = None;
+            settings.smtp.password = None;
             settings.ldap_bind_password = None;
             json!(settings)
         }
