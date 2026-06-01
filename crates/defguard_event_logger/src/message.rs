@@ -103,15 +103,15 @@ impl EventLoggerMessage {
 /// Extract location from an API event variant, if it carries one.
 fn extract_api_location(event: &ApiEventType) -> Option<WireguardNetwork<Id>> {
     match event {
-        ApiEventType::NetworkDeviceAdded { location, .. } => Some(location.clone()),
-        ApiEventType::NetworkDeviceModified { location, .. } => Some(location.clone()),
-        ApiEventType::NetworkDeviceRemoved { location, .. } => Some(location.clone()),
-        ApiEventType::VpnLocationAdded { location } => Some(location.clone()),
-        ApiEventType::VpnLocationRemoved { location } => Some(location.clone()),
+        ApiEventType::NetworkDeviceAdded { location, .. }
+        | ApiEventType::NetworkDeviceModified { location, .. }
+        | ApiEventType::NetworkDeviceRemoved { location, .. }
+        | ApiEventType::VpnLocationAdded { location }
+        | ApiEventType::VpnLocationRemoved { location }
+        | ApiEventType::UserSnatBindingAdded { location, .. }
+        | ApiEventType::UserSnatBindingRemoved { location, .. }
+        | ApiEventType::UserSnatBindingModified { location, .. } => Some(location.clone()),
         ApiEventType::VpnLocationModified { after, .. } => Some(after.clone()),
-        ApiEventType::UserSnatBindingAdded { location, .. } => Some(location.clone()),
-        ApiEventType::UserSnatBindingRemoved { location, .. } => Some(location.clone()),
-        ApiEventType::UserSnatBindingModified { location, .. } => Some(location.clone()),
         _ => None,
     }
 }

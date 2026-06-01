@@ -145,7 +145,7 @@ impl From<PortRange> for PgRange<i32> {
 /// Applied state does NOT guarantee that all locations have received the rule
 /// and performed appropriate operations, only that the next time configuration
 /// is being sent it will include this rule.
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Hash, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
 pub enum RuleState {
     #[default]
@@ -244,7 +244,7 @@ impl<I> AclRuleInfo<I> {
 /// Those objects have their dedicated tables and structures so we provide
 /// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
 /// to combine all the related objects for easier downstream processing.
-#[derive(Clone, Debug, Eq, FromRow, Model, PartialEq, ToSchema)]
+#[derive(Clone, Debug, FromRow, Model, PartialEq, ToSchema)]
 pub struct AclRule<I = NoId> {
     pub id: I,
     // if present points to the original rule before modification / deletion
@@ -1612,7 +1612,7 @@ pub enum AliasState {
 /// - Destination: the alias defines a complete destination that an ACL rule applies to
 /// - Component: the alias defines parts of a destination and will be combined with other parts
 ///   manually defined in an ACL rule
-#[derive(Clone, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "aclalias_kind", rename_all = "lowercase")]
 pub enum AliasKind {
     #[default]

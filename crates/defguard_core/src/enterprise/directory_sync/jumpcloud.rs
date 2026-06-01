@@ -16,7 +16,7 @@ const MAX_REQUESTS: usize = 50;
 const MAX_RESULTS: usize = 100;
 const API_KEY_HEADER: &str = "x-api-key";
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 enum UserState {
     Staged,

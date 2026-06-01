@@ -9,7 +9,10 @@ use defguard_core::events::ApiEventType;
 #[must_use]
 pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
     match event {
-        ApiEventType::UserLogin => None,
+        ApiEventType::UserLogin
+        | ApiEventType::UserLogout
+        | ApiEventType::RecoveryCodeUsed
+        | ApiEventType::PasswordChanged => None,
         ApiEventType::UserLoginFailed { message } => {
             Some(format!("User login failed with: {message}"))
         }
@@ -25,9 +28,6 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         ApiEventType::RecoveryCodeLoginFailed => {
             Some("User login with recovery code failed".into())
         }
-        ApiEventType::UserLogout => None,
-        ApiEventType::RecoveryCodeUsed => None,
-        ApiEventType::PasswordChanged => None,
         ApiEventType::MfaDisabled => Some("Disabled own MFA".into()),
         ApiEventType::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
         ApiEventType::MfaTotpEnabled => Some("User configured TOTP for MFA".into()),

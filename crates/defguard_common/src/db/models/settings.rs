@@ -110,7 +110,7 @@ pub enum SettingsSaveError {
     Validation(#[from] SettingsValidationError),
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
 pub enum SmtpEncryption {
     #[default]
@@ -119,7 +119,7 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
 pub enum OpenIdUsernameHandling {
     #[default]
@@ -131,7 +131,7 @@ pub enum OpenIdUsernameHandling {
     PruneEmailDomain,
 }
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type)]
+#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, Type)]
 #[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
 pub enum LdapSyncStatus {
     InSync,
@@ -168,7 +168,7 @@ where
 }
 
 #[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
-#[patch(attribute(derive(Debug, Deserialize, Serialize)))]
+#[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct SmtpSettings {
     #[serde(rename = "smtp_server")]
     #[sqlx(rename = "smtp_server")]
@@ -205,7 +205,7 @@ pub struct SmtpSettings {
 }
 
 #[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
-#[patch(attribute(derive(Debug, Deserialize, Serialize)))]
+#[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct Settings {
     // Modules
     pub openid_enabled: bool,

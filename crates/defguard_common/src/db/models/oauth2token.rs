@@ -62,16 +62,18 @@ impl OAuth2Token {
     /// Store data in the database.
     pub async fn save(&self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
-            "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in) \
+            "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, \
+            redirect_uri, scope, expires_in) \
             VALUES ($1, $2, $3, $4, $5, $6)",
             self.oauth2authorizedapp_id,
             self.access_token,
             self.refresh_token,
             self.redirect_uri,
             self.scope,
-            self.expires_in)
-            .execute(pool)
-            .await?;
+            self.expires_in
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
@@ -94,7 +96,8 @@ impl OAuth2Token {
     ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
+            expires_in \
             FROM oauth2token WHERE access_token = $1",
             access_token
         )
@@ -121,7 +124,8 @@ impl OAuth2Token {
     ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
+            expires_in \
             FROM oauth2token WHERE refresh_token = $1",
             refresh_token
         )
@@ -148,7 +152,8 @@ impl OAuth2Token {
     ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
+            expires_in \
             FROM oauth2token WHERE oauth2authorizedapp_id = $1",
             oauth2authorizedapp_id,
         )
