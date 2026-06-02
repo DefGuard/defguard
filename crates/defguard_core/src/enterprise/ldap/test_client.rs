@@ -189,7 +189,7 @@ impl TestClient {
     fn take_write_failure(&mut self) -> Result<(), LdapError> {
         if self.fail_next_writes > 0 {
             self.fail_next_writes -= 1;
-            Err(LdapError::Ldap("injected test failure".to_string()))
+            Err(LdapError::Ldap("injected test failure".to_owned()))
         } else {
             Ok(())
         }
@@ -413,7 +413,7 @@ impl LDAPConnection {
         S: AsRef<[u8]> + Eq + Hash,
     {
         self.test_client.take_write_failure()?;
-        let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_string();
+        let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_owned();
         let mods: Vec<Mod<String>> = mods
             .into_iter()
             .map(|modification| match modification {
@@ -539,7 +539,7 @@ impl LDAPConnection {
                     } else {
                         UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
                     };
-                    attrs.push(("userAccountControl".to_string(), vec![uac.to_string()]));
+                    attrs.push(("userAccountControl".to_owned(), vec![uac.to_string()]));
                 }
                 users.push(SearchEntry {
                     dn: dn.clone(),
@@ -613,7 +613,7 @@ pub(super) fn user_to_test_attrs<I>(
     .into_iter()
     .map(|(k, v)| {
         (
-            k.to_string(),
+            k.to_owned(),
             v.iter().map(std::string::ToString::to_string).collect(),
         )
     })
@@ -627,7 +627,7 @@ pub(super) fn user_to_test_attrs<I>(
         } else {
             UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
         };
-        attrs.push(("userAccountControl".to_string(), hashset![uac.to_string()]));
+        attrs.push(("userAccountControl".to_owned(), hashset![uac.to_string()]));
     }
 
     attrs

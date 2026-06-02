@@ -3886,8 +3886,8 @@ async fn test_sync_ad_account_status_disable_and_reenable(
     // Active, enrolled Defguard user that also exists in AD.
     let mut user = make_test_user(
         "ad_status_user",
-        Some("ad_status_user".to_string()),
-        Some("ou=users,dc=example,dc=com".to_string()),
+        Some("ad_status_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
     );
     user.from_ldap = true;
     user.is_active = true;
@@ -3954,8 +3954,8 @@ async fn test_enable_in_defguard_pushes_status_to_ad(_: PgPoolOptions, options: 
     // Active, enrolled Defguard user that also exists in AD.
     let mut user = make_test_user(
         "FirstName",
-        Some("FirstName".to_string()),
-        Some("ou=users,dc=example,dc=com".to_string()),
+        Some("FirstName".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
     );
     user.from_ldap = true;
     user.is_active = true;

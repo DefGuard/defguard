@@ -1604,12 +1604,7 @@ pub(crate) async fn bulk_disable_users(
             token.delete(&mut *transaction).await?;
         }
 
-        disable_user(
-            &mut user_to_disable,
-            &mut transaction,
-            &appstate.gateway_tx,
-        )
-        .await?;
+        disable_user(&mut user_to_disable, &mut transaction, &appstate.gateway_tx).await?;
         events.push((before, user_to_disable));
     }
     transaction.commit().await?;
@@ -1692,8 +1687,7 @@ pub(crate) async fn bulk_enable_users(
         let mut user_to_enable = user;
         user_to_enable.is_active = true;
         user_to_enable.save(&mut *transaction).await?;
-        sync_allowed_user_devices(&user_to_enable, &mut transaction, &appstate.gateway_tx)
-            .await?;
+        sync_allowed_user_devices(&user_to_enable, &mut transaction, &appstate.gateway_tx).await?;
         events.push((before, user_to_enable));
     }
     transaction.commit().await?;

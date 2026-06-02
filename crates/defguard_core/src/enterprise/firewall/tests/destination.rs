@@ -1,3 +1,8 @@
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    ops::RangeInclusive,
+};
+
 use defguard_common::{
     db::{NoId, models::WireguardNetwork, setup_pool},
     gateway_types::{
@@ -7,10 +12,6 @@ use defguard_common::{
 use defguard_proto::enterprise::firewall::Protocol as ProtoProtocol;
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    ops::RangeInclusive,
-};
 
 use super::{create_acl_rule, create_test_users_and_devices, set_test_license_business};
 use crate::enterprise::{

@@ -1,6 +1,5 @@
 use std::net::IpAddr;
 
-use defguard_common::gateway_event::GatewayCommand;
 use defguard_common::{
     db::{
         Id, NoId,
@@ -11,6 +10,7 @@ use defguard_common::{
             wireguard::{LocationMfaMode, WireguardNetwork},
         },
     },
+    gateway_event::GatewayCommand,
     gateway_types::{
         FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port,
         Protocol as GwProtocol, SnatBinding,

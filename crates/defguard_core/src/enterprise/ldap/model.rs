@@ -437,17 +437,17 @@ mod tests {
 
     fn ad_entry_with_uac(uac: Option<&str>) -> SearchEntry {
         let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname".to_string()]);
-        attrs.insert("givenName".to_string(), vec!["firstname".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user@example.com".to_string()]);
+        attrs.insert("sn".to_owned(), vec!["lastname".to_owned()]);
+        attrs.insert("givenName".to_owned(), vec!["firstname".to_owned()]);
+        attrs.insert("mail".to_owned(), vec!["user@example.com".to_owned()]);
         if let Some(uac) = uac {
             attrs.insert(
-                LDAP_USER_ACCOUNT_CONTROL_ATTR.to_string(),
-                vec![uac.to_string()],
+                LDAP_USER_ACCOUNT_CONTROL_ATTR.to_owned(),
+                vec![uac.to_owned()],
             );
         }
         SearchEntry {
-            dn: "cn=user,dc=example,dc=com".to_string(),
+            dn: "cn=user,dc=example,dc=com".to_owned(),
             attrs,
             bin_attrs: HashMap::new(),
         }

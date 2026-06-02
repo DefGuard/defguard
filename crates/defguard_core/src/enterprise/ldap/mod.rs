@@ -799,7 +799,7 @@ impl LDAPConnection {
             &user_dn,
             &user_dn,
             vec![Mod::Replace(
-                "userAccountControl".to_string(),
+                "userAccountControl".to_owned(),
                 hashset![new_uac.to_string()],
             )],
         )

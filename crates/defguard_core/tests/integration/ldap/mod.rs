@@ -56,7 +56,7 @@ async fn set_ldap_settings(pool: &PgPool) {
         settings.ldap_user_auxiliary_obj_classes = vec![String::from("user")];
     } else {
         settings.ldap_user_auxiliary_obj_classes = env::var("LDAP_USER_AUX_CLASSES")
-            .map(|s| s.split(',').map(str::to_string).collect())
+            .map(|s| s.split(',').map(str::to_owned).collect())
             .unwrap_or_default();
     }
     settings.ldap_enabled = true;
@@ -76,7 +76,7 @@ async fn set_sync_settings(pool: &PgPool, sync_group: &str, authoritative: bool)
     let mut settings = Settings::get_current_settings();
     settings.ldap_sync_enabled = true;
     settings.ldap_is_authoritative = authoritative;
-    settings.ldap_sync_groups = vec![sync_group.to_string()];
+    settings.ldap_sync_groups = vec![sync_group.to_owned()];
     set_settings(Some(settings));
 }
 
@@ -1280,8 +1280,7 @@ async fn test_sync_does_not_push_pending_defguard_user_to_ldap(
 fn parent_dn(dn: &str) -> String {
     dn.split_once(',')
         .expect("DN should have a parent component")
-        .1
-        .to_string()
+        .1.to_owned()
 }
 
 /// Regression for sync silently dropping every user when the group search base is set above the

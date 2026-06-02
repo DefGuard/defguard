@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use chrono::DateTime;
 use defguard_common::db::{
     Id, NoId,
@@ -10,7 +12,6 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query,
 };
-use std::net::IpAddr;
 
 use crate::enterprise::{
     allowed_ips::{AllowedIpsError, get_allowed_ips_from_acl_rules, get_effective_allowed_ips},

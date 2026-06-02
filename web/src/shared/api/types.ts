@@ -533,8 +533,6 @@ export interface WebauthnLoginStartResponse {
   publicKey: PublicKeyCredentialRequestOptionsJSON;
 }
 
-export type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;
-
 export interface StartEnrollmentRequest {
   username: string;
   send_enrollment_notification: boolean;

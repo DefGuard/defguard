@@ -1100,18 +1100,20 @@ mod tests {
     use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
 
     use chrono::{DateTime, Utc};
-    use defguard_common::db::{
-        Id,
-        models::{
-            Device, DeviceType, User,
-            device::WireguardNetworkDevice,
-            gateway::Gateway,
-            vpn_client_session::VpnClientSession,
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+    use defguard_common::{
+        db::{
+            Id,
+            models::{
+                Device, DeviceType, User,
+                device::WireguardNetworkDevice,
+                gateway::Gateway,
+                vpn_client_session::VpnClientSession,
+                wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+            },
+            setup_pool,
         },
-        setup_pool,
+        gateway_event::GatewayCommand,
     };
-    use defguard_common::gateway_event::GatewayCommand;
     use defguard_proto::gateway::{Configuration, PeerStats, core_response};
     use prost_types::Timestamp;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

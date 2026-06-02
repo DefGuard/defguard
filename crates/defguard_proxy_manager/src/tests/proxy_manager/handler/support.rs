@@ -20,9 +20,13 @@ use defguard_common::{
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE, Token},
+    device_access::join_device_to_all_networks,
     enterprise::{
-        db::models::openid_provider::{
-            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        db::models::{
+            acl::{AclRule, AclRuleNetwork, RuleState},
+            openid_provider::{
+                DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+            },
         },
         license::{License, LicenseTier, SupportType, set_cached_license},
     },
@@ -46,8 +50,6 @@ use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
-use defguard_core::device_access::join_device_to_all_networks;
-use defguard_core::enterprise::db::models::acl::{AclRule, AclRuleNetwork, RuleState};
 
 /// A strong password satisfying all `check_password_strength` requirements:
 /// ≥8 chars, digit, upper, lower, special character.
