@@ -57,6 +57,7 @@ pub(super) async fn obtain_access_token(
     }
     if let Some(refresh_token) = token_response.refresh_token() {
         debug!("Got refresh token");
+        // TODO: use `smtp_settings.set_oauth_refresh_token`
         smtp_settings.oauth_refresh_token = Some(refresh_token.secret().into());
     }
     Ok(access_token.clone())

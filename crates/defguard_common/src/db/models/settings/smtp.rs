@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Type};
+use sqlx::{FromRow, PgExecutor, Type, query};
 use struct_patch::Patch;
 
 use super::deserialize_optional_field;
@@ -68,4 +68,27 @@ pub struct SmtpSettings {
     #[sqlx(rename = "smtp_oauth_refresh_token")]
     #[patch(attribute(serde(rename = "smtp_oauth_refresh_token")))]
     pub oauth_refresh_token: Option<String>,
+}
+
+impl SmtpSettings {
+    /// Setter for `oauth_refresh_token`.
+    pub async fn set_oauth_refresh_token<'e, E>(
+        &mut self,
+        executor: E,
+        refresh_token: String,
+    ) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "UPDATE settings SET smtp_oauth_refresh_token = $1",
+            refresh_token
+        )
+        .execute(executor)
+        .await?;
+
+        self.oauth_refresh_token = Some(refresh_token);
+
+        Ok(())
+    }
 }
