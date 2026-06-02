@@ -83,6 +83,7 @@ pub struct WireguardNetworkData {
     pub allowed_ips_from_acl: bool,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
+    pub posture_checks: Vec<i64>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -265,6 +266,18 @@ pub(crate) async fn create_network(
     info!("Assigning IPs for existing devices in network {network}");
 
     appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
+
+    // assign posture checks
+    debug!(
+        "Assigning posture checks {:?} to {network}",
+        data.posture_checks
+    );
+    DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
+        .await?;
+    info!(
+        "Assigned posture checks {:?} to {network}",
+        data.posture_checks
+    );
 
     transaction.commit().await?;
 

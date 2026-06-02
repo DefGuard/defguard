@@ -65,6 +65,7 @@ export const AddLocationPostureCheckStep = () => {
         'locationType',
       ]),
     );
+    storageState.posture_checks = Array.from(selected);
     mutate(storageState);
   };
 
