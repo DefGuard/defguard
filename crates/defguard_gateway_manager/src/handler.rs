@@ -108,7 +108,7 @@ impl GatewayHandler {
         let url = Url::from_str(&gateway.url()).map_err(|err| {
             GatewayError::EndpointError(format!(
                 "Failed to parse Gateway URL {}: {err}",
-                &gateway.url()
+                gateway.url()
             ))
         })?;
 

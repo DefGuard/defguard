@@ -1,6 +1,6 @@
 //! Integration tests that require a running LDAP server.
 
-use std::{env, str::FromStr};
+use std::{collections::HashSet, env, str::FromStr};
 
 use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
@@ -15,6 +15,10 @@ use defguard_common::{
     secret::SecretStringWrapper,
 };
 use defguard_core::{enterprise::ldap::LDAPConnection, grpc::GatewayEvent};
+use ldap3::{
+    LdapConnAsync,
+    controls::{MakeCritical, ManageDsaIt},
+};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -592,8 +596,6 @@ async fn test_sync_ldap_authority_pulls_from_ldap(_: PgPoolOptions, options: PgC
     let (wg_tx, _wg_rx) = wg_test_channel();
     set_sync_settings(&pool, "syncpull_grp", true).await;
 
-    // The group exists in Defguard but is empty; the member lives only in LDAP.
-    Group::new("syncpull_grp").save(&pool).await.unwrap();
     let mut user = User::new(
         "syncpull_user",
         Some("pass123"),
@@ -971,7 +973,6 @@ async fn test_sync_ldap_authority_is_idempotent(_: PgPoolOptions, options: PgCon
     let (wg_tx, _wg_rx) = wg_test_channel();
     set_sync_settings(&pool, "idem_pull_grp", true).await;
 
-    Group::new("idem_pull_grp").save(&pool).await.unwrap();
     let mut user = User::new(
         "idem_pull_user",
         Some("pass123"),
@@ -1116,9 +1117,6 @@ async fn test_sync_keeps_enrollment_pending_ldap_user_in_scope(
     set_sync_settings(&pool, "secure_enroll_grp", true).await;
     enable_secure_enrollment();
     create_active_admin(&pool, "secure_enroll_admin").await;
-
-    // The sync group must exist in Defguard for the membership to be mirrored.
-    Group::new("secure_enroll_grp").save(&pool).await.unwrap();
 
     let mut user = User::new(
         "secure_enroll_user",
@@ -1275,4 +1273,433 @@ async fn test_sync_does_not_push_pending_defguard_user_to_ldap(
 
     let _ = ldap_conn.delete_user(&pushed).await;
     let _ = ldap_conn.delete_group("no_push_grp").await;
+}
+
+/// Strips the leftmost RDN, yielding the parent DN. For "ou=groups,dc=example,dc=org" this
+/// returns "dc=example,dc=org".
+fn parent_dn(dn: &str) -> String {
+    dn.split_once(',')
+        .expect("DN should have a parent component")
+        .1
+        .to_string()
+}
+
+/// Regression for sync silently dropping every user when the group search base is set above the
+/// sync group's own container.
+///
+/// `LDAPConfig::group_dn` builds the sync group's DN by literal concatenation with the group
+/// search base, so before the fix a base of the domain root produced a `memberOf` filter DN that
+/// no user actually carries (the group really lives one level deeper, e.g. under `ou=groups`), and
+/// every user fell out of sync scope. The fix resolves the group's real DN by search, so a group
+/// nested anywhere beneath a broad base is still matched.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_pulls_user_when_sync_group_nested_below_search_base(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    set_sync_settings(&pool, "nested_sync_grp", true).await;
+
+    let mut user = User::new(
+        "nested_sync_user",
+        Some("pass123"),
+        "Nested",
+        "User",
+        "nested_sync@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let nested_base = ldap_conn.config.ldap_group_search_base.clone();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("nested_sync_grp").await;
+
+    // Create the user and the group at the normal (nested) base, e.g.
+    // cn=nested_sync_grp,ou=groups,dc=example,dc=org, then drop the Defguard copy so the user
+    // exists only in LDAP and must be pulled back in by sync.
+    ldap_conn
+        .add_user(&mut user, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user_to_group(&user, "nested_sync_grp")
+        .await
+        .unwrap();
+    user.clone().delete(&pool).await.unwrap();
+
+    // Broaden the group search base to its parent (the domain root in this fixture). The sync
+    // group now lives below the base rather than directly under it.
+    ldap_conn.config.ldap_group_search_base = parent_dn(&nested_base);
+
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+
+    let pulled = User::find_by_username(&pool, "nested_sync_user")
+        .await
+        .unwrap()
+        .expect("a user whose sync group is nested below the search base must still be pulled");
+    assert!(pulled.from_ldap);
+    assert!(
+        pulled
+            .member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&String::from("nested_sync_grp")),
+        "the pulled user must be mirrored into the synced group"
+    );
+
+    ldap_conn.config.ldap_group_search_base = nested_base;
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("nested_sync_grp").await;
+}
+
+/// The real multi-OU AD layout: sync groups live in *different* subtrees that share only the
+/// domain root (e.g. one OU per site), so the only group search base covering them all is that
+/// root. Each group must still be resolved to its own DN and its members pulled. This is the
+/// generalization of the single-nested-group case to several groups in separate branches.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_resolves_sync_groups_in_separate_subtrees_from_shared_root(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    // set_sync_settings only takes one group; the full set is applied to the connection below.
+    set_sync_settings(&pool, "multitree_a_grp", true).await;
+
+    let mut user_a = User::new(
+        "multitree_a_user",
+        Some("pass123"),
+        "Multi",
+        "TreeA",
+        "multitree_a@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let mut user_b = User::new(
+        "multitree_b_user",
+        Some("pass123"),
+        "Multi",
+        "TreeB",
+        "multitree_b@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    // Two distinct subtrees that share only the domain root: ou=groups and ou=users.
+    let groups_base = ldap_conn.config.ldap_group_search_base.clone();
+    let users_base = ldap_conn.config.ldap_user_search_base.clone();
+    let root_base = parent_dn(&groups_base);
+
+    let _ = ldap_conn.delete_user(&user_a).await;
+    let _ = ldap_conn.delete_user(&user_b).await;
+    ldap_conn
+        .add_user(&mut user_a, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user(&mut user_b, Some("pass123"), &pool)
+        .await
+        .unwrap();
+
+    // Group A lives under ou=groups; the write helpers build the group DN from the configured
+    // group search base, so point it at each target subtree in turn.
+    ldap_conn.config.ldap_group_search_base = groups_base.clone();
+    let _ = ldap_conn.delete_group("multitree_a_grp").await;
+    ldap_conn
+        .add_user_to_group(&user_a, "multitree_a_grp")
+        .await
+        .unwrap();
+
+    // Group B lives under ou=users, a different branch of the same root.
+    ldap_conn.config.ldap_group_search_base = users_base.clone();
+    let _ = ldap_conn.delete_group("multitree_b_grp").await;
+    ldap_conn
+        .add_user_to_group(&user_b, "multitree_b_grp")
+        .await
+        .unwrap();
+
+    // Remove the Defguard copies so both users exist only in LDAP and must be pulled by sync.
+    user_a.clone().delete(&pool).await.unwrap();
+    user_b.clone().delete(&pool).await.unwrap();
+
+    // Search both groups from the shared root, with both as sync groups.
+    ldap_conn.config.ldap_group_search_base = root_base;
+    ldap_conn.config.ldap_sync_groups = vec![
+        String::from("multitree_a_grp"),
+        String::from("multitree_b_grp"),
+    ];
+
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+
+    let pulled_a = User::find_by_username(&pool, "multitree_a_user")
+        .await
+        .unwrap()
+        .expect("user in a sync group under one subtree of the shared root must be pulled");
+    assert!(pulled_a.from_ldap);
+    assert!(
+        pulled_a
+            .member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&String::from("multitree_a_grp"))
+    );
+
+    let pulled_b = User::find_by_username(&pool, "multitree_b_user")
+        .await
+        .unwrap()
+        .expect("user in a sync group under a different subtree of the shared root must be pulled");
+    assert!(pulled_b.from_ldap);
+    assert!(
+        pulled_b
+            .member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&String::from("multitree_b_grp"))
+    );
+
+    let _ = ldap_conn.delete_user(&user_a).await;
+    let _ = ldap_conn.delete_user(&user_b).await;
+    ldap_conn.config.ldap_group_search_base = groups_base;
+    let _ = ldap_conn.delete_group("multitree_a_grp").await;
+    ldap_conn.config.ldap_group_search_base = users_base;
+    let _ = ldap_conn.delete_group("multitree_b_grp").await;
+}
+
+/// Two LDAP groups can share the same name (cn) in different subtrees under the shared root (e.g.
+/// a per-site "DgProvisioning" group in each OU). Resolving by name then yields several DNs; the
+/// filter must OR them all so members of every same-named group are pulled. Defguard has a single
+/// group of that name, so all such members land in it.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_resolves_duplicate_named_groups_in_different_subtrees(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    set_sync_settings(&pool, "dup_grp", true).await;
+
+    let mut user_a = User::new(
+        "dup_a_user",
+        Some("pass123"),
+        "Dup",
+        "MemberA",
+        "dup_a@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let mut user_b = User::new(
+        "dup_b_user",
+        Some("pass123"),
+        "Dup",
+        "MemberB",
+        "dup_b@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let groups_base = ldap_conn.config.ldap_group_search_base.clone();
+    let users_base = ldap_conn.config.ldap_user_search_base.clone();
+    let root_base = parent_dn(&groups_base);
+
+    let _ = ldap_conn.delete_user(&user_a).await;
+    let _ = ldap_conn.delete_user(&user_b).await;
+    ldap_conn
+        .add_user(&mut user_a, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user(&mut user_b, Some("pass123"), &pool)
+        .await
+        .unwrap();
+
+    // First "dup_grp" lives under ou=groups, with user A. group_exists only searches the current
+    // base, so creating the second one under ou=users yields a distinct entry of the same cn.
+    ldap_conn.config.ldap_group_search_base = groups_base.clone();
+    let _ = ldap_conn.delete_group("dup_grp").await;
+    ldap_conn
+        .add_user_to_group(&user_a, "dup_grp")
+        .await
+        .unwrap();
+
+    // Second "dup_grp" lives under ou=users, with user B.
+    ldap_conn.config.ldap_group_search_base = users_base.clone();
+    let _ = ldap_conn.delete_group("dup_grp").await;
+    ldap_conn
+        .add_user_to_group(&user_b, "dup_grp")
+        .await
+        .unwrap();
+
+    user_a.clone().delete(&pool).await.unwrap();
+    user_b.clone().delete(&pool).await.unwrap();
+
+    // Search from the shared root: "dup_grp" resolves to both DNs and both members are pulled.
+    ldap_conn.config.ldap_group_search_base = root_base;
+
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+
+    for username in ["dup_a_user", "dup_b_user"] {
+        let pulled = User::find_by_username(&pool, username)
+            .await
+            .unwrap()
+            .unwrap_or_else(|| {
+                panic!("{username} belongs to a same-named sync group and must be pulled")
+            });
+        assert!(pulled.from_ldap);
+        assert!(
+            pulled
+                .member_of_names(&pool)
+                .await
+                .unwrap()
+                .contains(&String::from("dup_grp")),
+            "{username} must be mirrored into the single Defguard group"
+        );
+    }
+
+    let _ = ldap_conn.delete_user(&user_a).await;
+    let _ = ldap_conn.delete_user(&user_b).await;
+    ldap_conn.config.ldap_group_search_base = groups_base;
+    let _ = ldap_conn.delete_group("dup_grp").await;
+    ldap_conn.config.ldap_group_search_base = users_base;
+    let _ = ldap_conn.delete_group("dup_grp").await;
+}
+
+/// Creates a smart referral entry (RFC 3296) directly in the directory and returns its DN. A
+/// subtree search that crosses it makes the server emit a `SearchResultReference` PDU. The
+/// `ManageDsaIt` control is required so the server lets us write the referral object itself
+/// instead of returning it as a referral.
+async fn put_referral_entry(cn: &str, base: &str, ref_url: &str) -> String {
+    let url = env::var("LDAP_URL").unwrap();
+    let bind = env::var("LDAP_BIND_USERNAME").unwrap();
+    let pass = env::var("LDAP_BIND_PASSWORD").unwrap();
+    let (conn, mut ldap) = LdapConnAsync::new(&url).await.unwrap();
+    ldap3::drive!(conn);
+    ldap.simple_bind(&bind, &pass)
+        .await
+        .unwrap()
+        .success()
+        .unwrap();
+
+    let dn = format!("cn={cn},{base}");
+    // Best-effort cleanup in case a previous run left it behind.
+    let _ = ldap.with_controls(ManageDsaIt.critical()).delete(&dn).await;
+    ldap.with_controls(ManageDsaIt.critical())
+        .add(
+            &dn,
+            vec![
+                (
+                    "objectClass",
+                    HashSet::from(["referral", "extensibleObject"]),
+                ),
+                ("cn", HashSet::from([cn])),
+                ("ref", HashSet::from([ref_url])),
+            ],
+        )
+        .await
+        .unwrap()
+        .success()
+        .unwrap();
+    let _ = ldap.unbind().await;
+    dn
+}
+
+/// Deletes a referral entry created by [`put_referral_entry`]. `ManageDsaIt` is needed so the
+/// delete targets the referral object itself rather than being chased.
+async fn remove_referral_entry(dn: &str) {
+    let url = env::var("LDAP_URL").unwrap();
+    let bind = env::var("LDAP_BIND_USERNAME").unwrap();
+    let pass = env::var("LDAP_BIND_PASSWORD").unwrap();
+    let (conn, mut ldap) = LdapConnAsync::new(&url).await.unwrap();
+    ldap3::drive!(conn);
+    ldap.simple_bind(&bind, &pass)
+        .await
+        .unwrap()
+        .success()
+        .unwrap();
+    let _ = ldap.with_controls(ManageDsaIt.critical()).delete(dn).await;
+    let _ = ldap.unbind().await;
+}
+
+/// A subtree search that crosses an LDAP referral makes the server return a `SearchResultReference`
+/// PDU. ldap3 0.12.1's `SearchEntry::construct` panics on those. The fix
+/// filters referral/intermediate PDUs out, so a full sync must complete normally and still pull the
+/// real user that lives under the same search base.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_skips_referral_pdus_without_aborting(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    set_sync_settings(&pool, "referral_grp", true).await;
+
+    let mut user = User::new(
+        "referral_user",
+        Some("pass123"),
+        "Referral",
+        "User",
+        "referral@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let user_base = ldap_conn.config.ldap_user_search_base.clone();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("referral_grp").await;
+    ldap_conn
+        .add_user(&mut user, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user_to_group(&user, "referral_grp")
+        .await
+        .unwrap();
+    user.clone().delete(&pool).await.unwrap();
+
+    // Place a referral inside the user search base so list_users' subtree scan for the sync
+    // group's members crosses it and the server returns a SearchResultReference PDU.
+    let referral_dn = put_referral_entry(
+        "referral_probe",
+        &user_base,
+        "ldap://referred.invalid/dc=referred,dc=invalid",
+    )
+    .await;
+
+    // Before the fix this call aborts the process; after it, the sync completes and the real user
+    // behind the referral is still pulled.
+    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+
+    let pulled = User::find_by_username(&pool, "referral_user")
+        .await
+        .unwrap()
+        .expect("sync must finish and pull real users despite referral PDUs");
+    assert!(pulled.from_ldap);
+
+    remove_referral_entry(&referral_dn).await;
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group("referral_grp").await;
 }
