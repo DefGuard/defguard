@@ -79,5 +79,5 @@ The code in this repository is available under a dual licensing model:
 - Open Source License: The code, except for the contents of the "crates/defguard_core/src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
 - Enterprise License: All code in this repository (including within the "crates/defguard_core/src/enterprise" directory) is licensed under a separate Enterprise License (see file crates/defguard_core/src/enterprise/LICENSE.md).
 
-## Disclaimer
-[WireGuard](https://wireguard.com/) is a registered trademark of Jason A. Donenfeld.
+## Legal
+WireGuard® is [registered trademarks](https://www.wireguard.com/trademark-policy/) of Jason A. Donenfeld.
