@@ -307,6 +307,18 @@ impl<I> User<I> {
         false
     }
 
+    /// Like [`Self::is_enrolled`], but also treats LDAP-origin users whose enrollment is
+    /// still pending as eligible for synchronization.
+    ///
+    /// LDAP can create users that are enrollment-pending by default
+    /// (https://github.com/DefGuard/defguard/issues/2967). They already exist in the
+    /// directory, so they must stay in scope for synchronization even before they finish
+    /// enrolling, otherwise their group membership and account status drift out of sync.
+    #[must_use]
+    pub fn is_enrolled_or_ldap_pending(&self) -> bool {
+        self.is_enrolled() || (self.from_ldap && self.enrollment_pending)
+    }
+
     #[must_use]
     pub fn ldap_rdn_value(&self) -> &str {
         if let Some(ldap_rdn) = &self.ldap_rdn {
@@ -865,6 +877,23 @@ impl User<Id> {
             ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE email = ANY($1)",
             &emails
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn find_by_ids<'e, E>(executor: E, ids: &[i64]) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
+            ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
+            FROM \"user\" WHERE id = ANY($1)",
+            ids
         )
         .fetch_all(executor)
         .await

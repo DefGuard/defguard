@@ -173,14 +173,14 @@ export const getUserApiTokensQueryOptions = (username: string, admin: boolean) =
   });
 
 export const getUsersQueryOptions = queryOptions({
-  queryFn: api.user.getUsers,
+  queryFn: api.user.getAllUsers,
   queryKey: ['user'],
   refetchOnReconnect: true,
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({
-  queryFn: api.user.getUsers,
-  queryKey: ['user-overview'],
+  queryFn: api.user.getAllUsers,
+  queryKey: ['user', 'all'],
   refetchOnReconnect: true,
 });
 

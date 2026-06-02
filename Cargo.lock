@@ -1456,6 +1456,7 @@ dependencies = [
  "ipnetwork",
  "jsonwebkey",
  "jsonwebtoken",
+ "lber",
  "ldap3",
  "matches",
  "md4",

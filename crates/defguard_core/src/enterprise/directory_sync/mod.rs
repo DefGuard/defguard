@@ -304,7 +304,10 @@ impl DirectorySyncClient {
                         "JumpCloud directory has all the configuration needed, proceeding with \
                         creating the sync client"
                     );
-                    let client = jumpcloud::JumpCloudDirectorySync::new(key.clone());
+                    let client = jumpcloud::JumpCloudDirectorySync::new(
+                        key.clone(),
+                        jumpcloud::api_host_for(&provider_settings.base_url),
+                    );
                     debug!("JumpCloud directory sync client created");
                     Ok(Self::JumpCloud(client))
                 } else {
@@ -593,6 +596,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     Box::pin(ldap_update_users_state(
         affected_users.iter_mut().collect::<Vec<_>>(),
         pool,
+        gateway_tx,
     ))
     .await;
     info!("Syncing all users' groups done.");
@@ -887,11 +891,13 @@ async fn sync_all_users_state(
     Box::pin(ldap_update_users_state(
         modified_users.iter_mut().collect::<Vec<_>>(),
         pool,
+        gateway_tx,
     ))
     .await;
     Box::pin(ldap_update_users_state(
         created_users.iter_mut().collect::<Vec<_>>(),
         pool,
+        gateway_tx,
     ))
     .await;
 

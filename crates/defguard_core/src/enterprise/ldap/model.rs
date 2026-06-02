@@ -4,7 +4,7 @@ use defguard_common::db::{
     Id,
     models::{Settings, User},
 };
-use ldap3::{Mod, SearchEntry};
+use ldap3::{Mod, ResultEntry, SearchEntry};
 use sqlx::PgExecutor;
 
 use super::{
@@ -12,6 +12,35 @@ use super::{
     error::{LdapError, sanitize_ldap_string},
 };
 use crate::{handlers::user::check_username, hashset};
+
+// AD userAccountControl: https://learn.microsoft.com/windows/win32/adschema/a-useraccountcontrol
+pub(crate) const UAC_ACCOUNT_DISABLE: u32 = 0x0002;
+pub(crate) const UAC_NORMAL_ACCOUNT: u32 = 0x0200;
+
+pub(crate) const LDAP_USER_ACCOUNT_CONTROL_ATTR: &str = "userAccountControl";
+
+#[must_use]
+pub(crate) fn uac_is_active(uac: u32) -> bool {
+    uac & UAC_ACCOUNT_DISABLE == 0
+}
+
+#[must_use]
+pub(crate) fn uac_with_active(current: u32, active: bool) -> u32 {
+    if active {
+        current & !UAC_ACCOUNT_DISABLE
+    } else {
+        current | UAC_ACCOUNT_DISABLE
+    }
+}
+
+#[must_use]
+pub(crate) fn uac_from_entry(entry: &SearchEntry) -> Option<u32> {
+    entry
+        .attrs
+        .get(LDAP_USER_ACCOUNT_CONTROL_ATTR)
+        .and_then(|values| values.first())
+        .and_then(|value| value.parse::<u32>().ok())
+}
 
 pub(crate) enum UserObjectClass {
     SambaSamAccount,
@@ -35,6 +64,7 @@ pub(crate) fn user_from_searchentry(
     entry: &SearchEntry,
     username: &str,
     password: Option<&str>,
+    config: &LDAPConfig,
 ) -> Result<User, LdapError> {
     let mut user = User::new(
         username.into(),
@@ -45,6 +75,12 @@ pub(crate) fn user_from_searchentry(
         get_value(entry, "mobile"),
     );
     user.from_ldap = true;
+    // Missing/unparseable userAccountControl falls through with the User::new default (active).
+    if config.ldap_uses_ad && config.ldap_sync_account_status {
+        if let Some(uac) = uac_from_entry(entry) {
+            user.is_active = uac_is_active(uac);
+        }
+    }
     if let Some(rdn) = extract_rdn_value(&entry.dn) {
         user.ldap_rdn = Some(rdn);
     } else {
@@ -248,8 +284,9 @@ pub(crate) fn maybe_update_rdn<I>(user: &mut User<I>) {
 
 /// User is syncable with LDAP if:
 /// - he is in a group that is allowed to be synced or no such groups are configured
-/// - he is active (not disabled)
-/// - he is enrolled
+/// - he is active (not disabled), unless AD account status sync is enabled, in which case
+///   disabled users stay in scope so their status can be kept in sync instead of deleting them
+/// - he is enrolled, or is an LDAP-origin user whose enrollment is still pending
 pub(crate) async fn ldap_sync_allowed_for_user<'e, E>(
     user: &User<Id>,
     executor: E,
@@ -257,12 +294,14 @@ pub(crate) async fn ldap_sync_allowed_for_user<'e, E>(
 where
     E: PgExecutor<'e>,
 {
-    let sync_groups = Settings::get_current_settings().ldap_sync_groups;
+    let settings = Settings::get_current_settings();
+    let sync_account_status = settings.ldap_uses_ad && settings.ldap_sync_account_status;
+    let sync_groups = settings.ldap_sync_groups;
     let my_groups = user.member_of(executor).await?;
     Ok(
         (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
-            && user.is_active
-            && user.is_enrolled(),
+            && (user.is_active || sync_account_status)
+            && user.is_enrolled_or_ldap_pending(),
     )
 }
 
@@ -308,6 +347,16 @@ pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
     }
 }
 
+/// Returns true only for a SearchResultEntry (LDAP protocol op id 4).
+///
+/// Referrals (id 19), intermediate responses (id 25), and any other result type
+/// are rejected. This mirrors the id that `SearchEntry::construct` requires, so a
+/// `true` result guarantees `construct` will not panic on the entry.
+#[must_use]
+pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
+    entry.0.id == 4
+}
+
 /// Extract the remaining part of the distinguished name after the first comma, for example:
 /// `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
 #[must_use]
@@ -324,7 +373,131 @@ pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use lber::{
+        common::TagClass,
+        structure::{PL, StructureTag},
+    };
+    use ldap3::{ResultEntry, SearchEntry};
+
     use super::*;
+
+    const UAC_DONT_EXPIRE_PASSWORD: u32 = 0x10000;
+
+    fn result_entry(id: u64) -> ResultEntry {
+        ResultEntry::new(StructureTag {
+            class: TagClass::Application,
+            id,
+            payload: PL::C(vec![]),
+        })
+    }
+
+    #[test]
+    fn is_search_entry_accepts_only_real_entries() {
+        // id 4 is a SearchResultEntry, the only type SearchEntry::construct accepts.
+        assert!(is_search_entry(&result_entry(4)));
+        // id 19 is a referral, id 25 an intermediate response.
+        assert!(!is_search_entry(&result_entry(19)));
+        assert!(!is_search_entry(&result_entry(25)));
+        // Any other response
+        assert!(!is_search_entry(&result_entry(7)));
+        assert!(!is_search_entry(&result_entry(12)));
+        assert!(!is_search_entry(&result_entry(45)));
+    }
+
+    #[test]
+    fn test_uac_is_active() {
+        // Regular enabled account.
+        assert!(uac_is_active(UAC_NORMAL_ACCOUNT));
+        // Enabled account with extra flags set.
+        assert!(uac_is_active(UAC_NORMAL_ACCOUNT | UAC_DONT_EXPIRE_PASSWORD));
+        // Disabled account.
+        assert!(!uac_is_active(UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE));
+        assert!(!uac_is_active(
+            UAC_NORMAL_ACCOUNT | UAC_DONT_EXPIRE_PASSWORD | UAC_ACCOUNT_DISABLE
+        ));
+    }
+
+    #[test]
+    fn test_uac_with_active_preserves_other_flags() {
+        let enabled = UAC_NORMAL_ACCOUNT | UAC_DONT_EXPIRE_PASSWORD;
+        // Disabling only sets the ACCOUNTDISABLE bit, other flags remain.
+        let disabled = uac_with_active(enabled, false);
+        assert_eq!(disabled, enabled | UAC_ACCOUNT_DISABLE);
+        assert!(disabled & UAC_DONT_EXPIRE_PASSWORD != 0);
+        // Re-enabling clears only the ACCOUNTDISABLE bit, other flags remain.
+        let reenabled = uac_with_active(disabled, true);
+        assert_eq!(reenabled, enabled);
+        assert!(reenabled & UAC_DONT_EXPIRE_PASSWORD != 0);
+        // Idempotent when already in the desired state.
+        assert_eq!(uac_with_active(enabled, true), enabled);
+        assert_eq!(uac_with_active(disabled, false), disabled);
+    }
+
+    fn ad_entry_with_uac(uac: Option<&str>) -> SearchEntry {
+        let mut attrs = HashMap::new();
+        attrs.insert("sn".to_string(), vec!["lastname".to_string()]);
+        attrs.insert("givenName".to_string(), vec!["firstname".to_string()]);
+        attrs.insert("mail".to_string(), vec!["user@example.com".to_string()]);
+        if let Some(uac) = uac {
+            attrs.insert(
+                LDAP_USER_ACCOUNT_CONTROL_ATTR.to_string(),
+                vec![uac.to_string()],
+            );
+        }
+        SearchEntry {
+            dn: "cn=user,dc=example,dc=com".to_string(),
+            attrs,
+            bin_attrs: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn test_user_from_searchentry_reads_ad_disabled_status() {
+        let ad_config = LDAPConfig {
+            ldap_uses_ad: true,
+            ldap_sync_account_status: true,
+            ..LDAPConfig::default()
+        };
+
+        // Disabled in AD -> inactive in Defguard.
+        let entry = ad_entry_with_uac(Some("514")); // 512 | ACCOUNTDISABLE
+        let user = user_from_searchentry(&entry, "user", None, &ad_config).unwrap();
+        assert!(!user.is_active);
+
+        // Enabled in AD -> active in Defguard.
+        let entry = ad_entry_with_uac(Some("512"));
+        let user = user_from_searchentry(&entry, "user", None, &ad_config).unwrap();
+        assert!(user.is_active);
+
+        // Missing userAccountControl -> defaults to active.
+        let entry = ad_entry_with_uac(None);
+        let user = user_from_searchentry(&entry, "user", None, &ad_config).unwrap();
+        assert!(user.is_active);
+    }
+
+    #[test]
+    fn test_user_from_searchentry_ignores_uac_when_disabled() {
+        // Account status sync off: userAccountControl is ignored, user stays active.
+        let entry = ad_entry_with_uac(Some("514"));
+        let ad_no_status = LDAPConfig {
+            ldap_uses_ad: true,
+            ldap_sync_account_status: false,
+            ..LDAPConfig::default()
+        };
+        let user = user_from_searchentry(&entry, "user", None, &ad_no_status).unwrap();
+        assert!(user.is_active);
+
+        // Non-AD LDAP with the flag on: still ignored (AD only).
+        let non_ad = LDAPConfig {
+            ldap_uses_ad: false,
+            ldap_sync_account_status: true,
+            ..LDAPConfig::default()
+        };
+        let user = user_from_searchentry(&entry, "user", None, &non_ad).unwrap();
+        assert!(user.is_active);
+    }
 
     #[test]
     fn test_in_attrs() {

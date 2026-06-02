@@ -8,6 +8,7 @@ use defguard_common::{
             Device, DeviceType, MFAMethod, User, WebAuthn, WireguardNetwork,
             device::{AddDevice, WireguardNetworkDevice},
             gateway::Gateway,
+            group::Group,
             oauth2client::OAuth2Client,
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
@@ -260,6 +261,386 @@ async fn test_list_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Create an "engineering" group and assign hpotter to it.
+    // admin is already in the "admin" group via init_admin_user.
+    let engineering = Group::new("engineering").save(&pool).await.unwrap();
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    sqlx::query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+        .bind(engineering.id)
+        .bind(hpotter.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // Filter by admin group - should only return admin
+    let response = client.get("/api/v1/user?groups=admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // Filter by engineering group - should only return hpotter
+    let response = client.get("/api/v1/user?groups=engineering").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // Multiple groups (OR semantics) - should return both users
+    let response = client
+        .get("/api/v1/user?groups=admin&groups=engineering")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let mut usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    usernames.sort();
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 2);
+
+    // Nonexistent group - should return empty results
+    let response = client.get("/api/v1/user?groups=nonexistent").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 0);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
+
+    // Unauthorized access
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/user?groups=admin").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // no_group=true should return only hpotter (the only ungrouped user)
+    let response = client.get("/api/v1/user?no_group=true").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // no_group=false with groups filter - should work normally
+    let response = client
+        .get("/api/v1/user?no_group=false&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+
+    // Combined: no_group=true with groups=admin - returns union (ungrouped + in group)
+    let response = client
+        .get("/api/v1/user?no_group=true&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let mut usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    usernames.sort();
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 2);
+
+    // Unauthorized access
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/user?no_group=true").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_no_group_multi_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Create a "qa" group and a new user rweasley assigned to it.
+    // Existing state: admin is in "admin" group, hpotter is ungrouped.
+    let qa = Group::new("qa").save(&pool).await.unwrap();
+    let rweasley = User::new(
+        "rweasley",
+        Some("pass123"),
+        "Weasley",
+        "Ron",
+        "r.weasley@hogwart.edu.uk",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+        .bind(qa.id)
+        .bind(rweasley.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Admin login
+    client.login_user("admin", "pass123").await;
+
+    // Combined no_group + multiple groups: should return users in admin, users in qa,
+    // and users with no group (hpotter).
+    let response = client
+        .get("/api/v1/user?no_group=true&groups=admin&groups=qa")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let mut usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    usernames.sort();
+    assert_eq!(usernames, vec!["admin", "hpotter", "rweasley"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 3);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // Search by username
+    let response = client.get("/api/v1/user?search=admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+
+    // Search by first name
+    let response = client.get("/api/v1/user?search=Harry").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Search by last name
+    let response = client.get("/api/v1/user?search=Potter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Search by email
+    let response = client.get("/api/v1/user?search=h.potter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter"]);
+
+    // Search by non-existent term
+    let response = client.get("/api/v1/user?search=nonexistent").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 0);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // Sort by username ascending
+    let response = client
+        .get("/api/v1/user?sort_by=username&sort_order=asc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+
+    // Sort by username descending
+    let response = client
+        .get("/api/v1/user?sort_by=username&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
+    // Sort by name ascending (first_name, last_name)
+    let response = client
+        .get("/api/v1/user?sort_by=name&sort_order=asc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // DefGuard < Harry alphabetically
+    assert_eq!(usernames, vec!["admin", "hpotter"]);
+
+    // Sort by name descending (first_name, last_name)
+    let response = client
+        .get("/api/v1/user?sort_by=name&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // Harry > DefGuard alphabetically
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
+    // Sort by email descending
+    let response = client
+        .get("/api/v1/user?sort_by=email&sort_order=desc")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    // h.potter@hogwart.edu.uk > admin@defguard alphabetically
+    assert_eq!(usernames, vec!["hpotter", "admin"]);
+
+    // Default sort (no params) should still work
+    let response = client.get("/api/v1/user").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 2);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_list_users_search_with_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    // Search "admin" within admin group only - should return admin
+    let response = client
+        .get("/api/v1/user?search=admin&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    let usernames: Vec<&str> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| u["username"].as_str().unwrap())
+        .collect();
+    assert_eq!(usernames, vec!["admin"]);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 1);
+
+    // Search "Potter" within admin group only - admin is not Potter, should be empty
+    let response = client
+        .get("/api/v1/user?search=Potter&groups=admin")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["data"].as_array().unwrap().len(), 0);
+    assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
 
     client.assert_event_queue_is_empty();
 }
@@ -1323,6 +1704,642 @@ async fn test_modify_user_admin_updates_self(_: PgPoolOptions, options: PgConnec
         before: old_user,
         after: updated,
     }]);
+}
+
+#[sqlx::test]
+async fn test_bulk_disable_users(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: Some("1234".into()),
+            password: Some("Password1234543$!".into()),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let added_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let added_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(added_dumbledore.is_active);
+    assert!(added_mcgonagall.is_active);
+
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let disabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(!disabled_dumbledore.is_active);
+    assert!(!disabled_mcgonagall.is_active);
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: added_dumbledore.clone(),
+        },
+        ApiEventType::UserAdded {
+            user: added_mcgonagall.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_dumbledore,
+            after: disabled_dumbledore,
+        },
+        ApiEventType::UserModified {
+            before: added_mcgonagall,
+            after: disabled_mcgonagall,
+        },
+    ]);
+}
+
+#[sqlx::test]
+async fn test_bulk_enable_users(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: Some("1234".into()),
+            password: Some("Password1234543$!".into()),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let added_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let added_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+
+    // disable both users first so there is something to re-enable
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let disabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(!disabled_dumbledore.is_active);
+    assert!(!disabled_mcgonagall.is_active);
+
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let enabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let enabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(enabled_dumbledore.is_active);
+    assert!(enabled_mcgonagall.is_active);
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: added_dumbledore.clone(),
+        },
+        ApiEventType::UserAdded {
+            user: added_mcgonagall.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_dumbledore,
+            after: disabled_dumbledore.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_mcgonagall,
+            after: disabled_mcgonagall.clone(),
+        },
+        ApiEventType::UserModified {
+            before: disabled_dumbledore,
+            after: enabled_dumbledore,
+        },
+        ApiEventType::UserModified {
+            before: disabled_mcgonagall,
+            after: enabled_mcgonagall,
+        },
+    ]);
+}
+
+#[sqlx::test]
+async fn test_bulk_enable_unknown_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_disable_rejects_self(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let admin_user = get_db_user(&pool, "admin").await;
+    let hpotter_user = get_db_user(&pool, "hpotter").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [admin_user.id, hpotter_user.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let hpotter_after = get_db_user(&pool, "hpotter").await;
+    assert!(hpotter_after.is_active);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_disable_unknown_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_delete_users(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: Some("1234".into()),
+            password: Some("Password1234543$!".into()),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let added_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let added_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-delete")
+        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.get("/api/v1/user/adumbledore").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let response = client.get("/api/v1/user/mmcgonagall").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: added_dumbledore.clone(),
+        },
+        ApiEventType::UserAdded {
+            user: added_mcgonagall.clone(),
+        },
+        ApiEventType::UserRemoved {
+            user: added_dumbledore,
+        },
+        ApiEventType::UserRemoved {
+            user: added_mcgonagall,
+        },
+    ]);
+}
+
+#[sqlx::test]
+async fn test_bulk_delete_rejects_self(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let admin_user = get_db_user(&pool, "admin").await;
+    let hpotter_user = get_db_user(&pool, "hpotter").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-delete")
+        .json(&serde_json::json!({ "users": [admin_user.id, hpotter_user.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let response = client.get("/api/v1/user/hpotter").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_delete_unknown_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-delete")
+        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_start_enrollment(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: None,
+            password: None,
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+    let mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(!dumbledore.enrollment_pending);
+    assert!(!mcgonagall.enrollment_pending);
+
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&serde_json::json!({
+            "users": [dumbledore.id, mcgonagall.id],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["started"], 2);
+    assert_eq!(body["skipped"], 0);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    let mcgonagall_after = get_db_user(&pool, "mmcgonagall").await;
+    assert!(dumbledore_after.enrollment_pending);
+    assert!(mcgonagall_after.enrollment_pending);
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: dumbledore.clone(),
+        },
+        ApiEventType::UserAdded {
+            user: mcgonagall.clone(),
+        },
+        ApiEventType::EnrollmentTokenAdded {
+            user: dumbledore_after,
+        },
+        ApiEventType::EnrollmentTokenAdded {
+            user: mcgonagall_after,
+        },
+    ]);
+}
+
+#[sqlx::test]
+async fn test_bulk_start_enrollment_re_enrolls_active_users(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    // Already-enrolled users (those with a password) must be re-enrolled: enrollment_pending
+    // should be set to true and the response must not count them as skipped.
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+    assert!(
+        dumbledore.is_enrolled(),
+        "user should be enrolled after creation with password"
+    );
+    assert!(!dumbledore.enrollment_pending);
+
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&serde_json::json!({
+            "users": [dumbledore.id],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["started"], 1);
+    assert_eq!(body["skipped"], 0);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    assert!(
+        dumbledore_after.enrollment_pending,
+        "enrollment_pending should be true after re-enrollment"
+    );
+}
+
+#[sqlx::test]
+async fn test_bulk_start_enrollment_skips_disabled_users(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: None,
+            password: None,
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+    let mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+
+    // Disable mcgonagall via bulk-disable
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&serde_json::json!({
+            "users": [dumbledore.id, mcgonagall.id],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["started"], 1);
+    assert_eq!(body["skipped"], 1);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    let mcgonagall_after = get_db_user(&pool, "mmcgonagall").await;
+    assert!(dumbledore_after.enrollment_pending);
+    assert!(
+        !mcgonagall_after.enrollment_pending,
+        "disabled user must not have enrollment started"
+    );
+}
+
+#[sqlx::test]
+async fn test_bulk_start_enrollment_rejects_self(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let admin = get_db_user(&pool, "admin").await;
+    let hpotter = get_db_user(&pool, "hpotter").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&serde_json::json!({
+            "users": [admin.id, hpotter.id],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let hpotter_after = get_db_user(&pool, "hpotter").await;
+    assert!(
+        !hpotter_after.enrollment_pending,
+        "no enrollment must be started when request is rejected"
+    );
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_start_enrollment_unknown_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&serde_json::json!({
+            "users": [9_999_999],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_disable_deduplicates_ids(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // Send the same ID twice; must not trigger the "unknown user" 400.
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    assert!(!dumbledore_after.is_active);
+}
+
+#[sqlx::test]
+async fn test_bulk_enable_deduplicates_ids(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // disable the user so re-enabling has an effect
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Send the same ID twice; must not trigger the "unknown user" 400.
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    assert!(dumbledore_after.is_active);
+}
+
+#[sqlx::test]
+async fn test_bulk_delete_deduplicates_ids(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // Send the same ID twice; must not trigger the "unknown user" 400.
+    let response = client
+        .post("/api/v1/user/bulk-delete")
+        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.get("/api/v1/user/adumbledore").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn test_bulk_start_enrollment_deduplicates_ids(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: None,
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // Send the same ID twice; must not trigger the "unknown user" 400 and must
+    // count as a single started enrollment.
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&serde_json::json!({
+            "users": [dumbledore.id, dumbledore.id],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["started"], 1);
+    assert_eq!(body["skipped"], 0);
+
+    let dumbledore_after = get_db_user(&pool, "adumbledore").await;
+    assert!(dumbledore_after.enrollment_pending);
 }
 
 /// Admin disabling a user emits both UserModified and UserDisabled events.

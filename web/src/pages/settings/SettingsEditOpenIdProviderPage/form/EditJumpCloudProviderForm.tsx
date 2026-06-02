@@ -4,6 +4,7 @@ import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import { EditPageControls } from '../../../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../../../shared/components/EditPageFormSection/EditPageFormSection';
+import { detectJumpcloudRegion, jumpcloudBaseUrls } from '../../../../shared/constants';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
@@ -12,6 +13,7 @@ import { formChangeLogic } from '../../../../shared/formLogic';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
+  jumpcloudRegionOptions,
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
@@ -23,6 +25,7 @@ import type { EditProviderFormProps } from '../types';
 const basicSchema = z
   .object({
     directory_sync_enabled: z.boolean(),
+    jumpcloud_region: z.enum(['us', 'eu', 'in']),
   })
   .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
 
@@ -66,6 +69,7 @@ export const EditJumpCloudProviderForm = ({
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
       jumpcloud_api_key: provider.jumpcloud_api_key ?? '',
+      jumpcloud_region: detectJumpcloudRegion(provider.base_url),
     };
   }, [provider]);
 
@@ -77,7 +81,10 @@ export const EditJumpCloudProviderForm = ({
       onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      await onSubmit({
+        ...value,
+        base_url: jumpcloudBaseUrls[value.jumpcloud_region],
+      });
     },
   });
 
@@ -128,6 +135,16 @@ export const EditJumpCloudProviderForm = ({
                 options={providerUsernameHandlingOptions}
                 label={m.settings_openid_provider_label_username_handling()}
                 helper={m.settings_openid_provider_helper_username_handling()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="jumpcloud_region">
+            {(field) => (
+              <field.FormSelect
+                options={jumpcloudRegionOptions}
+                label={m.settings_openid_provider_label_jumpcloud_region()}
+                helper={m.settings_openid_provider_helper_jumpcloud_region()}
               />
             )}
           </form.AppField>
