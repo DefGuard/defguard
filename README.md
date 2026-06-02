@@ -14,8 +14,8 @@ Key principles behind Defguard:
 
 - 📖 Open-source core (AGPL), open-code Enterprise components
 - 🏠 Fully self-hosted — no external dependencies or data leaving your infrastructure
-- 🔒 Security-first: Zero-Trust VPN with connection-level MFA, architecture designed to minimize attack surface
-- 🔍 Transparency: published SBOMs, penetration test reports, public security advisories
+- 🔒 Security-first: [Zero-Trust VPN](https://docs.defguard.net/features/wireguard) with connection-level MFA, [architecture](https://docs.defguard.net/in-depth/architecture) designed to minimize attack surface
+- 🔍 Transparency: [published SBOMs](https://defguard.net/sbom/), [penetration test reports](https://defguard.net/pentesting/), [architecture decision records](https://docs.defguard.net/in-depth/architecture-decision-records)
 
 For detailed security information see the [secure-by-design documentation](https://docs.defguard.net/in-depth/secure-by-design).
 
