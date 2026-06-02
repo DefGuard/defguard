@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
 import { type Dispatch, type SetStateAction, useState } from 'react';
@@ -14,6 +14,7 @@ import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkb
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
+import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -26,11 +27,12 @@ export const AddLocationPostureCheckStep = () => {
   const [addPostures, setAddPostures] = useState(false);
   const [showGateway, setShowGateway] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const { data: postures } = useQuery({
+  const { data: postures } = useSuspenseQuery({
     queryFn: api.devicePosture.getDevicePostures,
     queryKey: ['device-posture'],
   });
   const navigate = useNavigate();
+  const hasPostures = postures.length > 0;
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.location.addLocation,
@@ -56,7 +58,6 @@ export const AddLocationPostureCheckStep = () => {
   });
 
   const handleSubmit = () => {
-    // TODO: set postures on the store
     const storageState = cloneDeep(
       omit(useAddLocationStore.getState(), [
         'start',
@@ -71,14 +72,21 @@ export const AddLocationPostureCheckStep = () => {
 
   return (
     <WizardCard>
+      {!hasPostures && (
+        <InfoBanner
+          icon="warning-outlined"
+          variant="warning"
+          text={m.add_location_postures_create_postures_warning()}
+        />
+      )}
+      <SizedBox height={ThemeSpacing.Xl2} />
       <Radio
         active={!addPostures}
         onClick={() => {
           setAddPostures(false);
         }}
         text={m.add_location_postures_dont_assign()}
-        // TODO
-        disabled={false}
+        disabled={!hasPostures}
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
@@ -87,8 +95,7 @@ export const AddLocationPostureCheckStep = () => {
           setAddPostures(true);
         }}
         text={m.add_location_postures_assign()}
-        // TODO
-        disabled={false}
+        disabled={!hasPostures}
       />
       <Fold open={addPostures}>
         <SizedBox height={ThemeSpacing.Xl2} />
