@@ -1,220 +1,87 @@
- <p align="center">
-    <img src="docs/header.png" alt="defguard">
- </p>
-
-<div align="center">
- <p align="center">
-  Defguard is an enterprise-grade open-source VPN solution built with the highest security standards in mind. It provides the world’s only multi-factor authentication (MFA) for WireGuard VPN connections, using either its built-in SSO (with TOTP, biometrics, etc.) or external SSO providers such as Google, Microsoft, Active Directory/LDAP, Okta, JumpCloud or any other OpenID Connect Provider.
- </p>
-
-[Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support)
-</div>
-
-### Open, transparent, verifiable and inspectable 
-
-- Our security approach: https://defguard.net/security/
-- Our public penetration tests reports: https://defguard.net/pentesting/
-- Daily SBOM CVE scan: https://defguard.net/sbom/ 
-- Our detailed roadmap: https://github.com/orgs/DefGuard/projects/5
-- Our Architecture Decision Records: https://app.gitbook.com/o/Z3mGSAbEj9iLdZ7cNFlL/s/kHPDOBrb5X1TB8O3GsjW/~/changes/86/in-depth/architecture-decision-records
-
-### Defguard provides Comprehensive Access Control (a complete security platform):
-
-- **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/in-depth/architecture/architecture)** - not 2FA to "access application" like most solutions
-    - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/features/remote-user-enrollment/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
-    - Control users [ability to manage devices and VPN options](https://docs.defguard.net/features/wireguard/behavior-customization)
-- [ACLs/Firewall Management](https://docs.defguard.net/features/access-control-list) for Linux and FreeBSD/OPNSense
-- [Integrated SSO based on OpenID Connect](https://docs.defguard.net/features/openid-connect): 
-    - significant cost saving, simplifying deployment and maintenance
-    - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
-- Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/features/external-openid-providers)
-- [Two way Active Directory/LDAP synchronization](https://docs.defguard.net/features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization)
-- Only solution with [secure remote user Enrollment & Onboarding](https://docs.defguard.net/using-defguard-for-end-users/enrollment)
-- Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/features/yubikey-provisioning)
-- Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
-- Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
-- Built on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
-- Built with Rust for speed and security
-
-See:
-- [full list of features](https://github.com/defguard/defguard#features)
-- [enterprise only features](https://docs.defguard.net/enterprise/enterprise-features)
-
-### Defguard makes it easy to manage complex VPN networks in a secure way
-
-<img width="1564" alt="locations-connections" src="https://github.com/user-attachments/assets/f886750b-1d4e-467e-917d-bc19a86e275c" />
-
-#### Video introduction
-
-Bear in in mind we are no youtubers - just engineers - here is a video introduction to defguard:
-
-<div align="center">
- <p align="center">
-  
-[![Introduction to defguard](https://img.youtube.com/vi/4PF7edMGBwk/hqdefault.jpg)](https://www.youtube.com/watch?v=4PF7edMGBwk)
-
+<p align="center">
+  <img src="docs/cover-image_smaller-logo.png" alt="defguard">
 </p>
-</div>
 
-### Control plane management (this video is few versions behind... - a lot has changed!)
+Defguard is a self-hosted secure remote access platform that combines WireGuard VPN, identity and access management, multi-factor authentication, and network access control in a single solution.
 
-![](https://defguard.net/images/product/core/hero-image.png)
+Built with a security-first architecture, Defguard helps organizations securely manage access to infrastructure, applications, and private networks while maintaining full control over their environment.
 
-![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
+## Why Defguard?
 
-Better quality video can [be viewed here](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
+Modern organizations often rely on multiple disconnected tools to manage identity, VPN access, authentication, and network permissions. Defguard brings these capabilities together into a unified platform designed for security, transparency, and operational simplicity.
 
-### Desktop Client with 2FA / MFA (Multi-Factor Authentication)
+Key principles behind Defguard:
 
-#### Light
+- 📖 Open-source core (AGPL), open-code Enterprise components
+- 🏠 Fully self-hosted — no external dependencies or data leaving your infrastructure
+- 🔒 Security-first: [Zero-Trust VPN](https://docs.defguard.net/features/wireguard) with connection-level MFA, [architecture](https://docs.defguard.net/in-depth/architecture) designed to minimize attack surface
+- 🔍 Transparency: [published SBOMs](https://defguard.net/sbom/), [penetration test reports](https://defguard.net/pentesting/), [architecture decision records](https://docs.defguard.net/in-depth/architecture-decision-records)
 
-![defguard desktop client](https://defguard.net/images/product/client/main-screen.png)
+For detailed security information see the [secure-by-design documentation](https://docs.defguard.net/in-depth/secure-by-design).
 
-#### Dark
+## Core Capabilities
 
-![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
+- 🌐 **WireGuard VPN** — multiple locations with per-location access control, MFA per connection, self-service device setup, kernel and userspace support
+- 👥 **Identity & Access Management** — internal OIDC provider for SSO, external OIDC (Google, Microsoft, custom), LDAP/AD sync, remote enrollment, user self-service
+- 🔑 **Multi-Factor Authentication** — TOTP, WebAuthn/FIDO2, email tokens, biometric via mobile app
+- 🛡️ **Firewall** — allow/deny rules per VPN location by user or group, applied in real time
+- 📋 **Activity Log** — audit log with filtering and search; real-time SIEM streaming (Enterprise)
+- 🔗 **Integrations** — webhooks and REST API
 
-[Desktop client](https://github.com/DefGuard/client):
+## Clients
 
-- **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
-- [automatic and real-time synchronization](https://docs.defguard.net/features/remote-user-enrollment/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
-- Control users [ability to manage devices and VPN options](https://docs.defguard.net/features/wireguard/behavior-customization)
-- Defguard instances as well as **any WireGuard tunnel** - just import your tunnels - one client for all WireGuard connections
-- Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
-- Onboarding - displaying custom onboarding messages, with templates, links ...
-- Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
-- Live & real-time network charts
-- live VPN logs
-- light/dark theme
+- 🖥️ **Desktop** (Linux, macOS, Windows) — VPN management with MFA, multi-instance and multi-location support, and real-time connection statistics. [Download](https://defguard.net/download/)
+- 📱 **Mobile** (Android, iOS) — VPN management with MFA, QR code onboarding. [Android](https://play.google.com/store/apps/details?id=net.defguard.mobile) · [iOS](https://apps.apple.com/us/app/defguard-vpn-client/id6748068630)
 
-## Quick start
+## Architecture
 
-The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://docs.defguard.net/getting-started/one-line-install).
-Just run the command below in your shell and follow the prompts:
+Defguard follows a component-based architecture designed to reduce attack surface and support secure deployments.
+
+<p align="center">
+  <img src="docs/new_defguard-architecture.png" alt="architecture">
+</p>
+
+Strict division of responsibilities and network segmentation:
+- **Core** — central management plane: identity, authentication, authorization, and policy
+- **Edge** — public-facing entry point, exposes selected Defguard services [GitHub repo](https://github.com/DefGuard/proxy)
+- **Gateway** — enforces network access policies for protected resources [GitHub repo](https://github.com/DefGuard/gateway)
+
+For details refer to the [architecture documentation](https://docs.defguard.net/in-depth/architecture).
+
+## Quick Start
+
+The fastest way to evaluate Defguard is with the [one-line installer](https://docs.defguard.net/getting-started/one-line-install):
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/DefGuard/deployment/main/docker-compose/setup.sh -O && bash setup.sh
+bash <(curl -sSL https://raw.githubusercontent.com/defguard/deployment/main/docker-compose2.0/setup.sh)
 ```
 
-Here is a step-by-step video about this process:
-
-<div align="center">
- <p align="center">
-  
-[![Quickly deploy defguard](https://img.youtube.com/vi/MqlE6ZTn0bg/hqdefault.jpg)](https://www.youtube.com/watch?v=MqlE6ZTn0bg)
-
-</p>
-</div>
-
-To learn more about the script and available options please see the [documentation](https://docs.defguard.net/getting-started/one-line-install).
-
-### Setup a VPN server in under 5 minutes !?
-
-Just follow [this tutorial](http://bit.ly/defguard-setup)
-
-## Manual deployment examples
-
-- [Standalone system package based install](https://docs.defguard.net/deployment-strategies/standalone-package-based-installation)
-- Using [Docker Compose](https://docs.defguard.net/deployment-strategies/docker-compose)
-- Using [Kubernetes](https://docs.defguard.net/deployment-strategies/kubernetes)
-
-## Roadmap & Development backlog
-
-[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5/views/1)
-
-### ⛑️ Want to help? ⛑️
-
-Here is a [dedicated view for **good first bugs**](https://github.com/orgs/DefGuard/projects/5/views/5)
-
-## Features
-
-* Remote Access: [WireGuard® VPN](https://www.wireguard.com/) server with:
-  - [Multi-Factor Authentication](https://docs.defguard.net/features/wireguard/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
-  - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
-  - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
-  - **import your current WireGuard® server configuration (with a wizard!)**
-  - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
-  - automatic IP allocation
-  - [automatic and real-time synchronization](https://docs.defguard.net/features/remote-user-enrollment/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
-  - control users [ability to manage devices and VPN options](https://docs.defguard.net/features/wireguard/behavior-customization)
-  - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
-  - dashboard and statistics overview of connected users/devices for admins
-  - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
-* Identity & Account Management:
-  - SSO based on OpenID Connect](https://openid.net/developers/how-connect-works/)
-  - External SSO: [external OpenID provider support](https://docs.defguard.net/features/external-openid-providers)
-  - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
-   - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
-   - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
-   - Email based TOTP
-  - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
-  - [forward auth](https://docs.defguard.net/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
-  - nice UI to manage users
-  - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, WireGuard®, etc.)
-* Account Lifecycle Management:
-  - Secure remote (over the Internet) [user enrollment](https://docs.defguard.net/features/remote-user-enrollment) - on public web / Desktop Client
-  - User [onboarding after enrollment](https://docs.defguard.net/features/remote-user-enrollment/user-onboarding-after-enrollment)
-* SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://docs.defguard.net/features/ssh-authentication)
-* [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
-* [Email/SMTP support](https://docs.defguard.net/features/notifications/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
-* Easy support with [sending debug/support information](https://docs.defguard.net/support-1/troubleshooting/sending-support-info)
-* Webhooks & REST API
-* Built with [Rust](https://www.rust-lang.org/) for portability, security, and speed
-* [UI Library](https://github.com/defguard/ui) - our beautiful React/TypeScript UI is a collection of React components:
-  - a set of custom and beautiful components for the layout
-  - Responsive Web Design (supporting mobile phones, tablets, etc..)
-  - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
-* **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/pdf/isec-defguard.pdf))
-* End2End tests
+⚠️ Warning! This installation method is intended for testing, demonstrations, and evaluation purposes only. It is not recommended for production deployments. See the [deployment documentation](https://docs.defguard.net/deployment-strategies/overview) for production deployment guidance, architecture recommendations, and high-availability configurations.
 
 ## Documentation
 
-See the [documentation](https://docs.defguard.net/) for more information.
+Comprehensive documentation is available at: https://docs.defguard.net
 
-## Community and Support
+## Video guides
 
-Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
+Visit out YouTube channel to see our [video guides](https://www.youtube.com/playlist?list=PLVR33X0CUHUcoyLshs9S8VbsGgggouCAW).
 
-## License
+## Community
 
-The code in this repository is available under a dual licensing model:
+We want to get as much feedback as possible, so we encourage you to:
 
-1. Open Source License: The code, except for the contents of the "crates/defguard_core/src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
-2. Enterprise License: All code in this repository (including within the "crates/defguard_core/src/enterprise" directory) is licensed under a separate Enterprise License (see file crates/defguard_core/src/enterprise/LICENSE.md).
+- 💬 open a [GitHub discussion](https://github.com/DefGuard/defguard/discussions/new/choose)
+- 🪲 report any missing [features](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&projects=&template=feature_request.md&title=) or [bugs](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=) as issues
 
 ## Contributions
 
 Please review the [Contributing guide](https://docs.defguard.net/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://docs.defguard.net/for-developers/dev-env-setup) handy.
 
-## Verifiability of releases
+## License
+The code in this repository is available under a dual licensing model:
 
-We provide following ways to verify the authenticity and integrity of official releases:
+- Open Source License: The code, except for the contents of the "crates/defguard_core/src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
+- Enterprise License: All code in this repository (including within the "crates/defguard_core/src/enterprise" directory) is licensed under a separate Enterprise License (see file crates/defguard_core/src/enterprise/LICENSE.md).
 
-### Docker Image Verification with Cosign
-
-All official Docker images are signed using [Cosign](https://docs.sigstore.dev/cosign/overview/). To verify a Docker image:
-
-1. [Install](https://github.com/sigstore/cosign?tab=readme-ov-file#installation) cosign CLI
-
-2. Verify the image signature (replace <IMAGE_TAG> with the tag you want to verify):
-   ```bash
-   cosign verify --certificate-identity-regexp="https://github.com/DefGuard/defguard" \
-     --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-     ghcr.io/defguard/defguard:<IMAGE_TAG>
-   ```
-
-### Release Asset Verification
-
-All release assets (binaries, packages, etc.) include SHA256 checksums that are automatically generated and published with each GitHub release:
-
-1. Download the release asset and copy its corresponding checksum from the [releases page](https://github.com/DefGuard/defguard/releases)
-
-2. Verify the checksum:
-   ```bash
-   # Linux/macOS
-   echo known_sha256_checksum_of_the_file path/to/file | sha256sum --check
-   ```
-
-# Legal
-
+## Legal
 WireGuard® is [registered trademarks](https://www.wireguard.com/trademark-policy/) of Jason A. Donenfeld.
