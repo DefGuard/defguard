@@ -398,8 +398,8 @@ impl LDAPConnection {
                 for group_dn in group_dns {
                     let group_dn_escaped = ldap_escape(&group_dn);
                     group_filters.push(format!(
-                        "({}={})",
-                        self.config.ldap_member_attr, group_dn_escaped
+                        "({}={group_dn_escaped})",
+                        self.config.ldap_member_attr
                     ));
                 }
             }
