@@ -1280,7 +1280,8 @@ async fn test_sync_does_not_push_pending_defguard_user_to_ldap(
 fn parent_dn(dn: &str) -> String {
     dn.split_once(',')
         .expect("DN should have a parent component")
-        .1.to_owned()
+        .1
+        .to_owned()
 }
 
 /// Regression for sync silently dropping every user when the group search base is set above the

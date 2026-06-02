@@ -35,6 +35,28 @@ migrate:
 query-data:
     cargo sqlx prepare --workspace -- --all-targets --tests
 
+# run every check the lint CI workflows gate on (Rust + web + e2e)
+check-everything: check-rust check-web check-e2e
+
+# Rust lint checks (mirrors the `lint` job in ci.yml)
+check-rust:
+    cargo +nightly --locked fmt --all -- --check
+    SQLX_OFFLINE=true cargo clippy --all-targets --all-features -- -D warnings
+    cargo deny check
+
+# frontend build, lint and unit tests (mirrors lint-web.yml and test-web.yml)
+check-web:
+    cd web && CI=true pnpm install
+    cd web && pnpm build
+    cd web && pnpm lint
+    cd web && pnpm exec paraglide-js compile --project ./project.inlang --outdir ./src/paraglide
+    cd web && pnpm test
+
+# e2e lint (mirrors lint-e2e.yml)
+check-e2e:
+    cd e2e && CI=true pnpm install
+    cd e2e && pnpm lint
+
 fix-clippy:
     cargo clippy --all-targets --all-features --fix --allow-dirty -- \
         -W clippy::uninlined_format_args \

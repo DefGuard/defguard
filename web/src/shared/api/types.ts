@@ -1542,9 +1542,10 @@ export interface ActivityLogFilters {
   search: string;
 }
 
-export type ActivityLogRequestParams = Partial<ActivityLogFilters> &
-  RequestSortParams<ActivityLogSortKey> &
-  PaginationParams;
+export type ActivityLogRequestParams = Partial<ActivityLogFilters> & {
+  sort_by?: ActivityLogSortKey;
+  sort_order?: SortDirectionValue;
+} & PaginationParams;
 
 export interface UserListParams extends PaginationParams {
   groups?: string[];
