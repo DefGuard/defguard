@@ -59,21 +59,21 @@ test.describe('Test groups', () => {
     await apiCreateUser(page, testUser);
     await apiCreateUser(page, testUser2);
     await page.goto(routes.base + routes.identity.users);
-    const firstUser = await page
-      .locator('.virtual-row')
-      .filter({ hasText: testUser.username });
+    const firstUser = page.locator('.virtual-row').filter({ hasText: testUser.username });
     await firstUser.locator('.checkbox').click();
-    const secondUser = await page
+    const secondUser = page
       .locator('.virtual-row')
       .filter({ hasText: testUser2.username });
     await secondUser.locator('.checkbox').click();
-    await page.getByTestId('bulk-assign').click();
+
+    await page.getByTestId('bulk-actions').click();
+    await page.getByTestId('bulk-assign-to-group').click();
     await page
       .locator('.modal')
       .locator('.checkbox')
       .filter({ hasText: group_name })
       .click();
-    await page.getByTestId('submit').click();
+    await page.locator('.modal').getByTestId('submit').click();
     await page.locator('.modal').waitFor({ state: 'hidden' });
     await page.goto(routes.base + routes.identity.users);
 

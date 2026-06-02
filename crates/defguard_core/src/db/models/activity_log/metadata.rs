@@ -385,6 +385,7 @@ pub struct SettingsNoSecrets {
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
     pub ldap_uses_ad: bool,
+    pub ldap_sync_account_status: bool,
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
@@ -439,6 +440,7 @@ impl From<Settings> for SettingsNoSecrets {
             ldap_sync_enabled: value.ldap_sync_enabled,
             ldap_is_authoritative: value.ldap_is_authoritative,
             ldap_uses_ad: value.ldap_uses_ad,
+            ldap_sync_account_status: value.ldap_sync_account_status,
             ldap_sync_interval: value.ldap_sync_interval,
             ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes,
             ldap_user_rdn_attr: value.ldap_user_rdn_attr,

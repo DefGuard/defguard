@@ -13,10 +13,6 @@ use defguard_common::db::{
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
-use defguard_session_manager::events::SessionManagerEventType;
-use ipnetwork::IpNetwork;
-use serde_json::Value;
-
 use defguard_core::{
     db::models::{
         activity_log::{ActivityLogEvent, ActivityLogModule, EventType},
@@ -36,6 +32,9 @@ use defguard_core::{
         DesktopClientMfaEvent, EnrollmentEvent as CoreEnrollmentEvent, PasswordResetEvent,
     },
 };
+use defguard_session_manager::events::SessionManagerEventType;
+use ipnetwork::IpNetwork;
+use serde_json::Value;
 use strum::EnumCount;
 
 use crate::{

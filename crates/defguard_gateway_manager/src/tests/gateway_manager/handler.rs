@@ -1,8 +1,10 @@
 #[path = "handler/support.rs"]
 mod support;
 
-use defguard_common::db::models::device::{DeviceInfo, WireguardNetworkDevice};
-use defguard_common::gateway_event::GatewayCommand;
+use defguard_common::{
+    db::models::device::{DeviceInfo, WireguardNetworkDevice},
+    gateway_event::GatewayCommand,
+};
 use defguard_proto::gateway::{UpdateType, core_response};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;

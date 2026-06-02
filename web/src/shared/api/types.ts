@@ -6,6 +6,17 @@ import type {
 
 export type Resource = object & { id: number };
 
+export type CheckResource = 'email' | 'username';
+
+export interface CheckReservedParams {
+  resource: CheckResource;
+  value: string;
+}
+
+export interface CheckReservedResponse {
+  available: boolean;
+}
+
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
@@ -507,6 +518,8 @@ export interface UpdateInfo {
   notes: string;
 }
 
+export type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;
+
 export interface WebauthnRegisterStartResponse {
   publicKey: PublicKeyCredentialCreationOptionsJSON;
 }
@@ -520,8 +533,6 @@ export interface WebauthnLoginStartResponse {
   publicKey: PublicKeyCredentialRequestOptionsJSON;
 }
 
-export type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;
-
 export interface StartEnrollmentRequest {
   username: string;
   send_enrollment_notification: boolean;
@@ -531,6 +542,16 @@ export interface StartEnrollmentRequest {
 export interface StartEnrollmentResponse {
   enrollment_url: string;
   enrollment_token: string;
+}
+
+export interface BulkStartEnrollmentRequest {
+  users: number[];
+  send_enrollment_notification: boolean;
+}
+
+export interface BulkStartEnrollmentResponse {
+  started: number;
+  skipped: number;
 }
 
 export interface AddDeviceRequest {
@@ -1114,6 +1135,7 @@ export interface SettingsLDAP {
   ldap_tls_verify_cert: boolean;
   ldap_sync_interval: number;
   ldap_uses_ad: boolean;
+  ldap_sync_account_status: boolean;
   ldap_user_rdn_attr: string | null;
   ldap_sync_groups: string[];
   ldap_remote_enrollment_enabled: boolean;
@@ -1435,6 +1457,8 @@ export type ActivityLogSortKey =
   | 'module'
   | 'device';
 
+export type UserSortKey = 'username' | 'name' | 'email';
+
 export interface Edge {
   id: number;
   name: string;
@@ -1471,6 +1495,7 @@ export interface GatewayInfo extends Gateway {
 
 export interface PaginationParams {
   page?: number;
+  per_page?: number;
 }
 
 export interface DevicePostureListFilters extends PaginationParams {
@@ -1521,3 +1546,11 @@ export type ActivityLogRequestParams = Partial<ActivityLogFilters> & {
   sort_by?: ActivityLogSortKey;
   sort_order?: SortDirectionValue;
 } & PaginationParams;
+
+export interface UserListParams extends PaginationParams {
+  groups?: string[];
+  no_group?: boolean;
+  search?: string;
+  sort_by?: UserSortKey;
+  sort_order?: SortDirectionValue;
+}

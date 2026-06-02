@@ -187,7 +187,7 @@ export const ProfileAuthKeysTable = () => {
                       contentMd: m.modal_delete_auth_key_content({ name: rowData.name }),
                       actionPromise: () =>
                         api.user.deleteAuthKey({ id: rowData.id, username }),
-                      invalidateKeys: [['user-overview'], ['user', username, 'auth_key']],
+                      invalidateKeys: [['user', username, 'auth_key']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
                       onSuccess: () =>
                         Snackbar.default(m.modal_delete_auth_key_success()),

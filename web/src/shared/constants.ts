@@ -45,7 +45,23 @@ export const supportedSyncProviders: Set<OpenIdProviderKindValue> = new Set([
 
 export const googleProviderBaseUrl = 'https://accounts.google.com';
 
-export const jumpcloudProviderBaseUrl = 'https://oauth.id.jumpcloud.com';
+export type JumpCloudRegion = 'us' | 'eu' | 'in';
+
+export const jumpcloudBaseUrls: Record<JumpCloudRegion, string> = {
+  us: 'https://oauth.id.jumpcloud.com/',
+  eu: 'https://oauth.id.eu.jumpcloud.com/',
+  in: 'https://oauth.id.in.jumpcloud.com/',
+};
+
+export const detectJumpcloudRegion = (baseUrl: string | undefined): JumpCloudRegion => {
+  if (baseUrl?.includes('eu.jumpcloud')) {
+    return 'eu';
+  }
+  if (baseUrl?.includes('in.jumpcloud')) {
+    return 'in';
+  }
+  return 'us';
+};
 
 export const licenseGracePeriodDays = 14;
 

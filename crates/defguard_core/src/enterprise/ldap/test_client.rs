@@ -8,7 +8,9 @@ use defguard_common::db::models::{User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::{extract_rdn_value, user_as_ldap_attrs};
+use crate::enterprise::ldap::model::{
+    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active, user_as_ldap_attrs,
+};
 
 /// Extract attribute value from LDAP filter
 ///
@@ -168,11 +170,29 @@ pub struct TestClient {
     pub(super) objects: HashMap<String, Object>,
     // DN: DN
     pub(super) memberships: HashMap<String, HashSet<String>>,
+    // Number of upcoming write operations (add/modify/delete) that should fail with an injected
+    // error. Used to simulate a transient LDAP outage and exercise the desync/recovery path.
+    fail_next_writes: usize,
 }
 
 impl TestClient {
     fn add_event(&mut self, event: LdapEvent) {
         self.events.push(event);
+    }
+
+    /// Makes the next `n` write operations (add/modify/delete) fail with an injected LDAP error.
+    pub(super) fn fail_next_writes(&mut self, n: usize) {
+        self.fail_next_writes = n;
+    }
+
+    /// Consumes one injected failure if any are pending, returning an error in that case.
+    fn take_write_failure(&mut self) -> Result<(), LdapError> {
+        if self.fail_next_writes > 0 {
+            self.fail_next_writes -= 1;
+            Err(LdapError::Ldap("injected test failure".to_owned()))
+        } else {
+            Ok(())
+        }
     }
 
     pub(super) fn events_match(&self, expected: &[LdapEvent], order_matters: bool) -> bool {
@@ -372,6 +392,7 @@ impl LDAPConnection {
         dn: &str,
         attrs: Vec<(&str, HashSet<&str>)>,
     ) -> Result<(), LdapError> {
+        self.test_client.take_write_failure()?;
         self.test_client.add_event(LdapEvent::ObjectAdded {
             dn: dn.to_owned(),
             attrs: attrs
@@ -391,8 +412,9 @@ impl LDAPConnection {
     where
         S: AsRef<[u8]> + Eq + Hash,
     {
+        self.test_client.take_write_failure()?;
         let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_owned();
-        let mods = mods
+        let mods: Vec<Mod<String>> = mods
             .into_iter()
             .map(|modification| match modification {
                 Mod::Add(attr, set) => {
@@ -408,6 +430,20 @@ impl LDAPConnection {
             })
             .collect();
 
+        // Reflect account status writes in the stored object so reads see writes, like real LDAP.
+        if let Some(Object::User(user)) = self.test_client.objects.get_mut(old_dn) {
+            for modification in &mods {
+                if let Mod::Replace(attr, values) = modification {
+                    if attr == "userAccountControl" {
+                        if let Some(uac) = values.iter().next().and_then(|v| v.parse::<u32>().ok())
+                        {
+                            user.is_active = uac_is_active(uac);
+                        }
+                    }
+                }
+            }
+        }
+
         self.test_client.add_event(LdapEvent::ObjectModified {
             old_dn: old_dn.to_owned(),
             new_dn: new_dn.to_owned(),
@@ -417,6 +453,7 @@ impl LDAPConnection {
     }
 
     pub(super) async fn delete(&mut self, dn: &str) -> Result<(), LdapError> {
+        self.test_client.take_write_failure()?;
         self.test_client
             .add_event(LdapEvent::ObjectDeleted { dn: dn.to_owned() });
         Ok(())
@@ -484,12 +521,29 @@ impl LDAPConnection {
                     &config.ldap_username_attr,
                     &rdn_attr,
                 );
+                let mut attrs = attrs
+                    .iter()
+                    .map(|(k, v)| {
+                        (
+                            k.to_string(),
+                            v.iter()
+                                .map(std::string::ToString::to_string)
+                                .collect::<Vec<String>>(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                // Simulate the AD userAccountControl attribute so account status sync is exercised.
+                if config.ldap_uses_ad && config.ldap_sync_account_status {
+                    let uac = if user.is_active {
+                        UAC_NORMAL_ACCOUNT
+                    } else {
+                        UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
+                    };
+                    attrs.push(("userAccountControl".to_owned(), vec![uac.to_string()]));
+                }
                 users.push(SearchEntry {
                     dn: dn.clone(),
-                    attrs: attrs
-                        .iter()
-                        .map(|(k, v)| (k.to_string(), v.iter().map(ToString::to_string).collect()))
-                        .collect(),
+                    attrs: attrs.into_iter().collect(),
                     bin_attrs: HashMap::new(),
                 });
             }
@@ -547,7 +601,7 @@ pub(super) fn user_to_test_attrs<I>(
     } else {
         String::new()
     };
-    user_as_ldap_attrs(
+    let mut attrs = user_as_ldap_attrs(
         user,
         &ssha_password,
         &nt_password,
@@ -557,8 +611,26 @@ pub(super) fn user_to_test_attrs<I>(
         &rdn_attr,
     )
     .into_iter()
-    .map(|(k, v)| (k.to_owned(), v.iter().map(ToString::to_string).collect()))
-    .collect()
+    .map(|(k, v)| {
+        (
+            k.to_owned(),
+            v.iter().map(std::string::ToString::to_string).collect(),
+        )
+    })
+    .collect::<Vec<_>>();
+
+    // Simulate the AD userAccountControl attribute so account status sync can be exercised.
+    if config.ldap_uses_ad && config.ldap_sync_account_status {
+        use crate::hashset;
+        let uac = if user.is_active {
+            UAC_NORMAL_ACCOUNT
+        } else {
+            UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
+        };
+        attrs.push(("userAccountControl".to_owned(), hashset![uac.to_string()]));
+    }
+
+    attrs
 }
 
 #[cfg(test)]

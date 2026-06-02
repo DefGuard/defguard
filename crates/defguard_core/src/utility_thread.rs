@@ -91,7 +91,7 @@ pub async fn run_utility_thread(
     };
 
     let ldap_sync_task = || async {
-        if let Err(e) = do_ldap_sync(pool)
+        if let Err(e) = do_ldap_sync(pool, &gateway_tx)
             .instrument(info_span!("ldap_sync_task"))
             .await
         {

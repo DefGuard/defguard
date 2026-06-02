@@ -235,19 +235,19 @@ impl From<UserManagementError> for WebError {
         match err {
             UserManagementError::Db(e) => {
                 error!("Database error: {e}");
-                WebError::DbError(e.to_string())
+                Self::DbError(e.to_string())
             }
             UserManagementError::Model(e) => {
                 error!("Model error: {e}");
-                WebError::ModelError(e.to_string())
+                Self::ModelError(e.to_string())
             }
             UserManagementError::Network(e) => {
                 error!("WireGuard network error: {e}");
-                WebError::from(e)
+                Self::from(e)
             }
             UserManagementError::Firewall(e) => {
                 error!("Firewall error: {e}");
-                WebError::FirewallError(e)
+                Self::FirewallError(e)
             }
         }
     }
@@ -257,30 +257,30 @@ impl From<CertSettingsError> for WebError {
     fn from(err: CertSettingsError) -> Self {
         error!("{err}");
         match err {
-            CertSettingsError::InvalidCert(msg) => WebError::BadRequest(msg),
-            CertSettingsError::Cert(e) => WebError::CertificateError(e),
-            CertSettingsError::Url(e) => WebError::BadRequest(e),
-            CertSettingsError::Settings(e) => WebError::BadRequest(e.to_string()),
-            CertSettingsError::Db(e) => WebError::DbError(e.to_string()),
-            CertSettingsError::NotFound(msg) => WebError::ObjectNotFound(msg),
+            CertSettingsError::InvalidCert(msg) => Self::BadRequest(msg),
+            CertSettingsError::Cert(e) => Self::CertificateError(e),
+            CertSettingsError::Url(e) => Self::BadRequest(e),
+            CertSettingsError::Settings(e) => Self::BadRequest(e.to_string()),
+            CertSettingsError::Db(e) => Self::DbError(e.to_string()),
+            CertSettingsError::NotFound(msg) => Self::ObjectNotFound(msg),
         }
     }
 }
 
 impl From<ValidationError> for WebError {
     fn from(err: ValidationError) -> Self {
-        WebError::BadRequest(err.0)
+        Self::BadRequest(err.0)
     }
 }
 
 impl From<OidcFlowError> for WebError {
     fn from(err: OidcFlowError) -> Self {
         match err {
-            OidcFlowError::SigningKey(_msg) => WebError::Http(StatusCode::INTERNAL_SERVER_ERROR),
-            OidcFlowError::InvalidRedirectUri => WebError::Http(StatusCode::BAD_REQUEST),
-            OidcFlowError::Internal(_msg) => WebError::Http(StatusCode::INTERNAL_SERVER_ERROR),
-            OidcFlowError::Db(e) => WebError::DbError(e.to_string()),
-            OidcFlowError::Url(_e) => WebError::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            OidcFlowError::SigningKey(_msg) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            OidcFlowError::InvalidRedirectUri => Self::Http(StatusCode::BAD_REQUEST),
+            OidcFlowError::Internal(_msg) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            OidcFlowError::Db(e) => Self::DbError(e.to_string()),
+            OidcFlowError::Url(_e) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }
