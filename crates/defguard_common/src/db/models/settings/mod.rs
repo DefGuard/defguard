@@ -260,12 +260,7 @@ impl fmt::Debug for Settings {
             .field("instance_name", &self.instance_name)
             .field("main_logo_url", &self.main_logo_url)
             .field("nav_logo_url", &self.nav_logo_url)
-            .field("smtp_server", &self.smtp.server)
-            .field("smtp_port", &self.smtp.port)
-            .field("smtp_encryption", &self.smtp.encryption)
-            .field("smtp_user", &self.smtp.user)
-            .field("smtp_password", &self.smtp.password)
-            .field("smtp_sender", &self.smtp.sender)
+            .field("smtp", &self.smtp)
             .field(
                 "enrollment_vpn_step_optional",
                 &self.enrollment_vpn_step_optional,

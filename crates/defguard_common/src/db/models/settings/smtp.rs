@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgExecutor, Type, query};
 use struct_patch::Patch;
@@ -90,5 +92,20 @@ impl SmtpSettings {
         self.oauth_refresh_token = Some(refresh_token);
 
         Ok(())
+    }
+}
+
+// Implement manually to avoid exposing secrets.
+impl fmt::Debug for SmtpSettings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SmtpSettings")
+            .field("server", &self.server)
+            .field("port", &self.port)
+            .field("encryption", &self.encryption)
+            .field("user", &self.user)
+            .field("sender", &self.sender)
+            .field("oauth_issuer_url", &self.oauth_issuer_url)
+            .field("oauth_client_id", &self.oauth_client_id)
+            .finish_non_exhaustive()
     }
 }
