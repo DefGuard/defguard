@@ -56,15 +56,15 @@ The fastest way to evaluate Defguard is with the [one-line installer](https://do
 bash <(curl -sSL https://raw.githubusercontent.com/defguard/deployment/main/docker-compose2.0/setup.sh)
 ```
 
-
-> [!WARNING]
-> This installation method is intended for testing, demonstrations, and evaluation purposes only. It is not recommended for production deployments.
-
-See the [deployment documentation](https://docs.defguard.net/deployment-strategies/overview) for production deployment guidance, architecture recommendations, and high-availability configurations.
+⚠️ Warning! This installation method is intended for testing, demonstrations, and evaluation purposes only. It is not recommended for production deployments. See the [deployment documentation](https://docs.defguard.net/deployment-strategies/overview) for production deployment guidance, architecture recommendations, and high-availability configurations.
 
 ## Documentation
 
 Comprehensive documentation is available at: https://docs.defguard.net
+
+## Video guides
+
+Visit out YouTube channel to see our [video guides](https://www.youtube.com/playlist?list=PLVR33X0CUHUcoyLshs9S8VbsGgggouCAW).
 
 ## Community
 
@@ -72,6 +72,10 @@ We want to get as much feedback as possible, so we encourage you to:
 
 - 💬 open a [GitHub discussion](https://github.com/DefGuard/defguard/discussions/new/choose)
 - 🪲 report any missing [features](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&projects=&template=feature_request.md&title=) or [bugs](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=) as issues
+
+## Contributions
+
+Please review the [Contributing guide](https://docs.defguard.net/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://docs.defguard.net/for-developers/dev-env-setup) handy.
 
 ## License
 The code in this repository is available under a dual licensing model:
