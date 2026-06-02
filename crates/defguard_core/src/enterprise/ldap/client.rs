@@ -12,7 +12,7 @@ use ldap3::{
 };
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::extract_rdn_value;
+use crate::enterprise::ldap::model::{extract_rdn_value, is_search_entry};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
 
@@ -61,7 +61,7 @@ impl LDAPConnection {
 
         Ok(entries
             .into_iter()
-            .filter(|e| !e.is_ref() && !e.is_intermediate())
+            .filter(is_search_entry)
             .map(SearchEntry::construct)
             .collect())
     }
@@ -77,7 +77,7 @@ impl LDAPConnection {
             Ok(ldap_result) => match ldap_result.success() {
                 Ok((mut entries, result)) => {
                     debug!("LDAP search result: {result:?}");
-                    entries.retain(|e| !e.is_ref() && !e.is_intermediate());
+                    entries.retain(is_search_entry);
                     if let Some(entry) = entries.pop() {
                         debug!("Found LDAP object with DN {dn}: {entry:?}");
                         Ok(Some(SearchEntry::construct(entry)))
@@ -134,7 +134,7 @@ impl LDAPConnection {
         debug!("Found groups: {entries:?}");
 
         let mut groups = Vec::new();
-        for entry in entries {
+        for entry in entries.into_iter().filter(is_search_entry) {
             let se = SearchEntry::construct(entry);
             for (key, mut values) in se.attrs {
                 if key.eq_ignore_ascii_case(&self.config.ldap_groupname_attr) {
@@ -168,7 +168,7 @@ impl LDAPConnection {
         info!("Performed LDAP group search with filter = {filter}");
         Ok(rs
             .into_iter()
-            .filter(|e| !e.is_ref() && !e.is_intermediate())
+            .filter(is_search_entry)
             .map(SearchEntry::construct)
             .collect())
     }
@@ -303,7 +303,7 @@ impl LDAPConnection {
             .await?
             .success()?;
         debug!("LDAP group membership search result: {result:?}");
-        Ok(!entries.is_empty())
+        Ok(entries.iter().any(is_search_entry))
     }
 
     pub(super) async fn get_group_members(
