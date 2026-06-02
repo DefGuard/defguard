@@ -6,7 +6,7 @@ use defguard_common::{
     db::{
         models::{
             MFAMethod, Settings,
-            settings::{SmtpEncryption, initialize_current_settings, set_settings},
+            settings::{initialize_current_settings, set_settings, smtp::SmtpEncryption},
         },
         setup_pool,
     },
@@ -47,10 +47,21 @@ async fn set_smtp_settings(pool: &PgPool) {
     let mut settings = Settings::get_current_settings();
     settings.smtp.server = env::var("SMTP_SERVER").ok();
     settings.smtp.port = Some(env::var("SMTP_PORT").map_or(587, |s| s.parse().unwrap()));
-    settings.smtp.encryption = SmtpEncryption::StartTls;
-    settings.smtp.user = env::var("SMTP_USER").ok();
-    settings.smtp.password =
-        Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
+
+    if let Ok(refresh_token) = env::var("SMTP_OAUTH_REFRESH_TOKEN") {
+        settings.smtp.oauth_issuer_url = env::var("SMTP_OAUTH_ISSUER_URL").ok();
+        settings.smtp.oauth_client_id = env::var("SMTP_OAUTH_CLIENT_ID").ok();
+        settings.smtp.oauth_client_secret = Some(
+            SecretStringWrapper::from_str(&env::var("SMTP_OAUTH_CLIENT_SECRET").unwrap()).unwrap(),
+        );
+        settings.smtp.oauth_refresh_token = Some(refresh_token);
+        settings.smtp.encryption = SmtpEncryption::XOAuth2;
+    } else {
+        settings.smtp.user = env::var("SMTP_USER").ok();
+        settings.smtp.password =
+            Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
+        settings.smtp.encryption = SmtpEncryption::StartTls;
+    }
     settings.smtp.sender = env::var("SMTP_FROM").ok();
     set_settings(Some(settings));
 }

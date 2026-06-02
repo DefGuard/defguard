@@ -20,9 +20,12 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::WebauthnBuilder;
 
+use self::smtp::{SmtpEncryption, SmtpSettings, SmtpSettingsPatch};
 use crate::{
     config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
 };
+
+pub mod smtp;
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 pub const OPENID_KEY_SIZE: usize = 2048;
@@ -110,15 +113,6 @@ pub enum SettingsSaveError {
     Validation(#[from] SettingsValidationError),
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
-#[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
-pub enum SmtpEncryption {
-    #[default]
-    None,
-    StartTls,
-    ImplicitTls,
-}
-
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
 pub enum OpenIdUsernameHandling {
@@ -165,43 +159,6 @@ where
     T: Deserialize<'de>,
 {
     Ok(Some(Option::deserialize(deserializer)?))
-}
-
-#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
-#[patch(attribute(derive(Deserialize, Serialize)))]
-pub struct SmtpSettings {
-    #[serde(rename = "smtp_server")]
-    #[sqlx(rename = "smtp_server")]
-    #[patch(attribute(serde(rename = "smtp_server")))]
-    pub server: Option<String>,
-    #[serde(rename = "smtp_port")]
-    #[sqlx(rename = "smtp_port")]
-    #[patch(attribute(serde(rename = "smtp_port")))]
-    pub port: Option<i32>,
-    #[serde(rename = "smtp_encryption")]
-    #[sqlx(rename = "smtp_encryption")]
-    #[patch(attribute(serde(rename = "smtp_encryption")))]
-    pub encryption: SmtpEncryption,
-    #[serde(rename = "smtp_user")]
-    #[sqlx(rename = "smtp_user")]
-    #[patch(attribute(serde(
-        rename = "smtp_user",
-        deserialize_with = "deserialize_optional_field",
-        default
-    )))]
-    pub user: Option<String>,
-    #[serde(rename = "smtp_password")]
-    #[sqlx(rename = "smtp_password")]
-    #[patch(attribute(serde(
-        rename = "smtp_password",
-        deserialize_with = "deserialize_optional_field",
-        default
-    )))]
-    pub password: Option<SecretStringWrapper>,
-    #[serde(rename = "smtp_sender")]
-    #[sqlx(rename = "smtp_sender")]
-    #[patch(attribute(serde(rename = "smtp_sender")))]
-    pub sender: Option<String>,
 }
 
 #[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
@@ -522,10 +479,12 @@ impl Settings {
     where
         E: PgExecutor<'e>,
     {
-        query_as::<_, Self>(
+        query_as(
             "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, \
             challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
-            smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
+            smtp_port, smtp_encryption, smtp_user, smtp_password, \
+            smtp_sender, smtp_oauth_issuer_url, smtp_oauth_client_id, \
+            smtp_oauth_client_secret, smtp_oauth_refresh_token, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, \
@@ -538,11 +497,11 @@ impl Settings {
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status, ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
-            openid_username_handling, defguard_url, \
+            ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, \
+            ldap_remote_enrollment_send_invite, openid_username_handling, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, \
-            stats_purge_frequency_hours, stats_purge_threshold_days, \
+            public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, \
+            enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
             FROM \"settings\" WHERE id = 1",
@@ -613,58 +572,62 @@ impl Settings {
             smtp_user = $12, \
             smtp_password = $13, \
             smtp_sender = $14, \
-            enrollment_vpn_step_optional = $15, \
-            enrollment_welcome_message = $16, \
-            enrollment_welcome_email = $17, \
-            enrollment_welcome_email_subject = $18, \
-            enrollment_use_welcome_message_as_email = $19, \
-            enrollment_send_welcome_email = $20, \
-            uuid = $21, \
-            ldap_url = $22, \
-            ldap_bind_username = $23, \
-            ldap_bind_password  = $24, \
-            ldap_group_search_base = $25, \
-            ldap_user_search_base = $26, \
-            ldap_user_obj_class = $27, \
-            ldap_group_obj_class = $28, \
-            ldap_username_attr = $29, \
-            ldap_groupname_attr = $30, \
-            ldap_group_member_attr = $31, \
-            ldap_member_attr = $32, \
-            ldap_use_starttls = $33, \
-            ldap_tls_verify_cert = $34, \
-            openid_create_account = $35, \
-            license = $36, \
-            gateway_disconnect_notifications_enabled = $37, \
-            gateway_disconnect_notifications_inactivity_threshold = $38, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $39, \
-            ldap_sync_status = $40, \
-            ldap_enabled = $41, \
-            ldap_sync_enabled = $42, \
-            ldap_is_authoritative = $43, \
-            ldap_sync_interval = $44, \
-            ldap_user_auxiliary_obj_classes = $45, \
-            ldap_uses_ad = $46, \
-            ldap_user_rdn_attr = $47, \
-            ldap_sync_groups = $48, \
-            ldap_remote_enrollment_enabled = $49, \
-            ldap_remote_enrollment_send_invite = $50, \
-            openid_username_handling = $51, \
-            defguard_url = $52, \
-            default_admin_group_name = $53, \
-            authentication_period_days = $54, \
-            mfa_code_timeout_seconds = $55, \
-            public_proxy_url = $56, \
-            default_admin_id = $57, \
-            secret_key = $58, \
-            openid_signing_key_der = $59, \
-            enable_stats_purge = $60, \
-            stats_purge_frequency_hours = $61, \
-            stats_purge_threshold_days = $62, \
-            enrollment_token_timeout_hours = $63, \
-            password_reset_token_timeout_hours = $64, \
-            enrollment_session_timeout_minutes = $65, \
-            password_reset_session_timeout_minutes = $66 \
+            smtp_oauth_issuer_url = $15, \
+            smtp_oauth_client_id = $16, \
+            smtp_oauth_client_secret = $17, \
+            smtp_oauth_refresh_token = $18, \
+            enrollment_vpn_step_optional = $19, \
+            enrollment_welcome_message = $20, \
+            enrollment_welcome_email = $21, \
+            enrollment_welcome_email_subject = $22, \
+            enrollment_use_welcome_message_as_email = $23, \
+            enrollment_send_welcome_email = $24, \
+            uuid = $25, \
+            ldap_url = $26, \
+            ldap_bind_username = $27, \
+            ldap_bind_password  = $28, \
+            ldap_group_search_base = $29, \
+            ldap_user_search_base = $30, \
+            ldap_user_obj_class = $31, \
+            ldap_group_obj_class = $32, \
+            ldap_username_attr = $33, \
+            ldap_groupname_attr = $34, \
+            ldap_group_member_attr = $35, \
+            ldap_member_attr = $36, \
+            ldap_use_starttls = $37, \
+            ldap_tls_verify_cert = $38, \
+            openid_create_account = $39, \
+            license = $40, \
+            gateway_disconnect_notifications_enabled = $41, \
+            gateway_disconnect_notifications_inactivity_threshold = $42, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $43, \
+            ldap_sync_status = $44, \
+            ldap_enabled = $45, \
+            ldap_sync_enabled = $46, \
+            ldap_is_authoritative = $47, \
+            ldap_sync_interval = $48, \
+            ldap_user_auxiliary_obj_classes = $49, \
+            ldap_uses_ad = $50, \
+            ldap_user_rdn_attr = $51, \
+            ldap_sync_groups = $52, \
+            ldap_remote_enrollment_enabled = $53, \
+            ldap_remote_enrollment_send_invite = $54, \
+            openid_username_handling = $55, \
+            defguard_url = $56, \
+            default_admin_group_name = $57, \
+            authentication_period_days = $58, \
+            mfa_code_timeout_seconds = $59, \
+            public_proxy_url = $60, \
+            default_admin_id = $61, \
+            secret_key = $62, \
+            openid_signing_key_der = $63, \
+            enable_stats_purge = $64, \
+            stats_purge_frequency_hours = $65, \
+            stats_purge_threshold_days = $66, \
+            enrollment_token_timeout_hours = $67, \
+            password_reset_token_timeout_hours = $68, \
+            enrollment_session_timeout_minutes = $69, \
+            password_reset_session_timeout_minutes = $70 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -680,6 +643,10 @@ impl Settings {
             self.smtp.user,
             &self.smtp.password as &Option<SecretStringWrapper>,
             self.smtp.sender,
+            self.smtp.oauth_issuer_url,
+            self.smtp.oauth_client_id,
+            &self.smtp.oauth_client_secret as &Option<SecretStringWrapper>,
+            self.smtp.oauth_refresh_token,
             self.enrollment_vpn_step_optional,
             self.enrollment_welcome_message,
             self.enrollment_welcome_email,

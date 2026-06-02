@@ -8,7 +8,7 @@ use defguard_common::db::{
         group::Group,
         oauth2client::OAuth2Client,
         proxy::Proxy,
-        settings::{LdapSyncStatus, OpenIdUsernameHandling, SmtpEncryption},
+        settings::{LdapSyncStatus, OpenIdUsernameHandling, smtp::SmtpEncryption},
         user::User,
     },
 };

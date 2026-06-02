@@ -2,23 +2,24 @@ use std::{str::FromStr, time::Duration};
 
 use defguard_common::db::models::{
     MFAMethod, Settings,
-    settings::{SmtpEncryption, SmtpSettings, defaults::WELCOME_EMAIL_SUBJECT},
+    settings::{defaults::WELCOME_EMAIL_SUBJECT, smtp::SmtpEncryption, smtp::SmtpSettings},
 };
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Body, Mailbox, MultiPart, SinglePart, header::ContentType},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::authentication::{Credentials, Mechanism},
 };
 use serde::Serialize;
 use sqlx::PgConnection;
 use tera::{Context, Tera, Value};
-use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
 use super::{
+    MailError,
     mail_context::MailContext,
     qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
+    xoauth2::obtain_access_token,
 };
 
 #[derive(Debug)]
@@ -56,27 +57,6 @@ static NEW_ACCOUNT_1: &[u8] = include_bytes!("../assets/new_account_1.png");
 static NEW_ACCOUNT_2: &[u8] = include_bytes!("../assets/new_account_2.png");
 static GOOGLE_PLAY: &[u8] = include_bytes!("../assets/google_play.png");
 static APPLE: &[u8] = include_bytes!("../assets/apple.png");
-
-#[derive(Debug, Error)]
-pub enum MailError {
-    #[error(transparent)]
-    LettreError(#[from] lettre::error::Error),
-
-    #[error(transparent)]
-    AddressError(#[from] lettre::address::AddressError),
-
-    #[error(transparent)]
-    SmtpError(#[from] lettre::transport::smtp::Error),
-
-    #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
-
-    #[error("SMTP not configured")]
-    SmtpNotConfigured,
-
-    #[error("Invalid port: {0}")]
-    InvalidPort(i32),
-}
 
 /// Mail message
 #[derive(Debug)]
@@ -212,7 +192,7 @@ impl Mail {
             }
         };
         // Build mailer and send the message
-        match Self::mailer(smtp_settings) {
+        match Self::mailer(smtp_settings).await {
             Ok(mailer) => match mailer.send(message).await {
                 Ok(response) => {
                     info!("Mail sent to: {to}, subject: {subject}, response: {response:?}");
@@ -240,23 +220,35 @@ impl Mail {
     }
 
     /// Builds mailer object with specified configuration.
-    fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+    async fn mailer(
+        mut smtp_settings: SmtpSettings,
+    ) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         type Builder = AsyncSmtpTransport<Tokio1Executor>;
 
-        let (Some(server), Some(port)) = (settings.server, settings.port) else {
+        let (Some(server), Some(port)) = (&smtp_settings.server, smtp_settings.port) else {
             return Err(MailError::SmtpNotConfigured);
         };
 
-        let builder = match settings.encryption {
-            SmtpEncryption::None => Builder::builder_dangerous(&server),
-            SmtpEncryption::StartTls => Builder::starttls_relay(&server)?,
-            SmtpEncryption::ImplicitTls => Builder::relay(&server)?,
+        let builder = match smtp_settings.encryption {
+            SmtpEncryption::None => Builder::builder_dangerous(server),
+            SmtpEncryption::StartTls => Builder::starttls_relay(server)?,
+            SmtpEncryption::ImplicitTls => Builder::relay(server)?,
+            SmtpEncryption::XOAuth2 => {
+                Builder::starttls_relay(server)?.authentication(vec![Mechanism::Xoauth2])
+            }
         }
         .port(port.try_into().map_err(|_| MailError::InvalidPort(port))?)
         .timeout(Some(SMTP_TIMEOUT));
 
         // Skip credentials if any of them is empty.
-        let builder = if let (Some(user), Some(password)) = (settings.user, settings.password) {
+        let builder = if let SmtpEncryption::XOAuth2 = smtp_settings.encryption {
+            let code = obtain_access_token(&mut smtp_settings).await?;
+            let Some(sender) = smtp_settings.sender else {
+                error!("XOAUTH2 requires sender email address");
+                return Err(MailError::SmtpNotConfigured);
+            };
+            builder.credentials(Credentials::new(sender, code))
+        } else if let (Some(user), Some(password)) = (smtp_settings.user, smtp_settings.password) {
             builder.credentials(Credentials::new(user, password.expose_secret().into()))
         } else {
             debug!("SMTP credentials were not provided, skipping username/password authentication");
