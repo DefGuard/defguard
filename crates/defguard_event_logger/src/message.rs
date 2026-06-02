@@ -5,8 +5,6 @@ use defguard_common::db::{
     Id,
     models::{Device, WireguardNetwork},
 };
-use tokio::sync::Notify;
-
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
     BidiStreamEventType, DesktopClientMfaEvent, GrpcRequestContext,
@@ -14,6 +12,7 @@ use defguard_core::events::{
 use defguard_session_manager::events::{
     SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType,
 };
+use tokio::sync::Notify;
 
 /// Thin wrapper around source event types.
 ///
@@ -54,7 +53,7 @@ impl EventLoggerMessage {
 
         let location = extract_api_location(&api_event.event);
 
-        EventLoggerMessage {
+        Self {
             context: EventContext::from_api_context(api_event.context, location),
             event: Event::Api(*api_event.event),
         }
@@ -78,7 +77,7 @@ impl EventLoggerMessage {
             _ => None,
         };
 
-        EventLoggerMessage {
+        Self {
             context: EventContext::from_bidi_context(context, location),
             event: Event::Bidi(event),
         }
@@ -89,7 +88,7 @@ impl EventLoggerMessage {
     pub fn from_session_manager_event(session_event: SessionManagerEvent) -> Self {
         let location = session_event.context.location.clone();
         let device = session_event.context.device.clone();
-        EventLoggerMessage {
+        Self {
             context: EventContext::from_session_manager_context(session_event.context),
             event: Event::SessionManager {
                 event: session_event.event,

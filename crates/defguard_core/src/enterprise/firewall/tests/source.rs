@@ -1,6 +1,7 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
 use defguard_common::gateway_types::{IpAddress, IpVersion};
 use rand::thread_rng;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use crate::enterprise::firewall::{
     get_source_addrs, get_source_network_devices, get_source_users,

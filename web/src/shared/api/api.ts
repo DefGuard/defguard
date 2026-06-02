@@ -36,8 +36,11 @@ import type {
   AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
+  BulkStartEnrollmentRequest,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
+  CheckReservedParams,
+  CheckReservedResponse,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -91,6 +94,7 @@ import type {
   OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
+  PublicKeyCredentialJSON,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   ResourceDisplay,
@@ -119,6 +123,7 @@ import type {
   User,
   UserChangePasswordRequest,
   UserDevice,
+  UserListParams,
   UserProfileResponse,
   ValidateDeviceIpsRequest,
   ValidateIpAssignmentRequest,
@@ -209,7 +214,8 @@ const api = {
         username,
       }),
     getMe: () => client.get<User>('/me'),
-    getUsers: () => fetchAllPages<User>('/user'),
+    getUsers: (params?: UserListParams) => fetchPage<User>('/user', params),
+    getAllUsers: () => fetchAllPages<User>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
@@ -259,6 +265,11 @@ const api = {
       });
     },
     deleteUser: (username: string) => client.delete(`/user/${username}`),
+    bulkDisable: (users: number[]) => client.post('/user/bulk-disable', { users }),
+    bulkEnable: (users: number[]) => client.post('/user/bulk-enable', { users }),
+    bulkDelete: (users: number[]) => client.post('/user/bulk-delete', { users }),
+    bulkStartEnrollment: (data: BulkStartEnrollmentRequest) =>
+      client.post('/user/bulk-start-enrollment', data),
     mfa: {
       totp: {
         disable: (username: string) => client.delete(`/user/${username}/totp`),
@@ -442,6 +453,8 @@ const api = {
     addDevicePosture: (data: EditDevicePostureRequest) =>
       client.post<ApiDevicePosture>('/device-posture', removeEmptyStrings(data)),
     deleteDevicePosture: (id: number) => client.delete(`/device-posture/${id}`),
+    duplicateDevicePosture: (id: number) =>
+      client.post<ApiDevicePosture>(`/device-posture/${id}/duplicate`),
     editDevicePosture: (id: number, data: EditDevicePostureRequest) =>
       client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
     getDevicePosture: (id: number) =>
@@ -587,6 +600,10 @@ const api = {
     getExternalSslInfo: () =>
       client.get<GetExternalSslInfoResponse>('/migration/external_url_settings'),
   },
+  reserved: {
+    check: (params: CheckReservedParams) =>
+      client.get<CheckReservedResponse>('/reserved', { params }),
+  },
   checkLicense: (data: { license: string }) =>
     client.post<LicenseCheckResponse>('/license/check', data),
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
@@ -609,5 +626,3 @@ const api = {
 } as const;
 
 export default api;
-
-type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;

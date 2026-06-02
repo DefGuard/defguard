@@ -211,6 +211,7 @@ pub struct Settings {
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
     pub ldap_uses_ad: bool,
+    pub ldap_sync_account_status: bool,
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
@@ -301,6 +302,7 @@ impl fmt::Debug for Settings {
             .field("ldap_sync_enabled", &self.ldap_sync_enabled)
             .field("ldap_is_authoritative", &self.ldap_is_authoritative)
             .field("ldap_uses_ad", &self.ldap_uses_ad)
+            .field("ldap_sync_account_status", &self.ldap_sync_account_status)
             .field("ldap_sync_interval", &self.ldap_sync_interval)
             .field(
                 "ldap_user_auxiliary_obj_classes",
@@ -492,8 +494,9 @@ impl Settings {
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status, ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, \
-            ldap_remote_enrollment_send_invite, openid_username_handling, defguard_url, \
+            ldap_sync_account_status, ldap_user_rdn_attr, ldap_sync_groups, \
+            ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
+            openid_username_handling, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, \
             enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, \
@@ -622,7 +625,8 @@ impl Settings {
             enrollment_token_timeout_hours = $67, \
             password_reset_token_timeout_hours = $68, \
             enrollment_session_timeout_minutes = $69, \
-            password_reset_session_timeout_minutes = $70 \
+            password_reset_session_timeout_minutes = $70, \
+            ldap_sync_account_status = $71 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -694,6 +698,7 @@ impl Settings {
             self.password_reset_token_timeout_hours,
             self.enrollment_session_timeout_minutes,
             self.password_reset_session_timeout_minutes,
+            self.ldap_sync_account_status,
         )
         .execute(executor)
         .await?;

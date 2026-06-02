@@ -1,6 +1,6 @@
-use defguard_common::gateway_types::{IpAddress, IpRange, Port, PortRange as GwPortRange};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use defguard_common::gateway_types::{IpAddress, IpRange, Port, PortRange as GwPortRange};
 use ipnetwork::Ipv6Network;
 
 use crate::enterprise::{

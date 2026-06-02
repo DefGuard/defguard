@@ -192,6 +192,25 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     },
   });
 
+  const { mutate: duplicatePosture } = useMutation({
+    mutationFn: api.devicePosture.duplicateDevicePosture,
+    meta: {
+      invalidate: [['device-posture'], ['network']],
+    },
+    onSuccess: (response) => {
+      const posture = response.data;
+      Snackbar.default(m.posture_checks_duplication_success());
+      navigate({
+        to: '/acl/posture-checks/$postureCheckId/edit',
+        params: {
+          postureCheckId: String(posture.id),
+        },
+      });
+    },
+    onError: () => {
+      Snackbar.error(m.posture_checks_duplication_failed());
+    },
+  });
   const locationOptions = locations.map((loc) => ({
     id: loc.id,
     label: loc.name,
@@ -211,6 +230,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     assignLocations,
     onAfterEdit: onClose,
     onAfterDelete: onClose,
+    duplicatePosture: () => duplicatePosture(row.id),
   });
 
   return (

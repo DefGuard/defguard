@@ -93,10 +93,7 @@ export const ProfileApiTokensTable = () => {
                           }),
                           actionPromise: () =>
                             api.user.deleteApiToken({ id: rowData.id, username }),
-                          invalidateKeys: [
-                            ['user-overview'],
-                            ['user', username, 'api_token'],
-                          ],
+                          invalidateKeys: [['user', username, 'api_token']],
                           submitProps: { text: m.controls_delete(), variant: 'critical' },
                           onSuccess: () =>
                             Snackbar.default(m.modal_delete_api_token_success()),

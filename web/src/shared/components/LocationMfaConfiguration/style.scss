@@ -1,0 +1,135 @@
+.location-mfa-configuration {
+  .main-track {
+    .steps-track {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-lg);
+    }
+  }
+
+  .actions {
+    padding-top: var(--spacing-lg);
+  }
+
+  .mfa-step-card {
+    box-sizing: border-box;
+    padding: var(--spacing-lg) var(--spacing-md);
+    border-radius: 12px;
+    border: 1px solid var(--border-default);
+    background: var(--bg-white);
+    position: relative;
+    z-index: 1;
+    user-select: none;
+
+    .dispose-button {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: 0;
+      margin: 0;
+      background: none;
+
+      &:hover {
+        cursor: pointer;
+
+        .icon {
+          --icon-color: var(--fg-critical);
+        }
+      }
+    }
+
+    > .top {
+      display: grid;
+      column-gap: var(--spacing-md);
+      grid-template-columns: 20px 1fr 20px;
+      grid-template-rows: 1fr;
+      align-items: center;
+
+      > p {
+        font: var(--t-body-sm-600);
+        color: var(--fg-faded);
+      }
+
+      > .drag-button {
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background: transparent;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
+        cursor: grab;
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+    }
+
+    > .factors {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-md);
+
+      > .factor {
+        align-items: center;
+        border-radius: 12px;
+        box-sizing: border-box;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--bg-disabled);
+
+        > .track {
+          display: flex;
+          flex-flow: row nowrap;
+          column-gap: var(--spacing-sm);
+          align-items: center;
+          min-height: 24px;
+
+          > p {
+            font: var(--t-body-sm-400);
+            color: var(--fg-default);
+          }
+
+          > .right {
+            margin-left: auto;
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+            column-gap: var(--spacing-md);
+
+            > p {
+              font: var(--t-body-xxs-500);
+              color: var(--fg-disabled);
+            }
+          }
+        }
+      }
+    }
+
+    > .footer {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: var(--spacing-sm);
+      align-items: center;
+      padding-top: var(--spacing-xl);
+    }
+  }
+
+  .plain-button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    user-select: none;
+    cursor: pointer;
+
+    > p {
+      font: var(--t-body-sm-400);
+      color: var(--fg-action);
+    }
+  }
+}

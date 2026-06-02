@@ -1,8 +1,7 @@
 use ipnetwork::IpNetwork;
 
-use crate::{csv::AsCsv, db::models::device::WireguardNetworkDevice};
-
 use super::db::{Id, models::WireguardNetwork};
+use crate::{csv::AsCsv, db::models::device::WireguardNetworkDevice};
 
 /// Create a WireGuard INI-format config string for a device in a network.
 #[must_use]

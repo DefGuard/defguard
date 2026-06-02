@@ -5,6 +5,7 @@ import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { PlaygroundGeneralTab } from './tabs/PlaygroundGeneral';
 import { PlaygroundIcons } from './tabs/PlaygroundIcons.tsx/PlaygroundIcons';
+import { PlaygroundMfa } from './tabs/PlaygroundMfa/PlaygroundMfa';
 import { PlaygroundNew } from './tabs/PlaygroundNew/PlaygroundNew';
 
 export const PlaygroundPage = () => {
@@ -26,10 +27,17 @@ export const PlaygroundPage = () => {
         },
       },
       {
-        title: 'New',
+        title: '2.0',
         active: activeTab === 1,
         onClick: () => {
           setActiveTab(1);
+        },
+      },
+      {
+        title: 'MFA',
+        active: activeTab === 3,
+        onClick: () => {
+          setActiveTab(3);
         },
       },
     ],
@@ -41,6 +49,7 @@ export const PlaygroundPage = () => {
       {activeTab === 0 && <PlaygroundGeneralTab />}
       {activeTab === 1 && <PlaygroundNew />}
       {activeTab === 2 && <PlaygroundIcons />}
+      {activeTab === 3 && <PlaygroundMfa />}
     </div>
   );
 };

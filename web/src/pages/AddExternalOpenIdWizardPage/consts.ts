@@ -10,6 +10,7 @@ import {
   type OpenIdProviderUsernameHandlingValue,
   type TestDirectorySyncResponse,
 } from '../../shared/api/types';
+import type { JumpCloudRegion } from '../../shared/constants';
 import type { SelectOption } from '../../shared/defguard-ui/components/Select/types';
 
 export const validateExternalProviderWizard = async (
@@ -93,6 +94,12 @@ export const providerUsernameHandlingOptions: SelectOption<OpenIdProviderUsernam
       value: OpenIdProviderUsernameHandling.PruneEmailDomain,
     },
   ];
+
+export const jumpcloudRegionOptions: SelectOption<JumpCloudRegion>[] = [
+  { key: 'us', value: 'us', label: 'US' },
+  { key: 'eu', value: 'eu', label: 'EU' },
+  { key: 'in', value: 'in', label: 'India' },
+];
 
 export const formatMicrosoftBaseUrl = (tenantId: string) =>
   `https://login.microsoftonline.com/${tenantId}/v2.0`;

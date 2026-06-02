@@ -26,8 +26,8 @@ export interface OpenConfirmActionModal {
   cancelProps?: ButtonProps;
   submitProps?: ButtonProps;
   contentContainerProps?: HTMLProps<HTMLDivElement>;
-  onSuccess?: () => void;
-  onError?: () => void;
+  onSuccess?: (result: unknown) => void;
+  onError?: (message: string) => void;
 }
 
 export interface OpenEditDeviceModal {
@@ -67,8 +67,6 @@ export interface OpenCEGroupModal {
 
 export interface OpenEditUserModal {
   user: User;
-  reservedUsernames: string[];
-  reservedEmails: string[];
 }
 
 export interface OpenCEOpenIdClientModal {

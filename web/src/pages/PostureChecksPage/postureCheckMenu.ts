@@ -16,6 +16,7 @@ type BuildPostureCheckMenuArgs = {
   locationOptions: LocationOption[];
   navigate: ReturnType<typeof useNavigate>;
   assignLocations: (locationIds: number[]) => void;
+  duplicatePosture: () => void;
   onAfterEdit?: () => void;
   onAfterDelete?: () => void;
 };
@@ -25,6 +26,7 @@ export const buildPostureCheckMenuItems = ({
   locationOptions,
   navigate,
   assignLocations,
+  duplicatePosture,
   onAfterEdit,
   onAfterDelete,
 }: BuildPostureCheckMenuArgs): MenuItemsGroup[] => [
@@ -44,9 +46,7 @@ export const buildPostureCheckMenuItems = ({
       {
         text: 'Duplicate',
         icon: IconKind.Duplicate,
-        onClick: () => {
-          Snackbar.default(`Duplicate is not available yet for "${row.name}".`);
-        },
+        onClick: duplicatePosture,
       },
       {
         text: m.posture_checks_row_menu_assign_locations(),

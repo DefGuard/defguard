@@ -1,3 +1,4 @@
+use defguard_core::device_access::join_device_to_all_networks;
 use defguard_proto::{
     client_types::InstanceInfoRequest,
     proxy::{CoreRequest, core_request, core_response},
@@ -10,7 +11,6 @@ use super::support::{
     set_test_license_business,
 };
 use crate::tests::common::HandlerTestContext;
-use defguard_core::device_access::join_device_to_all_networks;
 
 #[sqlx::test]
 async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: PgConnectOptions) {
