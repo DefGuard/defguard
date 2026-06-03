@@ -19,13 +19,12 @@
     row-gap: var(--spacing-md);
 
     > .section {
-      display: flex;
-      flex-flow: row nowrap;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: 100px 230px;
+      align-items: start;
       justify-content: space-between;
 
       > .label {
-        flex: 0 0 100px;
         margin: 0;
         color: var(--fg-faded);
         font: var(--t-body-xs-400);
@@ -33,7 +32,6 @@
 
       > .lines {
         display: flex;
-        flex: 0 0 230px;
         flex-flow: column;
         row-gap: var(--spacing-xs);
 
