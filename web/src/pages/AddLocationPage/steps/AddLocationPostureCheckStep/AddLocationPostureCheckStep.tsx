@@ -38,7 +38,7 @@ import { useAddLocationStore } from '../../useAddLocationStore';
 
 export const AddLocationPostureCheckStep = () => {
   const [addPostures, setAddPostures] = useState(false);
-  const [showGateway, setShowGateway] = useState(false);
+  const [showGateway, setShowGateway] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: postures } = useSuspenseQuery({
@@ -84,7 +84,7 @@ export const AddLocationPostureCheckStep = () => {
         'locationType',
       ]),
     );
-    storageState.posture_checks = Array.from(selected);
+    storageState.posture_checks = addPostures ? Array.from(selected) : [];
     mutate(storageState);
   };
 
