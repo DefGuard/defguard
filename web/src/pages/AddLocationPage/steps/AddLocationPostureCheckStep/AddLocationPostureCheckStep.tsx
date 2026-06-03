@@ -254,11 +254,7 @@ const PostureCheckTooltip = ({ postureCheckId }: PostureCheckHelperProps) => {
                       Array.isArray(detail.value) ? detail.value : [detail.value],
                     )
                     .map((line, lineIndex) => (
-                      <p
-                        className="line"
-                        data-primary={lineIndex === 0}
-                        key={`${section.name}-${lineIndex}`}
-                      >
+                      <p className="line" key={`${section.name}-${lineIndex}`}>
                         {line}
                       </p>
                     ))}

@@ -9,7 +9,7 @@
 }
 
 .posture-tooltip {
-  width: 356px;
+  width: 100%;
   max-width: 356px;
   padding: var(--spacing-md) var(--spacing-lg);
 
@@ -40,7 +40,7 @@
           color: var(--fg-muted);
           font: var(--t-body-xs-400);
 
-          &[data-primary='true'] {
+          &:first-child {
             color: var(--fg-faded);
           }
         }
