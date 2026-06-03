@@ -9,8 +9,7 @@
 }
 
 .posture-tooltip {
-  width: 100%;
-  max-width: 356px;
+  max-width: unset;
   padding: var(--spacing-md) var(--spacing-lg);
 
   > .content {
@@ -20,9 +19,8 @@
 
     > .section {
       display: grid;
-      grid-template-columns: 100px 230px;
+      grid-template-columns: 100px minmax(230px, 1fr);
       align-items: start;
-      justify-content: space-between;
 
       > .label {
         margin: 0;
