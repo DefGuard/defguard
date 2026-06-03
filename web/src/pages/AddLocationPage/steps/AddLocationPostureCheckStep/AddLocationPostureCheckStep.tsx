@@ -194,6 +194,7 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
     <Card className="posture-selection">
       {postures.map((posture) => (
         <Fragment key={posture.id}>
+        <div className="posture-selection-row">
           <Checkbox
             active={selected.has(posture.id)}
             text={posture.name}
@@ -208,27 +209,9 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
               onChange(next);
             }}
           />
-          <TooltipProvider>
-            <TooltipTrigger>
-              <div
-                className="helper"
-                style={{
-                  width: 20,
-                  height: 20,
-                }}
-              >
-                <Icon
-                  icon={IconKind.Help}
-                  size={20}
-                  staticColor={ThemeVariable.FgMuted}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent variant="light" className="posture-tooltip">
-              <PostureCheckHelper postureCheckId={posture.id} />
-            </TooltipContent>
-          </TooltipProvider>
-          <Divider spacing={ThemeSpacing.Md} />
+          <PostureCheckTooltip postureCheckId={posture.id} />
+        </div>
+        <Divider spacing={ThemeSpacing.Md} />
         </Fragment>
       ))}
     </Card>
@@ -239,37 +222,56 @@ interface PostureCheckHelperProps {
   postureCheckId: number;
 }
 
-const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
+const PostureCheckTooltip = ({ postureCheckId }: PostureCheckHelperProps) => {
   const { data: postureCheck } = useSuspenseQuery(
     getDevicePostureQueryOptions(postureCheckId),
   );
   const osSections = buildOsSections(postureCheck);
 
   return (
-    <div className="posture-tooltip-content">
-      {osSections.map((section, index) => (
-        <Fragment key={section.name}>
-          {index > 0 && <Divider />}
-          <div className="posture-tooltip-section">
-            <p className="posture-tooltip-label">{section.name}</p>
-            <div className="posture-tooltip-lines">
-              {section.rows
-                .flatMap((detail) =>
-                  Array.isArray(detail.value) ? detail.value : [detail.value],
-                )
-                .map((line, lineIndex) => (
-                  <p
-                    className="posture-tooltip-line"
-                    data-primary={lineIndex === 0}
-                    key={`${section.name}-${lineIndex}`}
-                  >
-                    {line}
-                  </p>
-                ))}
-            </div>
-          </div>
-        </Fragment>
-      ))}
-    </div>
+    <TooltipProvider>
+      <TooltipTrigger>
+        <div
+          className="helper"
+          style={{
+            width: 20,
+            height: 20,
+          }}
+        >
+          <Icon
+            icon={IconKind.Help}
+            size={20}
+            staticColor={ThemeVariable.FgMuted}
+          />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent variant="light" className="posture-tooltip">
+        <div className="posture-tooltip-content">
+          {osSections.map((section, index) => (
+            <Fragment key={section.name}>
+              {index > 0 && <Divider />}
+              <div className="posture-tooltip-section">
+                <p className="posture-tooltip-label">{section.name}</p>
+                <div className="posture-tooltip-lines">
+                  {section.rows
+                    .flatMap((detail) =>
+                      Array.isArray(detail.value) ? detail.value : [detail.value],
+                    )
+                    .map((line, lineIndex) => (
+                      <p
+                        className="posture-tooltip-line"
+                        data-primary={lineIndex === 0}
+                        key={`${section.name}-${lineIndex}`}
+                      >
+                        {line}
+                      </p>
+                    ))}
+                </div>
+              </div>
+            </Fragment>
+          ))}
+        </div>
+      </TooltipContent>
+    </TooltipProvider>
   );
 };
