@@ -187,7 +187,7 @@ interface PostureSelectionProps {
 const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProps) => {
   return (
     <Card className='posture-selection'>
-      {postures.map((posture, index) => (
+      {postures.map((posture) => (
         <Fragment key={posture.id}>
           <Checkbox
             active={selected.has(posture.id)}
