@@ -201,6 +201,150 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
 }
 
 #[sqlx::test]
+async fn test_create_network_with_posture_checks_assigns_postures(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&json!({
+            "name": "Posture 1",
+            "description": null,
+            "min_client_version": null,
+            "allow_prerelease_client": false,
+            "os_rules": []
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let posture_1: serde_json::Value = response.json().await;
+
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&json!({
+            "name": "Posture 2",
+            "description": null,
+            "min_client_version": null,
+            "allow_prerelease_client": false,
+            "os_rules": []
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let posture_2: serde_json::Value = response.json().await;
+    let posture_ids = vec![
+        posture_1["id"].as_i64().unwrap(),
+        posture_2["id"].as_i64().unwrap(),
+    ];
+    client.drain_all_events();
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network-with-postures",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled",
+            "posture_checks": posture_ids
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: serde_json::Value = response.json().await;
+    let location_id = location["id"].as_i64().unwrap();
+
+    let response = client
+        .get(format!("/api/v1/network/{location_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network: serde_json::Value = response.json().await;
+    let assigned_postures: Vec<i64> =
+        serde_json::from_value(network["posture_checks"].clone()).unwrap();
+    assert_eq!(assigned_postures.len(), 2);
+    assert!(assigned_postures.contains(&posture_ids[0]));
+    assert!(assigned_postures.contains(&posture_ids[1]));
+
+    for posture_id in posture_ids {
+        let response = client
+            .get(format!("/api/v1/device-posture/{posture_id}"))
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let posture: serde_json::Value = response.json().await;
+        let locations: Vec<i64> = serde_json::from_value(posture["locations"].clone()).unwrap();
+        assert_eq!(locations, vec![location_id]);
+    }
+}
+
+#[sqlx::test]
+async fn test_create_network_with_posture_checks_requires_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, mut client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    client.drain_all_events();
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network-without-enterprise-postures",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled",
+            "posture_checks": [1]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    client.assert_event_queue_is_empty();
+    assert_matches!(
+        client_state.gateway_rx.try_recv(),
+        Err(tokio::sync::broadcast::error::TryRecvError::Empty)
+    );
+
+    let response = client.get("/api/v1/network").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let networks: Vec<serde_json::Value> = response.json().await;
+    assert!(networks.iter().all(|network| {
+        network["name"].as_str() != Some("network-without-enterprise-postures")
+    }));
+}
+
+#[sqlx::test]
 async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
