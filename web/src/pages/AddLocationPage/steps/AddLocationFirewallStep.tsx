@@ -1,15 +1,11 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { cloneDeep, omit } from 'lodash-es';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -17,18 +13,14 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature } from '../../../shared/utils/license';
-import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 import businessFeatureCardImage from '../assets/business-feature-icon.png';
-import actionCardImage from '../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 type Choice = 'disable' | 'enabled-allowed' | 'enabled-denied';
 
 export const AddLocationFirewallStep = () => {
-  const [showGateway, setShowGateway] = useState(true);
   const [state, setState] = useState<Choice>('disable');
-  const navigate = useNavigate();
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const canUseFeature = useMemo(() => {
@@ -36,29 +28,6 @@ export const AddLocationFirewallStep = () => {
     return canUseBusinessFeature(licenseInfo).result;
   }, [licenseInfo]);
   const firewallLocked = isPresent(canUseFeature) && !canUseFeature;
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: api.location.addLocation,
-    meta: {
-      invalidate: [['network'], ['enterprise_info']],
-    },
-    onSuccess: ({ data }) => {
-      if (showGateway) {
-        useGatewayWizardStore.getState().start({ network_id: data.id });
-        navigate({ to: '/setup-gateway', replace: true }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      } else {
-        navigate({ to: '/locations', replace: true }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      }
-    },
-  });
 
   const saveChanges = useCallback((value: Choice) => {
     const enabled = value !== 'disable';
@@ -72,17 +41,11 @@ export const AddLocationFirewallStep = () => {
   const handleSubmit = () => {
     const enabled = state !== 'disable';
     const allowed = state === 'enabled-allowed';
-    const storageState = cloneDeep(
-      omit(useAddLocationStore.getState(), [
-        'start',
-        'reset',
-        'activeStep',
-        'locationType',
-      ]),
-    );
-    storageState.acl_enabled = enabled;
-    storageState.acl_default_allow = allowed;
-    mutate(storageState);
+    useAddLocationStore.setState({
+      acl_enabled: enabled,
+      acl_default_allow: allowed,
+      activeStep: AddLocationPageStep.PostureCheck,
+    });
   };
 
   return (
@@ -131,25 +94,10 @@ export const AddLocationFirewallStep = () => {
         text={m.location_firewall_option_default_deny()}
         disabled={firewallLocked}
       />
-      <Divider spacing={ThemeSpacing.Xl2} />
-      <ActionCard
-        imageSrc={actionCardImage}
-        title={m.add_location_firewall_gateway_activation_title()}
-        subtitle={m.add_location_firewall_gateway_activation_subtitle()}
-      >
-        <Checkbox
-          text={m.add_location_firewall_gateway_activation_checkbox()}
-          active={showGateway}
-          onClick={() => {
-            setShowGateway((s) => !s);
-          }}
-        />
-      </ActionCard>
       <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
-          disabled={isPending}
           onClick={() => {
             saveChanges(state);
             useAddLocationStore.setState({
@@ -160,8 +108,7 @@ export const AddLocationFirewallStep = () => {
         <div className="right">
           <Button
             testId="create-location"
-            text={m.add_location_create_location()}
-            loading={isPending}
+            text={m.controls_continue()}
             onClick={() => {
               handleSubmit();
             }}
