@@ -1,5 +1,5 @@
-import type { ApiDevicePosture } from "../api/types";
-import { IconKind } from "../defguard-ui/components/Icon";
+import type { ApiDevicePosture } from '../api/types';
+import { IconKind } from '../defguard-ui/components/Icon';
 
 type OsDetailRow = {
   label: string;

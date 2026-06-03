@@ -16,10 +16,9 @@ import {
   getDevicePostureQueryOptions,
   getLocationsQueryOptions,
 } from '../../../shared/query';
+import { buildOsSections } from '../../../shared/utils/postureInfo';
 import { buildPostureCheckMenuItems } from '../postureCheckMenu';
 import type { PostureCheckRow } from '../postureChecks';
-import { buildOsSections } from '../../../shared/utils/postureInfo';
-
 
 type ContentProps = {
   row: PostureCheckRow;

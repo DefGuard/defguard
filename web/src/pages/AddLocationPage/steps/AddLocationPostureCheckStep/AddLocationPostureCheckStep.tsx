@@ -194,24 +194,24 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
     <Card className="posture-selection">
       {postures.map((posture) => (
         <Fragment key={posture.id}>
-        <div className="posture-selection-row">
-          <Checkbox
-            active={selected.has(posture.id)}
-            text={posture.name}
-            onClick={() => {
-              const next = new Set(selected);
-              if (next.has(posture.id)) {
-                next.delete(posture.id);
-              } else {
-                next.add(posture.id);
-              }
+          <div className="posture-selection-row">
+            <Checkbox
+              active={selected.has(posture.id)}
+              text={posture.name}
+              onClick={() => {
+                const next = new Set(selected);
+                if (next.has(posture.id)) {
+                  next.delete(posture.id);
+                } else {
+                  next.add(posture.id);
+                }
 
-              onChange(next);
-            }}
-          />
-          <PostureCheckTooltip postureCheckId={posture.id} />
-        </div>
-        <Divider spacing={ThemeSpacing.Md} />
+                onChange(next);
+              }}
+            />
+            <PostureCheckTooltip postureCheckId={posture.id} />
+          </div>
+          <Divider spacing={ThemeSpacing.Md} />
         </Fragment>
       ))}
     </Card>
@@ -238,11 +238,7 @@ const PostureCheckTooltip = ({ postureCheckId }: PostureCheckHelperProps) => {
             height: 20,
           }}
         >
-          <Icon
-            icon={IconKind.Help}
-            size={20}
-            staticColor={ThemeVariable.FgMuted}
-          />
+          <Icon icon={IconKind.Help} size={20} staticColor={ThemeVariable.FgMuted} />
         </div>
       </TooltipTrigger>
       <TooltipContent variant="light" className="posture-tooltip">
