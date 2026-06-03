@@ -1,5 +1,37 @@
 .posture-selection {
   max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden auto;
+}
+
+.posture-check-helper-tooltip {
+  width: 420px;
+  max-width: 420px;
+}
+
+.posture-check-helper {
+  display: flex;
+  flex-flow: column;
+}
+
+.posture-check-helper-sections {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-md);
+}
+
+.posture-check-helper-section {
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: var(--spacing-xl);
+}
+
+.posture-check-helper-label {
+  flex: 0 0 140px;
+}
+
+.posture-check-helper-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-flow: column;
+  row-gap: var(--spacing-sm);
 }

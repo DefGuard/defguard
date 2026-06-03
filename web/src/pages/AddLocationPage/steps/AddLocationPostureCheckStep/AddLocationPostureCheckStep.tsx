@@ -2,7 +2,7 @@ import './style.scss';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { type Dispatch, Fragment, type SetStateAction, useMemo, useState } from 'react';
+import { type Dispatch, Fragment, type SetStateAction, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import type { ApiDevicePosture } from '../../../../shared/api/types';
@@ -10,30 +10,31 @@ import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard'
 import { Card } from '../../../../shared/components/Card/Card';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { externalLink } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
-import { Helper } from '../../../../shared/defguard-ui/components/Helper/Helper';
+import { Icon, IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Radio } from '../../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { TooltipContent } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing, ThemeVariable } from '../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import {
+  getDevicePostureQueryOptions,
+  getLicenseInfoQueryOptions,
+} from '../../../../shared/query';
+import { canUseEnterpriseFeature } from '../../../../shared/utils/license';
+import { buildOsSections } from '../../../../shared/utils/postureInfo';
 import { useGatewayWizardStore } from '../../../GatewaySetupPage/useGatewayWizardStore';
+import businessFeatureCardImage from '../../assets/business-feature-icon.png';
 import actionCardImage from '../../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../../types';
 import { useAddLocationStore } from '../../useAddLocationStore';
-import { getDevicePostureQueryOptions, getLicenseInfoQueryOptions, getLocationsQueryOptions } from '../../../../shared/query';
-import { canUseEnterpriseFeature } from '../../../../shared/utils/license';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import businessFeatureCardImage from '../../assets/business-feature-icon.png';
-import { externalLink } from '../../../../shared/constants';
-import type { PostureCheckRow } from '../../../PostureChecksPage/postureChecks';
-import { buildOsSections } from '../../../../shared/utils/postureInfo';
-import { Icon, IconKind } from '../../../../shared/defguard-ui/components/Icon';
-import { TooltipProvider } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
-import { TooltipContent } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
 
 export const AddLocationPostureCheckStep = () => {
   const [addPostures, setAddPostures] = useState(false);
@@ -45,9 +46,7 @@ export const AddLocationPostureCheckStep = () => {
     queryKey: ['device-posture'],
   });
   const canUseEnterprise =
-    licenseInfo === undefined
-      ? undefined
-      : canUseEnterpriseFeature(licenseInfo).result;
+    licenseInfo === undefined ? undefined : canUseEnterpriseFeature(licenseInfo).result;
   const postureLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
   const hasPostures = postures.length > 0;
   const canAssignPostures = canUseEnterprise === true && hasPostures;
@@ -91,8 +90,7 @@ export const AddLocationPostureCheckStep = () => {
 
   return (
     <WizardCard>
-
-      {!canUseEnterprise && (
+      {postureLocked && (
         <>
           <ActionCard
             imageSrc={businessFeatureCardImage}
@@ -193,7 +191,7 @@ interface PostureSelectionProps {
 }
 const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProps) => {
   return (
-    <Card className='posture-selection'>
+    <Card className="posture-selection">
       {postures.map((posture) => (
         <Fragment key={posture.id}>
           <Checkbox
@@ -219,10 +217,14 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
                   height: 20,
                 }}
               >
-                <Icon icon={IconKind.Help} size={20} staticColor={ThemeVariable.FgMuted} />
+                <Icon
+                  icon={IconKind.Help}
+                  size={20}
+                  staticColor={ThemeVariable.FgMuted}
+                />
               </div>
             </TooltipTrigger>
-            <TooltipContent variant="light">
+            <TooltipContent variant="light" className="posture-check-helper-tooltip">
               <PostureCheckHelper postureCheckId={posture.id} />
             </TooltipContent>
           </TooltipProvider>
@@ -238,47 +240,37 @@ interface PostureCheckHelperProps {
 }
 
 const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
-  const { data: postureCheck } = useSuspenseQuery(getDevicePostureQueryOptions(postureCheckId));
+  const { data: postureCheck } = useSuspenseQuery(
+    getDevicePostureQueryOptions(postureCheckId),
+  );
   const osSections = buildOsSections(postureCheck);
-  return (
-      <div className="posture-check-helper">
-        {postureCheck?.description && (
-          <>
-            <p className="drawer-block drawer-description">{postureCheck.description}</p>
-            <Divider />
-          </>
-        )}
 
-        {osSections.map((section, idx) => (
+  return (
+    <div className="posture-check-helper">
+      <div className="posture-check-helper-sections">
+        {osSections.map((section, index) => (
           <Fragment key={section.name}>
-            {idx > 0 && <Divider />}
-            <div className="drawer-block drawer-os-section">
-              <div className="os-header">
-                <Icon icon={section.icon} />
-                <span className="os-name">{section.name}</span>
-              </div>
-              <div className="os-rows">
-                {section.rows.map((detail) => (
-                  <div key={detail.label} className="os-row">
-                    <span className="os-row-label">{detail.label}</span>
-                    {Array.isArray(detail.value) ? (
-                      <div className="os-row-value-list">
-                        {detail.value.map((item) => (
-                          <span key={item} className="os-row-value">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="os-row-value">{detail.value}</span>
-                    )}
-                  </div>
-                ))}
+            {index > 0 && <Divider />}
+            <div className="posture-check-helper-section">
+              <p className="posture-check-helper-label">{section.name}</p>
+              <div className="posture-check-helper-content">
+                {section.rows
+                  .flatMap((detail) =>
+                    Array.isArray(detail.value) ? detail.value : [detail.value],
+                  )
+                  .map((line, lineIndex) => (
+                    <p
+                      className="posture-check-helper-line"
+                      key={`${section.name}-${lineIndex}`}
+                    >
+                      {line}
+                    </p>
+                  ))}
               </div>
             </div>
           </Fragment>
         ))}
-        {(osSections.length > 0 || postureCheck?.description) && <Divider />}
       </div>
+    </div>
   );
 };
