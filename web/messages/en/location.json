@@ -54,6 +54,7 @@
   "add_location_postures_assign": "Assign posture check to newly created location",
   "add_location_postures_dont_assign": "Don’t add any posture check for location",
   "add_location_postures_create_postures_warning": "You need to create at least one posture check in order to assign it to the location. You can do this in the Posture Checks section and add it to the current location later.",
+  "add_location_postures_enterprise_only": "Posture Checks are available only in the Enterprise plan. You can still create a location now and add Posture Checks later by upgrading your plan.",
   "location_add": "Add Location",
   "location_col_gateway_status": "Gateway status",
   "location_col_gateway_ip": "Gateway IP",

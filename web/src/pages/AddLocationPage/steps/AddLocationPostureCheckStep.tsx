@@ -1,7 +1,7 @@
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { type Dispatch, type SetStateAction, useState } from 'react';
+import { type Dispatch, type SetStateAction, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { ApiDevicePosture } from '../../../shared/api/types';
@@ -22,17 +22,29 @@ import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardSt
 import actionCardImage from '../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseEnterpriseFeature } from '../../../shared/utils/license';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import businessFeatureCardImage from '../assets/business-feature-icon.png';
+import { externalLink } from '../../../shared/constants';
 
 export const AddLocationPostureCheckStep = () => {
   const [addPostures, setAddPostures] = useState(false);
   const [showGateway, setShowGateway] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: postures } = useSuspenseQuery({
     queryFn: api.devicePosture.getDevicePostures,
     queryKey: ['device-posture'],
   });
-  const navigate = useNavigate();
+  const canUseEnterprise =
+    licenseInfo === undefined
+      ? undefined
+      : canUseEnterpriseFeature(licenseInfo).result;
+  const postureLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
   const hasPostures = postures.length > 0;
+  const canAssignPostures = canUseEnterprise === true && hasPostures;
+  const navigate = useNavigate();
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.location.addLocation,
@@ -72,21 +84,42 @@ export const AddLocationPostureCheckStep = () => {
 
   return (
     <WizardCard>
-      {!hasPostures && (
-        <InfoBanner
-          icon="warning-outlined"
-          variant="warning"
-          text={m.add_location_postures_create_postures_warning()}
-        />
+
+      {!canUseEnterprise && (
+        <>
+          <ActionCard
+            imageSrc={businessFeatureCardImage}
+            title=""
+            subtitle={m.add_location_postures_enterprise_only()}
+          >
+            <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+              <Button
+                variant="outlined"
+                text={m.license_see_other_plans()}
+                iconRight="open-in-new-window"
+              />
+            </a>
+          </ActionCard>
+          <Divider spacing={ThemeSpacing.Xl2} />
+        </>
       )}
-      <SizedBox height={ThemeSpacing.Xl2} />
+      {!hasPostures && canUseEnterprise && (
+        <>
+          <InfoBanner
+            icon="warning-outlined"
+            variant="warning"
+            text={m.add_location_postures_create_postures_warning()}
+          />
+          <SizedBox height={ThemeSpacing.Xl2} />
+        </>
+      )}
       <Radio
         active={!addPostures}
         onClick={() => {
           setAddPostures(false);
         }}
         text={m.add_location_postures_dont_assign()}
-        disabled={!hasPostures}
+        disabled={!canAssignPostures}
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
@@ -95,7 +128,7 @@ export const AddLocationPostureCheckStep = () => {
           setAddPostures(true);
         }}
         text={m.add_location_postures_assign()}
-        disabled={!hasPostures}
+        disabled={!canAssignPostures}
       />
       <Fold open={addPostures}>
         <SizedBox height={ThemeSpacing.Xl2} />
