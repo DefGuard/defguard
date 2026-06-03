@@ -1,32 +1,39 @@
+import './style.scss';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
 import { type Dispatch, Fragment, type SetStateAction, useMemo, useState } from 'react';
-import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import type { ApiDevicePosture } from '../../../shared/api/types';
-import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
-import { Card } from '../../../shared/components/Card/Card';
-import { Controls } from '../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
-import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
-import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
-import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
-import actionCardImage from '../assets/gateway-setup-action-card.png';
-import { AddLocationPageStep } from '../types';
-import { useAddLocationStore } from '../useAddLocationStore';
-import { getLicenseInfoQueryOptions } from '../../../shared/query';
-import { canUseEnterpriseFeature } from '../../../shared/utils/license';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import businessFeatureCardImage from '../assets/business-feature-icon.png';
-import { externalLink } from '../../../shared/constants';
+import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
+import type { ApiDevicePosture } from '../../../../shared/api/types';
+import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
+import { Card } from '../../../../shared/components/Card/Card';
+import { Controls } from '../../../../shared/components/Controls/Controls';
+import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
+import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
+import { Helper } from '../../../../shared/defguard-ui/components/Helper/Helper';
+import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
+import { Radio } from '../../../../shared/defguard-ui/components/Radio/Radio';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing, ThemeVariable } from '../../../../shared/defguard-ui/types';
+import { useGatewayWizardStore } from '../../../GatewaySetupPage/useGatewayWizardStore';
+import actionCardImage from '../../assets/gateway-setup-action-card.png';
+import { AddLocationPageStep } from '../../types';
+import { useAddLocationStore } from '../../useAddLocationStore';
+import { getDevicePostureQueryOptions, getLicenseInfoQueryOptions, getLocationsQueryOptions } from '../../../../shared/query';
+import { canUseEnterpriseFeature } from '../../../../shared/utils/license';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import businessFeatureCardImage from '../../assets/business-feature-icon.png';
+import { externalLink } from '../../../../shared/constants';
+import type { PostureCheckRow } from '../../../PostureChecksPage/postureChecks';
+import { buildOsSections } from '../../../../shared/utils/postureInfo';
+import { Icon, IconKind } from '../../../../shared/defguard-ui/components/Icon';
+import { TooltipProvider } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
+import { TooltipContent } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
 
 export const AddLocationPostureCheckStep = () => {
   const [addPostures, setAddPostures] = useState(false);
@@ -202,15 +209,76 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
 
               onChange(next);
             }}
-            helperBlock={
-              <Helper>
-                <p>{m.test_placeholder_extreme()}</p>
-              </Helper>
-            }
           />
+          <TooltipProvider>
+            <TooltipTrigger>
+              <div
+                className="helper"
+                style={{
+                  width: 20,
+                  height: 20,
+                }}
+              >
+                <Icon icon={IconKind.Help} size={20} staticColor={ThemeVariable.FgMuted} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent variant="light">
+              <PostureCheckHelper postureCheckId={posture.id} />
+            </TooltipContent>
+          </TooltipProvider>
           <Divider spacing={ThemeSpacing.Md} />
         </Fragment>
       ))}
     </Card>
+  );
+};
+
+interface PostureCheckHelperProps {
+  postureCheckId: number;
+}
+
+const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
+  const { data: postureCheck } = useSuspenseQuery(getDevicePostureQueryOptions(postureCheckId));
+  const osSections = buildOsSections(postureCheck);
+  return (
+      <div className="posture-check-helper">
+        {postureCheck?.description && (
+          <>
+            <p className="drawer-block drawer-description">{postureCheck.description}</p>
+            <Divider />
+          </>
+        )}
+
+        {osSections.map((section, idx) => (
+          <Fragment key={section.name}>
+            {idx > 0 && <Divider />}
+            <div className="drawer-block drawer-os-section">
+              <div className="os-header">
+                <Icon icon={section.icon} />
+                <span className="os-name">{section.name}</span>
+              </div>
+              <div className="os-rows">
+                {section.rows.map((detail) => (
+                  <div key={detail.label} className="os-row">
+                    <span className="os-row-label">{detail.label}</span>
+                    {Array.isArray(detail.value) ? (
+                      <div className="os-row-value-list">
+                        {detail.value.map((item) => (
+                          <span key={item} className="os-row-value">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="os-row-value">{detail.value}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Fragment>
+        ))}
+        {(osSections.length > 0 || postureCheck?.description) && <Divider />}
+      </div>
   );
 };

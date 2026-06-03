@@ -12,7 +12,7 @@ import { AddLocationFirewallStep } from './steps/AddLocationFirewallStep';
 import { AddLocationInternalVpnStep } from './steps/AddLocationInternalVpnStep';
 import { AddLocationMfaStep } from './steps/AddLocationMfaStep';
 import { AddLocationNetworkStep } from './steps/AddLocationNetworkStep';
-import { AddLocationPostureCheckStep } from './steps/AddLocationPostureCheckStep';
+import { AddLocationPostureCheckStep } from './steps/AddLocationPostureCheckStep/AddLocationPostureCheckStep';
 import { AddLocationServiceStep } from './steps/AddLocationServiceStep';
 import { AddLocationStartStep } from './steps/AddLocationStartStep';
 import { AddLocationWelcomeStep } from './steps/AddLocationWelcomeStep';
