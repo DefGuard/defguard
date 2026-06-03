@@ -35,7 +35,7 @@ use crate::{
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
         is_business_license_active, is_enterprise_license_active,
-        license::get_cached_license,
+        license::{LicenseError, get_cached_license},
         limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -272,10 +272,16 @@ pub(crate) async fn create_network(
         "Assigning posture checks {:?} to {network}",
         data.posture_checks
     );
+    if !is_enterprise_license_active() && !data.posture_checks.is_empty() {
+        error!(
+            "Cannot assign posture checks to new location {network}: Enterprise license required."
+        );
+        return Ok(WebError::Forbidden("License limit reached").into());
+    }
     DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
         .await?;
     info!(
-        "Assigned posture checks {:?} to {network}",
+        "Assigned posture checks {:?} to new location {network}",
         data.posture_checks
     );
 
