@@ -242,20 +242,20 @@ const PostureCheckTooltip = ({ postureCheckId }: PostureCheckHelperProps) => {
         </div>
       </TooltipTrigger>
       <TooltipContent variant="light" className="posture-tooltip">
-        <div className="posture-tooltip-content">
+        <div className="content">
           {osSections.map((section, index) => (
             <Fragment key={section.name}>
               {index > 0 && <Divider />}
-              <div className="posture-tooltip-section">
-                <p className="posture-tooltip-label">{section.name}</p>
-                <div className="posture-tooltip-lines">
+              <div className="section">
+                <p className="label">{section.name}</p>
+                <div className="lines">
                   {section.rows
                     .flatMap((detail) =>
                       Array.isArray(detail.value) ? detail.value : [detail.value],
                     )
                     .map((line, lineIndex) => (
                       <p
-                        className="posture-tooltip-line"
+                        className="line"
                         data-primary={lineIndex === 0}
                         key={`${section.name}-${lineIndex}`}
                       >

@@ -13,31 +13,31 @@
   max-width: 356px;
   padding: var(--spacing-md) var(--spacing-lg);
 
-  > .posture-tooltip-content {
+  > .content {
     display: flex;
     flex-flow: column;
     row-gap: var(--spacing-md);
 
-    > .posture-tooltip-section {
+    > .section {
       display: flex;
       flex-flow: row nowrap;
       align-items: flex-start;
       justify-content: space-between;
 
-      > .posture-tooltip-label {
+      > .label {
         flex: 0 0 100px;
         margin: 0;
         color: var(--fg-faded);
         font: var(--t-body-xs-400);
       }
 
-      > .posture-tooltip-lines {
+      > .lines {
         display: flex;
         flex: 0 0 230px;
         flex-flow: column;
         row-gap: var(--spacing-xs);
 
-        > .posture-tooltip-line {
+        > .line {
           margin: 0;
           color: var(--fg-muted);
           font: var(--t-body-xs-400);
