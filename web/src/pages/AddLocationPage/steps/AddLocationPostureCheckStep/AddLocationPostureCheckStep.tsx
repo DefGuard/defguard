@@ -224,7 +224,7 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
                 />
               </div>
             </TooltipTrigger>
-            <TooltipContent variant="light" className="posture-check-helper-tooltip">
+            <TooltipContent variant="light" className="posture-tooltip">
               <PostureCheckHelper postureCheckId={posture.id} />
             </TooltipContent>
           </TooltipProvider>
@@ -246,30 +246,30 @@ const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
   const osSections = buildOsSections(postureCheck);
 
   return (
-    <div className="posture-check-helper">
-        {osSections.map((section, index) => (
-          <Fragment key={section.name}>
-            {index > 0 && <Divider />}
-            <div className="posture-check-helper-section">
-              <p className="posture-check-helper-label">{section.name}</p>
-              <div className="posture-check-helper-content">
-                {section.rows
-                  .flatMap((detail) =>
-                    Array.isArray(detail.value) ? detail.value : [detail.value],
-                  )
-                  .map((line, lineIndex) => (
-                    <p
-                      className="posture-check-helper-line"
-                      data-primary={lineIndex === 0}
-                      key={`${section.name}-${lineIndex}`}
-                    >
-                      {line}
-                    </p>
-                  ))}
-              </div>
+    <div className="posture-tooltip-content">
+      {osSections.map((section, index) => (
+        <Fragment key={section.name}>
+          {index > 0 && <Divider />}
+          <div className="posture-tooltip-section">
+            <p className="posture-tooltip-label">{section.name}</p>
+            <div className="posture-tooltip-lines">
+              {section.rows
+                .flatMap((detail) =>
+                  Array.isArray(detail.value) ? detail.value : [detail.value],
+                )
+                .map((line, lineIndex) => (
+                  <p
+                    className="posture-tooltip-line"
+                    data-primary={lineIndex === 0}
+                    key={`${section.name}-${lineIndex}`}
+                  >
+                    {line}
+                  </p>
+                ))}
             </div>
-          </Fragment>
-        ))}
+          </div>
+        </Fragment>
+      ))}
     </div>
   );
 };
