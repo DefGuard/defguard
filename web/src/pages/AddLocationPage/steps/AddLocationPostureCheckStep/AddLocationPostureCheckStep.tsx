@@ -247,7 +247,6 @@ const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
 
   return (
     <div className="posture-check-helper">
-      <div className="posture-check-helper-sections">
         {osSections.map((section, index) => (
           <Fragment key={section.name}>
             {index > 0 && <Divider />}
@@ -261,6 +260,7 @@ const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
                   .map((line, lineIndex) => (
                     <p
                       className="posture-check-helper-line"
+                      data-primary={lineIndex === 0}
                       key={`${section.name}-${lineIndex}`}
                     >
                       {line}
@@ -270,7 +270,6 @@ const PostureCheckHelper = ({ postureCheckId }: PostureCheckHelperProps) => {
             </div>
           </Fragment>
         ))}
-      </div>
     </div>
   );
 };
