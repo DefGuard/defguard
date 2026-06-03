@@ -265,8 +265,6 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
-
     // assign posture checks
     if let Some(ref posture_checks) = data.posture_checks {
         debug!("Assigning posture checks {posture_checks:?} to {network}");
@@ -285,6 +283,8 @@ pub(crate) async fn create_network(
     }
 
     transaction.commit().await?;
+
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
 
     info!(
         "User {} created WireGuard network {network_name}",
