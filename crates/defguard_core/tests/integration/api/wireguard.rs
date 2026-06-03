@@ -88,6 +88,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
+        posture_checks: None,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -230,6 +231,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::External,
         service_location_mode: ServiceLocationMode::Disabled,
+        posture_checks: None,
     };
 
     // create network
@@ -316,6 +318,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
+        posture_checks: None,
     };
 
     // create network
@@ -420,6 +423,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
+        posture_checks: None,
     };
 
     let response = client
@@ -476,6 +480,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         allowed_ips_from_acl: false,
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
+        posture_checks: None,
     };
 
     let response = client
