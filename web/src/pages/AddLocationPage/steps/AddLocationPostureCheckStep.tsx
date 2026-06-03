@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { type Dispatch, type SetStateAction, useMemo, useState } from 'react';
+import { type Dispatch, Fragment, type SetStateAction, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { ApiDevicePosture } from '../../../shared/api/types';
@@ -186,12 +186,10 @@ interface PostureSelectionProps {
 }
 const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProps) => {
   return (
-    <Card>
-      {postures.map((posture) => (
-        <>
-          <SizedBox height={ThemeSpacing.Xl2} />
+    <Card className='posture-selection'>
+      {postures.map((posture, index) => (
+        <Fragment key={posture.id}>
           <Checkbox
-            key={posture.id}
             active={selected.has(posture.id)}
             text={posture.name}
             onClick={() => {
@@ -210,7 +208,8 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
               </Helper>
             }
           />
-        </>
+          <Divider spacing={ThemeSpacing.Md} />
+        </Fragment>
       ))}
     </Card>
   );
