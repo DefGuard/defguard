@@ -400,6 +400,7 @@ export interface MfaFinishResponse {
 
 export const WebErrorCode = {
   NetworkFull: 'network_full',
+  UserGroupsNotSynced: 'user_groups_not_synced',
 } as const;
 
 export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
