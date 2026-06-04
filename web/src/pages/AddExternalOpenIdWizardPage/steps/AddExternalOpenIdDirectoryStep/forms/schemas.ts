@@ -34,6 +34,7 @@ export const googleProviderSyncSchema = baseExternalProviderSyncSchema.extend({
 export const microsoftProviderSyncSchema = baseExternalProviderSyncSchema.extend({
   prefetch_users: z.boolean(),
   directory_sync_group_match: z.string().trim(),
+  directory_sync_user_groups: z.string().trim(),
 });
 
 export const oktaProviderSyncSchema = baseExternalProviderSyncSchema.extend({

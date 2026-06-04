@@ -42,6 +42,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
       directory_sync_target: providerState.directory_sync_target,
       directory_sync_user_behavior: providerState.directory_sync_user_behavior,
       prefetch_users: providerState.prefetch_users,
+      directory_sync_user_groups: joinCsv(providerState.directory_sync_user_groups),
     }),
     [providerState],
   );
@@ -57,6 +58,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
       await onSubmit({
         ...value,
         directory_sync_group_match: value.directory_sync_group_match ?? '',
+        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
       });
     },
   });
@@ -131,6 +133,15 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="directory_sync_user_groups">
+            {(field) => (
+              <field.FormInput
+                label={m.settings_openid_provider_label_sync_users_from_groups()}
+                helper={m.settings_openid_provider_helper_sync_users_from_groups()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <Divider />
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="prefetch_users">
@@ -146,6 +157,8 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
               ...form.state.values,
               directory_sync_group_match:
                 form.state.values.directory_sync_group_match ?? '',
+              directory_sync_user_groups:
+                form.state.values.directory_sync_user_groups ?? '',
             });
           }}
           onNext={() => {
@@ -153,6 +166,8 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
               ...form.state.values,
               directory_sync_group_match:
                 form.state.values.directory_sync_group_match ?? '',
+              directory_sync_user_groups:
+                form.state.values.directory_sync_user_groups ?? '',
             });
           }}
         />

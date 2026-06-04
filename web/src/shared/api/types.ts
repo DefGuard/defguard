@@ -1181,6 +1181,7 @@ export interface OpenIdProvider {
   directory_sync_group_match?: string[] | null;
   jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
+  directory_sync_user_groups?: string[] | null;
 }
 
 export interface OpenIdProviders {
@@ -1192,10 +1193,11 @@ export type OpenIdProvidersResponse = OpenIdProviders | undefined;
 
 export type AddOpenIdProvider = Omit<
   OpenIdProvider,
-  'id' | 'directory_sync_group_match'
+  'id' | 'directory_sync_group_match' | 'directory_sync_user_groups'
 > &
   OpenIdProviderSettings & {
     directory_sync_group_match?: string | null;
+    directory_sync_user_groups?: string | null;
   };
 
 export interface TestDirectorySyncResponse {
