@@ -29,8 +29,8 @@ const basicSchema = z
       .string(m.form_error_required())
       .trim()
       .min(1, m.form_error_required()),
-    directory_sync_group_match: z.string().trim().optional(),
-    directory_sync_user_groups: z.string().trim().optional(),
+    directory_sync_group_match: z.string().trim().nullable(),
+    directory_sync_user_groups: z.string().trim().nullable(),
   })
   .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
 
