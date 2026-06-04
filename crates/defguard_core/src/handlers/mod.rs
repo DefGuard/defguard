@@ -66,6 +66,7 @@ pub(crate) mod yubikey;
 #[serde(rename_all = "snake_case")]
 pub enum WebErrorCode {
     NetworkFull,
+    UserGroupsNotSynced,
 }
 
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -288,6 +289,13 @@ impl From<WebError> for ApiResponse {
                 ApiResponse::new(
                     json!({"msg": msg, "code": WebErrorCode::NetworkFull}),
                     StatusCode::BAD_REQUEST,
+                )
+            }
+            WebError::UserGroupsNotSynced(msg) => {
+                warn!(msg);
+                ApiResponse::new(
+                    json!({"msg": msg, "code": WebErrorCode::UserGroupsNotSynced}),
+                    StatusCode::UNAUTHORIZED,
                 )
             }
             WebError::TemplateError(err) => {
