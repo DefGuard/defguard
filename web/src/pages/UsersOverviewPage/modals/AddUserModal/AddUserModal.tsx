@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
@@ -516,7 +516,7 @@ const AddUserGroupsSelectionStep = () => {
   const user = useAddUserModal((s) => s.user as User);
   const [selected, setSelected] = useState(new Set<string>());
 
-  const handleStepFinish = () => {
+  const handleStepFinish = useCallback(() => {
     if (enrollEnabled) {
       useAddUserModal.setState({
         step: 'enrollment',
@@ -526,16 +526,14 @@ const AddUserGroupsSelectionStep = () => {
         isOpen: false,
       });
     }
-  };
+  }, [enrollEnabled]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.group.addUsersToGroups,
     meta: {
       invalidate: [['group'], ['group-info'], ['user']],
     },
-    onSuccess: () => {
-      handleStepFinish();
-    },
+    onSuccess: handleStepFinish,
   });
 
   const options = useMemo(
