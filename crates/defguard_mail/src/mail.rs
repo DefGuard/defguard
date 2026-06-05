@@ -2,7 +2,10 @@ use std::{str::FromStr, time::Duration};
 
 use defguard_common::db::models::{
     MFAMethod, Settings,
-    settings::{defaults::WELCOME_EMAIL_SUBJECT, smtp::SmtpEncryption, smtp::SmtpSettings},
+    settings::{
+        defaults::WELCOME_EMAIL_SUBJECT,
+        smtp::{SmtpAuthentication, SmtpEncryption, SmtpSettings},
+    },
 };
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
@@ -229,7 +232,7 @@ impl Mail {
             return Err(MailError::SmtpNotConfigured);
         };
 
-        let builder = match smtp_settings.encryption {
+        let mut builder = match smtp_settings.encryption {
             SmtpEncryption::None => Builder::builder_dangerous(server),
             SmtpEncryption::StartTls => Builder::starttls_relay(server)?,
             SmtpEncryption::ImplicitTls => Builder::relay(server)?,
@@ -238,21 +241,32 @@ impl Mail {
         .timeout(Some(SMTP_TIMEOUT));
 
         // Skip credentials if any of them is empty.
-        let builder = if smtp_settings.use_xoauth2 {
-            let code = obtain_access_token(&mut smtp_settings).await?;
-            let Some(sender) = smtp_settings.sender else {
-                error!("XOAUTH2 requires sender email address");
-                return Err(MailError::SmtpNotConfigured);
-            };
-            builder
-                .authentication(vec![Mechanism::Xoauth2])
-                .credentials(Credentials::new(sender, code))
-        } else if let (Some(user), Some(password)) = (smtp_settings.user, smtp_settings.password) {
-            builder.credentials(Credentials::new(user, password.expose_secret().into()))
-        } else {
-            debug!("SMTP credentials were not provided, skipping username/password authentication");
-            builder
-        };
+        match smtp_settings.authentication {
+            SmtpAuthentication::None => {
+                debug!(
+                    "SMTP credentials were not provided, skipping username/password authentication"
+                );
+            }
+            SmtpAuthentication::Login => {
+                let (Some(user), Some(password)) = (smtp_settings.user, smtp_settings.password)
+                else {
+                    error!("LOGIN requires username and password");
+                    return Err(MailError::SmtpNotConfigured);
+                };
+                builder =
+                    builder.credentials(Credentials::new(user, password.expose_secret().into()));
+            }
+            SmtpAuthentication::XOAuth2 => {
+                let code = obtain_access_token(&mut smtp_settings).await?;
+                let Some(sender) = smtp_settings.sender else {
+                    error!("XOAUTH2 requires sender email address");
+                    return Err(MailError::SmtpNotConfigured);
+                };
+                builder = builder
+                    .authentication(vec![Mechanism::Xoauth2])
+                    .credentials(Credentials::new(sender, code));
+            }
+        }
 
         Ok(builder.build())
     }

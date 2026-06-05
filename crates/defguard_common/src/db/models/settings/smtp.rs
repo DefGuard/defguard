@@ -8,6 +8,15 @@ use super::deserialize_optional_field;
 use crate::secret::SecretStringWrapper;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
+#[sqlx(type_name = "smtp_authentication", rename_all = "lowercase")]
+pub enum SmtpAuthentication {
+    #[default]
+    None,
+    Login,
+    XOAuth2,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
 pub enum SmtpEncryption {
     #[default]
@@ -53,10 +62,10 @@ pub struct SmtpSettings {
     pub sender: Option<String>,
 
     // For XOAUTH2 authentication.
-    #[serde(rename = "smtp_use_xoauth2")]
-    #[sqlx(rename = "smtp_use_xoauth2")]
-    #[patch(attribute(serde(rename = "smtp_use_xoauth2")))]
-    pub use_xoauth2: bool,
+    #[serde(rename = "smtp_authentication")]
+    #[sqlx(rename = "smtp_authentication")]
+    #[patch(attribute(serde(rename = "smtp_authentication")))]
+    pub authentication: SmtpAuthentication,
     #[serde(rename = "smtp_oauth_issuer_url")]
     #[sqlx(rename = "smtp_oauth_issuer_url")]
     #[patch(attribute(serde(rename = "smtp_oauth_issuer_url")))]
@@ -107,6 +116,7 @@ impl fmt::Debug for SmtpSettings {
             .field("encryption", &self.encryption)
             .field("user", &self.user)
             .field("sender", &self.sender)
+            .field("authentication", &self.authentication)
             .field("oauth_issuer_url", &self.oauth_issuer_url)
             .field("oauth_client_id", &self.oauth_client_id)
             .finish_non_exhaustive()

@@ -20,7 +20,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::WebauthnBuilder;
 
-use self::smtp::{SmtpEncryption, SmtpSettings, SmtpSettingsPatch};
+use self::smtp::{SmtpAuthentication, SmtpEncryption, SmtpSettings, SmtpSettingsPatch};
 use crate::{
     config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
 };
@@ -479,8 +479,8 @@ impl Settings {
         query_as(
             "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, \
             challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
-            smtp_port, smtp_encryption, smtp_user, smtp_password, \
-            smtp_sender, smtp_oauth_issuer_url, smtp_oauth_client_id, \
+            smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
+            smtp_authentication, smtp_oauth_issuer_url, smtp_oauth_client_id, \
             smtp_oauth_client_secret, smtp_oauth_refresh_token, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
@@ -570,63 +570,64 @@ impl Settings {
             smtp_user = $12, \
             smtp_password = $13, \
             smtp_sender = $14, \
-            smtp_oauth_issuer_url = $15, \
-            smtp_oauth_client_id = $16, \
-            smtp_oauth_client_secret = $17, \
-            smtp_oauth_refresh_token = $18, \
-            enrollment_vpn_step_optional = $19, \
-            enrollment_welcome_message = $20, \
-            enrollment_welcome_email = $21, \
-            enrollment_welcome_email_subject = $22, \
-            enrollment_use_welcome_message_as_email = $23, \
-            enrollment_send_welcome_email = $24, \
-            uuid = $25, \
-            ldap_url = $26, \
-            ldap_bind_username = $27, \
-            ldap_bind_password  = $28, \
-            ldap_group_search_base = $29, \
-            ldap_user_search_base = $30, \
-            ldap_user_obj_class = $31, \
-            ldap_group_obj_class = $32, \
-            ldap_username_attr = $33, \
-            ldap_groupname_attr = $34, \
-            ldap_group_member_attr = $35, \
-            ldap_member_attr = $36, \
-            ldap_use_starttls = $37, \
-            ldap_tls_verify_cert = $38, \
-            openid_create_account = $39, \
-            license = $40, \
-            gateway_disconnect_notifications_enabled = $41, \
-            gateway_disconnect_notifications_inactivity_threshold = $42, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $43, \
-            ldap_sync_status = $44, \
-            ldap_enabled = $45, \
-            ldap_sync_enabled = $46, \
-            ldap_is_authoritative = $47, \
-            ldap_sync_interval = $48, \
-            ldap_user_auxiliary_obj_classes = $49, \
-            ldap_uses_ad = $50, \
-            ldap_user_rdn_attr = $51, \
-            ldap_sync_groups = $52, \
-            ldap_remote_enrollment_enabled = $53, \
-            ldap_remote_enrollment_send_invite = $54, \
-            openid_username_handling = $55, \
-            defguard_url = $56, \
-            default_admin_group_name = $57, \
-            authentication_period_days = $58, \
-            mfa_code_timeout_seconds = $59, \
-            public_proxy_url = $60, \
-            default_admin_id = $61, \
-            secret_key = $62, \
-            openid_signing_key_der = $63, \
-            enable_stats_purge = $64, \
-            stats_purge_frequency_hours = $65, \
-            stats_purge_threshold_days = $66, \
-            enrollment_token_timeout_hours = $67, \
-            password_reset_token_timeout_hours = $68, \
-            enrollment_session_timeout_minutes = $69, \
-            password_reset_session_timeout_minutes = $70, \
-            ldap_sync_account_status = $71 \
+            smtp_authentication = $15, \
+            smtp_oauth_issuer_url = $16, \
+            smtp_oauth_client_id = $17, \
+            smtp_oauth_client_secret = $18, \
+            smtp_oauth_refresh_token = $19, \
+            enrollment_vpn_step_optional = $20, \
+            enrollment_welcome_message = $21, \
+            enrollment_welcome_email = $22, \
+            enrollment_welcome_email_subject = $23, \
+            enrollment_use_welcome_message_as_email = $24, \
+            enrollment_send_welcome_email = $25, \
+            uuid = $26, \
+            ldap_url = $27, \
+            ldap_bind_username = $28, \
+            ldap_bind_password  = $29, \
+            ldap_group_search_base = $30, \
+            ldap_user_search_base = $31, \
+            ldap_user_obj_class = $32, \
+            ldap_group_obj_class = $33, \
+            ldap_username_attr = $34, \
+            ldap_groupname_attr = $35, \
+            ldap_group_member_attr = $36, \
+            ldap_member_attr = $37, \
+            ldap_use_starttls = $38, \
+            ldap_tls_verify_cert = $39, \
+            openid_create_account = $40, \
+            license = $41, \
+            gateway_disconnect_notifications_enabled = $42, \
+            gateway_disconnect_notifications_inactivity_threshold = $43, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $44, \
+            ldap_sync_status = $45, \
+            ldap_enabled = $46, \
+            ldap_sync_enabled = $47, \
+            ldap_is_authoritative = $48, \
+            ldap_sync_interval = $49, \
+            ldap_user_auxiliary_obj_classes = $50, \
+            ldap_uses_ad = $51, \
+            ldap_user_rdn_attr = $52, \
+            ldap_sync_groups = $53, \
+            ldap_remote_enrollment_enabled = $54, \
+            ldap_remote_enrollment_send_invite = $55, \
+            openid_username_handling = $56, \
+            defguard_url = $57, \
+            default_admin_group_name = $58, \
+            authentication_period_days = $59, \
+            mfa_code_timeout_seconds = $60, \
+            public_proxy_url = $61, \
+            default_admin_id = $62, \
+            secret_key = $63, \
+            openid_signing_key_der = $64, \
+            enable_stats_purge = $65, \
+            stats_purge_frequency_hours = $66, \
+            stats_purge_threshold_days = $67, \
+            enrollment_token_timeout_hours = $68, \
+            password_reset_token_timeout_hours = $69, \
+            enrollment_session_timeout_minutes = $70, \
+            password_reset_session_timeout_minutes = $71, \
+            ldap_sync_account_status = $72 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -642,6 +643,7 @@ impl Settings {
             self.smtp.user,
             &self.smtp.password as &Option<SecretStringWrapper>,
             self.smtp.sender,
+            &self.smtp.authentication as &SmtpAuthentication,
             self.smtp.oauth_issuer_url,
             self.smtp.oauth_client_id,
             &self.smtp.oauth_client_secret as &Option<SecretStringWrapper>,
@@ -821,37 +823,37 @@ impl Settings {
 
     #[must_use]
     pub fn authentication_timeout(&self) -> Duration {
-        Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
+        Duration::from_hours(self.authentication_period_days as u64 * 24)
     }
 
     #[must_use]
     pub fn stats_purge_frequency(&self) -> Duration {
-        Duration::from_secs(self.stats_purge_frequency_hours as u64 * 3600)
+        Duration::from_hours(self.stats_purge_frequency_hours as u64)
     }
 
     #[must_use]
     pub fn stats_purge_threshold(&self) -> Duration {
-        Duration::from_secs(self.stats_purge_threshold_days as u64 * 24 * 3600)
+        Duration::from_hours(self.stats_purge_threshold_days as u64 * 24)
     }
 
     #[must_use]
     pub fn enrollment_token_timeout(&self) -> Duration {
-        Duration::from_secs(self.enrollment_token_timeout_hours as u64 * 3600)
+        Duration::from_hours(self.enrollment_token_timeout_hours as u64)
     }
 
     #[must_use]
     pub fn password_reset_token_timeout(&self) -> Duration {
-        Duration::from_secs(self.password_reset_token_timeout_hours as u64 * 3600)
+        Duration::from_hours(self.password_reset_token_timeout_hours as u64)
     }
 
     #[must_use]
     pub fn enrollment_session_timeout(&self) -> Duration {
-        Duration::from_secs(self.enrollment_session_timeout_minutes as u64 * 60)
+        Duration::from_mins(self.enrollment_session_timeout_minutes as u64)
     }
 
     #[must_use]
     pub fn password_reset_session_timeout(&self) -> Duration {
-        Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
+        Duration::from_mins(self.password_reset_session_timeout_minutes as u64)
     }
 
     pub fn secret_key_required(&self) -> Result<&str, SettingsInitializationError> {

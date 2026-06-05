@@ -6,7 +6,10 @@ use defguard_common::{
     db::{
         models::{
             MFAMethod, Settings,
-            settings::{initialize_current_settings, set_settings, smtp::SmtpEncryption},
+            settings::{
+                initialize_current_settings, set_settings,
+                smtp::{SmtpAuthentication, SmtpEncryption},
+            },
         },
         setup_pool,
     },
@@ -55,12 +58,13 @@ async fn set_smtp_settings(pool: &PgPool) {
             SecretStringWrapper::from_str(&env::var("SMTP_OAUTH_CLIENT_SECRET").unwrap()).unwrap(),
         );
         settings.smtp.oauth_refresh_token = Some(refresh_token);
-        settings.smtp.use_xoauth2 = true;
+        settings.smtp.authentication = SmtpAuthentication::XOAuth2;
     } else {
         settings.smtp.user = env::var("SMTP_USER").ok();
         settings.smtp.password =
             Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
         settings.smtp.encryption = SmtpEncryption::StartTls;
+        settings.smtp.authentication = SmtpAuthentication::Login;
     }
     settings.smtp.sender = env::var("SMTP_FROM").ok();
     set_settings(Some(settings));
