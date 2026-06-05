@@ -907,9 +907,9 @@ pub(crate) async fn send_code_mfa_setup_finish(
 
 /// Set minimal SMTP fields on a [`Settings`] so that `smtp_configured()` returns `true`.
 pub(crate) fn configure_smtp(settings: &mut Settings) {
-    settings.smtp_server = Some("smtp.example.com".into());
-    settings.smtp_port = Some(587);
-    settings.smtp_sender = Some("noreply@example.com".into());
+    settings.smtp.server = Some("smtp.example.com".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("noreply@example.com".into());
 }
 
 /// Set minimal LDAP fields on a [`Settings`] so that `ldap_configured()` returns `true`.

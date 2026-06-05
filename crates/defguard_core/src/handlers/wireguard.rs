@@ -908,19 +908,17 @@ pub(crate) async fn add_device(
     // if they have ACL enabled & enterprise features are active
     for location_id in affected_location_ids {
         if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
-        {
-            if let Some(firewall_config) =
+            && let Some(firewall_config) =
                 try_get_location_firewall_config(&location, &mut transaction).await?
-            {
-                debug!(
-                    "Sending firewall config update for location {location} affected by adding new \
+        {
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new \
                     user {username} devices"
-                );
-                events.push(GatewayCommand::FirewallConfigChanged(
-                    location_id,
-                    firewall_config,
-                ));
-            }
+            );
+            events.push(GatewayCommand::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
         }
     }
 
@@ -1203,18 +1201,16 @@ pub(crate) async fn delete_device(
     for info in &device_info.network_info {
         if let Some(location) =
             WireguardNetwork::find_by_id(&mut *transaction, info.network_id).await?
-        {
-            if let Some(firewall_config) =
+            && let Some(firewall_config) =
                 try_get_location_firewall_config(&location, &mut transaction).await?
-            {
-                debug!(
-                    "Sending firewall config update for location {location} affected by deleting user {username} device"
-                );
-                events.push(GatewayCommand::FirewallConfigChanged(
-                    location.id,
-                    firewall_config,
-                ));
-            }
+        {
+            debug!(
+                "Sending firewall config update for location {location} affected by deleting user {username} device"
+            );
+            events.push(GatewayCommand::FirewallConfigChanged(
+                location.id,
+                firewall_config,
+            ));
         }
     }
 

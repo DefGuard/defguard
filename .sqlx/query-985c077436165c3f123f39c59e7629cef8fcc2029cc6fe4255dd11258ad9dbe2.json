@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending FROM \"user\" WHERE ldap_user_path IS NULL\n            ",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending FROM \"user\" WHERE ldap_user_path IS NULL",
   "describe": {
     "columns": [
       {
@@ -154,5 +154,5 @@
       false
     ]
   },
-  "hash": "76553e0ae70872ba36db324a5e2b19f0b841e426d876eba72ae5c4f5b5b54513"
+  "hash": "985c077436165c3f123f39c59e7629cef8fcc2029cc6fe4255dd11258ad9dbe2"
 }

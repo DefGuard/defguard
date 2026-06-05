@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{Settings, User},
 };
 use ldap3::{Mod, ResultEntry, SearchEntry};
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, query_as};
 
 use super::{
     LDAPConfig,
@@ -76,10 +76,11 @@ pub(crate) fn user_from_searchentry(
     );
     user.from_ldap = true;
     // Missing/unparseable userAccountControl falls through with the User::new default (active).
-    if config.ldap_uses_ad && config.ldap_sync_account_status {
-        if let Some(uac) = uac_from_entry(entry) {
-            user.is_active = uac_is_active(uac);
-        }
+    if config.ldap_uses_ad
+        && config.ldap_sync_account_status
+        && let Some(uac) = uac_from_entry(entry)
+    {
+        user.is_active = uac_is_active(uac);
     }
     if let Some(rdn) = extract_rdn_value(&entry.dn) {
         user.ldap_rdn = Some(rdn);
@@ -239,10 +240,10 @@ pub(crate) fn user_as_ldap_attrs<'a, I>(
             attrs.push(("uid", hashset![user.username.as_str()]));
         }
 
-        if let Some(phone) = &user.phone {
-            if !phone.is_empty() {
-                attrs.push(("mobile", hashset![phone.as_str()]));
-            }
+        if let Some(phone) = &user.phone
+            && !phone.is_empty()
+        {
+            attrs.push(("mobile", hashset![phone.as_str()]));
         }
     }
     if object_classes.contains(UserObjectClass::SimpleSecurityObject.name()) {
@@ -309,15 +310,13 @@ pub(super) async fn get_users_without_ldap_path<'e, E>(executor: E) -> sqlx::Res
 where
     E: PgExecutor<'e>,
 {
-    sqlx::query_as!(
+    query_as!(
         User,
-        "
-            SELECT id, username, password_hash, last_name, first_name, email, phone, \
-            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
-            FROM \"user\" WHERE ldap_user_path IS NULL
-            ",
+        "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+        mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+        mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+        from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
+        FROM \"user\" WHERE ldap_user_path IS NULL",
     )
     .fetch_all(executor)
     .await

@@ -84,9 +84,9 @@ fn enable_secure_enrollment() {
     let mut settings = Settings::get_current_settings();
     settings.ldap_remote_enrollment_enabled = true;
     settings.ldap_remote_enrollment_send_invite = true;
-    settings.smtp_server = Some("smtp.example.com".into());
-    settings.smtp_port = Some(587);
-    settings.smtp_sender = Some("noreply@test.defguard".into());
+    settings.smtp.server = Some("smtp.example.com".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("noreply@test.defguard".into());
     settings.public_proxy_url = "http://proxy.example.com".into();
     set_settings(Some(settings));
 }

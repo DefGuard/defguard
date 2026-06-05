@@ -75,10 +75,9 @@ fn field_type(ty: &Type) -> Option<&Ident> {
         path: Path { segments, .. },
         ..
     }) = ty
+        && let Some(segment) = segments.last()
     {
-        if let Some(segment) = segments.last() {
-            return Some(&segment.ident);
-        }
+        return Some(&segment.ident);
     }
     None
 }
@@ -88,16 +87,14 @@ fn option_field_type(ty: &Type) -> Option<&Ident> {
         path: Path { segments, .. },
         ..
     }) = ty
+        && let Some(segment) = segments.last()
+        && segment.ident == "Option"
     {
-        if let Some(segment) = segments.last() {
-            if segment.ident == "Option" {
-                // Extract the generic arguments
-                if let PathArguments::AngleBracketed(args) = &segment.arguments {
-                    // Get the first generic argument (the T in Option<T>)
-                    if let Some(GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return field_type(inner_ty);
-                    }
-                }
+        // Extract the generic arguments
+        if let PathArguments::AngleBracketed(args) = &segment.arguments {
+            // Get the first generic argument (the T in Option<T>)
+            if let Some(GenericArgument::Type(inner_ty)) = args.args.first() {
+                return field_type(inner_ty);
             }
         }
     }

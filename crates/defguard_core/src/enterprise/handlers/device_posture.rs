@@ -485,13 +485,13 @@ fn apply_device_posture_filters(
 /// Returns `Err(WebError::BadRequest(...))` if `min_client_version` is set to
 /// a value not present in [`CLIENT_VERSIONS`].
 fn validate_device_posture_base(data: &EditDevicePosture) -> Result<(), WebError> {
-    if let Some(ref version) = data.min_client_version {
-        if !CLIENT_VERSIONS.contains(&version.as_str()) {
-            return Err(WebError::BadRequest(format!(
-                "Unknown client version '{version}'. Valid values: {}",
-                CLIENT_VERSIONS.join(", ")
-            )));
-        }
+    if let Some(ref version) = data.min_client_version
+        && !CLIENT_VERSIONS.contains(&version.as_str())
+    {
+        return Err(WebError::BadRequest(format!(
+            "Unknown client version '{version}'. Valid values: {}",
+            CLIENT_VERSIONS.join(", ")
+        )));
     }
     validate_device_posture_os_rules(&data.os_rules)
 }

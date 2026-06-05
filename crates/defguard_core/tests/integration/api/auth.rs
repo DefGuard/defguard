@@ -432,9 +432,9 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
 
     // add dummy SMTP settings
     let mut settings = Settings::get_current_settings();
-    settings.smtp_server = Some("smtp_server".into());
-    settings.smtp_port = Some(587);
-    settings.smtp_sender = Some("smtp@sender.pl".into());
+    settings.smtp.server = Some("smtp_server".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("smtp@sender.pl".into());
     update_current_settings(&pool, settings).await.unwrap();
 
     // initialize email MFA setup
@@ -579,9 +579,9 @@ async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnect
 
     // add dummy SMTP settings
     let mut settings = Settings::get_current_settings();
-    settings.smtp_server = Some("smtp_server".into());
-    settings.smtp_port = Some(587);
-    settings.smtp_sender = Some("smtp@sender.pl".into());
+    settings.smtp.server = Some("smtp_server".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("smtp@sender.pl".into());
     update_current_settings(&pool, settings).await.unwrap();
 
     // initialize email MFA setup

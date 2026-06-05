@@ -12,6 +12,7 @@ defguard_common.workspace = true
 
 chrono.workspace = true
 lettre.workspace = true
+openidconnect.workspace = true
 pulldown-cmark.workspace = true
 reqwest.workspace = true
 serde.workspace = true
@@ -23,10 +24,10 @@ tokio.workspace = true
 tracing.workspace = true
 humantime.workspace = true
 
+css-inline = "0.20"
 image = "0.25" # match with qrforge
 mrml = "6.0"
 qrforge = {version = "0.1", default-features = false, features = ["image"]}
-css-inline = "0.20.2"
 
 [dev-dependencies]
 claims.workspace = true

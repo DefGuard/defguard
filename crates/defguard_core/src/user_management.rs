@@ -58,18 +58,17 @@ pub async fn delete_user_and_cleanup_devices(
     // send firewall config updates to affected locations
     // if they have ACL enabled & enterprise features are active
     for location_id in affected_location_ids {
-        if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
-            if let Some(firewall_config) =
+        if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await?
+            && let Some(firewall_config) =
                 try_get_location_firewall_config(&location, &mut *conn).await?
-            {
-                debug!(
-                    "Sending firewall config update for location {location} affected by deleting user {username} devices"
-                );
-                events.push(GatewayCommand::FirewallConfigChanged(
-                    location_id,
-                    firewall_config,
-                ));
-            }
+        {
+            debug!(
+                "Sending firewall config update for location {location} affected by deleting user {username} devices"
+            );
+            events.push(GatewayCommand::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
         }
     }
 

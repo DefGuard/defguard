@@ -25,7 +25,7 @@ pub(crate) fn api_host_for(base_url: &str) -> &'static str {
     DEFAULT_API_HOST
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 enum UserState {
     Staged,
@@ -572,12 +572,12 @@ impl DirectorySync for JumpCloudDirectorySync {
         user_email: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
         debug!("Getting groups of user {user_email}");
-        if let Some(user) = self.get_user_by_email(user_email).await? {
-            if let Some(user_id) = user.id {
-                let response = self.query_user_groups(&user_id).await?;
-                debug!("Got groups response for user {user_id}");
-                return Ok(response.into_iter().map(Into::into).collect());
-            }
+        if let Some(user) = self.get_user_by_email(user_email).await?
+            && let Some(user_id) = user.id
+        {
+            let response = self.query_user_groups(&user_id).await?;
+            debug!("Got groups response for user {user_id}");
+            return Ok(response.into_iter().map(Into::into).collect());
         }
 
         debug!("No user found with email {user_email}, returning an error.");

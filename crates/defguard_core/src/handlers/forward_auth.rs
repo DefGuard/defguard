@@ -95,22 +95,22 @@ fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, We
         error!("Failed to prepare redirect URL: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
-    if let Some(host) = headers.forwarded_host {
-        if host != server_url.as_str() {
-            let mut referral_url = Url::parse(format!("http://{host}").as_str()).map_err(|_| {
-                error!("Failed to parse forwarded host as URL: {host}");
-                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
-            })?;
-            if let Some(proto) = headers.forwarded_proto {
-                if let Err(_e) = referral_url.set_scheme(&proto) {
-                    warn!("Failed setting protocol for referral url to {proto}");
-                }
-            }
-            if let Some(uri) = headers.forwarded_uri {
-                referral_url.set_path(&uri);
-            }
-            location.set_query(Some(format!("r={referral_url}").as_str()));
+    if let Some(host) = headers.forwarded_host
+        && host != server_url.as_str()
+    {
+        let mut referral_url = Url::parse(format!("http://{host}").as_str()).map_err(|_| {
+            error!("Failed to parse forwarded host as URL: {host}");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
+        if let Some(proto) = headers.forwarded_proto
+            && let Err(_e) = referral_url.set_scheme(&proto)
+        {
+            warn!("Failed setting protocol for referral url to {proto}");
         }
+        if let Some(uri) = headers.forwarded_uri {
+            referral_url.set_path(&uri);
+        }
+        location.set_query(Some(format!("r={referral_url}").as_str()));
     }
     debug!("Redirecting to login page at {location}");
     Ok(ForwardAuthResponse::Redirect(location.to_string()))

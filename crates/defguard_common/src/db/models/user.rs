@@ -691,16 +691,16 @@ impl User<Id> {
     /// Check if TOTP `code` is valid.
     #[must_use]
     pub fn verify_totp_code(&self, code: &str) -> bool {
-        if let Some(totp_secret) = &self.totp_secret {
-            if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                let expected_code = totp_custom::<Sha1>(
-                    TOTP_CODE_VALIDITY_PERIOD,
-                    TOTP_CODE_DIGITS,
-                    totp_secret,
-                    timestamp.as_secs(),
-                );
-                return code == expected_code;
-            }
+        if let Some(totp_secret) = &self.totp_secret
+            && let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
+        {
+            let expected_code = totp_custom::<Sha1>(
+                TOTP_CODE_VALIDITY_PERIOD,
+                TOTP_CODE_DIGITS,
+                totp_secret,
+                timestamp.as_secs(),
+            );
+            return code == expected_code;
         }
 
         false
@@ -1718,9 +1718,9 @@ mod test {
         // Feature enabled, ldap_remote_enrollment_completed=false
         // → LDAP user is NOT yet enrolled.
         let mut settings = Settings::get_current_settings();
-        settings.smtp_server = Some("smtp.example.com".into());
-        settings.smtp_port = Some(587);
-        settings.smtp_sender = Some("noreply@example.com".into());
+        settings.smtp.server = Some("smtp.example.com".into());
+        settings.smtp.port = Some(587);
+        settings.smtp.sender = Some("noreply@example.com".into());
         settings.ldap_url = Some("ldap://localhost".into());
         settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
         settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());

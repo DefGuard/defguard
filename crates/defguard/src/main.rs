@@ -146,10 +146,10 @@ async fn main() -> Result<(), anyhow::Error> {
         match wizard.active_wizard {
             ActiveWizard::None => {}
             ActiveWizard::Initial | ActiveWizard::AutoAdoption => {
-                if wizard.active_wizard == ActiveWizard::AutoAdoption {
-                    if let Err(err) = attempt_auto_adoption(&pool, &config).await {
-                        warn!("Failed to store startup auto-adoption states: {err}");
-                    }
+                if wizard.active_wizard == ActiveWizard::AutoAdoption
+                    && let Err(err) = attempt_auto_adoption(&pool, &config).await
+                {
+                    warn!("Failed to store startup auto-adoption states: {err}");
                 }
 
                 if let Err(err) =
