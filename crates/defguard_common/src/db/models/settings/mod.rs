@@ -765,6 +765,22 @@ impl Settings {
         Ok(())
     }
 
+<<<<<<< HEAD
+=======
+    /// Check if all required SMTP options are configured.
+    /// User & password can be empty for no-auth servers.
+    ///
+    /// Meant to be used to check if sending emails is enabled in current instance.
+    #[must_use]
+    pub fn smtp_configured(&self) -> bool {
+        self.smtp.server.is_some()
+            && self.smtp.port.is_some()
+            && self.smtp.sender.is_some()
+            && self.smtp.server != Some(String::new())
+            && self.smtp.sender != Some(String::new())
+    }
+
+>>>>>>> 17b47545 (Merge changes from dev branch)
     /// Check if all required LDAP options are configured.
     ///
     /// Meant to be used to check if LDAP integration can be enabled.
@@ -1088,6 +1104,7 @@ mod test {
         // incomplete SMTP config
         settings.smtp.server = Some("localhost".into());
         settings.smtp.port = Some(587);
+<<<<<<< HEAD
         assert!(!settings.smtp.is_configured());
 
         // no-auth SMTP config
@@ -1097,11 +1114,26 @@ mod test {
         // add non-default encryption
         settings.smtp.encryption = SmtpEncryption::StartTls;
         assert!(settings.smtp.is_configured());
+=======
+        assert!(!settings.smtp_configured());
+
+        // no-auth SMTP config
+        settings.smtp.sender = Some("no-reply@defguard.net".into());
+        assert!(settings.smtp_configured());
+
+        // add non-default encryption
+        settings.smtp.encryption = SmtpEncryption::StartTls;
+        assert!(settings.smtp_configured());
+>>>>>>> 17b47545 (Merge changes from dev branch)
 
         // add auth info
         settings.smtp.user = Some("smtp_user".into());
         settings.smtp.password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
+<<<<<<< HEAD
         assert!(settings.smtp.is_configured());
+=======
+        assert!(settings.smtp_configured());
+>>>>>>> 17b47545 (Merge changes from dev branch)
     }
 
     #[test]
