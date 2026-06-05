@@ -83,6 +83,7 @@ pub struct WireguardNetworkData {
     pub allowed_ips_from_acl: bool,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
+    pub posture_checks: Option<Vec<i64>>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -264,9 +265,26 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
+    // assign posture checks
+    if let Some(ref posture_checks) = data.posture_checks {
+        debug!("Assigning posture checks {posture_checks:?} to {network}");
+        if !is_enterprise_license_active() && !posture_checks.is_empty() {
+            error!(
+                "Cannot assign posture checks to new location {network}: Enterprise license required."
+            );
+            return Ok(WebError::Forbidden(
+                "Cannot assign posture checks to new location: Enterprise license required.",
+            )
+            .into());
+        }
+        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
+            .await?;
+        info!("Assigned posture checks {posture_checks:?} to new location {network}");
+    }
 
     transaction.commit().await?;
+
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
 
     info!(
         "User {} created WireGuard network {network_name}",
