@@ -516,21 +516,25 @@ const AddUserGroupsSelectionStep = () => {
   const user = useAddUserModal((s) => s.user as User);
   const [selected, setSelected] = useState(new Set<string>());
 
+  const handleStepFinish = () => {
+    if (enrollEnabled) {
+      useAddUserModal.setState({
+        step: 'enrollment',
+      });
+    } else {
+      useAddUserModal.setState({
+        isOpen: false,
+      });
+    }
+  };
+
   const { mutate, isPending } = useMutation({
     mutationFn: api.group.addUsersToGroups,
     meta: {
       invalidate: [['group'], ['group-info'], ['user']],
     },
     onSuccess: () => {
-      if (enrollEnabled) {
-        useAddUserModal.setState({
-          step: 'enrollment',
-        });
-      } else {
-        useAddUserModal.setState({
-          isOpen: false,
-        });
-      }
+      handleStepFinish();
     },
   });
 
@@ -566,9 +570,7 @@ const AddUserGroupsSelectionStep = () => {
                 groups: groups,
               });
             } else {
-              useAddUserModal.setState({
-                isOpen: false,
-              });
+              handleStepFinish();
             }
           },
         }}
