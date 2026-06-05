@@ -5,7 +5,7 @@ use axum::{
 use chrono::Utc;
 use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
 use defguard_mail::{
-    Attachment,
+    mail::Attachment,
     templates::{self, SUPPORT_EMAIL_ADDRESS},
 };
 use serde_json::json;

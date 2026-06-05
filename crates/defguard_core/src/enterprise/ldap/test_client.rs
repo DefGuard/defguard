@@ -440,13 +440,11 @@ impl LDAPConnection {
         // Reflect account status writes in the stored object so reads see writes, like real LDAP.
         if let Some(Object::User(user)) = self.test_client.objects.get_mut(old_dn) {
             for modification in &mods {
-                if let Mod::Replace(attr, values) = modification {
-                    if attr == "userAccountControl" {
-                        if let Some(uac) = values.iter().next().and_then(|v| v.parse::<u32>().ok())
-                        {
-                            user.is_active = uac_is_active(uac);
-                        }
-                    }
+                if let Mod::Replace(attr, values) = modification
+                    && attr == "userAccountControl"
+                    && let Some(uac) = values.iter().next().and_then(|v| v.parse::<u32>().ok())
+                {
+                    user.is_active = uac_is_active(uac);
                 }
             }
         }

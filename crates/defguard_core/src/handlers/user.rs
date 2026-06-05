@@ -532,11 +532,11 @@ pub(crate) async fn add_user(
     }
 
     // check phone number
-    if let Some(ref phone) = user_data.phone {
-        if !is_valid_phone_number(phone) {
-            debug!("Invalid phone number for new user {username}: {phone}");
-            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
-        }
+    if let Some(ref phone) = user_data.phone
+        && !is_valid_phone_number(phone)
+    {
+        debug!("Invalid phone number for new user {username}: {phone}");
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     let password = match &user_data.password {
@@ -904,11 +904,11 @@ pub(crate) async fn modify_user(
     }
 
     // check phone number
-    if let Some(ref phone) = user_info.phone {
-        if !is_valid_phone_number(phone) {
-            debug!("Invalid phone number for user {username}: {phone}");
-            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
-        }
+    if let Some(ref phone) = user_info.phone
+        && !is_valid_phone_number(phone)
+    {
+        debug!("Invalid phone number for user {username}: {phone}");
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     let status_changing = user_info.is_active != user.is_active;

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings SET smtp_oauth_refresh_token = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e8e6527d865def2163dbbcaf7136f71c3b80b5b1c6d61046c8253403cf819853"
+}

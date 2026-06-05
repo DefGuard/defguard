@@ -266,11 +266,10 @@ impl GatewayHandler {
         // Send email only if disconnection time is before the connection time.
         if let (Some(connected_at), Some(disconnected_at)) =
             (self.gateway.connected_at, self.gateway.disconnected_at)
+            && disconnected_at > connected_at
         {
-            if disconnected_at > connected_at {
-                info!("{} disconnected; email notification not sent", self.gateway);
-                return;
-            }
+            info!("{} disconnected; email notification not sent", self.gateway);
+            return;
         }
 
         debug!("Sending Gateway disconnect email notification");

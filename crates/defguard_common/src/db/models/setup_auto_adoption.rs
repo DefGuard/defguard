@@ -31,14 +31,14 @@ pub enum AutoAdoptionWizardStep {
     Finished,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct AutoAdoptionComponentResult {
     pub success: bool,
     pub logs: Vec<String>,
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AutoAdoptionWizardState {
     #[serde(default)]
     pub step: AutoAdoptionWizardStep,

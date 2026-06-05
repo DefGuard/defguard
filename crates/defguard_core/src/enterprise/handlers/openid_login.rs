@@ -128,13 +128,14 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
     // Discover the provider metadata based on a known base issuer URL.
     // The URL should be in the form of e.g. https://accounts.google.com.
     // The URL shouldn't contain the ".well-known" part – it will be added automatically.
-    match CoreProviderMetadata::discover_async(issuer_url, &async_http_client).await {
-        Ok(provider_metadata) => Ok(provider_metadata),
-        Err(err) => Err(WebError::Authorization(format!(
-            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. \
-            Error details: {err}",
-        ))),
-    }
+    CoreProviderMetadata::discover_async(issuer_url, &async_http_client)
+        .await
+        .map_err(|err| {
+            WebError::Authorization(format!(
+                "Failed to discover provider metadata, make sure the URL is correct: {url}. \
+                Error details: {err}",
+            ))
+        })
 }
 
 /// Build a state with optional embedded data. Useful for passing additional information around the
@@ -206,9 +207,7 @@ pub async fn user_from_claims(
     callback_url: Url,
 ) -> Result<User<Id>, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
-        return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_string(),
-        ));
+        return Err(WebError::ObjectNotFound("OpenID provider not set".into()));
     };
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
     let async_http_client = get_async_http_client()?;
@@ -285,7 +284,7 @@ pub async fn user_from_claims(
         "Email not found in the information returned from provider. Make sure your provider is \
         configured correctly and that you have granted the necessary permissions to retrieve \
         such information."
-            .to_string(),
+            .into(),
     ))?;
 
     // Get the *sub* claim from the token.
@@ -355,7 +354,7 @@ pub async fn user_from_claims(
                     );
                     // Extract the username from the email address
                     let username = email.split('@').next().ok_or(WebError::BadRequest(
-                        "Failed to extract username from email address".to_string(),
+                        "Failed to extract username from email address".into(),
                     ))?;
                     debug!("Username extracted from email ({email:?}): {username})");
                     username
@@ -494,9 +493,7 @@ pub async fn get_auth_info(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let provider = OpenIdProvider::get_current(&appstate.pool).await?;
     let Some(provider) = provider else {
-        return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_string(),
-        ));
+        return Err(WebError::ObjectNotFound("OpenID provider not set".into()));
     };
 
     let config = server_config();

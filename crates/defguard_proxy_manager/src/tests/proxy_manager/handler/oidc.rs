@@ -1,5 +1,7 @@
 #![allow(deprecated)]
-use defguard_core::db::models::enrollment::Token;
+use defguard_core::{
+    db::models::enrollment::Token, enterprise::handlers::openid_login::build_state,
+};
 use defguard_proto::{
     client_types::{AuthFlowType, AuthInfoRequest, MfaMethod},
     proxy::{
@@ -295,10 +297,7 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     // ---- Step 2: ClientMfaOidcAuthenticate ----
     // Build the `state` field by encoding the mfa_token inside it.
-    let state =
-        defguard_core::enterprise::handlers::openid_login::build_state(Some(mfa_token.clone()))
-            .secret()
-            .clone();
+    let state = build_state(Some(mfa_token.clone())).secret().clone();
 
     let raw_nonce = "mfa-oidc-nonce";
     let code = make_oidc_code(&user.email, &user.email, raw_nonce);

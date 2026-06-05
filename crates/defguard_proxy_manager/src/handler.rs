@@ -437,8 +437,8 @@ impl ProxyHandler {
                         }
                         Ok(purge) => {
                             info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", self.url);
-                            if purge {
-                                if let Some(client) = self.client.as_mut() {
+                            if purge
+                                && let Some(client) = self.client.as_mut() {
                                     debug!("Sending purge request to proxy {}", self.url);
                                     if let Err(err) = client.purge(Request::new(())).await {
                                         error!("Error sending purge request to proxy {}: {err}", self.url);
@@ -446,7 +446,6 @@ impl ProxyHandler {
                                         info!("Sent purge request to proxy {}", self.url);
                                     }
                                 }
-                            }
                         }
                     }
                     if let Ok(mut map) = self.handler_tx_map.write() {
