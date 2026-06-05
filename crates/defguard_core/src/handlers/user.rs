@@ -92,12 +92,12 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
     }
 
     // check first character is a letter or digit
-    if let Some(first_char) = username.chars().next() {
-        if !first_char.is_ascii_alphanumeric() {
-            return Err(WebError::Serialization(
-                "Username must not start with a special character".into(),
-            ));
-        }
+    if let Some(first_char) = username.chars().next()
+        && !first_char.is_ascii_alphanumeric()
+    {
+        return Err(WebError::Serialization(
+            "Username must not start with a special character".into(),
+        ));
     }
 
     // check if username contains only valid characters

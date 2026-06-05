@@ -152,18 +152,17 @@ pub async fn create_snat_binding(
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
-    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location.id).await? {
-        if let Some(firewall_config) =
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location.id).await?
+        && let Some(firewall_config) =
             try_get_location_firewall_config(&location, &mut conn).await?
-        {
-            debug!(
-                "Sending firewall config update for location {location} affected by adding new SNAT binding"
-            );
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                location.id,
-                firewall_config,
-            ));
-        }
+    {
+        debug!(
+            "Sending firewall config update for location {location} affected by adding new SNAT binding"
+        );
+        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            location.id,
+            firewall_config,
+        ));
     }
 
     Ok(ApiResponse::json(binding, StatusCode::CREATED))
@@ -252,18 +251,17 @@ pub async fn modify_snat_binding(
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
-    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
-        if let Some(firewall_config) =
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await?
+        && let Some(firewall_config) =
             try_get_location_firewall_config(&location, &mut conn).await?
-        {
-            debug!(
-                "Sending firewall config update for location {location} affected by adding new SNAT binding"
-            );
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                location_id,
-                firewall_config,
-            ));
-        }
+    {
+        debug!(
+            "Sending firewall config update for location {location} affected by adding new SNAT binding"
+        );
+        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            location_id,
+            firewall_config,
+        ));
     }
 
     Ok(ApiResponse::json(snat_binding, StatusCode::OK))
@@ -337,18 +335,17 @@ pub async fn delete_snat_binding(
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
-    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
-        if let Some(firewall_config) =
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await?
+        && let Some(firewall_config) =
             try_get_location_firewall_config(&location, &mut conn).await?
-        {
-            debug!(
-                "Sending firewall config update for location {location} affected by adding new SNAT binding"
-            );
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                location_id,
-                firewall_config,
-            ));
-        }
+    {
+        debug!(
+            "Sending firewall config update for location {location} affected by adding new SNAT binding"
+        );
+        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            location_id,
+            firewall_config,
+        ));
     }
 
     Ok(ApiResponse::default())

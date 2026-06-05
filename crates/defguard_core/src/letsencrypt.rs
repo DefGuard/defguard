@@ -28,7 +28,7 @@ use tonic::{Request, service::Interceptor};
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
 #[cfg(not(test))]
-pub const ACME_TIMEOUT: Duration = Duration::from_secs(300);
+pub const ACME_TIMEOUT: Duration = Duration::from_mins(5);
 #[cfg(test)]
 pub const ACME_TIMEOUT: Duration = Duration::from_secs(1);
 const LETSENCRYPT_EXPIRY_THRESHOLD: TimeDelta = TimeDelta::days(14);

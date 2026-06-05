@@ -31,7 +31,7 @@ pub mod events;
 pub mod session_state;
 
 const MESSAGE_LIMIT: usize = 100;
-pub const SESSION_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
+pub const SESSION_UPDATE_INTERVAL: Duration = Duration::from_mins(1);
 
 pub enum IterationOutcome {
     ProcessedBatch(usize),

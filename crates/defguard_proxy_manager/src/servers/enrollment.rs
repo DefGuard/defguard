@@ -339,13 +339,13 @@ impl EnrollmentServer {
     }
 
     fn validate_activated_user(request: &ActivateUserRequest) -> Result<(), Status> {
-        if let Some(ref phone_number) = request.phone_number {
-            if !is_valid_phone_number(phone_number) {
-                return Err(Status::new(
-                    tonic::Code::InvalidArgument,
-                    "invalid phone number",
-                ));
-            }
+        if let Some(ref phone_number) = request.phone_number
+            && !is_valid_phone_number(phone_number)
+        {
+            return Err(Status::new(
+                tonic::Code::InvalidArgument,
+                "invalid phone number",
+            ));
         }
 
         Ok(())
@@ -771,25 +771,23 @@ impl EnrollmentServer {
                     error!("Failed to fetch WireguardNetwork with ID {location_id}: {err}");
                     Status::internal("unexpected error")
                 })?
-            {
-                if let Some(firewall_config) =
+                && let Some(firewall_config) =
                     try_get_location_firewall_config(&location, &mut transaction)
                         .await
                         .map_err(|err| {
                             error!("Failed to get firewall config for location {location}: {err}");
                             Status::internal("unexpected error")
                         })?
-                {
-                    debug!(
-                        "Sending firewall config update for location {location} affected by \
+            {
+                debug!(
+                    "Sending firewall config update for location {location} affected by \
                         adding new device {}, user {}({})",
-                        device.wireguard_pubkey, user.username, user.id
-                    );
-                    self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                        location_id,
-                        firewall_config,
-                    ));
-                }
+                    device.wireguard_pubkey, user.username, user.id
+                );
+                self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                    location_id,
+                    firewall_config,
+                ));
             }
         }
 
