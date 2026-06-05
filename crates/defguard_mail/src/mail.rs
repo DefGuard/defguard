@@ -233,21 +233,20 @@ impl Mail {
             SmtpEncryption::None => Builder::builder_dangerous(server),
             SmtpEncryption::StartTls => Builder::starttls_relay(server)?,
             SmtpEncryption::ImplicitTls => Builder::relay(server)?,
-            SmtpEncryption::XOAuth2 => {
-                Builder::starttls_relay(server)?.authentication(vec![Mechanism::Xoauth2])
-            }
         }
         .port(port.try_into().map_err(|_| MailError::InvalidPort(port))?)
         .timeout(Some(SMTP_TIMEOUT));
 
         // Skip credentials if any of them is empty.
-        let builder = if let SmtpEncryption::XOAuth2 = smtp_settings.encryption {
+        let builder = if smtp_settings.use_xoauth2 {
             let code = obtain_access_token(&mut smtp_settings).await?;
             let Some(sender) = smtp_settings.sender else {
                 error!("XOAUTH2 requires sender email address");
                 return Err(MailError::SmtpNotConfigured);
             };
-            builder.credentials(Credentials::new(sender, code))
+            builder
+                .authentication(vec![Mechanism::Xoauth2])
+                .credentials(Credentials::new(sender, code))
         } else if let (Some(user), Some(password)) = (smtp_settings.user, smtp_settings.password) {
             builder.credentials(Credentials::new(user, password.expose_secret().into()))
         } else {

@@ -14,7 +14,6 @@ pub enum SmtpEncryption {
     None,
     StartTls,
     ImplicitTls,
-    XOAuth2,
 }
 
 #[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
@@ -54,6 +53,10 @@ pub struct SmtpSettings {
     pub sender: Option<String>,
 
     // For XOAUTH2 authentication.
+    #[serde(rename = "smtp_use_xoauth2")]
+    #[sqlx(rename = "smtp_use_xoauth2")]
+    #[patch(attribute(serde(rename = "smtp_use_xoauth2")))]
+    pub use_xoauth2: bool,
     #[serde(rename = "smtp_oauth_issuer_url")]
     #[sqlx(rename = "smtp_oauth_issuer_url")]
     #[patch(attribute(serde(rename = "smtp_oauth_issuer_url")))]

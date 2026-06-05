@@ -55,7 +55,7 @@ async fn set_smtp_settings(pool: &PgPool) {
             SecretStringWrapper::from_str(&env::var("SMTP_OAUTH_CLIENT_SECRET").unwrap()).unwrap(),
         );
         settings.smtp.oauth_refresh_token = Some(refresh_token);
-        settings.smtp.encryption = SmtpEncryption::XOAuth2;
+        settings.smtp.use_xoauth2 = true;
     } else {
         settings.smtp.user = env::var("SMTP_USER").ok();
         settings.smtp.password =
