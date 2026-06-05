@@ -849,10 +849,10 @@ impl Device<Id> {
     }
 
     pub fn validate_pubkey(pubkey: &str) -> Result<(), String> {
-        if let Ok(key) = BASE64_STANDARD.decode(pubkey) {
-            if key.len() == KEY_LENGTH {
-                return Ok(());
-            }
+        if let Ok(key) = BASE64_STANDARD.decode(pubkey)
+            && key.len() == KEY_LENGTH
+        {
+            return Ok(());
         }
 
         Err(format!("{pubkey} is not a valid pubkey"))

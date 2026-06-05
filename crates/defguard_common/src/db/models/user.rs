@@ -691,16 +691,16 @@ impl User<Id> {
     /// Check if TOTP `code` is valid.
     #[must_use]
     pub fn verify_totp_code(&self, code: &str) -> bool {
-        if let Some(totp_secret) = &self.totp_secret {
-            if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                let expected_code = totp_custom::<Sha1>(
-                    TOTP_CODE_VALIDITY_PERIOD,
-                    TOTP_CODE_DIGITS,
-                    totp_secret,
-                    timestamp.as_secs(),
-                );
-                return code == expected_code;
-            }
+        if let Some(totp_secret) = &self.totp_secret
+            && let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
+        {
+            let expected_code = totp_custom::<Sha1>(
+                TOTP_CODE_VALIDITY_PERIOD,
+                TOTP_CODE_DIGITS,
+                totp_secret,
+                timestamp.as_secs(),
+            );
+            return code == expected_code;
         }
 
         false

@@ -183,11 +183,9 @@ pub fn build_version_suffix(
             DefguardComponent::Gateway => version_suffix.push_str("[GW:"),
         }
         version_suffix.push_str(version);
-        if is_error {
-            if let Some(ref info) = extracted.info {
-                version_suffix.push(' ');
-                version_suffix.push_str(info);
-            }
+        if is_error && let Some(ref info) = extracted.info {
+            version_suffix.push(' ');
+            version_suffix.push_str(info);
         }
         version_suffix.push(']');
     }

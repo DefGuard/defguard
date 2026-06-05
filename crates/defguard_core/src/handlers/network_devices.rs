@@ -192,14 +192,13 @@ pub(crate) async fn get_network_device(
     );
 
     let device = Device::find_by_id(&appstate.pool, device_id).await?;
-    if let Some(device) = device {
-        if device.device_type == DeviceType::Network {
-            let mut transaction = appstate.pool.begin().await?;
-            let network_device_info =
-                NetworkDeviceInfo::from_device(device, &mut transaction).await?;
-            transaction.commit().await?;
-            return Ok(ApiResponse::json(network_device_info, StatusCode::OK));
-        }
+    if let Some(device) = device
+        && device.device_type == DeviceType::Network
+    {
+        let mut transaction = appstate.pool.begin().await?;
+        let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
+        transaction.commit().await?;
+        return Ok(ApiResponse::json(network_device_info, StatusCode::OK));
     }
     error!(
         "Failed to retrieve network device with id: {device_id}, such network device doesn't exist."
@@ -788,15 +787,14 @@ pub async fn modify_network_device(
         appstate.send_gateway_command(GatewayCommand::DeviceModified(device_info));
 
         // send firewall update event if ACLs are enabled
-        if device_network.acl_enabled {
-            if let Some(firewall_config) =
+        if device_network.acl_enabled
+            && let Some(firewall_config) =
                 try_get_location_firewall_config(&device_network, &mut transaction).await?
-            {
-                appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
-                    device_network.id,
-                    firewall_config,
-                ));
-            }
+        {
+            appstate.send_gateway_command(GatewayCommand::FirewallConfigChanged(
+                device_network.id,
+                firewall_config,
+            ));
         }
 
         info!(

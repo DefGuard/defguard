@@ -680,13 +680,13 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
 
 /// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
 fn map_relation_error(err: sqlx::Error, class: &str, id: Id) -> AclError {
-    if let sqlx::Error::Database(dberror) = &err {
-        if dberror.kind() == ErrorKind::ForeignKeyViolation {
-            error!(
-                "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
-            );
-            return AclError::InvalidRelationError(format!("{class}({id})"));
-        }
+    if let sqlx::Error::Database(dberror) = &err
+        && dberror.kind() == ErrorKind::ForeignKeyViolation
+    {
+        error!(
+            "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
+        );
+        return AclError::InvalidRelationError(format!("{class}({id})"));
     }
     error!("Failed to create ACL related object: {err}");
     AclError::DbError(err)

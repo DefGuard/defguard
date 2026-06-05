@@ -102,19 +102,19 @@ fn build_client(config: &HttpActivityLogStreamConfig) -> Result<reqwest::Client,
     }
 
     let mut client = reqwest::ClientBuilder::new().default_headers(headers);
-    if let Some(cert) = &config.cert {
-        if config.url.contains("https") {
-            match tls::Certificate::from_pem(cert.as_bytes()) {
-                Ok(parsed_cert) => {
-                    client = client.add_root_certificate(parsed_cert);
-                }
-                Err(e) => {
-                    error!(
-                        "Failed to add root certificate for {} activity log stream. Reason: {e}",
-                        config.stream_name
-                    );
-                    return Err(e);
-                }
+    if let Some(cert) = &config.cert
+        && config.url.contains("https")
+    {
+        match tls::Certificate::from_pem(cert.as_bytes()) {
+            Ok(parsed_cert) => {
+                client = client.add_root_certificate(parsed_cert);
+            }
+            Err(e) => {
+                error!(
+                    "Failed to add root certificate for {} activity log stream. Reason: {e}",
+                    config.stream_name
+                );
+                return Err(e);
             }
         }
     }

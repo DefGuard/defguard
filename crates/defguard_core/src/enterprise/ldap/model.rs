@@ -76,10 +76,11 @@ pub(crate) fn user_from_searchentry(
     );
     user.from_ldap = true;
     // Missing/unparseable userAccountControl falls through with the User::new default (active).
-    if config.ldap_uses_ad && config.ldap_sync_account_status {
-        if let Some(uac) = uac_from_entry(entry) {
-            user.is_active = uac_is_active(uac);
-        }
+    if config.ldap_uses_ad
+        && config.ldap_sync_account_status
+        && let Some(uac) = uac_from_entry(entry)
+    {
+        user.is_active = uac_is_active(uac);
     }
     if let Some(rdn) = extract_rdn_value(&entry.dn) {
         user.ldap_rdn = Some(rdn);
@@ -239,10 +240,10 @@ pub(crate) fn user_as_ldap_attrs<'a, I>(
             attrs.push(("uid", hashset![user.username.as_str()]));
         }
 
-        if let Some(phone) = &user.phone {
-            if !phone.is_empty() {
-                attrs.push(("mobile", hashset![phone.as_str()]));
-            }
+        if let Some(phone) = &user.phone
+            && !phone.is_empty()
+        {
+            attrs.push(("mobile", hashset![phone.as_str()]));
         }
     }
     if object_classes.contains(UserObjectClass::SimpleSecurityObject.name()) {

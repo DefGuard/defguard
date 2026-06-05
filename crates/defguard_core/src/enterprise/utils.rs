@@ -86,12 +86,12 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
 
         let broadcast_addr = network_addr | !mask;
 
-        if network_addr >= start_bits && broadcast_addr <= end_bits {
-            if let Ok(network) =
+        if network_addr >= start_bits
+            && broadcast_addr <= end_bits
+            && let Ok(network) =
                 IpNetwork::new(IpAddr::V4(Ipv4Addr::from(network_addr)), prefix_len)
-            {
-                return Some(network);
-            }
+        {
+            return Some(network);
         }
     }
 
@@ -131,12 +131,12 @@ fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<I
 
         let broadcast_addr = network_addr | !mask;
 
-        if network_addr >= start_bits && broadcast_addr <= end_bits {
-            if let Ok(network) =
+        if network_addr >= start_bits
+            && broadcast_addr <= end_bits
+            && let Ok(network) =
                 IpNetwork::new(IpAddr::V6(Ipv6Addr::from(network_addr)), prefix_len)
-            {
-                return Some(network);
-            }
+        {
+            return Some(network);
         }
     }
 
