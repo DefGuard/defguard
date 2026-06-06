@@ -6,6 +6,7 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import {
   type Settings,
+  SmtpAuthentication,
   SmtpEncryption,
   type SmtpEncryptionValue,
 } from '../../../shared/api/types';
@@ -21,6 +22,7 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import type { SelectOption } from '../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -130,6 +132,10 @@ const Content = ({ settings }: { settings: Settings }) => {
           .min(1, m.form_error_required())
           .regex(patternValidEmail, m.form_error_email()),
         smtp_encryption: z.enum(SmtpEncryption),
+        smtp_authentication: z.enum(SmtpAuthentication),
+        smtp_oauth_issuer_url: z.string().trim().nullable(),
+        smtp_oauth_client_id: z.string().trim().nullable(),
+        smtp_oauth_client_secret: z.string().trim().nullable(),
       }),
     [],
   );
@@ -144,6 +150,10 @@ const Content = ({ settings }: { settings: Settings }) => {
       smtp_sender: '',
       smtp_server: '',
       smtp_user: null,
+      smtp_authentication: SmtpAuthentication.None,
+      smtp_oauth_issuer_url: null,
+      smtp_oauth_client_id: null,
+      smtp_oauth_client_secret: null,
     }),
     [],
   );
@@ -156,6 +166,10 @@ const Content = ({ settings }: { settings: Settings }) => {
       smtp_sender: settings.smtp_sender ?? '',
       smtp_server: settings.smtp_server ?? '',
       smtp_user: settings.smtp_user ?? null,
+      smtp_authentication: settings.smtp_authentication,
+      smtp_oauth_issuer_url: settings.smtp_oauth_issuer_url ?? null,
+      smtp_oauth_client_id: settings.smtp_oauth_client_id ?? null,
+      smtp_oauth_client_secret: settings.smtp_oauth_client_secret ?? null,
     }),
     [settings],
   );
@@ -181,7 +195,17 @@ const Content = ({ settings }: { settings: Settings }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await editSettings(value);
+      const submitValue = { ...value };
+      if (submitValue.smtp_authentication !== SmtpAuthentication.Login) {
+        submitValue.smtp_user = null;
+        submitValue.smtp_password = null;
+      }
+      if (submitValue.smtp_authentication !== SmtpAuthentication.XOAuth2) {
+        submitValue.smtp_oauth_issuer_url = null;
+        submitValue.smtp_oauth_client_id = null;
+        submitValue.smtp_oauth_client_secret = null;
+      }
+      await editSettings(submitValue);
       form.reset(value);
     },
   });
@@ -218,26 +242,6 @@ const Content = ({ settings }: { settings: Settings }) => {
         </EvenSplit>
         <SizedBox height={ThemeSpacing.Xl} />
         <EvenSplit>
-          <form.AppField name="smtp_user">
-            {(field) => (
-              <field.FormInput
-                label={m.settings_smtp_label_server_username()}
-                helper={m.settings_smtp_helper_server_username()}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="smtp_password">
-            {(field) => (
-              <field.FormInput
-                label={m.settings_smtp_label_server_password()}
-                helper={m.settings_smtp_helper_server_password()}
-                type="password"
-              />
-            )}
-          </form.AppField>
-        </EvenSplit>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <EvenSplit>
           <form.AppField name="smtp_sender">
             {(field) => (
               <field.FormInput
@@ -258,6 +262,94 @@ const Content = ({ settings }: { settings: Settings }) => {
             )}
           </form.AppField>
         </EvenSplit>
+        <Divider spacing={ThemeSpacing.Xl2} />
+        <DescriptionBlock title={m.settings_smtp_section_auth_title()}>
+          <p>{m.settings_smtp_section_auth_description()}</p>
+        </DescriptionBlock>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="smtp_authentication">
+          {(field) => (
+            <>
+              <field.FormRadio
+                value={SmtpAuthentication.None}
+                text={m.settings_smtp_auth_option_none()}
+              />
+              <SizedBox height={ThemeSpacing.Md} />
+              <field.FormRadio
+                value={SmtpAuthentication.Login}
+                text={m.settings_smtp_auth_option_login()}
+              />
+              <SizedBox height={ThemeSpacing.Md} />
+              <field.FormRadio
+                value={SmtpAuthentication.XOAuth2}
+                text={m.settings_smtp_auth_option_xoauth2()}
+              />
+            </>
+          )}
+        </form.AppField>
+        <form.Subscribe selector={(s) => s.values.smtp_authentication}>
+          {(authMethod) =>
+            authMethod === SmtpAuthentication.Login ? (
+              <>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <EvenSplit>
+                  <form.AppField name="smtp_user">
+                    {(field) => (
+                      <field.FormInput
+                        label={m.settings_smtp_label_server_username()}
+                        helper={m.settings_smtp_helper_server_username()}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="smtp_password">
+                    {(field) => (
+                      <field.FormInput
+                        label={m.settings_smtp_label_server_password()}
+                        helper={m.settings_smtp_helper_server_password()}
+                        type="password"
+                      />
+                    )}
+                  </form.AppField>
+                </EvenSplit>
+              </>
+            ) : authMethod === SmtpAuthentication.XOAuth2 ? (
+              <>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <EvenSplit>
+                  <form.AppField name="smtp_oauth_issuer_url">
+                    {(field) => (
+                      <field.FormInput
+                        label={m.settings_smtp_label_oauth_issuer_url()}
+                        helper={m.settings_smtp_helper_oauth_issuer_url()}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="smtp_oauth_client_id">
+                    {(field) => (
+                      <field.FormInput
+                        label={m.settings_smtp_label_oauth_client_id()}
+                        helper={m.settings_smtp_helper_oauth_client_id()}
+                      />
+                    )}
+                  </form.AppField>
+                </EvenSplit>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <EvenSplit>
+                  <form.AppField name="smtp_oauth_client_secret">
+                    {(field) => (
+                      <field.FormInput
+                        label={m.settings_smtp_label_oauth_client_secret()}
+                        helper={m.settings_smtp_helper_oauth_client_secret()}
+                        type="password"
+                      />
+                    )}
+                  </form.AppField>
+                  <div />
+                </EvenSplit>
+              </>
+            ) : null
+          }
+        </form.Subscribe>
         <form.Subscribe
           selector={(s) => ({
             isDefaultValue: s.isDefaultValue || s.isPristine,
