@@ -1020,7 +1020,8 @@ export const SmtpAuthentication = {
   XOAuth2: 'XOAuth2',
 } as const;
 
-export type SmtpAuthenticationValue = (typeof SmtpAuthentication)[keyof typeof SmtpAuthentication];
+export type SmtpAuthenticationValue =
+  (typeof SmtpAuthentication)[keyof typeof SmtpAuthentication];
 
 export interface SettingsSMTP {
   smtp_encryption: SmtpEncryptionValue;
