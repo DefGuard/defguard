@@ -6,7 +6,10 @@ use defguard_common::{
     db::{
         models::{
             MFAMethod, Settings,
-            settings::{SmtpEncryption, initialize_current_settings, set_settings},
+            settings::{
+                initialize_current_settings, set_settings,
+                smtp::{SmtpAuthentication, SmtpEncryption},
+            },
         },
         setup_pool,
     },
@@ -20,7 +23,10 @@ use sqlx::{
 use tera::Context;
 use tokio::time::sleep;
 
-use super::{Attachment, mail::MailMessage, templates};
+use super::{
+    mail::{Attachment, MailMessage},
+    templates,
+};
 
 #[test]
 fn dg25_8_server_side_template_injection() {
@@ -42,13 +48,25 @@ async fn set_smtp_settings(pool: &PgPool) {
     initialize_current_settings(pool).await.unwrap();
 
     let mut settings = Settings::get_current_settings();
-    settings.smtp_server = env::var("SMTP_SERVER").ok();
-    settings.smtp_port = Some(env::var("SMTP_PORT").map_or(587, |s| s.parse().unwrap()));
-    settings.smtp_encryption = SmtpEncryption::StartTls;
-    settings.smtp_user = env::var("SMTP_USER").ok();
-    settings.smtp_password =
-        Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
-    settings.smtp_sender = env::var("SMTP_FROM").ok();
+    settings.smtp.server = env::var("SMTP_SERVER").ok();
+    settings.smtp.port = Some(env::var("SMTP_PORT").map_or(587, |s| s.parse().unwrap()));
+
+    if let Ok(refresh_token) = env::var("SMTP_OAUTH_REFRESH_TOKEN") {
+        settings.smtp.oauth_issuer_url = env::var("SMTP_OAUTH_ISSUER_URL").ok();
+        settings.smtp.oauth_client_id = env::var("SMTP_OAUTH_CLIENT_ID").ok();
+        settings.smtp.oauth_client_secret = Some(
+            SecretStringWrapper::from_str(&env::var("SMTP_OAUTH_CLIENT_SECRET").unwrap()).unwrap(),
+        );
+        settings.smtp.oauth_refresh_token = Some(refresh_token);
+        settings.smtp.authentication = SmtpAuthentication::XOAuth2;
+    } else {
+        settings.smtp.user = env::var("SMTP_USER").ok();
+        settings.smtp.password =
+            Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
+        settings.smtp.encryption = SmtpEncryption::StartTls;
+        settings.smtp.authentication = SmtpAuthentication::Login;
+    }
+    settings.smtp.sender = env::var("SMTP_FROM").ok();
     set_settings(Some(settings));
 }
 

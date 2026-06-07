@@ -54,38 +54,38 @@ use crate::{
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
-impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
-    fn from(user_claims: &UserClaims) -> StandardClaims<CoreGenderClaim> {
-        let mut claims = StandardClaims::new(SubjectIdentifier::new(user_claims.sub.clone()));
+impl From<UserClaims> for StandardClaims<CoreGenderClaim> {
+    fn from(user_claims: UserClaims) -> Self {
+        let mut claims = Self::new(SubjectIdentifier::new(user_claims.sub));
 
-        if let Some(name) = &user_claims.name {
+        if let Some(name) = user_claims.name {
             let mut localized_claim = LocalizedClaim::new();
-            localized_claim.insert(None, EndUserName::new(name.clone()));
+            localized_claim.insert(None, EndUserName::new(name));
             claims = claims.set_name(Some(localized_claim));
         }
 
-        if let Some(given_name) = &user_claims.given_name {
+        if let Some(given_name) = user_claims.given_name {
             let mut localized_claim = LocalizedClaim::new();
-            localized_claim.insert(None, EndUserGivenName::new(given_name.clone()));
+            localized_claim.insert(None, EndUserGivenName::new(given_name));
             claims = claims.set_given_name(Some(localized_claim));
         }
 
-        if let Some(family_name) = &user_claims.family_name {
+        if let Some(family_name) = user_claims.family_name {
             let mut localized_claim = LocalizedClaim::new();
-            localized_claim.insert(None, EndUserFamilyName::new(family_name.clone()));
+            localized_claim.insert(None, EndUserFamilyName::new(family_name));
             claims = claims.set_family_name(Some(localized_claim));
         }
 
-        if let Some(email) = &user_claims.email {
-            claims = claims.set_email(Some(EndUserEmail::new(email.clone())));
+        if let Some(email) = user_claims.email {
+            claims = claims.set_email(Some(EndUserEmail::new(email)));
         }
 
-        if let Some(phone_number) = &user_claims.phone_number {
-            claims = claims.set_phone_number(Some(EndUserPhoneNumber::new(phone_number.clone())));
+        if let Some(phone_number) = user_claims.phone_number {
+            claims = claims.set_phone_number(Some(EndUserPhoneNumber::new(phone_number)));
         }
 
-        if let Some(username) = &user_claims.preferred_username {
-            claims = claims.set_preferred_username(Some(EndUserUsername::new(username.clone())));
+        if let Some(username) = user_claims.preferred_username {
+            claims = claims.set_preferred_username(Some(EndUserUsername::new(username)));
         }
 
         claims
@@ -139,24 +139,23 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         if let Some(basic_auth) = parts.headers.get(AUTHORIZATION).and_then(|value| {
-            if let Ok(value) = value.to_str() {
-                if value.starts_with("Basic ") {
-                    return value.get(6..);
-                }
+            if let Ok(value) = value.to_str()
+                && value.starts_with("Basic ")
+            {
+                return value.get(6..);
             }
             None
         }) {
-            if let Ok(decoded) = BASE64_STANDARD.decode(basic_auth) {
-                if let Ok(auth_pair) = String::from_utf8(decoded) {
-                    if let Some((client_id, client_secret)) = auth_pair.split_once(':') {
-                        let appstate = AppState::from_ref(state);
-                        return Ok(Self(
-                            OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
-                                .await
-                                .map_err(WebError::from)?,
-                        ));
-                    }
-                }
+            if let Ok(decoded) = BASE64_STANDARD.decode(basic_auth)
+                && let Ok(auth_pair) = String::from_utf8(decoded)
+                && let Some((client_id, client_secret)) = auth_pair.split_once(':')
+            {
+                let appstate = AppState::from_ref(state);
+                return Ok(Self(
+                    OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
+                        .await
+                        .map_err(WebError::from)?,
+                ));
             }
             Err(WebError::Authorization("Invalid credentials".into()))
         } else {
@@ -719,7 +718,7 @@ pub async fn secure_authorization(
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest
 #[derive(Deserialize)]
 pub struct TokenRequest {
-    grant_type: String,
+    grant_type: CoreGrantType,
     // grant_type == "authorization_code"
     code: Option<String>,
     redirect_uri: Option<String>,
@@ -878,8 +877,8 @@ pub async fn token(
     Form(form): Form<TokenRequest>,
 ) -> ApiResult {
     // TODO: cleanup branches
-    match form.grant_type.as_str() {
-        "authorization_code" => {
+    match form.grant_type {
+        CoreGrantType::AuthorizationCode => {
             debug!("Staring authorization_code flow");
 
             // for logging
@@ -897,7 +896,7 @@ pub async fn token(
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
                         if !client.enabled {
                             error!("OAuth client id `{}` is disabled", client.name);
-                            let response = StandardErrorResponse::<CoreErrorResponseType>::new(
+                            let response = StandardErrorResponse::new(
                                 CoreErrorResponseType::UnauthorizedClient,
                                 None,
                                 None,
@@ -946,7 +945,7 @@ pub async fn token(
                                 match form.authorization_code_flow(
                                     &auth_code,
                                     &token,
-                                    (&user_claims).into(),
+                                    user_claims.into(),
                                     &base_url,
                                     client.client_secret,
                                     openid_key,
@@ -965,10 +964,7 @@ pub async fn token(
                                             "Error issuing new token for user {} client {}: {err}",
                                             user.username, client.name
                                         );
-                                        let response =
-                                            StandardErrorResponse::<CoreErrorResponseType>::new(
-                                                err, None, None,
-                                            );
+                                        let response = StandardErrorResponse::new(err, None, None);
                                         return Ok(ApiResponse::json(
                                             response,
                                             StatusCode::BAD_REQUEST,
@@ -994,42 +990,40 @@ pub async fn token(
                 error!("No code provided in request for client id `{form_client_id}`");
             }
         }
-        "refresh_token" => {
+        CoreGrantType::RefreshToken => {
             debug!("Starting refresh_token flow");
-            if let Some(refresh_token) = form.refresh_token {
-                if let Ok(Some(mut token)) =
+            if let Some(refresh_token) = form.refresh_token
+                && let Ok(Some(mut token)) =
                     OAuth2Token::find_refresh_token(&appstate.pool, &refresh_token).await
-                {
-                    let Some(client) = OAuth2Client::find_by_token(&appstate.pool, &token).await?
-                    else {
-                        error!("OAuth client not found for provided refresh_token");
-                        let err = CoreErrorResponseType::InvalidClient;
-                        let response =
-                            StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                        return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-                    };
+            {
+                let Some(client) = OAuth2Client::find_by_token(&appstate.pool, &token).await?
+                else {
+                    error!("OAuth client not found for provided refresh_token");
+                    let err = CoreErrorResponseType::InvalidClient;
+                    let response = StandardErrorResponse::new(err, None, None);
+                    return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+                };
 
-                    if !client.enabled {
-                        error!("OAuth client id `{}` is disabled", client.name);
-                        let response = StandardErrorResponse::<CoreErrorResponseType>::new(
-                            CoreErrorResponseType::UnauthorizedClient,
-                            None,
-                            None,
-                        );
-                        return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-                    }
-
-                    token.refresh_and_save(&appstate.pool).await?;
-                    let response = TokenRequest::refresh_token_flow(&token);
-                    token.save(&appstate.pool).await?;
-                    return Ok(ApiResponse::json(response, StatusCode::OK));
+                if !client.enabled {
+                    error!("OAuth client id `{}` is disabled", client.name);
+                    let response = StandardErrorResponse::new(
+                        CoreErrorResponseType::UnauthorizedClient,
+                        None,
+                        None,
+                    );
+                    return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
                 }
+
+                token.refresh_and_save(&appstate.pool).await?;
+                let response = TokenRequest::refresh_token_flow(&token);
+                token.save(&appstate.pool).await?;
+                return Ok(ApiResponse::json(response, StatusCode::OK));
             }
         }
         _ => (), // TODO: Err(CoreErrorResponseType::UnsupportedGrantType),
     }
     let err = CoreErrorResponseType::UnsupportedGrantType;
-    let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+    let response = StandardErrorResponse::new(err, None, None);
     Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST))
 }
 
@@ -1076,7 +1070,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
     let user_claims = UserClaims::from_user(&user, &client, &oauth2token);
 
     Ok(ApiResponse::json(
-        StandardClaims::<CoreGenderClaim>::from(&user_claims),
+        StandardClaims::from(user_claims),
         StatusCode::OK,
     ))
 }

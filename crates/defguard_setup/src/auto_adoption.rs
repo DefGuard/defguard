@@ -885,8 +885,8 @@ async fn process_startup_auto_adoption(
     if status {
         match component {
             SetupAutoAdoptionComponent::Gateway => {
-                if let Some(result) = cert_info {
-                    if let Err(err) = create_network_and_gateway(
+                if let Some(result) = cert_info
+                    && let Err(err) = create_network_and_gateway(
                         pool,
                         &host,
                         port,
@@ -895,17 +895,16 @@ async fn process_startup_auto_adoption(
                         result.core_client,
                     )
                     .await
-                    {
-                        warn!(
-                            "Gateway adoption TLS handshake succeeded but failed to persist \
+                {
+                    warn!(
+                        "Gateway adoption TLS handshake succeeded but failed to persist \
                             network/gateway records: {err}"
-                        );
-                    }
+                    );
                 }
             }
             SetupAutoAdoptionComponent::Edge => {
-                if let Some(result) = cert_info {
-                    if let Err(err) = create_proxy(
+                if let Some(result) = cert_info
+                    && let Err(err) = create_proxy(
                         pool,
                         &host,
                         port,
@@ -914,12 +913,11 @@ async fn process_startup_auto_adoption(
                         result.core_client,
                     )
                     .await
-                    {
-                        warn!(
-                            "Edge adoption TLS handshake succeeded but failed to persist \
+                {
+                    warn!(
+                        "Edge adoption TLS handshake succeeded but failed to persist \
                             proxy record: {err}"
-                        );
-                    }
+                    );
                 }
             }
         }

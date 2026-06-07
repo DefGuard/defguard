@@ -73,7 +73,7 @@ impl EnterpriseSettings {
 }
 
 /// Describes allowed traffic options for clients connecting to the instance.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default, Copy)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug, Default, Copy)]
 #[sqlx(type_name = "client_traffic_policy", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ClientTrafficPolicy {

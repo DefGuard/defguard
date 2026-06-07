@@ -145,7 +145,7 @@ impl From<PortRange> for PgRange<i32> {
 /// Applied state does NOT guarantee that all locations have received the rule
 /// and performed appropriate operations, only that the next time configuration
 /// is being sent it will include this rule.
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Hash, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
 pub enum RuleState {
     #[default]
@@ -244,7 +244,7 @@ impl<I> AclRuleInfo<I> {
 /// Those objects have their dedicated tables and structures so we provide
 /// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
 /// to combine all the related objects for easier downstream processing.
-#[derive(Clone, Debug, Eq, FromRow, Model, PartialEq, ToSchema)]
+#[derive(Clone, Debug, FromRow, Model, PartialEq, ToSchema)]
 pub struct AclRule<I = NoId> {
     pub id: I,
     // if present points to the original rule before modification / deletion
@@ -679,13 +679,13 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
 
 /// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
 fn map_relation_error(err: sqlx::Error, class: &str, id: Id) -> AclError {
-    if let sqlx::Error::Database(dberror) = &err {
-        if dberror.kind() == ErrorKind::ForeignKeyViolation {
-            error!(
-                "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
-            );
-            return AclError::InvalidRelationError(format!("{class}({id})"));
-        }
+    if let sqlx::Error::Database(dberror) = &err
+        && dberror.kind() == ErrorKind::ForeignKeyViolation
+    {
+        error!(
+            "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
+        );
+        return AclError::InvalidRelationError(format!("{class}({id})"));
     }
     error!("Failed to create ACL related object: {err}");
     AclError::DbError(err)
@@ -1338,7 +1338,7 @@ impl AclRuleInfo<Id> {
 
     /// Returns the list of explicitly configured allowed network devices or
     /// a list of all devices if 'allow_all_network_devices' flag is enabled.
-    pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
+    pub(crate) async fn get_all_allowed_devices<'e, E: PgExecutor<'e>>(
         &self,
         executor: E,
         location_id: Id,
@@ -1370,7 +1370,7 @@ impl AclRuleInfo<Id> {
 
     /// Returns the list of explicitly configured denied network devices or
     /// a list of all devices if 'deny_all_network_devices' flag is enabled.
-    pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
+    pub(crate) async fn get_all_denied_devices<'e, E: PgExecutor<'e>>(
         &self,
         executor: E,
         location_id: Id,
@@ -1479,7 +1479,7 @@ pub enum AliasState {
 /// - Destination: the alias defines a complete destination that an ACL rule applies to
 /// - Component: the alias defines parts of a destination and will be combined with other parts
 ///   manually defined in an ACL rule
-#[derive(Clone, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "aclalias_kind", rename_all = "lowercase")]
 pub enum AliasKind {
     #[default]
@@ -1742,11 +1742,11 @@ impl TryFrom<&EditAclAlias> for AclAlias {
 
 impl AclAlias<Id> {
     /// Fetch [`AclAlias`] of a given kind.
-    pub async fn all_of_kind<'e, E>(executor: E, kind: AliasKind) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn all_of_kind<'e, E>(executor: E, kind: AliasKind) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query_as::<_, Self>(
+        query_as::<_, Self>(
             "SELECT id, parent_id, name, kind, state, addresses, ports, protocols, any_address, \
             any_port, any_protocol, modified_at, modified_by \
             FROM aclalias WHERE kind = $1",
@@ -1760,11 +1760,11 @@ impl AclAlias<Id> {
         executor: E,
         id: Id,
         kind: AliasKind,
-    ) -> Result<Option<Self>, sqlx::Error>
+    ) -> sqlx::Result<Option<Self>>
     where
-        E: sqlx::PgExecutor<'e>,
+        E: PgExecutor<'e>,
     {
-        sqlx::query_as::<_, Self>(
+        query_as::<_, Self>(
             "SELECT id, parent_id, name, kind, state, addresses, ports, protocols, any_address, \
             any_port, any_protocol, modified_at, modified_by \
             FROM aclalias WHERE id = $1 AND kind = $2",

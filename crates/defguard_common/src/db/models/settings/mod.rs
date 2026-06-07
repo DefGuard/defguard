@@ -11,7 +11,7 @@ use rsa::{
 };
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Deserializer, Serialize};
-use sqlx::{PgExecutor, PgPool, Type, query, query_as};
+use sqlx::{FromRow, PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
@@ -20,9 +20,12 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::WebauthnBuilder;
 
+use self::smtp::{SmtpAuthentication, SmtpEncryption, SmtpSettings, SmtpSettingsPatch};
 use crate::{
     config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
 };
+
+pub mod smtp;
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 pub const OPENID_KEY_SIZE: usize = 2048;
@@ -82,7 +85,7 @@ pub enum SettingsInitializationError {
     Invalid(&'static str, &'static str),
 }
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug)]
 pub enum SettingsUrlError {
     #[error("Unable to parse defguard_url `{0}`")]
     InvalidDefguardUrl(String),
@@ -110,16 +113,7 @@ pub enum SettingsSaveError {
     Validation(#[from] SettingsValidationError),
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
-#[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
-pub enum SmtpEncryption {
-    #[default]
-    None,
-    StartTls,
-    ImplicitTls,
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
 pub enum OpenIdUsernameHandling {
     #[default]
@@ -131,7 +125,7 @@ pub enum OpenIdUsernameHandling {
     PruneEmailDomain,
 }
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type)]
+#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, Type)]
 #[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
 pub enum LdapSyncStatus {
     InSync,
@@ -167,8 +161,8 @@ where
     Ok(Some(Option::deserialize(deserializer)?))
 }
 
-#[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
-#[patch(attribute(derive(Deserialize, Serialize, Debug)))]
+#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+#[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct Settings {
     // Modules
     pub openid_enabled: bool,
@@ -182,14 +176,10 @@ pub struct Settings {
     pub main_logo_url: String,
     pub nav_logo_url: String,
     // SMTP
-    pub smtp_server: Option<String>,
-    pub smtp_port: Option<i32>,
-    pub smtp_encryption: SmtpEncryption,
-    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
-    pub smtp_user: Option<String>,
-    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
-    pub smtp_password: Option<SecretStringWrapper>,
-    pub smtp_sender: Option<String>,
+    #[patch(nesting, attribute(serde(flatten)))]
+    #[serde(flatten)]
+    #[sqlx(flatten)]
+    pub smtp: SmtpSettings,
     // Enrollment
     pub enrollment_vpn_step_optional: bool,
     pub enrollment_welcome_message: Option<String>,
@@ -271,12 +261,7 @@ impl fmt::Debug for Settings {
             .field("instance_name", &self.instance_name)
             .field("main_logo_url", &self.main_logo_url)
             .field("nav_logo_url", &self.nav_logo_url)
-            .field("smtp_server", &self.smtp_server)
-            .field("smtp_port", &self.smtp_port)
-            .field("smtp_encryption", &self.smtp_encryption)
-            .field("smtp_user", &self.smtp_user)
-            .field("smtp_password", &self.smtp_password)
-            .field("smtp_sender", &self.smtp_sender)
+            .field("smtp", &self.smtp)
             .field(
                 "enrollment_vpn_step_optional",
                 &self.enrollment_vpn_step_optional,
@@ -491,34 +476,30 @@ impl Settings {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Self,
+        query_as(
             "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, \
             challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
-            smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, \
-            smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, \
+            smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
+            smtp_authentication, smtp_oauth_issuer_url, smtp_oauth_client_id, \
+            smtp_oauth_client_secret, smtp_oauth_refresh_token, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, \
-            uuid, ldap_url, ldap_bind_username, \
-            ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
+            uuid, ldap_url, ldap_bind_username, ldap_bind_password, \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
             ldap_group_member_attr, ldap_member_attr, openid_create_account, \
             license, gateway_disconnect_notifications_enabled, ldap_use_starttls, \
             ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled, \
-            ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
-            ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
+            ldap_sync_status, ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_sync_account_status, \
-            ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
-            openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            defguard_url, \
+            ldap_sync_account_status, ldap_user_rdn_attr, ldap_sync_groups, \
+            ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
+            openid_username_handling, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url, \
-            default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, \
-            stats_purge_frequency_hours, stats_purge_threshold_days, \
+            public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, \
+            enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
             FROM \"settings\" WHERE id = 1",
@@ -539,7 +520,7 @@ impl Settings {
 
         // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
         // configured.
-        if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
+        if self.gateway_disconnect_notifications_enabled && !self.smtp.is_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
         }
@@ -551,7 +532,7 @@ impl Settings {
         }
 
         // Check if LDAP remote enrollment can be enabled
-        if self.ldap_remote_enrollment_enabled && !self.smtp_configured() {
+        if self.ldap_remote_enrollment_enabled && !self.smtp.is_configured() {
             warn!("Cannot enable remote enrollment for LDAP. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
         }
@@ -589,59 +570,64 @@ impl Settings {
             smtp_user = $12, \
             smtp_password = $13, \
             smtp_sender = $14, \
-            enrollment_vpn_step_optional = $15, \
-            enrollment_welcome_message = $16, \
-            enrollment_welcome_email = $17, \
-            enrollment_welcome_email_subject = $18, \
-            enrollment_use_welcome_message_as_email = $19, \
-            enrollment_send_welcome_email = $20, \
-            uuid = $21, \
-            ldap_url = $22, \
-            ldap_bind_username = $23, \
-            ldap_bind_password  = $24, \
-            ldap_group_search_base = $25, \
-            ldap_user_search_base = $26, \
-            ldap_user_obj_class = $27, \
-            ldap_group_obj_class = $28, \
-            ldap_username_attr = $29, \
-            ldap_groupname_attr = $30, \
-            ldap_group_member_attr = $31, \
-            ldap_member_attr = $32, \
-            ldap_use_starttls = $33, \
-            ldap_tls_verify_cert = $34, \
-            openid_create_account = $35, \
-            license = $36, \
-            gateway_disconnect_notifications_enabled = $37, \
-            gateway_disconnect_notifications_inactivity_threshold = $38, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $39, \
-            ldap_sync_status = $40, \
-            ldap_enabled = $41, \
-            ldap_sync_enabled = $42, \
-            ldap_is_authoritative = $43, \
-            ldap_sync_interval = $44, \
-            ldap_user_auxiliary_obj_classes = $45, \
-            ldap_uses_ad = $46, \
-            ldap_user_rdn_attr = $47, \
-            ldap_sync_groups = $48, \
-            ldap_remote_enrollment_enabled = $49, \
-            ldap_remote_enrollment_send_invite = $50, \
-            openid_username_handling = $51, \
-            defguard_url = $52, \
-            default_admin_group_name = $53, \
-            authentication_period_days = $54, \
-            mfa_code_timeout_seconds = $55, \
-            public_proxy_url = $56, \
-            default_admin_id = $57, \
-            secret_key = $58, \
-            openid_signing_key_der = $59, \
-            enable_stats_purge = $60, \
-            stats_purge_frequency_hours = $61, \
-            stats_purge_threshold_days = $62, \
-            enrollment_token_timeout_hours = $63, \
-            password_reset_token_timeout_hours = $64, \
-            enrollment_session_timeout_minutes = $65, \
-            password_reset_session_timeout_minutes = $66, \
-            ldap_sync_account_status = $67 \
+            smtp_authentication = $15, \
+            smtp_oauth_issuer_url = $16, \
+            smtp_oauth_client_id = $17, \
+            smtp_oauth_client_secret = $18, \
+            smtp_oauth_refresh_token = $19, \
+            enrollment_vpn_step_optional = $20, \
+            enrollment_welcome_message = $21, \
+            enrollment_welcome_email = $22, \
+            enrollment_welcome_email_subject = $23, \
+            enrollment_use_welcome_message_as_email = $24, \
+            enrollment_send_welcome_email = $25, \
+            uuid = $26, \
+            ldap_url = $27, \
+            ldap_bind_username = $28, \
+            ldap_bind_password  = $29, \
+            ldap_group_search_base = $30, \
+            ldap_user_search_base = $31, \
+            ldap_user_obj_class = $32, \
+            ldap_group_obj_class = $33, \
+            ldap_username_attr = $34, \
+            ldap_groupname_attr = $35, \
+            ldap_group_member_attr = $36, \
+            ldap_member_attr = $37, \
+            ldap_use_starttls = $38, \
+            ldap_tls_verify_cert = $39, \
+            openid_create_account = $40, \
+            license = $41, \
+            gateway_disconnect_notifications_enabled = $42, \
+            gateway_disconnect_notifications_inactivity_threshold = $43, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $44, \
+            ldap_sync_status = $45, \
+            ldap_enabled = $46, \
+            ldap_sync_enabled = $47, \
+            ldap_is_authoritative = $48, \
+            ldap_sync_interval = $49, \
+            ldap_user_auxiliary_obj_classes = $50, \
+            ldap_uses_ad = $51, \
+            ldap_user_rdn_attr = $52, \
+            ldap_sync_groups = $53, \
+            ldap_remote_enrollment_enabled = $54, \
+            ldap_remote_enrollment_send_invite = $55, \
+            openid_username_handling = $56, \
+            defguard_url = $57, \
+            default_admin_group_name = $58, \
+            authentication_period_days = $59, \
+            mfa_code_timeout_seconds = $60, \
+            public_proxy_url = $61, \
+            default_admin_id = $62, \
+            secret_key = $63, \
+            openid_signing_key_der = $64, \
+            enable_stats_purge = $65, \
+            stats_purge_frequency_hours = $66, \
+            stats_purge_threshold_days = $67, \
+            enrollment_token_timeout_hours = $68, \
+            password_reset_token_timeout_hours = $69, \
+            enrollment_session_timeout_minutes = $70, \
+            password_reset_session_timeout_minutes = $71, \
+            ldap_sync_account_status = $72 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -651,12 +637,17 @@ impl Settings {
             self.instance_name,
             self.main_logo_url,
             self.nav_logo_url,
-            self.smtp_server,
-            self.smtp_port,
-            &self.smtp_encryption as &SmtpEncryption,
-            self.smtp_user,
-            &self.smtp_password as &Option<SecretStringWrapper>,
-            self.smtp_sender,
+            self.smtp.server,
+            self.smtp.port,
+            &self.smtp.encryption as &SmtpEncryption,
+            self.smtp.user,
+            &self.smtp.password as &Option<SecretStringWrapper>,
+            self.smtp.sender,
+            &self.smtp.authentication as &SmtpAuthentication,
+            self.smtp.oauth_issuer_url,
+            self.smtp.oauth_client_id,
+            &self.smtp.oauth_client_secret as &Option<SecretStringWrapper>,
+            self.smtp.oauth_refresh_token,
             self.enrollment_vpn_step_optional,
             self.enrollment_welcome_message,
             self.enrollment_welcome_email,
@@ -774,19 +765,6 @@ impl Settings {
         Ok(())
     }
 
-    /// Check if all required SMTP options are configured.
-    /// User & password can be empty for no-auth servers.
-    ///
-    /// Meant to be used to check if sending emails is enabled in current instance.
-    #[must_use]
-    pub fn smtp_configured(&self) -> bool {
-        self.smtp_server.is_some()
-            && self.smtp_port.is_some()
-            && self.smtp_sender.is_some()
-            && self.smtp_server != Some(String::new())
-            && self.smtp_sender != Some(String::new())
-    }
-
     /// Check if all required LDAP options are configured.
     ///
     /// Meant to be used to check if LDAP integration can be enabled.
@@ -833,37 +811,37 @@ impl Settings {
 
     #[must_use]
     pub fn authentication_timeout(&self) -> Duration {
-        Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
+        Duration::from_hours(self.authentication_period_days as u64 * 24)
     }
 
     #[must_use]
     pub fn stats_purge_frequency(&self) -> Duration {
-        Duration::from_secs(self.stats_purge_frequency_hours as u64 * 3600)
+        Duration::from_hours(self.stats_purge_frequency_hours as u64)
     }
 
     #[must_use]
     pub fn stats_purge_threshold(&self) -> Duration {
-        Duration::from_secs(self.stats_purge_threshold_days as u64 * 24 * 3600)
+        Duration::from_hours(self.stats_purge_threshold_days as u64 * 24)
     }
 
     #[must_use]
     pub fn enrollment_token_timeout(&self) -> Duration {
-        Duration::from_secs(self.enrollment_token_timeout_hours as u64 * 3600)
+        Duration::from_hours(self.enrollment_token_timeout_hours as u64)
     }
 
     #[must_use]
     pub fn password_reset_token_timeout(&self) -> Duration {
-        Duration::from_secs(self.password_reset_token_timeout_hours as u64 * 3600)
+        Duration::from_hours(self.password_reset_token_timeout_hours as u64)
     }
 
     #[must_use]
     pub fn enrollment_session_timeout(&self) -> Duration {
-        Duration::from_secs(self.enrollment_session_timeout_minutes as u64 * 60)
+        Duration::from_mins(self.enrollment_session_timeout_minutes as u64)
     }
 
     #[must_use]
     pub fn password_reset_session_timeout(&self) -> Duration {
-        Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
+        Duration::from_mins(self.password_reset_session_timeout_minutes as u64)
     }
 
     pub fn secret_key_required(&self) -> Result<&str, SettingsInitializationError> {
@@ -1105,25 +1083,25 @@ mod test {
     #[test]
     fn test_smtp_config() {
         let mut settings = Settings::default();
-        assert!(!settings.smtp_configured());
+        assert!(!settings.smtp.is_configured());
 
         // incomplete SMTP config
-        settings.smtp_server = Some("localhost".into());
-        settings.smtp_port = Some(587);
-        assert!(!settings.smtp_configured());
+        settings.smtp.server = Some("localhost".into());
+        settings.smtp.port = Some(587);
+        assert!(!settings.smtp.is_configured());
 
         // no-auth SMTP config
-        settings.smtp_sender = Some("no-reply@defguard.net".into());
-        assert!(settings.smtp_configured());
+        settings.smtp.sender = Some("no-reply@defguard.net".into());
+        assert!(settings.smtp.is_configured());
 
         // add non-default encryption
-        settings.smtp_encryption = SmtpEncryption::StartTls;
-        assert!(settings.smtp_configured());
+        settings.smtp.encryption = SmtpEncryption::StartTls;
+        assert!(settings.smtp.is_configured());
 
         // add auth info
-        settings.smtp_user = Some("smtp_user".into());
-        settings.smtp_password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
-        assert!(settings.smtp_configured());
+        settings.smtp.user = Some("smtp_user".into());
+        settings.smtp.password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
+        assert!(settings.smtp.is_configured());
     }
 
     #[test]

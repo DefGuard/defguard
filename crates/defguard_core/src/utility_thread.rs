@@ -397,71 +397,67 @@ async fn check_certificates(
     };
 
     // Email notifications for custom uploaded certs
-    if let ProxyCertSource::Custom = cert.proxy_http_cert_source {
-        if let Some(proxy_http_cert_expiry) = cert.proxy_http_cert_expiry {
-            expiry_check(&mut conn, "Edge HTTPS", proxy_http_cert_expiry).await;
-        }
+    if let ProxyCertSource::Custom = cert.proxy_http_cert_source
+        && let Some(proxy_http_cert_expiry) = cert.proxy_http_cert_expiry
+    {
+        expiry_check(&mut conn, "Edge HTTPS", proxy_http_cert_expiry).await;
     }
 
-    if let CoreCertSource::Custom = cert.core_http_cert_source {
-        if let Some(core_http_cert_expiry) = cert.core_http_cert_expiry {
-            expiry_check(&mut conn, "Core HTTPS", core_http_cert_expiry).await;
-        }
+    if let CoreCertSource::Custom = cert.core_http_cert_source
+        && let Some(core_http_cert_expiry) = cert.core_http_cert_expiry
+    {
+        expiry_check(&mut conn, "Core HTTPS", core_http_cert_expiry).await;
     }
 
     // Auto-refresh self-signed certs when close to expiry
     let now = Utc::now().naive_utc();
 
-    if let CoreCertSource::SelfSigned = cert.core_http_cert_source {
-        if let Some(expiry) = cert.core_http_cert_expiry {
-            let expire_in = expiry - now;
-            if expire_in <= SELF_SIGNED_REFRESH_THRESHOLD {
-                info!(
-                    "Core self-signed HTTPS certificate expires in {} days, refreshing",
-                    expire_in.num_days()
-                );
-                match refresh_core_self_signed_cert(pool).await {
-                    Ok((_, _, new_expiry)) => {
-                        info!(
-                            "Core self-signed HTTPS certificate refreshed, new expiry: {new_expiry}"
-                        );
-                        if let Err(err) = web_reload_tx.send(()) {
-                            error!("Failed to trigger core web server reload: {err}");
-                        }
+    if let CoreCertSource::SelfSigned = cert.core_http_cert_source
+        && let Some(expiry) = cert.core_http_cert_expiry
+    {
+        let expire_in = expiry - now;
+        if expire_in <= SELF_SIGNED_REFRESH_THRESHOLD {
+            info!(
+                "Core self-signed HTTPS certificate expires in {} days, refreshing",
+                expire_in.num_days()
+            );
+            match refresh_core_self_signed_cert(pool).await {
+                Ok((_, _, new_expiry)) => {
+                    info!("Core self-signed HTTPS certificate refreshed, new expiry: {new_expiry}");
+                    if let Err(err) = web_reload_tx.send(()) {
+                        error!("Failed to trigger core web server reload: {err}");
                     }
-                    Err(err) => {
-                        error!("Failed to refresh Core self-signed HTTPS certificate: {err}");
-                    }
+                }
+                Err(err) => {
+                    error!("Failed to refresh Core self-signed HTTPS certificate: {err}");
                 }
             }
         }
     }
 
-    if let ProxyCertSource::SelfSigned = cert.proxy_http_cert_source {
-        if let Some(expiry) = cert.proxy_http_cert_expiry {
-            let expire_in = expiry - now;
-            if expire_in <= SELF_SIGNED_REFRESH_THRESHOLD {
-                info!(
-                    "Proxy self-signed HTTPS certificate expires in {} days, refreshing",
-                    expire_in.num_days()
-                );
-                match refresh_proxy_self_signed_cert(pool).await {
-                    Ok((cert_pem, key_pem, new_expiry)) => {
-                        info!(
-                            "Proxy self-signed HTTPS certificate refreshed, new expiry: {new_expiry}"
-                        );
-                        if let Err(err) = proxy_control_tx
-                            .send(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem })
-                            .await
-                        {
-                            error!(
-                                "Failed to broadcast refreshed proxy HTTPS cert to proxies: {err}"
-                            );
-                        }
+    if let ProxyCertSource::SelfSigned = cert.proxy_http_cert_source
+        && let Some(expiry) = cert.proxy_http_cert_expiry
+    {
+        let expire_in = expiry - now;
+        if expire_in <= SELF_SIGNED_REFRESH_THRESHOLD {
+            info!(
+                "Proxy self-signed HTTPS certificate expires in {} days, refreshing",
+                expire_in.num_days()
+            );
+            match refresh_proxy_self_signed_cert(pool).await {
+                Ok((cert_pem, key_pem, new_expiry)) => {
+                    info!(
+                        "Proxy self-signed HTTPS certificate refreshed, new expiry: {new_expiry}"
+                    );
+                    if let Err(err) = proxy_control_tx
+                        .send(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem })
+                        .await
+                    {
+                        error!("Failed to broadcast refreshed proxy HTTPS cert to proxies: {err}");
                     }
-                    Err(err) => {
-                        error!("Failed to refresh Proxy self-signed HTTPS certificate: {err}");
-                    }
+                }
+                Err(err) => {
+                    error!("Failed to refresh Proxy self-signed HTTPS certificate: {err}");
                 }
             }
         }

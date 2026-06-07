@@ -51,7 +51,7 @@ use crate::{
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
 // How much time the user has to approve remote MFA with mobile device
-const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_secs(60);
+const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
 
 #[derive(Debug, Error)]
 pub enum ClientMfaServerError {

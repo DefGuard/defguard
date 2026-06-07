@@ -14,7 +14,7 @@ use crate::enterprise::{
 };
 
 // Every minute, check if enterprise features are enabled.
-const ENTERPRISE_CHECK_PERIOD: Duration = Duration::from_secs(60);
+const ENTERPRISE_CHECK_PERIOD: Duration = Duration::from_mins(1);
 
 #[instrument(skip_all)]
 pub async fn run_activity_log_stream_manager(

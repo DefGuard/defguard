@@ -2,24 +2,27 @@ use std::{str::FromStr, time::Duration};
 
 use defguard_common::db::models::{
     MFAMethod, Settings,
-    settings::{SmtpEncryption, defaults::WELCOME_EMAIL_SUBJECT},
+    settings::{
+        defaults::WELCOME_EMAIL_SUBJECT,
+        smtp::{SmtpAuthentication, SmtpEncryption, SmtpSettings},
+    },
 };
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Body, Mailbox, MultiPart, SinglePart, header::ContentType},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::authentication::{Credentials, Mechanism},
 };
 use serde::Serialize;
 use sqlx::PgConnection;
 use tera::{Context, Tera, Value};
-use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
-use super::SmtpSettings;
-use crate::{
+use super::{
+    MailError,
     mail_context::MailContext,
     qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
+    xoauth2::obtain_access_token,
 };
 
 #[derive(Debug)]
@@ -57,27 +60,6 @@ static NEW_ACCOUNT_1: &[u8] = include_bytes!("../assets/new_account_1.png");
 static NEW_ACCOUNT_2: &[u8] = include_bytes!("../assets/new_account_2.png");
 static GOOGLE_PLAY: &[u8] = include_bytes!("../assets/google_play.png");
 static APPLE: &[u8] = include_bytes!("../assets/apple.png");
-
-#[derive(Debug, Error)]
-pub enum MailError {
-    #[error(transparent)]
-    LettreError(#[from] lettre::error::Error),
-
-    #[error(transparent)]
-    AddressError(#[from] lettre::address::AddressError),
-
-    #[error(transparent)]
-    SmtpError(#[from] lettre::transport::smtp::Error),
-
-    #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
-
-    #[error("SMTP not configured")]
-    SmtpNotConfigured,
-
-    #[error("Invalid port: {0}")]
-    InvalidPort(i32),
-}
 
 /// Mail message
 #[derive(Debug)]
@@ -197,22 +179,15 @@ impl Mail {
         let (to, subject) = (self.to.clone(), self.subject.clone());
         debug!("Sending mail to: {to}, subject: {subject}");
 
-        // fetch SMTP settings
-        let settings = Settings::get_current_settings();
-        let settings = match SmtpSettings::from_settings(settings) {
-            Ok(settings) => settings,
-            Err(err @ MailError::SmtpNotConfigured) => {
-                warn!("SMTP not configured, email sending skipped");
-                return Err(err);
-            }
-            Err(err) => {
-                error!("Error retrieving SMTP settings: {err}");
-                return Err(err);
-            }
+        // SMTP settings
+        let smtp_settings = Settings::get_current_settings().smtp;
+        let Some(sender) = &smtp_settings.sender else {
+            warn!("SMTP not configured, email sending skipped");
+            return Err(MailError::SmtpNotConfigured);
         };
 
         // Construct lettre Message
-        let message = match self.into_message(&settings.sender) {
+        let message = match self.into_message(sender) {
             Ok(message) => message,
             Err(err) => {
                 error!("Failed to build message to: {to}, subject: {subject}, error: {err}");
@@ -220,7 +195,7 @@ impl Mail {
             }
         };
         // Build mailer and send the message
-        match Self::mailer(settings) {
+        match Self::mailer(smtp_settings).await {
             Ok(mailer) => match mailer.send(message).await {
                 Ok(response) => {
                     info!("Mail sent to: {to}, subject: {subject}, response: {response:?}");
@@ -248,24 +223,50 @@ impl Mail {
     }
 
     /// Builds mailer object with specified configuration.
-    fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+    async fn mailer(
+        mut smtp_settings: SmtpSettings,
+    ) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         type Builder = AsyncSmtpTransport<Tokio1Executor>;
 
-        let builder = match settings.encryption {
-            SmtpEncryption::None => Builder::builder_dangerous(&settings.server),
-            SmtpEncryption::StartTls => Builder::starttls_relay(&settings.server)?,
-            SmtpEncryption::ImplicitTls => Builder::relay(&settings.server)?,
+        let (Some(server), Some(port)) = (&smtp_settings.server, smtp_settings.port) else {
+            return Err(MailError::SmtpNotConfigured);
+        };
+
+        let mut builder = match smtp_settings.encryption {
+            SmtpEncryption::None => Builder::builder_dangerous(server),
+            SmtpEncryption::StartTls => Builder::starttls_relay(server)?,
+            SmtpEncryption::ImplicitTls => Builder::relay(server)?,
         }
-        .port(settings.port)
+        .port(port.try_into().map_err(|_| MailError::InvalidPort(port))?)
         .timeout(Some(SMTP_TIMEOUT));
 
-        // Skip credentials if any of them is empty
-        let builder = if let (Some(user), Some(password)) = (settings.user, settings.password) {
-            builder.credentials(Credentials::new(user, password))
-        } else {
-            debug!("SMTP credentials were not provided, skipping username/password authentication");
-            builder
-        };
+        // Skip credentials if any of them is empty.
+        match smtp_settings.authentication {
+            SmtpAuthentication::None => {
+                debug!(
+                    "SMTP credentials were not provided, skipping username/password authentication"
+                );
+            }
+            SmtpAuthentication::Login => {
+                let (Some(user), Some(password)) = (smtp_settings.user, smtp_settings.password)
+                else {
+                    error!("LOGIN requires username and password");
+                    return Err(MailError::SmtpNotConfigured);
+                };
+                builder =
+                    builder.credentials(Credentials::new(user, password.expose_secret().into()));
+            }
+            SmtpAuthentication::XOAuth2 => {
+                let code = obtain_access_token(&mut smtp_settings).await?;
+                let Some(sender) = smtp_settings.sender else {
+                    error!("XOAUTH2 requires sender email address");
+                    return Err(MailError::SmtpNotConfigured);
+                };
+                builder = builder
+                    .authentication(vec![Mechanism::Xoauth2])
+                    .credentials(Credentials::new(sender, code));
+            }
+        }
 
         Ok(builder.build())
     }
@@ -470,10 +471,10 @@ impl MailMessage {
                 mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
                 mail.add_png_image("google_play", GOOGLE_PLAY);
                 mail.add_png_image("apple", APPLE);
-                if let Some(Value::String(url)) = context.get("url") {
-                    if let Ok(qr) = qr_png(url.as_bytes()) {
-                        mail.add_png_image("qr", &qr);
-                    }
+                if let Some(Value::String(url)) = context.get("url")
+                    && let Ok(qr) = qr_png(url.as_bytes())
+                {
+                    mail.add_png_image("qr", &qr);
                 }
             }
             Self::MFACode | Self::MFAActivation => {

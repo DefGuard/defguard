@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query, query_scalar, types::Json};
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type, PartialOrd)]
+#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, Type, PartialOrd)]
 #[serde(rename_all = "snake_case")]
 #[sqlx(type_name = "initial_setup_step", rename_all = "snake_case")]
 pub enum InitialSetupStep {

@@ -50,25 +50,23 @@ pub async fn start_user_enrollment(
     user.enrollment_pending = true;
     user.save(&mut *conn).await?;
 
-    if send_user_notification {
-        if let Some(email) = email {
-            debug!("Sending an enrollment mail for user {user} to {email}.");
-            let base_message_context = enrollment.get_welcome_message_context(&mut *conn).await?;
-            let result = new_account_mail(
-                &email,
-                conn,
-                base_message_context,
-                enrollment_service_url,
-                &enrollment.id,
-            )
-            .await;
-            match result {
-                Ok(()) => {
-                    info!("Sent enrollment start mail for user {user} to {email}");
-                }
-                Err(err) => {
-                    error!("Error sending mail: {err}");
-                }
+    if send_user_notification && let Some(email) = email {
+        debug!("Sending an enrollment mail for user {user} to {email}.");
+        let base_message_context = enrollment.get_welcome_message_context(&mut *conn).await?;
+        let result = new_account_mail(
+            &email,
+            conn,
+            base_message_context,
+            enrollment_service_url,
+            &enrollment.id,
+        )
+        .await;
+        match result {
+            Ok(()) => {
+                info!("Sent enrollment start mail for user {user} to {email}");
+            }
+            Err(err) => {
+                error!("Error sending mail: {err}");
             }
         }
     }
@@ -134,29 +132,27 @@ pub async fn start_desktop_configuration(
         desktop_configuration.id, user.username
     );
 
-    if send_user_notification {
-        if let Some(email) = email {
+    if send_user_notification && let Some(email) = email {
+        debug!(
+            "Sending a desktop configuration mail for user {} to {email}",
+            user.username
+        );
+        let base_message_context = desktop_configuration
+            .get_welcome_message_context(&mut *conn)
+            .await?;
+        let result = desktop_start_mail(
+            &email,
+            conn,
+            base_message_context,
+            &enrollment_service_url,
+            &desktop_configuration.id,
+        )
+        .await;
+        if let Err(err) = result {
             debug!(
-                "Sending a desktop configuration mail for user {} to {email}",
-                user.username
+                "Cannot send an email to the user {} due to the error {err}.",
+                user.username,
             );
-            let base_message_context = desktop_configuration
-                .get_welcome_message_context(&mut *conn)
-                .await?;
-            let result = desktop_start_mail(
-                &email,
-                conn,
-                base_message_context,
-                &enrollment_service_url,
-                &desktop_configuration.id,
-            )
-            .await;
-            if let Err(err) = result {
-                debug!(
-                    "Cannot send an email to the user {} due to the error {err}.",
-                    user.username,
-                );
-            }
         }
     }
     info!(
