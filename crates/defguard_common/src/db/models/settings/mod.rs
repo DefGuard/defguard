@@ -520,7 +520,7 @@ impl Settings {
 
         // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
         // configured.
-        if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
+        if self.gateway_disconnect_notifications_enabled && !self.smtp.is_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
         }
@@ -532,7 +532,7 @@ impl Settings {
         }
 
         // Check if LDAP remote enrollment can be enabled
-        if self.ldap_remote_enrollment_enabled && !self.smtp_configured() {
+        if self.ldap_remote_enrollment_enabled && !self.smtp.is_configured() {
             warn!("Cannot enable remote enrollment for LDAP. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
         }
@@ -763,19 +763,6 @@ impl Settings {
         update_current_settings(pool, settings).await?;
 
         Ok(())
-    }
-
-    /// Check if all required SMTP options are configured.
-    /// User & password can be empty for no-auth servers.
-    ///
-    /// Meant to be used to check if sending emails is enabled in current instance.
-    #[must_use]
-    pub fn smtp_configured(&self) -> bool {
-        self.smtp.server.is_some()
-            && self.smtp.port.is_some()
-            && self.smtp.sender.is_some()
-            && self.smtp.server != Some(String::new())
-            && self.smtp.sender != Some(String::new())
     }
 
     /// Check if all required LDAP options are configured.
@@ -1096,25 +1083,25 @@ mod test {
     #[test]
     fn test_smtp_config() {
         let mut settings = Settings::default();
-        assert!(!settings.smtp_configured());
+        assert!(!settings.smtp.is_configured());
 
         // incomplete SMTP config
         settings.smtp.server = Some("localhost".into());
         settings.smtp.port = Some(587);
-        assert!(!settings.smtp_configured());
+        assert!(!settings.smtp.is_configured());
 
         // no-auth SMTP config
         settings.smtp.sender = Some("no-reply@defguard.net".into());
-        assert!(settings.smtp_configured());
+        assert!(settings.smtp.is_configured());
 
         // add non-default encryption
         settings.smtp.encryption = SmtpEncryption::StartTls;
-        assert!(settings.smtp_configured());
+        assert!(settings.smtp.is_configured());
 
         // add auth info
         settings.smtp.user = Some("smtp_user".into());
         settings.smtp.password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
-        assert!(settings.smtp_configured());
+        assert!(settings.smtp.is_configured());
     }
 
     #[test]

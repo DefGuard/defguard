@@ -787,7 +787,7 @@ pub async fn totp_code(
 pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     // check if SMTP is configured
     let settings = Settings::get_current_settings();
-    if !settings.smtp_configured() {
+    if !settings.smtp.is_configured() {
         error!("Unable to start email MFA configuration. SMTP is not configured.");
         return Err(WebError::Email("SMTP not configured".into()));
     }

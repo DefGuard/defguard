@@ -36,7 +36,7 @@ pub async fn get_app_info(State(appstate): State<AppState>, _session: SessionInf
 
     let res = AppInfo {
         network_present: !networks.is_empty(),
-        smtp_enabled: settings.smtp_configured(),
+        smtp_enabled: settings.smtp.is_configured(),
         version: VERSION.into(),
         ldap_info: LdapInfo {
             enabled: settings.ldap_enabled,
