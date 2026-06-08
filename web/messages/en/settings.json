@@ -250,7 +250,7 @@
   "settings_smtp_auth_modal_custom_title": "Configure Custom OAuth2 Provider",
   "settings_smtp_auth_modal_google_title": "Configure Google OAuth2",
   "settings_smtp_auth_modal_microsoft_title": "Configure Microsoft OAuth2",
-  "settings_smtp_auth_oauth_info": "Clicking Apply will open a browser window to authorize access. You will be asked to sign in and grant permission.",
+  "settings_smtp_auth_oauth_info": "Clicking Apply will open a browser window to authorize access. You will be asked to sign in and grant permission. Make sure /smtp-oauth-callback is authorized as a redirect URL.",
   "settings_smtp_auth_oauth_popup_blocked": "Authorization popup was blocked. Please allow popups for this site.",
   "settings_smtp_auth_oauth_popup_closed": "Authorization popup was closed before completing.",
   "settings_smtp_auth_oauth_error": "Authorization failed",

@@ -43,12 +43,11 @@ type Props = {
 };
 
 const GOOGLE_ISSUER_URL = 'https://accounts.google.com';
-const MICROSOFT_ISSUER_URL_DEFAULT = 'https://login.microsoftonline.com/common';
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+const MICROSOFT_ISSUER_URL = 'https://login.microsoftonline.com/common';
+const GOOGLE_AUTH_URL = `${GOOGLE_ISSUER_URL}/o/oauth2/v2/auth`;
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const MICROSOFT_AUTH_URL =
-  'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
-const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+const MICROSOFT_AUTH_URL = `${MICROSOFT_ISSUER_URL}/oauth2/v2.0/authorize`;
+const MICROSOFT_TOKEN_URL = `${MICROSOFT_ISSUER_URL}/oauth2/v2.0/token`;
 const CUSTOM_SCOPE_DEFAULT = 'openid offline_access';
 const GOOGLE_SMTP_SERVER = 'smtp.gmail.com';
 const MICROSOFT_SMTP_SERVER = 'smtp.office365.com';
@@ -250,7 +249,7 @@ const ModalContent = ({
             'microsoftonline',
           )
             ? initialValues.smtp_oauth_issuer_url
-            : MICROSOFT_ISSUER_URL_DEFAULT,
+            : MICROSOFT_ISSUER_URL,
           smtp_oauth_scope: null,
           smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
           smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
