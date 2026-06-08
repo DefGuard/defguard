@@ -1,0 +1,10 @@
+.smtp-auth-oauth-info {
+  font: var(--t-body-sm-400);
+  color: var(--fg-muted);
+}
+
+.smtp-auth-oauth-error {
+  padding-top: var(--spacing-sm);
+  font: var(--t-input-error-message);
+  color: var(--fg-critical);
+}
