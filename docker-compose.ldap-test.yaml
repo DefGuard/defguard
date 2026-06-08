@@ -20,8 +20,6 @@ services:
     # Pinned to a patch tag: Bitnami pruned the rolling `2.6` minor tag from
     # their public catalog (2025), but patch tags like 2.6.8 still resolve on ECR.
     image: public.ecr.aws/bitnami/openldap:2.6.8
-    # Bitnami OpenLDAP publishes amd64 only; run under emulation on arm64 (Apple Silicon).
-    platform: linux/amd64
     user: root
     environment:
       LDAP_ADMIN_PASSWORD: "pass123"

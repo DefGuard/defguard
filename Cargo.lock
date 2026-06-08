@@ -3341,7 +3341,7 @@ dependencies = [
 [[package]]
 name = "lber"
 version = "0.5.1"
-source = "git+https://github.com/DefGuard/ldap3?rev=8b7f3d3ae6ee3ebf9c9248765d9b36c2cd114139#8b7f3d3ae6ee3ebf9c9248765d9b36c2cd114139"
+source = "git+https://github.com/DefGuard/ldap3?rev=65ae9ad320770c63f366233ebe121534e16b59a7#65ae9ad320770c63f366233ebe121534e16b59a7"
 dependencies = [
  "bytes",
  "nom 7.1.3",
@@ -3350,7 +3350,7 @@ dependencies = [
 [[package]]
 name = "ldap3"
 version = "0.12.1"
-source = "git+https://github.com/DefGuard/ldap3?rev=8b7f3d3ae6ee3ebf9c9248765d9b36c2cd114139#8b7f3d3ae6ee3ebf9c9248765d9b36c2cd114139"
+source = "git+https://github.com/DefGuard/ldap3?rev=65ae9ad320770c63f366233ebe121534e16b59a7#65ae9ad320770c63f366233ebe121534e16b59a7"
 dependencies = [
  "async-trait",
  "bytes",
