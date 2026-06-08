@@ -41,14 +41,15 @@ export const AddLocationPostureCheckStep = () => {
   const [showGateway, setShowGateway] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const { data: postures } = useSuspenseQuery({
-    queryFn: api.devicePosture.getDevicePostures,
-    queryKey: ['device-posture'],
-  });
   const canUseEnterprise =
     licenseInfo === undefined ? undefined : canUseEnterpriseFeature(licenseInfo).result;
   const postureLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
-  const hasPostures = postures.length > 0;
+  const { data: postures } = useQuery({
+    queryFn: api.devicePosture.getDevicePostures,
+    queryKey: ['device-posture'],
+    enabled: canUseEnterprise === true,
+  });
+  const hasPostures = isPresent(postures) && postures.length > 0;
   const canAssignPostures = canUseEnterprise === true && hasPostures;
   const navigate = useNavigate();
 
