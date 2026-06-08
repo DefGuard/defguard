@@ -34,7 +34,9 @@ model_derive = { path = "./crates/model_derive", version = "0.0.0" }
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
-axum-client-ip = { version = "1.3", default-features = false, features = ["forwarded-header"] }
+axum-client-ip = { version = "1.3", default-features = false, features = [
+    "forwarded-header",
+] }
 axum-server = { version = "0.8", features = ["tls-rustls"] }
 axum-extra = { version = "0.12", features = [
     "cookie-private",
@@ -59,7 +61,7 @@ humantime = "2.1"
 ipnetwork = "0.20"
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
-ldap3 = { version = "0.12", default-features = false, features = ["tls"] }
+ldap3 = { git = "https://github.com/DefGuard/ldap3", rev = "65ae9ad320770c63f366233ebe121534e16b59a7", features = ["tls"] }
 lettre = { version = "0.11", default-features = false, features = [
     "builder",
     "smtp-transport",

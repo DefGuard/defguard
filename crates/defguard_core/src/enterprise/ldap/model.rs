@@ -349,8 +349,8 @@ pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
 /// Returns true only for a SearchResultEntry (LDAP protocol op id 4).
 ///
 /// Referrals (id 19), intermediate responses (id 25), and any other result type
-/// are rejected. This mirrors the id that `SearchEntry::construct` requires, so a
-/// `true` result guarantees `construct` will not panic on the entry.
+/// are rejected. This mirrors the id that `SearchEntry::try_construct` requires, so a
+/// `true` result guarantees the entry will decode.
 #[must_use]
 pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
     entry.0.id == 4
@@ -374,11 +374,10 @@ pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
 mod tests {
     use std::collections::HashMap;
 
-    use lber::{
-        common::TagClass,
-        structure::{PL, StructureTag},
+    use ldap3::{
+        ResultEntry, SearchEntry,
+        asn1::{PL, StructureTag, TagClass},
     };
-    use ldap3::{ResultEntry, SearchEntry};
 
     use super::*;
 
@@ -394,7 +393,7 @@ mod tests {
 
     #[test]
     fn is_search_entry_accepts_only_real_entries() {
-        // id 4 is a SearchResultEntry, the only type SearchEntry::construct accepts.
+        // id 4 is a SearchResultEntry, the only type SearchEntry::try_construct accepts.
         assert!(is_search_entry(&result_entry(4)));
         // id 19 is a referral, id 25 an intermediate response.
         assert!(!is_search_entry(&result_entry(19)));

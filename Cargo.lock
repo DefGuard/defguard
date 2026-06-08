@@ -1456,7 +1456,6 @@ dependencies = [
  "ipnetwork",
  "jsonwebkey",
  "jsonwebtoken",
- "lber",
  "ldap3",
  "matches",
  "md4",
@@ -3342,8 +3341,7 @@ dependencies = [
 [[package]]
 name = "lber"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbcf559624bfd9fe8d488329a8959766335a43a9b8b2cdd6a2c379fca02909a5"
+source = "git+https://github.com/DefGuard/ldap3?rev=65ae9ad320770c63f366233ebe121534e16b59a7#65ae9ad320770c63f366233ebe121534e16b59a7"
 dependencies = [
  "bytes",
  "nom 7.1.3",
@@ -3352,8 +3350,7 @@ dependencies = [
 [[package]]
 name = "ldap3"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01fe89f5e7cfb7e4701e3a38ff9f00358e026a9aee940355d88ee9d81e5c7503"
+source = "git+https://github.com/DefGuard/ldap3?rev=65ae9ad320770c63f366233ebe121534e16b59a7#65ae9ad320770c63f366233ebe121534e16b59a7"
 dependencies = [
  "async-trait",
  "bytes",
