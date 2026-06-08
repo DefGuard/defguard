@@ -283,9 +283,12 @@ const Content = ({ settings }: { settings: Settings }) => {
           })}
         >
           {({ authentication, issuerUrl, useAuth }) => {
-            if (useAuth && detectActiveCard(authentication, issuerUrl) === 'google') {
-              return null;
-            }
+            const activeCard = useAuth
+              ? detectActiveCard(authentication, issuerUrl)
+              : null;
+            const disableServerPort = activeCard === 'google';
+            const disableEncryption =
+              activeCard === 'google' || activeCard === 'microsoft';
             return (
               <>
                 <EvenSplit>
@@ -293,6 +296,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                     {(field) => (
                       <field.FormInput
                         required
+                        disabled={disableServerPort}
                         label={m.settings_smtp_label_server_address()}
                         helper={m.settings_smtp_helper_server_address()}
                       />
@@ -302,6 +306,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                     {(field) => (
                       <field.FormInput
                         required
+                        disabled={disableServerPort}
                         label={m.settings_smtp_label_server_port()}
                         helper={m.settings_smtp_helper_server_port()}
                         type="number"
@@ -310,34 +315,16 @@ const Content = ({ settings }: { settings: Settings }) => {
                   </form.AppField>
                 </EvenSplit>
                 <SizedBox height={ThemeSpacing.Xl} />
-              </>
-            );
-          }}
-        </form.Subscribe>
-        <form.Subscribe
-          selector={(s) => ({
-            authentication: s.values.smtp_authentication,
-            issuerUrl: s.values.smtp_oauth_issuer_url,
-            useAuth: s.values.use_auth,
-          })}
-        >
-          {({ authentication, issuerUrl, useAuth }) => {
-            const activeCard = useAuth
-              ? detectActiveCard(authentication, issuerUrl)
-              : null;
-            const hideEncryption = activeCard === 'google' || activeCard === 'microsoft';
-            return (
-              <EvenSplit>
-                <form.AppField name="smtp_sender">
-                  {(field) => (
-                    <field.FormInput
-                      required
-                      label={m.settings_smtp_label_sender_email_address()}
-                      helper={m.settings_smtp_helper_sender_email_address()}
-                    />
-                  )}
-                </form.AppField>
-                {!hideEncryption && (
+                <EvenSplit>
+                  <form.AppField name="smtp_sender">
+                    {(field) => (
+                      <field.FormInput
+                        required
+                        label={m.settings_smtp_label_sender_email_address()}
+                        helper={m.settings_smtp_helper_sender_email_address()}
+                      />
+                    )}
+                  </form.AppField>
                   <form.AppField name="smtp_encryption">
                     {(field) => (
                       <field.FormSelect
@@ -345,11 +332,12 @@ const Content = ({ settings }: { settings: Settings }) => {
                         label={m.settings_smtp_label_encryption()}
                         helper={m.settings_smtp_helper_encryption()}
                         required
+                        disabled={disableEncryption}
                       />
                     )}
                   </form.AppField>
-                )}
-              </EvenSplit>
+                </EvenSplit>
+              </>
             );
           }}
         </form.Subscribe>
