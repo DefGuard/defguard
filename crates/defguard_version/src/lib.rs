@@ -170,7 +170,7 @@ impl SystemInfo {
     /// A `SystemInfo` struct populated with the current system's characteristics.
     #[must_use]
     pub fn get() -> Self {
-        os_info::get().into()
+        Self::from(os_info::get())
     }
 
     fn as_header_value(&self) -> String {
@@ -178,7 +178,7 @@ impl SystemInfo {
     }
 
     fn try_from_header_value(header_value: &str) -> Result<Self, DefguardVersionError> {
-        let parts: Vec<&str> = header_value.split(';').collect();
+        let parts = header_value.split(';').collect::<Vec<_>>();
         if parts.len() != 3 {
             return Err(DefguardVersionError::SystemInfoParseError(
                 header_value.to_owned(),

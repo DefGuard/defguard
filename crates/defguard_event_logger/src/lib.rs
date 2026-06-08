@@ -99,26 +99,17 @@ async fn translate_and_forward(
 ) {
     loop {
         let message = tokio::select! {
-            event = api_event_rx.recv() => match event {
-                Some(e) => EventLoggerMessage::from_api_event(e, &reload_notify),
-                None => {
-                    error!("API event channel closed");
-                    break;
-                }
+            event = api_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_api_event(e, &reload_notify) } else {
+                error!("API event channel closed");
+                break;
             },
-            event = bidi_event_rx.recv() => match event {
-                Some(e) => EventLoggerMessage::from_bidi_event(e),
-                None => {
-                    error!("Bidi gRPC stream event channel closed");
-                    break;
-                }
+            event = bidi_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_bidi_event(e) } else {
+                error!("Bidi gRPC stream event channel closed");
+                break;
             },
-            event = session_manager_event_rx.recv() => match event {
-                Some(e) => EventLoggerMessage::from_session_manager_event(e),
-                None => {
-                    error!("Session manager event channel closed");
-                    break;
-                }
+            event = session_manager_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_session_manager_event(e) } else {
+                error!("Session manager event channel closed");
+                break;
             },
         };
 

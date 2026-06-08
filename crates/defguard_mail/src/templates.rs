@@ -15,7 +15,7 @@ use tera::{Context, Function, Tera};
 use thiserror::Error;
 use tracing::{debug, warn};
 
-use crate::{Attachment, mail::MailMessage};
+use crate::mail::{Attachment, MailMessage};
 
 pub(crate) const DEFAULT_LANG: &str = "en_US";
 

@@ -4,7 +4,7 @@ pub mod user_info;
 
 pub type UrlParseError = url::ParseError;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AuthFlowType {
     Enrollment,
     Mfa,

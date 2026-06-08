@@ -83,6 +83,7 @@ pub struct WireguardNetworkData {
     pub allowed_ips_from_acl: bool,
     pub location_mfa_mode: LocationMfaMode,
     pub service_location_mode: ServiceLocationMode,
+    pub posture_checks: Option<Vec<i64>>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -264,9 +265,26 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
+    // assign posture checks
+    if let Some(ref posture_checks) = data.posture_checks {
+        debug!("Assigning posture checks {posture_checks:?} to {network}");
+        if !is_enterprise_license_active() && !posture_checks.is_empty() {
+            error!(
+                "Cannot assign posture checks to new location {network}: Enterprise license required."
+            );
+            return Ok(WebError::Forbidden(
+                "Cannot assign posture checks to new location: Enterprise license required.",
+            )
+            .into());
+        }
+        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
+            .await?;
+        info!("Assigned posture checks {posture_checks:?} to new location {network}");
+    }
 
     transaction.commit().await?;
+
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
 
     info!(
         "User {} created WireGuard network {network_name}",
@@ -890,19 +908,17 @@ pub(crate) async fn add_device(
     // if they have ACL enabled & enterprise features are active
     for location_id in affected_location_ids {
         if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
-        {
-            if let Some(firewall_config) =
+            && let Some(firewall_config) =
                 try_get_location_firewall_config(&location, &mut transaction).await?
-            {
-                debug!(
-                    "Sending firewall config update for location {location} affected by adding new \
+        {
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new \
                     user {username} devices"
-                );
-                events.push(GatewayCommand::FirewallConfigChanged(
-                    location_id,
-                    firewall_config,
-                ));
-            }
+            );
+            events.push(GatewayCommand::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
         }
     }
 
@@ -1185,18 +1201,16 @@ pub(crate) async fn delete_device(
     for info in &device_info.network_info {
         if let Some(location) =
             WireguardNetwork::find_by_id(&mut *transaction, info.network_id).await?
-        {
-            if let Some(firewall_config) =
+            && let Some(firewall_config) =
                 try_get_location_firewall_config(&location, &mut transaction).await?
-            {
-                debug!(
-                    "Sending firewall config update for location {location} affected by deleting user {username} device"
-                );
-                events.push(GatewayCommand::FirewallConfigChanged(
-                    location.id,
-                    firewall_config,
-                ));
-            }
+        {
+            debug!(
+                "Sending firewall config update for location {location} affected by deleting user {username} device"
+            );
+            events.push(GatewayCommand::FirewallConfigChanged(
+                location.id,
+                firewall_config,
+            ));
         }
     }
 

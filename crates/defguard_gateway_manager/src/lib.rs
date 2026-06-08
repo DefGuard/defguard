@@ -455,13 +455,13 @@ impl GatewayManager {
                                 }
 
                                 // Only mark disconnected if the gateway was actually connected
-                                if gateway.is_connected() {
-                                    if let Err(err) = gateway.touch_disconnected(&self.pool).await {
-                                        error!(
-                                            "Failed to update disconnection time for Gateway \
+                                if gateway.is_connected()
+                                    && let Err(err) = gateway.touch_disconnected(&self.pool).await
+                                {
+                                    error!(
+                                        "Failed to update disconnection time for Gateway \
                                             id={gateway_id} after database change: {err}"
-                                        );
-                                    }
+                                    );
                                 }
 
                                 if gateway.enabled {

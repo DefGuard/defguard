@@ -8,7 +8,7 @@ use defguard_common::{
     utils::{SplitIp, split_ip},
 };
 use serde::Serialize;
-use sqlx::{PgConnection, PgPool, prelude::FromRow};
+use sqlx::{PgConnection, PgPool, prelude::FromRow, query_as};
 use tracing::debug;
 
 use crate::error::StaticIpError;
@@ -53,7 +53,7 @@ pub async fn get_ips_for_user(
     pool: &PgPool,
 ) -> Result<Vec<LocationDevices>, StaticIpError> {
     debug!("Fetching static IPs for user {username}");
-    let rows = sqlx::query_as!(
+    let rows = query_as!(
         DeviceIpRow,
         "SELECT \
             wn.id AS location_id, \
@@ -126,7 +126,7 @@ pub async fn get_ips_for_device(
     pool: &PgPool,
 ) -> Result<Vec<DeviceLocationIp>, StaticIpError> {
     debug!("Fetching static IPs for device {device_id} of user {username}");
-    let rows = sqlx::query_as!(
+    let rows = query_as!(
         DeviceIpRow,
         "SELECT \
             wn.id AS location_id, \

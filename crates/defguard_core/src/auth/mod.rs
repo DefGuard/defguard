@@ -233,10 +233,10 @@ where
                 return Err(WebError::Forbidden("user is disabled"));
             }
             let settings = Settings::get_current_settings();
-            if let Some(default_admin_id) = settings.default_admin_id {
-                if session_info.user.id == default_admin_id {
-                    return Ok(Self {});
-                }
+            if let Some(default_admin_id) = settings.default_admin_id
+                && session_info.user.id == default_admin_id
+            {
+                return Ok(Self {});
             }
             let pool = extract_pool(parts, state).await?;
             let groups_with_permission =

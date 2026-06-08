@@ -20,7 +20,7 @@ impl OAuth2Token {
     pub fn new(oauth2authorizedapp_id: Id, redirect_uri: String, scope: String) -> Self {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
-        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
+        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
         Self {
             oauth2authorizedapp_id,
             access_token: gen_alphanumeric(24),
@@ -37,7 +37,7 @@ impl OAuth2Token {
         let timeout = settings.authentication_timeout();
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
-        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
+        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
         self.expires_in = expiration.timestamp();
 
         query!(
@@ -62,16 +62,18 @@ impl OAuth2Token {
     /// Store data in the database.
     pub async fn save(&self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
-            "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in) \
+            "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, \
+            redirect_uri, scope, expires_in) \
             VALUES ($1, $2, $3, $4, $5, $6)",
             self.oauth2authorizedapp_id,
             self.access_token,
             self.refresh_token,
             self.redirect_uri,
             self.scope,
-            self.expires_in)
-            .execute(pool)
-            .await?;
+            self.expires_in
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
@@ -94,7 +96,8 @@ impl OAuth2Token {
     ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
+            expires_in \
             FROM oauth2token WHERE access_token = $1",
             access_token
         )
@@ -121,7 +124,8 @@ impl OAuth2Token {
     ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
+            expires_in \
             FROM oauth2token WHERE refresh_token = $1",
             refresh_token
         )
@@ -148,7 +152,8 @@ impl OAuth2Token {
     ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
+            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
+            expires_in \
             FROM oauth2token WHERE oauth2authorizedapp_id = $1",
             oauth2authorizedapp_id,
         )

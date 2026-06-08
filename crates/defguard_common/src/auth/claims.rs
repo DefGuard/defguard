@@ -10,7 +10,7 @@ use crate::db::models::{Settings, settings::SettingsInitializationError};
 
 pub static JWT_ISSUER: &str = "DefGuard";
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub enum ClaimsType {
     #[default]
     Auth,
