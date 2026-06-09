@@ -48,6 +48,7 @@ import {
   SmtpAuthConfigModal,
   type SmtpAuthModalValues,
 } from './SmtpAuthConfigModal';
+import { isGoogleIssuerUrl, isMicrosoftIssuerUrl } from './smtpAuthUtils';
 
 const breadcrumbsLinks = [
   <Link
@@ -114,16 +115,14 @@ const encryptionSelectOptions: SelectOption<SmtpEncryptionValue>[] = Object.valu
   value: e,
 }));
 
-const GOOGLE_ISSUER_URL = 'https://accounts.google.com';
-
 const detectActiveCard = (
   authentication: string,
   issuerUrl: string | null,
 ): SmtpAuthCardVariant | null => {
   if (authentication === SmtpAuthentication.Login) return 'basic';
   if (authentication === SmtpAuthentication.XOAuth2) {
-    if (issuerUrl?.startsWith(GOOGLE_ISSUER_URL)) return 'google';
-    if (issuerUrl?.includes('microsoftonline.com')) return 'microsoft';
+    if (isGoogleIssuerUrl(issuerUrl)) return 'google';
+    if (isMicrosoftIssuerUrl(issuerUrl)) return 'microsoft';
     return 'custom';
   }
   return null;

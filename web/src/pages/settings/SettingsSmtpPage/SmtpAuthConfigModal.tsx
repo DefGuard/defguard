@@ -16,6 +16,7 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import type { SmtpAuthCardVariant } from './components/SmtpAuthMethodCard/SmtpAuthMethodCard';
+import { isMicrosoftIssuerUrl } from './smtpAuthUtils';
 
 export type SmtpAuthModalValues = {
   smtp_user: string | null;
@@ -245,9 +246,7 @@ const ModalContent = ({
         return {
           smtp_user: null,
           smtp_password: null,
-          smtp_oauth_issuer_url: initialValues.smtp_oauth_issuer_url?.includes(
-            'microsoftonline',
-          )
+          smtp_oauth_issuer_url: isMicrosoftIssuerUrl(initialValues.smtp_oauth_issuer_url)
             ? initialValues.smtp_oauth_issuer_url
             : MICROSOFT_ISSUER_URL,
           smtp_oauth_scope: null,
@@ -261,7 +260,6 @@ const ModalContent = ({
     initialValues.smtp_password,
     initialValues.smtp_oauth_client_secret,
     initialValues.smtp_user,
-    initialValues.smtp_oauth_issuer_url?.includes,
     initialValues.smtp_oauth_issuer_url,
     initialValues.smtp_oauth_client_id,
   ]);
