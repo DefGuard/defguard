@@ -650,13 +650,22 @@ async fn sync_all_users_state(
     let admin_behavior = settings.directory_sync_admin_behavior;
     let prefetch_users = settings.prefetch_users;
 
+    let is_allowed_user = |user: &DirectoryUser| -> bool {
+        prefetch_allowed_emails
+            .as_ref()
+            .is_none_or(|allowed| allowed.contains(&user.email))
+    };
+
     // split directory users into separate lists for active and inactive users
-    let (active_directory_users, inactive_directory_users): (Vec<_>, Vec<_>) =
-        all_users.iter().partition(|user| user.active);
+    let (active_directory_users, inactive_directory_users): (Vec<_>, Vec<_>) = all_users
+        .iter()
+        .filter(|user| is_allowed_user(user))
+        .partition(|user| user.active);
 
     // prepare a list of user emails for matching users between directory and Defguard
     let all_directory_emails = all_users
         .iter()
+        .filter(|user| is_allowed_user(user))
         .map(|u| u.email.as_str())
         .collect::<Vec<&str>>();
 
@@ -700,11 +709,7 @@ async fn sync_all_users_state(
         let missing_defguard_users: Vec<_> = all_users
             .iter()
             .filter(|user| !existing_user_emails.contains(&user.email.as_str()))
-            .filter(|user| {
-                prefetch_allowed_emails
-                    .as_ref()
-                    .is_none_or(|allowed| allowed.contains(&user.email))
-            })
+            .filter(|user| is_allowed_user(user))
             .collect();
 
         let core_settings = Settings::get_current_settings();
