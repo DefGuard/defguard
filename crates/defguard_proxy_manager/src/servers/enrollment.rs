@@ -422,9 +422,9 @@ impl EnrollmentServer {
             "Fetching user {} data to check if the user already has a password.",
             user.username
         );
-        if user.has_password() {
-            error!("User {} already activated", user.username);
-            return Err(Status::invalid_argument("user already activated"));
+        if user.is_enrolled() {
+            error!("User {} already enrolled", user.username);
+            return Err(Status::invalid_argument("user already enrolled"));
         }
         debug!("User doesn't have a password yet. Continue user activation process...");
 
