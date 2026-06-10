@@ -77,6 +77,9 @@ jobs:
       - X64
     env:
       SQLX_OFFLINE: "1"
+      # Force the installed stable toolchain. RUSTUP_TOOLCHAIN takes precedence
+      # over any stale rustup directory override left on the self-hosted runner.
+      RUSTUP_TOOLCHAIN: "stable"
       # sccache
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
