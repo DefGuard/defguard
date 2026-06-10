@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
+    use std::{collections::HashSet, str::FromStr};
 
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
@@ -90,6 +90,7 @@ mod test {
             Vec::new(),
             None,
             prefetch_users,
+            None,
         )
         .save(pool)
         .await
@@ -167,7 +168,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -208,7 +209,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -254,7 +255,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -308,7 +309,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -395,7 +396,7 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -468,7 +469,7 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -851,6 +852,142 @@ mod test {
 
         // No events
         assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_users_prefetch_group_filter(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // enable prefetching users, import only members of group1
+        let mut provider = make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+        provider.directory_sync_user_groups = Some(vec!["group1".to_string()]);
+        provider.save(&pool).await.unwrap();
+
+        // no users in Defguard before sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+
+        // all directory users are members of group1, so all of them were imported
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 3);
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_users_prefetch_group_filter_no_match(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // enable prefetching users, import only members of a group that doesn't exist
+        // in the directory
+        let mut provider = make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::Users,
+            true,
+        )
+        .await;
+        provider.directory_sync_user_groups = Some(vec!["nonexistent-group".to_string()]);
+        provider.save(&pool).await.unwrap();
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+
+        // no users were imported
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_users_prefetch_allowed_emails(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // enable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // no users in Defguard before sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        // only allow one of the directory users to be imported
+        let allowed_emails = HashSet::from(["testuser@email.com".to_string()]);
+        let all_users = client.get_all_users().await.unwrap();
+        sync_all_users_state(&pool, &wg_tx, &all_users, Some(allowed_emails))
+            .await
+            .unwrap();
+
+        // only the allowed user was imported
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        assert_eq!(defguard_users[0].email, "testuser@email.com");
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_user_in_directory_groups(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            false,
+        )
+        .await;
+
+        // the test provider returns group1 as the only group of any user
+        assert!(
+            user_in_directory_groups(&pool, "testuser@email.com", &["group1".to_string()])
+                .await
+                .unwrap()
+        );
+        assert!(
+            !user_in_directory_groups(&pool, "testuser@email.com", &["group2".to_string()])
+                .await
+                .unwrap()
+        );
     }
 
     #[sqlx::test]
