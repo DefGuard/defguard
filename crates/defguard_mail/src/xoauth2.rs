@@ -53,7 +53,7 @@ pub(super) async fn obtain_access_token(
     let access_token = token_response.access_token().secret();
     debug!("Got access token");
     if let Some(expires_in) = token_response.expires_in() {
-        debug!("Access token expires in:\n{expires_in:?}\n");
+        debug!("Access token expires in {expires_in:?}\n");
     }
     if let Some(refresh_token) = token_response.refresh_token() {
         debug!("Got refresh token");
