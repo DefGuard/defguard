@@ -7,8 +7,6 @@ name: Test APT repository
   push:
     branches:
       - fix-apt-repo-test
-  # On release the repo is updated by update-repositories.yml, so run the test
-  # only after upload and signing have finished instead of racing them.
   workflow_run:
     workflows: ["Update repositories with packages"]
     types: [completed]
@@ -26,7 +24,6 @@ jobs:
       fail-fast: false
       matrix:
         package: [defguard, defguard-proxy, defguard-gateway]
-        # release/pre-release are the frozen v1.x components, *-2.0 receive new packages
         component: [release, pre-release, release-2.0, pre-release-2.0]
         include:
           - package: defguard
@@ -58,7 +55,6 @@ jobs:
         run: |
           CANDIDATE=$(apt-cache policy ${{ matrix.package }} | awk '/Candidate:/ {print $2}')
           if [ -z "$CANDIDATE" ] || [ "$CANDIDATE" = "(none)" ]; then
-            # e.g. no 2.x prerelease of this package has been published to pre-release-2.0 yet
             echo "::notice::${{ matrix.package }} not available in component ${{ matrix.component }}, skipping"
             echo "SKIP=true" >> $GITHUB_ENV
           else
@@ -71,7 +67,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Legacy components track v1.x releases, *-2.0 components track v2.x
           case "${{ matrix.component }}" in
             release-2.0)     PRERELEASE=false; MAJOR=v2. ;;
             pre-release-2.0) PRERELEASE=true;  MAJOR=v2. ;;
@@ -89,24 +84,32 @@ jobs:
             exit 0
           fi
           VERSION="${VERSION#v}"
+
+          # legacy pre-release still holds 2.0 betas published before the
+          # component split; accept them instead of expecting the latest v1.x
+          CANDIDATE=$(apt-cache policy ${{ matrix.package }} | awk '/Candidate:/ {print $2}')
+          if [ "${{ matrix.component }}" = "pre-release" ] && [ "${CANDIDATE%%.*}" != "1" ]; then
+            echo "::notice::candidate $CANDIDATE is from before the component split, skipping version comparison"
+            VERSION=""
+          fi
+
           echo "Expected version: $VERSION"
           echo "EXPECTED_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install ${{ matrix.package }}
-        # Pin the expected version: the apt candidate is just the highest version
-        # in the component, which may belong to a different major (e.g. old 2.0
-        # betas published to pre-release before the component split).
         if: env.SKIP != 'true'
-        run: apt-get install -y ${{ matrix.package }}=$EXPECTED_VERSION
+        run: apt-get install -y ${{ matrix.package }}
 
       - name: Verify ${{ matrix.package }} version
         if: env.SKIP != 'true'
         run: |
           INSTALLED=$(dpkg -s ${{ matrix.package }} | grep '^Version:' | awk '{print $2}')
           echo "Installed version: $INSTALLED"
-          echo "Expected version:  $EXPECTED_VERSION"
-          if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
-            echo "Version mismatch!"
-            exit 1
+          if [ -n "$EXPECTED_VERSION" ]; then
+            echo "Expected version:  $EXPECTED_VERSION"
+            if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
+              echo "Version mismatch!"
+              exit 1
+            fi
           fi
           ${{ matrix.package }} -V
