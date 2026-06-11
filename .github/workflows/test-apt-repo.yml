@@ -4,9 +4,6 @@ name: Test APT repository
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
-  push:
-    branches:
-      - fix-apt-repo-test
   workflow_run:
     workflows: ["Update repositories with packages"]
     types: [completed]
