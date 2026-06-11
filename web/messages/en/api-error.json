@@ -1,4 +1,5 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "api_error_network_full": "There are no free IP adresses in the network - please change the network settings"
+  "api_error_network_full": "There are no free IP adresses in the network - please change the network settings",
+  "api_error_user_groups_not_synced": "You could not be logged in because your group is not synchronized, please contact your administrator"
 }

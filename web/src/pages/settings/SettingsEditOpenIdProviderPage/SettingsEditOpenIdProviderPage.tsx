@@ -64,6 +64,7 @@ export const SettingsEditOpenIdProviderPage = () => {
         const normalizedFormData = {
           ...formData,
           directory_sync_group_match: joinCsv(formData.directory_sync_group_match),
+          directory_sync_user_groups: joinCsv(formData.directory_sync_user_groups),
         };
         const submitValues = { ...normalizedFormData, ...values };
         await mutateAsync(submitValues);

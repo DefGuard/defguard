@@ -1,7 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
+import type { AxiosError } from 'axios';
 import z from 'zod';
 import { LoginLoadingPage } from '../../pages/auth/LoginLoading/LoginLoadingPage';
 import api from '../../shared/api/api';
+import { getApiErrorMessage } from '../../shared/api/apiErrorMessages';
+import { type ApiError, WebErrorCode } from '../../shared/api/types';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { useAuth } from '../../shared/hooks/useAuth';
 
 const searchSchema = z.object({
@@ -26,7 +30,13 @@ export const Route = createFileRoute('/auth/callback')({
         });
         useAuth.getState().authSubject.next(response.data);
       }, 1000);
-    } catch (_) {
+    } catch (e) {
+      const code = (e as AxiosError<ApiError>).response?.data?.code;
+      if (code === WebErrorCode.UserGroupsNotSynced) {
+        setTimeout(() => {
+          Snackbar.error(getApiErrorMessage(code));
+        }, 1000);
+      }
       throw redirect({ to: '/auth/login', replace: true });
     }
   },
