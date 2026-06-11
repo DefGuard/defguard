@@ -6,7 +6,7 @@ name: Test APT repository
   workflow_dispatch:
   push:
     branches:
-      - stable/2.x
+      - fix-apt-repo-test
   release:
     types: [published]
 
