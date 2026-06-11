@@ -31,7 +31,7 @@
 
 .posture-check-info-tooltip {
   --background: var(--bg-default);
-  --border: 1px solid var(--border-default);
+  --border: var(--border-1) solid var(--border-default);
 
   display: flex;
   flex-flow: column;
