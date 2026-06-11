@@ -231,6 +231,9 @@ jobs:
             --partition hash:${{ matrix.partition }}/8
 
   test-ldap:
+    # binami ldap image is no longer served by ecr
+    # disable this job for now to avoid CI fails
+    if: false
     needs: build
 
     runs-on:
