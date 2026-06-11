@@ -7,8 +7,11 @@ name: Test APT repository
   push:
     branches:
       - fix-apt-repo-test
-  release:
-    types: [published]
+  # On release the repo is updated by update-repositories.yml, so run the test
+  # only after upload and signing have finished instead of racing them.
+  workflow_run:
+    workflows: ["Update repositories with packages"]
+    types: [completed]
 
 jobs:
   test-apt-install:
