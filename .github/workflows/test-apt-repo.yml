@@ -4,6 +4,9 @@ name: Test APT repository
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - stable/2.x
   release:
     types: [published]
 
@@ -20,7 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         package: [defguard, defguard-proxy, defguard-gateway]
-        component: [release, pre-release]
+        # release/pre-release are the frozen v1.x components, *-2.0 receive new packages
+        component: [release, pre-release, release-2.0, pre-release-2.0]
         include:
           - package: defguard
             github_repo: DefGuard/defguard
@@ -47,35 +51,56 @@ jobs:
       - name: Update APT cache
         run: apt-get update -y
 
+      - name: Check package availability in component
+        run: |
+          CANDIDATE=$(apt-cache policy ${{ matrix.package }} | awk '/Candidate:/ {print $2}')
+          if [ -z "$CANDIDATE" ] || [ "$CANDIDATE" = "(none)" ]; then
+            # e.g. no 2.x prerelease of this package has been published to pre-release-2.0 yet
+            echo "::notice::${{ matrix.package }} not available in component ${{ matrix.component }}, skipping"
+            echo "SKIP=true" >> $GITHUB_ENV
+          else
+            echo "Candidate version: $CANDIDATE"
+            echo "SKIP=false" >> $GITHUB_ENV
+          fi
+
       - name: Get expected version from GitHub
+        # Legacy v1.x components are frozen, so only the *-2.0 components are
+        # expected to track the latest GitHub releases.
+        if: env.SKIP != 'true' && contains(matrix.component, '-2.0')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ matrix.component }}" = "release" ]; then
+          if [ "${{ matrix.component }}" = "release-2.0" ]; then
             VERSION=$(curl -sf \
               -H "Authorization: Bearer $GH_TOKEN" \
-              https://api.github.com/repos/${{ matrix.github_repo }}/releases/latest \
-              | jq -r '.tag_name')
+              https://api.github.com/repos/${{ matrix.github_repo }}/releases \
+              | jq -r '[.[] | select(.prerelease == false and (.tag_name | startswith("v2.")))][0].tag_name')
           else
             VERSION=$(curl -sf \
               -H "Authorization: Bearer $GH_TOKEN" \
               https://api.github.com/repos/${{ matrix.github_repo }}/releases \
-              | jq -r '[.[] | select(.prerelease == true)][0].tag_name')
+              | jq -r '[.[] | select(.prerelease == true and (.tag_name | startswith("v2.")))][0].tag_name')
           fi
           VERSION="${VERSION#v}"
           echo "Expected version: $VERSION"
           echo "EXPECTED_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install ${{ matrix.package }}
+        if: env.SKIP != 'true'
         run: apt-get install -y ${{ matrix.package }}
 
       - name: Verify ${{ matrix.package }} version
+        if: env.SKIP != 'true'
         run: |
           INSTALLED=$(dpkg -s ${{ matrix.package }} | grep '^Version:' | awk '{print $2}')
           echo "Installed version: $INSTALLED"
-          echo "Expected version:  $EXPECTED_VERSION"
-          if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
-            echo "Version mismatch!"
-            exit 1
+          if [ -n "$EXPECTED_VERSION" ]; then
+            echo "Expected version:  $EXPECTED_VERSION"
+            if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
+              echo "Version mismatch!"
+              exit 1
+            fi
+          else
+            echo "Legacy component is frozen, skipping version comparison"
           fi
           ${{ matrix.package }} -V
