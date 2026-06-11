@@ -64,43 +64,46 @@ jobs:
           fi
 
       - name: Get expected version from GitHub
-        # Legacy v1.x components are frozen, so only the *-2.0 components are
-        # expected to track the latest GitHub releases.
-        if: env.SKIP != 'true' && contains(matrix.component, '-2.0')
+        if: env.SKIP != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ matrix.component }}" = "release-2.0" ]; then
-            VERSION=$(curl -sf \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              https://api.github.com/repos/${{ matrix.github_repo }}/releases \
-              | jq -r '[.[] | select(.prerelease == false and (.tag_name | startswith("v2.")))][0].tag_name')
-          else
-            VERSION=$(curl -sf \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              https://api.github.com/repos/${{ matrix.github_repo }}/releases \
-              | jq -r '[.[] | select(.prerelease == true and (.tag_name | startswith("v2.")))][0].tag_name')
+          # Legacy components track v1.x releases, *-2.0 components track v2.x
+          case "${{ matrix.component }}" in
+            release-2.0)     PRERELEASE=false; MAJOR=v2. ;;
+            pre-release-2.0) PRERELEASE=true;  MAJOR=v2. ;;
+            release)         PRERELEASE=false; MAJOR=v1. ;;
+            pre-release)     PRERELEASE=true;  MAJOR=v1. ;;
+          esac
+          VERSION=$(curl -sf \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ matrix.github_repo }}/releases \
+            | jq -r --argjson pre "$PRERELEASE" --arg major "$MAJOR" \
+              '[.[] | select(.prerelease == $pre and (.tag_name | startswith($major)))][0].tag_name // empty')
+          if [ -z "$VERSION" ]; then
+            echo "::notice::no $MAJOR release (prerelease=$PRERELEASE) of ${{ matrix.package }} on GitHub, skipping"
+            echo "SKIP=true" >> $GITHUB_ENV
+            exit 0
           fi
           VERSION="${VERSION#v}"
           echo "Expected version: $VERSION"
           echo "EXPECTED_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install ${{ matrix.package }}
+        # Pin the expected version: the apt candidate is just the highest version
+        # in the component, which may belong to a different major (e.g. old 2.0
+        # betas published to pre-release before the component split).
         if: env.SKIP != 'true'
-        run: apt-get install -y ${{ matrix.package }}
+        run: apt-get install -y ${{ matrix.package }}=$EXPECTED_VERSION
 
       - name: Verify ${{ matrix.package }} version
         if: env.SKIP != 'true'
         run: |
           INSTALLED=$(dpkg -s ${{ matrix.package }} | grep '^Version:' | awk '{print $2}')
           echo "Installed version: $INSTALLED"
-          if [ -n "$EXPECTED_VERSION" ]; then
-            echo "Expected version:  $EXPECTED_VERSION"
-            if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
-              echo "Version mismatch!"
-              exit 1
-            fi
-          else
-            echo "Legacy component is frozen, skipping version comparison"
+          echo "Expected version:  $EXPECTED_VERSION"
+          if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
+            echo "Version mismatch!"
+            exit 1
           fi
           ${{ matrix.package }} -V
