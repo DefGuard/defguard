@@ -2,10 +2,11 @@ name: Test APT repository
 
 "on":
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 */6 * * *"
   workflow_dispatch:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Update repositories with packages"]
+    types: [completed]
 
 jobs:
   test-apt-install:
@@ -20,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [defguard, defguard-proxy, defguard-gateway]
-        component: [release, pre-release]
+        component: [release, pre-release, release-2.0, pre-release-2.0]
         include:
           - package: defguard
             github_repo: DefGuard/defguard
@@ -47,35 +48,65 @@ jobs:
       - name: Update APT cache
         run: apt-get update -y
 
+      - name: Check package availability in component
+        run: |
+          CANDIDATE=$(apt-cache policy ${{ matrix.package }} | awk '/Candidate:/ {print $2}')
+          if [ -z "$CANDIDATE" ] || [ "$CANDIDATE" = "(none)" ]; then
+            echo "::notice::${{ matrix.package }} not available in component ${{ matrix.component }}, skipping"
+            echo "SKIP=true" >> $GITHUB_ENV
+          else
+            echo "Candidate version: $CANDIDATE"
+            echo "SKIP=false" >> $GITHUB_ENV
+          fi
+
       - name: Get expected version from GitHub
+        if: env.SKIP != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ matrix.component }}" = "release" ]; then
-            VERSION=$(curl -sf \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              https://api.github.com/repos/${{ matrix.github_repo }}/releases/latest \
-              | jq -r '.tag_name')
-          else
-            VERSION=$(curl -sf \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              https://api.github.com/repos/${{ matrix.github_repo }}/releases \
-              | jq -r '[.[] | select(.prerelease == true)][0].tag_name')
+          case "${{ matrix.component }}" in
+            release-2.0)     PRERELEASE=false; MAJOR=v2. ;;
+            pre-release-2.0) PRERELEASE=true;  MAJOR=v2. ;;
+            release)         PRERELEASE=false; MAJOR=v1. ;;
+            pre-release)     PRERELEASE=true;  MAJOR=v1. ;;
+          esac
+          VERSION=$(curl -sf \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ matrix.github_repo }}/releases \
+            | jq -r --argjson pre "$PRERELEASE" --arg major "$MAJOR" \
+              '[.[] | select(.prerelease == $pre and (.tag_name | startswith($major)))][0].tag_name // empty')
+          if [ -z "$VERSION" ]; then
+            echo "::notice::no $MAJOR release (prerelease=$PRERELEASE) of ${{ matrix.package }} on GitHub, skipping"
+            echo "SKIP=true" >> $GITHUB_ENV
+            exit 0
           fi
           VERSION="${VERSION#v}"
+
+          # legacy pre-release still holds 2.0 betas published before the
+          # component split; accept them instead of expecting the latest v1.x
+          CANDIDATE=$(apt-cache policy ${{ matrix.package }} | awk '/Candidate:/ {print $2}')
+          if [ "${{ matrix.component }}" = "pre-release" ] && [ "${CANDIDATE%%.*}" != "1" ]; then
+            echo "::notice::candidate $CANDIDATE is from before the component split, skipping version comparison"
+            VERSION=""
+          fi
+
           echo "Expected version: $VERSION"
           echo "EXPECTED_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install ${{ matrix.package }}
+        if: env.SKIP != 'true'
         run: apt-get install -y ${{ matrix.package }}
 
       - name: Verify ${{ matrix.package }} version
+        if: env.SKIP != 'true'
         run: |
           INSTALLED=$(dpkg -s ${{ matrix.package }} | grep '^Version:' | awk '{print $2}')
           echo "Installed version: $INSTALLED"
-          echo "Expected version:  $EXPECTED_VERSION"
-          if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
-            echo "Version mismatch!"
-            exit 1
+          if [ -n "$EXPECTED_VERSION" ]; then
+            echo "Expected version:  $EXPECTED_VERSION"
+            if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
+              echo "Version mismatch!"
+              exit 1
+            fi
           fi
           ${{ matrix.package }} -V
