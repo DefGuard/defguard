@@ -43,7 +43,7 @@ export const renderPostureCheckSelectionItem: SelectionSectionCustomRender<
                 />
               </div>
             </TooltipTrigger>
-            <TooltipContent className="posture-check-info-tooltip" variant="light">
+            <TooltipContent className="posture-check-info-tooltip">
               {sections.map((section, index) => (
                 <Fragment key={section.label}>
                   {index > 0 && <Divider />}
