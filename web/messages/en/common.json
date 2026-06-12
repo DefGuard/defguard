@@ -64,6 +64,7 @@
   "controls_complete": "Complete",
   "controls_copy_clipboard": "Copy to clipboard",
   "controls_deploy": "Deploy",
+  "controls_configure": "Configure",
   "state_disabled": "Disabled",
   "state_warning": "Warning",
   "state_active": "Active",
