@@ -1,15 +1,10 @@
-.smtp-auth-method-cards {
-  display: flex;
-  flex-flow: column;
-  row-gap: var(--spacing-lg);
-}
-
 .smtp-auth-method-card {
   box-sizing: border-box;
   padding: var(--spacing-md);
   border: var(--border-1) solid var(--border-disabled);
   border-radius: var(--spacing-lg);
-  transition: border-color 0.15s ease;
+
+  @include animate(border-color);
 
   &.active {
     border-color: var(--border-action);
@@ -28,18 +23,12 @@
         height: 48px;
         width: 48px;
         display: flex;
-        flex-flow: row;
         align-items: center;
         justify-content: center;
-        border: 1px solid var(--border-disabled);
+        background-color: var(--bg-action-muted);
+        border: var(--border-1) solid var(--border-disabled);
         border-radius: var(--spacing-lg);
         box-sizing: border-box;
-
-        &.variant-none,
-        &.variant-basic,
-        &.variant-custom {
-          background-color: var(--bg-action-muted);
-        }
 
         &.variant-google,
         &.variant-microsoft {
@@ -49,13 +38,10 @@
     }
 
     & > .content-track {
-      max-width: 530px;
-
       & > .top {
         display: flex;
         flex-flow: row nowrap;
         align-items: center;
-        justify-content: flex-start;
         column-gap: var(--spacing-sm);
         padding-bottom: var(--spacing-sm);
       }

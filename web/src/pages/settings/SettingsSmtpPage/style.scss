@@ -1,16 +1,22 @@
-.smtp-cards-section-label {
+%smtp-muted-sm {
   font: var(--t-body-sm-400);
   color: var(--fg-muted);
-  padding-bottom: var(--spacing-lg);
+}
+
+#settings-smtp-page {
+  .smtp-auth-method-cards {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+  }
+
+  .smtp-cards-section-label {
+    @extend %smtp-muted-sm;
+
+    padding-bottom: var(--spacing-lg);
+  }
 }
 
 .smtp-auth-oauth-info {
-  font: var(--t-body-sm-400);
-  color: var(--fg-muted);
-}
-
-.smtp-auth-oauth-error {
-  padding-top: var(--spacing-sm);
-  font: var(--t-input-error-message);
-  color: var(--fg-critical);
+  @extend %smtp-muted-sm;
 }

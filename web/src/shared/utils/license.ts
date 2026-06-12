@@ -123,7 +123,7 @@ export const canUseBusinessFeature = (
 export const canUseEnterpriseFeature = (
   license: LicenseInfo | null,
 ): LicenseCheckResult => {
-  if (!license || license.tier !== 'Enterprise')
+  if (license?.tier !== 'Enterprise')
     return {
       error: 'tier',
       result: false,
