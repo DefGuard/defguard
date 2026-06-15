@@ -31,10 +31,14 @@ vi.mock('../src/paraglide/messages', () => ({
   },
 }));
 
-const { getPostureCheckAssignmentSummarySections, getPostureChecksSectionState } =
-  await import('../src/pages/EditLocationPage/postureChecksSection');
+const { getPostureChecksSectionState } = await import(
+  '../src/pages/EditLocationPage/postureChecksSection'
+);
+const { getPostureCheckAssignmentSummarySections } = await import(
+  '../src/shared/utils/postureCheckAssignmentSummary'
+);
 const { renderPostureCheckSelectionItem } = await import(
-  '../src/pages/EditLocationPage/postureCheckSelectionItem'
+  '../src/shared/components/PostureCheckSelectionItem/PostureCheckSelectionItem'
 );
 
 describe('edit location posture-checks section state', () => {

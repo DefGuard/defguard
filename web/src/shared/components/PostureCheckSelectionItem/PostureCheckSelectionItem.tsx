@@ -1,15 +1,17 @@
+import './style.scss';
+
 import { Fragment } from 'react';
-import type { ApiDevicePosture } from '../../shared/api/types';
-import type { SelectionSectionCustomRender } from '../../shared/components/SelectionSection/type';
-import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
-import { IconKind } from '../../shared/defguard-ui/components/Icon';
-import { Icon } from '../../shared/defguard-ui/components/Icon/Icon';
-import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
-import { ThemeVariable } from '../../shared/defguard-ui/types';
-import { getPostureCheckAssignmentSummarySections } from './postureChecksSection';
+import type { ApiDevicePosture } from '../../api/types';
+import { Checkbox } from '../../defguard-ui/components/Checkbox/Checkbox';
+import { Divider } from '../../defguard-ui/components/Divider/Divider';
+import { IconKind } from '../../defguard-ui/components/Icon';
+import { Icon } from '../../defguard-ui/components/Icon/Icon';
+import { TooltipContent } from '../../defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../defguard-ui/providers/tooltip/TooltipTrigger';
+import { ThemeVariable } from '../../defguard-ui/types';
+import { getPostureCheckAssignmentSummarySections } from '../../utils/postureCheckAssignmentSummary';
+import type { SelectionSectionCustomRender } from '../SelectionSection/type';
 
 export const renderPostureCheckSelectionItem: SelectionSectionCustomRender<
   number,
@@ -41,7 +43,7 @@ export const renderPostureCheckSelectionItem: SelectionSectionCustomRender<
                 />
               </div>
             </TooltipTrigger>
-            <TooltipContent className="posture-check-info-tooltip" variant="light">
+            <TooltipContent className="posture-check-info-tooltip">
               {sections.map((section, index) => (
                 <Fragment key={section.label}>
                   {index > 0 && <Divider />}

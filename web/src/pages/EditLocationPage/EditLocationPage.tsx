@@ -17,6 +17,7 @@ import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
+import { renderPostureCheckSelectionItem } from '../../shared/components/PostureCheckSelectionItem/PostureCheckSelectionItem';
 import type {
   SelectionOption,
   SelectionSectionCustomRender,
@@ -43,7 +44,6 @@ import {
 import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
-import { renderPostureCheckSelectionItem } from './postureCheckSelectionItem';
 import { getPostureChecksSectionState } from './postureChecksSection';
 
 export const EditLocationPage = () => {

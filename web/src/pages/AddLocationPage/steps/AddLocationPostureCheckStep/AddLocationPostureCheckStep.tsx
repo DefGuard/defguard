@@ -1,5 +1,5 @@
 import './style.scss';
-import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
 import { type Dispatch, Fragment, type SetStateAction, useState } from 'react';
@@ -9,27 +9,20 @@ import type { ApiDevicePosture } from '../../../../shared/api/types';
 import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
 import { Card } from '../../../../shared/components/Card/Card';
 import { Controls } from '../../../../shared/components/Controls/Controls';
+import { renderPostureCheckSelectionItem } from '../../../../shared/components/PostureCheckSelectionItem/PostureCheckSelectionItem';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
-import { Icon, IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Radio } from '../../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { TooltipContent } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
-import { ThemeSpacing, ThemeVariable } from '../../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import {
-  getDevicePostureQueryOptions,
-  getLicenseInfoQueryOptions,
-} from '../../../../shared/query';
+import { getLicenseInfoQueryOptions } from '../../../../shared/query';
 import { canUseEnterpriseFeature } from '../../../../shared/utils/license';
-import { buildOsSections } from '../../../../shared/utils/postureInfo';
 import { useGatewayWizardStore } from '../../../GatewaySetupPage/useGatewayWizardStore';
 import businessFeatureCardImage from '../../assets/business-feature-icon.png';
 import actionCardImage from '../../assets/gateway-setup-action-card.png';
@@ -196,10 +189,14 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
       {postures.map((posture) => (
         <Fragment key={posture.id}>
           <div className="posture-selection-row">
-            <Checkbox
-              active={selected.has(posture.id)}
-              text={posture.name}
-              onClick={() => {
+            {renderPostureCheckSelectionItem({
+              active: selected.has(posture.id),
+              option: {
+                id: posture.id,
+                label: posture.name,
+                meta: posture,
+              },
+              onClick: () => {
                 const next = new Set(selected);
                 if (next.has(posture.id)) {
                   next.delete(posture.id);
@@ -208,63 +205,12 @@ const PostureSelection = ({ postures, selected, onChange }: PostureSelectionProp
                 }
 
                 onChange(next);
-              }}
-            />
-            <PostureCheckTooltip postureCheckId={posture.id} />
+              },
+            })}
           </div>
           <Divider spacing={ThemeSpacing.Md} />
         </Fragment>
       ))}
     </Card>
-  );
-};
-
-interface PostureCheckHelperProps {
-  postureCheckId: number;
-}
-
-const PostureCheckTooltip = ({ postureCheckId }: PostureCheckHelperProps) => {
-  const { data: postureCheck } = useSuspenseQuery(
-    getDevicePostureQueryOptions(postureCheckId),
-  );
-  const osSections = buildOsSections(postureCheck);
-
-  return (
-    <TooltipProvider>
-      <TooltipTrigger>
-        <div
-          className="helper"
-          style={{
-            width: 20,
-            height: 20,
-          }}
-        >
-          <Icon icon={IconKind.Help} size={20} staticColor={ThemeVariable.FgMuted} />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent variant="light" className="posture-tooltip">
-        <div className="content">
-          {osSections.map((section, index) => (
-            <Fragment key={section.name}>
-              {index > 0 && <Divider />}
-              <div className="section">
-                <p className="label">{section.name}</p>
-                <div className="lines">
-                  {section.rows
-                    .flatMap((detail) =>
-                      Array.isArray(detail.value) ? detail.value : [detail.value],
-                    )
-                    .map((line, lineIndex) => (
-                      <p className="line" key={`${section.name}-${lineIndex}`}>
-                        {line}
-                      </p>
-                    ))}
-                </div>
-              </div>
-            </Fragment>
-          ))}
-        </div>
-      </TooltipContent>
-    </TooltipProvider>
   );
 };
