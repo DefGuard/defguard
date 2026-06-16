@@ -31,9 +31,16 @@ pub(super) fn parse_version_lenient(s: &str) -> Option<Version> {
 
 /// Returns `Some(true)` when `actual >= required` (full semver), `Some(false)` when it is older,
 /// and `None` when either string cannot be parsed.
-pub(super) fn version_meets_minimum(required: &str, actual: &str) -> Option<bool> {
+pub(super) fn version_meets_minimum(
+    required: &str,
+    actual: &str,
+    allow_prerelease: bool,
+) -> Option<bool> {
     let req = parse_version_lenient(required)?;
-    let act = parse_version_lenient(actual)?;
+    let mut act = parse_version_lenient(actual)?;
+    if allow_prerelease {
+        act.pre = semver::Prerelease::EMPTY;
+    }
     Some(act >= req)
 }
 
@@ -74,12 +81,22 @@ mod unit_tests {
 
     #[test]
     fn version_meets_minimum_comparisons() {
-        assert_eq!(version_meets_minimum("1.6.0", "1.6.0"), Some(true));
-        assert_eq!(version_meets_minimum("1.6.0", "1.7.0"), Some(true));
-        assert_eq!(version_meets_minimum("1.6.0", "1.5.9"), Some(false));
-        assert_eq!(version_meets_minimum("11", "11.0.0"), Some(true));
-        assert_eq!(version_meets_minimum("14.5", "14.4.1"), Some(false));
-        assert_eq!(version_meets_minimum("14.5", "14.5.0"), Some(true));
+        assert_eq!(version_meets_minimum("1.6.0", "1.6.0", false), Some(true));
+        assert_eq!(version_meets_minimum("1.6.0", "1.7.0", false), Some(true));
+        assert_eq!(version_meets_minimum("1.6.0", "1.5.9", false), Some(false));
+        assert_eq!(version_meets_minimum("11", "11.0.0", false), Some(true));
+        assert_eq!(version_meets_minimum("14.5", "14.4.1", false), Some(false));
+        assert_eq!(version_meets_minimum("14.5", "14.5.0", false), Some(true));
+    }
+
+    #[test]
+    fn version_meets_minimum_allows_prerelease() {
+        assert_eq!(version_meets_minimum("14.5", "14.5.0-alpha", false), Some(false));
+        assert_eq!(version_meets_minimum("14.5", "14.5.0-alpha", true), Some(true));
+        assert_eq!(version_meets_minimum("2.1", "2.1.0", true), Some(true));
+        assert_eq!(version_meets_minimum("2.1", "2.0.9-alpha", true), Some(false));
+        assert_eq!(version_meets_minimum("2.1", "2.1.0-alpha", true), Some(true));
+        assert_eq!(version_meets_minimum("2.1", "2.1.0", true), Some(true));
     }
 
     #[test]
