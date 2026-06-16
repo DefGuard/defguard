@@ -185,6 +185,16 @@ pub async fn build_device_config_response(
                             Status::internal(format!("unexpected error: {err}"))
                         })?;
 
+                if device_config.posture_check_required
+                    && !ClientFeature::PostureChecks.is_supported_by_device(device_info.as_ref())
+                {
+                    info!(
+                        "Device {} does not support posture checks feature, skipping sending network {} configuration to device {}.",
+                        device.name, network.name, device.name
+                    );
+                    continue;
+                }
+
                 let config = ProtoDeviceConfig {
                     config: device_config.config,
                     network_id: device_config.network_id,
