@@ -881,6 +881,26 @@ async fn fail_client_version_too_old(_: PgPoolOptions, options: PgConnectOptions
 }
 
 #[sqlx::test]
+async fn pass_accept_prerelease(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_linux_policy(&pool, location_id, None, Some("2.1"), true).await;
+    let mut data = linux_posture_data("22.04", true);
+    data.defguard_client_version = "2.1.0-alpha".to_owned();
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(
+        matches!(result, super::PostureResult::Pass),
+        "expected Pass for prerelease but got Fail"
+    );
+}
+
+#[sqlx::test]
 async fn fail_prerelease_not_allowed(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();

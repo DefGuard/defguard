@@ -286,7 +286,11 @@ pub(crate) async fn validate_posture(
                         check: "client_version",
                         actual: actual.clone(),
                     }),
-                    Some(true) => match version_meets_minimum(required, actual) {
+                    Some(true) => match version_meets_minimum(
+                        required,
+                        actual,
+                        policy.allow_prerelease_client,
+                    ) {
                         Some(true) => {}
                         Some(false) => all_failures.push(FailureReason::ClientVersionTooOld {
                             required: required.clone(),
