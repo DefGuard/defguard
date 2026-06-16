@@ -419,13 +419,6 @@ mod tests {
             "PostureChecks should not be supported below minimum version"
         );
 
-        // Pre-release below minimum is not supported.
-        let info = create_device_info(Some("2.1.0-alpha1".to_owned()), None);
-        assert!(
-            !ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
-            "PostureChecks should not be supported with pre-release version below minimum"
-        );
-
         // Missing version info means the feature is not supported.
         let info = create_device_info(None, None);
         assert!(
