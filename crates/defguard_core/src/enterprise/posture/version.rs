@@ -39,6 +39,8 @@ pub(super) fn version_meets_minimum(
     let req = parse_version_lenient(required)?;
     let mut act = parse_version_lenient(actual)?;
     if allow_prerelease {
+        // Semver ranks prereleases below the matching stable release, e.g. 2.1.0-alpha < 2.1.0.
+        // When prereleases are allowed, ignore that suffix so they satisfy the same minimum.
         act.pre = semver::Prerelease::EMPTY;
     }
     Some(act >= req)
