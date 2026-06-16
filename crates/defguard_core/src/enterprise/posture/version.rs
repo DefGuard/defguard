@@ -91,11 +91,23 @@ mod unit_tests {
 
     #[test]
     fn version_meets_minimum_allows_prerelease() {
-        assert_eq!(version_meets_minimum("14.5", "14.5.0-alpha", false), Some(false));
-        assert_eq!(version_meets_minimum("14.5", "14.5.0-alpha", true), Some(true));
+        assert_eq!(
+            version_meets_minimum("14.5", "14.5.0-alpha", false),
+            Some(false)
+        );
+        assert_eq!(
+            version_meets_minimum("14.5", "14.5.0-alpha", true),
+            Some(true)
+        );
         assert_eq!(version_meets_minimum("2.1", "2.1.0", true), Some(true));
-        assert_eq!(version_meets_minimum("2.1", "2.0.9-alpha", true), Some(false));
-        assert_eq!(version_meets_minimum("2.1", "2.1.0-alpha", true), Some(true));
+        assert_eq!(
+            version_meets_minimum("2.1", "2.0.9-alpha", true),
+            Some(false)
+        );
+        assert_eq!(
+            version_meets_minimum("2.1", "2.1.0-alpha", true),
+            Some(true)
+        );
         assert_eq!(version_meets_minimum("2.1", "2.1.0", true), Some(true));
     }
 
