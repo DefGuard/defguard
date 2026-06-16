@@ -14,6 +14,8 @@ minimumReleaseAgeExclude:
   - '@tanstack/virtual-core@3.16.0'
   - dayjs@1.11.21
   - zustand@5.0.14
+  - '@tanstack/react-virtual@3.14.3'
+  - '@tanstack/virtual-core@3.17.1'
 
 onlyBuiltDependencies:
   - '@parcel/watcher'
