@@ -3,11 +3,6 @@ allowBuilds:
   esbuild: true
   sharp: true
 
-minimumReleaseAgeExclude:
-  - '@tanstack/react-virtual@3.13.26'
-  - '@tanstack/virtual-core@3.16.0'
-  - dayjs@1.11.21
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'
