@@ -16,7 +16,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     error::WebError,
     mail::{
-        mail::Attachment,
+        Attachment,
         templates::{self, SUPPORT_EMAIL_ADDRESS},
     },
     server_config,

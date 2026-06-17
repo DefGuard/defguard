@@ -29,7 +29,11 @@ import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
-import { getSettingsQueryOptions } from '../../../shared/query';
+import {
+  getLicenseInfoQueryOptions,
+  getSettingsQueryOptions,
+} from '../../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { Validate } from '../../../shared/validate';
 import { getConfiguredBadge, getNotConfiguredBadge } from '../SettingsIndexPage/types';
 import {
@@ -182,6 +186,10 @@ const Content = ({ settings }: { settings: Settings }) => {
     [settings],
   );
 
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const oauthLocked =
+    licenseInfo !== undefined && !canUseBusinessFeature(licenseInfo).result;
+
   const { mutateAsync: editSettings } = useMutation({
     mutationFn: api.settings.patchSettings,
     meta: {
@@ -221,6 +229,17 @@ const Content = ({ settings }: { settings: Settings }) => {
     setModalVariant(variant);
   };
 
+  const openConfigModalGated = (variant: SmtpAuthCardVariant) => {
+    if (variant === 'google' || variant === 'microsoft') {
+      if (licenseInfo === undefined) return;
+      licenseActionCheck(canUseBusinessFeature(licenseInfo), () =>
+        openConfigModal(variant),
+      );
+    } else {
+      openConfigModal(variant);
+    }
+  };
+
   const handleDelete = () => {
     openModal(ModalName.ConfirmAction, {
       title: m.settings_smtp_reset_confirm_title(),
@@ -255,8 +274,9 @@ const Content = ({ settings }: { settings: Settings }) => {
               key={variant}
               variant={variant}
               active={activeCard === variant}
-              onConfigure={() => openConfigModal(variant)}
-              onEdit={() => openConfigModal(variant)}
+              locked={oauthLocked && (variant === 'google' || variant === 'microsoft')}
+              onConfigure={() => openConfigModalGated(variant)}
+              onEdit={() => openConfigModalGated(variant)}
               onSendTestEmail={() => openModal(ModalName.SendTestMail)}
               onDelete={handleDelete}
             />

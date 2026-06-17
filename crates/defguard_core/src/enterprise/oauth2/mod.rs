@@ -8,7 +8,8 @@ use openidconnect::{
 };
 use tracing::{debug, error};
 
-use crate::enterprise::oauth2::microsoft::MicrosoftOAuth2;
+use self::microsoft::MicrosoftOAuth2;
+use super::is_business_license_active;
 
 const OUTLOOK_DEFAULT_SCOPE: &str = "https://outlook.office365.com/.default";
 
@@ -105,7 +106,9 @@ async fn microsoft_access_token(smtp_settings: &mut SmtpSettings) -> Result<Stri
 
 /// Obtain access token for XOAUTH2 authentication.
 pub async fn xoauth2_access_token(smtp_settings: &mut SmtpSettings) -> Result<String, OAuth2Error> {
-    if let Some(issuer_url) = &smtp_settings.oauth_issuer_url {
+    if !is_business_license_active() {
+        error!("SMTP XOAUTH2 requires business license");
+    } else if let Some(issuer_url) = &smtp_settings.oauth_issuer_url {
         // FIXME: baked URLs
         if issuer_url == "https://login.microsoftonline.com/common" {
             return microsoft_access_token(smtp_settings).await;
@@ -113,7 +116,9 @@ pub async fn xoauth2_access_token(smtp_settings: &mut SmtpSettings) -> Result<St
         if issuer_url == "https://accounts.google.com" {
             return google_access_token(smtp_settings).await;
         }
+    } else {
+        error!("SMTP XOAUTH2 requires: issuer URL");
     }
-    error!("SMTP XOAUTH2 requires: issuer URL");
+
     Err(OAuth2Error::NotConfigured)
 }

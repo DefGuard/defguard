@@ -24,8 +24,7 @@ use tera::Context;
 use tokio::time::sleep;
 
 use super::{
-    mail::{Attachment, MailMessage},
-    templates,
+    templates, {Attachment, MailMessage},
 };
 
 #[test]
