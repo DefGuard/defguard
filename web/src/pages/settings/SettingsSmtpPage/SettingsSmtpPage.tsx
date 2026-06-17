@@ -105,6 +105,7 @@ const encryptionSelectOptions: SelectOption<SmtpEncryptionValue>[] = Object.valu
 
 const Content = ({ settings }: { settings: Settings }) => {
   const smtpConfigured = useApp((s) => s.appInfo.smtp_enabled);
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
   const formSchema = useMemo(
     () =>
       z.object({
@@ -181,6 +182,10 @@ const Content = ({ settings }: { settings: Settings }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      if (demoMode) {
+        Snackbar.error(m.demo_mode_feature_disabled());
+        return;
+      }
       await editSettings(value);
       form.reset(value);
     },
@@ -271,6 +276,10 @@ const Content = ({ settings }: { settings: Settings }) => {
                   variant="critical"
                   text={m.settings_smtp_button_reset_settings()}
                   onClick={() => {
+                    if (demoMode) {
+                      Snackbar.error(m.demo_mode_feature_disabled());
+                      return;
+                    }
                     openModal(ModalName.ConfirmAction, {
                       title: m.settings_smtp_reset_confirm_title(),
                       contentMd: m.settings_smtp_reset_confirm_body(),
@@ -293,6 +302,10 @@ const Content = ({ settings }: { settings: Settings }) => {
                     iconLeft="mail"
                     text={m.settings_smtp_button_send_test_email()}
                     onClick={() => {
+                      if (demoMode) {
+                        Snackbar.error(m.demo_mode_feature_disabled());
+                        return;
+                      }
                       openModal(ModalName.SendTestMail);
                     }}
                   />

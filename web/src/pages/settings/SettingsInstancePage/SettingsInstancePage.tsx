@@ -26,6 +26,7 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { useApp } from '../../../shared/hooks/useApp';
 import { getSettingsQueryOptions } from '../../../shared/query';
 import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
 import {
@@ -148,6 +149,7 @@ const passwordResetSessionTimeoutBaseOptions = createNumericSelectOptions({
 });
 
 const Content = ({ settings }: { settings: Settings }) => {
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
     meta: {
@@ -246,6 +248,14 @@ const Content = ({ settings }: { settings: Settings }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      if (
+        demoMode &&
+        (value.defguard_url !== settings.defguard_url ||
+          value.public_proxy_url !== settings.public_proxy_url)
+      ) {
+        Snackbar.error(m.demo_mode_feature_disabled());
+        return;
+      }
       await mutateAsync(value);
       form.reset(value);
     },

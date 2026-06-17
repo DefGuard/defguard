@@ -8,7 +8,9 @@ import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { EvenSplit } from '../../../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { useAppForm } from '../../../../../../../shared/form';
+import { useApp } from '../../../../../../../shared/hooks/useApp';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import {
   patternSafeUsernameCharacters,
@@ -61,6 +63,7 @@ type FormFields = z.infer<typeof zodSchema>;
 export const ProfileGeneralCard = () => {
   const profileUser = useUserProfile((s) => s.user);
   const isAdmin = useAuth((s) => s.isAdmin);
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
 
   const { mutateAsync } = useMutation({
     mutationFn: api.user.editUser,
@@ -95,6 +98,10 @@ export const ProfileGeneralCard = () => {
       onChange: zodSchema,
     },
     onSubmit: async ({ value }) => {
+      if (demoMode) {
+        Snackbar.error(m.demo_mode_feature_disabled());
+        return;
+      }
       await mutateAsync({
         username: profileUser.username,
         body: { ...profileUser, ...value },

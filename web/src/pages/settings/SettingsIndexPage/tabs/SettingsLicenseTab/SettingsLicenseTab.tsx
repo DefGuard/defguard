@@ -16,6 +16,7 @@ import { Badge } from '../../../../../shared/defguard-ui/components/Badge/Badge'
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import {
   TextStyle,
   ThemeSpacing,
@@ -24,6 +25,7 @@ import {
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
+import { useApp } from '../../../../../shared/hooks/useApp';
 import {
   getLicenseInfoQueryOptions,
   getSettingsQueryOptions,
@@ -38,6 +40,7 @@ import { SettingsLicenseModal } from './modals/SettingsLicenseModal/SettingsLice
 export const SettingsLicenseTab = () => {
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useQuery(getSettingsQueryOptions);
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
 
   const licenseState = getLicenseState(licenseInfo);
 
@@ -84,6 +87,10 @@ export const SettingsLicenseTab = () => {
                     : m.settings_license_enter_button()
                 }
                 onClick={() => {
+                  if (demoMode) {
+                    Snackbar.error(m.demo_mode_feature_disabled());
+                    return;
+                  }
                   openModal(ModalName.SettingsLicense, {
                     license: settings.license,
                   });

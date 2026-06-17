@@ -21,8 +21,10 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { useApp } from '../../../shared/hooks/useApp';
 import {
   EXPIRING_THRESHOLD_DAYS,
   getDaysUntilExpiry,
@@ -82,6 +84,8 @@ const Content = () => {
     select: (resp) => resp.data,
   });
 
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
+
   const downloadCaCert = useCallback(() => {
     const caPem = caData?.ca_cert_pem;
     if (!isPresent(caPem)) return;
@@ -90,6 +94,22 @@ const Content = () => {
     });
     downloadFile(blob, 'defguard-ca', 'pem');
   }, [caData?.ca_cert_pem]);
+
+  const changeCoreCert = useCallback(() => {
+    if (demoMode) {
+      Snackbar.error(m.demo_mode_feature_disabled());
+      return;
+    }
+    void navigate({ to: '/settings-core-certificate' });
+  }, [demoMode, navigate]);
+
+  const changeEdgeCert = useCallback(() => {
+    if (demoMode) {
+      Snackbar.error(m.demo_mode_feature_disabled());
+      return;
+    }
+    void navigate({ to: '/settings-edge-certificate' });
+  }, [demoMode, navigate]);
 
   return (
     <>
@@ -104,7 +124,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_change()}
-              onClick={() => void navigate({ to: '/settings-core-certificate' })}
+              onClick={changeCoreCert}
               loading={false}
               disabled={false}
             />
@@ -135,7 +155,7 @@ const Content = () => {
               <Button
                 variant="primary"
                 text={m.settings_certs_certs_change()}
-                onClick={() => void navigate({ to: '/settings-core-certificate' })}
+                onClick={changeCoreCert}
                 loading={false}
                 disabled={false}
               />
@@ -158,7 +178,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_change()}
-              onClick={() => void navigate({ to: '/settings-core-certificate' })}
+              onClick={changeCoreCert}
               loading={false}
               disabled={false}
             />
@@ -177,7 +197,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_change()}
-              onClick={() => void navigate({ to: '/settings-edge-certificate' })}
+              onClick={changeEdgeCert}
               loading={false}
               disabled={false}
             />
@@ -208,7 +228,7 @@ const Content = () => {
               <Button
                 variant="primary"
                 text={m.settings_certs_certs_change()}
-                onClick={() => void navigate({ to: '/settings-edge-certificate' })}
+                onClick={changeEdgeCert}
                 loading={false}
                 disabled={false}
               />
@@ -231,7 +251,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_change()}
-              onClick={() => void navigate({ to: '/settings-edge-certificate' })}
+              onClick={changeEdgeCert}
               loading={false}
               disabled={false}
             />
@@ -253,7 +273,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_change()}
-              onClick={() => void navigate({ to: '/settings-edge-certificate' })}
+              onClick={changeEdgeCert}
               loading={false}
               disabled={false}
             />

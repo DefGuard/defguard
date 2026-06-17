@@ -37,6 +37,7 @@ export const ProfileAuthCard = () => {
   const authUsername = useAuth((s) => s.user?.username as string);
   const isCurrentUserAdmin = useAuth((s) => s.isAdmin);
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
   const devices = useUserProfile((s) => s.devices);
   const biometricDevices = useMemo(
     () => devices.filter((device) => device.biometry_enabled),
@@ -287,6 +288,10 @@ export const ProfileAuthCard = () => {
           text={m.profile_auth_card_password_change()}
           testId="change-password"
           onClick={() => {
+            if (demoMode && user.username === authUsername) {
+              Snackbar.error(m.demo_mode_feature_disabled());
+              return;
+            }
             // open admin form only if admin and is not editing self
             openModal('changePassword', {
               user,

@@ -21,6 +21,7 @@ const defaults: StoreValues = {
     network_present: false,
     smtp_enabled: false,
     version: null,
+    demo_mode: false,
   },
   settingsEssentials: undefined,
   wizardState: undefined,

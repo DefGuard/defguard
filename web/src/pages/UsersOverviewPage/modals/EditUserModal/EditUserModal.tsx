@@ -11,6 +11,7 @@ import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/E
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TextStyle, ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
@@ -22,6 +23,7 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenEditUserModal } from '../../../../shared/hooks/modalControls/types';
+import { useApp } from '../../../../shared/hooks/useApp';
 import { patternSafeUsernameCharacters } from '../../../../shared/patterns';
 import { removeEmptyStrings } from '../../../../shared/utils/removeEmptyStrings';
 
@@ -118,6 +120,7 @@ const ModalContent = ({ user }: ModalData) => {
   });
 
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+  const demoMode = useApp((s) => s.appInfo.demo_mode);
 
   return (
     <>
@@ -226,6 +229,10 @@ const ModalContent = ({ user }: ModalData) => {
           text: m.controls_save_changes(),
           loading: isSubmitting,
           onClick: () => {
+            if (demoMode) {
+              Snackbar.error(m.demo_mode_feature_disabled());
+              return;
+            }
             form.handleSubmit();
           },
         }}
