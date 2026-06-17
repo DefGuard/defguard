@@ -15,6 +15,7 @@ use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
+    config::server_config,
     db::{
         Id,
         models::{
@@ -299,6 +300,54 @@ pub async fn setup_proxy_tls_stream(
         }
 
         debug!("Configuration check passed");
+
+        if server_config().is_demo_mode {
+            yield Ok(flow.step(SetupStep::CheckingAvailability));
+            yield Ok(flow.step(SetupStep::CheckingVersion));
+            yield Ok(flow.step(SetupStep::ObtainingCsr));
+            yield Ok(flow.step(SetupStep::SigningCertificate));
+            yield Ok(flow.step(SetupStep::ConfiguringTls));
+
+            let proxy = Proxy::new(
+                request.common_name.as_str(),
+                ip_or_domain,
+                i32::from(request.grpc_port),
+                session.user.fullname().as_str(),
+            );
+            let proxy = match proxy.save(&pool).await {
+                Ok(proxy) => proxy,
+                Err(err) => {
+                    yield Ok(flow.error(&format!("Failed to save Edge to database: {err}")));
+                    return;
+                }
+            };
+            debug!(
+                "Edge '{}' registered successfully in demo mode with ID: {}",
+                request.common_name, proxy.id
+            );
+
+            match Wizard::get(&pool).await {
+                Ok(wizard) => {
+                    if !wizard.completed {
+                        let state = InitialSetupState {
+                            step: InitialSetupStep::InternalUrlSettings,
+                        };
+                        if let Err(err) = state.save(&pool).await {
+                            yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
+                            return;
+                        }
+                        debug!("Initial setup step advanced to 'InternalUrlSettings'");
+                    }
+                }
+                Err(err) => {
+                    yield Ok(flow.error(&format!("Failed to fetch wizard state: {err}")));
+                    return;
+                }
+            }
+
+            yield Ok(flow.step(SetupStep::Done));
+            return;
+        }
 
         let url_str = format!("http://{ip_or_domain}:{}",  request.grpc_port);
         let url = match Url::parse(&url_str) {
@@ -750,6 +799,28 @@ async fn perform_gateway_adoption(
         }
     }
 
+    if server_config().is_demo_mode {
+        step(SetupStep::CheckingAvailability);
+        step(SetupStep::CheckingVersion);
+        step(SetupStep::ObtainingCsr);
+        step(SetupStep::SigningCertificate);
+        step(SetupStep::ConfiguringTls);
+
+        let gateway = Gateway::new(
+            network_id,
+            name,
+            ip_or_domain.to_owned(),
+            grpc_port.into(),
+            modified_by,
+        );
+        let saved = gateway
+            .save(pool)
+            .await
+            .map_err(|e| format!("Failed to save Gateway to database: {e}"))?;
+        debug!("Gateway setup completed successfully in demo mode");
+        return Ok(saved);
+    }
+
     let url_str = format!("http://{ip_or_domain}:{grpc_port}");
     let url = Url::parse(&url_str).map_err(|e| format!("Invalid URL: {e}"))?;
 
@@ -1172,6 +1243,15 @@ pub async fn stream_proxy_acme(
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let stream = async_stream::stream! {
+        if server_config().is_demo_mode {
+            yield Ok(acme_error_event(
+                "Connecting",
+                "Certificate management is disabled in demo mode".to_owned(),
+                None,
+            ));
+            return;
+        }
+
         let certs = match Certificates::get_or_default(&pool).await {
             Ok(c) => c,
             Err(e) => {

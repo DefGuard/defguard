@@ -5,6 +5,7 @@ use axum::{
 };
 use chrono::Utc;
 use defguard_common::{
+    config::server_config,
     db::{Id, models::proxy::Proxy},
     types::proxy::{ProxyControlMessage, ProxyInfo},
 };
@@ -45,7 +46,14 @@ pub async fn proxy_list(
 ) -> ApiResult {
     debug!("User {} displaying proxy list", session.user.username);
     let proxies = Proxy::list(&appstate.pool).await?;
-    let proxies: Vec<ProxyInfo> = proxies.into_iter().map(Into::into).collect();
+    let mut proxies: Vec<ProxyInfo> = proxies.into_iter().map(Into::into).collect();
+    if server_config().is_demo_mode {
+        let now = Utc::now().naive_utc();
+        for proxy in &mut proxies {
+            proxy.connected_at = Some(now);
+            proxy.disconnected_at = None;
+        }
+    }
     info!("User {} displayed proxy list", session.user.username);
 
     Ok(ApiResponse::json(proxies, StatusCode::OK))
@@ -78,7 +86,13 @@ pub(crate) async fn proxy_details(
     );
     let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
     let response = match proxy {
-        Some(proxy) => ApiResponse::json(proxy, StatusCode::OK),
+        Some(mut proxy) => {
+            if server_config().is_demo_mode {
+                proxy.connected_at = Some(Utc::now().naive_utc());
+                proxy.disconnected_at = None;
+            }
+            ApiResponse::json(proxy, StatusCode::OK)
+        }
         None => ApiResponse::json(Value::Null, StatusCode::NOT_FOUND),
     };
     info!(

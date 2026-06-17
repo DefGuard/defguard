@@ -2,8 +2,11 @@ use axum::{
     Json,
     extract::{Path, State, rejection::JsonRejection},
 };
-use chrono::NaiveDateTime;
-use defguard_common::db::{Id, models::gateway::Gateway};
+use chrono::{NaiveDateTime, Utc};
+use defguard_common::{
+    config::server_config,
+    db::{Id, models::gateway::Gateway},
+};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -57,6 +60,7 @@ impl GatewayInfo {
         )
         .fetch_all(pool)
         .await
+        .map(Self::mock_demo_connection)
     }
 
     pub async fn find_by_location_id(pool: &PgPool, location_id: Id) -> sqlx::Result<Vec<Self>> {
@@ -80,6 +84,19 @@ impl GatewayInfo {
         )
         .fetch_all(pool)
         .await
+        .map(Self::mock_demo_connection)
+    }
+
+    fn mock_demo_connection(mut gateways: Vec<Self>) -> Vec<Self> {
+        if server_config().is_demo_mode {
+            let now = Utc::now().naive_utc();
+            for gateway in &mut gateways {
+                gateway.connected = true;
+                gateway.connected_at = Some(now);
+                gateway.disconnected_at = None;
+            }
+        }
+        gateways
     }
 }
 
@@ -143,7 +160,13 @@ pub(crate) async fn gateway_details(
     );
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id).await?;
     let response = match gateway {
-        Some(gateway) => ApiResponse::json(gateway, StatusCode::OK),
+        Some(mut gateway) => {
+            if server_config().is_demo_mode {
+                gateway.connected_at = Some(Utc::now().naive_utc());
+                gateway.disconnected_at = None;
+            }
+            ApiResponse::json(gateway, StatusCode::OK)
+        }
         None => ApiResponse::json(Value::Null, StatusCode::NOT_FOUND),
     };
     info!(

@@ -2,7 +2,9 @@ use std::sync::{Arc, Mutex, RwLock, atomic::AtomicBool};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
-use defguard_common::{db::models::Settings, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    config::server_config, db::models::Settings, types::proxy::ProxyControlMessage,
+};
 use reqwest::Client;
 use serde_json::json;
 use sqlx::PgPool;
@@ -54,6 +56,10 @@ impl AppState {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
         while let Some(msg) = rx.recv().await {
             debug!("WebHook triggered");
+            if server_config().is_demo_mode {
+                debug!("Demo mode enabled; skipping webhook trigger");
+                continue;
+            }
             debug!("Retrieving webhooks");
             if let Ok(webhooks) = WebHook::all_enabled(&pool, &msg).await {
                 debug!("Found webhooks: {webhooks:?}");

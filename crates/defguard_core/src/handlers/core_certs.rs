@@ -1,6 +1,7 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
 use defguard_common::{
+    config::server_config,
     db::models::{Certificates, Settings},
     types::proxy::ProxyControlMessage,
 };
@@ -76,6 +77,11 @@ pub(crate) async fn set_internal_url_settings(
         "User {} applying core internal URL certificate settings",
         session.user.username
     );
+    if server_config().is_demo_mode {
+        return Err(WebError::Forbidden(
+            "Certificate management is disabled in demo mode",
+        ));
+    }
     let settings = Settings::get_current_settings();
     let cert_info = apply_internal_url_settings(&pool, &settings.defguard_url, config).await?;
     reload_core_web_server(&appstate);
@@ -114,6 +120,11 @@ pub(crate) async fn set_external_url_settings(
         "User {} applying proxy external URL certificate settings",
         session.user.username
     );
+    if server_config().is_demo_mode {
+        return Err(WebError::Forbidden(
+            "Certificate management is disabled in demo mode",
+        ));
+    }
     let settings = Settings::get_current_settings();
     let ssl_type = config.ssl_type.clone();
     let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;

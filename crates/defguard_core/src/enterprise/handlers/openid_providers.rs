@@ -3,10 +3,13 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use defguard_common::db::models::{
-    Settings, WireguardNetwork,
-    settings::{OpenIdUsernameHandling, update_current_settings},
-    wireguard::LocationMfaMode,
+use defguard_common::{
+    config::server_config,
+    db::models::{
+        Settings, WireguardNetwork,
+        settings::{OpenIdUsernameHandling, update_current_settings},
+        wireguard::LocationMfaMode,
+    },
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
@@ -20,6 +23,7 @@ use crate::{
         db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
         directory_sync::test_directory_sync_connection,
     },
+    error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
@@ -73,6 +77,11 @@ pub(crate) async fn add_openid_provider(
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    if server_config().is_demo_mode {
+        return Err(WebError::Forbidden(
+            "Configuring an external OpenID provider is disabled in demo mode",
+        ));
+    }
     debug!(
         "User {} adding OpenID provider {}",
         session.user.username, provider_data.name
@@ -321,6 +330,11 @@ pub(crate) async fn modify_openid_provider(
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    if server_config().is_demo_mode {
+        return Err(WebError::Forbidden(
+            "Configuring an external OpenID provider is disabled in demo mode",
+        ));
+    }
     debug!(
         "User {} modifying OpenID provider {}",
         session.user.username, provider_data.name

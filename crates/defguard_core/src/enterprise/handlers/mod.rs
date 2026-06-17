@@ -16,6 +16,8 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
+use chrono::{TimeDelta, Utc};
+use defguard_common::config::server_config;
 use serde::Serialize;
 
 use super::{
@@ -126,6 +128,21 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 "limits": limits_info,
             })
         });
+
+    let license_info = license_info.or_else(|| {
+        server_config().is_demo_mode.then(|| {
+            serde_json::json!({
+                "valid_until": Utc::now() + TimeDelta::days(3650),
+                "subscription": true,
+                "expired": false,
+                "limits_exceeded": false,
+                "tier": "Enterprise",
+                "support_type": "DirectEnterprise",
+                "limits": null,
+            })
+        })
+    });
+
     Ok(ApiResponse::json(
         serde_json::json!({"license_info": license_info}),
         StatusCode::OK,

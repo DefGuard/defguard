@@ -3,11 +3,14 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use defguard_common::db::{
-    Id,
-    models::{
-        Settings, SettingsEssentials,
-        settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+use defguard_common::{
+    config::server_config,
+    db::{
+        Id,
+        models::{
+            Settings, SettingsEssentials,
+            settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+        },
     },
 };
 use sqlx::PgPool;
@@ -55,6 +58,13 @@ pub(crate) async fn update_settings(
 
     data.uuid = before.uuid;
     data.validate()?;
+
+    if server_config().is_demo_mode && data.demo_locked_fields_differ(&before) {
+        return Err(WebError::Forbidden(
+            "This setting is read-only in demo mode",
+        ));
+    }
+
     // clone for event
     let after = data.clone();
 
@@ -149,6 +159,12 @@ pub async fn patch_settings(
 
     settings.apply(data);
     settings.validate()?;
+
+    if server_config().is_demo_mode && settings.demo_locked_fields_differ(&before) {
+        return Err(WebError::Forbidden(
+            "This setting is read-only in demo mode",
+        ));
+    }
 
     // clone for event
     let after = settings.clone();

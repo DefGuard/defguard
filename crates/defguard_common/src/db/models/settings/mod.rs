@@ -777,6 +777,48 @@ impl Settings {
             && self.smtp.sender != Some(String::new())
     }
 
+    #[must_use]
+    pub fn demo_locked_fields_differ(&self, other: &Self) -> bool {
+        self.demo_locked_fields() != other.demo_locked_fields()
+    }
+
+    fn demo_locked_fields(&self) -> impl PartialEq + '_ {
+        (
+            &self.license,
+            &self.defguard_url,
+            &self.public_proxy_url,
+            &self.smtp,
+            (
+                &self.ldap_url,
+                &self.ldap_bind_username,
+                &self.ldap_bind_password,
+                &self.ldap_group_search_base,
+                &self.ldap_user_search_base,
+                &self.ldap_user_obj_class,
+                &self.ldap_group_obj_class,
+                &self.ldap_username_attr,
+                &self.ldap_groupname_attr,
+                &self.ldap_group_member_attr,
+                &self.ldap_member_attr,
+                &self.ldap_user_rdn_attr,
+            ),
+            (
+                &self.ldap_use_starttls,
+                &self.ldap_tls_verify_cert,
+                &self.ldap_enabled,
+                &self.ldap_sync_enabled,
+                &self.ldap_is_authoritative,
+                &self.ldap_uses_ad,
+                &self.ldap_sync_account_status,
+                &self.ldap_sync_interval,
+                &self.ldap_user_auxiliary_obj_classes,
+                &self.ldap_sync_groups,
+                &self.ldap_remote_enrollment_enabled,
+                &self.ldap_remote_enrollment_send_invite,
+            ),
+        )
+    }
+
     /// Check if all required LDAP options are configured.
     ///
     /// Meant to be used to check if LDAP integration can be enabled.

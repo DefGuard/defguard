@@ -6,6 +6,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use defguard_common::{
+    config::server_config,
     db::{
         Id,
         models::{BiometricAuth, OAuth2AuthorizedApp, Settings, User, WebAuthn, user::SecurityKey},
@@ -892,6 +893,12 @@ pub(crate) async fn modify_user(
     Path(username): Path<String>,
     Json(user_info): Json<UserInfo>,
 ) -> ApiResult {
+    if server_config().is_demo_mode {
+        return Err(WebError::Forbidden(
+            "Modifying user's is disabled in demo mode",
+        ));
+    }
+
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let groups_before = UserInfo::from_user(&appstate.pool, user.clone())
@@ -1167,6 +1174,11 @@ pub(crate) async fn change_self_password(
     Json(data): Json<PasswordChangeSelf>,
 ) -> ApiResult {
     debug!("User {} is changing his password.", session.user.username);
+    if server_config().is_demo_mode {
+        return Err(WebError::Forbidden(
+            "Changing the password is disabled in demo mode",
+        ));
+    }
     let mut user = session.user;
     if user.verify_password(&data.old_password).is_err() {
         return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
