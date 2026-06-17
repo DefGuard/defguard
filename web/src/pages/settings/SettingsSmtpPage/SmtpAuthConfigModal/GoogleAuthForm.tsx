@@ -15,6 +15,7 @@ import {
   exchangeCodeForToken,
   GOOGLE_AUTH_URL,
   GOOGLE_ISSUER_URL,
+  GOOGLE_OAUTH_SCOPE,
   GOOGLE_SMTP_SERVER,
   GOOGLE_TOKEN_URL,
   PROVIDER_SMTP_PORT,
@@ -50,7 +51,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         GOOGLE_AUTH_URL,
         value.smtp_oauth_client_id ?? '',
         redirectUri,
-        'https://mail.google.com/ email',
+        GOOGLE_OAUTH_SCOPE,
         { access_type: 'offline' },
       );
 
@@ -117,6 +118,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
           <form.AppField name="smtp_oauth_client_id">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_oauth_client_id()}
                 helper={m.settings_smtp_helper_oauth_client_id()}
               />
@@ -125,6 +127,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
           <form.AppField name="smtp_oauth_client_secret">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_oauth_client_secret()}
                 helper={m.settings_smtp_helper_oauth_client_secret()}
                 type="password"

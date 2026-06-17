@@ -16,7 +16,6 @@ use defguard_common::{
     },
     utils::parse_network_address_list,
 };
-use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -41,6 +40,7 @@ use crate::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
     },
+    mail::templates::{TemplateLocation, new_device_added_mail},
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 

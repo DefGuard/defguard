@@ -4,10 +4,6 @@ use axum::{
 };
 use chrono::Utc;
 use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
-use defguard_mail::{
-    mail::Attachment,
-    templates::{self, SUPPORT_EMAIL_ADDRESS},
-};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -19,6 +15,10 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
+    mail::{
+        Attachment,
+        templates::{self, SUPPORT_EMAIL_ADDRESS},
+    },
     server_config,
     support::dump_config,
 };

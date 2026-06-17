@@ -9,14 +9,14 @@ rust-version.workspace = true
 
 [dependencies]
 # internal crates
-defguard_core = { workspace = true }
-defguard_event_logger = { workspace = true }
-defguard_session_manager = { workspace = true }
+defguard_core.workspace = true
+defguard_event_logger.workspace = true
+defguard_session_manager.workspace = true
 
 # external dependencies
-thiserror = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
-defguard_common = { workspace = true }
+defguard_common.workspace = true

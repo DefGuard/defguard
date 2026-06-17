@@ -6,8 +6,8 @@ use defguard_core::{
     grpc::utils::parse_client_ip_agent,
     handlers::user::check_password_strength,
     headers::get_device_info,
+    mail::templates::{password_reset_mail, password_reset_success_mail},
 };
-use defguard_mail::templates::{password_reset_mail, password_reset_success_mail};
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,

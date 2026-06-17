@@ -1,3 +1,15 @@
+//! Handle email messages.
+//!
+//! Refer to:
+//! - [RFC 2557](https://datatracker.ietf.org/doc/html/rfc2557)
+//! - [Meaning of mulitpart](https://www.codestudy.net/blog/mail-multipart-alternative-vs-multipart-mixed/)
+
+pub(crate) mod mail_context;
+mod qr;
+pub mod templates;
+#[cfg(test)]
+mod tests;
+
 use std::{str::FromStr, time::Duration};
 
 use defguard_common::db::models::{
@@ -17,12 +29,36 @@ use sqlx::PgConnection;
 use tera::{Context, Tera, Value};
 use tracing::{debug, error, info, warn};
 
-use super::{
-    MailError,
+use crate::enterprise::oauth2::xoauth2_access_token;
+
+#[derive(Debug, thiserror::Error)]
+pub enum MailError {
+    #[error(transparent)]
+    Lettre(#[from] lettre::error::Error),
+
+    #[error(transparent)]
+    Address(#[from] lettre::address::AddressError),
+
+    #[error(transparent)]
+    Smtp(#[from] lettre::transport::smtp::Error),
+
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+
+    #[error("SMTP not configured")]
+    SmtpNotConfigured,
+
+    #[error("Invalid port: {0}")]
+    InvalidPort(i32),
+
+    #[error(transparent)]
+    OAuth2(#[from] crate::enterprise::oauth2::OAuth2Error),
+}
+
+use self::{
     mail_context::MailContext,
     qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
-    xoauth2::obtain_access_token,
 };
 
 #[derive(Debug)]
@@ -48,18 +84,18 @@ impl From<Attachment> for SinglePart {
 
 const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 // Template images.
-static DEFGUARD_LOGO: &[u8] = include_bytes!("../assets/defguard.png");
-static GITHUB_LOGO: &[u8] = include_bytes!("../assets/github.png");
-static MASTODON_LOGO: &[u8] = include_bytes!("../assets/mastodon.png");
-static X_LOGO: &[u8] = include_bytes!("../assets/x.png");
+static DEFGUARD_LOGO: &[u8] = include_bytes!("assets/defguard.png");
+static GITHUB_LOGO: &[u8] = include_bytes!("assets/github.png");
+static MASTODON_LOGO: &[u8] = include_bytes!("assets/mastodon.png");
+static X_LOGO: &[u8] = include_bytes!("assets/x.png");
 // MFA code
-static DATE_ICON: &[u8] = include_bytes!("../assets/date.png");
-static OTP_ICON: &[u8] = include_bytes!("../assets/otp.png");
+static DATE_ICON: &[u8] = include_bytes!("assets/date.png");
+static OTP_ICON: &[u8] = include_bytes!("assets/otp.png");
 // New account
-static NEW_ACCOUNT_1: &[u8] = include_bytes!("../assets/new_account_1.png");
-static NEW_ACCOUNT_2: &[u8] = include_bytes!("../assets/new_account_2.png");
-static GOOGLE_PLAY: &[u8] = include_bytes!("../assets/google_play.png");
-static APPLE: &[u8] = include_bytes!("../assets/apple.png");
+static NEW_ACCOUNT_1: &[u8] = include_bytes!("assets/new_account_1.png");
+static NEW_ACCOUNT_2: &[u8] = include_bytes!("assets/new_account_2.png");
+static GOOGLE_PLAY: &[u8] = include_bytes!("assets/google_play.png");
+static APPLE: &[u8] = include_bytes!("assets/apple.png");
 
 /// Mail message
 #[derive(Debug)]
@@ -257,7 +293,7 @@ impl Mail {
                     builder.credentials(Credentials::new(user, password.expose_secret().into()));
             }
             SmtpAuthentication::XOAuth2 => {
-                let code = obtain_access_token(&mut smtp_settings).await?;
+                let code = xoauth2_access_token(&mut smtp_settings).await?;
                 let Some(sender) = smtp_settings.sender else {
                     error!("XOAUTH2 requires sender email address");
                     return Err(MailError::SmtpNotConfigured);
@@ -372,60 +408,60 @@ impl MailMessage {
 
     pub(crate) const fn mjml_template(&self) -> &str {
         match self {
-            Self::Test => include_str!("../templates/test.mjml"),
-            Self::Welcome => include_str!("../templates/enrollment-welcome.mjml"),
-            Self::SupportData => include_str!("../templates/support-data.mjml"),
-            Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
-            Self::NewAccount => include_str!("../templates/new-account.mjml"),
-            Self::NewDevice => include_str!("../templates/new-device.mjml"),
-            Self::NewDeviceLogin => include_str!("../templates/new-device-login.mjml"),
-            Self::NewDeviceOIDCLogin => include_str!("../templates/new-device-oidc-login.mjml"),
-            Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.mjml"),
-            Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.mjml"),
-            Self::MFAActivation => include_str!("../templates/mfa-activation.mjml"),
-            Self::MFAConfigured { method: _ } => include_str!("../templates/mfa-configured.mjml"),
-            Self::MFACode => include_str!("../templates/mfa-code.mjml"),
-            Self::PasswordReset => include_str!("../templates/password-reset.mjml"),
-            Self::PasswordResetDone => include_str!("../templates/password-reset-done.mjml"),
-            Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
+            Self::Test => include_str!("templates/test.mjml"),
+            Self::Welcome => include_str!("templates/enrollment-welcome.mjml"),
+            Self::SupportData => include_str!("templates/support-data.mjml"),
+            Self::DesktopStart => include_str!("templates/desktop-start.mjml"),
+            Self::NewAccount => include_str!("templates/new-account.mjml"),
+            Self::NewDevice => include_str!("templates/new-device.mjml"),
+            Self::NewDeviceLogin => include_str!("templates/new-device-login.mjml"),
+            Self::NewDeviceOIDCLogin => include_str!("templates/new-device-oidc-login.mjml"),
+            Self::GatewayDisconnect => include_str!("templates/gateway-disconnected.mjml"),
+            Self::GatewayReconnect => include_str!("templates/gateway-reconnected.mjml"),
+            Self::MFAActivation => include_str!("templates/mfa-activation.mjml"),
+            Self::MFAConfigured { method: _ } => include_str!("templates/mfa-configured.mjml"),
+            Self::MFACode => include_str!("templates/mfa-code.mjml"),
+            Self::PasswordReset => include_str!("templates/password-reset.mjml"),
+            Self::PasswordResetDone => include_str!("templates/password-reset-done.mjml"),
+            Self::UserImportBlocked => include_str!("templates/plain-notification.mjml"),
             Self::EnrollmentNotification => {
-                include_str!("../templates/enrollment-admin-notification.mjml")
+                include_str!("templates/enrollment-admin-notification.mjml")
             }
             Self::LetsencryptCertRefreshFailed => {
-                include_str!("../templates/letsencrypt-cert-refresh-failed.mjml")
+                include_str!("templates/letsencrypt-cert-refresh-failed.mjml")
             }
             Self::CertificateExpiration | Self::CertificateExpired => {
-                include_str!("../templates/certificate-expiration.mjml")
+                include_str!("templates/certificate-expiration.mjml")
             }
         }
     }
 
     pub(crate) const fn text_template(&self) -> &str {
         match self {
-            Self::Test => include_str!("../templates/test.text"),
-            Self::Welcome => include_str!("../templates/enrollment-welcome.text"),
-            Self::SupportData => include_str!("../templates/support-data.text"),
-            Self::DesktopStart => include_str!("../templates/desktop-start.text"),
-            Self::NewAccount => include_str!("../templates/new-account.text"),
-            Self::NewDevice => include_str!("../templates/new-device.text"),
-            Self::NewDeviceLogin => include_str!("../templates/new-device-login.text"),
-            Self::NewDeviceOIDCLogin => include_str!("../templates/new-device-oidc-login.text"),
-            Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.text"),
-            Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.text"),
-            Self::MFAActivation => include_str!("../templates/mfa-activation.text"),
-            Self::MFAConfigured { method: _ } => include_str!("../templates/mfa-configured.text"),
-            Self::MFACode => include_str!("../templates/mfa-code.text"),
-            Self::PasswordReset => include_str!("../templates/password-reset.text"),
-            Self::PasswordResetDone => include_str!("../templates/password-reset-done.text"),
-            Self::UserImportBlocked => include_str!("../templates/plain-notification.text"),
+            Self::Test => include_str!("templates/test.text"),
+            Self::Welcome => include_str!("templates/enrollment-welcome.text"),
+            Self::SupportData => include_str!("templates/support-data.text"),
+            Self::DesktopStart => include_str!("templates/desktop-start.text"),
+            Self::NewAccount => include_str!("templates/new-account.text"),
+            Self::NewDevice => include_str!("templates/new-device.text"),
+            Self::NewDeviceLogin => include_str!("templates/new-device-login.text"),
+            Self::NewDeviceOIDCLogin => include_str!("templates/new-device-oidc-login.text"),
+            Self::GatewayDisconnect => include_str!("templates/gateway-disconnected.text"),
+            Self::GatewayReconnect => include_str!("templates/gateway-reconnected.text"),
+            Self::MFAActivation => include_str!("templates/mfa-activation.text"),
+            Self::MFAConfigured { method: _ } => include_str!("templates/mfa-configured.text"),
+            Self::MFACode => include_str!("templates/mfa-code.text"),
+            Self::PasswordReset => include_str!("templates/password-reset.text"),
+            Self::PasswordResetDone => include_str!("templates/password-reset-done.text"),
+            Self::UserImportBlocked => include_str!("templates/plain-notification.text"),
             Self::EnrollmentNotification => {
-                include_str!("../templates/enrollment-admin-notification.text")
+                include_str!("templates/enrollment-admin-notification.text")
             }
             Self::LetsencryptCertRefreshFailed => {
-                include_str!("../templates/letsencrypt-cert-refresh-failed.text")
+                include_str!("templates/letsencrypt-cert-refresh-failed.text")
             }
             Self::CertificateExpiration | Self::CertificateExpired => {
-                include_str!("../templates/certificate-expiration.text")
+                include_str!("templates/certificate-expiration.text")
             }
         }
     }

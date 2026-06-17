@@ -15,6 +15,7 @@ use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use super::{
+    REQUEST_TIMEOUT,
     db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
     ldap::utils::ldap_update_users_state,
 };
@@ -36,7 +37,6 @@ use crate::{
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const REQUEST_PAGINATION_SLOWDOWN: Duration = Duration::from_millis(100);
 
 #[derive(Debug, Error)]
@@ -270,7 +270,7 @@ impl DirectorySyncClient {
                 let client = microsoft::MicrosoftDirectorySync::new(
                     provider_settings.client_id,
                     provider_settings.client_secret,
-                    provider_settings.base_url,
+                    &provider_settings.base_url,
                     provider_settings.directory_sync_group_match,
                 );
                 debug!("Microsoft directory sync client created");
@@ -1090,8 +1090,10 @@ pub(crate) async fn do_directory_sync(
                     for group_name in &user_groups_filter {
                         if !groups.iter().any(|group| &group.name == group_name) {
                             warn!(
-                                "Group '{group_name}' configured for user prefetch was not found among the directory groups, its members won't be imported.
-                                Make sure the group name is correct and that it's also included in the membership sync group filter, if one is defined."
+                                "Group '{group_name}' configured for user prefetch was not found \
+                                among the directory groups, its members won't be imported.
+                                Make sure the group name is correct and that it's also included in \
+                                the membership sync group filter, if one is defined."
                             );
                         }
                     }
@@ -1111,7 +1113,8 @@ pub(crate) async fn do_directory_sync(
                             }
                             Err(err) => {
                                 error!(
-                                    "Failed to get members of group '{}' for the prefetch filter: {err}",
+                                    "Failed to get members of group '{}' for the prefetch filter: \
+                                    {err}",
                                     group.name
                                 );
                             }

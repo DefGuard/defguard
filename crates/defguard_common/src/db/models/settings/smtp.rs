@@ -82,6 +82,10 @@ pub struct SmtpSettings {
     #[sqlx(rename = "smtp_oauth_refresh_token")]
     #[patch(attribute(serde(rename = "smtp_oauth_refresh_token")))]
     pub oauth_refresh_token: Option<String>,
+    #[serde(rename = "smtp_oauth_tenant_id")]
+    #[sqlx(rename = "smtp_oauth_tenant_id")]
+    #[patch(attribute(serde(rename = "smtp_oauth_tenant_id")))]
+    pub oauth_tenant_id: Option<String>,
 }
 
 impl SmtpSettings {
@@ -106,7 +110,7 @@ impl SmtpSettings {
         Ok(())
     }
 
-    /// Check if all required options are properly configured.
+    /// Check if all required options are properly configured.
     /// This is meant to be used to check if sending emails is enabled in current instance.
     #[must_use]
     pub fn is_configured(&self) -> bool {
@@ -146,6 +150,7 @@ impl fmt::Debug for SmtpSettings {
             .field("authentication", &self.authentication)
             .field("oauth_issuer_url", &self.oauth_issuer_url)
             .field("oauth_client_id", &self.oauth_client_id)
+            .field("oauth_tenant_id", &self.oauth_tenant_id)
             .finish_non_exhaustive()
     }
 }

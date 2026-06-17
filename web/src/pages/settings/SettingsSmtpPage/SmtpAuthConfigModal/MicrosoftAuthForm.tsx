@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import { SmtpAuthentication, SmtpEncryption } from '../../../../shared/api/types';
 import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
-import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
@@ -12,14 +10,9 @@ import { formChangeLogic } from '../../../../shared/formLogic';
 import { patternValidEmail } from '../../../../shared/patterns';
 import { isMicrosoftIssuerUrl } from '../smtpAuthUtils';
 import {
-  buildAuthUrl,
-  exchangeCodeForToken,
-  MICROSOFT_AUTH_URL,
   MICROSOFT_ISSUER_URL,
   MICROSOFT_SMTP_SERVER,
-  MICROSOFT_TOKEN_URL,
   PROVIDER_SMTP_PORT,
-  waitForOAuthCode,
 } from './oauthFlow';
 import type { FormProps } from './types';
 
@@ -29,70 +22,35 @@ const schema = z.object({
     .trim()
     .min(1, m.form_error_required())
     .regex(patternValidEmail, m.form_error_email()),
-  smtp_oauth_issuer_url: z.string().trim().nullable(),
+  smtp_oauth_tenant_id: z.string().trim().nullable(),
   smtp_oauth_client_id: z.string().trim().nullable(),
   smtp_oauth_client_secret: z.string().trim().nullable(),
 });
 
 export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
-  const [oauthError, setOauthError] = useState<string | null>(null);
-
   const form = useAppForm({
     defaultValues: {
       smtp_sender: initialValues.smtp_sender,
-      smtp_oauth_issuer_url: isMicrosoftIssuerUrl(initialValues.smtp_oauth_issuer_url)
-        ? initialValues.smtp_oauth_issuer_url
-        : MICROSOFT_ISSUER_URL,
+      smtp_oauth_tenant_id: initialValues.smtp_oauth_tenant_id,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
       smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
     },
     validationLogic: formChangeLogic,
     validators: { onSubmit: schema, onChange: schema },
     onSubmit: async ({ value }) => {
-      setOauthError(null);
-      const redirectUri = `${window.location.origin}/smtp-oauth-callback`;
-      const authUrl = buildAuthUrl(
-        MICROSOFT_AUTH_URL,
-        value.smtp_oauth_client_id ?? '',
-        redirectUri,
-        'https://outlook.office.com/SMTP.Send offline_access',
-      );
-
-      const popup = window.open(
-        authUrl,
-        'smtp-oauth',
-        'width=600,height=700,noopener=no',
-      );
-      if (!popup) {
-        setOauthError(m.settings_smtp_auth_oauth_popup_blocked());
-        return;
-      }
-
-      try {
-        const code = await waitForOAuthCode(popup);
-        const refreshToken = await exchangeCodeForToken(
-          MICROSOFT_TOKEN_URL,
-          code,
-          value.smtp_oauth_client_id ?? '',
-          value.smtp_oauth_client_secret ?? '',
-          redirectUri,
-        );
-        await onApply({
-          authentication: SmtpAuthentication.XOAuth2,
-          smtp_sender: value.smtp_sender,
-          smtp_oauth_issuer_url: value.smtp_oauth_issuer_url,
-          smtp_oauth_client_id: value.smtp_oauth_client_id,
-          smtp_oauth_client_secret: value.smtp_oauth_client_secret,
-          smtp_oauth_refresh_token: refreshToken,
-          smtp_server: MICROSOFT_SMTP_SERVER,
-          smtp_port: PROVIDER_SMTP_PORT,
-          smtp_encryption: SmtpEncryption.StartTls,
-        });
-      } catch (err) {
-        setOauthError(
-          err instanceof Error ? err.message : m.settings_smtp_auth_oauth_error(),
-        );
-      }
+      await onApply({
+        authentication: SmtpAuthentication.XOAuth2,
+        smtp_sender: value.smtp_sender,
+        smtp_server: MICROSOFT_SMTP_SERVER,
+        smtp_port: PROVIDER_SMTP_PORT,
+        smtp_encryption: SmtpEncryption.StartTls,
+        smtp_oauth_issuer_url: isMicrosoftIssuerUrl(initialValues.smtp_oauth_issuer_url)
+          ? initialValues.smtp_oauth_issuer_url
+          : MICROSOFT_ISSUER_URL,
+        smtp_oauth_tenant_id: value.smtp_oauth_tenant_id,
+        smtp_oauth_client_id: value.smtp_oauth_client_id,
+        smtp_oauth_client_secret: value.smtp_oauth_client_secret,
+      });
     },
   });
 
@@ -115,12 +73,22 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
               />
             )}
           </form.AppField>
+          <form.AppField name="smtp_oauth_tenant_id">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_smtp_label_oauth_tenant_id()}
+                helper={m.settings_smtp_helper_oauth_tenant_id()}
+              />
+            )}
+          </form.AppField>
         </EvenSplit>
         <SizedBox height={ThemeSpacing.Xl} />
         <EvenSplit>
           <form.AppField name="smtp_oauth_client_id">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_oauth_client_id()}
                 helper={m.settings_smtp_helper_oauth_client_id()}
               />
@@ -129,6 +97,7 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
           <form.AppField name="smtp_oauth_client_secret">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_oauth_client_secret()}
                 helper={m.settings_smtp_helper_oauth_client_secret()}
                 type="password"
@@ -136,9 +105,6 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
             )}
           </form.AppField>
         </EvenSplit>
-        <SizedBox height={ThemeSpacing.Md} />
-        <p className="smtp-auth-oauth-info">{m.settings_smtp_auth_oauth_info()}</p>
-        <FieldError error={oauthError} />
         <SizedBox height={ThemeSpacing.Xl2} />
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (

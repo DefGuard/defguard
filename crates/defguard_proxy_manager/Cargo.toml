@@ -9,13 +9,12 @@ rust-version.workspace = true
 
 [dependencies]
 # internal dependencies
+defguard_certs.workspace = true
 defguard_common.workspace = true
 defguard_core.workspace = true
-defguard_mail.workspace = true
+defguard_grpc_tls.workspace = true
 defguard_proto.workspace = true
 defguard_version.workspace = true
-defguard_certs.workspace = true
-defguard_grpc_tls.workspace = true
 
 axum.workspace = true
 axum-extra.workspace = true
@@ -36,7 +35,7 @@ base32.workspace = true
 base64.workspace = true
 hyper-util = "0.1"
 ipnetwork.workspace = true
-jsonwebkey = { workspace = true }
+jsonwebkey.workspace = true
 jsonwebtoken.workspace = true
 rand.workspace = true
 rsa.workspace = true

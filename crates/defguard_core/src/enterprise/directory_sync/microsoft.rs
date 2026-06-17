@@ -1,29 +1,26 @@
-use chrono::{TimeDelta, Utc};
+use std::time::SystemTime;
+
 use serde::Deserialize;
 use tokio::time::sleep;
 
 use super::{
-    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
-    make_get_request, parse_response,
+    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, DirectoryUserDetails,
+    REQUEST_PAGINATION_SLOWDOWN, make_get_request, parse_response,
 };
-use crate::enterprise::directory_sync::{DirectoryUserDetails, REQUEST_TIMEOUT};
+use crate::enterprise::oauth2::microsoft::MicrosoftOAuth2;
 
 pub(crate) struct MicrosoftDirectorySync {
     access_token: Option<String>,
-    token_expiry: Option<chrono::DateTime<Utc>>,
-    client_id: String,
-    client_secret: String,
-    url: String,
+    token_expiry: Option<SystemTime>,
+    oauth2: MicrosoftOAuth2,
     group_filter: Vec<String>,
 }
 
-const ACCESS_TOKEN_URL: &str = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
 const GROUPS_URL: &str = "https://graph.microsoft.com/v1.0/groups";
 const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memberOf";
 const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members";
 const ALL_USERS_URL: &str = "https://graph.microsoft.com/v1.0/users";
-const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
-const GRANT_TYPE: &str = "client_credentials";
+const GRAPH_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 const MAX_RESULTS: &str = "200";
 const MAX_REQUESTS: usize = 50;
 const USER_QUERY_FIELDS: &str =
@@ -33,13 +30,6 @@ const USER_SEARCH_URL: &str =
 const USER_SEARCH_URL_FALLBACK: &str =
     "https://graph.microsoft.com/v1.0/users?$select=id&$filter=(otherMails/any(p:p eq '{email}'))";
 const GROUP_FILTER: &str = "displayName in ('{group_names}')";
-
-#[derive(Deserialize)]
-struct TokenResponse {
-    #[serde(rename = "access_token")]
-    token: String,
-    expires_in: i64,
-}
 
 #[derive(Deserialize)]
 struct GroupDetails {
@@ -91,10 +81,18 @@ impl From<GroupMembersResponse> for Vec<String> {
                 if let Some(email) = user.mail {
                     Some(email)
                 } else if let Some(email) = user.other_mails.into_iter().next() {
-                    warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {email}", user.display_name);
+                    warn!(
+                        "User {} doesn't have a primary email address set, his first additional \
+                        email address will be used: {email}",
+                        user.display_name
+                    );
                     Some(email)
                 } else {
-                    warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
+                    warn!(
+                        "User {} doesn't have any email address and will be skipped in \
+                        synchronization.",
+                        user.display_name
+                    );
                     None
                 }
             })
@@ -121,7 +119,7 @@ struct User {
     business_phones: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default)]
 struct UsersResponse {
     #[serde(rename = "@odata.nextLink")]
     next_page: Option<String>,
@@ -134,28 +132,54 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             .value
             .into_iter()
             .filter_map(|user| {
-// check if additional user detail data is available
-let user_details = if let ( Some(first_name), Some(last_name)) = ( user.given_name, user.surname) {
-            	// get a phone number if any is available
-            	// prefer mobile phone
-            	let phone_number = match user.mobile_phone {
-            		Some(mobile_phone) => Some(mobile_phone),
-            		None => user.business_phones.into_iter().next()
-            	};
-	Some(DirectoryUserDetails { last_name, first_name, phone_number   })
-} else {
-	debug!("User {} doesn't have all required user details and will be skipped if user creation is required", user.display_name);
-	None
-};
-
+                // check if additional user detail data is available
+                let user_details =
+                    if let (Some(first_name), Some(last_name)) = (user.given_name, user.surname) {
+                        // Get a phone number if any is available.
+                        // Prefer mobile phone.
+                        let phone_number = match user.mobile_phone {
+                            Some(mobile_phone) => Some(mobile_phone),
+                            None => user.business_phones.into_iter().next(),
+                        };
+                        Some(DirectoryUserDetails {
+                            last_name,
+                            first_name,
+                            phone_number,
+                        })
+                    } else {
+                        debug!(
+                            "User {} doesn't have all required user details and will be skipped if \
+                            user creation is required",
+                            user.display_name
+                        );
+                        None
+                    };
 
                 if let Some(email) = user.mail {
-                    Some(DirectoryUser { email, active: user.account_enabled, id: Some(user.id), user_details })
+                    Some(DirectoryUser {
+                        email,
+                        active: user.account_enabled,
+                        id: Some(user.id),
+                        user_details,
+                    })
                 } else if let Some(email) = user.other_mails.into_iter().next() {
-                    warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {email}", user.display_name);
-                    Some(DirectoryUser { email, active: user.account_enabled, id: Some(user.id), user_details  })
+                    warn!(
+                        "User {} doesn't have a primary email address set, his first additional \
+                        email address will be used: {email}",
+                        user.display_name
+                    );
+                    Some(DirectoryUser {
+                        email,
+                        active: user.account_enabled,
+                        id: Some(user.id),
+                        user_details,
+                    })
                 } else {
-                    warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
+                    warn!(
+                        "User {} doesn't have any email address and will be skipped in \
+                        synchronization.",
+                        user.display_name
+                    );
                     None
                 }
             })
@@ -168,49 +192,50 @@ struct UserId {
     id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct IdResponse {
     value: Vec<UserId>,
 }
 
 impl MicrosoftDirectorySync {
-    pub(crate) const fn new(
+    pub(crate) fn new(
         client_id: String,
         client_secret: String,
-        url: String,
+        url: &str,
         match_groups: Vec<String>,
     ) -> Self {
-        Self {
-            access_token: None,
+        let tenant_id = Self::extract_tenant(url).unwrap_or_default();
+        let oauth2 = MicrosoftOAuth2::new(
             client_id,
             client_secret,
-            url,
+            tenant_id,
+            GRAPH_DEFAULT_SCOPE.into(),
+        );
+        Self {
+            access_token: None,
+            oauth2,
             token_expiry: None,
             group_filter: match_groups,
         }
     }
 
-    fn extract_tenant(&self) -> Result<String, DirectorySyncError> {
-        debug!("Extracting tenant ID from Microsoft base URL: {}", self.url);
-        let parts: Vec<&str> = self.url.split('/').collect();
-        debug!("Split Microsoft base URL into the following parts: {parts:?}",);
+    fn extract_tenant(url: &str) -> Result<String, DirectorySyncError> {
+        debug!("Extracting tenant ID from Microsoft base URL: {url}");
         let tenant_id =
-            parts
-                .get(parts.len() - 2)
+            url.split('/')
+                .nth_back(1)
                 .ok_or(DirectorySyncError::InvalidProviderConfiguration(format!(
-                    "Couldn't extract tenant ID from the provided Microsoft API base URL: {}",
-                    self.url
+                    "Couldn't extract tenant ID from the provided Microsoft API base URL: {url}",
                 )))?;
-        debug!("Tenant ID extracted successfully: {tenant_id}",);
-        Ok((*tenant_id).to_string())
+        debug!("Tenant ID extracted successfully: {tenant_id}");
+        Ok(tenant_id.into())
     }
 
     async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
         debug!("Refreshing Microsoft directory sync access token.");
-        let token_response = self.query_access_token().await?;
-        let expires_in = TimeDelta::seconds(token_response.expires_in);
-        self.access_token = Some(token_response.token);
-        self.token_expiry = Some(Utc::now() + expires_in);
+        let token_response = self.oauth2.fetch_access_token().await?;
+        self.access_token = Some(token_response.access_token());
+        self.token_expiry = Some(token_response.expires_in());
         debug!(
             "Microsoft directory sync access token refreshed, the new token expires at: {:?}",
             self.token_expiry
@@ -223,7 +248,9 @@ impl MicrosoftDirectorySync {
             "Checking if Microsoft directory sync token is expired, expiry date: {:?}",
             self.token_expiry
         );
-        let result = self.token_expiry.is_none_or(|expiry| expiry < Utc::now());
+        let result = self
+            .token_expiry
+            .is_none_or(|expiry| expiry < SystemTime::now());
         debug!("Token expiry check result: {result}");
         result
     }
@@ -244,27 +271,6 @@ impl MicrosoftDirectorySync {
         Ok(())
     }
 
-    async fn query_access_token(&self) -> Result<TokenResponse, DirectorySyncError> {
-        debug!("Querying Microsoft directory sync access token.");
-        let tenant_id = self.extract_tenant()?;
-        let token_url = ACCESS_TOKEN_URL.replace("{tenant_id}", &tenant_id);
-        let client = reqwest::Client::new();
-        let response = client
-            .post(&token_url)
-            .form(&[
-                ("client_id", &self.client_id),
-                ("client_secret", &self.client_secret),
-                ("scope", &MICROSOFT_DEFAULT_SCOPE.to_string()),
-                ("grant_type", &GRANT_TYPE.to_string()),
-            ])
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
-        let token_response: TokenResponse = response.json().await?;
-        debug!("Microsoft directory sync access token queried successfully.");
-        Ok(token_response)
-    }
-
     async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
             debug!("Microsoft directory sync access token is expired, aborting group query.");
@@ -279,7 +285,7 @@ impl MicrosoftDirectorySync {
 
         if self.group_filter.is_empty() {
             debug!("No group filter defined, all groups will be synced.");
-            let params = vec![("$top", MAX_RESULTS)];
+            let params = [("$top", MAX_RESULTS)];
             let mut query = Some(params.as_slice());
 
             for _ in 0..MAX_REQUESTS {
@@ -305,7 +311,7 @@ impl MicrosoftDirectorySync {
                 "Applying defined group filter to user group query, only the following groups will be synced: {:?}",
                 self.group_filter
             );
-            let params = vec![("$top", MAX_RESULTS.to_string())];
+            let params = [("$top", MAX_RESULTS)];
             let groups = self
                 .group_filter
                 .iter()
@@ -318,14 +324,9 @@ impl MicrosoftDirectorySync {
             for batch in batches {
                 let group_filter =
                     GROUP_FILTER.replace("{group_names}", batch.join("','").as_str());
-                let mut new_params = params.clone();
-                new_params.push(("$filter", group_filter));
-
-                let params_slice = new_params
-                    .iter()
-                    .map(|(key, value)| (*key, value.as_str()))
-                    .collect::<Vec<_>>();
-                let query = Some(params_slice.as_slice());
+                let mut new_params = Vec::from(&params);
+                new_params.push(("$filter", group_filter.as_str()));
+                let query = Some(new_params.as_slice());
 
                 let response = make_get_request(&url, access_token, query).await?;
                 let response: GroupsResponse =
@@ -343,7 +344,8 @@ impl MicrosoftDirectorySync {
         let user_email = user_id;
         if self.is_token_expired() {
             debug!(
-                "Microsoft directory sync access token is expired, aborting query of user {user_email} groups."
+                "Microsoft directory sync access token is expired, aborting query of user \
+                {user_email} groups."
             );
             return Err(DirectorySyncError::AccessTokenExpired);
         }
@@ -368,7 +370,8 @@ impl MicrosoftDirectorySync {
             user.id
         } else {
             debug!(
-                "User with email {user_email} not found in Microsoft API, trying fallback search of additional email addresses",
+                "User with email {user_email} not found in Microsoft API, trying fallback search \
+                of additional email addresses",
             );
             let user_search = USER_SEARCH_URL_FALLBACK
                 .replace("{email}", user_email)
@@ -416,7 +419,8 @@ impl MicrosoftDirectorySync {
         // there is not much filtering to do on our end.
         if !self.group_filter.is_empty() {
             debug!(
-                "Applying defined group filter to user {user_email} group query, only the following groups will be synced: {:?}",
+                "Applying defined group filter to user {user_email} group query, only the \
+                following groups will be synced: {:?}",
                 self.group_filter
             );
             combined_response.value.retain(|group| {
@@ -424,7 +428,8 @@ impl MicrosoftDirectorySync {
                     self.group_filter.contains(display_name)
                 } else {
                     warn!(
-                        "Group with ID {} doesn't have a display name set, skipping its synchronization.",
+                        "Group with ID {} doesn't have a display name set, skipping its \
+                        synchronization.",
                         group.id
                     );
                     false
@@ -573,17 +578,16 @@ impl DirectorySync for MicrosoftDirectorySync {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
     #[test]
     fn test_extract_tenant() {
-        let provider = MicrosoftDirectorySync::new(
-            "client_id".to_string(),
-            "client_secret".to_string(),
-            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
-            Vec::new(),
-        );
-        let tenant = provider.extract_tenant().unwrap();
+        let tenant = MicrosoftDirectorySync::extract_tenant(
+            "https://login.microsoftonline.com/tenant-id-123/v2.0",
+        )
+        .unwrap();
         assert_eq!(tenant, "tenant-id-123");
     }
 
@@ -592,21 +596,24 @@ mod tests {
         let mut dirsync = MicrosoftDirectorySync::new(
             "id".to_string(),
             "secret".to_string(),
-            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0",
             Vec::new(),
         );
 
         // no token
         assert!(dirsync.is_token_expired());
 
+        let now = SystemTime::now();
+        let delta = Duration::from_secs(10000);
+
         // expired token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
+        dirsync.token_expiry = Some(now - delta);
         assert!(dirsync.is_token_expired());
 
         // valid token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
+        dirsync.token_expiry = Some(now + delta);
         assert!(!dirsync.is_token_expired());
     }
 
@@ -626,7 +633,7 @@ mod tests {
             ],
         };
 
-        let groups: Vec<DirectoryGroup> = groups_response.into();
+        let groups = Vec::from(groups_response);
 
         assert_eq!(groups.len(), 2);
         assert_eq!(groups[0].name, "Group 1");

@@ -2,6 +2,7 @@ import './style.scss';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 import { m } from '../../../../../paraglide/messages';
+import { BusinessBadge } from '../../../../../shared/components/badges/BusinessBadge';
 import { Badge } from '../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
 import { Icon } from '../../../../../shared/defguard-ui/components/Icon';
@@ -16,6 +17,7 @@ export type SmtpAuthCardVariant = 'none' | 'basic' | 'google' | 'microsoft' | 'c
 type Props = {
   variant: SmtpAuthCardVariant;
   active?: boolean;
+  locked?: boolean;
   onConfigure: () => void;
   onEdit: () => void;
   onSendTestEmail: () => void;
@@ -33,6 +35,7 @@ const cardIcon: Record<SmtpAuthCardVariant, ReactNode> = {
 export const SmtpAuthMethodCard = ({
   variant,
   active = false,
+  locked = false,
   onConfigure,
   onEdit,
   onSendTestEmail,
@@ -98,6 +101,7 @@ export const SmtpAuthMethodCard = ({
             {active && (
               <Badge variant="success" text={m.settings_smtp_auth_card_active_method()} />
             )}
+            {locked && <BusinessBadge />}
           </div>
           <p className="description">{cardDescriptions[variant]}</p>
         </div>

@@ -2,11 +2,13 @@ use defguard_common::db::{
     Id,
     models::{Settings, user::User},
 };
-use defguard_mail::templates::{desktop_start_mail, new_account_mail};
 use reqwest::Url;
 use sqlx::{PgConnection, PgExecutor, PgPool};
 
-use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError};
+use crate::{
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
+    mail::templates::{desktop_start_mail, new_account_mail},
+};
 
 /// Start user enrollment process
 /// This creates a new enrollment token valid for the duration specified by `token_timeout_seconds`

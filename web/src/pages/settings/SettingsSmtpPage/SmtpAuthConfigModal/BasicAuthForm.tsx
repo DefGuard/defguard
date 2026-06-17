@@ -1,31 +1,15 @@
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
-import type { SmtpEncryptionValue } from '../../../../shared/api/types';
 import { SmtpAuthentication, SmtpEncryption } from '../../../../shared/api/types';
 import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import type { SelectOption } from '../../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { patternValidEmail } from '../../../../shared/patterns';
+import { encryptionSelectOptions } from './encryptionOptions';
 import type { FormProps } from './types';
-
-const encryptionValueToLabel = (value: SmtpEncryptionValue): string => {
-  switch (value) {
-    case 'ImplicitTls':
-      return m.settings_smtp_encryption_implicit_tls();
-    case 'StartTls':
-      return m.settings_smtp_encryption_start_tls();
-    case 'None':
-      return m.settings_smtp_encryption_none();
-  }
-};
-
-const encryptionSelectOptions: SelectOption<SmtpEncryptionValue>[] = Object.values(
-  SmtpEncryption,
-).map((e) => ({ key: e, label: encryptionValueToLabel(e), value: e }));
 
 const schema = z.object({
   smtp_server: z.string().trim().min(1, m.form_error_required()),
@@ -122,6 +106,7 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
           <form.AppField name="smtp_user">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_server_username()}
                 helper={m.settings_smtp_helper_server_username()}
               />
@@ -130,6 +115,7 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
           <form.AppField name="smtp_password">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_server_password()}
                 helper={m.settings_smtp_helper_server_password()}
                 type="password"

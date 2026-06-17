@@ -7,7 +7,6 @@ use defguard_common::{
     },
     types::UrlParseError,
 };
-use defguard_mail::templates::TemplateError;
 use defguard_static_ip::error::StaticIpError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
@@ -22,6 +21,7 @@ use crate::{
     },
     events::ApiEvent,
     location_management::LocationManagementError,
+    mail::templates::TemplateError,
 };
 
 /// Represents kinds of error that occurred

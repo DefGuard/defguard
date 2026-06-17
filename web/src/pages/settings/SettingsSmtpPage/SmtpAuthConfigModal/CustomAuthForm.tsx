@@ -65,7 +65,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         authorizationEndpoint,
         value.smtp_oauth_client_id ?? '',
         redirectUri,
-        value.smtp_oauth_scope ?? CUSTOM_SCOPE_DEFAULT,
+        value.smtp_oauth_scope,
       );
 
       const popup = window.open(
@@ -128,6 +128,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
           <form.AppField name="smtp_oauth_client_id">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_oauth_client_id()}
                 helper={m.settings_smtp_helper_oauth_client_id()}
               />
@@ -136,6 +137,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
           <form.AppField name="smtp_oauth_client_secret">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_oauth_client_secret()}
                 helper={m.settings_smtp_helper_oauth_client_secret()}
                 type="password"
@@ -147,6 +149,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         <form.AppField name="smtp_oauth_issuer_url">
           {(field) => (
             <field.FormInput
+              required
               label={m.settings_smtp_label_oauth_issuer_url()}
               helper={m.settings_smtp_helper_oauth_issuer_url()}
             />
@@ -156,6 +159,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         <form.AppField name="smtp_oauth_scope">
           {(field) => (
             <field.FormInput
+              required
               label={m.settings_smtp_label_oauth_scope()}
               helper={m.settings_smtp_helper_oauth_scope()}
             />
