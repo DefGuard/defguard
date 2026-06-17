@@ -5,8 +5,8 @@ use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use tokio::time::sleep;
 
 use super::{
-    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
-    REQUEST_TIMEOUT, make_get_request, parse_response,
+    super::REQUEST_TIMEOUT, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser,
+    REQUEST_PAGINATION_SLOWDOWN, make_get_request, parse_response,
 };
 
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";

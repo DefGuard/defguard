@@ -122,6 +122,7 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
           <form.AppField name="smtp_user">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_server_username()}
                 helper={m.settings_smtp_helper_server_username()}
               />
@@ -130,6 +131,7 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
           <form.AppField name="smtp_password">
             {(field) => (
               <field.FormInput
+                required
                 label={m.settings_smtp_label_server_password()}
                 helper={m.settings_smtp_helper_server_password()}
                 type="password"

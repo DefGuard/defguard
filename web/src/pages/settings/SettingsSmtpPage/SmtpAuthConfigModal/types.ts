@@ -14,6 +14,7 @@ export type SmtpAuthModalValues = {
   smtp_oauth_client_id: string | null;
   smtp_oauth_client_secret: string | null;
   smtp_oauth_refresh_token: string | null;
+  smtp_oauth_tenant_id: string | null;
 };
 
 export type SmtpAuthApplyResult = {
@@ -28,6 +29,7 @@ export type SmtpAuthApplyResult = {
   smtp_oauth_client_id?: string | null;
   smtp_oauth_client_secret?: string | null;
   smtp_oauth_refresh_token?: string | null;
+  smtp_oauth_tenant_id?: string | null;
 };
 
 export type FormProps = {

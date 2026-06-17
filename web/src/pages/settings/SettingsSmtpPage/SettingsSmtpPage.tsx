@@ -119,6 +119,7 @@ const Content = ({ settings }: { settings: Settings }) => {
     smtp_oauth_client_id: null,
     smtp_oauth_client_secret: null,
     smtp_oauth_refresh_token: null,
+    smtp_oauth_tenant_id: null,
   });
 
   const formSchema = useMemo(
@@ -151,6 +152,7 @@ const Content = ({ settings }: { settings: Settings }) => {
         smtp_oauth_client_id: z.string().trim().nullable(),
         smtp_oauth_client_secret: z.string().trim().nullable(),
         smtp_oauth_refresh_token: z.string().trim().nullable(),
+        smtp_oauth_tenant_id: z.string().trim().nullable(),
       }),
     [],
   );
@@ -170,6 +172,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       smtp_oauth_client_id: null,
       smtp_oauth_client_secret: null,
       smtp_oauth_refresh_token: null,
+      smtp_oauth_tenant_id: null,
     }),
     [],
   );
@@ -187,6 +190,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       smtp_oauth_client_id: settings.smtp_oauth_client_id ?? null,
       smtp_oauth_client_secret: settings.smtp_oauth_client_secret ?? null,
       smtp_oauth_refresh_token: settings.smtp_oauth_refresh_token ?? null,
+      smtp_oauth_tenant_id: settings.smtp_oauth_tenant_id ?? null,
     }),
     [settings],
   );
@@ -225,6 +229,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       smtp_oauth_client_id: form.state.values.smtp_oauth_client_id,
       smtp_oauth_client_secret: form.state.values.smtp_oauth_client_secret,
       smtp_oauth_refresh_token: form.state.values.smtp_oauth_refresh_token,
+      smtp_oauth_tenant_id: form.state.values.smtp_oauth_tenant_id,
     };
     setModalVariant(variant);
   };
@@ -322,6 +327,10 @@ const Content = ({ settings }: { settings: Settings }) => {
               result.smtp_oauth_refresh_token !== undefined
                 ? result.smtp_oauth_refresh_token
                 : cur.smtp_oauth_refresh_token,
+            smtp_oauth_tenant_id:
+              result.smtp_oauth_tenant_id !== undefined
+                ? result.smtp_oauth_tenant_id
+                : cur.smtp_oauth_tenant_id,
           };
           const submitValue = { ...merged };
           if (submitValue.smtp_authentication !== SmtpAuthentication.Login) {
@@ -333,6 +342,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             submitValue.smtp_oauth_client_id = null;
             submitValue.smtp_oauth_client_secret = null;
             submitValue.smtp_oauth_refresh_token = null;
+            submitValue.smtp_oauth_tenant_id = null;
           }
           const currentActiveCard = detectActiveCard(
             cur.smtp_authentication,

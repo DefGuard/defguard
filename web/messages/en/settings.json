@@ -235,6 +235,8 @@
   "settings_smtp_helper_oauth_issuer_url": "",
   "settings_smtp_label_oauth_scope": "Scope",
   "settings_smtp_helper_oauth_scope": "OAuth2 scopes to request, space-separated.",
+  "settings_smtp_label_oauth_tenant_id": "Tenant ID",
+  "settings_smtp_helper_oauth_tenant_id": "",
   "settings_smtp_label_oauth_client_id": "Client ID",
   "settings_smtp_helper_oauth_client_id": "",
   "settings_smtp_label_oauth_client_secret": "Client Secret",
