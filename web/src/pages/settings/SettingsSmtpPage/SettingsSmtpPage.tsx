@@ -100,6 +100,54 @@ const detectActiveCard = (
 
 const AUTH_CARDS: SmtpAuthCardVariant[] = ['none', 'basic', 'google', 'microsoft'];
 
+const formSchema = z.object({
+  smtp_server: z
+    .string()
+    .trim()
+    .min(1, m.form_error_required())
+    .refine((val) =>
+      !val
+        ? true
+        : Validate.any(
+            val,
+            [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+            false,
+          ),
+    ),
+  smtp_port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
+  smtp_password: z.string().trim().nullable(),
+  smtp_user: z.string().trim().nullable(),
+  smtp_sender: z
+    .string()
+    .trim()
+    .min(1, m.form_error_required())
+    .regex(patternValidEmail, m.form_error_email()),
+  smtp_encryption: z.enum(SmtpEncryption),
+  smtp_authentication: z.enum(SmtpAuthentication),
+  smtp_oauth_issuer_url: z.string().trim().nullable(),
+  smtp_oauth_client_id: z.string().trim().nullable(),
+  smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_oauth_refresh_token: z.string().trim().nullable(),
+  smtp_oauth_tenant_id: z.string().trim().nullable(),
+});
+
+type FormFields = z.infer<typeof formSchema>;
+
+const emptyValues: FormFields = {
+  smtp_encryption: SmtpEncryption.StartTls,
+  smtp_password: null,
+  smtp_port: 587,
+  smtp_sender: '',
+  smtp_server: '',
+  smtp_user: null,
+  smtp_authentication: SmtpAuthentication.None,
+  smtp_oauth_issuer_url: null,
+  smtp_oauth_client_id: null,
+  smtp_oauth_client_secret: null,
+  smtp_oauth_refresh_token: null,
+  smtp_oauth_tenant_id: null,
+};
+
 const Content = ({ settings }: { settings: Settings }) => {
   const [modalVariant, setModalVariant] = useState<SmtpAuthCardVariant | null>(null);
   const modalInitialValuesRef = useRef<SmtpAuthModalValues>({
@@ -115,61 +163,6 @@ const Content = ({ settings }: { settings: Settings }) => {
     smtp_oauth_refresh_token: null,
     smtp_oauth_tenant_id: null,
   });
-
-  const formSchema = useMemo(
-    () =>
-      z.object({
-        smtp_server: z
-          .string()
-          .trim()
-          .min(1, m.form_error_required())
-          .refine((val) =>
-            !val
-              ? true
-              : Validate.any(
-                  val,
-                  [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
-                  false,
-                ),
-          ),
-        smtp_port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-        smtp_password: z.string().trim().nullable(),
-        smtp_user: z.string().trim().nullable(),
-        smtp_sender: z
-          .string()
-          .trim()
-          .min(1, m.form_error_required())
-          .regex(patternValidEmail, m.form_error_email()),
-        smtp_encryption: z.enum(SmtpEncryption),
-        smtp_authentication: z.enum(SmtpAuthentication),
-        smtp_oauth_issuer_url: z.string().trim().nullable(),
-        smtp_oauth_client_id: z.string().trim().nullable(),
-        smtp_oauth_client_secret: z.string().trim().nullable(),
-        smtp_oauth_refresh_token: z.string().trim().nullable(),
-        smtp_oauth_tenant_id: z.string().trim().nullable(),
-      }),
-    [],
-  );
-
-  type FormFields = z.infer<typeof formSchema>;
-
-  const emptyValues = useMemo(
-    (): FormFields => ({
-      smtp_encryption: SmtpEncryption.StartTls,
-      smtp_password: null,
-      smtp_port: 587,
-      smtp_sender: '',
-      smtp_server: '',
-      smtp_user: null,
-      smtp_authentication: SmtpAuthentication.None,
-      smtp_oauth_issuer_url: null,
-      smtp_oauth_client_id: null,
-      smtp_oauth_client_secret: null,
-      smtp_oauth_refresh_token: null,
-      smtp_oauth_tenant_id: null,
-    }),
-    [],
-  );
 
   const defaultValues = useMemo(
     (): FormFields => ({
@@ -326,17 +319,16 @@ const Content = ({ settings }: { settings: Settings }) => {
                 ? result.smtp_oauth_tenant_id
                 : cur.smtp_oauth_tenant_id,
           };
-          const submitValue = { ...merged };
-          if (submitValue.smtp_authentication !== SmtpAuthentication.Login) {
-            submitValue.smtp_user = null;
-            submitValue.smtp_password = null;
+          if (merged.smtp_authentication !== SmtpAuthentication.Login) {
+            merged.smtp_user = null;
+            merged.smtp_password = null;
           }
-          if (submitValue.smtp_authentication !== SmtpAuthentication.XOAuth2) {
-            submitValue.smtp_oauth_issuer_url = null;
-            submitValue.smtp_oauth_client_id = null;
-            submitValue.smtp_oauth_client_secret = null;
-            submitValue.smtp_oauth_refresh_token = null;
-            submitValue.smtp_oauth_tenant_id = null;
+          if (merged.smtp_authentication !== SmtpAuthentication.XOAuth2) {
+            merged.smtp_oauth_issuer_url = null;
+            merged.smtp_oauth_client_id = null;
+            merged.smtp_oauth_client_secret = null;
+            merged.smtp_oauth_refresh_token = null;
+            merged.smtp_oauth_tenant_id = null;
           }
           const currentActiveCard = detectActiveCard(
             cur.smtp_authentication,
@@ -347,17 +339,17 @@ const Content = ({ settings }: { settings: Settings }) => {
             openModal(ModalName.ConfirmAction, {
               title: m.settings_smtp_activate_confirm_title(),
               contentMd: m.settings_smtp_activate_confirm_body(),
-              actionPromise: () => editSettings(submitValue),
+              actionPromise: () => editSettings(merged),
               submitProps: { text: m.controls_continue() },
               onSuccess: () => {
-                form.reset(submitValue);
+                form.reset(merged);
                 setModalVariant(null);
               },
             });
             return;
           }
-          await editSettings(submitValue);
-          form.reset(submitValue);
+          await editSettings(merged);
+          form.reset(merged);
           setModalVariant(null);
         }}
         onClose={() => setModalVariant(null)}

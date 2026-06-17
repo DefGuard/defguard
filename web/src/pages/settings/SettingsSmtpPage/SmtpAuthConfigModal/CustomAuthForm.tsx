@@ -65,7 +65,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         authorizationEndpoint,
         value.smtp_oauth_client_id ?? '',
         redirectUri,
-        value.smtp_oauth_scope ?? CUSTOM_SCOPE_DEFAULT,
+        value.smtp_oauth_scope,
       );
 
       const popup = window.open(

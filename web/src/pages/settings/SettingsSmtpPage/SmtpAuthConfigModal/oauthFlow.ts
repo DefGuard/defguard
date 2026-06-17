@@ -9,6 +9,7 @@ export const MICROSOFT_AUTH_URL = `${MICROSOFT_ISSUER_URL}/oauth2/v2.0/authorize
 export const MICROSOFT_TOKEN_URL = `${MICROSOFT_ISSUER_URL}/oauth2/v2.0/token`;
 export const CUSTOM_SCOPE_DEFAULT = 'openid offline_access';
 export const GOOGLE_SMTP_SERVER = 'smtp.gmail.com';
+export const GOOGLE_OAUTH_SCOPE = 'https://mail.google.com/ email';
 export const MICROSOFT_SMTP_SERVER = 'smtp.office365.com';
 export const PROVIDER_SMTP_PORT = 587;
 
