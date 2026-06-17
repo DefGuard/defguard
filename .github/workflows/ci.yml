@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   lint:
@@ -231,9 +232,6 @@ jobs:
             --partition hash:${{ matrix.partition }}/8
 
   test-ldap:
-    # Temporarily disabled: LDAP integration tests are failing on stable/2.x.
-    # TODO: re-enable once the LDAP test failures are resolved.
-    if: false
     needs: build
 
     runs-on:
@@ -254,6 +252,13 @@ jobs:
 
       - name: Download cargo-nextest binary
         run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf -
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Start Postgres and OpenLDAP
         run: docker compose -p defguard-ldap -f docker-compose.ldap-test.yaml up -d --wait db openldap
