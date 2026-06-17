@@ -48,6 +48,7 @@
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
     "rxjs": "^7.8.2",
     "text-case": "^1.2.11",
     "zod": "^4.4.3",
