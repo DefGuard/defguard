@@ -205,6 +205,14 @@ pub struct DefGuardConfig {
     /// Set to 0 to disable rate limiting.
     #[arg(long, env = "DEFGUARD_RATELIMIT_BURST", default_value_t = 0)]
     pub rate_limit_burst: u32,
+
+    /// Run the instance in demo mode
+    #[arg(
+        long = "demo-mode",
+        env = "DEFGUARD_DEMO_MODE",
+        default_value = "false"
+    )]
+    pub is_demo_mode: bool,
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -307,6 +315,7 @@ impl DefGuardConfig {
             adopt_edge: None,
             rate_limit_per_second: 0,
             rate_limit_burst: 0,
+            is_demo_mode: false,
         };
 
         config
