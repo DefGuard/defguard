@@ -10,7 +10,6 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_grpc_tls::certs::proxy_mtls_channel;
-use defguard_mail::templates;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
 };
@@ -25,6 +24,8 @@ use tokio::{
     time::timeout,
 };
 use tonic::{Request, service::Interceptor};
+
+use crate::mail::templates;
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
 #[cfg(not(test))]

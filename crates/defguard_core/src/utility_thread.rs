@@ -8,7 +8,6 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
-use defguard_mail::templates;
 use sqlx::{PgConnection, PgPool, query_as};
 use tokio::{
     sync::{broadcast, mpsc},
@@ -29,6 +28,7 @@ use crate::{
     grpc::GatewayEvent,
     letsencrypt::do_letsencrypt_refresh,
     location_management::allowed_peers::get_location_allowed_peers,
+    mail::templates,
     updates::do_new_version_check,
 };
 

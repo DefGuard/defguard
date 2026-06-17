@@ -1,6 +1,6 @@
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
-import { SmtpAuthentication } from '../../../../shared/api/types';
+import { SmtpAuthentication, SmtpEncryption } from '../../../../shared/api/types';
 import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -9,7 +9,11 @@ import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { patternValidEmail } from '../../../../shared/patterns';
 import { isMicrosoftIssuerUrl } from '../smtpAuthUtils';
-import { MICROSOFT_ISSUER_URL } from './oauthFlow';
+import {
+  MICROSOFT_ISSUER_URL,
+  MICROSOFT_SMTP_SERVER,
+  PROVIDER_SMTP_PORT,
+} from './oauthFlow';
 import type { FormProps } from './types';
 
 const schema = z.object({
@@ -37,6 +41,9 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
       await onApply({
         authentication: SmtpAuthentication.XOAuth2,
         smtp_sender: value.smtp_sender,
+        smtp_server: MICROSOFT_SMTP_SERVER,
+        smtp_port: PROVIDER_SMTP_PORT,
+        smtp_encryption: SmtpEncryption.StartTls,
         smtp_oauth_issuer_url: isMicrosoftIssuerUrl(initialValues.smtp_oauth_issuer_url)
           ? initialValues.smtp_oauth_issuer_url
           : MICROSOFT_ISSUER_URL,

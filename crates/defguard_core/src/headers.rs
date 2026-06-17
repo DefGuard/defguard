@@ -16,9 +16,10 @@ use defguard_common::db::{
     Id,
     models::{DeviceLoginEvent, User},
 };
-use defguard_mail::templates::{SessionContext, TemplateError, new_device_login_mail};
 use sqlx::PgPool;
 use uaparser::{Client, Parser, UserAgentParser};
+
+use crate::mail::templates::{SessionContext, TemplateError, new_device_login_mail};
 
 // Header name constants not yet present in the `http` crate v1.x standard set.
 const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-policy");

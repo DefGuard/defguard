@@ -10,21 +10,20 @@ mod qr;
 pub mod templates;
 #[cfg(test)]
 mod tests;
-mod xoauth2;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MailError {
     #[error(transparent)]
-    LettreError(#[from] lettre::error::Error),
+    Lettre(#[from] lettre::error::Error),
 
     #[error(transparent)]
-    AddressError(#[from] lettre::address::AddressError),
+    Address(#[from] lettre::address::AddressError),
 
     #[error(transparent)]
-    SmtpError(#[from] lettre::transport::smtp::Error),
+    Smtp(#[from] lettre::transport::smtp::Error),
 
     #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 
     #[error("SMTP not configured")]
     SmtpNotConfigured,
@@ -33,17 +32,5 @@ pub enum MailError {
     InvalidPort(i32),
 
     #[error(transparent)]
-    ReqwestError(#[from] openidconnect::reqwest::Error),
-
-    #[error(transparent)]
-    UrlError(#[from] openidconnect::url::ParseError),
-
-    #[error(transparent)]
-    OAuth2Error(#[from] openidconnect::ConfigurationError),
-
-    #[error("Open ID discovery")]
-    OpenIDDiscovery,
-
-    #[error("Refresh token exchange")]
-    RefreshTokenExchange,
+    OAuth2(#[from] crate::enterprise::oauth2::OAuth2Error),
 }

@@ -98,13 +98,7 @@ const detectActiveCard = (
   return null;
 };
 
-const AUTH_CARDS: SmtpAuthCardVariant[] = [
-  'none',
-  'basic',
-  'google',
-  'microsoft',
-  'custom',
-];
+const AUTH_CARDS: SmtpAuthCardVariant[] = ['none', 'basic', 'google', 'microsoft'];
 
 const Content = ({ settings }: { settings: Settings }) => {
   const [modalVariant, setModalVariant] = useState<SmtpAuthCardVariant | null>(null);

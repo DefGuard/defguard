@@ -444,7 +444,7 @@ fn send_certificate_expired(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 mod markdown_to_html {
-    use crate::templates::markdown_to_html;
+    use super::templates::markdown_to_html;
 
     fn has_tag(html: &str, tag: &str) -> bool {
         html.contains(&format!("<{tag}"))

@@ -27,7 +27,7 @@
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-router": "^1.170.15",
     "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.14.2",
+    "@tanstack/react-virtual": "^3.14.3",
     "@uidotdev/usehooks": "^2.4.1",
     "axios": "^1.18.0",
     "byte-size": "^9.0.1",
@@ -69,7 +69,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/ui": "^4.1.8",
+    "@vitest/ui": "^4.1.9",
     "autoprefixer": "^10.5.0",
     "globals": "^17.6.0",
     "prettier": "^3.8.4",
@@ -81,6 +81,6 @@
     "typescript": "~6.0.3",
     "vite": "^8.0.16",
     "vite-plugin-image-optimizer": "^2.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   }
 }
