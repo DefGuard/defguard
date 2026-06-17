@@ -7,6 +7,8 @@ use rand::{Rng, rngs::ThreadRng};
 use sqlx::PgPool;
 use tracing::info;
 
+const DEVICE_NAMES: &str = include_str!("../data/device_names.txt");
+
 pub async fn prepare_user_devices(
     pool: &PgPool,
     rng: &mut ThreadRng,
@@ -24,10 +26,13 @@ pub async fn prepare_user_devices(
         );
         return Ok(user_devices[..devices_per_user].to_vec());
     }
+    let device_names: Vec<&str> = DEVICE_NAMES.lines().collect();
 
     // if there are not enough users create new ones
     for _ in 0..(devices_per_user - user_devices.len()) {
         let mut device: Device = rng.r#gen();
+        let device_name = device_names[rng.gen_range(0..device_names.len())];
+        device.name = device_name.to_string();
         device.user_id = user.id;
         let device = device.save(pool).await?;
         user_devices.push(device);

@@ -112,16 +112,15 @@ pub async fn generate_vpn_session_stats(
                     device.id,
                     Some(session_start),
                     None,
-                )
-                .save(&mut *transaction)
-                .await?;
+                );
 
                 // mark all but the first session as disconnected
                 if i > 0 {
                     session.state = VpnClientSessionState::Disconnected;
                     session.disconnected_at = Some(session_end);
-                    session.save(&mut *transaction).await?;
                 }
+
+                let session = session.save(&mut *transaction).await?;
 
                 debug!("Created session {session:?}");
 
@@ -208,7 +207,7 @@ async fn generate_mock_session_stats(
             endpoint.clone(),
             total_upload,
             total_download,
-            download_diff,
+            upload_diff,
             download_diff,
         );
 
