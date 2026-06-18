@@ -337,8 +337,8 @@ async fn test_auth_callback_requires_oidc_provider(_: PgPoolOptions, options: Pg
     let code = assert_error_response(&response);
     assert_eq!(
         code,
-        tonic::Code::PermissionDenied,
-        "expected PermissionDenied when no OIDC provider is configured"
+        tonic::Code::NotFound,
+        "expected NotFound when no OIDC provider is configured"
     );
 
     context.finish().await.expect_server_finished().await;

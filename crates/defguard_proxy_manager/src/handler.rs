@@ -924,9 +924,11 @@ impl ProxyHandler {
                                         Err(err) => {
                                             error!("OpenID auth error {err}");
                                             let (status_code, message) = match err {
-                                                WebError::Authorization(message)
-                                                | WebError::ObjectNotFound(message) => {
+                                                WebError::Authorization(message) => {
                                                     (Code::PermissionDenied as i32, message)
+                                                }
+                                                WebError::ObjectNotFound(message) => {
+                                                    (Code::NotFound as i32, message)
                                                 }
                                                 WebError::Forbidden(message) => (
                                                     Code::PermissionDenied as i32,
