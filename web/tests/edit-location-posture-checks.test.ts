@@ -28,6 +28,7 @@ vi.mock('../src/paraglide/messages', () => ({
     posture_checks_wizard_summary_prerelease: () =>
       'Allow pre-release versions of the Defguard client.',
     posture_checks_wizard_summary_defguard_label: () => 'Defguard',
+    posture_checks_version_any: () => 'Any version',
   },
 }));
 
@@ -176,6 +177,38 @@ describe('edit location posture-checks section state', () => {
           'Defguard 2.0 and higher',
           'Allow pre-release versions of the Defguard client.',
         ],
+      },
+    ]);
+  });
+
+  it('shows Any version in assignment tooltip sections for configured null-version rules', () => {
+    const postureCheck: ApiDevicePosture = {
+      id: 2,
+      name: 'Any version policy',
+      description: null,
+      min_client_version: null,
+      allow_prerelease_client: false,
+      locations: [],
+      os_rules: [
+        {
+          os_type: 'windows',
+          min_os_version: null,
+          disk_encryption_required: true,
+          antivirus_required: false,
+          ad_domain_joined_required: false,
+          windows_security_update_max_age: null,
+        },
+      ],
+    };
+
+    expect(getPostureCheckAssignmentSummarySections(postureCheck)).toEqual([
+      {
+        label: 'Windows',
+        lines: ['Any version', 'Disk encryption enabled'],
+      },
+      {
+        label: 'Defguard',
+        lines: ['Any version'],
       },
     ]);
   });

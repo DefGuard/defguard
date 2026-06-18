@@ -1,9 +1,6 @@
 import type { ApiDevicePosture, ApiDevicePostureOsRule } from '../../shared/api/types';
 import type { OperatingSystemConditionKey } from '../AddPostureCheckWizardPage/useAddPostureCheckWizardStore';
-import {
-  PostureCheckOs,
-  type PostureCheckOsValue,
-} from '../PostureChecksPage/types';
+import { PostureCheckOs, type PostureCheckOsValue } from '../PostureChecksPage/types';
 
 export type EditPostureCheckOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];

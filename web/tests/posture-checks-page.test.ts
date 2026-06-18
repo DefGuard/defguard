@@ -88,7 +88,7 @@ describe('posture checks page helpers', () => {
     });
   });
 
-  it('uses empty placeholders when an OS rule is missing or has no requirements', () => {
+  it('shows Any version for configured null-version rules without adding filter values', () => {
     const postureCheck: ApiDevicePosture = {
       id: 2,
       name: 'Second posture check',
@@ -112,7 +112,7 @@ describe('posture checks page helpers', () => {
       id: 2,
       name: 'Second posture check',
       locations: [],
-      windows: '-',
+      windows: 'Any version',
       windowsFilters: [],
       macos: '-',
       macosFilters: [],
@@ -122,7 +122,7 @@ describe('posture checks page helpers', () => {
       iosFilters: [],
       android: '-',
       androidFilters: [],
-      defguard: '-',
+      defguard: 'Any version',
       defguardFilters: [],
     });
   });
@@ -256,10 +256,7 @@ describe('posture checks page helpers', () => {
 
     expect(
       normalizeEditPostureCheckFormValues(
-        getInitialEditPostureCheckFormValues(
-          postureCheck,
-          getPostureCheckVersionValues(makeVersionMetadata()),
-        ),
+        getInitialEditPostureCheckFormValues(postureCheck),
       ),
     ).toEqual({
       allowPrereleaseClient: true,
@@ -277,17 +274,17 @@ describe('posture checks page helpers', () => {
         macos: {
           conditions: [],
           securityUpdateMaxAge: null,
-          version: 26,
+          version: null,
         },
         linux: {
           conditions: [],
           securityUpdateMaxAge: null,
-          version: 7,
+          version: null,
         },
         ios: {
           conditions: [],
           securityUpdateMaxAge: null,
-          version: 26,
+          version: null,
         },
         android: {
           conditions: ['device-integrity'],

@@ -13,10 +13,7 @@ export type PostureCheckOsValue = (typeof PostureCheckOs)[keyof typeof PostureCh
 export type PostureCheckOsVersionValue = number | null;
 export type PostureCheckDefguardVersionValue = string | null;
 
-export type PostureCheckVersionValues = Record<
-  PostureCheckOsValue,
-  readonly number[]
-> & {
+export type PostureCheckVersionValues = Record<PostureCheckOsValue, readonly number[]> & {
   defguard: readonly string[];
 };
 
