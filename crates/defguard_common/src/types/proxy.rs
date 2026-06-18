@@ -15,6 +15,11 @@ pub enum ProxyControlMessage {
         key_pem: String,
     },
     ClearHttpsCerts,
+    /// Broadcast public settings (Edge UI controls) to all connected proxies.
+    BroadcastPublicSettings {
+        display_password_reset: bool,
+        display_download_step: bool,
+    },
 }
 
 #[derive(ToSchema, Serialize)]
