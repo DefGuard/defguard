@@ -34,4 +34,27 @@ describe('add posture check summary helpers', () => {
       ],
     });
   });
+
+  it('shows Any version when version requirements are disabled', () => {
+    expect(
+      buildOperatingSystemSummarySection(PostureCheckOs.Windows, {
+        conditions: ['disk-encryption'],
+        securityUpdateMaxAge: null,
+        version: null,
+      }),
+    ).toEqual({
+      icon: 'windows',
+      label: 'Windows',
+      lines: [
+        { emphasized: true, text: 'Any version' },
+        { text: 'Disk encryption enabled' },
+      ],
+    });
+
+    expect(buildClientSummarySection(null, false)).toEqual({
+      icon: 'defguard',
+      label: 'Defguard',
+      lines: [{ emphasized: true, text: 'Any version' }],
+    });
+  });
 });

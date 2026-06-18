@@ -45,6 +45,10 @@ const getOperatingSystemVersionLabel = (
   operatingSystem: PostureCheckOsValue,
   version: PostureCheckOsVersionValue,
 ) => {
+  if (version === null) {
+    return m.posture_checks_version_any();
+  }
+
   switch (operatingSystem) {
     case PostureCheckOs.Windows:
       return m.posture_checks_wizard_client_version_option({ version });
@@ -63,14 +67,12 @@ export const buildOperatingSystemSummarySection = (
   operatingSystem: PostureCheckOsValue,
   details: OperatingSystemFormState,
 ): SummarySection => {
-  const lines: SummaryLine[] = [];
-
-  if (details.version !== null) {
-    lines.push({
+  const lines: SummaryLine[] = [
+    {
       text: getOperatingSystemVersionLabel(operatingSystem, details.version),
       emphasized: true,
-    });
-  }
+    },
+  ];
 
   if (
     operatingSystem === PostureCheckOs.Windows &&
@@ -102,9 +104,12 @@ export const buildClientSummarySection = (
 ): SummarySection => {
   const lines: SummaryLine[] = [
     {
-      text: m.posture_checks_wizard_summary_defguard_version({
-        version: minimumClientVersion,
-      }),
+      text:
+        minimumClientVersion === null
+          ? m.posture_checks_version_any()
+          : m.posture_checks_wizard_summary_defguard_version({
+              version: minimumClientVersion,
+            }),
       emphasized: true,
     },
   ];

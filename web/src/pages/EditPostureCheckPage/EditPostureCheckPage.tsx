@@ -62,8 +62,8 @@ const EditPostureCheckForm = ({
 }) => {
   const navigate = useNavigate();
   const defaults = useMemo(
-    () => getInitialEditPostureCheckFormValues(postureCheck, versionValues),
-    [postureCheck, versionValues],
+    () => getInitialEditPostureCheckFormValues(postureCheck),
+    [postureCheck],
   );
   const [values, setValues] = useState<EditPostureCheckFormValues>(defaults);
   const locationOptions = useMemo<PostureCheckEditorLocationOption[]>(
