@@ -1,7 +1,9 @@
 use defguard_common::db::models::{Settings, User};
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
-    enterprise::ldap::utils::ldap_change_password,
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_change_password,
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
     grpc::utils::parse_client_ip_agent,
     handlers::user::check_password_strength,
@@ -85,6 +87,13 @@ impl PasswordResetServer {
         req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Starting password reset request");
+
+        let settings = EnterpriseSettings::get(&self.pool)
+            .await
+            .map_err(|_| Status::internal("failed to read enterprise settings"))?;
+        if !settings.display_password_reset {
+            return Err(Status::permission_denied("password reset disabled"));
+        }
 
         let ip_address;
         let device_info;
@@ -185,6 +194,13 @@ impl PasswordResetServer {
     ) -> Result<PasswordResetStartResponse, Status> {
         debug!("Starting password reset session: {request:?}");
 
+        let settings = EnterpriseSettings::get(&self.pool)
+            .await
+            .map_err(|_| Status::internal("failed to read enterprise settings"))?;
+        if !settings.display_password_reset {
+            return Err(Status::permission_denied("password reset disabled"));
+        }
+
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if enrollment.token_type != Some("PASSWORD_RESET".to_owned()) {
@@ -252,6 +268,14 @@ impl PasswordResetServer {
         req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Starting password reset");
+
+        let settings = EnterpriseSettings::get(&self.pool)
+            .await
+            .map_err(|_| Status::internal("failed to read enterprise settings"))?;
+        if !settings.display_password_reset {
+            return Err(Status::permission_denied("password reset disabled"));
+        }
+
         let enrollment = self.validate_session(request.token.as_ref()).await?;
 
         let ip_address;
