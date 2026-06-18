@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+use defguard_common::db::models::settings::{Settings, update_current_settings};
 use defguard_core::{
     db::models::enrollment::Token, enterprise::handlers::openid_login::build_state,
 };
@@ -266,6 +267,117 @@ async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConn
     );
 
     clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_auth_callback_missing_user_without_account_creation_returns_permission_denied(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.openid_create_account = false;
+    update_current_settings(&context.pool, settings)
+        .await
+        .expect("failed to disable OpenID account creation");
+
+    let raw_nonce = "test-nonce-account-creation-disabled";
+    let code = make_oidc_code("missing-user-sub", "missing-user@example.com", raw_nonce);
+    context.mock_proxy().send_request(CoreRequest {
+        id: 80,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code,
+            nonce: raw_nonce.to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::PermissionDenied,
+        "expected PermissionDenied when account creation is disabled"
+    );
+
+    let mut settings = Settings::get_current_settings();
+    settings.openid_create_account = true;
+    update_current_settings(&context.pool, settings)
+        .await
+        .expect("failed to re-enable OpenID account creation");
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_auth_callback_requires_oidc_provider(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_public_proxy_url(&context.pool, "http://proxy.example.com").await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 90,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code: "code".to_owned(),
+            nonce: "nonce".to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::PermissionDenied,
+        "expected PermissionDenied when no OIDC provider is configured"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_auth_callback_invalid_provider_url_returns_invalid_argument(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mock = MockOidcProvider::start().await;
+    let mut provider = create_oidc_provider(&context.pool, &mock).await;
+    provider.base_url = "not a url".to_owned();
+    provider
+        .save(&context.pool)
+        .await
+        .expect("failed to save invalid OIDC provider URL");
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 100,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code: "code".to_owned(),
+            nonce: "nonce".to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "expected InvalidArgument when OIDC provider URL is invalid"
+    );
+
     context.finish().await.expect_server_finished().await;
 }
 
