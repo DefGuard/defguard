@@ -10,12 +10,12 @@ pub struct EnterpriseSettings {
     pub admin_device_management: bool,
     /// Describes allowed routing options for clients connecting to the instance.
     pub client_traffic_policy: ClientTrafficPolicy,
-    /// If true, the client download step is hidden in the enrollment wizard.
-    pub hide_download_step: bool,
+    /// If true, the client download page is shown during enrollment.
+    pub display_download_step: bool,
     /// If true, manual WireGuard setup is disabled
     pub only_client_activation: bool,
-    /// If true, the password reset option is disabled on the Edge home page.
-    pub password_reset_disabled: bool,
+    /// If true, the password reset option is displayed on the Edge home page.
+    pub display_password_reset: bool,
 }
 
 // We want to be conscious of what the defaults are here
@@ -25,9 +25,9 @@ impl Default for EnterpriseSettings {
         Self {
             admin_device_management: false,
             client_traffic_policy: ClientTrafficPolicy::default(),
-            hide_download_step: false,
+            display_download_step: true,
             only_client_activation: false,
-            password_reset_disabled: false,
+            display_password_reset: true,
         }
     }
 }
@@ -46,9 +46,9 @@ impl EnterpriseSettings {
                 Self,
                 "SELECT admin_device_management, \
 				client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\", \
-				hide_download_step, \
+				display_download_step, \
 				only_client_activation, \
-				password_reset_disabled \
+				display_password_reset \
                 FROM \"enterprisesettings\" WHERE id = 1",
             )
             .fetch_optional(executor)
@@ -67,15 +67,15 @@ impl EnterpriseSettings {
             "UPDATE \"enterprisesettings\" SET \
             admin_device_management = $1, \
 			client_traffic_policy = $2, \
-            hide_download_step = $3, \
+            display_download_step = $3, \
             only_client_activation = $4, \
-            password_reset_disabled = $5 \
+            display_password_reset = $5 \
             WHERE id = 1",
             self.admin_device_management,
             self.client_traffic_policy as ClientTrafficPolicy,
-            self.hide_download_step,
+            self.display_download_step,
             self.only_client_activation,
-            self.password_reset_disabled,
+            self.display_password_reset,
         )
         .execute(executor)
         .await?;

@@ -1,2 +1,2 @@
-ALTER TABLE enterprisesettings DROP COLUMN password_reset_disabled;
-ALTER TABLE enterprisesettings DROP COLUMN hide_download_step;
+ALTER TABLE enterprisesettings DROP COLUMN display_password_reset;
+ALTER TABLE enterprisesettings DROP COLUMN display_download_step;

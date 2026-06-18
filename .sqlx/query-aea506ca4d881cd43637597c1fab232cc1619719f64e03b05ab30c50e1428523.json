@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"enterprisesettings\" SET admin_device_management = $1, client_traffic_policy = $2, hide_download_step = $3, only_client_activation = $4, password_reset_disabled = $5 WHERE id = 1",
+  "query": "UPDATE \"enterprisesettings\" SET admin_device_management = $1, client_traffic_policy = $2, display_download_step = $3, only_client_activation = $4, display_password_reset = $5 WHERE id = 1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -25,5 +25,5 @@
     },
     "nullable": []
   },
-  "hash": "2df1b11e4300bcb45146fcc06d016612ef13007b322dc57912fdf77c9744623e"
+  "hash": "aea506ca4d881cd43637597c1fab232cc1619719f64e03b05ab30c50e1428523"
 }
