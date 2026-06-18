@@ -463,3 +463,98 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
     let response = client.get("/api/v1/network/1/device/1/config").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
+
+#[sqlx::test]
+async fn test_display_flags_round_trip(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // admin login
+    let (client, _) = make_test_client(pool).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // Set both display flags to false
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
+        display_download_step: false,
+        only_client_activation: false,
+        display_password_reset: false,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back and verify the values persisted
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: EnterpriseSettings = response.json().await;
+    assert!(
+        !body.display_download_step,
+        "display_download_step should be false"
+    );
+    assert!(
+        !body.display_password_reset,
+        "display_password_reset should be false"
+    );
+
+    // Set both back to true
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
+        display_download_step: true,
+        only_client_activation: false,
+        display_password_reset: true,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back and verify
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: EnterpriseSettings = response.json().await;
+    assert!(
+        body.display_download_step,
+        "display_download_step should be true"
+    );
+    assert!(
+        body.display_password_reset,
+        "display_password_reset should be true"
+    );
+}
+
+#[sqlx::test]
+async fn test_display_flags_default_to_true_without_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Unset the license
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    // EnterpriseSettings::get() should return defaults when no license
+    let settings = EnterpriseSettings::get(&pool).await.unwrap();
+    assert!(
+        settings.display_download_step,
+        "display_download_step should default to true"
+    );
+    assert!(
+        settings.display_password_reset,
+        "display_password_reset should default to true"
+    );
+
+    // Restore license
+    set_cached_license(license);
+}
