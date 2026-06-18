@@ -330,12 +330,12 @@ pub async fn user_from_claims(
                     warn!(
                         "User with email address {} is trying to log in through OpenID Connect \
                         for the first time, but the account creation is disabled. An enrollment \
-                        should performed.",
+                        should be performed.",
                         email.as_str()
                     );
                     return Err(WebError::Authorization(
                         "User not found and the automatic account creation is disabled. \
-                        Enable it or create the user."
+                        Create the user or make sure they belong to an allowed LDAP synchronization group."
                             .into(),
                     ));
                 }
