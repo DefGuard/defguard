@@ -79,7 +79,7 @@ export const SettingsSmtpPage = () => {
           icon="mail"
           badgeProps={smtp ? getConfiguredBadge() : getNotConfiguredBadge()}
         />
-        {isPresent(settings) && <Content settings={settings} />}
+        {isPresent(settings) && <Content settings={settings} smtpEnabled={smtp} />}
       </SettingsLayout>
       <SendTestEmailModal />
     </Page>
@@ -152,7 +152,13 @@ const emptyValues: FormFields = {
   smtp_oauth_tenant_id: null,
 };
 
-const Content = ({ settings }: { settings: Settings }) => {
+const Content = ({
+  settings,
+  smtpEnabled,
+}: {
+  settings: Settings;
+  smtpEnabled: boolean;
+}) => {
   const [modalVariant, setModalVariant] = useState<SmtpAuthCardVariant | null>(null);
   const modalInitialValuesRef = useRef<SmtpAuthModalValues>({
     smtp_server: '',
@@ -267,7 +273,9 @@ const Content = ({ settings }: { settings: Settings }) => {
         })}
       >
         {({ authentication, issuerUrl, smtpServer }) => {
-          const activeCard = detectActiveCard(authentication, issuerUrl, smtpServer);
+          const activeCard = smtpEnabled
+            ? detectActiveCard(authentication, issuerUrl, smtpServer)
+            : null;
           const otherCards = AUTH_CARDS.filter((v) => v !== activeCard);
           const renderCard = (variant: SmtpAuthCardVariant) => (
             <SmtpAuthMethodCard

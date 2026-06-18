@@ -136,6 +136,16 @@ impl SmtpSettings {
                 }
             }
     }
+
+    /// Returns `true` is SMTP authentication is using XOAUTH2.
+    #[must_use]
+    pub fn is_xoauth2(&self) -> bool {
+        if let SmtpAuthentication::XOAuth2 = self.authentication {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 // Implement manually to avoid exposing secrets.

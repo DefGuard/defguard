@@ -6,10 +6,6 @@
 
   @include animate(border-color);
 
-  &.active {
-    border-color: var(--border-action);
-  }
-
   & > .inner {
     display: grid;
     grid-template-columns: 48px 1fr auto;
@@ -43,7 +39,7 @@
         flex-flow: row nowrap;
         align-items: center;
         column-gap: var(--spacing-sm);
-        padding-bottom: var(--spacing-sm);
+        padding-bottom: var(--spacing-xs);
       }
 
       .name {
@@ -52,7 +48,7 @@
       }
 
       .description {
-        font: var(--t-body-sm-400);
+        font: var(--t-body-xs-400);
         color: var(--fg-muted);
       }
     }
