@@ -10,14 +10,14 @@ export const PostureCheckOs = {
 
 export type PostureCheckOsValue = (typeof PostureCheckOs)[keyof typeof PostureCheckOs];
 
-export type PostureCheckOsVersionValue = number;
-export type PostureCheckDefguardVersionValue = string;
+export type PostureCheckOsVersionValue = number | null;
+export type PostureCheckDefguardVersionValue = string | null;
 
 export type PostureCheckVersionValues = Record<
   PostureCheckOsValue,
-  readonly PostureCheckOsVersionValue[]
+  readonly number[]
 > & {
-  defguard: readonly PostureCheckDefguardVersionValue[];
+  defguard: readonly string[];
 };
 
 export const getPostureCheckVersionValues = (

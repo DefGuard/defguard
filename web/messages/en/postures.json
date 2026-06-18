@@ -26,6 +26,7 @@
   "posture_checks_wizard_summary_linux_version": "Kernel {version} and higher",
   "posture_checks_wizard_summary_ios_version": "iOS {version} and higher",
   "posture_checks_wizard_summary_android_version": "Android {version} and higher",
+  "posture_checks_version_any": "Any version",
   "posture_checks_wizard_step_client_version": "Defguard client version",
   "posture_checks_wizard_step_client_version_description": "Define what version of the Defguard client you would like to support",
   "posture_checks_wizard_client_version_note": "\u201cDefguard versions\u201d includes major releases as well as all subsequent patch updates with fixes and improvements.",

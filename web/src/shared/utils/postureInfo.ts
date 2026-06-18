@@ -1,3 +1,4 @@
+import { m } from '../../paraglide/messages';
 import type { ApiDevicePosture } from '../api/types';
 import { IconKind } from '../defguard-ui/components/Icon';
 
@@ -21,9 +22,13 @@ export const getWindowsSection = (
   if (rule.disk_encryption_required) otherItems.push('Disk encryption enabled');
 
   const rows: OsDetailRow[] = [];
-  if (rule.min_os_version !== null) {
-    rows.push({ label: 'Version', value: `Windows ${rule.min_os_version} and higher` });
-  }
+  rows.push({
+    label: 'Version',
+    value:
+      rule.min_os_version === null
+        ? m.posture_checks_version_any()
+        : `Windows ${rule.min_os_version} and higher`,
+  });
   if (rule.windows_security_update_max_age !== null) {
     rows.push({
       label: 'Update',
@@ -45,9 +50,13 @@ export const getMacosSection = (
   if (rule.device_integrity_required) otherItems.push('Device integrity');
 
   const rows: OsDetailRow[] = [];
-  if (rule.min_os_version !== null) {
-    rows.push({ label: 'Version', value: `macOS ${rule.min_os_version} and higher` });
-  }
+  rows.push({
+    label: 'Version',
+    value:
+      rule.min_os_version === null
+        ? m.posture_checks_version_any()
+        : `macOS ${rule.min_os_version} and higher`,
+  });
   if (otherItems.length > 0) {
     rows.push({ label: 'Other', value: otherItems });
   }
@@ -62,12 +71,13 @@ export const getLinuxSection = (
   if (rule.disk_encryption_required) otherItems.push('Disk encryption enabled');
 
   const rows: OsDetailRow[] = [];
-  if (rule.min_kernel_version !== null) {
-    rows.push({
-      label: 'Version',
-      value: `Kernel ${rule.min_kernel_version} and higher`,
-    });
-  }
+  rows.push({
+    label: 'Version',
+    value:
+      rule.min_kernel_version === null
+        ? m.posture_checks_version_any()
+        : `Kernel ${rule.min_kernel_version} and higher`,
+  });
   if (otherItems.length > 0) {
     rows.push({ label: 'Other', value: otherItems });
   }
@@ -79,9 +89,13 @@ export const getIosSection = (
   rule: Extract<ApiDevicePosture['os_rules'][number], { os_type: 'ios' }>,
 ): OsSection => {
   const rows: OsDetailRow[] = [];
-  if (rule.min_os_version !== null) {
-    rows.push({ label: 'Version', value: `iOS ${rule.min_os_version}+` });
-  }
+  rows.push({
+    label: 'Version',
+    value:
+      rule.min_os_version === null
+        ? m.posture_checks_version_any()
+        : `iOS ${rule.min_os_version}+`,
+  });
 
   return { icon: IconKind.AppStore, name: 'iOS', rows };
 };
@@ -93,9 +107,13 @@ export const getAndroidSection = (
   if (rule.device_integrity_required) otherItems.push('Device integrity');
 
   const rows: OsDetailRow[] = [];
-  if (rule.min_os_version !== null) {
-    rows.push({ label: 'Version', value: `Android ${rule.min_os_version}+` });
-  }
+  rows.push({
+    label: 'Version',
+    value:
+      rule.min_os_version === null
+        ? m.posture_checks_version_any()
+        : `Android ${rule.min_os_version}+`,
+  });
   if (otherItems.length > 0) {
     rows.push({ label: 'Other', value: otherItems });
   }
@@ -104,15 +122,14 @@ export const getAndroidSection = (
 };
 
 export const getDefguardSection = (posture: ApiDevicePosture): OsSection | null => {
-  if (!posture.min_client_version && !posture.allow_prerelease_client) return null;
-
   const rows: OsDetailRow[] = [];
-  if (posture.min_client_version) {
-    rows.push({
-      label: 'Version',
-      value: `Defguard ${posture.min_client_version} and higher`,
-    });
-  }
+  rows.push({
+    label: 'Version',
+    value:
+      posture.min_client_version === null
+        ? m.posture_checks_version_any()
+        : `Defguard ${posture.min_client_version} and higher`,
+  });
   if (posture.allow_prerelease_client) {
     rows.push({ label: 'Other', value: 'Pre-release allowed' });
   }

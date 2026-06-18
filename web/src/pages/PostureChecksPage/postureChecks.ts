@@ -137,6 +137,11 @@ export const isPostureCheckFilterValue = (
 const mapVersionFilterValue = (value: number | string | undefined | null) =>
   value ?? undefined;
 
+const mapAnyVersionSummary = (
+  value: number | undefined | null,
+  getLabel: (value: number) => string,
+) => (isPresent(value) ? getLabel(value) : m.posture_checks_version_any());
+
 const joinRequirementParts = (parts: Array<string | null | undefined | false>) => {
   const filteredParts = parts.filter((part): part is string => Boolean(part));
 
@@ -169,7 +174,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Windows:
       return {
         summaryParts: [
-          rule.min_os_version?.toString(),
+          mapAnyVersionSummary(rule.min_os_version, (value) => value.toString()),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.antivirus_required && PostureCheckRequirement.Antivirus,
           rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
@@ -188,7 +193,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Macos:
       return {
         summaryParts: [
-          rule.min_os_version?.toString(),
+          mapAnyVersionSummary(rule.min_os_version, (value) => value.toString()),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
         ],
@@ -201,7 +206,7 @@ const getOsRuleParts = (
     case PostureCheckOs.Linux:
       return {
         summaryParts: [
-          rule.min_kernel_version ? `Kernel ${rule.min_kernel_version}` : null,
+          mapAnyVersionSummary(rule.min_kernel_version, (value) => `Kernel ${value}`),
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
         ],
         filterParts: [
@@ -211,13 +216,15 @@ const getOsRuleParts = (
       };
     case PostureCheckOs.Ios:
       return {
-        summaryParts: [rule.min_os_version ? `iOS ${rule.min_os_version}+` : null],
+        summaryParts: [
+          mapAnyVersionSummary(rule.min_os_version, (value) => `iOS ${value}+`),
+        ],
         filterParts: [mapVersionFilterValue(rule.min_os_version)],
       };
     case PostureCheckOs.Android:
       return {
         summaryParts: [
-          rule.min_os_version ? `Android ${rule.min_os_version}+` : null,
+          mapAnyVersionSummary(rule.min_os_version, (value) => `Android ${value}+`),
           rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
         ],
         filterParts: [
@@ -257,7 +264,9 @@ export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureChec
   android: getOsRuleSummary(getDevicePostureRule(posture, PostureCheckOs.Android)),
   androidFilters: getOsRuleFilters(getDevicePostureRule(posture, PostureCheckOs.Android)),
   defguard: joinRequirementParts([
-    posture.min_client_version ? `Defguard ${posture.min_client_version}+` : null,
+    posture.min_client_version === null
+      ? m.posture_checks_version_any()
+      : `Defguard ${posture.min_client_version}+`,
     posture.allow_prerelease_client && 'Pre-release allowed',
   ]),
   defguardFilters: joinFilters([

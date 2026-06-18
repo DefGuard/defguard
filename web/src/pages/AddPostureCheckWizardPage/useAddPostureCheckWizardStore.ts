@@ -26,15 +26,19 @@ export type OperatingSystemFormState = {
   version: PostureCheckOsVersionValue | null;
 };
 
-const getCurrentOrLatestVersion = <T extends string | number>(
+const getCurrentVersionOrAny = <T extends string | number>(
   values: readonly T[],
   currentValue?: T | null,
 ): T | null => {
-  if (isPresent(currentValue) && values.includes(currentValue)) {
+  if (!isPresent(currentValue)) {
+    return null;
+  }
+
+  if (values.includes(currentValue)) {
     return currentValue;
   }
 
-  return values[values.length - 1] ?? currentValue ?? null;
+  return null;
 };
 
 const emptyPostureCheckVersionValues: PostureCheckVersionValues = {
@@ -52,27 +56,27 @@ const createDefaultOperatingSystemState = (
   [PostureCheckOs.Windows]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: getCurrentOrLatestVersion(versionValues.windows),
+    version: getCurrentVersionOrAny(versionValues.windows),
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: getCurrentOrLatestVersion(versionValues.macos),
+    version: getCurrentVersionOrAny(versionValues.macos),
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: getCurrentOrLatestVersion(versionValues.linux),
+    version: getCurrentVersionOrAny(versionValues.linux),
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: getCurrentOrLatestVersion(versionValues.ios),
+    version: getCurrentVersionOrAny(versionValues.ios),
   },
   [PostureCheckOs.Android]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: getCurrentOrLatestVersion(versionValues.android),
+    version: getCurrentVersionOrAny(versionValues.android),
   },
 });
 
@@ -81,7 +85,7 @@ const createDefaultState = (versionValues: PostureCheckVersionValues): StoreValu
   allowPrereleaseClient: false,
   configuredOperatingSystems: [],
   description: null,
-  minimumClientVersion: getCurrentOrLatestVersion(versionValues.defguard) ?? '',
+  minimumClientVersion: getCurrentVersionOrAny(versionValues.defguard),
   name: '',
   operatingSystemState: createDefaultOperatingSystemState(versionValues),
   availableVersionValues: versionValues,
@@ -121,41 +125,42 @@ export const useAddPostureCheckWizardStore = create<Store>()((set, get) => ({
   syncVersionValues: (versionValues) => {
     set((state) => ({
       availableVersionValues: versionValues,
-      minimumClientVersion:
-        getCurrentOrLatestVersion(versionValues.defguard, state.minimumClientVersion) ??
-        '',
+      minimumClientVersion: getCurrentVersionOrAny(
+        versionValues.defguard,
+        state.minimumClientVersion,
+      ),
       operatingSystemState: {
         [PostureCheckOs.Windows]: {
           ...state.operatingSystemState[PostureCheckOs.Windows],
-          version: getCurrentOrLatestVersion(
+          version: getCurrentVersionOrAny(
             versionValues.windows,
             state.operatingSystemState[PostureCheckOs.Windows].version,
           ),
         },
         [PostureCheckOs.Macos]: {
           ...state.operatingSystemState[PostureCheckOs.Macos],
-          version: getCurrentOrLatestVersion(
+          version: getCurrentVersionOrAny(
             versionValues.macos,
             state.operatingSystemState[PostureCheckOs.Macos].version,
           ),
         },
         [PostureCheckOs.Linux]: {
           ...state.operatingSystemState[PostureCheckOs.Linux],
-          version: getCurrentOrLatestVersion(
+          version: getCurrentVersionOrAny(
             versionValues.linux,
             state.operatingSystemState[PostureCheckOs.Linux].version,
           ),
         },
         [PostureCheckOs.Ios]: {
           ...state.operatingSystemState[PostureCheckOs.Ios],
-          version: getCurrentOrLatestVersion(
+          version: getCurrentVersionOrAny(
             versionValues.ios,
             state.operatingSystemState[PostureCheckOs.Ios].version,
           ),
         },
         [PostureCheckOs.Android]: {
           ...state.operatingSystemState[PostureCheckOs.Android],
-          version: getCurrentOrLatestVersion(
+          version: getCurrentVersionOrAny(
             versionValues.android,
             state.operatingSystemState[PostureCheckOs.Android].version,
           ),
