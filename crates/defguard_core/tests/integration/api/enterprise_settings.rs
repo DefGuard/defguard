@@ -34,7 +34,9 @@ async fn test_only_enterprise_can_modify_enterpise_settings(
     let settings = EnterpriseSettings {
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
+        hide_download_step: false,
         only_client_activation: false,
+        password_reset_disabled: false,
     };
 
     let response = client
@@ -100,7 +102,9 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     let settings = EnterpriseSettings {
         admin_device_management: true,
         client_traffic_policy: ClientTrafficPolicy::None,
+        hide_download_step: false,
         only_client_activation: false,
+        password_reset_disabled: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -214,7 +218,9 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     let settings = EnterpriseSettings {
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
+        hide_download_step: false,
         only_client_activation: false,
+        password_reset_disabled: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -320,7 +326,9 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
     let settings = EnterpriseSettings {
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
+        hide_download_step: false,
         only_client_activation: true,
+        password_reset_disabled: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -420,7 +428,9 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
     let settings = EnterpriseSettings {
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
+        hide_download_step: false,
         only_client_activation: true,
+        password_reset_disabled: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
