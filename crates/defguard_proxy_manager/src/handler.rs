@@ -30,6 +30,7 @@ use defguard_core::{
         is_business_license_active,
         ldap::utils::ldap_update_user_state,
     },
+    error::WebError,
     grpc::{
         GatewayEvent,
         proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
@@ -909,10 +910,28 @@ impl ProxyHandler {
                                             ))
                                         }
                                         Err(err) => {
-                                            let message = format!("OpenID auth error {err}");
-                                            error!(message);
+                                            error!("OpenID auth error {err}");
+                                            let (status_code, message) = match err {
+                                                WebError::Authorization(message) => {
+                                                    (Code::PermissionDenied as i32, message)
+                                                }
+                                                WebError::ObjectNotFound(message) => {
+                                                    (Code::NotFound as i32, message)
+                                                }
+                                                WebError::Forbidden(message) => (
+                                                    Code::PermissionDenied as i32,
+                                                    message.to_owned(),
+                                                ),
+                                                WebError::BadRequest(message) => {
+                                                    (Code::InvalidArgument as i32, message)
+                                                }
+                                                _ => (
+                                                    Code::Internal as i32,
+                                                    "OpenID authentication failed".to_owned(),
+                                                ),
+                                            };
                                             Some(core_response::Payload::CoreError(CoreError {
-                                                status_code: Code::Internal as i32,
+                                                status_code,
                                                 message,
                                             }))
                                         }
