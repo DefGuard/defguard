@@ -857,13 +857,17 @@ impl EnrollmentServer {
             device.wireguard_pubkey, user.username, user.id,
         );
 
-        // Don't send them service locations if they don't support it
+        // Don't send them service locations or posture-checked locations if they don't support it
         let configs = configs
             .into_iter()
             .filter(|config| {
                 config.service_location_mode == ServiceLocationMode::Disabled
                     || ClientFeature::ServiceLocations
                         .is_supported_by_device(req_device_info.as_ref())
+            })
+            .filter(|config| {
+                !config.posture_check_required
+                    || ClientFeature::PostureChecks.is_supported_by_device(req_device_info.as_ref())
             })
             .collect::<Vec<DeviceConfig>>();
 
