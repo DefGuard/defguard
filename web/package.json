@@ -18,7 +18,7 @@
   "dependencies": {
     "@axa-ch/react-polymorphic-types": "^1.4.2",
     "@floating-ui/react": "^0.27.19",
-    "@inlang/paraglide-js": "^2.19.0",
+    "@inlang/paraglide-js": "^2.20.0",
     "@react-hook/resize-observer": "^2.0.2",
     "@shortercode/webzip": "1.1.1-0",
     "@stablelib/base64": "^2.0.1",
