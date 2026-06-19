@@ -29,12 +29,12 @@ jobs:
       - name: Install NodeJS
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 25
+          node-version: 26
 
       - name: Install pnpm
         uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
         with:
-          version: 10
+          version: 11
 
       # Change to '--frozen-lockfile' once this gets fixed:
       # https://github.com/pnpm/action-setup/issues/40
@@ -44,6 +44,6 @@ jobs:
       - name: Lint frontend
         working-directory: web
         run: |
-          pnpm install --ignore-scripts --no-frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build
           pnpm lint

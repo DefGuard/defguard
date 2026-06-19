@@ -10,7 +10,7 @@
     "includes": [
       "src/**",
       "!src/messages",
-      "!src/paraglide/**/*.js",
+      "!src/paraglide/**",
       "!src/routeTree.gen.ts",
       "!src/**/*.scss"
     ]
