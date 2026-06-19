@@ -131,6 +131,7 @@ export const GroupsTable = ({ groups, locations, users }: Props) => {
                     title: m.modal_delete_group_title(),
                     contentMd: m.modal_delete_group_blocked_body({ name: rowData.name }),
                     actionPromise: () => api.group.deleteGroup(rowData.id),
+                    invalidateKeys: [['group'], ['group-info'], ['network'], ['user']],
                     cancelProps: { text: m.controls_close() },
                   });
                   return;
@@ -144,7 +145,7 @@ export const GroupsTable = ({ groups, locations, users }: Props) => {
                         })
                       : m.modal_delete_group_body({ name: rowData.name }),
                   actionPromise: () => api.group.deleteGroup(rowData.id),
-                  invalidateKeys: [['group'], ['group-info'], ['network']],
+                  invalidateKeys: [['group'], ['group-info'], ['network'], ['user']],
                   submitProps: { text: m.controls_delete(), variant: 'critical' },
                   onSuccess: () => Snackbar.default(m.modal_delete_group_success()),
                   onError: () => Snackbar.error(m.modal_delete_group_error()),

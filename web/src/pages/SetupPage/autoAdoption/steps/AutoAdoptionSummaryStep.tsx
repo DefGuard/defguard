@@ -20,6 +20,9 @@ export const AutoAdoptionSummaryStep = () => {
   const { mutateAsync: finishSetup } = useMutation({
     mutationKey: ['finish-setup'],
     mutationFn: api.initial_setup.finishSetup,
+    meta: {
+      invalidate: ['settings_essentials'],
+    },
   });
 
   const handleGoToDefguard = async () => {

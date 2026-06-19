@@ -274,7 +274,7 @@ type SubmitError = {
 };
 
 const mutationMeta = {
-  invalidate: [['device', 'network'], ['network']],
+  invalidate: [['device', 'network'], ['network'], ['enterprise_info']],
 };
 
 const FormStep = ({

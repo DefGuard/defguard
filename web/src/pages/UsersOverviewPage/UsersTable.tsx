@@ -188,7 +188,7 @@ export const UsersTable = () => {
     onSuccess: () => Snackbar.default(m.users_edit_success()),
     onError: () => Snackbar.error(m.users_edit_error()),
     meta: {
-      invalidate: [['user'], ['activity-log']],
+      invalidate: [['user'], ['group'], ['group-info'], ['activity-log']],
     },
   });
 
@@ -536,7 +536,7 @@ export const UsersTable = () => {
                       send_enrollment_notification: false,
                       username: rowData.username,
                     }),
-                  invalidateKeys: [['user-overview'], ['user']],
+                  invalidateKeys: [['user']],
                   submitProps: {
                     text: m.users_row_menu_trigger_re_enrollment(),
                     variant: 'critical',
@@ -667,7 +667,7 @@ export const UsersTable = () => {
             title: m.modal_delete_user_device_title(),
             contentMd: m.modal_delete_user_device_body({ name: device.name }),
             actionPromise: () => api.device.deleteDevice(device.id),
-            invalidateKeys: [['user'], ['network']],
+            invalidateKeys: [['user'], ['network'], ['device', 'all']],
             submitProps: { text: m.controls_delete(), variant: 'critical' },
             onSuccess: () => Snackbar.default(m.user_device_delete_success()),
             onError: () => Snackbar.error(m.user_device_delete_failed()),
@@ -795,7 +795,7 @@ export const UsersTable = () => {
           users: selectedUsers,
           send_enrollment_notification: true,
         }),
-      invalidateKeys: [['user-overview'], ['user']],
+      invalidateKeys: [['user']],
       submitProps: {
         text: m.users_bulk_start_enrollment(),
       },
@@ -834,7 +834,7 @@ export const UsersTable = () => {
         count: selectedUsers.length,
       }),
       actionPromise: () => api.user.bulkDisable(selectedUsers),
-      invalidateKeys: [['user-overview'], ['user']],
+      invalidateKeys: [['user']],
       submitProps: {
         text: m.users_bulk_disable(),
         variant: 'critical',
@@ -861,7 +861,7 @@ export const UsersTable = () => {
         count: selectedUsers.length,
       }),
       actionPromise: () => api.user.bulkEnable(selectedUsers),
-      invalidateKeys: [['user-overview'], ['user']],
+      invalidateKeys: [['user']],
       submitProps: {
         text: m.users_bulk_enable(),
       },
@@ -887,7 +887,7 @@ export const UsersTable = () => {
         count: selectedUsers.length,
       }),
       actionPromise: () => api.user.bulkDelete(selectedUsers),
-      invalidateKeys: [['user-overview'], ['user']],
+      invalidateKeys: [['user']],
       submitProps: {
         text: m.users_bulk_delete(),
         variant: 'critical',

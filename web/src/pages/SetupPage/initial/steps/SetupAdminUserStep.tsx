@@ -124,7 +124,7 @@ export const SetupAdminUserStep = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.createAdminUser,
     meta: {
-      invalidate: ['setupStatus'],
+      invalidate: ['info'],
     },
     onSuccess: () => {
       setActiveStep(SetupPageStep.GeneralConfig);

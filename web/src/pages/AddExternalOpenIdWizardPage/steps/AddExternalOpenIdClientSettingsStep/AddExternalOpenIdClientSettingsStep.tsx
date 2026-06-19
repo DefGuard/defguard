@@ -55,7 +55,12 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       }
     },
     meta: {
-      invalidate: [['settings'], ['info'], ['openid', 'provider']],
+      invalidate: [
+        ['settings'],
+        ['info'],
+        ['openid', 'provider'],
+        ['settings_essentials'],
+      ],
     },
   });
 

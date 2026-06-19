@@ -37,7 +37,7 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.migration.setExternalUrlSettings,
-    meta: { invalidate: ['setupStatus'] },
+    meta: { invalidate: [['settings'], ['info'], ['migration', 'external_ssl_info']] },
     onSuccess: (response) => {
       useMigrationWizardStore.setState({
         external_ssl_type: form.getFieldValue('ssl_type'),
