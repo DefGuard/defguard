@@ -627,9 +627,15 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     location,
                     device,
                     method,
-                } => Some(format!(
-                    "Device {device} completed MFA authorization for location {location} using {method}"
-                )),
+                    mobile_auth_device_name,
+                } => Some(match mobile_auth_device_name {
+                    Some(auth_device) => format!(
+                        "Device {device} completed MFA authorization for location {location} using {method} (approved on {auth_device})"
+                    ),
+                    None => format!(
+                        "Device {device} completed MFA authorization for location {location} using {method}"
+                    ),
+                }),
                 DesktopClientMfaEvent::Failed {
                     location,
                     device,
@@ -675,12 +681,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     location,
                     device,
                     method,
+                    mobile_auth_device_name,
                 } => (
                     EventType::VpnClientMfaSuccess,
                     serde_json::to_value(VpnClientMfaMetadata {
                         location,
                         device,
                         method,
+                        mobile_auth_device_name,
                     })
                     .ok(),
                 ),

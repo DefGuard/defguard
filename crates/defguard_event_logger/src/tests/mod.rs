@@ -1184,13 +1184,15 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Success {
                     location: location.clone(),
                     device: device.clone(),
-                    method: defguard_core::events::ClientMFAMethod::Totp,
+                    method: defguard_core::events::ClientMFAMethod::MobileApprove,
+                    mobile_auth_device_name: Some("pixel-7".to_owned()),
                 })),
                 Some(location.clone()),
             ),
             event_type: EventType::VpnClientMfaSuccess,
             module: ActivityLogModule::Vpn,
-            description_contains: Some("completed"),
+            // the approving device name is included in the description for mobile approve logins
+            description_contains: Some("approved on pixel-7"),
         },
         EventTestCase {
             name: "ClientMfaFailed",

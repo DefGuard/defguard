@@ -428,6 +428,9 @@ pub enum DesktopClientMfaEvent {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
+        /// Name of the device used to approve the login when the mobile approve
+        /// MFA method is used. `None` for all other methods.
+        mobile_auth_device_name: Option<String>,
     },
     Failed {
         device: Device<Id>,

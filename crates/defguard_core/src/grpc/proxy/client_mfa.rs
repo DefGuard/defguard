@@ -570,6 +570,9 @@ impl ClientMfaServer {
         let context =
             BidiRequestContext::new(user.id, user.username.clone(), ip, format!("{device}"));
 
+        // name of the device used to approve a mobile approve login; populated below
+        let mut mobile_auth_device_name: Option<String> = None;
+
         // validate code
         match method {
             MfaMethod::MobileApprove => {
@@ -590,6 +593,12 @@ impl ClientMfaServer {
                 {
                     return Err(Status::invalid_argument("Arguments invalid"));
                 }
+                // record the approving device's name for the success activity log event
+                mobile_auth_device_name =
+                    BiometricAuth::find_device(&self.pool, user.id, &auth_device_pub_key)
+                        .await
+                        .map_err(|_| Status::internal("unexpected error"))?
+                        .map(|auth_device| auth_device.name);
                 match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
                     Ok(()) => {
                         debug!("Signature verified successfully.");
@@ -806,6 +815,7 @@ impl ClientMfaServer {
                     location: location.clone(),
                     device: device.clone(),
                     method,
+                    mobile_auth_device_name,
                 },
             )),
         })?;
