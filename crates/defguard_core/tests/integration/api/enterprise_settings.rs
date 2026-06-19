@@ -1,15 +1,109 @@
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex, atomic::AtomicBool},
+    time::Duration,
+};
+
+use axum_extra::extract::cookie::Key;
+use defguard_common::{
+    db::models::settings::initialize_current_settings, types::proxy::ProxyControlMessage,
+};
 use defguard_core::{
+    auth::failed_login::FailedLoginMap,
+    build_webapp,
+    db::AppEvent,
     enterprise::{
         db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-        license::{get_cached_license, set_cached_license},
+        license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
     },
+    events::ApiEvent,
+    grpc::{GatewayCommand, WorkerState},
     handlers::Auth,
 };
 use reqwest::StatusCode;
 use serde_json::json;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
+use tokio::{
+    net::TcpListener,
+    sync::{
+        broadcast,
+        mpsc::{Receiver, channel, unbounded_channel},
+    },
+    time::sleep,
+};
 
-use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
+use super::common::{client::TestClient, exceed_enterprise_limits, make_test_client, setup_pool};
+use crate::common::{init_config, initialize_users};
+
+/// Builds a test client whose `AppState` carries a `proxy_control_tx` channel.
+async fn make_test_client_with_proxy_rx(
+    pool: PgPool,
+) -> (TestClient, Receiver<ProxyControlMessage>, PgPool) {
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
+    let listener = TcpListener::bind(addr)
+        .await
+        .expect("Could not bind ephemeral socket");
+    let port = listener.local_addr().unwrap().port();
+    let config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
+    initialize_users(&pool).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Could not initialize settings");
+
+    let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(32);
+    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
+    let (tx, rx) = unbounded_channel::<AppEvent>();
+    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
+    let (gateway_tx, _wg_rx) = broadcast::channel::<GatewayCommand>(16);
+    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
+
+    let license = License::new(
+        "test_customer".to_owned(),
+        false,
+        None,
+        None,
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+    );
+    set_cached_license(Some(license));
+
+    let key = Key::from(
+        defguard_common::db::models::Settings::get_current_settings()
+            .secret_key_required()
+            .unwrap()
+            .as_bytes(),
+    );
+    let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
+
+    let webapp = build_webapp(
+        tx,
+        rx,
+        gateway_tx,
+        web_reload_tx,
+        worker_state,
+        pool.clone(),
+        key,
+        failed_logins,
+        api_event_tx,
+        Arc::default(),
+        proxy_control_tx,
+        Arc::new(AtomicBool::new(false)),
+        &config,
+    );
+
+    let client = TestClient::new(webapp, listener, api_event_rx);
+
+    // Admin login
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    (client, proxy_control_rx, pool)
+}
 
 #[sqlx::test]
 async fn test_only_enterprise_can_modify_enterpise_settings(
@@ -557,4 +651,130 @@ async fn test_display_flags_default_to_true_without_license(
 
     // Restore license
     set_cached_license(license);
+}
+
+/// When a license was previously active and set flags to false in the DB,
+/// removing the license must return defaults (both `true`) via `get()`,
+/// ignoring the DB values.  Re-adding the license must restore the real DB values.
+#[sqlx::test]
+async fn test_display_flags_return_defaults_when_license_removed(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // admin login and set Business license
+    let (client, _) = make_test_client(pool.clone()).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // With a Business license active, save false values to the DB.
+    let settings = json!({
+        "display_download_step": false,
+        "display_password_reset": false,
+    });
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Remove the license - get() should return defaults, ignoring DB.
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    let settings = EnterpriseSettings::get(&pool).await.unwrap();
+    assert!(
+        settings.display_download_step,
+        "without license, display_download_step should default to true regardless of DB"
+    );
+    assert!(
+        settings.display_password_reset,
+        "without license, display_password_reset should default to true regardless of DB"
+    );
+
+    // Restore the license - get() should now return the real DB values.
+    set_cached_license(license);
+
+    let settings = EnterpriseSettings::get(&pool).await.unwrap();
+    assert!(
+        !settings.display_download_step,
+        "with license restored, display_download_step should reflect DB (false)"
+    );
+    assert!(
+        !settings.display_password_reset,
+        "with license restored, display_password_reset should reflect DB (false)"
+    );
+}
+
+/// When enterprise settings are patched with changed display flags, a
+/// `BroadcastPublicSettings` control message must be sent via the proxy
+/// control channel.
+#[sqlx::test]
+async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, mut proxy_control_rx, _pool) = make_test_client_with_proxy_rx(pool).await;
+
+    exceed_enterprise_limits(&client).await;
+
+    // Patch enterprise settings with changed display flags.
+    let settings = json!({
+        "display_download_step": false,
+        "display_password_reset": false,
+    });
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // The handler should have sent a BroadcastPublicSettings message.
+    sleep(Duration::from_millis(100)).await;
+    let mut found = false;
+    loop {
+        match proxy_control_rx.try_recv() {
+            Ok(ProxyControlMessage::BroadcastPublicSettings {
+                display_password_reset,
+                display_download_step,
+            }) => {
+                assert!(
+                    !display_password_reset,
+                    "expected display_password_reset=false"
+                );
+                assert!(
+                    !display_download_step,
+                    "expected display_download_step=false"
+                );
+                found = true;
+            }
+            Ok(_) => {} // ignore other control messages
+            Err(_) => break,
+        }
+    }
+    assert!(found, "BroadcastPublicSettings was not sent");
+
+    // Patch again with no change - should NOT broadcast.
+    let settings = json!({
+        "display_download_step": false,
+        "display_password_reset": false,
+    });
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // No BroadcastPublicSettings should appear.
+    sleep(Duration::from_millis(100)).await;
+    while let Ok(msg) = proxy_control_rx.try_recv() {
+        if matches!(msg, ProxyControlMessage::BroadcastPublicSettings { .. }) {
+            panic!("BroadcastPublicSettings should not be sent when flags didn't change");
+        }
+    }
 }
