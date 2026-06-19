@@ -274,6 +274,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         directory_sync_group_match: Vec::new(),
         jumpcloud_api_key: None,
         prefetch_users: false,
+        disable_password_management: false,
     };
     let log_stream = ActivityLogStream {
         id: 1,

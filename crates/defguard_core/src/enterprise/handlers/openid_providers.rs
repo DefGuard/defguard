@@ -45,6 +45,7 @@ pub struct AddProviderData {
     pub directory_sync_group_match: Option<String>,
     pub jumpcloud_api_key: Option<String>,
     pub prefetch_users: bool,
+    pub disable_password_management: bool,
     // Core settings
     pub create_account: bool,
     pub username_handling: OpenIdUsernameHandling,
@@ -177,6 +178,7 @@ pub(crate) async fn add_openid_provider(
         group_match,
         provider_data.jumpcloud_api_key,
         provider_data.prefetch_users,
+        provider_data.disable_password_management,
     )
     .upsert(&appstate.pool)
     .await?;

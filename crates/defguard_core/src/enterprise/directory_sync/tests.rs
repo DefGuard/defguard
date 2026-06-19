@@ -92,6 +92,7 @@ mod test {
             Vec::new(),
             None,
             prefetch_users,
+            false,
         )
         .save(pool)
         .await

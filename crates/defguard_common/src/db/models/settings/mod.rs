@@ -212,6 +212,7 @@ pub struct Settings {
     pub ldap_is_authoritative: bool,
     pub ldap_uses_ad: bool,
     pub ldap_sync_account_status: bool,
+    pub ldap_disable_password_management: bool,
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
@@ -303,6 +304,10 @@ impl fmt::Debug for Settings {
             .field("ldap_is_authoritative", &self.ldap_is_authoritative)
             .field("ldap_uses_ad", &self.ldap_uses_ad)
             .field("ldap_sync_account_status", &self.ldap_sync_account_status)
+            .field(
+                "ldap_disable_password_management",
+                &self.ldap_disable_password_management,
+            )
             .field("ldap_sync_interval", &self.ldap_sync_interval)
             .field(
                 "ldap_user_auxiliary_obj_classes",
@@ -494,7 +499,7 @@ impl Settings {
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status, ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_sync_account_status, ldap_user_rdn_attr, ldap_sync_groups, \
+            ldap_sync_account_status, ldap_disable_password_management, ldap_user_rdn_attr, ldap_sync_groups, \
             ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
             openid_username_handling, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
@@ -627,7 +632,8 @@ impl Settings {
             password_reset_token_timeout_hours = $69, \
             enrollment_session_timeout_minutes = $70, \
             password_reset_session_timeout_minutes = $71, \
-            ldap_sync_account_status = $72 \
+            ldap_sync_account_status = $72, \
+            ldap_disable_password_management = $73 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -701,6 +707,7 @@ impl Settings {
             self.enrollment_session_timeout_minutes,
             self.password_reset_session_timeout_minutes,
             self.ldap_sync_account_status,
+            self.ldap_disable_password_management,
         )
         .execute(executor)
         .await?;

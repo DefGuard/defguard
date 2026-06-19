@@ -124,6 +124,7 @@ pub struct OpenIdProvider<I = NoId> {
     // Fetch all users from directory and create them in Defguard
     // TODO: currently only supported for Microsoft
     pub prefetch_users: bool,
+    pub disable_password_management: bool,
 }
 
 impl OpenIdProvider {
@@ -148,6 +149,7 @@ impl OpenIdProvider {
         directory_sync_group_match: Vec<String>,
         jumpcloud_api_key: Option<String>,
         prefetch_users: bool,
+        disable_password_management: bool,
     ) -> Self {
         Self {
             id: NoId,
@@ -170,6 +172,7 @@ impl OpenIdProvider {
             directory_sync_group_match,
             jumpcloud_api_key,
             prefetch_users,
+            disable_password_management,
         }
     }
 
@@ -182,8 +185,9 @@ impl OpenIdProvider {
                 directory_sync_interval = $11, directory_sync_user_behavior = $12, \
                 directory_sync_admin_behavior = $13, directory_sync_target = $14, \
                 okta_private_jwk = $15, okta_dirsync_client_id = $16, \
-                directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19 \
-                WHERE id = $20",
+                directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19, \
+                disable_password_management = $20 \
+                WHERE id = $21",
                 self.name,
                 self.base_url,
                 self.kind as OpenIdProviderKind,
@@ -203,6 +207,7 @@ impl OpenIdProvider {
                 &self.directory_sync_group_match,
                 self.jumpcloud_api_key,
                 self.prefetch_users,
+                self.disable_password_management,
                 provider.id,
             )
             .execute(pool)
@@ -227,7 +232,8 @@ impl OpenIdProvider<Id> {
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users, \
+            disable_password_management \
             FROM openidprovider WHERE name = $1",
             name
         )
@@ -246,7 +252,8 @@ impl OpenIdProvider<Id> {
             directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users, \
+            disable_password_management \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(executor)
