@@ -14,6 +14,7 @@ pub enum ActivityLogModule {
     Client,
     Vpn,
     Enrollment,
+    Posture,
 }
 
 /// Represents activity log event type as it's stored in the DB
