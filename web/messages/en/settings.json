@@ -243,7 +243,7 @@
   "settings_smtp_helper_oauth_client_secret": "",
   "settings_smtp_active_config_label": "Active SMTP configuration",
   "settings_smtp_other_methods_label": "Other configuration methods",
-  "settings_smtp_auth_card_active_method": "Active",
+  "settings_smtp_auth_card_active_method": "Applied",
   "settings_smtp_auth_card_none_name": "No Authentication",
   "settings_smtp_auth_card_none_description": "Connect using only the server address, port, encryption type, and sender email.",
   "settings_smtp_auth_card_basic_name": "Username and password",

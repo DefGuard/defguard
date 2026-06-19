@@ -168,7 +168,6 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         <SizedBox height={ThemeSpacing.Md} />
         <p className="smtp-auth-oauth-info">{m.settings_smtp_auth_oauth_info()}</p>
         <FieldError error={oauthError} />
-        <SizedBox height={ThemeSpacing.Xl2} />
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (
             <ModalControls

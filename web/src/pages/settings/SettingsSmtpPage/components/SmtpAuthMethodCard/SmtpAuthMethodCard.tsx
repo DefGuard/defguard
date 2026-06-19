@@ -5,7 +5,7 @@ import { m } from '../../../../../paraglide/messages';
 import { BusinessBadge } from '../../../../../shared/components/badges/BusinessBadge';
 import { Badge } from '../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
-import { Icon } from '../../../../../shared/defguard-ui/components/Icon';
+import { Icon, IconKind } from '../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../shared/defguard-ui/components/Menu/types';
 import { ThemeVariable } from '../../../../../shared/defguard-ui/types';
@@ -88,7 +88,7 @@ export const SmtpAuthMethodCard = ({
   ];
 
   return (
-    <div className={clsx('smtp-auth-method-card', { active })}>
+    <div className={clsx('smtp-auth-method-card')}>
       <div className="inner">
         <div className="icon-track">
           <div className={clsx('icon-box', `variant-${variant}`)}>
@@ -99,7 +99,12 @@ export const SmtpAuthMethodCard = ({
           <div className="top">
             <p className="name">{cardNames[variant]}</p>
             {active && (
-              <Badge variant="success" text={m.settings_smtp_auth_card_active_method()} />
+              <Badge
+                showIcon
+                icon={IconKind.CheckFilled}
+                variant="success"
+                text={m.settings_smtp_auth_card_active_method()}
+              />
             )}
             {locked && <BusinessBadge />}
           </div>

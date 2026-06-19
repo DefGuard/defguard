@@ -16,17 +16,16 @@ defguard_grpc_tls.workspace = true
 defguard_proto.workspace = true
 defguard_version.workspace = true
 
-axum.workspace = true
 axum-extra.workspace = true
+axum.workspace = true
 chrono.workspace = true
-semver.workspace = true
-hyper-rustls.workspace = true
 openidconnect.workspace = true
 reqwest.workspace = true
+semver.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
 tokio-stream.workspace = true
+tokio.workspace = true
 tonic.workspace = true
 tracing.workspace = true
 

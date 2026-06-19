@@ -15,10 +15,7 @@ export type SettingsTabValue = z.infer<typeof settingsTabsSchema>;
 
 export const getConfiguredBadge = (): BadgeProps => ({
   text: m.state_configured(),
-  icon: 'status-available',
-  iconSize: 16,
   variant: 'success',
-  showIcon: true,
 });
 
 export const getNotConfiguredBadge = (): BadgeProps => ({
