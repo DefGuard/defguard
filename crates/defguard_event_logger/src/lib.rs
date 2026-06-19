@@ -664,6 +664,11 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     "Device posture check failed for device {device}: {}",
                     failed_checks.join(",")
                 )),
+                DesktopClientMfaEvent::SessionReplaced {
+                    device, location, ..
+                } => Some(format!(
+                    "Existing VPN session for device {device} in location {location} was closed because a new session was authorized"
+                )),
             };
             let (event_type, metadata) = match *event {
                 DesktopClientMfaEvent::Success {
@@ -726,6 +731,12 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         device_name: device.name.clone(),
                     })
                     .ok(),
+                ),
+                DesktopClientMfaEvent::SessionReplaced {
+                    location, device, ..
+                } => (
+                    EventType::VpnClientMfaSessionReplaced,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                 ),
             };
             let module = bidi_event_module(&event_type);

@@ -80,6 +80,13 @@ pub struct ClientLoginSession {
     pub(crate) biometric_challenge: Option<BiometricChallenge>,
 }
 
+pub enum SessionDisconnectReason {
+    /// Closed because a new authorization is creating a replacement session.
+    Replaced,
+    /// Closed for any other reason (normal teardown).
+    Disconnected,
+}
+
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     gateway_tx: Sender<GatewayCommand>,
@@ -1018,8 +1025,15 @@ impl ClientMfaServer {
         // disconnect all active sessions
         for session in active_sessions {
             debug!("Disconnecting previous active MFA VPN session {session:?}.");
-            self.disconnect_session(&mut *conn, session, location, user, device)
-                .await?;
+            self.disconnect_session(
+                &mut *conn,
+                session,
+                location,
+                user,
+                device,
+                SessionDisconnectReason::Replaced,
+            )
+            .await?;
         }
 
         // create new MFA session
@@ -1039,6 +1053,7 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
+        reason: SessionDisconnectReason,
     ) -> Result<(), Status> {
         let is_connected = session.state == VpnClientSessionState::Connected;
         let is_mfa_session = session.mfa_method.is_some();
@@ -1076,15 +1091,21 @@ impl ClientMfaServer {
                 ip: None,
                 device_name: format!("{device}"),
             };
+            let event = match reason {
+                SessionDisconnectReason::Replaced => DesktopClientMfaEvent::SessionReplaced {
+                    location: location.clone(),
+                    device: device.clone(),
+                    is_mfa_session,
+                },
+                SessionDisconnectReason::Disconnected => DesktopClientMfaEvent::Disconnected {
+                    location: location.clone(),
+                    device: device.clone(),
+                    is_mfa_session,
+                },
+            };
             self.emit_event(BidiStreamEvent {
                 context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::Disconnected {
-                        location: location.clone(),
-                        device: device.clone(),
-                        is_mfa_session,
-                    },
-                )),
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(event)),
             })
             .map_err(Status::from)?;
         }
