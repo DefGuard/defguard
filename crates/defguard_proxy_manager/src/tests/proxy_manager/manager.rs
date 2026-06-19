@@ -12,10 +12,11 @@ use crate::tests::common::{
 const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
 
 /// Complete the initial proxy handshake: wait for connection and consume the
-/// `InitialInfo` response sent by the handler.
+/// `InitialInfo` and `PublicSettings` responses sent by the handler.
 async fn complete_manager_proxy_handshake(mock_proxy: &mut MockProxyHarness) {
     mock_proxy.wait_connected().await;
     mock_proxy.recv_initial_info().await;
+    mock_proxy.recv_public_settings().await;
 }
 
 #[sqlx::test]
@@ -544,6 +545,98 @@ async fn test_broadcast_https_certs_reaches_proxy(_: PgPoolOptions, options: PgC
                 other.as_ref().map(std::mem::discriminant)
             ),
         }
+    }
+
+    context.finish().await;
+}
+
+/// `ProxyControlMessage::BroadcastPublicSettings` must deliver a `PublicSettings`
+/// `CoreResponse` to every proxy handler that is currently registered in
+/// `handler_tx_map`.  Mirrors the `BroadcastHttpsCerts` test.
+#[sqlx::test]
+async fn test_broadcast_public_settings_reaches_proxy(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = ManagerTestContext::new(options).await;
+
+    let proxy_a = create_proxy(&context.pool).await;
+    let mut mock_a = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_a, &mock_a);
+
+    let proxy_b = create_proxy(&context.pool).await;
+    let mut mock_b = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_b, &mock_b);
+
+    context.start().await;
+    complete_manager_proxy_handshake(&mut mock_a).await;
+    complete_manager_proxy_handshake(&mut mock_b).await;
+
+    wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
+    wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
+
+    context
+        .proxy_control_tx
+        .send(ProxyControlMessage::BroadcastPublicSettings {
+            display_password_reset: false,
+            display_download_step: false,
+        })
+        .await
+        .expect("failed to send BroadcastPublicSettings control message");
+
+    // Both mock proxies must receive a PublicSettings response with the sent values.
+    for (label, mock) in [("proxy A", &mut mock_a), ("proxy B", &mut mock_b)] {
+        let response = mock.recv_outbound().await;
+        match response.payload {
+            Some(core_response::Payload::PublicSettings(s)) => {
+                assert!(
+                    !s.display_password_reset,
+                    "{label}: display_password_reset should be false"
+                );
+                assert!(
+                    !s.display_download_step,
+                    "{label}: display_download_step should be false"
+                );
+            }
+            other => panic!(
+                "{label}: expected PublicSettings response, got: {:?}",
+                other.as_ref().map(std::mem::discriminant)
+            ),
+        }
+    }
+
+    context.finish().await;
+}
+
+/// When connected without a Business license, `EnterpriseSettings::get()` returns
+/// defaults (both `true`), so the `PublicSettings` pushed on connect should have
+/// both flags set to `true`.
+#[sqlx::test]
+async fn test_public_settings_pushed_on_connect(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = ManagerTestContext::new(options).await;
+
+    let proxy = create_proxy(&context.pool).await;
+    let mut mock = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy, &mock);
+
+    context.start().await;
+    mock.wait_connected().await;
+    mock.recv_initial_info().await;
+
+    // The handler pushes PublicSettings right after InitialInfo.
+    let response = mock.recv_outbound().await;
+    match response.payload {
+        Some(core_response::Payload::PublicSettings(s)) => {
+            assert!(
+                s.display_password_reset,
+                "display_password_reset should default to true"
+            );
+            assert!(
+                s.display_download_step,
+                "display_download_step should default to true"
+            );
+        }
+        other => panic!(
+            "expected PublicSettings on connect, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
     }
 
     context.finish().await;
