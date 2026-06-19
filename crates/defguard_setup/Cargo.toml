@@ -10,27 +10,24 @@ rust-version.workspace = true
 [dependencies]
 defguard_common.workspace = true
 anyhow.workspace = true
+axum-extra.workspace = true
 axum.workspace = true
+chrono.workspace = true
+defguard_certs.workspace = true
+defguard_core.workspace = true
+defguard_proto.workspace = true
+defguard_version.workspace = true
 defguard_web_ui.workspace = true
 ipnetwork.workspace = true
+rcgen.workspace = true
+reqwest.workspace = true
 semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
-defguard_core.workspace = true
-defguard_certs.workspace = true
-defguard_proto.workspace = true
-reqwest.workspace = true
-serde_json.workspace = true
-tracing.workspace = true
-serde.workspace = true
-chrono.workspace = true
-defguard_version.workspace = true
-axum-extra.workspace = true
-axum-client-ip.workspace = true
 tonic.workspace = true
-rcgen.workspace = true
-async-stream = "0.3"
-futures.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = [
