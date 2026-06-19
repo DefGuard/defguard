@@ -71,9 +71,7 @@ impl EventLoggerMessage {
                 | DesktopClientMfaEvent::Disconnected { location, .. }
                 | DesktopClientMfaEvent::PostureCheckPassed { location, .. }
                 | DesktopClientMfaEvent::PostureCheckFailed { location, .. }
-                | DesktopClientMfaEvent::SessionReplaced { location, .. } => {
-                    Some(location.clone())
-                }
+                | DesktopClientMfaEvent::SessionReplaced { location, .. } => Some(location.clone()),
             },
             _ => None,
         };
