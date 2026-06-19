@@ -102,7 +102,7 @@ pub async fn create_session(
             "User {} has MFA disabled, returning user info for login.",
             user.username
         );
-        let user_info = UserInfo::from_user(pool, user.clone()).await?;
+        let user_info = UserInfo::from_user(pool, user.clone(), false).await?;
 
         check_new_device_login(
             pool,
@@ -553,7 +553,8 @@ pub async fn webauthn_end(
 
                 return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await?
                 {
-                    let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
+                    let user_info =
+                        UserInfo::from_user(&appstate.pool, user.clone(), false).await?;
                     appstate.emit_event(ApiEvent {
                         // User may not be fully authenticated so we can't use
                         // context extractor in this handler since it requires
@@ -710,7 +711,7 @@ pub async fn totp_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            let user_info = UserInfo::from_user(&appstate.pool, user, false).await?;
             info!("Verified TOTP for user {username}");
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
@@ -919,7 +920,7 @@ pub async fn email_mfa_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            let user_info = UserInfo::from_user(&appstate.pool, user).await?;
+            let user_info = UserInfo::from_user(&appstate.pool, user, false).await?;
             info!("Verified email MFA code for user {username}");
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
@@ -1011,7 +1012,7 @@ pub async fn recovery_code(
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
-            let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
+            let user_info = UserInfo::from_user(&appstate.pool, user.clone(), false).await?;
             info!("Authenticated user {username} with recovery code");
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use

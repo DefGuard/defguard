@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 use crate::{
     db::{
         Id,
-        models::{MFAMethod, device::UserDevice, group::Group, user::User},
+        models::{MFAMethod, Settings, device::UserDevice, group::Group, user::User},
     },
     types::group_diff::GroupDiff,
 };
@@ -36,18 +36,29 @@ pub struct UserInfo {
     pub enrolled: bool,
     pub is_admin: bool,
     pub ldap_pass_requires_change: bool,
+    pub password_management_disabled: bool,
     pub devices: Vec<UserDevice>,
 }
 
 impl UserInfo {
     /// Convert [`User`] to [`UserInfo`].
-    pub async fn from_user(pool: &PgPool, user: User<Id>) -> sqlx::Result<Self> {
+    pub async fn from_user(
+        pool: &PgPool,
+        user: User<Id>,
+        oidc_disable_password_management: bool,
+    ) -> sqlx::Result<Self> {
         let name = format!("{} {}", user.first_name, user.last_name);
         let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
         let enrolled = user.is_enrolled();
         let is_admin = user.is_admin(pool).await?;
         let devices = user.user_devices(pool).await?;
+        let settings = Settings::get_current_settings();
+        let password_management_disabled = user.password_management_disabled(
+            is_admin,
+            &settings,
+            oidc_disable_password_management,
+        );
 
         Ok(Self {
             id: user.id,
@@ -67,6 +78,7 @@ impl UserInfo {
             enrolled,
             is_admin,
             ldap_pass_requires_change: user.ldap_pass_randomized,
+            password_management_disabled,
             devices,
         })
     }
@@ -171,7 +183,9 @@ mod test {
             .await
             .unwrap()
             .unwrap();
-        let info = UserInfo::from_user(pool, user.clone()).await.unwrap();
+        let info = UserInfo::from_user(pool, user.clone(), false)
+            .await
+            .unwrap();
         (info, user)
     }
 
@@ -199,7 +213,7 @@ mod test {
         user.add_to_group(&pool, &group1).await.unwrap();
         user.add_to_group(&pool, &group2).await.unwrap();
 
-        let mut user_info = UserInfo::from_user(&pool, user).await.unwrap();
+        let mut user_info = UserInfo::from_user(&pool, user, false).await.unwrap();
         assert_eq!(user_info.groups, ["Gryffindor", "Hufflepuff"]);
 
         user_info.groups = vec!["Gryffindor".into(), "Ravenclaw".into()];

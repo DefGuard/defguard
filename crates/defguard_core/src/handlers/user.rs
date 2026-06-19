@@ -34,6 +34,7 @@ use crate::{
     enrollment_management::{
         send_enrollment_invitation, start_desktop_configuration, start_user_enrollment,
     },
+    enterprise::db::models::openid_provider::OpenIdProvider,
     enterprise::{
         db::models::api_tokens::ApiToken,
         handlers::CanManageDevices,
@@ -150,7 +151,11 @@ pub struct UserDetails {
 }
 
 impl UserDetails {
-    pub(crate) async fn from_user(pool: &PgPool, user: User<Id>) -> sqlx::Result<Self> {
+    pub(crate) async fn from_user(
+        pool: &PgPool,
+        user: User<Id>,
+        oidc_disable_password_management: bool,
+    ) -> sqlx::Result<Self> {
         let security_keys = user.security_keys(pool).await?;
         let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
             .await?
@@ -158,7 +163,7 @@ impl UserDetails {
             .map(|a| a.device_id)
             .collect::<Vec<_>>();
         Ok(Self {
-            user: UserInfo::from_user(pool, user).await?,
+            user: UserInfo::from_user(pool, user, oidc_disable_password_management).await?,
             security_keys,
             biometric_enabled_devices,
         })
@@ -324,9 +329,14 @@ pub(crate) async fn list_users(
 
     // Map [`User`] to [`UserInfo`].
     // TODO: too many queries – optimise.
+    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
+        .await?
+        .is_some_and(|p| p.disable_password_management);
     let mut users = Vec::with_capacity(all_users.len());
     for user in all_users {
-        users.push(UserInfo::from_user(&appstate.pool, user).await?);
+        users.push(
+            UserInfo::from_user(&appstate.pool, user, oidc_disable_password_management).await?,
+        );
     }
 
     info!("Listed users");
@@ -451,7 +461,11 @@ pub(crate) async fn get_user(
     Path(username): Path<String>,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let user_details = UserDetails::from_user(&appstate.pool, user).await?;
+    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
+        .await?
+        .is_some_and(|p| p.disable_password_management);
+    let user_details =
+        UserDetails::from_user(&appstate.pool, user, oidc_disable_password_management).await?;
     Ok(ApiResponse::json(user_details, StatusCode::OK))
 }
 
@@ -571,7 +585,7 @@ pub(crate) async fn add_user(
         ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
     }
 
-    let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, user.clone(), false).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
     if !user_info.enrolled {
@@ -894,7 +908,7 @@ pub(crate) async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let groups_before = UserInfo::from_user(&appstate.pool, user.clone())
+    let groups_before = UserInfo::from_user(&appstate.pool, user.clone(), false)
         .await?
         .groups;
 
@@ -973,7 +987,7 @@ pub(crate) async fn modify_user(
 
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
-    let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, user.clone(), false).await?;
 
     if ldap_sync_allowed {
         ldap_handle_user_modify(
@@ -1466,7 +1480,15 @@ pub(crate) async fn delete_security_key(
     )
 )]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
-    let user_info = UserInfo::from_user(&appstate.pool, session.user).await?;
+    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
+        .await?
+        .is_some_and(|p| p.disable_password_management);
+    let user_info = UserInfo::from_user(
+        &appstate.pool,
+        session.user,
+        oidc_disable_password_management,
+    )
+    .await?;
     Ok(ApiResponse::json(user_info, StatusCode::OK))
 }
 
