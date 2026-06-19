@@ -1,12 +1,15 @@
 import dayjs from 'dayjs';
 import { m } from '../../paraglide/messages';
 import {
+  LicenseFeature,
+  type LicenseFeatureValue,
   type LicenseInfo,
   type LicenseInfoApi,
   SupportType,
   type SupportTypeNarrowValue,
   type SupportTypeValue,
 } from '../api/types';
+import { isPresent } from '../defguard-ui/utils/isPresent';
 import { openModal } from '../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../hooks/modalControls/modalTypes';
 
@@ -70,6 +73,21 @@ export const getSupportTypeLabel = (supportType: SupportTypeValue): string => {
   }
 };
 
+export const getLicenseFeatureLabel = (feature: LicenseFeatureValue): string => {
+  switch (feature) {
+    case LicenseFeature.HaMultiNode:
+      return m.settings_license_feature_ha_multi_node();
+    case LicenseFeature.DevicePosture:
+      return m.settings_license_feature_device_posture();
+    case LicenseFeature.ServiceLocations:
+      return m.settings_license_feature_service_locations();
+    case LicenseFeature.AclAllowedIps:
+      return m.settings_license_feature_acl_allowed_ips();
+    default:
+      return feature;
+  }
+};
+
 export const licenseActionCheck = (
   checkResult: LicenseCheckResult,
   successCallback: () => void,
@@ -120,10 +138,18 @@ export const canUseBusinessFeature = (
   };
 };
 
+// When a specific `feature` is passed, the gate opens if the license grants that feature
+// individually (an additive flag). Without a
+// `feature`, the check falls back to the strict Enterprise-tier gate.
 export const canUseEnterpriseFeature = (
   license: LicenseInfo | null,
+  feature?: LicenseFeatureValue,
 ): LicenseCheckResult => {
-  if (license?.tier !== 'Enterprise')
+  const granted = isPresent(feature)
+    ? (license?.features?.includes(feature) ?? false)
+    : license?.tier === 'Enterprise';
+
+  if (!license || !granted)
     return {
       error: 'tier',
       result: false,

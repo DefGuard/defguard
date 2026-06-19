@@ -10,7 +10,13 @@ import { NavLogo } from './assets/NavLogo';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Link, type LinkProps } from '@tanstack/react-router';
-import { type LicenseInfo, LicenseTier, type LicenseTierValue } from '../../api/types';
+import {
+  LicenseFeature,
+  type LicenseFeatureValue,
+  type LicenseInfo,
+  LicenseTier,
+  type LicenseTierValue,
+} from '../../api/types';
 import { Fold } from '../../defguard-ui/components/Fold/Fold';
 import { TooltipContent } from '../../defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipContext';
@@ -39,6 +45,9 @@ interface NavItemProps {
   icon: IconKindValue;
   link: LinkProps['to'];
   licenseTier?: LicenseTierValue;
+  // Enterprise feature backing this item; when granted via an additive license flag the item
+  // unlocks even on a lower tier than `licenseTier`.
+  licenseFeature?: LicenseFeatureValue;
   license?: LicenseInfo | null;
   testId?: string;
   pendingCount?: number;
@@ -92,6 +101,7 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_posture_checks(),
         link: '/acl/posture-checks',
         licenseTier: LicenseTier.Enterprise,
+        licenseFeature: LicenseFeature.DevicePosture,
       },
     ],
   },
@@ -290,6 +300,7 @@ const NavItem = ({
   testId,
   license,
   licenseTier,
+  licenseFeature,
   pendingCount,
 }: NavItemProps) => {
   const showLock = useMemo(() => {
@@ -302,11 +313,12 @@ const NavItem = ({
     }
 
     if (licenseTier !== undefined && licenseTier === LicenseTier.Enterprise) {
-      return !canUseEnterpriseFeature(license as LicenseInfo | null).result;
+      return !canUseEnterpriseFeature(license as LicenseInfo | null, licenseFeature)
+        .result;
     }
 
     return false;
-  }, [license, licenseTier]);
+  }, [license, licenseTier, licenseFeature]);
 
   const showPending = !showLock && isPresent(pendingCount) && pendingCount > 0;
   const showRight = showPending || (showLock && isPresent(licenseTier));

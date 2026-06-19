@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { describe, expect, it } from 'vitest';
-import type { LicenseInfo } from '../src/shared/api/types';
+import { LicenseFeature, type LicenseInfo } from '../src/shared/api/types';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
@@ -17,6 +17,7 @@ const makeLicense = (overrides: Partial<LicenseInfo> = {}): LicenseInfo => ({
   limits_exceeded: false,
   tier: 'Business',
   limits: null,
+  features: [],
   ...overrides,
 });
 
@@ -126,5 +127,55 @@ describe('canUseEnterpriseFeature', () => {
     );
     expect(result.result).toBe(false);
     expect(result.error).toBe('expired');
+  });
+
+  // Additive feature flags: a non-Enterprise tier can be granted a single enterprise
+  // capability via the license `features` array, which must ungate just that feature.
+  it('should allow a requested feature granted on a Business tier via a flag', () => {
+    const result = canUseEnterpriseFeature(
+      makeLicense({ tier: 'Business', features: [LicenseFeature.DevicePosture] }),
+      LicenseFeature.DevicePosture,
+    );
+    expect(result.result).toBe(true);
+    expect(result.error).toBeNull();
+  });
+
+  it('should deny a feature that was not granted, even when another flag is present', () => {
+    const result = canUseEnterpriseFeature(
+      makeLicense({ tier: 'Business', features: [LicenseFeature.DevicePosture] }),
+      LicenseFeature.ServiceLocations,
+    );
+    expect(result.result).toBe(false);
+    expect(result.error).toBe('tier');
+  });
+
+  it('should allow a requested feature on an Enterprise tier (folded into features)', () => {
+    const result = canUseEnterpriseFeature(
+      makeLicense({ tier: 'Enterprise', features: [LicenseFeature.AclAllowedIps] }),
+      LicenseFeature.AclAllowedIps,
+    );
+    expect(result.result).toBe(true);
+    expect(result.error).toBeNull();
+  });
+
+  it('should still deny a granted feature when the license is expired', () => {
+    const result = canUseEnterpriseFeature(
+      makeLicense({
+        tier: 'Business',
+        expired: true,
+        features: [LicenseFeature.DevicePosture],
+      }),
+      LicenseFeature.DevicePosture,
+    );
+    expect(result.result).toBe(false);
+    expect(result.error).toBe('expired');
+  });
+
+  it('should fall back to the strict Enterprise tier gate when no feature is requested', () => {
+    const result = canUseEnterpriseFeature(
+      makeLicense({ tier: 'Business', features: [LicenseFeature.DevicePosture] }),
+    );
+    expect(result.result).toBe(false);
+    expect(result.error).toBe('tier');
   });
 });

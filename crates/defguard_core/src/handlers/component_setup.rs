@@ -58,7 +58,7 @@ use tracing::Instrument;
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
     cert_settings::ensure_https,
-    enterprise::is_enterprise_license_active,
+    enterprise::{LicenseFeature, is_enterprise_license_active},
     error::WebError,
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
@@ -244,7 +244,7 @@ pub async fn setup_proxy_tls_stream(
         let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
         // check if tries to connect more then 1 proxy without active enterprise license
-        if !is_enterprise_license_active() {
+        if !is_enterprise_license_active(Some(LicenseFeature::HaMultiNode)) {
             match Proxy::list(&pool).await {
                 Ok(current_proxies) => {
                     if !current_proxies.is_empty() {
@@ -722,7 +722,7 @@ async fn perform_gateway_adoption(
     }
 
     // License check: non-enterprise installs are limited to one gateway per network.
-    if !is_enterprise_license_active() {
+    if !is_enterprise_license_active(Some(LicenseFeature::HaMultiNode)) {
         let gateways = Gateway::find_by_location_id(pool, network_id)
             .await
             .map_err(|e| format!("Failed to query existing Gateways: {e}"))?;

@@ -35,7 +35,7 @@ use crate::{
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
         is_business_license_active, is_enterprise_license_active,
-        license::get_cached_license,
+        license::{LicenseFeature, get_cached_license},
         limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -220,7 +220,7 @@ pub(crate) async fn create_network(
 
     // check if tries to add service location without active enterprise
     if data.service_location_mode != ServiceLocationMode::Disabled
-        && !is_enterprise_license_active()
+        && !is_enterprise_license_active(Some(LicenseFeature::ServiceLocations))
     {
         error!("Adding location {network_name} blocked! Enterprise license required.");
         return Ok(ApiResponse {
@@ -268,7 +268,9 @@ pub(crate) async fn create_network(
     // assign posture checks
     if let Some(ref posture_checks) = data.posture_checks {
         debug!("Assigning posture checks {posture_checks:?} to {network}");
-        if !is_enterprise_license_active() && !posture_checks.is_empty() {
+        if !is_enterprise_license_active(Some(LicenseFeature::DevicePosture))
+            && !posture_checks.is_empty()
+        {
             error!(
                 "Cannot assign posture checks to new location {network}: Enterprise license required."
             );
@@ -347,7 +349,7 @@ pub(crate) async fn modify_network(
 
     // check if tries to modify service location without active enterprise
     if data.service_location_mode != ServiceLocationMode::Disabled
-        && !is_enterprise_license_active()
+        && !is_enterprise_license_active(Some(LicenseFeature::ServiceLocations))
     {
         let name = data.name;
         error!("Modification of location {name} blocked! Enterprise license required.");

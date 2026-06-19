@@ -43,6 +43,7 @@ fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
+        vec![],
     );
     set_cached_license(Some(license));
     set_counts(Counts::new(1, 1, 1, 1));

@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { EdgeInfo } from '../../shared/api/types';
+import { type EdgeInfo, LicenseFeature } from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -91,9 +91,12 @@ export const EdgesTable = () => {
       testId: 'add-edge',
       onClick: () => {
         if (edges.length >= 1) {
-          licenseActionCheck(canUseEnterpriseFeature(licenseInfo), () => {
-            navigate({ to: '/setup-edge' });
-          });
+          licenseActionCheck(
+            canUseEnterpriseFeature(licenseInfo, LicenseFeature.HaMultiNode),
+            () => {
+              navigate({ to: '/setup-edge' });
+            },
+          );
         } else {
           navigate({ to: '/setup-edge' });
         }

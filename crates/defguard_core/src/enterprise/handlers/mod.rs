@@ -12,6 +12,8 @@ pub mod enterprise_settings;
 pub mod openid_login;
 pub mod openid_providers;
 
+use std::marker::PhantomData;
+
 use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
@@ -19,8 +21,8 @@ use axum::{
 use serde::Serialize;
 
 use super::{
-    db::models::enterprise_settings::EnterpriseSettings, is_business_license_active,
-    is_enterprise_license_active, license::get_cached_license,
+    LicenseFeature, db::models::enterprise_settings::EnterpriseSettings,
+    is_business_license_active, is_enterprise_license_active, license::get_cached_license,
 };
 use crate::{appstate::AppState, error::WebError};
 
@@ -62,19 +64,33 @@ where
     }
 }
 
-/// Extractor that rejects with 403 if no active enterprise-tier license is found.
-pub struct EnterpriseLicenseInfo;
+/// Marker type tying an extractor to a single enterprise feature flag.
+pub trait EnterpriseFeature {
+    const FEATURE: LicenseFeature;
+}
 
-impl<S> FromRequestParts<S> for EnterpriseLicenseInfo
+/// Marker for the device posture feature.
+pub struct DevicePostureFeature;
+
+impl EnterpriseFeature for DevicePostureFeature {
+    const FEATURE: LicenseFeature = LicenseFeature::DevicePosture;
+}
+
+/// Extractor that rejects with 403 unless the enterprise feature `F` is active for the current
+/// license (either Enterprise tier or granted via an additive feature flag).
+pub struct LicenseGated<F: EnterpriseFeature>(PhantomData<F>);
+
+impl<S, F> FromRequestParts<S> for LicenseGated<F>
 where
     S: Send + Sync,
     AppState: FromRef<S>,
+    F: EnterpriseFeature,
 {
     type Rejection = WebError;
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        if is_enterprise_license_active() {
-            Ok(Self)
+        if is_enterprise_license_active(Some(F::FEATURE)) {
+            Ok(Self(PhantomData))
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
         }
@@ -124,6 +140,11 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 "tier": license.tier,
                 "support_type": license.support_type,
                 "limits": limits_info,
+                // effective set of enabled features (tier-granted plus additive flags)
+                "features": LicenseFeature::ALL
+                    .into_iter()
+                    .filter(|feature| is_enterprise_license_active(Some(*feature)))
+                    .collect::<Vec<_>>(),
             })
         });
     Ok(ApiResponse::json(
