@@ -63,13 +63,13 @@ export const SmtpAuthMethodCard = ({
         {
           text: m.controls_edit(),
           icon: 'edit',
-          testId: 'smtp-card-edit',
+          testId: `smtp-card-${variant}-edit`,
           onClick: onEdit,
         },
         {
           text: m.settings_smtp_button_send_test_email(),
           icon: 'mail',
-          testId: 'smtp-card-send-test-email',
+          testId: `smtp-card-${variant}-send-test-email`,
           onClick: onSendTestEmail,
         },
       ],
@@ -79,7 +79,7 @@ export const SmtpAuthMethodCard = ({
         {
           text: m.controls_delete(),
           icon: 'delete',
-          testId: 'smtp-card-delete',
+          testId: `smtp-card-${variant}-delete`,
           variant: 'danger',
           onClick: onDelete,
         },
@@ -88,7 +88,10 @@ export const SmtpAuthMethodCard = ({
   ];
 
   return (
-    <div className={clsx('smtp-auth-method-card')}>
+    <div
+      className={clsx('smtp-auth-method-card', { active })}
+      data-testid={`smtp-auth-method-card-${variant}`}
+    >
       <div className="inner">
         <div className="icon-track">
           <div className={clsx('icon-box', `variant-${variant}`)}>
@@ -117,6 +120,7 @@ export const SmtpAuthMethodCard = ({
             <Button
               variant="outlined"
               text={m.controls_configure()}
+              testId={`smtp-card-${variant}-configure`}
               onClick={onConfigure}
             />
           )}
