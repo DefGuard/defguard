@@ -733,11 +733,22 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     .ok(),
                 ),
                 DesktopClientMfaEvent::SessionReplaced {
-                    location, device, ..
-                } => (
-                    EventType::VpnClientMfaSessionReplaced,
-                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-                ),
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    if is_mfa_session {
+                        (
+                            EventType::VpnClientMfaSessionReplaced,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    } else {
+                        (
+                            EventType::VpnClientSessionReplaced,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    }
+                }
             };
             let module = bidi_event_module(&event_type);
             (module, event_type, description, metadata)

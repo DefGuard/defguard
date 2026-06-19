@@ -1023,7 +1023,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 snapshot: posture_snapshot.clone(),
             }),
             event_type: EventType::DevicePostureCreated,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Created"),
         },
         EventTestCase {
@@ -1033,7 +1033,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 after: posture_snapshot2.clone(),
             }),
             event_type: EventType::DevicePostureUpdated,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Updated"),
         },
         EventTestCase {
@@ -1042,7 +1042,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 snapshot: posture_snapshot.clone(),
             }),
             event_type: EventType::DevicePostureDeleted,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Deleted"),
         },
         EventTestCase {
@@ -1052,7 +1052,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 duplicate: posture_snapshot2,
             }),
             event_type: EventType::DevicePostureDuplicated,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Duplicated"),
         },
         EventTestCase {
@@ -1062,7 +1062,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 location_ids: vec![10],
             }),
             event_type: EventType::DevicePostureLocationsAssigned,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Assigned"),
         },
         EventTestCase {
@@ -1072,7 +1072,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 posture_ids: vec![1],
             }),
             event_type: EventType::LocationPosturesAssigned,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Assigned"),
         },
     ];
@@ -1224,6 +1224,22 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("disconnected"),
         },
         EventTestCase {
+            name: "SessionReplaced",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::SessionReplaced {
+                        location: location.clone(),
+                        device: device.clone(),
+                        is_mfa_session: true,
+                    },
+                )),
+                Some(location.clone()),
+            ),
+            event_type: EventType::VpnClientMfaSessionReplaced,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("closed"),
+        },
+        EventTestCase {
             name: "DevicePostureCheckPassed",
             message: bidi_msg(
                 BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -1236,7 +1252,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 Some(location.clone()),
             ),
             event_type: EventType::DevicePostureCheckPassed,
-            module: ActivityLogModule::Vpn,
+            module: ActivityLogModule::Posture,
             description_contains: Some("posture check passed"),
         },
         EventTestCase {
@@ -1253,7 +1269,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 Some(location.clone()),
             ),
             event_type: EventType::DevicePostureCheckFailed,
-            module: ActivityLogModule::Vpn,
+            module: ActivityLogModule::Posture,
             description_contains: Some("posture check failed"),
         },
     ];
