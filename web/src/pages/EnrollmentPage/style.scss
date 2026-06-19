@@ -1,4 +1,10 @@
 #enrollment-page {
+  .edge-ui-section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
   .sidebar-list {
     display: flex;
     flex-flow: column;

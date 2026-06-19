@@ -167,6 +167,7 @@ const GeneralTabContent = ({
         enrollment_session_timeout_minutes: value.enrollment_session_timeout_minutes,
       } as Partial<Settings>);
       // Patch enterprise settings only when license is active
+      let enterpriseSaved = false;
       if (license) {
         const { result } = canUseBusinessFeature(license);
         if (result) {
@@ -174,13 +175,26 @@ const GeneralTabContent = ({
             display_download_step: value.display_download_step,
             display_password_reset: value.display_password_reset,
           });
+          enterpriseSaved = true;
         } else {
           openModal(ModalName.LicenseExpired, {
             licenseTier: license.tier,
           });
         }
       }
-      form.reset(value);
+      // Re-baseline the form to what was actually persisted. The open-source
+      // fields always save, but the enterprise toggles only save when the
+      // license allows it. If they weren't saved, keep their baseline at the
+      // current server values so the form doesn't claim an unsaved change.
+      form.reset({
+        ...value,
+        display_download_step: enterpriseSaved
+          ? value.display_download_step
+          : (enterpriseSettings?.display_download_step ?? true),
+        display_password_reset: enterpriseSaved
+          ? value.display_password_reset
+          : (enterpriseSettings?.display_password_reset ?? true),
+      });
     },
   });
 
@@ -195,7 +209,7 @@ const GeneralTabContent = ({
       >
         <form.AppForm>
           <MarkedSection icon="key">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="edge-ui-section-header">
               <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
                 {m.settings_enrollment_section_edge_ui_title()}
               </AppText>
