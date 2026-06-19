@@ -11,8 +11,10 @@ import { loadEnv } from './loadEnv';
 
 const setLicense = async () => {
   const license = process.env.DEFGUARD_LICENSE_KEY;
-  if (!license) return;
-
+  if (!license) {
+    console.error('Missing DEFGUARD_LICENSE_KEY');
+    return;
+  }
   const ctx = await request.newContext({ baseURL: testsConfig.BASE_URL });
 
   const authRes = await ctx.post('/api/v1/auth', {

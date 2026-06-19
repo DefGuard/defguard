@@ -8,10 +8,12 @@ const devPath = resolve(__dirname, '..', '.env.development');
 export const loadEnv = () => {
   if (existsSync(localPath)) {
     config({ path: localPath });
+    console.log(`Using env from ${localPath}`);
     return;
   }
   if (existsSync(devPath)) {
     config({ path: devPath });
+    console.log(`Using env from ${devPath}`);
     return;
   }
   config();

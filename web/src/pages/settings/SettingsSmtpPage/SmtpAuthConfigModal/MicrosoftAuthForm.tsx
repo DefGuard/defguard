@@ -109,11 +109,13 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
           {({ isSubmitting }) => (
             <ModalControls
               submitProps={{
+                testId: 'submit',
                 text: m.controls_submit(),
                 loading: isSubmitting,
                 onClick: () => form.handleSubmit(),
               }}
               cancelProps={{
+                testId: 'cancel',
                 text: m.controls_cancel(),
                 disabled: isSubmitting,
                 onClick: onClose,
