@@ -10,17 +10,22 @@ import {
   ContextualHelpSidebar,
 } from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
-import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
+import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
+import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -74,7 +79,9 @@ export const GeneralTab = () => {
         badgeProps={!isPresent(license) && isFetched ? businessBadgeProps : undefined}
       />
       <SizedBox height={ThemeSpacing.Lg} />
-      {isPresent(settings) && <GeneralTabContent settings={settings} license={license} />}
+      {isPresent(settings) && (
+        <GeneralTabContent settings={settings} license={license ?? null} />
+      )}
     </SettingsLayout>
   );
 };
@@ -187,26 +194,14 @@ const GeneralTabContent = ({
         }}
       >
         <form.AppForm>
-          <MarkedSection icon="settings">
-            <h3>{m.settings_enrollment_section_general_title()}</h3>
-            <DescriptionBlock title={m.settings_enrollment_display_download_title()}>
-              <p>{m.settings_enrollment_display_download_description()}</p>
-            </DescriptionBlock>
-            <form.AppField name="display_download_step">
-              {(field) => (
-                <field.FormInteractiveBlock
-                  disabled={noLicense}
-                  variant="toggle"
-                  title={m.settings_enrollment_display_download_label()}
-                  content={m.settings_enrollment_display_download_content()}
-                />
-              )}
-            </form.AppField>
-            <DescriptionBlock
-              title={m.settings_enrollment_display_password_reset_title()}
-            >
-              <p>{m.settings_enrollment_display_password_reset_description()}</p>
-            </DescriptionBlock>
+          <MarkedSection icon="key">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+                {m.settings_enrollment_section_edge_ui_title()}
+              </AppText>
+              {noLicense && <Badge {...businessBadgeProps} />}
+            </div>
+            <SizedBox height={ThemeSpacing.Xl} />
             <form.AppField name="display_password_reset">
               {(field) => (
                 <field.FormInteractiveBlock
@@ -214,6 +209,17 @@ const GeneralTabContent = ({
                   variant="toggle"
                   title={m.settings_enrollment_display_password_reset_label()}
                   content={m.settings_enrollment_display_password_reset_content()}
+                />
+              )}
+            </form.AppField>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <form.AppField name="display_download_step">
+              {(field) => (
+                <field.FormInteractiveBlock
+                  disabled={noLicense}
+                  variant="toggle"
+                  title={m.settings_enrollment_display_download_label()}
+                  content={m.settings_enrollment_display_download_content()}
                 />
               )}
             </form.AppField>
