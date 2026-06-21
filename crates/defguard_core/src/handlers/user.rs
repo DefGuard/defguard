@@ -1182,6 +1182,20 @@ pub(crate) async fn change_self_password(
 ) -> ApiResult {
     debug!("User {} is changing his password.", session.user.username);
     let mut user = session.user;
+
+    let settings = Settings::get_current_settings();
+    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
+        .await?
+        .is_some_and(|p| p.disable_password_management);
+    let is_admin = user.is_admin(&appstate.pool).await?;
+    if user.password_management_disabled(is_admin, &settings, oidc_disable_password_management) {
+        debug!("Password management disabled for user {}", user.username);
+        return Ok(ApiResponse::new(
+            json!({"msg": "Password management is disabled for this user"}),
+            StatusCode::FORBIDDEN,
+        ));
+    }
+
     if user.verify_password(&data.old_password).is_err() {
         return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
@@ -1265,6 +1279,20 @@ pub(crate) async fn change_password(
     let user = User::find_by_username(&appstate.pool, &username).await?;
 
     if let Some(mut user) = user {
+        let settings = Settings::get_current_settings();
+        let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
+            .await?
+            .is_some_and(|p| p.disable_password_management);
+        let is_admin = user.is_admin(&appstate.pool).await?;
+        if user.password_management_disabled(is_admin, &settings, oidc_disable_password_management)
+        {
+            debug!("Password management disabled for user {username}");
+            return Ok(ApiResponse::new(
+                json!({"msg": "Password management is disabled for this user"}),
+                StatusCode::FORBIDDEN,
+            ));
+        }
+
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
         ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
@@ -1330,6 +1358,20 @@ pub(crate) async fn reset_password(
     let user = User::find_by_username(&appstate.pool, &username).await?;
 
     if let Some(user) = user {
+        let settings = Settings::get_current_settings();
+        let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
+            .await?
+            .is_some_and(|p| p.disable_password_management);
+        let is_admin = user.is_admin(&appstate.pool).await?;
+        if user.password_management_disabled(is_admin, &settings, oidc_disable_password_management)
+        {
+            debug!("Password management disabled for user {username}");
+            return Ok(ApiResponse::new(
+                json!({"msg": "Password management is disabled for this user"}),
+                StatusCode::FORBIDDEN,
+            ));
+        }
+
         let mut transaction = appstate.pool.begin().await?;
 
         Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
