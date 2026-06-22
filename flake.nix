@@ -56,7 +56,7 @@
 
       # define shared build inputs
       nativeBuildInputs = with pkgs; [rustToolchain pkg-config];
-      buildInputs = with pkgs; [openssl protobuf curl nodejs_24 pnpm];
+      buildInputs = with pkgs; [openssl protobuf curl nodejs_26 pnpm_11];
     in {
       devShells.default = pkgs.mkShell {
         inherit nativeBuildInputs buildInputs;

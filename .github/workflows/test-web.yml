@@ -20,17 +20,24 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: "recursive"
+
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 24
+          node-version: 26
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        with:
+          version: 11
+
       - name: install deps
         working-directory: ./web
-        run: |
-          npm i -g npm pnpm
-          pnpm i --frozen-lockfile
+        run: pnpm i --frozen-lockfile
+
       - name: Generate paraglide messages
         working-directory: ./web
         run: pnpm exec paraglide-js compile --project ./project.inlang --outdir ./src/paraglide
+
       - name: Run tests
         working-directory: ./web
         run: pnpm run test
