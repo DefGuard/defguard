@@ -168,11 +168,11 @@ fn test_maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect
 }
 
 #[test]
-fn test_maps_replaced_bidi_events_from_non_mfa_sessions_to_standard_replaced_logger_events() {
+fn test_maps_replaced_bidi_events_from_non_mfa_sessions_to_standard_superseded_logger_events() {
     let event = BidiStreamEvent {
         context: sample_bidi_context(),
         event: BidiStreamEventType::DesktopClientMfa(Box::new(
-            DesktopClientMfaEvent::SessionReplaced {
+            DesktopClientMfaEvent::SessionSuperseded {
                 location: sample_location(),
                 device: sample_device(),
                 is_mfa_session: false,
@@ -182,7 +182,7 @@ fn test_maps_replaced_bidi_events_from_non_mfa_sessions_to_standard_replaced_log
 
     let result = map_to_activity_log_event(EventLoggerMessage::from_bidi_event(event));
 
-    assert_eq!(result.event, EventType::VpnClientSessionReplaced);
+    assert_eq!(result.event, EventType::VpnClientSessionSuperseded);
     assert_eq!(result.module, ActivityLogModule::Vpn);
 }
 
@@ -1245,10 +1245,10 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("disconnected"),
         },
         EventTestCase {
-            name: "SessionReplaced",
+            name: "SessionSuperseded",
             message: bidi_msg(
                 BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::SessionReplaced {
+                    DesktopClientMfaEvent::SessionSuperseded {
                         location: location.clone(),
                         device: device.clone(),
                         is_mfa_session: true,
@@ -1256,7 +1256,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 )),
                 Some(location.clone()),
             ),
-            event_type: EventType::VpnClientMfaSessionReplaced,
+            event_type: EventType::VpnClientMfaSessionSuperseded,
             module: ActivityLogModule::Vpn,
             description_contains: Some("closed"),
         },

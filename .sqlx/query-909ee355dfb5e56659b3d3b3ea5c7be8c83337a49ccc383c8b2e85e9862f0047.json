@@ -25,7 +25,8 @@
                 "defguard",
                 "client",
                 "vpn",
-                "enrollment"
+                "enrollment",
+                "posture"
               ]
             }
           }

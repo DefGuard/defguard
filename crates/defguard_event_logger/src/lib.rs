@@ -670,7 +670,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     "Device posture check failed for device {device}: {}",
                     failed_checks.join(",")
                 )),
-                DesktopClientMfaEvent::SessionReplaced {
+                DesktopClientMfaEvent::SessionSuperseded {
                     device, location, ..
                 } => Some(format!(
                     "VPN session for {device} in location {location} superseded by new authorization"
@@ -740,19 +740,19 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
-                DesktopClientMfaEvent::SessionReplaced {
+                DesktopClientMfaEvent::SessionSuperseded {
                     location,
                     device,
                     is_mfa_session,
                 } => {
                     if is_mfa_session {
                         (
-                            EventType::VpnClientMfaSessionReplaced,
+                            EventType::VpnClientMfaSessionSuperseded,
                             serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                         )
                     } else {
                         (
-                            EventType::VpnClientSessionReplaced,
+                            EventType::VpnClientSessionSuperseded,
                             serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                         )
                     }

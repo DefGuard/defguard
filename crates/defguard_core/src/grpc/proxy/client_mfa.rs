@@ -82,7 +82,7 @@ pub struct ClientLoginSession {
 
 pub enum SessionDisconnectReason {
     /// Closed because a new authorization is creating a replacement session.
-    Replaced,
+    Superseded,
     /// Closed for any other reason (normal teardown).
     Disconnected,
 }
@@ -1041,7 +1041,7 @@ impl ClientMfaServer {
                 location,
                 user,
                 device,
-                SessionDisconnectReason::Replaced,
+                SessionDisconnectReason::Superseded,
             )
             .await?;
         }
@@ -1102,7 +1102,7 @@ impl ClientMfaServer {
                 device_name: format!("{device}"),
             };
             let event = match reason {
-                SessionDisconnectReason::Replaced => DesktopClientMfaEvent::SessionReplaced {
+                SessionDisconnectReason::Superseded => DesktopClientMfaEvent::SessionSuperseded {
                     location: location.clone(),
                     device: device.clone(),
                     is_mfa_session,
@@ -1306,13 +1306,13 @@ mod tests {
         }
 
         // replacing a connected posture-only session emits the unified session
-        // replaced audit event, flagged as a non-MFA session
+        // superseded audit event, flagged as a non-MFA session
         let event = event_rx
             .try_recv()
             .expect("expected session replaced audit event for replaced posture session");
         match event.event {
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
-                DesktopClientMfaEvent::SessionReplaced {
+                DesktopClientMfaEvent::SessionSuperseded {
                     location: event_location,
                     device: event_device,
                     is_mfa_session,
@@ -1385,7 +1385,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_replacing_connected_mfa_session_emits_session_replaced_event(
+    async fn test_replacing_connected_mfa_session_emits_session_superseded_event(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1436,7 +1436,7 @@ mod tests {
             .expect("expected session replaced audit event for replaced connected session");
         match event.event {
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
-                DesktopClientMfaEvent::SessionReplaced {
+                DesktopClientMfaEvent::SessionSuperseded {
                     location: event_location,
                     device: event_device,
                     is_mfa_session,

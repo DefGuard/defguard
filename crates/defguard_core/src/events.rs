@@ -454,7 +454,7 @@ pub enum DesktopClientMfaEvent {
         device_posture_data: Option<DevicePostureData>,
         failed_checks: Vec<String>,
     },
-    SessionReplaced {
+    SessionSuperseded {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         is_mfa_session: bool,
