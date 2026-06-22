@@ -6,6 +6,7 @@ use defguard_core::{
         db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
         license::{get_cached_license, set_cached_license},
     },
+    events::ApiEventType,
     handlers::Auth,
 };
 use reqwest::StatusCode;
@@ -627,10 +628,12 @@ async fn test_display_flags_return_defaults_when_license_removed(
 #[sqlx::test]
 async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (client, client_state) = make_test_client(pool.clone()).await;
+    let (mut client, client_state) = make_test_client(pool.clone()).await;
     let mut proxy_control_rx = client_state.proxy_control_rx;
 
     exceed_enterprise_limits(&client).await;
+    // Clear events generated during setup (login, network creation).
+    client.drain_all_events();
 
     // Patch enterprise settings with changed display flags.
     let settings = json!({
@@ -643,6 +646,15 @@ async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgCon
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify the audit event was emitted.
+    let events = client.drain_all_events();
+    assert!(
+        events
+            .iter()
+            .any(|(event, _, _)| matches!(event, ApiEventType::EnterpriseSettingsUpdated { .. })),
+        "EnterpriseSettingsUpdated event should be emitted on patch"
+    );
 
     // The handler should have sent a BroadcastPublicSettings message.
     sleep(Duration::from_millis(100)).await;
@@ -680,6 +692,15 @@ async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgCon
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    // Audit event should still be emitted even when flags didn't change.
+    let events = client.drain_all_events();
+    assert!(
+        events
+            .iter()
+            .any(|(event, _, _)| matches!(event, ApiEventType::EnterpriseSettingsUpdated { .. })),
+        "EnterpriseSettingsUpdated event should be emitted on every patch"
+    );
 
     // No BroadcastPublicSettings should appear.
     sleep(Duration::from_millis(100)).await;

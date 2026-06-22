@@ -10,15 +10,15 @@ use defguard_core::{
             ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
             ClientConfigurationTokenMetadata, ClientDeviceMetadata, DeviceMetadata,
             DeviceModifiedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata,
-            GatewayDeletedMetadata, GatewayModifiedMetadata, GroupAssignedMetadata,
-            GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
-            GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata,
-            MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
-            NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
-            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
-            PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata,
-            SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata,
-            UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            EnterpriseSettingsUpdateMetadata, GatewayDeletedMetadata, GatewayModifiedMetadata,
+            GroupAssignedMetadata, GroupMembersModifiedMetadata, GroupMetadata,
+            GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
+            MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
+            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
+            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
+            PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata,
+            ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
+            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
             UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
             VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
             WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
@@ -396,6 +396,11 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ApiEventType::SettingsDefaultBrandingRestored => {
                     (EventType::SettingsDefaultBrandingRestored, None)
                 }
+                ApiEventType::EnterpriseSettingsUpdated { before, after } => (
+                    EventType::EnterpriseSettingsUpdated,
+                    serde_json::to_value(EnterpriseSettingsUpdateMetadata { before, after })
+                        .ok(),
+                ),
                 ApiEventType::ActivityLogStreamCreated { stream } => (
                     EventType::ActivityLogStreamCreated,
                     serde_json::to_value(ActivityLogStreamMetadata {

@@ -55,6 +55,7 @@
   "activity_event_settings_updated": "Settings updated",
   "activity_event_settings_updated_partial": "Settings partially updated",
   "activity_event_settings_default_branding_restored": "Default branding restored",
+  "activity_event_enterprise_settings_updated": "Enterprise settings updated",
   "activity_event_groups_bulk_assigned": "Groups bulk assigned",
   "activity_event_group_added": "Group added",
   "activity_event_group_modified": "Group modified",

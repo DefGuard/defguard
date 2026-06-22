@@ -18,6 +18,7 @@ use crate::{
     enterprise::db::models::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
+        enterprise_settings::EnterpriseSettings,
         openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
         snat::UserSnatBinding,
     },
@@ -338,6 +339,12 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
 pub struct SettingsUpdateMetadata {
     pub before: SettingsNoSecrets,
     pub after: SettingsNoSecrets,
+}
+
+#[derive(Serialize)]
+pub struct EnterpriseSettingsUpdateMetadata {
+    pub before: EnterpriseSettings,
+    pub after: EnterpriseSettings,
 }
 
 #[derive(Serialize)]

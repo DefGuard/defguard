@@ -7,6 +7,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::enterprise_settings::{EnterpriseSettings, EnterpriseSettingsPatch},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -39,13 +40,28 @@ pub async fn patch_enterprise_settings(
     );
     let mut settings = EnterpriseSettings::get(&appstate.pool).await?;
 
-    // snapshot values for comparison
-    let old_display_password_reset = settings.display_password_reset;
-    let old_display_download_step = settings.display_download_step;
+    // snapshot for audit event
+    let old_settings = settings.clone();
+    // snapshot values for broadcast comparison
+    let old_display_password_reset = old_settings.display_password_reset;
+    let old_display_download_step = old_settings.display_download_step;
 
     settings.apply(data);
     settings.save(&appstate.pool).await?;
     info!("Admin {} patched settings.", session.user.username);
+
+    appstate.emit_event(ApiEvent {
+        context: ApiRequestContext::new(
+            session.user.id,
+            session.user.username.clone(),
+            None::<std::net::IpAddr>,
+            "web".into(),
+        ),
+        event: Box::new(ApiEventType::EnterpriseSettingsUpdated {
+            before: old_settings,
+            after: settings.clone(),
+        }),
+    })?;
 
     // Broadcast updated public settings to proxies only if they changed.
     if (settings.display_password_reset != old_display_password_reset

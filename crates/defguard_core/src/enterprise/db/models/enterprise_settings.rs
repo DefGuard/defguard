@@ -3,7 +3,7 @@ use struct_patch::Patch;
 
 use crate::enterprise::is_business_license_active;
 
-#[derive(Debug, Deserialize, Patch, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct EnterpriseSettings {
     /// If true, only admins can manage devices
