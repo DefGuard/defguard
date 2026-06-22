@@ -120,6 +120,7 @@ export const EditCustomProviderForm = ({
               <field.FormInteractiveBlock
                 variant="checkbox"
                 title={m.settings_openid_provider_disable_password_management()}
+                content={m.settings_openid_provider_disable_password_management_content()}
               />
             )}
           </form.AppField>

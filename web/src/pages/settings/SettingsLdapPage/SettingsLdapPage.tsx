@@ -23,6 +23,7 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
@@ -309,6 +310,13 @@ const PageForm = () => {
               {(field) => (
                 <field.FormCheckbox
                   text={m.settings_ldap_checkbox_disable_password_management()}
+                  helperBlock={
+                    <Helper>
+                      <p>
+                        {m.settings_ldap_checkbox_disable_password_management_helper()}
+                      </p>
+                    </Helper>
+                  }
                 />
               )}
             </form.AppField>
