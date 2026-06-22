@@ -1258,7 +1258,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             ),
             event_type: EventType::VpnClientMfaSessionSuperseded,
             module: ActivityLogModule::Vpn,
-            description_contains: Some("closed"),
+            description_contains: Some("superseded"),
         },
         EventTestCase {
             name: "DevicePostureCheckPassed",
