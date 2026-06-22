@@ -7,7 +7,7 @@ use defguard_common::db::{
 };
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
-    BidiStreamEventType, DesktopClientMfaEvent, GrpcRequestContext,
+    BidiStreamEventType, DesktopClientMfaEvent, GrpcRequestContext, LdapSyncEventType,
 };
 use defguard_session_manager::events::{
     SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType,
@@ -27,6 +27,7 @@ pub enum Event {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
     },
+    LdapSync(LdapSyncEventType),
 }
 
 /// Messages that can be sent to the event logger
@@ -98,6 +99,15 @@ impl EventLoggerMessage {
             },
         }
     }
+
+    /// Translate an LDAP sync event into a logger message.
+    #[must_use]
+    pub fn from_ldap_sync_event(event: LdapSyncEventType) -> Self {
+        Self {
+            context: EventContext::system_ldap_sync(),
+            event: Event::LdapSync(event),
+        }
+    }
 }
 
 /// Extract location from an API event variant, if it carries one.
@@ -119,7 +129,7 @@ fn extract_api_location(event: &ApiEventType) -> Option<WireguardNetwork<Id>> {
 /// Shared context that's included in all activity log events
 pub struct EventContext {
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
+    pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
     pub ip: Option<IpAddr>,
@@ -136,7 +146,7 @@ impl EventContext {
 
         Self {
             timestamp: val.timestamp,
-            user_id: val.user_id,
+            user_id: Some(val.user_id),
             username: val.username,
             location,
             ip: val.ip,
@@ -153,7 +163,7 @@ impl EventContext {
 
         Self {
             timestamp: val.timestamp,
-            user_id: val.user_id,
+            user_id: Some(val.user_id),
             username: val.username,
             location,
             ip: val.ip,
@@ -165,11 +175,23 @@ impl EventContext {
     pub fn from_session_manager_context(val: SessionManagerEventContext) -> Self {
         Self {
             timestamp: val.timestamp,
-            user_id: val.user.id,
+            user_id: Some(val.user.id),
             username: val.user.username,
             location: Some(val.location.name),
             ip: val.public_ip,
             device: format!("{} (ID {})", val.device.name, val.device.id),
+        }
+    }
+
+    #[must_use]
+    pub fn system_ldap_sync() -> Self {
+        Self {
+            timestamp: chrono::Utc::now().naive_utc(),
+            user_id: None,
+            username: "system:ldap-sync".to_owned(),
+            location: None,
+            ip: None,
+            device: "system".to_owned(),
         }
     }
 }
@@ -178,7 +200,7 @@ impl From<GrpcRequestContext> for EventContext {
     fn from(val: GrpcRequestContext) -> Self {
         Self {
             timestamp: val.timestamp,
-            user_id: val.user_id,
+            user_id: Some(val.user_id),
             username: val.username,
             location: Some(val.location.name),
             ip: val.ip,

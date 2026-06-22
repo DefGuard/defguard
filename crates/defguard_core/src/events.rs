@@ -460,3 +460,26 @@ pub enum DesktopClientMfaEvent {
         is_mfa_session: bool,
     },
 }
+
+#[derive(Debug, PartialEq, EnumCount)]
+pub enum LdapSyncEventType {
+    UserCreated { user: User<Id> },
+    UserDeleted { user: User<Id> },
+    UserModified { before: User<Id>, after: User<Id> },
+    UserEnabled { user: User<Id> },
+    UserDisabled { user: User<Id> },
+    GroupCreated { group: Group<Id> },
+    GroupMemberAdded { group: Group<Id>, user: User<Id> },
+    GroupMemberRemoved { group: Group<Id>, user: User<Id> },
+}
+
+#[derive(Debug, Default)]
+pub struct LdapSyncReport {
+    pub events: Vec<LdapSyncEventType>,
+}
+
+impl LdapSyncReport {
+    pub fn push(&mut self, event: LdapSyncEventType) {
+        self.events.push(event);
+    }
+}

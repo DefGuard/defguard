@@ -27,6 +27,7 @@ use crate::{
         },
         limits::update_counts,
     },
+    events::LdapSyncReport,
     grpc::GatewayCommand,
 };
 
@@ -47,6 +48,7 @@ pub mod utils;
 pub(crate) async fn do_ldap_sync(
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
+    report: &mut LdapSyncReport,
 ) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();
@@ -93,7 +95,10 @@ pub(crate) async fn do_ldap_sync(
         }
     };
 
-    if let Err(err) = ldap_connection.sync(pool, is_ldap_desynced(), wg_tx).await {
+    if let Err(err) = ldap_connection
+        .sync(pool, is_ldap_desynced(), wg_tx, report)
+        .await
+    {
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(err);
     }

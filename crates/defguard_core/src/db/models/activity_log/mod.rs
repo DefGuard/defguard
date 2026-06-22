@@ -15,6 +15,7 @@ pub enum ActivityLogModule {
     Vpn,
     Enrollment,
     Posture,
+    LdapSync,
 }
 
 /// Represents activity log event type as it's stored in the DB
@@ -136,6 +137,15 @@ pub enum EventType {
     LocationPosturesAssigned,
     DevicePostureCheckPassed,
     DevicePostureCheckFailed,
+    // LDAP sync events
+    LdapSyncUserCreated,
+    LdapSyncUserDeleted,
+    LdapSyncUserModified,
+    LdapSyncUserEnabled,
+    LdapSyncUserDisabled,
+    LdapSyncGroupCreated,
+    LdapSyncGroupMemberAdded,
+    LdapSyncGroupMemberRemoved,
 }
 
 #[derive(Model, FromRow, Serialize)]
@@ -143,7 +153,8 @@ pub enum EventType {
 pub struct ActivityLogEvent<I = NoId> {
     pub id: I,
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
+    #[model(option)]
+    pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
     #[model(option)]

@@ -202,6 +202,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
     let (session_manager_event_tx, session_manager_event_rx) =
         unbounded_channel::<SessionManagerEvent>();
+    let (ldap_sync_event_tx, ldap_sync_event_rx) = unbounded_channel();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -292,13 +293,14 @@ async fn main() -> Result<(), anyhow::Error> {
             bail!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool, proxy_control_tx.clone()) =>
             bail!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx, web_reload_tx.clone()) =>
+        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx, web_reload_tx.clone(), ldap_sync_event_tx) =>
             bail!("Utility thread returned early: {res:?}"),
         res = run_event_logger(
             pool.clone(),
             api_event_rx,
             bidi_event_rx,
             session_manager_event_rx,
+            ldap_sync_event_rx,
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_tx.clone()
         ) => bail!("Activity log event logger returned early: {res:?}"),
