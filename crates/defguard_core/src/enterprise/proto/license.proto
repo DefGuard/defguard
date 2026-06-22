@@ -31,7 +31,7 @@ enum LicenseFeature {
   LICENSE_FEATURE_SERVICE_LOCATIONS = 1;  // service locations
   LICENSE_FEATURE_DEVICE_POSTURE = 2;     // device posture checks
   LICENSE_FEATURE_ACL_ALLOWED_IPS = 3;    // ACL-derived AllowedIPs computation
-  LICENSE_FEATURE_HA_MULTI_NODE = 4;      // multiple gateways/edges (HA)
+  LICENSE_FEATURE_COMPONENT_HA = 4;       // component high availability
 }
 
 message LicenseMetadata {

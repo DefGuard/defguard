@@ -200,7 +200,7 @@
   "settings_license_users_limit_label": "Added users",
   "settings_license_locations_limit_label": "VPN locations",
   "settings_license_features_title": "Enterprise features included:",
-  "settings_license_feature_ha_multi_node": "High Availability Active-Active (multiple Edge and Gateways)",
+  "settings_license_feature_component_ha": "High Availability Active-Active (multiple Edge and Gateways)",
   "settings_license_feature_device_posture": "Device Policy Postures",
   "settings_license_feature_service_locations": "Service Locations (Pre-logon / Always-on VPN)",
   "settings_license_feature_acl_allowed_ips": "Automatic AllowedIPs from Firewall Rules",

@@ -92,7 +92,7 @@ export const EdgesTable = () => {
       onClick: () => {
         if (edges.length >= 1) {
           licenseActionCheck(
-            canUseEnterpriseFeature(licenseInfo, LicenseFeature.HaMultiNode),
+            canUseEnterpriseFeature(licenseInfo, LicenseFeature.ComponentHa),
             () => {
               navigate({ to: '/setup-edge' });
             },

@@ -475,7 +475,7 @@ export const LicenseFeature = {
   ServiceLocations: 'ServiceLocations',
   DevicePosture: 'DevicePosture',
   AclAllowedIps: 'AclAllowedIps',
-  HaMultiNode: 'HaMultiNode',
+  ComponentHa: 'ComponentHa',
 } as const;
 
 export type LicenseFeatureValue = (typeof LicenseFeature)[keyof typeof LicenseFeature];

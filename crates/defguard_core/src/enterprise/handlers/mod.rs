@@ -20,9 +20,14 @@ use axum::{
 };
 use serde::Serialize;
 
+use strum::VariantArray;
+
 use super::{
     LicenseFeature, db::models::enterprise_settings::EnterpriseSettings,
-    is_business_license_active, is_enterprise_license_active, license::get_cached_license,
+    is_business_license_active, is_enterprise_license_active, license::{
+        LicenseTier, get_cached_license, validate_license,
+    },
+    license_grants_feature,
 };
 use crate::{appstate::AppState, error::WebError};
 
@@ -132,6 +137,17 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                     }),
             });
 
+            let valid = validate_license(Some(license), &counts, LicenseTier::Business).is_ok();
+            let features: Vec<LicenseFeature> = if valid {
+                LicenseFeature::VARIANTS
+                    .iter()
+                    .copied()
+                    .filter(|&f| license_grants_feature(license, f))
+                    .collect()
+            } else {
+                vec![]
+            };
+
             serde_json::json!({
                 "valid_until": license.valid_until,
                 "subscription": license.subscription,
@@ -141,10 +157,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 "support_type": license.support_type,
                 "limits": limits_info,
                 // effective set of enabled features (tier-granted plus additive flags)
-                "features": LicenseFeature::ALL
-                    .into_iter()
-                    .filter(|feature| is_enterprise_license_active(Some(*feature)))
-                    .collect::<Vec<_>>(),
+                "features": features,
             })
         });
     Ok(ApiResponse::json(

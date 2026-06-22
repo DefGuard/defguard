@@ -5,6 +5,8 @@ import {
   type LicenseFeatureValue,
   type LicenseInfo,
   type LicenseInfoApi,
+  LicenseTier,
+  type LicenseTierValue,
   SupportType,
   type SupportTypeNarrowValue,
   type SupportTypeValue,
@@ -73,10 +75,20 @@ export const getSupportTypeLabel = (supportType: SupportTypeValue): string => {
   }
 };
 
+const tierIncludedFeatures: Record<LicenseTierValue, LicenseFeatureValue[]> = {
+  [LicenseTier.Enterprise]: Object.values(LicenseFeature),
+  [LicenseTier.Business]: [],
+};
+
+/// Returns only the features that are additive grants (not already covered by the tier
+/// baseline). Use this for display; never use it for gating (gating must use `features`).
+export const getAdditiveFeatures = (license: LicenseInfo): LicenseFeatureValue[] =>
+  license.features.filter((f) => !tierIncludedFeatures[license.tier].includes(f));
+
 export const getLicenseFeatureLabel = (feature: LicenseFeatureValue): string => {
   switch (feature) {
-    case LicenseFeature.HaMultiNode:
-      return m.settings_license_feature_ha_multi_node();
+    case LicenseFeature.ComponentHa:
+      return m.settings_license_feature_component_ha();
     case LicenseFeature.DevicePosture:
       return m.settings_license_feature_device_posture();
     case LicenseFeature.ServiceLocations:

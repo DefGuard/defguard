@@ -23,6 +23,7 @@ import {
 } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import {
+  getAdditiveFeatures,
   getLicenseFeatureLabel,
   getSupportTypeLabel,
   type LicenseState,
@@ -55,6 +56,8 @@ export const SettingsLicenseInfoSection = ({
     daysUntilExpiration !== null &&
     daysUntilExpiration > 0 &&
     daysUntilExpiration <= 30;
+
+  const displayedFeatures = getAdditiveFeatures(license);
 
   return (
     <div className="license-general-info">
@@ -110,7 +113,7 @@ export const SettingsLicenseInfoSection = ({
           />
         </>
       )}
-      {!isExpired && (isPresent(license.limits) || license.features.length > 0) && (
+      {!isExpired && (isPresent(license.limits) || displayedFeatures.length > 0) && (
         <Divider spacing={ThemeSpacing.Xl} />
       )}
       {!isExpired && isPresent(license.limits) && (
@@ -120,8 +123,8 @@ export const SettingsLicenseInfoSection = ({
           <LimitsSection limits={license.limits} />
         </Fragment>
       )}
-      {!isExpired && license.features.length > 0 && (
-        <FeaturesSection features={license.features} />
+      {!isExpired && displayedFeatures.length > 0 && (
+        <FeaturesSection features={displayedFeatures} />
       )}
       <Divider spacing={ThemeSpacing.Xl} />
     </div>

@@ -278,7 +278,7 @@ export const LocationsTable = () => {
                         };
                         if (row.gateways.length >= 1) {
                           licenseActionCheck(
-                            canUseEnterpriseFeature(license, LicenseFeature.HaMultiNode),
+                            canUseEnterpriseFeature(license, LicenseFeature.ComponentHa),
                             action,
                           );
                         } else {

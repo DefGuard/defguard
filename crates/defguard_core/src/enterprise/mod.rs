@@ -12,11 +12,17 @@ pub mod posture;
 pub mod snat;
 mod utils;
 
-use license::{get_cached_license, validate_license};
+use license::{License, get_cached_license, validate_license};
 use limits::get_counts;
 
 pub use crate::enterprise::license::LicenseFeature;
 use crate::enterprise::license::LicenseTier;
+
+/// Returns whether a valid license grants the given feature, considering both the tier baseline
+/// and any explicit additive flags. Does not check validity; call `validate_license` first.
+pub(crate) fn license_grants_feature(license: &License, feature: LicenseFeature) -> bool {
+    license.tier.included_features().contains(&feature) || license.has_feature(feature)
+}
 
 /// Helper function to gate features which require a base license (Team or Business tier)
 #[must_use]
@@ -40,7 +46,10 @@ pub fn is_enterprise_license_active(feature: Option<LicenseFeature>) -> bool {
     if validate_license(Some(license), &counts, LicenseTier::Business).is_err() {
         return false;
     }
-    license.tier == LicenseTier::Enterprise || feature.is_some_and(|f| license.has_feature(f))
+    match feature {
+        Some(f) => license_grants_feature(license, f),
+        None => license.tier == LicenseTier::Enterprise,
+    }
 }
 
 /// Shared logic for gating features to specific license tiers
@@ -59,6 +68,7 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
 #[cfg(test)]
 mod test {
     use chrono::{TimeDelta, Utc};
+    use strum::VariantArray;
 
     use crate::{
         enterprise::{
@@ -86,7 +96,7 @@ mod test {
         set_counts(counts);
 
         assert!(!is_business_license_active());
-        for feature in LicenseFeature::ALL {
+        for &feature in LicenseFeature::VARIANTS {
             assert!(!is_enterprise_license_active(Some(feature)));
         }
     }
@@ -111,7 +121,7 @@ mod test {
         set_cached_license(Some(license));
 
         assert!(is_business_license_active());
-        for feature in LicenseFeature::ALL {
+        for &feature in LicenseFeature::VARIANTS {
             assert!(!is_enterprise_license_active(Some(feature)));
         }
 
@@ -129,7 +139,7 @@ mod test {
         set_cached_license(Some(license));
 
         assert!(is_business_license_active());
-        for feature in LicenseFeature::ALL {
+        for &feature in LicenseFeature::VARIANTS {
             assert!(is_enterprise_license_active(Some(feature)));
         }
     }
@@ -163,7 +173,7 @@ mod test {
             LicenseFeature::AclAllowedIps
         )));
         assert!(!is_enterprise_license_active(Some(
-            LicenseFeature::HaMultiNode
+            LicenseFeature::ComponentHa
         )));
 
         // a Business license without the flag never satisfies a tier-only (None) gate

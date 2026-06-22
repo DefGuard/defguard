@@ -244,7 +244,7 @@ pub async fn setup_proxy_tls_stream(
         let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
         // check if tries to connect more then 1 proxy without active enterprise license
-        if !is_enterprise_license_active(Some(LicenseFeature::HaMultiNode)) {
+        if !is_enterprise_license_active(Some(LicenseFeature::ComponentHa)) {
             match Proxy::list(&pool).await {
                 Ok(current_proxies) => {
                     if !current_proxies.is_empty() {
@@ -722,7 +722,7 @@ async fn perform_gateway_adoption(
     }
 
     // License check: non-enterprise installs are limited to one gateway per network.
-    if !is_enterprise_license_active(Some(LicenseFeature::HaMultiNode)) {
+    if !is_enterprise_license_active(Some(LicenseFeature::ComponentHa)) {
         let gateways = Gateway::find_by_location_id(pool, network_id)
             .await
             .map_err(|e| format!("Failed to query existing Gateways: {e}"))?;

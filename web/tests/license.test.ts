@@ -5,6 +5,7 @@ import { LicenseFeature, type LicenseInfo } from '../src/shared/api/types';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
+  getAdditiveFeatures,
   getLicenseState,
 } from '../src/shared/utils/license';
 
@@ -177,5 +178,39 @@ describe('canUseEnterpriseFeature', () => {
     );
     expect(result.result).toBe(false);
     expect(result.error).toBe('tier');
+  });
+});
+
+describe('getAdditiveFeatures', () => {
+  it('should return empty array for Enterprise license (all features are tier-included)', () => {
+    const license = makeLicense({
+      tier: 'Enterprise',
+      features: Object.values(LicenseFeature),
+    });
+    expect(getAdditiveFeatures(license)).toEqual([]);
+  });
+
+  it('should return explicit flags for Business license with granted features', () => {
+    const license = makeLicense({
+      tier: 'Business',
+      features: [LicenseFeature.DevicePosture],
+    });
+    expect(getAdditiveFeatures(license)).toEqual([LicenseFeature.DevicePosture]);
+  });
+
+  it('should return empty array for Business license with no features', () => {
+    const license = makeLicense({ tier: 'Business', features: [] });
+    expect(getAdditiveFeatures(license)).toEqual([]);
+  });
+
+  it('should return multiple additive flags for Business license', () => {
+    const license = makeLicense({
+      tier: 'Business',
+      features: [LicenseFeature.DevicePosture, LicenseFeature.ComponentHa],
+    });
+    expect(getAdditiveFeatures(license)).toEqual([
+      LicenseFeature.DevicePosture,
+      LicenseFeature.ComponentHa,
+    ]);
   });
 });
