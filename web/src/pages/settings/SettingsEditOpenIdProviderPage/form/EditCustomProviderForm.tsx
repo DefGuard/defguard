@@ -25,6 +25,7 @@ export const EditCustomProviderForm = ({
       client_id: provider.client_id,
       client_secret: provider.client_secret,
       create_account: provider.create_account,
+      disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
       username_handling: provider.username_handling,
       base_url: provider.base_url,
@@ -110,6 +111,15 @@ export const EditCustomProviderForm = ({
                 variant="checkbox"
                 title={m.settings_openid_provider_create_account_title()}
                 content={m.settings_openid_provider_create_account_content()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="disable_password_management">
+            {(field) => (
+              <field.FormInteractiveBlock
+                variant="checkbox"
+                title={m.settings_openid_provider_disable_password_management()}
               />
             )}
           </form.AppField>

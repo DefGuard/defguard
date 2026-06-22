@@ -77,6 +77,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             .trim()
             .min(1, m.form_error_required()),
           create_account: z.boolean(m.form_error_invalid()),
+          disable_password_management: z.boolean(),
           username_handling: z.enum(OpenIdProviderUsernameHandling),
           microsoftTenantId: z.string().trim().nullable(),
           jumpcloud_region: z.enum(['us', 'eu', 'in']),
@@ -109,6 +110,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       client_id: storeData.client_id,
       client_secret: storeData.client_secret,
       create_account: storeData.create_account,
+      disable_password_management: storeData.disable_password_management,
       display_name: storeData.display_name,
       microsoftTenantId: storeData.microsoftTenantId ?? null,
       username_handling: storeData.username_handling,
@@ -247,6 +249,15 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                 variant="checkbox"
                 title={m.settings_openid_provider_create_account_title()}
                 content={m.settings_openid_provider_create_account_content()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="disable_password_management">
+            {(field) => (
+              <field.FormInteractiveBlock
+                variant="checkbox"
+                title={m.settings_openid_provider_disable_password_management()}
               />
             )}
           </form.AppField>

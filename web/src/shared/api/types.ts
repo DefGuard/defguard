@@ -1252,6 +1252,7 @@ export interface OpenIdProvider {
   directory_sync_group_match?: string[] | null;
   jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
+  disable_password_management: boolean;
 }
 
 export interface OpenIdProviders {
