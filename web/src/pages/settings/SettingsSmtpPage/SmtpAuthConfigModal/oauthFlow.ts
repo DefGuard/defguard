@@ -1,8 +1,5 @@
 import { m } from '../../../../paraglide/messages';
-import {
-  SMTP_OAUTH_CALLBACK_TYPE,
-  SMTP_OAUTH_RESULT_KEY,
-} from '../../../../routes/smtp-oauth-callback';
+import { SMTP_OAUTH_CALLBACK_TYPE } from '../../../../routes/smtp-oauth-callback';
 
 export const GOOGLE_ISSUER_URL = 'https://accounts.google.com';
 export const MICROSOFT_ISSUER_URL = 'https://login.microsoftonline.com/common';
@@ -57,13 +54,28 @@ export const buildAuthUrl = (
 
 type OAuthResult = { type?: string; code?: string; error?: string };
 
-export const waitForOAuthCode = (popup: Window): Promise<string> =>
+export const waitForOAuthCode = (popup: Window, signal?: AbortSignal): Promise<string> =>
   new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
+    const closePopup = () => {
+      try {
+        popup.close();
+      } catch {
+        // detached after COOP
+      }
+    };
+
+    let broadcastChannel: BroadcastChannel | null = null;
+
     const cleanup = () => {
       window.removeEventListener('message', messageHandler);
-      window.removeEventListener('storage', storageHandler);
+      broadcastChannel?.close();
       clearTimeout(timeoutId);
-      localStorage.removeItem(SMTP_OAUTH_RESULT_KEY);
+      signal?.removeEventListener('abort', onAbort);
     };
 
     const handleResult = (data: OAuthResult) => {
@@ -81,28 +93,30 @@ export const waitForOAuthCode = (popup: Window): Promise<string> =>
       handleResult(event.data as OAuthResult);
     };
 
-    // COOP fallback: storage event crosses browsing-context-group boundaries.
-    const storageHandler = (event: StorageEvent) => {
-      if (event.key !== SMTP_OAUTH_RESULT_KEY || !event.newValue) return;
-      try {
-        handleResult(JSON.parse(event.newValue) as OAuthResult);
-      } catch {
-        // ignore malformed values
-      }
-    };
-
-    localStorage.removeItem(SMTP_OAUTH_RESULT_KEY);
     window.addEventListener('message', messageHandler);
-    window.addEventListener('storage', storageHandler);
+
+    // COOP fallback: BroadcastChannel is keyed by (origin, name), not by
+    // browsing-context-group, so it crosses COOP boundaries without browser storage.
+    try {
+      broadcastChannel = new BroadcastChannel('smtp-oauth-relay');
+      broadcastChannel.addEventListener('message', (event: MessageEvent) => {
+        handleResult(event.data as OAuthResult);
+      });
+    } catch {
+      // BroadcastChannel unavailable; direct postMessage path still works without COOP.
+    }
+
+    const onAbort = () => {
+      closePopup();
+      cleanup();
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort);
 
     // Timeout is the only "user abandoned" signal — popup.closed is unreliable after COOP.
     const timeoutId = setTimeout(
       () => {
-        try {
-          popup.close();
-        } catch {
-          // popup may be detached after COOP
-        }
+        closePopup();
         cleanup();
         reject(new Error(m.settings_smtp_auth_oauth_popup_closed()));
       },

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import { SmtpAuthentication } from '../../../../shared/api/types';
@@ -18,6 +17,7 @@ import {
   waitForOAuthCode,
 } from './oauthFlow';
 import type { FormProps } from './types';
+import { useOAuthSubmit } from './useOAuthSubmit';
 
 const schema = z.object({
   smtp_sender: z
@@ -32,7 +32,8 @@ const schema = z.object({
 });
 
 export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
-  const [oauthError, setOauthError] = useState<string | null>(null);
+  const { oauthError, setOauthError, handleCancel, beginOAuth, handleOAuthError } =
+    useOAuthSubmit(onClose);
 
   const form = useAppForm({
     defaultValues: {
@@ -79,7 +80,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
       }
 
       try {
-        const code = await waitForOAuthCode(popup);
+        const code = await waitForOAuthCode(popup, beginOAuth());
         const refreshToken = await exchangeCodeForToken(
           tokenEndpoint,
           code,
@@ -96,9 +97,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
           smtp_oauth_refresh_token: refreshToken,
         });
       } catch (err) {
-        setOauthError(
-          err instanceof Error ? err.message : m.settings_smtp_auth_oauth_error(),
-        );
+        handleOAuthError(err);
       }
     },
   });
@@ -180,8 +179,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
               cancelProps={{
                 testId: 'cancel',
                 text: m.controls_cancel(),
-                disabled: isSubmitting,
-                onClick: onClose,
+                onClick: handleCancel,
               }}
             />
           )}

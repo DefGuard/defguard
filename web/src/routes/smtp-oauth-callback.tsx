@@ -2,8 +2,6 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 export const SMTP_OAUTH_CALLBACK_TYPE = 'smtp-oauth-callback';
-// Fallback key for when COOP severs window.opener (see oauthFlow.ts).
-export const SMTP_OAUTH_RESULT_KEY = 'smtp_oauth_result';
 
 export const Route = createFileRoute('/smtp-oauth-callback')({
   component: SmtpOAuthCallbackPage,
@@ -25,10 +23,16 @@ function SmtpOAuthCallbackPage() {
     if (window.opener) {
       (window.opener as Window).postMessage(result, window.location.origin);
     } else {
-      // COOP severed window.opener; avoid persisting OAuth callback payloads in browser storage.
-      // No fallback persistence here to prevent cleartext storage of sensitive information.
+      // COOP severed window.opener; BroadcastChannel crosses browsing-context-group
+      // boundaries without touching browser storage.
+      try {
+        const channel = new BroadcastChannel('smtp-oauth-relay');
+        channel.postMessage(result);
+        channel.close();
+      } catch {
+        // ignore
+      }
     }
-
     window.close();
   }, []);
 
