@@ -1,0 +1,6 @@
+#!/bin/sh
+CONFIG=/etc/defguard/core.toml
+
+if [ ! -f "${CONFIG}" ]; then
+    cp "${CONFIG}.sample" "${CONFIG}"
+fi

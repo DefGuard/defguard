@@ -92,19 +92,19 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           submodules: recursive
 
       - name: Install NodeJS
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0.4.0
         with:
-          node-version: 25
+          node-version: 26
 
       - name: Install pnpm
-        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
-          version: 10
+          version: 11
 
       # Change to '--frozen-lockfile' once this gets fixed:
       # https://github.com/pnpm/action-setup/issues/40
@@ -120,7 +120,7 @@ jobs:
           targets: "aarch64-unknown-linux-gnu"
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+        uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
       - name: Build Linux x86_64 binary
         run: |
@@ -221,17 +221,18 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
             freebsd/defguard=/usr/local/etc/rc.d/defguard
-            .env.example=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf.sample"
           fpm_opts:
             "--architecture amd64
             --output-type freebsd
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
             --freebsd-osversion '*'
-            --depends openssl"
+            --depends openssl
+            --after-install freebsd/post-install.sh"
 
       - name: Upload Linux x86_64 archive
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -241,7 +242,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux aarch64 archive
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -251,7 +252,7 @@ jobs:
           overwrite: true
 
       - name: Upload FreeBSD x86_64 archive
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -261,7 +262,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux x86_64 DEB
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -271,7 +272,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux aarch64 DEB
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -281,7 +282,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux x86_64 RPM
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -291,7 +292,7 @@ jobs:
           overwrite: true
 
       - name: Upload Linux aarch64 RPM
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -301,7 +302,7 @@ jobs:
           overwrite: true
 
       - name: Upload FreeBSD package
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -344,7 +345,7 @@ jobs:
           git config --global --add safe.directory '*'
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           submodules: recursive
 
@@ -355,12 +356,12 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install NodeJS
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 26
 
       - name: Install pnpm
-        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 11
 
@@ -404,7 +405,7 @@ jobs:
             ".env.example=/etc/defguard/core.conf"
 
       - name: Upload ubuntu-22-04-lts DEB
-        uses: shogo82148/actions-upload-release-asset@ee2ae851dc5d938b90075b3ef12c540abfd1ee72 # v1
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

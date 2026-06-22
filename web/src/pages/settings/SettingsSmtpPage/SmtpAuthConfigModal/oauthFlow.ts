@@ -52,18 +52,35 @@ export const buildAuthUrl = (
   return `${authorizationEndpoint}?${params.toString()}`;
 };
 
-export const waitForOAuthCode = (popup: Window): Promise<string> =>
+type OAuthResult = { type?: string; code?: string; error?: string };
+
+export const waitForOAuthCode = (popup: Window, signal?: AbortSignal): Promise<string> =>
   new Promise((resolve, reject) => {
-    const messageHandler = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      const data = event.data as {
-        type?: string;
-        code?: string;
-        error?: string;
-      };
-      if (data?.type !== SMTP_OAUTH_CALLBACK_TYPE) return;
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
+    const closePopup = () => {
+      try {
+        popup.close();
+      } catch {
+        // detached after COOP
+      }
+    };
+
+    let broadcastChannel: BroadcastChannel | null = null;
+
+    const cleanup = () => {
       window.removeEventListener('message', messageHandler);
-      clearInterval(pollInterval);
+      broadcastChannel?.close();
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onAbort);
+    };
+
+    const handleResult = (data: OAuthResult) => {
+      if (data?.type !== SMTP_OAUTH_CALLBACK_TYPE) return;
+      cleanup();
       if (data.code) {
         resolve(data.code);
       } else {
@@ -71,15 +88,40 @@ export const waitForOAuthCode = (popup: Window): Promise<string> =>
       }
     };
 
-    const pollInterval = setInterval(() => {
-      if (popup.closed) {
-        window.removeEventListener('message', messageHandler);
-        clearInterval(pollInterval);
-        reject(new Error(m.settings_smtp_auth_oauth_popup_closed()));
-      }
-    }, 500);
+    const messageHandler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      handleResult(event.data as OAuthResult);
+    };
 
     window.addEventListener('message', messageHandler);
+
+    // COOP fallback: BroadcastChannel is keyed by (origin, name), not by
+    // browsing-context-group, so it crosses COOP boundaries without browser storage.
+    try {
+      broadcastChannel = new BroadcastChannel('smtp-oauth-relay');
+      broadcastChannel.addEventListener('message', (event: MessageEvent) => {
+        handleResult(event.data as OAuthResult);
+      });
+    } catch {
+      // BroadcastChannel unavailable; direct postMessage path still works without COOP.
+    }
+
+    const onAbort = () => {
+      closePopup();
+      cleanup();
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort);
+
+    // Timeout is the only "user abandoned" signal — popup.closed is unreliable after COOP.
+    const timeoutId = setTimeout(
+      () => {
+        closePopup();
+        cleanup();
+        reject(new Error(m.settings_smtp_auth_oauth_popup_closed()));
+      },
+      5 * 60 * 1000,
+    );
   });
 
 export const exchangeCodeForToken = async (

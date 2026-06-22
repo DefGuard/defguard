@@ -14,17 +14,25 @@ function SmtpOAuthCallbackPage() {
     const error = params.get('error');
     const errorDescription = params.get('error_description');
 
-    if (window.opener) {
-      (window.opener as Window).postMessage(
-        {
-          type: SMTP_OAUTH_CALLBACK_TYPE,
-          code: code ?? undefined,
-          error: error ? (errorDescription ?? error) : undefined,
-        },
-        window.location.origin,
-      );
-    }
+    const result = {
+      type: SMTP_OAUTH_CALLBACK_TYPE,
+      code: code ?? undefined,
+      error: error ? (errorDescription ?? error) : undefined,
+    };
 
+    if (window.opener) {
+      (window.opener as Window).postMessage(result, window.location.origin);
+    } else {
+      // COOP severed window.opener; BroadcastChannel crosses browsing-context-group
+      // boundaries without touching browser storage.
+      try {
+        const channel = new BroadcastChannel('smtp-oauth-relay');
+        channel.postMessage(result);
+        channel.close();
+      } catch {
+        // ignore
+      }
+    }
     window.close();
   }, []);
 
