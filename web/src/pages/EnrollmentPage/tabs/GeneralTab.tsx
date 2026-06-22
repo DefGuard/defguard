@@ -158,7 +158,7 @@ const GeneralTabContent = ({
       await patchSettings({
         enrollment_token_timeout_hours: value.enrollment_token_timeout_hours,
         enrollment_session_timeout_minutes: value.enrollment_session_timeout_minutes,
-      } as Partial<Settings>);
+      });
       // Patch enterprise settings only when license is active
       let enterpriseSaved = false;
       if (license) {
