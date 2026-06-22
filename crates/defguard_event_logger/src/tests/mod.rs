@@ -167,6 +167,25 @@ fn test_maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect
     }
 }
 
+#[test]
+fn test_maps_replaced_bidi_events_from_non_mfa_sessions_to_standard_replaced_logger_events() {
+    let event = BidiStreamEvent {
+        context: sample_bidi_context(),
+        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+            DesktopClientMfaEvent::SessionReplaced {
+                location: sample_location(),
+                device: sample_device(),
+                is_mfa_session: false,
+            },
+        )),
+    };
+
+    let result = map_to_activity_log_event(EventLoggerMessage::from_bidi_event(event));
+
+    assert_eq!(result.event, EventType::VpnClientSessionReplaced);
+    assert_eq!(result.module, ActivityLogModule::Vpn);
+}
+
 // Helper struct for testing mapping of all existing events
 // to activity log entries
 struct EventTestCase {

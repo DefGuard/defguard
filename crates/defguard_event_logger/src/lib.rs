@@ -673,7 +673,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 DesktopClientMfaEvent::SessionReplaced {
                     device, location, ..
                 } => Some(format!(
-                    "Existing VPN session for device {device} in location {location} was closed because a new session was authorized"
+                    "VPN session for {device} in location {location} superseded by new authorization"
                 )),
             };
             let (event_type, metadata) = match *event {

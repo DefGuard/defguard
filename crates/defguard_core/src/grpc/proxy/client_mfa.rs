@@ -53,7 +53,7 @@ use crate::{
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
 };
 
-const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 5 minutes
 
 // How much time the user has to approve remote MFA with mobile device
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_secs(60);
