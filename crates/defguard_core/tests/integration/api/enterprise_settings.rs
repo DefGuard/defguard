@@ -1,109 +1,19 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, atomic::AtomicBool},
-    time::Duration,
-};
+use std::time::Duration;
 
-use axum_extra::extract::cookie::Key;
-use defguard_common::{
-    db::models::settings::initialize_current_settings, types::proxy::ProxyControlMessage,
-};
+use defguard_common::types::proxy::ProxyControlMessage;
 use defguard_core::{
-    auth::failed_login::FailedLoginMap,
-    build_webapp,
-    db::AppEvent,
     enterprise::{
         db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-        license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
+        license::{get_cached_license, set_cached_license},
     },
-    events::ApiEvent,
-    grpc::{GatewayCommand, WorkerState},
     handlers::Auth,
 };
 use reqwest::StatusCode;
 use serde_json::json;
-use sqlx::{
-    PgPool,
-    postgres::{PgConnectOptions, PgPoolOptions},
-};
-use tokio::{
-    net::TcpListener,
-    sync::{
-        broadcast,
-        mpsc::{Receiver, channel, unbounded_channel},
-    },
-    time::sleep,
-};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::sleep;
 
-use super::common::{client::TestClient, exceed_enterprise_limits, make_test_client, setup_pool};
-use crate::common::{init_config, initialize_users};
-
-/// Builds a test client whose `AppState` carries a `proxy_control_tx` channel.
-async fn make_test_client_with_proxy_rx(
-    pool: PgPool,
-) -> (TestClient, Receiver<ProxyControlMessage>, PgPool) {
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
-    let listener = TcpListener::bind(addr)
-        .await
-        .expect("Could not bind ephemeral socket");
-    let port = listener.local_addr().unwrap().port();
-    let config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
-    initialize_users(&pool).await;
-    initialize_current_settings(&pool)
-        .await
-        .expect("Could not initialize settings");
-
-    let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(32);
-    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
-    let (tx, rx) = unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (gateway_tx, _wg_rx) = broadcast::channel::<GatewayCommand>(16);
-    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
-
-    let license = License::new(
-        "test_customer".to_owned(),
-        false,
-        None,
-        None,
-        None,
-        LicenseTier::Business,
-        SupportType::Basic,
-    );
-    set_cached_license(Some(license));
-
-    let key = Key::from(
-        defguard_common::db::models::Settings::get_current_settings()
-            .secret_key_required()
-            .unwrap()
-            .as_bytes(),
-    );
-    let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
-
-    let webapp = build_webapp(
-        tx,
-        rx,
-        gateway_tx,
-        web_reload_tx,
-        worker_state,
-        pool.clone(),
-        key,
-        failed_logins,
-        api_event_tx,
-        Arc::default(),
-        proxy_control_tx,
-        Arc::new(AtomicBool::new(false)),
-        &config,
-    );
-
-    let client = TestClient::new(webapp, listener, api_event_rx);
-
-    // Admin login
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    (client, proxy_control_rx, pool)
-}
+use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_only_enterprise_can_modify_enterpise_settings(
@@ -717,7 +627,8 @@ async fn test_display_flags_return_defaults_when_license_removed(
 #[sqlx::test]
 async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (client, mut proxy_control_rx, _pool) = make_test_client_with_proxy_rx(pool).await;
+    let (client, client_state) = make_test_client(pool.clone()).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
 
     exceed_enterprise_limits(&client).await;
 
