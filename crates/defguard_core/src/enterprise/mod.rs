@@ -37,7 +37,7 @@ pub fn is_business_license_active() -> bool {
 /// unlocks that feature when it has been granted individually via an additive license feature
 /// flag; passing `None` gates strictly on the Enterprise tier (no flag can satisfy it).
 #[must_use]
-pub fn is_enterprise_license_active(feature: Option<LicenseFeature>) -> bool {
+pub fn has_enterprise_access(feature: Option<LicenseFeature>) -> bool {
     let counts = get_counts();
     let license = get_cached_license();
     let Some(license) = license.as_ref() else {
@@ -72,7 +72,7 @@ mod test {
 
     use crate::{
         enterprise::{
-            LicenseFeature, is_business_license_active, is_enterprise_license_active,
+            LicenseFeature, has_enterprise_access, is_business_license_active,
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{Counts, set_counts},
         },
@@ -97,7 +97,7 @@ mod test {
 
         assert!(!is_business_license_active());
         for &feature in LicenseFeature::VARIANTS {
-            assert!(!is_enterprise_license_active(Some(feature)));
+            assert!(!has_enterprise_access(Some(feature)));
         }
     }
 
@@ -122,7 +122,7 @@ mod test {
 
         assert!(is_business_license_active());
         for &feature in LicenseFeature::VARIANTS {
-            assert!(!is_enterprise_license_active(Some(feature)));
+            assert!(!has_enterprise_access(Some(feature)));
         }
 
         // set Enterprise license
@@ -140,7 +140,7 @@ mod test {
 
         assert!(is_business_license_active());
         for &feature in LicenseFeature::VARIANTS {
-            assert!(is_enterprise_license_active(Some(feature)));
+            assert!(has_enterprise_access(Some(feature)));
         }
     }
 
@@ -163,27 +163,19 @@ mod test {
         set_cached_license(Some(license));
 
         // only the granted feature is unlocked, the rest stay disabled
-        assert!(is_enterprise_license_active(Some(
-            LicenseFeature::DevicePosture
-        )));
-        assert!(!is_enterprise_license_active(Some(
+        assert!(has_enterprise_access(Some(LicenseFeature::DevicePosture)));
+        assert!(!has_enterprise_access(Some(
             LicenseFeature::ServiceLocations
         )));
-        assert!(!is_enterprise_license_active(Some(
-            LicenseFeature::AclAllowedIps
-        )));
-        assert!(!is_enterprise_license_active(Some(
-            LicenseFeature::ComponentHa
-        )));
+        assert!(!has_enterprise_access(Some(LicenseFeature::AclAllowedIps)));
+        assert!(!has_enterprise_access(Some(LicenseFeature::ComponentHa)));
 
         // a Business license without the flag never satisfies a tier-only (None) gate
-        assert!(!is_enterprise_license_active(None));
+        assert!(!has_enterprise_access(None));
 
         // flags don't survive exceeding the license limits
         let over_limit = Counts::new(100, 100, 100, 100);
         set_counts(over_limit);
-        assert!(!is_enterprise_license_active(Some(
-            LicenseFeature::DevicePosture
-        )));
+        assert!(!has_enterprise_access(Some(LicenseFeature::DevicePosture)));
     }
 }

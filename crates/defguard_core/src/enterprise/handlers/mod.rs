@@ -24,7 +24,7 @@ use strum::VariantArray;
 use super::{
     LicenseFeature,
     db::models::enterprise_settings::EnterpriseSettings,
-    is_business_license_active, is_enterprise_license_active,
+    has_enterprise_access, is_business_license_active,
     license::{LicenseTier, get_cached_license, validate_license},
     license_grants_feature,
 };
@@ -93,7 +93,7 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        if is_enterprise_license_active(Some(F::FEATURE)) {
+        if has_enterprise_access(Some(F::FEATURE)) {
             Ok(Self(PhantomData))
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
