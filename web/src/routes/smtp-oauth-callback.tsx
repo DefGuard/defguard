@@ -25,13 +25,8 @@ function SmtpOAuthCallbackPage() {
     if (window.opener) {
       (window.opener as Window).postMessage(result, window.location.origin);
     } else {
-      // COOP severed window.opener; storage event crosses browsing-context-group boundaries.
-      // Do not persist OAuth authorization code in browser storage.
-      const storageSafeResult = {
-        type: SMTP_OAUTH_CALLBACK_TYPE,
-        error: error ? (errorDescription ?? error) : undefined,
-      };
-      localStorage.setItem(SMTP_OAUTH_RESULT_KEY, JSON.stringify(storageSafeResult));
+      // COOP severed window.opener; avoid persisting OAuth callback payloads in browser storage.
+      // No fallback persistence here to prevent cleartext storage of sensitive information.
     }
 
     window.close();
