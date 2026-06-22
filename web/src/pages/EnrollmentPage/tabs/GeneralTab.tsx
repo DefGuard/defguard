@@ -13,19 +13,13 @@ import { Controls } from '../../../shared/components/Controls/Controls';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
-import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -66,7 +60,7 @@ type GeneralTabFormFields = z.infer<typeof generalTabFormSchema>;
 
 export const GeneralTab = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
-  const { data: license, isFetched } = useQuery(getLicenseInfoQueryOptions);
+  const { data: license } = useQuery(getLicenseInfoQueryOptions);
 
   return (
     <SettingsLayout
@@ -76,7 +70,6 @@ export const GeneralTab = () => {
         icon="key"
         title={m.settings_enrollment_general_title()}
         subtitle={m.settings_enrollment_page_subtitle()}
-        badgeProps={!isPresent(license) && isFetched ? businessBadgeProps : undefined}
       />
       <SizedBox height={ThemeSpacing.Lg} />
       {isPresent(settings) && (
@@ -209,13 +202,10 @@ const GeneralTabContent = ({
       >
         <form.AppForm>
           <MarkedSection icon="key">
-            <div className="edge-ui-section-header">
-              <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-                {m.settings_enrollment_section_edge_ui_title()}
-              </AppText>
-              {noLicense && <Badge {...businessBadgeProps} />}
-            </div>
-            <SizedBox height={ThemeSpacing.Xl} />
+            <MarkedSectionHeader
+              title={m.settings_enrollment_section_edge_ui_title()}
+              badgeProps={noLicense ? businessBadgeProps : undefined}
+            />
             <form.AppField name="display_password_reset">
               {(field) => (
                 <field.FormInteractiveBlock

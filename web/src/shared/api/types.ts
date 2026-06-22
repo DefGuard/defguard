@@ -920,8 +920,8 @@ export type ClientTrafficPolicyValue =
 export interface SettingsEnterprise {
   admin_device_management: boolean;
   client_traffic_policy: ClientTrafficPolicyValue;
-  display_download_step: boolean;
   only_client_activation: boolean;
+  display_download_step: boolean;
   display_password_reset: boolean;
 }
 
