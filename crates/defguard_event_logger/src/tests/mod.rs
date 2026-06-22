@@ -22,6 +22,7 @@ use defguard_core::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
         device_posture::{DevicePosture, DevicePostureSnapshot},
+        enterprise_settings::EnterpriseSettings,
         openid_provider::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
         },
@@ -798,6 +799,16 @@ fn api_event_cases() -> Vec<EventTestCase> {
             event_type: EventType::SettingsDefaultBrandingRestored,
             module: ActivityLogModule::Defguard,
             description_contains: Some("Restored"),
+        },
+        EventTestCase {
+            name: "EnterpriseSettingsUpdated",
+            message: api_message(ApiEventType::EnterpriseSettingsUpdated {
+                before: EnterpriseSettings::default(),
+                after: EnterpriseSettings::default(),
+            }),
+            event_type: EventType::EnterpriseSettingsUpdated,
+            module: ActivityLogModule::Defguard,
+            description_contains: None,
         },
         EventTestCase {
             name: "GroupsBulkAssigned",
