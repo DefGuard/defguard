@@ -85,7 +85,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
                         m.settings_activity_log_streaming_delete_log_streaming_title(),
                       contentMd: m.modal_delete_logstream_destination(),
                       actionPromise: () => api.activityLogStream.deleteStream(row.id),
-                      invalidateKeys: [['activity_log_stream']],
+                      invalidateKeys: [['activity_log_stream'], ['activity-log']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
                       onSuccess: () =>
                         Snackbar.default(

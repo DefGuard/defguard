@@ -120,6 +120,38 @@ async fn translate_and_forward(
     }
 }
 
+/// Returns the activity log module for an API-derived event.
+///
+/// Most API events are Defguard management events and keep the historical
+/// `Defguard` module. Device posture management events are categorized under
+/// `Posture` so they can be filtered and exported independently.
+fn api_event_module(event_type: &EventType) -> ActivityLogModule {
+    match event_type {
+        EventType::DevicePostureCreated
+        | EventType::DevicePostureUpdated
+        | EventType::DevicePostureDeleted
+        | EventType::DevicePostureDuplicated
+        | EventType::DevicePostureLocationsAssigned
+        | EventType::LocationPosturesAssigned => ActivityLogModule::Posture,
+        _ => ActivityLogModule::Defguard,
+    }
+}
+
+/// Returns the activity log module for a BIDI-derived event.
+///
+/// Desktop client MFA events default to the `Vpn` module because they describe
+/// VPN authorization/session activity. Posture check pass/fail events are routed
+/// to `Posture` so posture evaluation activity is not mixed with generic VPN MFA
+/// activity.
+fn bidi_event_module(event_type: &EventType) -> ActivityLogModule {
+    match event_type {
+        EventType::DevicePostureCheckPassed | EventType::DevicePostureCheckFailed => {
+            ActivityLogModule::Posture
+        }
+        _ => ActivityLogModule::Vpn,
+    }
+}
+
 /// Convert an event logger message into an activity log database row.
 fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<NoId> {
     let EventContext {
@@ -133,7 +165,6 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
 
     let (module, event, description, metadata) = match message.event {
         Event::Api(event) => {
-            let module = ActivityLogModule::Defguard;
             let description = get_api_event_description(&event);
 
             let (event_type, metadata) = match event {
@@ -586,18 +617,25 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     serde_json::to_value(EnrollmentTokenMetadata { user: user.into() }).ok(),
                 ),
             };
+
+            let module = api_event_module(&event_type);
             (module, event_type, description, metadata)
         }
         Event::Bidi(BidiStreamEventType::DesktopClientMfa(event)) => {
-            let module = ActivityLogModule::Vpn;
             let description = match &*event {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
                     method,
-                } => Some(format!(
-                    "Device {device} completed MFA authorization for location {location} using {method}"
-                )),
+                    mobile_auth_device_name,
+                } => Some(match mobile_auth_device_name {
+                    Some(auth_device) => format!(
+                        "Device {device} completed MFA authorization for location {location} using {method} (approved on {auth_device})"
+                    ),
+                    None => format!(
+                        "Device {device} completed MFA authorization for location {location} using {method}"
+                    ),
+                }),
                 DesktopClientMfaEvent::Failed {
                     location,
                     device,
@@ -632,18 +670,25 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     "Device posture check failed for device {device}: {}",
                     failed_checks.join(",")
                 )),
+                DesktopClientMfaEvent::SessionSuperseded {
+                    device, location, ..
+                } => Some(format!(
+                    "VPN session for {device} in location {location} superseded by new authorization"
+                )),
             };
             let (event_type, metadata) = match *event {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
                     method,
+                    mobile_auth_device_name,
                 } => (
                     EventType::VpnClientMfaSuccess,
                     serde_json::to_value(VpnClientMfaMetadata {
                         location,
                         device,
                         method,
+                        mobile_auth_device_name,
                     })
                     .ok(),
                 ),
@@ -695,7 +740,25 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
+                DesktopClientMfaEvent::SessionSuperseded {
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    if is_mfa_session {
+                        (
+                            EventType::VpnClientMfaSessionSuperseded,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    } else {
+                        (
+                            EventType::VpnClientSessionSuperseded,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    }
+                }
             };
+            let module = bidi_event_module(&event_type);
             (module, event_type, description, metadata)
         }
         Event::SessionManager {

@@ -45,7 +45,7 @@ export const MigrationWizardInternalUrlSettingsStep = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.migration.setInternalUrlSettings,
-    meta: { invalidate: ['setupStatus'] },
+    meta: { invalidate: [['settings'], ['info'], ['migration', 'internal_ssl_info']] },
     onSuccess: (response) => {
       useMigrationWizardStore.setState({
         internal_ssl_type: form.getFieldValue('ssl_type'),

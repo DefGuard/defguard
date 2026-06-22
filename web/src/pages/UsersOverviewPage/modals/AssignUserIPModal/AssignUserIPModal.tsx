@@ -151,7 +151,7 @@ const AssignmentForm = ({
       return api.device.assignUserDeviceIps(username, assignments);
     },
     meta: {
-      invalidate: [['user-device-ips', username]],
+      invalidate: [['user'], ['user', username], ['device', 'all']],
     },
     onSuccess: () => {
       Snackbar.default(m.modal_assign_user_ip_success({ firstName, lastName }));

@@ -76,7 +76,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
     mutationFn: ({ id, data }: { id: number; data: CreateActivityLogStreamRequest }) =>
       api.activityLogStream.updateStream(id, data),
     meta: {
-      invalidate: ['activity_log_stream'],
+      invalidate: [['activity_log_stream'], ['activity-log']],
     },
   });
 

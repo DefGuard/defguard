@@ -27,6 +27,9 @@ export const AddExternalOpenIdValidationStep = () => {
 
   const { mutate: deleteProvider, isPending } = useMutation({
     mutationFn: api.openIdProvider.deleteOpenIdProvider,
+    meta: {
+      invalidate: [['settings'], ['info'], ['openid'], ['settings_essentials']],
+    },
     onSuccess: () => {
       back();
     },

@@ -5,6 +5,7 @@ export const ActivityLogModule = {
   Client: 'client',
   Vpn: 'vpn',
   Enrollment: 'enrollment',
+  Posture: 'posture',
 } as const;
 
 export type ActivityLogModuleValue =
@@ -50,6 +51,8 @@ export const ActivityLogEventType = {
   VpnClientMfaDisconnected: 'vpn_client_mfa_disconnected',
   VpnClientMfaSuccess: 'vpn_client_mfa_success',
   VpnClientMfaFailed: 'vpn_client_mfa_failed',
+  VpnClientSessionSuperseded: 'vpn_client_session_superseded',
+  VpnClientMfaSessionSuperseded: 'vpn_client_mfa_session_superseded',
 
   EnrollmentTokenAdded: 'enrollment_token_added',
   EnrollmentStarted: 'enrollment_started',
@@ -111,6 +114,15 @@ export const ActivityLogEventType = {
 
   GatewayModified: 'gateway_modified',
   GatewayDeleted: 'gateway_deleted',
+
+  DevicePostureCreated: 'device_posture_created',
+  DevicePostureUpdated: 'device_posture_updated',
+  DevicePostureDeleted: 'device_posture_deleted',
+  DevicePostureDuplicated: 'device_posture_duplicated',
+  DevicePostureLocationsAssigned: 'device_posture_locations_assigned',
+  LocationPosturesAssigned: 'location_postures_assigned',
+  DevicePostureCheckPassed: 'device_posture_check_passed',
+  DevicePostureCheckFailed: 'device_posture_check_failed',
 } as const;
 
 export type ActivityLogEventTypeValue =

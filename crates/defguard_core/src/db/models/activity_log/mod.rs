@@ -14,6 +14,7 @@ pub enum ActivityLogModule {
     Client,
     Vpn,
     Enrollment,
+    Posture,
 }
 
 /// Represents activity log event type as it's stored in the DB
@@ -81,6 +82,8 @@ pub enum EventType {
     VpnClientMfaDisconnected,
     VpnClientMfaSuccess,
     VpnClientMfaFailed,
+    VpnClientSessionSuperseded,
+    VpnClientMfaSessionSuperseded,
     // Enrollment events
     EnrollmentTokenAdded,
     EnrollmentStarted,

@@ -120,7 +120,7 @@ const ModalContent = ({ webhook }: ModalData) => {
     mutationFn: api.webhook.addWebhook,
     onSuccess,
     meta: {
-      invalidate: ['webhook'],
+      invalidate: [['webhook'], ['settings_essentials']],
     },
   });
 
@@ -128,7 +128,7 @@ const ModalContent = ({ webhook }: ModalData) => {
     mutationFn: api.webhook.editWebhook,
     onSuccess,
     meta: {
-      invalidate: ['webhook'],
+      invalidate: [['webhook'], ['settings_essentials']],
     },
   });
 

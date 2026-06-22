@@ -52,7 +52,7 @@ export const SetupGeneralConfigStep = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.setGeneralConfig,
     meta: {
-      invalidate: ['setupStatus'],
+      invalidate: ['info'],
     },
     onSuccess: () => {
       setActiveStep(SetupPageStep.CertificateAuthority);

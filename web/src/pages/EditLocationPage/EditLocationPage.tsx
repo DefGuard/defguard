@@ -449,7 +449,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const { mutateAsync: editLocation } = useMutation({
     mutationFn: api.location.editLocation,
     meta: {
-      invalidate: ['network'],
+      invalidate: [['network'], ['gateway']],
     },
     onSuccess: () => {
       navigate({
@@ -467,7 +467,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       mutationFn: (data: { postures: number[] }) =>
         api.devicePosture.setLocationPostures(location.id, data),
       meta: {
-        invalidate: [['device-posture'], ['network']],
+        invalidate: [['device-posture'], ['network'], ['activity-log']],
       },
       onError: () => {
         Snackbar.error(m.location_posture_checks_update_failed());
@@ -996,7 +996,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                     title: m.modal_delete_location_title(),
                     contentMd: m.modal_delete_location_body({ name: location.name }),
                     actionPromise: () => api.location.deleteLocation(location.id),
-                    invalidateKeys: [['network'], ['enterprise_info']],
+                    invalidateKeys: [['network'], ['gateway'], ['enterprise_info']],
                     submitProps: { text: m.controls_delete(), variant: 'critical' },
                     onSuccess: () => {
                       Snackbar.default(m.location_delete_success());

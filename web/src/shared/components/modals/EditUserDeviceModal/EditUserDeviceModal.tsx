@@ -85,7 +85,7 @@ const ModalContent = ({
   const { mutateAsync } = useMutation({
     mutationFn: api.device.editDevice,
     meta: {
-      invalidate: [['user', username]],
+      invalidate: [['user'], ['user', username], ['device', 'all']],
     },
     onSuccess: () => {
       closeModal(modalName);

@@ -186,6 +186,10 @@ pub struct VpnClientMfaMetadata {
     pub location: WireguardNetwork<Id>,
     pub device: Device<Id>,
     pub method: ClientMFAMethod,
+    /// Name of the device used to approve the login when the mobile approve MFA
+    /// method is used. Omitted for all other methods.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mobile_auth_device_name: Option<String>,
 }
 
 #[derive(Serialize)]

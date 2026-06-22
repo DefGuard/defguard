@@ -70,7 +70,8 @@ impl EventLoggerMessage {
                 | DesktopClientMfaEvent::Failed { location, .. }
                 | DesktopClientMfaEvent::Disconnected { location, .. }
                 | DesktopClientMfaEvent::PostureCheckPassed { location, .. }
-                | DesktopClientMfaEvent::PostureCheckFailed { location, .. } => {
+                | DesktopClientMfaEvent::PostureCheckFailed { location, .. }
+                | DesktopClientMfaEvent::SessionSuperseded { location, .. } => {
                     Some(location.clone())
                 }
             },

@@ -20,7 +20,11 @@ describe('posture check delete confirmation', () => {
     expect(modalData.contentMd).toBe(
       'Are you sure you want to delete this check? It’s currently used in Warsaw and Berlin. Removing it may change access criteria for users in these locations.',
     );
-    expect(modalData.invalidateKeys).toEqual([['device-posture'], ['network']]);
+    expect(modalData.invalidateKeys).toEqual([
+      ['device-posture'],
+      ['network'],
+      ['activity-log'],
+    ]);
     expect(modalData.submitProps).toEqual({
       text: 'Delete',
       variant: 'critical',

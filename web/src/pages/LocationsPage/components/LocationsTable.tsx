@@ -296,7 +296,7 @@ export const LocationsTable = () => {
                           title: m.modal_delete_location_title(),
                           contentMd: m.modal_delete_location_body({ name: row.name }),
                           actionPromise: () => api.location.deleteLocation(row.id),
-                          invalidateKeys: [['network'], ['enterprise_info']],
+                          invalidateKeys: [['network'], ['gateway'], ['enterprise_info']],
                           submitProps: { text: m.controls_delete(), variant: 'critical' },
                           onSuccess: () => Snackbar.default(m.location_delete_success()),
                           onError: () => Snackbar.error(m.location_delete_failed()),

@@ -42,7 +42,7 @@ export const SetupExternalUrlSettingsStep = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.setAutoAdoptionExternalUrlSettings,
-    meta: { invalidate: ['setupStatus'] },
+    meta: { invalidate: [['info'], ['external_ssl_info']] },
     onSuccess: (response) => {
       useSetupWizardStore.setState({
         external_ssl_type: form.getFieldValue('ssl_type'),
