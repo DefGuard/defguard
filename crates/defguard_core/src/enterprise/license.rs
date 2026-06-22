@@ -1,5 +1,4 @@
 use std::{fmt, time::Duration};
-use strum::VariantArray;
 
 use anyhow::Result;
 use base64::prelude::*;
@@ -23,6 +22,7 @@ use pgp::{
 };
 use prost::Message;
 use sqlx::PgPool;
+use strum::VariantArray;
 use thiserror::Error;
 use tokio::time::sleep;
 
@@ -44,7 +44,6 @@ global_value!(
 
 #[cfg(not(test))]
 pub(crate) const PUBLIC_KEY: &[u8] = include_bytes!("public_key.asc");
-
 
 #[derive(Debug, Error)]
 pub enum LicenseError {

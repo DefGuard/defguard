@@ -19,14 +19,13 @@ use axum::{
     http::{StatusCode, request::Parts},
 };
 use serde::Serialize;
-
 use strum::VariantArray;
 
 use super::{
-    LicenseFeature, db::models::enterprise_settings::EnterpriseSettings,
-    is_business_license_active, is_enterprise_license_active, license::{
-        LicenseTier, get_cached_license, validate_license,
-    },
+    LicenseFeature,
+    db::models::enterprise_settings::EnterpriseSettings,
+    is_business_license_active, is_enterprise_license_active,
+    license::{LicenseTier, get_cached_license, validate_license},
     license_grants_feature,
 };
 use crate::{appstate::AppState, error::WebError};
