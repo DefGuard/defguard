@@ -1,5 +1,8 @@
 import { m } from '../../../../paraglide/messages';
-import { SMTP_OAUTH_CALLBACK_TYPE } from '../../../../routes/smtp-oauth-callback';
+import {
+  SMTP_OAUTH_CALLBACK_TYPE,
+  SMTP_OAUTH_RESULT_KEY,
+} from '../../../../routes/smtp-oauth-callback';
 
 export const GOOGLE_ISSUER_URL = 'https://accounts.google.com';
 export const MICROSOFT_ISSUER_URL = 'https://login.microsoftonline.com/common';
@@ -52,18 +55,20 @@ export const buildAuthUrl = (
   return `${authorizationEndpoint}?${params.toString()}`;
 };
 
+type OAuthResult = { type?: string; code?: string; error?: string };
+
 export const waitForOAuthCode = (popup: Window): Promise<string> =>
   new Promise((resolve, reject) => {
-    const messageHandler = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      const data = event.data as {
-        type?: string;
-        code?: string;
-        error?: string;
-      };
-      if (data?.type !== SMTP_OAUTH_CALLBACK_TYPE) return;
+    const cleanup = () => {
       window.removeEventListener('message', messageHandler);
-      clearInterval(pollInterval);
+      window.removeEventListener('storage', storageHandler);
+      clearTimeout(timeoutId);
+      localStorage.removeItem(SMTP_OAUTH_RESULT_KEY);
+    };
+
+    const handleResult = (data: OAuthResult) => {
+      if (data?.type !== SMTP_OAUTH_CALLBACK_TYPE) return;
+      cleanup();
       if (data.code) {
         resolve(data.code);
       } else {
@@ -71,15 +76,38 @@ export const waitForOAuthCode = (popup: Window): Promise<string> =>
       }
     };
 
-    const pollInterval = setInterval(() => {
-      if (popup.closed) {
-        window.removeEventListener('message', messageHandler);
-        clearInterval(pollInterval);
-        reject(new Error(m.settings_smtp_auth_oauth_popup_closed()));
-      }
-    }, 500);
+    const messageHandler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      handleResult(event.data as OAuthResult);
+    };
 
+    // COOP fallback: storage event crosses browsing-context-group boundaries.
+    const storageHandler = (event: StorageEvent) => {
+      if (event.key !== SMTP_OAUTH_RESULT_KEY || !event.newValue) return;
+      try {
+        handleResult(JSON.parse(event.newValue) as OAuthResult);
+      } catch {
+        // ignore malformed values
+      }
+    };
+
+    localStorage.removeItem(SMTP_OAUTH_RESULT_KEY);
     window.addEventListener('message', messageHandler);
+    window.addEventListener('storage', storageHandler);
+
+    // Timeout is the only "user abandoned" signal — popup.closed is unreliable after COOP.
+    const timeoutId = setTimeout(
+      () => {
+        try {
+          popup.close();
+        } catch {
+          // popup may be detached after COOP
+        }
+        cleanup();
+        reject(new Error(m.settings_smtp_auth_oauth_popup_closed()));
+      },
+      5 * 60 * 1000,
+    );
   });
 
 export const exchangeCodeForToken = async (
