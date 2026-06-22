@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT admin_device_management, client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\", display_download_step, only_client_activation, display_password_reset FROM \"enterprisesettings\" WHERE id = 1",
+  "query": "SELECT admin_device_management, client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\", only_client_activation, display_download_step, display_password_reset FROM \"enterprisesettings\" WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -26,12 +26,12 @@
       },
       {
         "ordinal": 2,
-        "name": "display_download_step",
+        "name": "only_client_activation",
         "type_info": "Bool"
       },
       {
         "ordinal": 3,
-        "name": "only_client_activation",
+        "name": "display_download_step",
         "type_info": "Bool"
       },
       {
@@ -51,5 +51,5 @@
       false
     ]
   },
-  "hash": "dca6a47ba2d0b69e54fce8b0286fb6347d78ab3f6f7b398a35c1e637c10fbac7"
+  "hash": "dabc9db014c9d8416c0721db030bd0b2df0e0e8ae3546ef6f92d248cec389ad5"
 }
