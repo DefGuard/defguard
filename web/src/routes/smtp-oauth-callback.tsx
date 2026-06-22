@@ -26,7 +26,12 @@ function SmtpOAuthCallbackPage() {
       (window.opener as Window).postMessage(result, window.location.origin);
     } else {
       // COOP severed window.opener; storage event crosses browsing-context-group boundaries.
-      localStorage.setItem(SMTP_OAUTH_RESULT_KEY, JSON.stringify(result));
+      // Do not persist OAuth authorization code in browser storage.
+      const storageSafeResult = {
+        type: SMTP_OAUTH_CALLBACK_TYPE,
+        error: error ? (errorDescription ?? error) : undefined,
+      };
+      localStorage.setItem(SMTP_OAUTH_RESULT_KEY, JSON.stringify(storageSafeResult));
     }
 
     window.close();
