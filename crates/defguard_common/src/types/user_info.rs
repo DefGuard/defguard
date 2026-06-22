@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 use crate::{
     db::{
         Id,
-        models::{MFAMethod, Settings, device::UserDevice, group::Group, user::User},
+        models::{MFAMethod, device::UserDevice, group::Group, settings::get_settings, user::User},
     },
     types::group_diff::GroupDiff,
 };
@@ -53,12 +53,9 @@ impl UserInfo {
         let enrolled = user.is_enrolled();
         let is_admin = user.is_admin(pool).await?;
         let devices = user.user_devices(pool).await?;
-        let settings = Settings::get_current_settings();
-        let password_management_disabled = user.password_management_disabled(
-            is_admin,
-            &settings,
-            oidc_disable_password_management,
-        );
+        let password_management_disabled = get_settings().as_ref().is_some_and(|settings| {
+            user.password_management_disabled(is_admin, settings, oidc_disable_password_management)
+        });
 
         Ok(Self {
             id: user.id,
@@ -173,7 +170,11 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::setup_pool;
+    use crate::{
+        config::DefGuardConfig,
+        config::SERVER_CONFIG,
+        db::{models::settings::initialize_current_settings, setup_pool},
+    };
 
     /// Build a minimal `UserInfo` from an existing saved `User<Id>`.
     /// Only the fields exercised by `handle_update_user_fields` need to be set
@@ -192,6 +193,9 @@ mod test {
     #[sqlx::test]
     async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
 
         let user = User::new(
             "hpotter",
@@ -245,6 +249,9 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
         let mut user = User::new(
             "hpotter",
             Some("pass123"),
@@ -285,6 +292,9 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
         let mut user = User::new(
             "hpotter",
             Some("pass123"),
@@ -327,6 +337,9 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
         let mut user = User::new(
             "hpotter",
             Some("pass123"),
@@ -365,6 +378,9 @@ mod test {
     #[sqlx::test]
     async fn test_handle_update_admin_updating_self(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
         let mut user = User::new(
             "admin",
             Some("pass123"),

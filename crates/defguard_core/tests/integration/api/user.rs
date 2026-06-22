@@ -21,7 +21,6 @@ use defguard_common::{
 use defguard_core::{
     enterprise::{
         db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
-        handlers::openid_providers::AddProviderData,
         license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
         limits::update_counts,
     },
@@ -2444,7 +2443,6 @@ async fn test_password_management_disabled_for_ldap_user(
 
     // Enable the LDAP disable-password-management flag.
     let mut settings = Settings::get_current_settings();
-    settings.ldap_enabled = true;
     settings.ldap_disable_password_management = true;
     update_current_settings(&pool, settings).await.unwrap();
 
@@ -2468,40 +2466,23 @@ async fn test_password_management_disabled_for_ldap_user(
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
-    // Logout admin.
-    let _ = client.post("/api/v1/auth/logout").send().await;
-
-    // Now give the LDAP user a temporary password so they can authenticate,
-    // then remove it so they become a pure external user, and try change_self_password.
+    // Give the LDAP user a local password and verify they are now allowed
+    // (passing password_hash guard in password_management_disabled).
+    client.drain_all_events();
     let mut u = get_db_user(&pool, "ldapuser").await;
     u.set_password("temppass");
     u.save(&pool).await.unwrap();
+
     client.login_user("ldapuser", "temppass").await;
-    // Re-fetch the session user with the password hash so the gating check
-    // sees the hash and allows login, but we can still verify 403 by
-    // testing change_password as admin instead.
-
-    // Admin re-login and verify that change_self_password is also gated
-    // for external users (indirectly, via change_password on same user).
-    let _ = client.post("/api/v1/auth/logout").send().await;
-    client.login_user("admin", "pass123").await;
-
-    // Remove the hash so the user becomes a pure external user.
-    sqlx::query("UPDATE \"user\" SET password_hash = NULL WHERE id = $1")
-        .bind(ldap_user.id)
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    // change_password should still be 403 after hash removal.
     let response = client
-        .put("/api/v1/user/ldapuser/password")
-        .json(&PasswordChange {
+        .put("/api/v1/user/change_password")
+        .json(&PasswordChangeSelf {
+            old_password: "temppass".into(),
             new_password: "NewPass456!".into(),
         })
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 /// An admin user is always exempt from password-management gating, even when sourced externally.
@@ -2525,7 +2506,6 @@ async fn test_password_management_disabled_admin_exempt(
         .unwrap();
 
     let mut settings = Settings::get_current_settings();
-    settings.ldap_enabled = true;
     settings.ldap_disable_password_management = true;
     update_current_settings(&pool, settings).await.unwrap();
 
@@ -2595,7 +2575,7 @@ async fn test_password_management_disabled_for_oidc_user(
         false,
         true, // disable_password_management
     )
-    .upsert(&pool)
+    .save(&pool)
     .await
     .unwrap();
 
