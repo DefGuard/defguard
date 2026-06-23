@@ -202,7 +202,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
     let (session_manager_event_tx, session_manager_event_rx) =
         unbounded_channel::<SessionManagerEvent>();
-    let (ldap_tx, ldap_sync_event_rx) = unbounded_channel();
+    let (ldap_tx, ldap_rx) = unbounded_channel();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -301,7 +301,7 @@ async fn main() -> Result<(), anyhow::Error> {
             api_event_rx,
             bidi_event_rx,
             session_manager_event_rx,
-            ldap_sync_event_rx,
+            ldap_rx,
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_tx.clone()
         ) => bail!("Activity log event logger returned early: {res:?}"),
