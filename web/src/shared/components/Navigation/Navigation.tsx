@@ -28,7 +28,7 @@ import {
   getLicenseInfoQueryOptions,
   getRulesCountQueryOptions,
 } from '../../query';
-import { canUseBusinessFeature, canUseEnterpriseFeature } from '../../utils/license';
+import { isNavItemLocked } from '../../utils/license';
 import { NavTutorialsButton } from '../../video-tutorials/components/widget/NavTutorialsButton/NavTutorialsButton';
 import { useVideoTutorialsSections } from '../../video-tutorials/resolved';
 
@@ -303,22 +303,10 @@ const NavItem = ({
   licenseFeature,
   pendingCount,
 }: NavItemProps) => {
-  const showLock = useMemo(() => {
-    if (licenseTier === undefined) {
-      return isPresent(licenseTier);
-    }
-
-    if (licenseTier !== undefined && licenseTier === LicenseTier.Business) {
-      return !canUseBusinessFeature(license as LicenseInfo | null).result;
-    }
-
-    if (licenseTier !== undefined && licenseTier === LicenseTier.Enterprise) {
-      return !canUseEnterpriseFeature(license as LicenseInfo | null, licenseFeature)
-        .result;
-    }
-
-    return false;
-  }, [license, licenseTier, licenseFeature]);
+  const showLock = useMemo(
+    () => isNavItemLocked(license as LicenseInfo | null, licenseTier, licenseFeature),
+    [license, licenseTier, licenseFeature],
+  );
 
   const showPending = !showLock && isPresent(pendingCount) && pendingCount > 0;
   const showRight = showPending || (showLock && isPresent(licenseTier));

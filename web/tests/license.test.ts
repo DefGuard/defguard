@@ -1,14 +1,22 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { describe, expect, it } from 'vitest';
-import { LicenseFeature, type LicenseInfo } from '../src/shared/api/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { LicenseFeature, type LicenseInfo, LicenseTier } from '../src/shared/api/types';
+import { openModal } from '../src/shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../src/shared/hooks/modalControls/modalTypes';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
   canUseServiceLocations,
   getAdditiveFeatures,
   getLicenseState,
+  isNavItemLocked,
+  licenseActionCheck,
 } from '../src/shared/utils/license';
+
+vi.mock('../src/shared/hooks/modalControls/modalsSubjects', () => ({
+  openModal: vi.fn(),
+}));
 
 dayjs.extend(utc);
 
@@ -20,6 +28,8 @@ const makeLicense = (overrides: Partial<LicenseInfo> = {}): LicenseInfo => ({
   tier: 'Business',
   limits: null,
   features: [],
+  support_type: 'Free',
+  support_type_narrow: 'Free',
   ...overrides,
 });
 
@@ -265,5 +275,99 @@ describe('getAdditiveFeatures', () => {
       LicenseFeature.DevicePosture,
       LicenseFeature.ComponentHa,
     ]);
+  });
+});
+
+describe('canUseEnterpriseFeature per-feature additive grants', () => {
+  for (const feature of Object.values(LicenseFeature)) {
+    it(`unlocks only ${feature} when granted alone on a Business tier`, () => {
+      const license = makeLicense({ tier: 'Business', features: [feature] });
+      expect(canUseEnterpriseFeature(license, feature).result).toBe(true);
+      for (const other of Object.values(LicenseFeature)) {
+        if (other === feature) continue;
+        expect(canUseEnterpriseFeature(license, other).result).toBe(false);
+      }
+    });
+  }
+});
+
+describe('licenseActionCheck', () => {
+  beforeEach(() => {
+    vi.mocked(openModal).mockClear();
+  });
+
+  it('runs the success callback and opens no modal when the check passes', () => {
+    const success = vi.fn();
+    licenseActionCheck({ result: true, error: null, tierCheck: 'Enterprise' }, success);
+    expect(success).toHaveBeenCalledOnce();
+    expect(openModal).not.toHaveBeenCalled();
+  });
+
+  it('opens the business upgrade modal on a Business tier failure', () => {
+    const success = vi.fn();
+    licenseActionCheck({ result: false, error: 'tier', tierCheck: 'Business' }, success);
+    expect(success).not.toHaveBeenCalled();
+    expect(openModal).toHaveBeenCalledWith(ModalName.UpgradeBusiness);
+  });
+
+  it('opens the enterprise upgrade modal on an Enterprise tier failure', () => {
+    licenseActionCheck(
+      { result: false, error: 'tier', tierCheck: 'Enterprise' },
+      vi.fn(),
+    );
+    expect(openModal).toHaveBeenCalledWith(ModalName.UpgradeEnterprise);
+  });
+
+  it('opens the expired modal carrying the failing tier', () => {
+    licenseActionCheck(
+      { result: false, error: 'expired', tierCheck: 'Enterprise' },
+      vi.fn(),
+    );
+    expect(openModal).toHaveBeenCalledWith(ModalName.LicenseExpired, {
+      licenseTier: 'Enterprise',
+    });
+  });
+});
+
+describe('isNavItemLocked', () => {
+  it('never locks an entry without a tier requirement', () => {
+    expect(isNavItemLocked(null, undefined)).toBe(false);
+    expect(isNavItemLocked(makeLicense(), undefined)).toBe(false);
+  });
+
+  it('locks a Business entry only without a valid base license', () => {
+    expect(isNavItemLocked(makeLicense({ tier: 'Business' }), LicenseTier.Business)).toBe(
+      false,
+    );
+    expect(isNavItemLocked(null, LicenseTier.Business)).toBe(true);
+    expect(isNavItemLocked(makeLicense({ expired: true }), LicenseTier.Business)).toBe(
+      true,
+    );
+  });
+
+  // Regression: an Enterprise nav entry must unlock on a lower tier carrying the additive flag.
+  it('unlocks an Enterprise entry on a Business tier that carries the flag', () => {
+    const license = makeLicense({
+      tier: 'Business',
+      features: [LicenseFeature.DevicePosture],
+    });
+    expect(
+      isNavItemLocked(license, LicenseTier.Enterprise, LicenseFeature.DevicePosture),
+    ).toBe(false);
+  });
+
+  it('locks an Enterprise entry on a Business tier missing the flag', () => {
+    const license = makeLicense({ tier: 'Business', features: [] });
+    expect(
+      isNavItemLocked(license, LicenseTier.Enterprise, LicenseFeature.DevicePosture),
+    ).toBe(true);
+  });
+
+  it('locks an Enterprise entry with no feature on anything below Enterprise tier', () => {
+    const license = makeLicense({
+      tier: 'Business',
+      features: [LicenseFeature.DevicePosture],
+    });
+    expect(isNavItemLocked(license, LicenseTier.Enterprise)).toBe(true);
   });
 });

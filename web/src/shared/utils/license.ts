@@ -186,6 +186,23 @@ export const canUseEnterpriseFeature = (
 export const canUseServiceLocations = (license: LicenseInfo | null): boolean =>
   canUseEnterpriseFeature(license, LicenseFeature.ServiceLocations).result;
 
+// An Enterprise entry honors the additive `licenseFeature` flag, so a granted feature unlocks the
+// item on a lower tier; entries with no tier requirement are never locked.
+export const isNavItemLocked = (
+  license: LicenseInfo | null,
+  licenseTier: LicenseTierValue | undefined,
+  licenseFeature?: LicenseFeatureValue,
+): boolean => {
+  switch (licenseTier) {
+    case LicenseTier.Business:
+      return !canUseBusinessFeature(license).result;
+    case LicenseTier.Enterprise:
+      return !canUseEnterpriseFeature(license, licenseFeature).result;
+    default:
+      return false;
+  }
+};
+
 export const narrowLicenseSupport = (license: LicenseInfoApi): SupportTypeNarrowValue => {
   switch (license.support_type) {
     case 'Basic':

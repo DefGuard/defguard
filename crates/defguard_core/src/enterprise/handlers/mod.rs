@@ -19,14 +19,12 @@ use axum::{
     http::{StatusCode, request::Parts},
 };
 use serde::Serialize;
-use strum::VariantArray;
 
 use super::{
     LicenseFeature,
     db::models::enterprise_settings::EnterpriseSettings,
-    has_enterprise_access, is_business_license_active,
+    effective_features, has_enterprise_access, is_business_license_active,
     license::{LicenseTier, get_cached_license, validate_license},
-    license_grants_feature,
 };
 use crate::{appstate::AppState, error::WebError};
 
@@ -137,12 +135,8 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
             });
 
             let valid = validate_license(Some(license), &counts, LicenseTier::Business).is_ok();
-            let features: Vec<LicenseFeature> = if valid {
-                LicenseFeature::VARIANTS
-                    .iter()
-                    .copied()
-                    .filter(|&f| license_grants_feature(license, f))
-                    .collect()
+            let features = if valid {
+                effective_features(license)
             } else {
                 vec![]
             };

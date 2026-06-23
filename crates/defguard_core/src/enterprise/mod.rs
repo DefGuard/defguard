@@ -14,6 +14,7 @@ mod utils;
 
 use license::{License, get_cached_license, validate_license};
 use limits::get_counts;
+use strum::VariantArray;
 
 pub use crate::enterprise::license::LicenseFeature;
 use crate::enterprise::license::LicenseTier;
@@ -22,6 +23,16 @@ use crate::enterprise::license::LicenseTier;
 /// and any explicit additive flags. Does not check validity; call `validate_license` first.
 pub(crate) fn license_grants_feature(license: &License, feature: LicenseFeature) -> bool {
     license.tier.included_features().contains(&feature) || license.has_feature(feature)
+}
+
+/// The feature set `/enterprise_info` reports to the frontend. The frontend gates on membership
+/// alone, so the tier baseline must be folded in here. Does not check validity; gate on that first.
+pub(crate) fn effective_features(license: &License) -> Vec<LicenseFeature> {
+    LicenseFeature::VARIANTS
+        .iter()
+        .copied()
+        .filter(|&f| license_grants_feature(license, f))
+        .collect()
 }
 
 /// Helper function to gate features which require a base license (Team or Business tier)
@@ -72,7 +83,7 @@ mod test {
 
     use crate::{
         enterprise::{
-            LicenseFeature, has_enterprise_access, is_business_license_active,
+            LicenseFeature, effective_features, has_enterprise_access, is_business_license_active,
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{Counts, set_counts},
         },
@@ -86,6 +97,19 @@ mod test {
             locations: 5,
             network_devices: Some(10),
         }
+    }
+
+    fn make_license(tier: LicenseTier, features: Vec<LicenseFeature>) -> License {
+        License::new(
+            "test".to_owned(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            Some(license_limits()),
+            None,
+            tier,
+            SupportType::Basic,
+            features,
+        )
     }
 
     #[test]
@@ -177,5 +201,54 @@ mod test {
         let over_limit = Counts::new(100, 100, 100, 100);
         set_counts(over_limit);
         assert!(!has_enterprise_access(Some(LicenseFeature::DevicePosture)));
+    }
+
+    #[test]
+    fn test_enterprise_tier_satisfies_strict_gate() {
+        set_counts(Counts::new(1, 1, 5, 1));
+
+        set_cached_license(Some(make_license(LicenseTier::Enterprise, vec![])));
+        assert!(has_enterprise_access(None));
+
+        // the None gate is tier-only: no set of additive flags can satisfy it
+        set_cached_license(Some(make_license(
+            LicenseTier::Business,
+            LicenseFeature::VARIANTS.to_vec(),
+        )));
+        assert!(!has_enterprise_access(None));
+    }
+
+    #[test]
+    fn test_expired_license_revokes_granted_flag() {
+        set_counts(Counts::new(1, 1, 5, 1));
+
+        let mut license = make_license(LicenseTier::Business, vec![LicenseFeature::DevicePosture]);
+        license.valid_until = Some(Utc::now() - TimeDelta::days(365));
+        set_cached_license(Some(license));
+
+        assert!(!has_enterprise_access(Some(LicenseFeature::DevicePosture)));
+    }
+
+    #[test]
+    fn test_effective_features_folds_tier_baseline() {
+        // Enterprise grants every feature via the tier baseline alone, with no explicit flags.
+        let enterprise = make_license(LicenseTier::Enterprise, vec![]);
+        let effective = effective_features(&enterprise);
+        assert_eq!(effective.len(), LicenseFeature::VARIANTS.len());
+        for &feature in LicenseFeature::VARIANTS {
+            assert!(effective.contains(&feature));
+        }
+
+        let business = make_license(
+            LicenseTier::Business,
+            vec![LicenseFeature::ServiceLocations],
+        );
+        assert_eq!(
+            effective_features(&business),
+            vec![LicenseFeature::ServiceLocations]
+        );
+
+        let bare = make_license(LicenseTier::Business, vec![]);
+        assert!(effective_features(&bare).is_empty());
     }
 }
