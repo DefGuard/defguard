@@ -34,6 +34,13 @@ mod test {
         do_directory_sync(pool, gateway_tx, &ldap_tx).await.unwrap();
     }
 
+    fn ldap_test_channel() -> (
+        mpsc::UnboundedSender<LdapSyncEventType>,
+        mpsc::UnboundedReceiver<LdapSyncEventType>,
+    ) {
+        mpsc::unbounded_channel()
+    }
+
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::find_by_name(pool, "test")
             .await
@@ -177,7 +184,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users)
             .await
             .unwrap();
 
@@ -218,7 +226,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users)
             .await
             .unwrap();
 
@@ -264,7 +273,8 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users)
             .await
             .unwrap();
 
@@ -318,7 +328,8 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users)
             .await
             .unwrap();
 
@@ -405,7 +416,8 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users)
             .await
             .unwrap();
 
@@ -478,7 +490,8 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users)
             .await
             .unwrap();
 
@@ -540,7 +553,8 @@ mod test {
         make_test_user_and_device("testuser2", &pool).await;
         make_test_user_and_device("testuserdisabled", &pool).await;
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_groups(&client, &pool, &gateway_tx, Some(&all_users))
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_groups(&client, &pool, &gateway_tx, &ldap_tx, Some(&all_users))
             .await
             .unwrap();
 

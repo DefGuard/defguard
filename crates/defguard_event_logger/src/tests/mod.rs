@@ -29,7 +29,8 @@ use defguard_core::{
     },
     events::{
         ApiEventType, BidiRequestContext, BidiStreamEvent, BidiStreamEventType,
-        DesktopClientMfaEvent, EnrollmentEvent as CoreEnrollmentEvent, PasswordResetEvent,
+        DesktopClientMfaEvent, EnrollmentEvent as CoreEnrollmentEvent, LdapSyncEventType,
+        PasswordResetEvent,
     },
 };
 use defguard_session_manager::events::SessionManagerEventType;
@@ -73,12 +74,24 @@ fn sample_location() -> WireguardNetwork<Id> {
     .with_id(10)
 }
 
+fn sample_user() -> User<Id> {
+    User::new("testuser", Some("pass"), "Last", "First", "e@e", None).with_id(1)
+}
+
+fn sample_group() -> Group<Id> {
+    Group {
+        id: 1,
+        name: "testgroup".into(),
+        is_admin: false,
+    }
+}
+
 #[test]
 fn test_activity_log_event_serialization_supports_null_ip() {
     let event = ActivityLogEvent {
         id: NoId,
         timestamp: Utc::now().naive_utc(),
-        user_id: 1,
+        user_id: Some(1),
         username: "admin".to_owned(),
         location: None,
         ip: None,
@@ -199,7 +212,7 @@ struct EventTestCase {
 fn test_context() -> EventContext {
     EventContext {
         timestamp: Utc::now().naive_utc(),
-        user_id: 1,
+        user_id: Some(1),
         username: "admin".into(),
         location: None,
         ip: None,
@@ -1377,11 +1390,170 @@ fn session_manager_cases() -> Vec<EventTestCase> {
     cases
 }
 
+fn ldap_event_cases() -> Vec<EventTestCase> {
+    let user = sample_user();
+    let mut modified_user = user.clone();
+    modified_user.email = "changed@example.com".into();
+    let group = sample_group();
+
+    fn ldap_msg(event: LdapSyncEventType) -> EventLoggerMessage {
+        EventLoggerMessage::from_ldap_sync_event(event)
+    }
+
+    let cases = vec![
+        EventTestCase {
+            name: "LdapSyncUserCreated",
+            message: ldap_msg(LdapSyncEventType::UserCreated { user: user.clone() }),
+            event_type: EventType::LdapSyncUserCreated,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("created user"),
+        },
+        EventTestCase {
+            name: "LdapSyncUserDeleted",
+            message: ldap_msg(LdapSyncEventType::UserDeleted { user: user.clone() }),
+            event_type: EventType::LdapSyncUserDeleted,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("deleted user"),
+        },
+        EventTestCase {
+            name: "LdapSyncUserModified",
+            message: ldap_msg(LdapSyncEventType::UserModified {
+                before: user.clone(),
+                after: modified_user.clone(),
+            }),
+            event_type: EventType::LdapSyncUserModified,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("modified user"),
+        },
+        EventTestCase {
+            name: "LdapSyncUserEnabled",
+            message: ldap_msg(LdapSyncEventType::UserEnabled { user: user.clone() }),
+            event_type: EventType::LdapSyncUserEnabled,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("enabled user"),
+        },
+        EventTestCase {
+            name: "LdapSyncUserDisabled",
+            message: ldap_msg(LdapSyncEventType::UserDisabled { user: user.clone() }),
+            event_type: EventType::LdapSyncUserDisabled,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("disabled user"),
+        },
+        EventTestCase {
+            name: "LdapSyncGroupCreated",
+            message: ldap_msg(LdapSyncEventType::GroupCreated {
+                group: group.clone(),
+            }),
+            event_type: EventType::LdapSyncGroupCreated,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("created group"),
+        },
+        EventTestCase {
+            name: "LdapSyncGroupMemberAdded",
+            message: ldap_msg(LdapSyncEventType::GroupMemberAdded {
+                group: group.clone(),
+                user: user.clone(),
+            }),
+            event_type: EventType::LdapSyncGroupMemberAdded,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("added user"),
+        },
+        EventTestCase {
+            name: "LdapSyncGroupMemberRemoved",
+            message: ldap_msg(LdapSyncEventType::GroupMemberRemoved {
+                group: group.clone(),
+                user: user.clone(),
+            }),
+            event_type: EventType::LdapSyncGroupMemberRemoved,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("removed user"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundUserCreated",
+            message: ldap_msg(LdapSyncEventType::OutboundUserCreated { user: user.clone() }),
+            event_type: EventType::LdapSyncOutboundUserCreated,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("synced user"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundUserDeleted",
+            message: ldap_msg(LdapSyncEventType::OutboundUserDeleted {
+                username: user.username.clone(),
+            }),
+            event_type: EventType::LdapSyncOutboundUserDeleted,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("removed user"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundUserModified",
+            message: ldap_msg(LdapSyncEventType::OutboundUserModified {
+                user: modified_user,
+            }),
+            event_type: EventType::LdapSyncOutboundUserModified,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("attributes"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundUserEnabled",
+            message: ldap_msg(LdapSyncEventType::OutboundUserEnabled { user: user.clone() }),
+            event_type: EventType::LdapSyncOutboundUserEnabled,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("enabled LDAP account"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundUserDisabled",
+            message: ldap_msg(LdapSyncEventType::OutboundUserDisabled { user: user.clone() }),
+            event_type: EventType::LdapSyncOutboundUserDisabled,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("disabled LDAP account"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundGroupMemberAdded",
+            message: ldap_msg(LdapSyncEventType::OutboundGroupMemberAdded {
+                group: group.name.clone(),
+                username: user.username.clone(),
+            }),
+            event_type: EventType::LdapSyncOutboundGroupMemberAdded,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("added user"),
+        },
+        EventTestCase {
+            name: "LdapSyncOutboundGroupMemberRemoved",
+            message: ldap_msg(LdapSyncEventType::OutboundGroupMemberRemoved {
+                group: group.name,
+                username: user.username,
+            }),
+            event_type: EventType::LdapSyncOutboundGroupMemberRemoved,
+            module: ActivityLogModule::LdapSync,
+            description_contains: Some("removed user"),
+        },
+    ];
+
+    assert_eq!(
+        cases.len(),
+        LdapSyncEventType::COUNT,
+        "missing test case for new LdapSyncEventType variant"
+    );
+    cases
+}
+
+#[test]
+fn test_ldap_sync_events_use_system_context() {
+    let message = EventLoggerMessage::from_ldap_sync_event(LdapSyncEventType::UserCreated {
+        user: sample_user(),
+    });
+
+    assert_eq!(message.context.user_id, None);
+    assert_eq!(message.context.username, "system:ldap-sync");
+    assert_eq!(message.context.device, "system");
+}
+
 #[test]
 fn test_all_event_variants_map_to_correct_activity_log_events() {
     let mut cases = api_event_cases();
     cases.extend(bidi_event_cases());
     cases.extend(session_manager_cases());
+    cases.extend(ldap_event_cases());
 
     for case in cases {
         let result = map_to_activity_log_event(case.message);

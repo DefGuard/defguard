@@ -14,7 +14,9 @@ use defguard_common::{
     },
     secret::SecretStringWrapper,
 };
-use defguard_core::{enterprise::ldap::LDAPConnection, grpc::GatewayCommand};
+use defguard_core::{
+    enterprise::ldap::LDAPConnection, events::LdapSyncEventType, grpc::GatewayCommand,
+};
 use ldap3::{
     LdapConnAsync,
     controls::{MakeCritical, ManageDsaIt},
@@ -23,10 +25,23 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::sync::broadcast::{Receiver, Sender, channel};
+use tokio::sync::{
+    broadcast::{Receiver, Sender, channel},
+    mpsc,
+};
 
 fn wg_test_channel() -> (Sender<GatewayCommand>, Receiver<GatewayCommand>) {
     channel(256)
+}
+
+async fn sync_ldap(
+    ldap_conn: &mut LDAPConnection,
+    pool: &PgPool,
+    full: bool,
+    wg_tx: &Sender<GatewayCommand>,
+) {
+    let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
+    ldap_conn.sync(pool, full, wg_tx, &ldap_tx).await.unwrap();
 }
 
 /// Set LDAP settings from environment variables.
@@ -572,7 +587,7 @@ async fn test_sync_defguard_authority_pushes_to_ldap(_: PgPoolOptions, options: 
 
     // A full sync with Defguard authority must push the Defguard-only user and their group
     // membership into LDAP.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let ldap_user = ldap_conn
         .get_user_by_username("syncpush_user")
@@ -625,7 +640,7 @@ async fn test_sync_ldap_authority_pulls_from_ldap(_: PgPoolOptions, options: PgC
 
     // A full sync with LDAP authority must create the LDAP-only user in Defguard and add them to
     // the synced group.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let pulled = User::find_by_username(&pool, "syncpull_user")
         .await
@@ -671,7 +686,7 @@ async fn test_sync_ldap_authority_deletes_missing_from_ldap(
 
     // LDAP is authoritative and the user is absent from LDAP, so a full sync removes them from
     // Defguard.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     assert!(
         User::find_by_username(&pool, "syncdel_user")
@@ -721,7 +736,7 @@ async fn test_sync_skips_disabled_defguard_user_not_in_ldap(
     let _ = ldap_conn.delete_user(&user).await;
     let _ = ldap_conn.delete_group("status_skip_grp").await;
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     // A disabled Defguard user that doesn't exist in LDAP must not be created there: otherwise we'd
     // be provisioning an enabled AD account for someone Defguard says is disabled.
@@ -767,7 +782,7 @@ async fn test_sync_creates_active_user_when_status_sync_on(
 
     // Control case for `test_sync_skips_disabled_defguard_user_not_in_ldap`: an active user with
     // the same setting on must still be created in LDAP.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let created = ldap_conn
         .get_user_by_username("status_create_user")
@@ -822,7 +837,7 @@ async fn test_sync_status_setting_off_deletes_disabled_user_from_ldap(
     user.is_active = false;
     user.save(&pool).await.unwrap();
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     assert!(
         ldap_conn
@@ -879,7 +894,7 @@ async fn test_sync_status_setting_requires_ad_flag(_: PgPoolOptions, options: Pg
     user.is_active = false;
     user.save(&pool).await.unwrap();
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     assert!(
         ldap_conn
@@ -929,7 +944,7 @@ async fn test_sync_does_not_recreate_disabled_user_after_legacy_delete(
     // Two consecutive syncs must be idempotent: neither run may resurrect the disabled user in
     // LDAP.
     for _ in 0..2 {
-        ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+        sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
         assert!(
             ldap_conn
                 .get_user_by_username("status_idempotent_user")
@@ -1001,7 +1016,7 @@ async fn test_sync_ldap_authority_is_idempotent(_: PgPoolOptions, options: PgCon
     user.clone().delete(&pool).await.unwrap();
 
     // First sync pulls the LDAP-only user into Defguard.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
     let after_first = defguard_state(&pool).await;
     assert!(
         after_first.iter().any(|u| u.0 == "idem_pull_user"),
@@ -1009,7 +1024,7 @@ async fn test_sync_ldap_authority_is_idempotent(_: PgPoolOptions, options: PgCon
     );
 
     // Second sync must be a no-op: Defguard-side state stays byte-for-byte identical.
-    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, false, &wg_tx).await;
     let after_second = defguard_state(&pool).await;
     assert_eq!(
         after_first, after_second,
@@ -1054,7 +1069,7 @@ async fn test_sync_defguard_authority_is_idempotent(_: PgPoolOptions, options: P
     let _ = ldap_conn.delete_group("idem_push_grp").await;
 
     // First sync pushes the Defguard-only user and membership into LDAP.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
     let ldap_user_first = ldap_conn
         .get_user_by_username("idem_push_user")
         .await
@@ -1066,7 +1081,7 @@ async fn test_sync_defguard_authority_is_idempotent(_: PgPoolOptions, options: P
     let defguard_first = defguard_state(&pool).await;
 
     // Second sync must not churn either side.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
     let ldap_user_second = ldap_conn
         .get_user_by_username("idem_push_user")
         .await
@@ -1150,7 +1165,7 @@ async fn test_sync_keeps_enrollment_pending_ldap_user_in_scope(
 
     // First sync: pull the LDAP-only user into Defguard. Secure enrollment + invite are on and an
     // active admin exists, so the user is marked enrollment-pending.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let pulled = User::find_by_username(&pool, "secure_enroll_user")
         .await
@@ -1184,7 +1199,7 @@ async fn test_sync_keeps_enrollment_pending_ldap_user_in_scope(
 
     // Second sync: the attribute change must reach Defguard. This only happens when the
     // still-pending user remains in sync scope - the regression this guards against.
-    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, false, &wg_tx).await;
 
     let after = User::find_by_username(&pool, "secure_enroll_user")
         .await
@@ -1250,7 +1265,7 @@ async fn test_sync_does_not_push_pending_defguard_user_to_ldap(
     let _ = ldap_conn.delete_group("no_push_grp").await;
 
     // While pending, the Defguard-native user must not be created in LDAP.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
     assert!(
         ldap_conn
             .get_user_by_username("no_push_user")
@@ -1264,7 +1279,7 @@ async fn test_sync_does_not_push_pending_defguard_user_to_ldap(
     user.enrollment_pending = false;
     user.save(&pool).await.unwrap();
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
     let pushed = ldap_conn
         .get_user_by_username("no_push_user")
         .await
@@ -1337,7 +1352,7 @@ async fn test_sync_pulls_user_when_sync_group_nested_below_search_base(
     // group now lives below the base rather than directly under it.
     ldap_conn.config.ldap_group_search_base = parent_dn(&nested_base);
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let pulled = User::find_by_username(&pool, "nested_sync_user")
         .await
@@ -1442,7 +1457,7 @@ async fn test_sync_resolves_sync_groups_in_separate_subtrees_from_shared_root(
         String::from("multitree_b_grp"),
     ];
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let pulled_a = User::find_by_username(&pool, "multitree_a_user")
         .await
@@ -1555,7 +1570,7 @@ async fn test_sync_resolves_duplicate_named_groups_in_different_subtrees(
     // Search from the shared root: "dup_grp" resolves to both DNs and both members are pulled.
     ldap_conn.config.ldap_group_search_base = root_base;
 
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     for username in ["dup_a_user", "dup_b_user"] {
         let pulled = User::find_by_username(&pool, username)
@@ -1691,7 +1706,7 @@ async fn test_sync_skips_referral_pdus_without_aborting(
 
     // Before the fix this call aborts the process; after it, the sync completes and the real user
     // behind the referral is still pulled.
-    ldap_conn.sync(&pool, true, &wg_tx).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
 
     let pulled = User::find_by_username(&pool, "referral_user")
         .await

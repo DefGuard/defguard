@@ -76,7 +76,7 @@ async fn save_activity_log_event(
     ActivityLogEvent {
         id: NoId,
         timestamp: persisted_timestamp,
-        user_id: user.id,
+        user_id: Some(user.id),
         username: user.username.clone(),
         location: None,
         ip: None,
@@ -393,7 +393,7 @@ async fn test_activity_log_module_sort_is_alphabetical(
         ActivityLogEvent {
             id: NoId,
             timestamp: truncate_timestamp_to_microseconds(shared_timestamp),
-            user_id: admin.id,
+            user_id: Some(admin.id),
             username: admin.username.clone(),
             location: None,
             ip: None,
