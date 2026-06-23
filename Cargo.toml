@@ -10,6 +10,11 @@ members = ["crates/*", "tools/*"]
 default-members = ["crates/*"]
 resolver = "2"
 
+[workspace.lints.clippy]
+uninlined_format_args = "deny"
+manual_let_else = "warn"
+redundant_closure = "warn"
+
 [workspace.dependencies]
 # internal crates
 

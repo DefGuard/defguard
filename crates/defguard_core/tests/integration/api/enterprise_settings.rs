@@ -1,13 +1,18 @@
+use std::time::Duration;
+
+use defguard_common::types::proxy::ProxyControlMessage;
 use defguard_core::{
     enterprise::{
         db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
         license::{get_cached_license, set_cached_license},
     },
+    events::ApiEventType,
     handlers::Auth,
 };
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::sleep;
 
 use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
@@ -35,6 +40,8 @@ async fn test_only_enterprise_can_modify_enterpise_settings(
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        display_download_step: true,
+        display_password_reset: true,
     };
 
     let response = client
@@ -101,6 +108,8 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
         admin_device_management: true,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        display_download_step: true,
+        display_password_reset: true,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -215,6 +224,8 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        display_download_step: true,
+        display_password_reset: true,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -321,6 +332,8 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
+        display_download_step: true,
+        display_password_reset: true,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -421,6 +434,8 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
+        display_download_step: true,
+        display_password_reset: true,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -452,4 +467,246 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
 
     let response = client.get("/api/v1/network/1/device/1/config").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn test_display_flags_round_trip(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // admin login
+    let (client, _) = make_test_client(pool).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // Set both display flags to false
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
+        only_client_activation: false,
+        display_download_step: false,
+        display_password_reset: false,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back and verify the values persisted
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: EnterpriseSettings = response.json().await;
+    assert!(
+        !body.display_download_step,
+        "display_download_step should be false"
+    );
+    assert!(
+        !body.display_password_reset,
+        "display_password_reset should be false"
+    );
+
+    // Set both back to true
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
+        only_client_activation: false,
+        display_download_step: true,
+        display_password_reset: true,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back and verify
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: EnterpriseSettings = response.json().await;
+    assert!(
+        body.display_download_step,
+        "display_download_step should be true"
+    );
+    assert!(
+        body.display_password_reset,
+        "display_password_reset should be true"
+    );
+}
+
+#[sqlx::test]
+async fn test_display_flags_default_to_true_without_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Unset the license
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    // EnterpriseSettings::get() should return defaults when no license
+    let settings = EnterpriseSettings::get(&pool).await.unwrap();
+    assert!(
+        settings.display_download_step,
+        "display_download_step should default to true"
+    );
+    assert!(
+        settings.display_password_reset,
+        "display_password_reset should default to true"
+    );
+
+    // Restore license
+    set_cached_license(license);
+}
+
+/// When a license was previously active and set flags to false in the DB,
+/// removing the license must return defaults (both `true`) via `get()`,
+/// ignoring the DB values.  Re-adding the license must restore the real DB values.
+#[sqlx::test]
+async fn test_display_flags_return_defaults_when_license_removed(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // admin login and set Business license
+    let (client, _) = make_test_client(pool.clone()).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // With a Business license active, save false values to the DB.
+    let settings = json!({
+        "display_download_step": false,
+        "display_password_reset": false,
+    });
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Remove the license - get() should return defaults, ignoring DB.
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    let settings = EnterpriseSettings::get(&pool).await.unwrap();
+    assert!(
+        settings.display_download_step,
+        "without license, display_download_step should default to true regardless of DB"
+    );
+    assert!(
+        settings.display_password_reset,
+        "without license, display_password_reset should default to true regardless of DB"
+    );
+
+    // Restore the license - get() should now return the real DB values.
+    set_cached_license(license);
+
+    let settings = EnterpriseSettings::get(&pool).await.unwrap();
+    assert!(
+        !settings.display_download_step,
+        "with license restored, display_download_step should reflect DB (false)"
+    );
+    assert!(
+        !settings.display_password_reset,
+        "with license restored, display_password_reset should reflect DB (false)"
+    );
+}
+
+/// When enterprise settings are patched with changed display flags, a
+/// `BroadcastPublicSettings` control message must be sent via the proxy
+/// control channel.
+#[sqlx::test]
+async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool.clone()).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+    // Clear events generated during setup (login, network creation).
+    client.drain_all_events();
+
+    // Patch enterprise settings with changed display flags.
+    let settings = json!({
+        "display_download_step": false,
+        "display_password_reset": false,
+    });
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify the audit event was emitted.
+    let events = client.drain_all_events();
+    assert!(
+        events
+            .iter()
+            .any(|(event, _, _)| matches!(event, ApiEventType::EnterpriseSettingsUpdated { .. })),
+        "EnterpriseSettingsUpdated event should be emitted on patch"
+    );
+
+    // The handler should have sent a BroadcastPublicSettings message.
+    sleep(Duration::from_millis(100)).await;
+    let mut found = false;
+    loop {
+        match proxy_control_rx.try_recv() {
+            Ok(ProxyControlMessage::BroadcastPublicSettings {
+                display_password_reset,
+                display_download_step,
+            }) => {
+                assert!(
+                    !display_password_reset,
+                    "expected display_password_reset=false"
+                );
+                assert!(
+                    !display_download_step,
+                    "expected display_download_step=false"
+                );
+                found = true;
+            }
+            Ok(_) => {} // ignore other control messages
+            Err(_) => break,
+        }
+    }
+    assert!(found, "BroadcastPublicSettings was not sent");
+
+    // Patch again with no change - should NOT broadcast.
+    let settings = json!({
+        "display_download_step": false,
+        "display_password_reset": false,
+    });
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Audit event should still be emitted even when flags didn't change.
+    let events = client.drain_all_events();
+    assert!(
+        events
+            .iter()
+            .any(|(event, _, _)| matches!(event, ApiEventType::EnterpriseSettingsUpdated { .. })),
+        "EnterpriseSettingsUpdated event should be emitted on every patch"
+    );
+
+    // No BroadcastPublicSettings should appear.
+    sleep(Duration::from_millis(100)).await;
+    while let Ok(msg) = proxy_control_rx.try_recv() {
+        if matches!(msg, ProxyControlMessage::BroadcastPublicSettings { .. }) {
+            panic!("BroadcastPublicSettings should not be sent when flags didn't change");
+        }
+    }
 }

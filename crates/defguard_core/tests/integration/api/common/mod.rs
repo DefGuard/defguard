@@ -22,6 +22,7 @@ use defguard_common::{
         },
     },
     secret::SecretStringWrapper,
+    types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
     apply_security_layers,
@@ -40,7 +41,7 @@ use tokio::{
     net::TcpListener,
     sync::{
         broadcast::{self, Receiver},
-        mpsc::{channel, unbounded_channel},
+        mpsc::{self, channel, unbounded_channel},
     },
 };
 
@@ -61,6 +62,7 @@ pub(crate) struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub gateway_rx: Receiver<GatewayCommand>,
+    pub proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
     pub test_user: User<Id>,
     #[allow(dead_code)]
     pub config: DefGuardConfig,
@@ -71,6 +73,7 @@ impl ClientState {
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
         gateway_rx: Receiver<GatewayCommand>,
+        proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
         test_user: User<Id>,
         config: DefGuardConfig,
     ) -> Self {
@@ -78,6 +81,7 @@ impl ClientState {
             pool,
             worker_state,
             gateway_rx,
+            proxy_control_rx,
             test_user,
             config,
         }
@@ -110,18 +114,19 @@ pub(crate) async fn make_base_client(
 
     set_cached_license(Some(license));
 
+    let (proxy_control_tx, proxy_control_rx) = channel(10);
+
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
         gateway_rx,
+        proxy_control_rx,
         User::find_by_username(&pool, "hpotter")
             .await
             .unwrap()
             .unwrap(),
         config.clone(),
     );
-
-    let (proxy_control_tx, _proxy_control_rx) = channel(10);
 
     // Uncomment this to enable tracing in tests.
     // It only works for running a single test, so leave it commented out for running all tests.

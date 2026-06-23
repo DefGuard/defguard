@@ -66,12 +66,14 @@ pub(crate) fn assert_initial_info_received(response: &CoreResponse) {
     );
 }
 
-/// Consume the `InitialInfo` message that the handler sends immediately after
-/// establishing the bidi stream.  Most lifecycle tests call this before
-/// injecting any business messages.
+/// Consume the `InitialInfo` and `PublicSettings` messages that the handler
+/// sends immediately after establishing the bidi stream.  Most lifecycle tests
+/// call this before injecting any business messages.
 pub(crate) async fn complete_proxy_handshake(context: &mut HandlerTestContext) {
     let response = context.mock_proxy_mut().recv_outbound().await;
     assert_initial_info_received(&response);
+    // PublicSettings follows InitialInfo on connect.
+    context.mock_proxy_mut().recv_public_settings().await;
 }
 
 /// Assert that a `CoreResponse` carries a `DeviceConfig` payload and return a

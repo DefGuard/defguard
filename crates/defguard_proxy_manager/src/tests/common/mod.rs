@@ -355,6 +355,20 @@ impl MockProxyHarness {
         }
     }
 
+    /// Receive the `PublicSettings` message that follows `InitialInfo` on connect.
+    pub(crate) async fn recv_public_settings(&mut self) -> core_response::Payload {
+        let response = self.recv_outbound().await;
+        match response.payload {
+            Some(core_response::Payload::PublicSettings(s)) => {
+                core_response::Payload::PublicSettings(s)
+            }
+            other => panic!(
+                "expected PublicSettings as second message from handler, got: {:?}",
+                other.as_ref().map(std::mem::discriminant)
+            ),
+        }
+    }
+
     pub(crate) async fn expect_server_finished(mut self) {
         let server_task = assert_some!(
             self.server_task.take(),

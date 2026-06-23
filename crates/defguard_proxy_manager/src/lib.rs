@@ -17,7 +17,7 @@ use defguard_core::{
     grpc::proxy::client_mfa::ClientLoginSession,
     version::IncompatibleComponents,
 };
-use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
+use defguard_proto::proxy::{CoreResponse, HttpsCerts, PublicSettings, core_response};
 use sqlx::PgPool;
 #[cfg(test)]
 use tokio::sync::Notify;
@@ -382,6 +382,27 @@ impl ProxyManager {
                             if let Ok(map) = handler_tx_map.read() {
                                 for (pid, tx) in map.iter() {
                                     debug!("Sending ClearHttpsCerts to proxy {pid}");
+                                    let _ = tx.send(msg.clone());
+                                }
+                            }
+                        }
+                        Some(ProxyControlMessage::BroadcastPublicSettings {
+                            display_password_reset,
+                            display_download_step,
+                        }) => {
+                            debug!("Broadcasting PublicSettings to all connected proxies");
+                            let msg = CoreResponse {
+                                id: 0,
+                                payload: Some(core_response::Payload::PublicSettings(
+                                    PublicSettings {
+                                        display_password_reset,
+                                        display_download_step,
+                                    },
+                                )),
+                            };
+                            if let Ok(map) = handler_tx_map.read() {
+                                for (pid, tx) in map.iter() {
+                                    debug!("Sending PublicSettings to proxy {pid}");
                                     let _ = tx.send(msg.clone());
                                 }
                             }
