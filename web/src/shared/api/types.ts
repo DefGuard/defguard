@@ -304,6 +304,7 @@ export interface User {
   enrolled: boolean;
   is_admin: boolean;
   ldap_pass_requires_change: boolean;
+  password_management_disabled: boolean;
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
   devices: Device[];

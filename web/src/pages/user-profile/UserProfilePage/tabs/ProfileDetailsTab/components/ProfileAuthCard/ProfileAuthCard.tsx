@@ -281,19 +281,21 @@ export const ProfileAuthCard = () => {
         <div className="header">
           <p className="section-title">{m.profile_auth_card_section_password()}</p>
         </div>
-        <Button
-          variant="outlined"
-          iconLeft="lock-open"
-          text={m.profile_auth_card_password_change()}
-          testId="change-password"
-          onClick={() => {
-            // open admin form only if admin and is not editing self
-            openModal('changePassword', {
-              user,
-              adminForm: isCurrentUserAdmin && user.username !== authUsername,
-            });
-          }}
-        />
+        {!user.password_management_disabled && (
+          <Button
+            variant="outlined"
+            iconLeft="lock-open"
+            text={m.profile_auth_card_password_change()}
+            testId="change-password"
+            onClick={() => {
+              // open admin form only if admin and is not editing self
+              openModal('changePassword', {
+                user,
+                adminForm: isCurrentUserAdmin && user.username !== authUsername,
+              });
+            }}
+          />
+        )}
       </div>
       <Divider orientation="horizontal" />
       <div className="section">

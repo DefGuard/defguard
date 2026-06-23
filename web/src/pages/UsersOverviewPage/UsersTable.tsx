@@ -381,20 +381,24 @@ export const UsersTable = () => {
                 });
               },
             },
-            {
-              text: m.users_row_menu_change_password(),
-              icon: 'lock-open',
-              testId: 'change-password',
-              onClick: () => {
-                openModal(ModalName.ChangePassword, {
-                  adminForm: rowData.username !== authUsername,
-                  user: rowData,
-                });
-              },
-            },
+            ...(!rowData.password_management_disabled
+              ? [
+                  {
+                    text: m.users_row_menu_change_password(),
+                    icon: 'lock-open' as const,
+                    testId: 'change-password',
+                    onClick: () => {
+                      openModal(ModalName.ChangePassword, {
+                        adminForm: rowData.username !== authUsername,
+                        user: rowData,
+                      });
+                    },
+                  },
+                ]
+              : []),
             {
               text: m.users_row_menu_go_profile(),
-              icon: 'profile',
+              icon: 'profile' as const,
               onClick: () => {
                 navigate({
                   to: '/user/$username',
@@ -406,7 +410,7 @@ export const UsersTable = () => {
             },
             {
               text: m.users_row_menu_edit_groups(),
-              icon: 'add-group',
+              icon: 'add-group' as const,
               testId: 'edit-groups',
               onClick: () => {
                 useSelectionModal.setState({
