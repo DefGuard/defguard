@@ -259,4 +259,15 @@ impl OpenIdProvider<Id> {
         .fetch_optional(executor)
         .await
     }
+
+    /// Returns whether the currently-configured OIDC provider (if any) has password
+    /// management disabled for its users. Returns `false` when no provider is configured.
+    pub async fn current_disables_password_management<'e, E>(executor: E) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        Ok(Self::get_current(executor)
+            .await?
+            .is_some_and(|provider| provider.disable_password_management))
+    }
 }

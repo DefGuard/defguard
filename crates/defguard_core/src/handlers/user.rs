@@ -329,9 +329,8 @@ pub(crate) async fn list_users(
 
     // Map [`User`] to [`UserInfo`].
     // TODO: too many queries – optimise.
-    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
-        .await?
-        .is_some_and(|p| p.disable_password_management);
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(&appstate.pool).await?;
     let mut users = Vec::with_capacity(all_users.len());
     for user in all_users {
         users.push(
@@ -461,9 +460,8 @@ pub(crate) async fn get_user(
     Path(username): Path<String>,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
-        .await?
-        .is_some_and(|p| p.disable_password_management);
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(&appstate.pool).await?;
     let user_details =
         UserDetails::from_user(&appstate.pool, user, oidc_disable_password_management).await?;
     Ok(ApiResponse::json(user_details, StatusCode::OK))
@@ -585,7 +583,14 @@ pub(crate) async fn add_user(
         ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
     }
 
-    let user_info = UserInfo::from_user(&appstate.pool, user.clone(), false).await?;
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(&appstate.pool).await?;
+    let user_info = UserInfo::from_user(
+        &appstate.pool,
+        user.clone(),
+        oidc_disable_password_management,
+    )
+    .await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
     if !user_info.enrolled {
@@ -908,9 +913,15 @@ pub(crate) async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let groups_before = UserInfo::from_user(&appstate.pool, user.clone(), false)
-        .await?
-        .groups;
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(&appstate.pool).await?;
+    let groups_before = UserInfo::from_user(
+        &appstate.pool,
+        user.clone(),
+        oidc_disable_password_management,
+    )
+    .await?
+    .groups;
 
     // store user before mods
     let before = user.clone();
@@ -987,7 +998,12 @@ pub(crate) async fn modify_user(
 
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
-    let user_info = UserInfo::from_user(&appstate.pool, user.clone(), false).await?;
+    let user_info = UserInfo::from_user(
+        &appstate.pool,
+        user.clone(),
+        oidc_disable_password_management,
+    )
+    .await?;
 
     if ldap_sync_allowed {
         ldap_handle_user_modify(
@@ -1151,6 +1167,15 @@ pub(crate) async fn delete_user(
     }
 }
 
+/// Loads the current settings and configured OIDC provider to determine whether password
+/// management (set/change/reset) is disabled for `user`.
+async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sqlx::Result<bool> {
+    let settings = Settings::get_current_settings();
+    let oidc_disabled = OpenIdProvider::current_disables_password_management(pool).await?;
+    let is_admin = user.is_admin(pool).await?;
+    Ok(user.password_management_disabled(is_admin, &settings, oidc_disabled))
+}
+
 /// Change your own password
 ///
 /// Changes your own password basing on `PasswordChangeSelf` object.
@@ -1183,12 +1208,7 @@ pub(crate) async fn change_self_password(
     debug!("User {} is changing his password.", session.user.username);
     let mut user = session.user;
 
-    let settings = Settings::get_current_settings();
-    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
-        .await?
-        .is_some_and(|p| p.disable_password_management);
-    let is_admin = user.is_admin(&appstate.pool).await?;
-    if user.password_management_disabled(is_admin, &settings, oidc_disable_password_management) {
+    if user_password_management_disabled(&appstate.pool, &user).await? {
         debug!("Password management disabled for user {}", user.username);
         return Ok(ApiResponse::new(
             json!({"msg": "Password management is disabled for this user"}),
@@ -1279,13 +1299,7 @@ pub(crate) async fn change_password(
     let user = User::find_by_username(&appstate.pool, &username).await?;
 
     if let Some(mut user) = user {
-        let settings = Settings::get_current_settings();
-        let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
-            .await?
-            .is_some_and(|p| p.disable_password_management);
-        let is_admin = user.is_admin(&appstate.pool).await?;
-        if user.password_management_disabled(is_admin, &settings, oidc_disable_password_management)
-        {
+        if user_password_management_disabled(&appstate.pool, &user).await? {
             debug!("Password management disabled for user {username}");
             return Ok(ApiResponse::new(
                 json!({"msg": "Password management is disabled for this user"}),
@@ -1358,13 +1372,7 @@ pub(crate) async fn reset_password(
     let user = User::find_by_username(&appstate.pool, &username).await?;
 
     if let Some(user) = user {
-        let settings = Settings::get_current_settings();
-        let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
-            .await?
-            .is_some_and(|p| p.disable_password_management);
-        let is_admin = user.is_admin(&appstate.pool).await?;
-        if user.password_management_disabled(is_admin, &settings, oidc_disable_password_management)
-        {
+        if user_password_management_disabled(&appstate.pool, &user).await? {
             debug!("Password management disabled for user {username}");
             return Ok(ApiResponse::new(
                 json!({"msg": "Password management is disabled for this user"}),
@@ -1522,9 +1530,8 @@ pub(crate) async fn delete_security_key(
     )
 )]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
-    let oidc_disable_password_management = OpenIdProvider::get_current(&appstate.pool)
-        .await?
-        .is_some_and(|p| p.disable_password_management);
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(&appstate.pool).await?;
     let user_info = UserInfo::from_user(
         &appstate.pool,
         session.user,
