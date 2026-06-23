@@ -5,6 +5,7 @@ import { LicenseFeature, type LicenseInfo } from '../src/shared/api/types';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
+  canUseServiceLocations,
   getAdditiveFeatures,
   getLicenseState,
 } from '../src/shared/utils/license';
@@ -178,6 +179,58 @@ describe('canUseEnterpriseFeature', () => {
     );
     expect(result.result).toBe(false);
     expect(result.error).toBe('tier');
+  });
+});
+
+describe('canUseServiceLocations', () => {
+  // Regression: gating on a strict Enterprise-tier check ignored the additive flag, so a
+  // Business license carrying ServiceLocations was wrongly blocked.
+  it('should allow a Business license that carries the ServiceLocations flag', () => {
+    expect(
+      canUseServiceLocations(
+        makeLicense({ tier: 'Business', features: [LicenseFeature.ServiceLocations] }),
+      ),
+    ).toBe(true);
+  });
+
+  it('should deny a Business license without the flag', () => {
+    expect(canUseServiceLocations(makeLicense({ tier: 'Business', features: [] }))).toBe(
+      false,
+    );
+  });
+
+  it('should deny a Business license that has other flags but not ServiceLocations', () => {
+    expect(
+      canUseServiceLocations(
+        makeLicense({ tier: 'Business', features: [LicenseFeature.DevicePosture] }),
+      ),
+    ).toBe(false);
+  });
+
+  // The backend folds the tier baseline into `features`, so a real Enterprise license always
+  // carries every feature; model it that way.
+  it('should allow an Enterprise license (every feature folded into features)', () => {
+    expect(
+      canUseServiceLocations(
+        makeLicense({ tier: 'Enterprise', features: Object.values(LicenseFeature) }),
+      ),
+    ).toBe(true);
+  });
+
+  it('should deny an expired license even with the flag granted', () => {
+    expect(
+      canUseServiceLocations(
+        makeLicense({
+          tier: 'Business',
+          expired: true,
+          features: [LicenseFeature.ServiceLocations],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should deny when there is no license', () => {
+    expect(canUseServiceLocations(null)).toBe(false);
   });
 });
 

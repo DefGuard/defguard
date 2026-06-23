@@ -182,6 +182,10 @@ export const canUseEnterpriseFeature = (
   };
 };
 
+// Shared so the modal and the wizard route guard gate identically.
+export const canUseServiceLocations = (license: LicenseInfo | null): boolean =>
+  canUseEnterpriseFeature(license, LicenseFeature.ServiceLocations).result;
+
 export const narrowLicenseSupport = (license: LicenseInfoApi): SupportTypeNarrowValue => {
   switch (license.support_type) {
     case 'Basic':
