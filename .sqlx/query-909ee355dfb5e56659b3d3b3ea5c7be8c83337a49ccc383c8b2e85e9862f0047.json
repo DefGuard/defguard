@@ -27,7 +27,8 @@
                 "vpn",
                 "enrollment",
                 "posture",
-                "ldap_sync"
+                "active_directory",
+                "ldap"
               ]
             }
           }
