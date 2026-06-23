@@ -1411,7 +1411,7 @@ export interface OpenIdAuthInfo {
 export interface ActivityLogEvent {
   id: number;
   timestamp: string;
-  user_id: number;
+  user_id: number | null;
   username: string;
   location?: string;
   ip: string | null;
