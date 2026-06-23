@@ -8,7 +8,7 @@ pub mod metadata;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
 #[sqlx(type_name = "activity_log_module", rename_all = "snake_case")]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ActivityLogModule {
     Defguard,
     Client,

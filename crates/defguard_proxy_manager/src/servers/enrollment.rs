@@ -1243,7 +1243,8 @@ mod test {
 
         let (gateway_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx);
+        let (ldap_tx, _) = unbounded_channel();
+        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx);
 
         let mut transaction = pool.begin().await.unwrap();
         let result = server
