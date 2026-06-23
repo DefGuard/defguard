@@ -1,6 +1,9 @@
 minimumReleaseAge: 2880
 overrides:
   isbot: "5.1.42"
+  seroval: ">=1.4.1"
+  launch-editor: ">=2.14.1"
+  js-yaml@<4.2.0: ">=4.2.0"
 
 allowBuilds:
   '@parcel/watcher': true
