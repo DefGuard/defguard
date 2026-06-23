@@ -37,14 +37,32 @@
       rustToolchain = pkgs.rust-bin.stable.latest.default.override {
         extensions = ["rust-analyzer" "rust-src" "rustfmt" "clippy"];
       };
+
+      # nightly rustfmt, needed only for the unstable import-grouping options that
+      # `fmt-imports` passes via --config. It is deliberately NOT placed on PATH
+      # (that would collide with the stable rustfmt above); the wrapper points
+      # stable `cargo fmt` at it via RUSTFMT, leaving the default toolchain alone.
+      rustfmtNightly = pkgs.rust-bin.nightly.latest.rustfmt;
+
+      # Usage: fmt-imports [cargo fmt flags]   e.g. fmt-imports --check
+      fmtImports = pkgs.writeShellScriptBin "fmt-imports" ''
+        set -euo pipefail
+        root="$(${pkgs.git}/bin/git rev-parse --show-toplevel)"
+        cd "$root"
+        export RUSTFMT="${rustfmtNightly}/bin/rustfmt"
+        exec ${rustToolchain}/bin/cargo fmt "$@" -- \
+          --config imports_granularity=Crate,group_imports=StdExternalCrate
+      '';
+
       # define shared build inputs
       nativeBuildInputs = with pkgs; [rustToolchain pkg-config];
-      buildInputs = with pkgs; [openssl protobuf curl nodejs_24 pnpm];
+      buildInputs = with pkgs; [openssl protobuf curl nodejs_26 pnpm_11];
     in {
       devShells.default = pkgs.mkShell {
         inherit nativeBuildInputs buildInputs;
 
         packages = with pkgs; [
+          fmtImports
           sqlx-cli
           just
           # TS/JS LSP

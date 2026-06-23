@@ -100,6 +100,7 @@ pub enum EventType {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
+    EnterpriseSettingsUpdated,
     // Groups management
     GroupsBulkAssigned,
     GroupAdded,

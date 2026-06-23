@@ -637,6 +637,18 @@ pub async fn run_periodic_license_check(
 
         if trim_components {
             trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+
+            // When the license is removed or expired, revert Edge UI controls
+            // to their defaults so proxies no longer apply restricted settings.
+            if let Err(err) = proxy_control_tx
+                .send(ProxyControlMessage::BroadcastPublicSettings {
+                    display_password_reset: true,
+                    display_download_step: true,
+                })
+                .await
+            {
+                error!("Failed to broadcast default public settings after license change: {err:?}");
+            }
         }
 
         if requires_renewal {

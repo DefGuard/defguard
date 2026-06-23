@@ -21,7 +21,7 @@ use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
-        db::models::openid_provider::OpenIdProvider,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
@@ -45,7 +45,7 @@ use defguard_proto::{
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, HttpsCerts,
-        InitialInfo, core_request, core_response, proxy_client::ProxyClient,
+        InitialInfo, PublicSettings, core_request, core_response, proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
@@ -394,6 +394,18 @@ impl ProxyHandler {
                 id: 0,
                 payload: Some(core_response::Payload::InitialInfo(initial_info)),
             });
+
+            // Push public settings (Edge UI controls) to the newly-connected proxy.
+            if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
+                let public_settings = PublicSettings {
+                    display_password_reset: settings.display_password_reset,
+                    display_download_step: settings.display_download_step,
+                };
+                let _ = tx.send(CoreResponse {
+                    id: 0,
+                    payload: Some(core_response::Payload::PublicSettings(public_settings)),
+                });
+            }
 
             // If a certificate has already been provisioned, push it to the newly-connected
             // proxy immediately so it can start serving HTTPS without a manual trigger.
@@ -1183,6 +1195,18 @@ impl ProxyHandler {
             id: 0,
             payload: Some(core_response::Payload::InitialInfo(initial_info)),
         });
+
+        // Push public settings to the test proxy.
+        if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
+            let public_settings = PublicSettings {
+                display_password_reset: settings.display_password_reset,
+                display_download_step: settings.display_download_step,
+            };
+            let _ = tx.send(CoreResponse {
+                id: 0,
+                payload: Some(core_response::Payload::PublicSettings(public_settings)),
+            });
+        }
 
         let result = self
             .message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)

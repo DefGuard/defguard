@@ -17,6 +17,7 @@ use crate::{
         activity_log_stream::ActivityLogStream,
         api_tokens::ApiToken,
         device_posture::{DevicePosture, DevicePostureSnapshot},
+        enterprise_settings::EnterpriseSettings,
         openid_provider::OpenIdProvider,
         snat::UserSnatBinding,
     },
@@ -239,6 +240,10 @@ pub enum ApiEventType {
         after: Settings,
     },
     SettingsDefaultBrandingRestored,
+    EnterpriseSettingsUpdated {
+        before: EnterpriseSettings,
+        after: EnterpriseSettings,
+    },
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
         groups: Vec<Group<Id>>,
