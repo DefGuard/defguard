@@ -21,7 +21,8 @@
                 "client",
                 "vpn",
                 "enrollment",
-                "posture"
+                "posture",
+                "ldap_sync"
               ]
             }
           }
