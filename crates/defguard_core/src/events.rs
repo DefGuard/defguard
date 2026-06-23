@@ -462,6 +462,7 @@ pub enum DesktopClientMfaEvent {
 }
 
 #[derive(Debug, PartialEq, EnumCount)]
+#[allow(clippy::large_enum_variant)]
 pub enum LdapSyncEventType {
     UserCreated { user: User<Id> },
     UserDeleted { user: User<Id> },
