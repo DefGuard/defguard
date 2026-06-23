@@ -79,7 +79,7 @@ use defguard_common::db::{
     },
 };
 use sqlx::{PgConnection, PgPool};
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
@@ -92,11 +92,22 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
-    events::{LdapSyncEventType, LdapSyncReport},
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
     hashset,
     user_management::{disable_user, sync_allowed_user_devices},
 };
+
+fn emit_ldap_sync_events(
+    ldap_sync_event_tx: &UnboundedSender<LdapSyncEventType>,
+    events: Vec<LdapSyncEventType>,
+) {
+    for event in events {
+        if let Err(err) = ldap_sync_event_tx.send(event) {
+            error!("Failed to send LDAP sync activity log event: {err}");
+        }
+    }
+}
 
 async fn get_or_create_group(
     transaction: &mut PgConnection,
@@ -484,8 +495,7 @@ impl super::LDAPConnection {
         authority: Authority,
         pool: &PgPool,
         wg_tx: &Sender<GatewayCommand>,
-        report: &mut LdapSyncReport,
-    ) -> Result<(), LdapError> {
+    ) -> Result<Vec<LdapSyncEventType>, LdapError> {
         let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
         let mut transaction = pool.begin().await?;
         let mut events = Vec::new();
@@ -546,9 +556,8 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
-        report.events.extend(events);
 
-        Ok(())
+        Ok(events)
     }
 
     /// Allows to synchronize user data (e.g. email, groups) between Defguard and LDAP based on the
@@ -593,9 +602,15 @@ impl super::LDAPConnection {
             .map(|g| (g.clone(), hashset![&ldap_user]))
             .collect::<HashMap<_, _>>();
 
-        let mut report = LdapSyncReport::default();
-        self.apply_user_modifications(intersecting_users, authority, pool, wg_tx, &mut report)
+        let events = self
+            .apply_user_modifications(intersecting_users, authority, pool, wg_tx)
             .await?;
+        if !events.is_empty() {
+            debug!(
+                "LDAP user data sync produced {} activity log events outside scheduled sync; not emitting",
+                events.len()
+            );
+        }
 
         let changes = compute_group_sync_changes(
             &defguard_memberships,
@@ -603,8 +618,13 @@ impl super::LDAPConnection {
             authority,
             &self.config,
         );
-        self.apply_user_group_sync_changes(pool, changes, &mut report)
-            .await?;
+        let events = self.apply_user_group_sync_changes(pool, changes).await?;
+        if !events.is_empty() {
+            debug!(
+                "LDAP user group data sync produced {} activity log events outside scheduled sync; not emitting",
+                events.len()
+            );
+        }
 
         Ok(())
     }
@@ -689,7 +709,7 @@ impl super::LDAPConnection {
         pool: &PgPool,
         full: bool,
         wg_tx: &Sender<GatewayCommand>,
-        report: &mut LdapSyncReport,
+        ldap_sync_event_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         let settings = Settings::get_current_settings();
         let authority = if full {
@@ -772,8 +792,10 @@ impl super::LDAPConnection {
         let intersecting_users =
             extract_intersecting_users(&mut all_defguard_users, &mut all_ldap_users, &self.config);
 
-        self.apply_user_modifications(intersecting_users, authority, pool, wg_tx, report)
+        let events = self
+            .apply_user_modifications(intersecting_users, authority, pool, wg_tx)
             .await?;
+        emit_ldap_sync_events(ldap_sync_event_tx, events);
 
         let user_changes = compute_user_sync_changes(
             &mut all_ldap_users,
@@ -789,10 +811,12 @@ impl super::LDAPConnection {
             &self.config,
         );
 
-        self.apply_user_sync_changes(pool, user_changes, report)
+        let events = self.apply_user_sync_changes(pool, user_changes).await?;
+        emit_ldap_sync_events(ldap_sync_event_tx, events);
+        let events = self
+            .apply_user_group_sync_changes(pool, membership_changes)
             .await?;
-        self.apply_user_group_sync_changes(pool, membership_changes, report)
-            .await?;
+        emit_ldap_sync_events(ldap_sync_event_tx, events);
 
         if full {
             debug!("Full LDAP sync completed");
@@ -807,8 +831,7 @@ impl super::LDAPConnection {
         &mut self,
         pool: &PgPool,
         changes: GroupSyncChanges<'_>,
-        report: &mut LdapSyncReport,
-    ) -> Result<(), LdapError> {
+    ) -> Result<Vec<LdapSyncEventType>, LdapError> {
         debug!("Applying group memberships sync changes");
         let mut transaction = pool.begin().await?;
         let mut admin_count = User::find_admins(&mut *transaction).await?.len();
@@ -888,7 +911,6 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
-        report.events.extend(events);
 
         for (groupname, members) in changes.delete_ldap {
             for member in members {
@@ -902,15 +924,14 @@ impl super::LDAPConnection {
             }
         }
 
-        Ok(())
+        Ok(events)
     }
 
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
         mut changes: UserSyncChanges,
-        report: &mut LdapSyncReport,
-    ) -> Result<(), LdapError> {
+    ) -> Result<Vec<LdapSyncEventType>, LdapError> {
         let mut transaction = pool.begin().await?;
         let mut admin_count = User::find_admins(&mut *transaction).await?.len();
         let mut user_count = get_counts().user();
@@ -991,7 +1012,6 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
-        report.events.extend(events);
 
         // attempt to send enrollment invites after the original DB transaction is commited
         // and users actually exist in DB
@@ -1013,7 +1033,7 @@ impl super::LDAPConnection {
             self.add_user(user, None, pool).await?;
         }
 
-        Ok(())
+        Ok(events)
     }
 
     pub(super) async fn get_all_users(&mut self) -> Result<Vec<User>, LdapError> {

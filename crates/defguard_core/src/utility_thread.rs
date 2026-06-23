@@ -26,7 +26,7 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::update_counts,
     },
-    events::{LdapSyncEventType, LdapSyncReport},
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
     letsencrypt::do_letsencrypt_refresh,
     location_management::allowed_peers::get_location_allowed_peers,
@@ -93,19 +93,11 @@ pub async fn run_utility_thread(
     };
 
     let ldap_sync_task = || async {
-        let mut report = LdapSyncReport::default();
-        if let Err(e) = do_ldap_sync(pool, &gateway_tx, &mut report)
+        if let Err(e) = do_ldap_sync(pool, &gateway_tx, &ldap_sync_event_tx)
             .instrument(info_span!("ldap_sync_task"))
             .await
         {
             error!("There was an error while performing LDAP sync job: {e}");
-            return;
-        }
-
-        for event in report.events {
-            if let Err(err) = ldap_sync_event_tx.send(event) {
-                error!("Failed to send LDAP sync activity log event: {err}");
-            }
         }
     };
 

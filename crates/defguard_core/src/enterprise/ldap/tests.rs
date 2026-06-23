@@ -140,7 +140,11 @@ async fn assert_incremental_sync_converges(
 ) {
     let before = defguard_sync_snapshot(pool).await;
     ldap_conn.test_client_mut().clear_events();
-    ldap_conn.sync(pool, false, wg_tx).await.unwrap();
+    let (ldap_sync_event_tx, _ldap_sync_event_rx) = tokio::sync::mpsc::unbounded_channel();
+    ldap_conn
+        .sync(pool, false, wg_tx, &ldap_sync_event_tx)
+        .await
+        .unwrap();
     let events = ldap_conn.test_client.get_events();
     assert!(
         events.is_empty(),

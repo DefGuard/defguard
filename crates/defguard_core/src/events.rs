@@ -472,14 +472,3 @@ pub enum LdapSyncEventType {
     GroupMemberAdded { group: Group<Id>, user: User<Id> },
     GroupMemberRemoved { group: Group<Id>, user: User<Id> },
 }
-
-#[derive(Debug, Default)]
-pub struct LdapSyncReport {
-    pub events: Vec<LdapSyncEventType>,
-}
-
-impl LdapSyncReport {
-    pub fn push(&mut self, event: LdapSyncEventType) {
-        self.events.push(event);
-    }
-}

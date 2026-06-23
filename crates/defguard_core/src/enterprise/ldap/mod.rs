@@ -15,7 +15,7 @@ use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use self::error::LdapError;
 use crate::{
@@ -27,7 +27,7 @@ use crate::{
         },
         limits::update_counts,
     },
-    events::LdapSyncReport,
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
 };
 
@@ -48,7 +48,7 @@ pub mod utils;
 pub(crate) async fn do_ldap_sync(
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
-    report: &mut LdapSyncReport,
+    ldap_sync_event_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();
@@ -96,7 +96,7 @@ pub(crate) async fn do_ldap_sync(
     };
 
     if let Err(err) = ldap_connection
-        .sync(pool, is_ldap_desynced(), wg_tx, report)
+        .sync(pool, is_ldap_desynced(), wg_tx, ldap_sync_event_tx)
         .await
     {
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
