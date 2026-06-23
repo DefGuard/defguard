@@ -277,11 +277,11 @@ export const ProfileAuthCard = () => {
   return (
     <ProfileCard id="profile-auth-card">
       <h2>{m.profile_auth_card_title()}</h2>
-      <div className="section">
-        <div className="header">
-          <p className="section-title">{m.profile_auth_card_section_password()}</p>
-        </div>
-        {!user.password_management_disabled && (
+      {!user.password_management_disabled && (
+        <div className="section">
+          <div className="header">
+            <p className="section-title">{m.profile_auth_card_section_password()}</p>
+          </div>
           <Button
             variant="outlined"
             iconLeft="lock-open"
@@ -295,8 +295,8 @@ export const ProfileAuthCard = () => {
               });
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
       <Divider orientation="horizontal" />
       <div className="section">
         <div className="header">

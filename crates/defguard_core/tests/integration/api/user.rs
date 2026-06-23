@@ -2483,6 +2483,12 @@ async fn test_password_management_disabled_for_ldap_user(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    let ldap_user = get_db_user(&pool, "ldapuser").await;
+    client.verify_api_events_with_user(&[
+        (ApiEventType::UserLogin, ldap_user.id, "ldapuser"),
+        (ApiEventType::PasswordChanged, ldap_user.id, "ldapuser"),
+    ]);
 }
 
 /// An admin user is always exempt from password-management gating, even when sourced externally.
@@ -2519,6 +2525,13 @@ async fn test_password_management_disabled_admin_exempt(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    client.verify_api_events_with_user(&[(
+        ApiEventType::PasswordChangedByAdmin { user: hpotter },
+        1,
+        "admin",
+    )]);
 }
 
 /// A user with a local password hash is always allowed, even if externally sourced.
@@ -2528,7 +2541,7 @@ async fn test_password_management_disabled_allowed_with_local_password(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let (mut client, _) = make_client_with_db(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
     // hpotter is a local user with a password => change_self_password should work.
     client.login_user("hpotter", "pass123").await;
@@ -2541,6 +2554,9 @@ async fn test_password_management_disabled_allowed_with_local_password(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    client.verify_api_events_with_user(&[(ApiEventType::PasswordChanged, hpotter.id, "hpotter")]);
 }
 
 /// Password management is disabled for an OIDC-sourced non-admin user when the provider flag is on.

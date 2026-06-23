@@ -261,6 +261,12 @@ impl<I> User<I> {
     ///
     /// Admins are always exempt to prevent lockout if the external IdP is unavailable.
     #[must_use]
+    /// Returns `true` for non-admin users without a local password whose authentication
+    /// is managed externally (LDAP or OIDC), when the respective disable flag is enabled.
+    ///
+    /// For users connected to both LDAP and OIDC: if *either* flag is enabled, the
+    /// user is considered externally managed. Setting only one flag still disables
+    /// password management for dual-source users.
     pub fn password_management_disabled(
         &self,
         is_admin: bool,

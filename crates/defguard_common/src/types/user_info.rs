@@ -42,6 +42,10 @@ pub struct UserInfo {
 
 impl UserInfo {
     /// Convert [`User`] to [`UserInfo`].
+    ///
+    /// `oidc_disable_password_management` — when `true`, OIDC-sourced non-admin
+    /// users without a local password will have `password_management_disabled` set
+    /// to `true` in the returned `UserInfo`.
     pub async fn from_user(
         pool: &PgPool,
         user: User<Id>,
