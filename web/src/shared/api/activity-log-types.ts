@@ -6,7 +6,8 @@ export const ActivityLogModule = {
   Vpn: 'vpn',
   Enrollment: 'enrollment',
   Posture: 'posture',
-  LdapSync: 'ldap_sync',
+  ActiveDirectory: 'active_directory',
+  Ldap: 'ldap',
 } as const;
 
 export type ActivityLogModuleValue =
