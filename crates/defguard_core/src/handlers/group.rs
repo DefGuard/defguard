@@ -121,6 +121,7 @@ pub(crate) async fn bulk_assign_to_groups(
         users_to_maybe_update,
         &appstate.pool,
         &appstate.gateway_tx,
+        &appstate.ldap_tx,
     ))
     .await;
 
@@ -376,6 +377,7 @@ pub(crate) async fn create_group(
             users_to_maybe_update,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         ))
         .await;
     }
@@ -514,7 +516,13 @@ pub(crate) async fn modify_group(
         .iter_mut()
         .chain(current_members.iter_mut())
         .collect::<Vec<_>>();
-    ldap_update_users_state(affected_users, &appstate.pool, &appstate.gateway_tx).await;
+    ldap_update_users_state(
+        affected_users,
+        &appstate.pool,
+        &appstate.gateway_tx,
+        &appstate.ldap_tx,
+    )
+    .await;
 
     let set_users_before: HashSet<_> = users_before.into_iter().collect();
     let set_users_after: HashSet<_> = users_after.into_iter().collect();
@@ -665,7 +673,13 @@ pub(crate) async fn add_group_member(
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
             ldap_add_user_to_groups(&user, hashset![group.name.as_str()], &appstate.pool).await;
-            ldap_update_user_state(&mut user, &appstate.pool, &appstate.gateway_tx).await;
+            ldap_update_user_state(
+                &mut user,
+                &appstate.pool,
+                &appstate.gateway_tx,
+                &appstate.ldap_tx,
+            )
+            .await;
             let mut conn = appstate.pool.acquire().await?;
             sync_all_networks(&mut conn, &appstate.gateway_tx).await?;
             info!("Added user: {} to group: {}", user.username, group.name);

@@ -981,6 +981,7 @@ pub(crate) async fn modify_user(
             &mut user,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         )
         .await;
     }
@@ -992,6 +993,7 @@ pub(crate) async fn modify_user(
         &mut user,
         &appstate.pool,
         &appstate.gateway_tx,
+        &appstate.ldap_tx,
     ))
     .await;
 
@@ -1614,6 +1616,7 @@ pub(crate) async fn bulk_disable_users(
             user,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         ))
         .await;
     }
@@ -1697,6 +1700,7 @@ pub(crate) async fn bulk_enable_users(
             user,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         ))
         .await;
     }

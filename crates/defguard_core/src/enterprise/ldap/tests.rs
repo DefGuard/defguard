@@ -140,11 +140,8 @@ async fn assert_incremental_sync_converges(
 ) {
     let before = defguard_sync_snapshot(pool).await;
     ldap_conn.test_client_mut().clear_events();
-    let (ldap_sync_event_tx, _ldap_sync_event_rx) = tokio::sync::mpsc::unbounded_channel();
-    ldap_conn
-        .sync(pool, false, wg_tx, &ldap_sync_event_tx)
-        .await
-        .unwrap();
+    let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
+    ldap_conn.sync(pool, false, wg_tx, &ldap_tx).await.unwrap();
     let events = ldap_conn.test_client.get_events();
     assert!(
         events.is_empty(),
@@ -368,6 +365,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
     let pool = setup_pool(options).await;
     let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
     let _ = initialize_current_settings(&pool).await;
     let config = ldap_conn.config.clone();
 
@@ -420,6 +418,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
             ],
             &pool,
             &wg_tx,
+            &ldap_tx,
         )
         .await
         .unwrap();
@@ -452,7 +451,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     ldap_conn
-        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx)
+        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx, &ldap_tx)
         .await
         .unwrap();
 
@@ -479,7 +478,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
 
     active_user_in_ldap.is_active = false;
     ldap_conn
-        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx)
+        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx, &ldap_tx)
         .await
         .unwrap();
 
@@ -521,7 +520,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     active_user_in_ldap.is_active = false;
 
     ldap_conn
-        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx)
+        .update_users_state(vec![&mut active_user_in_ldap], &pool, &wg_tx, &ldap_tx)
         .await
         .unwrap();
 
@@ -556,7 +555,12 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         .remove_test_user(&active_user_in_ldap.clone().as_noid(), &config);
 
     ldap_conn
-        .update_users_state(vec![&mut another_active_user_in_ldap], &pool, &wg_tx)
+        .update_users_state(
+            vec![&mut another_active_user_in_ldap],
+            &pool,
+            &wg_tx,
+            &ldap_tx,
+        )
         .await
         .unwrap();
 
@@ -1824,6 +1828,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
 ) {
     let pool = setup_pool(options).await;
     let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
 
@@ -3974,7 +3979,7 @@ async fn test_enable_in_defguard_pushes_status_to_ad(_: PgPoolOptions, options: 
         .add_test_user(&ldap_user, &config);
 
     ldap_conn
-        .update_users_state(vec![&mut user], &pool, &wg_tx)
+        .update_users_state(vec![&mut user], &pool, &wg_tx, &ldap_tx)
         .await
         .unwrap();
 

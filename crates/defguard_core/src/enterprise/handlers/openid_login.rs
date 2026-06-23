@@ -641,7 +641,13 @@ pub async fn auth_callback(
             user.username
         );
     } else {
-        ldap_update_user_state(&mut user, &appstate.pool, &appstate.gateway_tx).await;
+        ldap_update_user_state(
+            &mut user,
+            &appstate.pool,
+            &appstate.gateway_tx,
+            &appstate.ldap_tx,
+        )
+        .await;
     }
 
     if let Some(mfa_info) = mfa_info {

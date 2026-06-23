@@ -12,7 +12,7 @@ use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use super::{
     db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
@@ -31,6 +31,7 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
     handlers::user::check_username,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
@@ -486,6 +487,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
     all_users: Option<&[DirectoryUser]>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' groups with the directory, this may take a while...");
@@ -597,6 +599,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
         affected_users.iter_mut().collect::<Vec<_>>(),
         pool,
         gateway_tx,
+        ldap_tx,
     ))
     .await;
     info!("Syncing all users' groups done.");
@@ -623,6 +626,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
 async fn sync_all_users_state(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
     all_users: &[DirectoryUser],
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
@@ -892,12 +896,14 @@ async fn sync_all_users_state(
         modified_users.iter_mut().collect::<Vec<_>>(),
         pool,
         gateway_tx,
+        ldap_tx,
     ))
     .await;
     Box::pin(ldap_update_users_state(
         created_users.iter_mut().collect::<Vec<_>>(),
         pool,
         gateway_tx,
+        ldap_tx,
     ))
     .await;
 
@@ -1012,6 +1018,7 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -1048,7 +1055,7 @@ pub(crate) async fn do_directory_sync(
                 DirectorySyncTarget::All | DirectorySyncTarget::Users
             ) {
                 let users = dir_sync.get_all_users().await?;
-                sync_all_users_state(pool, gateway_tx, &users).await?;
+                sync_all_users_state(pool, gateway_tx, ldap_tx, &users).await?;
                 all_users = Some(users);
             }
             if matches!(
@@ -1069,8 +1076,14 @@ pub(crate) async fn do_directory_sync(
                     }
                     _ => None, // No need to pass all users for other providers, for the time being.
                 };
-                sync_all_users_groups(&dir_sync, pool, gateway_tx, users_to_pass.as_deref())
-                    .await?;
+                sync_all_users_groups(
+                    &dir_sync,
+                    pool,
+                    gateway_tx,
+                    ldap_tx,
+                    users_to_pass.as_deref(),
+                )
+                .await?;
             }
         }
         Err(err) => {

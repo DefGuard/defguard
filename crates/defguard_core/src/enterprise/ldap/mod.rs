@@ -48,7 +48,7 @@ pub mod utils;
 pub(crate) async fn do_ldap_sync(
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
-    ldap_sync_event_tx: &UnboundedSender<LdapSyncEventType>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();
@@ -96,7 +96,7 @@ pub(crate) async fn do_ldap_sync(
     };
 
     if let Err(err) = ldap_connection
-        .sync(pool, is_ldap_desynced(), wg_tx, ldap_sync_event_tx)
+        .sync(pool, is_ldap_desynced(), wg_tx, ldap_tx)
         .await
     {
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
@@ -379,6 +379,7 @@ impl LDAPConnection {
         users: Vec<&mut User<Id>>,
         pool: &PgPool,
         wg_tx: &Sender<GatewayCommand>,
+        ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         debug!("Updating users state in LDAP");
 
@@ -450,7 +451,7 @@ impl LDAPConnection {
                 debug!(
                     "User {user} is in LDAP and is allowed to be synced, synchronizing his data"
                 );
-                self.sync_user_data(user, pool, wg_tx).await?;
+                self.sync_user_data(user, pool, wg_tx, ldap_tx).await?;
                 debug!("User {user} data synchronized");
             }
         }

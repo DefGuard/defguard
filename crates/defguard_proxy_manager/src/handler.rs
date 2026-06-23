@@ -31,6 +31,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     error::WebError,
+    events::LdapSyncEventType,
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
@@ -889,6 +890,7 @@ impl ProxyHandler {
                                                     &mut user,
                                                     &pool,
                                                     &gateway_tx,
+                                                    &self.services.ldap,
                                                 )
                                                 .await;
                                             }
@@ -1203,6 +1205,7 @@ struct ProxyServices {
     password_reset: PasswordResetServer,
     client_mfa: ClientMfaServer,
     polling: PollingServer,
+    ldap: UnboundedSender<LdapSyncEventType>,
 }
 
 impl ProxyServices {
@@ -1229,6 +1232,7 @@ impl ProxyServices {
             password_reset,
             client_mfa,
             polling,
+            ldap: tx.ldap.clone(),
         }
     }
 }

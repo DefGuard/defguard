@@ -50,7 +50,7 @@ pub async fn run_utility_thread(
     gateway_tx: broadcast::Sender<GatewayCommand>,
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
     web_reload_tx: broadcast::Sender<()>,
-    ldap_sync_event_tx: mpsc::UnboundedSender<LdapSyncEventType>,
+    ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), anyhow::Error> {
     let mut last_count_update = Instant::now();
     let mut last_directory_sync = Instant::now();
@@ -66,7 +66,8 @@ pub async fn run_utility_thread(
 
     let directory_sync_task = || async {
         if let Err(e) = Box::pin(
-            do_directory_sync(pool, &gateway_tx).instrument(info_span!("directory_sync_task")),
+            do_directory_sync(pool, &gateway_tx, &ldap_tx)
+                .instrument(info_span!("directory_sync_task")),
         )
         .await
         {
@@ -93,7 +94,7 @@ pub async fn run_utility_thread(
     };
 
     let ldap_sync_task = || async {
-        if let Err(e) = do_ldap_sync(pool, &gateway_tx, &ldap_sync_event_tx)
+        if let Err(e) = do_ldap_sync(pool, &gateway_tx, &ldap_tx)
             .instrument(info_span!("ldap_sync_task"))
             .await
         {

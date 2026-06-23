@@ -13,7 +13,8 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    events::BidiStreamEvent, grpc::proxy::client_mfa::ClientLoginSession,
+    events::{BidiStreamEvent, LdapSyncEventType},
+    grpc::proxy::client_mfa::ClientLoginSession,
     version::IncompatibleComponents,
 };
 use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
@@ -403,17 +404,20 @@ impl ProxyManager {
 pub struct ProxyTxSet {
     wireguard: Sender<GatewayCommand>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
+    pub(crate) ldap: UnboundedSender<LdapSyncEventType>,
 }
 
 impl ProxyTxSet {
     #[must_use]
-    pub const fn new(
+    pub fn new(
         wireguard: Sender<GatewayCommand>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
+        ldap: UnboundedSender<LdapSyncEventType>,
     ) -> Self {
         Self {
             wireguard,
             bidi_events,
+            ldap,
         }
     }
 }
