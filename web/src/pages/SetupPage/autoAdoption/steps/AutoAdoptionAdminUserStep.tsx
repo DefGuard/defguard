@@ -122,7 +122,7 @@ export const AutoAdoptionAdminUserStep = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.createAdminUser,
     meta: {
-      invalidate: ['setupStatus'],
+      invalidate: ['info'],
     },
     onSuccess: () => {
       setActiveStep(AutoAdoptionSetupStep.InternalUrlSettings);

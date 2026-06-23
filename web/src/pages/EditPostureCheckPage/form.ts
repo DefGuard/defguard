@@ -1,10 +1,6 @@
 import type { ApiDevicePosture, ApiDevicePostureOsRule } from '../../shared/api/types';
 import type { OperatingSystemConditionKey } from '../AddPostureCheckWizardPage/useAddPostureCheckWizardStore';
-import {
-  PostureCheckOs,
-  type PostureCheckOsValue,
-  type PostureCheckVersionValues,
-} from '../PostureChecksPage/types';
+import { PostureCheckOs, type PostureCheckOsValue } from '../PostureChecksPage/types';
 
 export type EditPostureCheckOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
@@ -17,7 +13,7 @@ export type EditPostureCheckFormValues = {
   configuredOperatingSystems: PostureCheckOsValue[];
   description: string | null;
   locations: Set<number>;
-  minimumClientVersion: string;
+  minimumClientVersion: string | null;
   name: string;
   operatingSystemState: Record<PostureCheckOsValue, EditPostureCheckOperatingSystemState>;
 };
@@ -30,33 +26,34 @@ export const editPostureCheckOperatingSystems: PostureCheckOsValue[] = [
   PostureCheckOs.Android,
 ];
 
-export const getDefaultEditPostureCheckOperatingSystemState = (
-  versionValues: PostureCheckVersionValues,
-): Record<PostureCheckOsValue, EditPostureCheckOperatingSystemState> => ({
+export const getDefaultEditPostureCheckOperatingSystemState = (): Record<
+  PostureCheckOsValue,
+  EditPostureCheckOperatingSystemState
+> => ({
   [PostureCheckOs.Windows]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: versionValues.windows[versionValues.windows.length - 1] ?? null,
+    version: null,
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: versionValues.macos[versionValues.macos.length - 1] ?? null,
+    version: null,
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: versionValues.linux[versionValues.linux.length - 1] ?? null,
+    version: null,
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: versionValues.ios[versionValues.ios.length - 1] ?? null,
+    version: null,
   },
   [PostureCheckOs.Android]: {
     conditions: [],
     securityUpdateMaxAge: null,
-    version: versionValues.android[versionValues.android.length - 1] ?? null,
+    version: null,
   },
 });
 
@@ -99,10 +96,8 @@ const getRuleVersion = (rule: ApiDevicePostureOsRule): number | null => {
 
 export const getInitialEditPostureCheckFormValues = (
   postureCheck: ApiDevicePosture,
-  versionValues: PostureCheckVersionValues,
 ): EditPostureCheckFormValues => {
-  const operatingSystemState =
-    getDefaultEditPostureCheckOperatingSystemState(versionValues);
+  const operatingSystemState = getDefaultEditPostureCheckOperatingSystemState();
 
   for (const rule of postureCheck.os_rules) {
     operatingSystemState[rule.os_type] = {
@@ -120,10 +115,7 @@ export const getInitialEditPostureCheckFormValues = (
     configuredOperatingSystems: postureCheck.os_rules.map((rule) => rule.os_type),
     description: postureCheck.description,
     locations: new Set(postureCheck.locations),
-    minimumClientVersion:
-      postureCheck.min_client_version ??
-      versionValues.defguard[versionValues.defguard.length - 1] ??
-      '',
+    minimumClientVersion: postureCheck.min_client_version,
     name: postureCheck.name,
     operatingSystemState,
   };

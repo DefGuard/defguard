@@ -9,8 +9,12 @@ export type PostureCheckAssignmentSummarySection = {
 
 const getOsLine = (
   osType: 'windows' | 'macos' | 'linux' | 'ios' | 'android',
-  version: number,
+  version: number | null,
 ) => {
+  if (version === null) {
+    return String(m.posture_checks_version_any());
+  }
+
   switch (osType) {
     case 'windows':
     case 'macos':
@@ -33,9 +37,7 @@ export const getPostureCheckAssignmentSummarySections = (
     switch (rule.os_type) {
       case 'windows': {
         const lines = [
-          rule.min_os_version !== null
-            ? getOsLine(rule.os_type, rule.min_os_version)
-            : null,
+          getOsLine(rule.os_type, rule.min_os_version),
           rule.windows_security_update_max_age !== null
             ? String(
                 m.posture_checks_wizard_operating_systems_windows_security_updates_within_days(
@@ -68,9 +70,7 @@ export const getPostureCheckAssignmentSummarySections = (
       }
       case 'macos': {
         const lines = [
-          rule.min_os_version !== null
-            ? getOsLine(rule.os_type, rule.min_os_version)
-            : null,
+          getOsLine(rule.os_type, rule.min_os_version),
           rule.disk_encryption_required
             ? String(
                 m.posture_checks_wizard_operating_systems_condition_disk_encryption(),
@@ -93,9 +93,7 @@ export const getPostureCheckAssignmentSummarySections = (
       }
       case 'linux': {
         const lines = [
-          rule.min_kernel_version !== null
-            ? getOsLine(rule.os_type, rule.min_kernel_version)
-            : null,
+          getOsLine(rule.os_type, rule.min_kernel_version),
           rule.disk_encryption_required
             ? String(
                 m.posture_checks_wizard_operating_systems_condition_disk_encryption(),
@@ -112,11 +110,9 @@ export const getPostureCheckAssignmentSummarySections = (
         break;
       }
       case 'ios': {
-        const lines = [
-          rule.min_os_version !== null
-            ? getOsLine(rule.os_type, rule.min_os_version)
-            : null,
-        ].filter((line): line is string => Boolean(line));
+        const lines = [getOsLine(rule.os_type, rule.min_os_version)].filter(
+          (line): line is string => Boolean(line),
+        );
 
         if (lines.length > 0) {
           sections.push({
@@ -128,9 +124,7 @@ export const getPostureCheckAssignmentSummarySections = (
       }
       case 'android': {
         const lines = [
-          rule.min_os_version !== null
-            ? getOsLine(rule.os_type, rule.min_os_version)
-            : null,
+          getOsLine(rule.os_type, rule.min_os_version),
           rule.device_integrity_required
             ? String(
                 m.posture_checks_wizard_operating_systems_condition_device_integrity(),
@@ -150,13 +144,13 @@ export const getPostureCheckAssignmentSummarySections = (
   });
 
   const clientLines = [
-    postureCheck.min_client_version !== null
-      ? String(
+    postureCheck.min_client_version === null
+      ? String(m.posture_checks_version_any())
+      : String(
           m.posture_checks_wizard_summary_defguard_version({
             version: postureCheck.min_client_version,
           }),
-        )
-      : null,
+        ),
     postureCheck.allow_prerelease_client
       ? String(m.posture_checks_wizard_summary_prerelease())
       : null,

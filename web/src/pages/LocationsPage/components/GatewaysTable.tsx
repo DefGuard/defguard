@@ -74,7 +74,7 @@ export const GatewaysTable = () => {
   const { mutate: toggleGateway } = useMutation({
     mutationFn: api.gateway.editGateway,
     meta: {
-      invalidate: ['gateway'],
+      invalidate: [['gateway'], ['network']],
     },
   });
 

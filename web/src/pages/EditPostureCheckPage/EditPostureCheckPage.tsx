@@ -62,8 +62,8 @@ const EditPostureCheckForm = ({
 }) => {
   const navigate = useNavigate();
   const defaults = useMemo(
-    () => getInitialEditPostureCheckFormValues(postureCheck, versionValues),
-    [postureCheck, versionValues],
+    () => getInitialEditPostureCheckFormValues(postureCheck),
+    [postureCheck],
   );
   const [values, setValues] = useState<EditPostureCheckFormValues>(defaults);
   const locationOptions = useMemo<PostureCheckEditorLocationOption[]>(
@@ -93,7 +93,7 @@ const EditPostureCheckForm = ({
       );
     },
     meta: {
-      invalidate: [['device-posture'], ['network']],
+      invalidate: [['device-posture'], ['network'], ['activity-log']],
     },
     onSuccess: () => {
       Snackbar.default(m.posture_checks_edit_save_success());
@@ -160,7 +160,7 @@ const EditPostureCheckForm = ({
               title: m.posture_checks_edit_delete_title(),
               contentMd: m.posture_checks_edit_delete_body({ name: postureCheck.name }),
               actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
-              invalidateKeys: [['device-posture'], ['network']],
+              invalidateKeys: [['device-posture'], ['network'], ['activity-log']],
               submitProps: { text: m.controls_delete(), variant: 'critical' },
               onSuccess: () => {
                 Snackbar.default(m.posture_checks_edit_delete_success());

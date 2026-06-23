@@ -48,18 +48,21 @@ pub(crate) fn parse_client_version_platform(
 #[derive(Debug)]
 pub enum ClientFeature {
     ServiceLocations,
+    PostureChecks,
 }
 
 impl ClientFeature {
     const fn min_version(&self) -> Option<Version> {
         match self {
             Self::ServiceLocations => Some(Version::new(1, 6, 0)),
+            Self::PostureChecks => Some(Version::new(2, 1, 0)),
         }
     }
 
     fn required_os_family(&self) -> Option<Vec<&'static str>> {
         match self {
             Self::ServiceLocations => Some(vec!["windows"]),
+            Self::PostureChecks => None,
         }
     }
 
@@ -381,6 +384,52 @@ mod tests {
         assert!(
             !ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
             "ServiceLocations should not be supported with pre-release version below minimum"
+        );
+    }
+
+    #[test]
+    fn test_posture_checks_feature_support() {
+        // PostureChecks has no OS family requirement, so it should work on any platform
+        // as long as the client version is at least 2.1.0.
+        for os_family in ["windows", "macos", "linux"] {
+            let info = create_device_info(
+                Some("2.1.0".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    ..Default::default()
+                }),
+            );
+            assert!(
+                ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+                "PostureChecks should be supported on {os_family} at minimum version"
+            );
+        }
+
+        // Higher version is supported even without platform info.
+        let info = create_device_info(Some("2.5.0".to_owned()), None);
+        assert!(
+            ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should be supported with higher version"
+        );
+
+        // Version below minimum is not supported.
+        let info = create_device_info(Some("2.0.9".to_owned()), None);
+        assert!(
+            !ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should not be supported below minimum version"
+        );
+
+        // Missing version info means the feature is not supported.
+        let info = create_device_info(None, None);
+        assert!(
+            !ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should not be supported without version info"
+        );
+
+        // No device info at all means the feature is not supported.
+        assert!(
+            !ClientFeature::PostureChecks.is_supported_by_device(None),
+            "PostureChecks should not be supported without device info"
         );
     }
 }

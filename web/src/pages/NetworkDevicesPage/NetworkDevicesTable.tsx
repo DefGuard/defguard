@@ -254,7 +254,11 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
                       title: m.modal_delete_network_device_title(),
                       contentMd: m.modal_delete_network_device_body(),
                       actionPromise: () => api.network_device.deleteDevice(row.id),
-                      invalidateKeys: [['device', 'network'], ['network']],
+                      invalidateKeys: [
+                        ['device', 'network'],
+                        ['network'],
+                        ['enterprise_info'],
+                      ],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
                       onSuccess: () =>
                         Snackbar.default(m.network_device_delete_success()),

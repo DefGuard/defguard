@@ -167,6 +167,25 @@ fn test_maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect
     }
 }
 
+#[test]
+fn test_maps_replaced_bidi_events_from_non_mfa_sessions_to_standard_superseded_logger_events() {
+    let event = BidiStreamEvent {
+        context: sample_bidi_context(),
+        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+            DesktopClientMfaEvent::SessionSuperseded {
+                location: sample_location(),
+                device: sample_device(),
+                is_mfa_session: false,
+            },
+        )),
+    };
+
+    let result = map_to_activity_log_event(EventLoggerMessage::from_bidi_event(event));
+
+    assert_eq!(result.event, EventType::VpnClientSessionSuperseded);
+    assert_eq!(result.module, ActivityLogModule::Vpn);
+}
+
 // Helper struct for testing mapping of all existing events
 // to activity log entries
 struct EventTestCase {
@@ -1023,7 +1042,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 snapshot: posture_snapshot.clone(),
             }),
             event_type: EventType::DevicePostureCreated,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Created"),
         },
         EventTestCase {
@@ -1033,7 +1052,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 after: posture_snapshot2.clone(),
             }),
             event_type: EventType::DevicePostureUpdated,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Updated"),
         },
         EventTestCase {
@@ -1042,7 +1061,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 snapshot: posture_snapshot.clone(),
             }),
             event_type: EventType::DevicePostureDeleted,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Deleted"),
         },
         EventTestCase {
@@ -1052,7 +1071,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 duplicate: posture_snapshot2,
             }),
             event_type: EventType::DevicePostureDuplicated,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Duplicated"),
         },
         EventTestCase {
@@ -1062,7 +1081,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 location_ids: vec![10],
             }),
             event_type: EventType::DevicePostureLocationsAssigned,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Assigned"),
         },
         EventTestCase {
@@ -1072,7 +1091,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 posture_ids: vec![1],
             }),
             event_type: EventType::LocationPosturesAssigned,
-            module: ActivityLogModule::Defguard,
+            module: ActivityLogModule::Posture,
             description_contains: Some("Assigned"),
         },
     ];
@@ -1184,13 +1203,15 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Success {
                     location: location.clone(),
                     device: device.clone(),
-                    method: defguard_core::events::ClientMFAMethod::Totp,
+                    method: defguard_core::events::ClientMFAMethod::MobileApprove,
+                    mobile_auth_device_name: Some("pixel-7".to_owned()),
                 })),
                 Some(location.clone()),
             ),
             event_type: EventType::VpnClientMfaSuccess,
             module: ActivityLogModule::Vpn,
-            description_contains: Some("completed"),
+            // the approving device name is included in the description for mobile approve logins
+            description_contains: Some("approved on pixel-7"),
         },
         EventTestCase {
             name: "ClientMfaFailed",
@@ -1224,6 +1245,22 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("disconnected"),
         },
         EventTestCase {
+            name: "SessionSuperseded",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::SessionSuperseded {
+                        location: location.clone(),
+                        device: device.clone(),
+                        is_mfa_session: true,
+                    },
+                )),
+                Some(location.clone()),
+            ),
+            event_type: EventType::VpnClientMfaSessionSuperseded,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("superseded"),
+        },
+        EventTestCase {
             name: "DevicePostureCheckPassed",
             message: bidi_msg(
                 BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -1236,7 +1273,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 Some(location.clone()),
             ),
             event_type: EventType::DevicePostureCheckPassed,
-            module: ActivityLogModule::Vpn,
+            module: ActivityLogModule::Posture,
             description_contains: Some("posture check passed"),
         },
         EventTestCase {
@@ -1253,7 +1290,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 Some(location.clone()),
             ),
             event_type: EventType::DevicePostureCheckFailed,
-            module: ActivityLogModule::Vpn,
+            module: ActivityLogModule::Posture,
             description_contains: Some("posture check failed"),
         },
     ];

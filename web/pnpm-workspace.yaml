@@ -1,19 +1,11 @@
+minimumReleaseAge: 2880
+overrides:
+  isbot: "5.1.42"
+
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
   sharp: true
-
-minimumReleaseAgeExclude:
-  - '@tanstack/form-core@1.33.0'
-  - '@tanstack/react-form@1.33.0'
-  - '@tanstack/react-router@1.170.9'
-  - '@tanstack/react-virtual@3.13.26'
-  - '@tanstack/router-core@1.171.7'
-  - '@tanstack/router-generator@1.167.11'
-  - '@tanstack/router-plugin@1.168.12'
-  - '@tanstack/virtual-core@3.16.0'
-  - dayjs@1.11.21
-  - zustand@5.0.14
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

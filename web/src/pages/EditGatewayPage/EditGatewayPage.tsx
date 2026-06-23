@@ -78,7 +78,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const { mutateAsync: editGateway } = useMutation({
     mutationFn: api.gateway.editGateway,
     meta: {
-      invalidate: ['gateway'],
+      invalidate: [['gateway'], ['network']],
     },
     onSuccess: () => {
       Snackbar.default(m.gateway_edit_success());

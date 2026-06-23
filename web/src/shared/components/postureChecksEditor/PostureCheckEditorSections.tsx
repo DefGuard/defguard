@@ -111,12 +111,18 @@ const conditionDefinitions = (): Record<PostureCheckOsValue, ConditionDefinition
 const getVersionOptions = (
   operatingSystem: PostureCheckOsValue,
   versionValues: PostureCheckVersionValues,
-): SelectOption<number>[] =>
-  versionValues[operatingSystem].map((value) => ({
+): SelectOption<number | null>[] => [
+  {
+    key: 'any',
+    label: m.posture_checks_version_any(),
+    value: null,
+  },
+  ...versionValues[operatingSystem].map((value) => ({
     key: value,
     label: getOperatingSystemVersionOptionLabel(operatingSystem, value),
     value,
-  }));
+  })),
+];
 
 export const PostureCheckGeneralSection = ({
   updateValues,
@@ -358,22 +364,28 @@ export const PostureCheckDefguardSection = ({
   values,
   versionValues,
 }: DefguardSectionProps) => {
+  const versionOptions: SelectOption<PostureCheckDefguardVersionValue>[] = [
+    {
+      key: 'any',
+      label: m.posture_checks_version_any(),
+      value: null,
+    },
+    ...versionValues.defguard.map((version) => ({
+      key: version,
+      label: m.posture_checks_wizard_client_version_option({ version }),
+      value: version,
+    })),
+  ];
+  const selectedVersion =
+    versionOptions.find((option) => option.value === values.minimumClientVersion) ??
+    versionOptions[0];
+
   return (
     <div className="posture-check-defguard">
       <p className="note">{m.posture_checks_edit_defguard_note()}</p>
       <Select
-        options={versionValues.defguard.map((version) => ({
-          key: version,
-          label: m.posture_checks_wizard_client_version_option({ version }),
-          value: version,
-        }))}
-        value={{
-          key: values.minimumClientVersion,
-          label: m.posture_checks_wizard_client_version_option({
-            version: values.minimumClientVersion,
-          }),
-          value: values.minimumClientVersion,
-        }}
+        options={versionOptions}
+        value={selectedVersion}
         onChange={(option) => {
           updateValues((current) => ({
             ...current,

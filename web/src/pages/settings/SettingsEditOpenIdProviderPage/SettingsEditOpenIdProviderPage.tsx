@@ -39,7 +39,7 @@ export const SettingsEditOpenIdProviderPage = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.openIdProvider.editOpenIdProvider,
     meta: {
-      invalidate: [['settings'], ['info'], ['openid']],
+      invalidate: [['settings'], ['info'], ['openid'], ['settings_essentials']],
     },
   });
 
@@ -48,7 +48,7 @@ export const SettingsEditOpenIdProviderPage = () => {
       title: m.settings_openid_provider_delete_confirm_title(),
       contentMd: m.settings_openid_provider_delete_confirm_body(),
       actionPromise: () => api.openIdProvider.deleteOpenIdProvider(name),
-      invalidateKeys: [['settings'], ['info'], ['openid']],
+      invalidateKeys: [['settings'], ['info'], ['openid'], ['settings_essentials']],
       submitProps: { text: m.controls_delete(), variant: 'critical' },
       onSuccess: () => {
         Snackbar.default(m.settings_openid_provider_delete_success());

@@ -24,9 +24,7 @@ describe('add posture check wizard store', () => {
   });
 
   it('stores defguard client-version settings and restores their defaults on reset', () => {
-    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBe(
-      versionValues.defguard[versionValues.defguard.length - 1],
-    );
+    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBeNull();
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(false);
 
     useAddPostureCheckWizardStore.getState().setMinimumClientVersion('1.6');
@@ -37,10 +35,51 @@ describe('add posture check wizard store', () => {
 
     useAddPostureCheckWizardStore.getState().reset();
 
-    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBe(
-      versionValues.defguard[versionValues.defguard.length - 1],
-    );
+    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBeNull();
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(false);
+  });
+
+  it('uses Any version as the default for operating systems', () => {
+    expect(useAddPostureCheckWizardStore.getState().operatingSystemState).toMatchObject({
+      windows: { version: null },
+      macos: { version: null },
+      linux: { version: null },
+      ios: { version: null },
+      android: { version: null },
+    });
+  });
+
+  it('resets unavailable concrete versions to Any when metadata changes', () => {
+    const store = useAddPostureCheckWizardStore.getState();
+
+    store.setMinimumClientVersion('1.6');
+    store.updateOperatingSystemDetails(PostureCheckOs.Windows, {
+      version: 10,
+    });
+    store.updateOperatingSystemDetails(PostureCheckOs.Macos, {
+      version: null,
+    });
+
+    useAddPostureCheckWizardStore.getState().syncVersionValues(
+      getPostureCheckVersionValues({
+        os_versions: {
+          windows: [11],
+          macos: [13],
+          ios: [17],
+          android: [13],
+        },
+        linux_kernel_versions: [6],
+        client_versions: ['2.0'],
+      } satisfies DevicePostureVersionMetadata),
+    );
+
+    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().operatingSystemState.windows.version,
+    ).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().operatingSystemState.macos.version,
+    ).toBeNull();
   });
 
   it('keeps selected operating systems unique while preserving append order', () => {

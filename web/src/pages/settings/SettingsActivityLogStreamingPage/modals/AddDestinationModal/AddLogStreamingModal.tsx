@@ -126,7 +126,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
   const { mutateAsync: createStream } = useMutation({
     mutationFn: api.activityLogStream.createStream,
     meta: {
-      invalidate: ['activity_log_stream'],
+      invalidate: [['activity_log_stream'], ['activity-log']],
     },
   });
 
