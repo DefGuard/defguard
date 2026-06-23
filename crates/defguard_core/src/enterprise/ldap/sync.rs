@@ -109,6 +109,12 @@ fn emit_ldap_sync_events(
     }
 }
 
+fn emit_ldap_sync_event(ldap_tx: &UnboundedSender<LdapSyncEventType>, event: LdapSyncEventType) {
+    if let Err(err) = ldap_tx.send(event) {
+        error!("Failed to send LDAP sync activity log event: {err}");
+    }
+}
+
 async fn get_or_create_group(
     transaction: &mut PgConnection,
     groupname: &str,
@@ -529,6 +535,16 @@ impl super::LDAPConnection {
                         debug!("Applying Defguard account status to AD for {defguard_user}");
                         self.set_ad_account_status(defguard_user, defguard_user.is_active)
                             .await?;
+                        let event = if defguard_user.is_active {
+                            LdapSyncEventType::OutboundUserEnabled {
+                                user: defguard_user.clone(),
+                            }
+                        } else {
+                            LdapSyncEventType::OutboundUserDisabled {
+                                user: defguard_user.clone(),
+                            }
+                        };
+                        events.push(event);
                     }
                 }
             }
@@ -551,6 +567,9 @@ impl super::LDAPConnection {
                     Authority::Defguard => {
                         debug!("Applying Defguard user attributes to LDAP user");
                         self.modify_user(&ldap_user.username, defguard_user).await?;
+                        events.push(LdapSyncEventType::OutboundUserModified {
+                            user: defguard_user.clone(),
+                        });
                     }
                 }
             }
@@ -904,12 +923,26 @@ impl super::LDAPConnection {
         for (groupname, members) in changes.delete_ldap {
             for member in members {
                 self.remove_user_from_group(member, &groupname).await?;
+                emit_ldap_sync_event(
+                    ldap_tx,
+                    LdapSyncEventType::OutboundGroupMemberRemoved {
+                        group: groupname.clone(),
+                        username: member.username.clone(),
+                    },
+                );
             }
         }
 
         for (groupname, members) in changes.add_ldap {
             for member in members {
                 self.add_user_to_group(&member, &groupname).await?;
+                emit_ldap_sync_event(
+                    ldap_tx,
+                    LdapSyncEventType::OutboundGroupMemberAdded {
+                        group: groupname.clone(),
+                        username: member.username,
+                    },
+                );
             }
         }
 
@@ -1017,11 +1050,21 @@ impl super::LDAPConnection {
         for user in changes.delete_ldap {
             debug!("Deleting user {} from LDAP", user.username);
             self.delete_user(&user).await?;
+            emit_ldap_sync_event(
+                ldap_tx,
+                LdapSyncEventType::OutboundUserDeleted {
+                    username: user.username.clone(),
+                },
+            );
         }
 
         for user in &mut changes.add_ldap {
             debug!("Adding user {} to LDAP", user.username);
             self.add_user(user, None, pool).await?;
+            emit_ldap_sync_event(
+                ldap_tx,
+                LdapSyncEventType::OutboundUserCreated { user: user.clone() },
+            );
         }
 
         Ok(())

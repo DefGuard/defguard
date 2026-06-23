@@ -471,4 +471,11 @@ pub enum LdapSyncEventType {
     GroupCreated { group: Group<Id> },
     GroupMemberAdded { group: Group<Id>, user: User<Id> },
     GroupMemberRemoved { group: Group<Id>, user: User<Id> },
+    OutboundUserCreated { user: User<Id> },
+    OutboundUserDeleted { username: String },
+    OutboundUserModified { user: User<Id> },
+    OutboundUserEnabled { user: User<Id> },
+    OutboundUserDisabled { user: User<Id> },
+    OutboundGroupMemberAdded { group: String, username: String },
+    OutboundGroupMemberRemoved { group: String, username: String },
 }

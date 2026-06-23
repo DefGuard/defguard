@@ -329,6 +329,7 @@ async fn sync_user_groups<T: DirectorySync>(
     user: &User<Id>,
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing groups of user {} with the directory", user.email);
     let directory_groups = directory_sync.get_user_groups(&user.email).await?;
@@ -387,11 +388,11 @@ async fn sync_user_groups<T: DirectorySync>(
 
     let mut user_groups = HashMap::new();
     user_groups.insert(user, add_to_ldap_groups);
-    ldap_add_users_to_groups(user_groups, pool).await;
+    ldap_add_users_to_groups(user_groups, pool, ldap_tx).await;
 
     let mut user_groups = HashMap::new();
     user_groups.insert(user, remove_from_ldap_groups);
-    ldap_remove_users_from_groups(user_groups, pool).await;
+    ldap_remove_users_from_groups(user_groups, pool, ldap_tx).await;
 
     Ok(())
 }
@@ -423,6 +424,7 @@ pub async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -439,7 +441,7 @@ pub async fn sync_user_groups_if_configured(
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
-            sync_user_groups(&dir_sync, user, pool, gateway_tx).await?;
+            sync_user_groups(&dir_sync, user, pool, gateway_tx, ldap_tx).await?;
         }
         Err(err) => {
             error!("Failed to build directory sync client: {err}");
@@ -891,7 +893,7 @@ async fn sync_all_users_state(
     update_counts(pool).await?;
 
     // trigger LDAP sync
-    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
+    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool, ldap_tx).await;
     Box::pin(ldap_update_users_state(
         modified_users.iter_mut().collect::<Vec<_>>(),
         pool,

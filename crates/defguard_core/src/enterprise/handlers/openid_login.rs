@@ -632,8 +632,13 @@ pub async fn auth_callback(
     // since he already managed to login through the provider. Currently, there is no other way to
     // sync the groups for the MFA enabled user logging in through the provider without firing it on
     // every login attempt, even for standard, non-provider users.
-    if let Err(err) =
-        sync_user_groups_if_configured(&user, &appstate.pool, &appstate.gateway_tx).await
+    if let Err(err) = sync_user_groups_if_configured(
+        &user,
+        &appstate.pool,
+        &appstate.gateway_tx,
+        &appstate.ldap_tx,
+    )
+    .await
     {
         error!(
             "Failed to sync user groups for user {} with the directory while the user was trying \

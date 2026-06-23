@@ -146,6 +146,13 @@ pub enum EventType {
     LdapSyncGroupCreated,
     LdapSyncGroupMemberAdded,
     LdapSyncGroupMemberRemoved,
+    LdapSyncOutboundUserCreated,
+    LdapSyncOutboundUserDeleted,
+    LdapSyncOutboundUserModified,
+    LdapSyncOutboundUserEnabled,
+    LdapSyncOutboundUserDisabled,
+    LdapSyncOutboundGroupMemberAdded,
+    LdapSyncOutboundGroupMemberRemoved,
 }
 
 #[derive(Model, FromRow, Serialize)]

@@ -876,6 +876,7 @@ impl ProxyHandler {
                                                 &user,
                                                 &pool,
                                                 &gateway_tx,
+                                                &self.services.ldap,
                                             )
                                             .await
                                             {
@@ -1215,9 +1216,14 @@ impl ProxyServices {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
-        let enrollment =
-            EnrollmentServer::new(pool.clone(), tx.wireguard.clone(), tx.bidi_events.clone());
-        let password_reset = PasswordResetServer::new(pool.clone(), tx.bidi_events.clone());
+        let enrollment = EnrollmentServer::new(
+            pool.clone(),
+            tx.wireguard.clone(),
+            tx.bidi_events.clone(),
+            tx.ldap.clone(),
+        );
+        let password_reset =
+            PasswordResetServer::new(pool.clone(), tx.bidi_events.clone(), tx.ldap.clone());
         let client_mfa = ClientMfaServer::new(
             pool.clone(),
             tx.wireguard.clone(),

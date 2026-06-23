@@ -593,9 +593,10 @@ mod test {
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user = make_test_user_and_device("testuser", &pool).await;
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        sync_user_groups_if_configured(&user, &pool, &gateway_tx)
+        sync_user_groups_if_configured(&user, &pool, &gateway_tx, &ldap_tx)
             .await
             .unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();

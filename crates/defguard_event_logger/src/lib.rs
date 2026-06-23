@@ -837,6 +837,27 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     "LDAP sync removed user {user} from group {}",
                     group.name
                 )),
+                LdapSyncEventType::OutboundUserCreated { user } => {
+                    Some(format!("Defguard synced user {user} to LDAP"))
+                }
+                LdapSyncEventType::OutboundUserDeleted { username } => {
+                    Some(format!("Defguard removed user {username} from LDAP"))
+                }
+                LdapSyncEventType::OutboundUserModified { user } => {
+                    Some(format!("Defguard synced user {user} attributes to LDAP"))
+                }
+                LdapSyncEventType::OutboundUserEnabled { user } => {
+                    Some(format!("Defguard enabled LDAP account for user {user}"))
+                }
+                LdapSyncEventType::OutboundUserDisabled { user } => {
+                    Some(format!("Defguard disabled LDAP account for user {user}"))
+                }
+                LdapSyncEventType::OutboundGroupMemberAdded { group, username } => Some(format!(
+                    "Defguard added user {username} to LDAP group {group}"
+                )),
+                LdapSyncEventType::OutboundGroupMemberRemoved { group, username } => Some(format!(
+                    "Defguard removed user {username} from LDAP group {group}"
+                )),
             };
             let (event_type, metadata) = match event {
                 LdapSyncEventType::UserCreated { user } => (
@@ -882,6 +903,34 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         user: user.into(),
                     })
                     .ok(),
+                ),
+                LdapSyncEventType::OutboundUserCreated { user } => (
+                    EventType::LdapSyncOutboundUserCreated,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundUserDeleted { username } => (
+                    EventType::LdapSyncOutboundUserDeleted,
+                    Some(serde_json::json!({ "username": username })),
+                ),
+                LdapSyncEventType::OutboundUserModified { user } => (
+                    EventType::LdapSyncOutboundUserModified,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundUserEnabled { user } => (
+                    EventType::LdapSyncOutboundUserEnabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundUserDisabled { user } => (
+                    EventType::LdapSyncOutboundUserDisabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundGroupMemberAdded { group, username } => (
+                    EventType::LdapSyncOutboundGroupMemberAdded,
+                    Some(serde_json::json!({ "group": group, "username": username })),
+                ),
+                LdapSyncEventType::OutboundGroupMemberRemoved { group, username } => (
+                    EventType::LdapSyncOutboundGroupMemberRemoved,
+                    Some(serde_json::json!({ "group": group, "username": username })),
                 ),
             };
             (module, event_type, description, metadata)
