@@ -15,7 +15,8 @@ pub enum ActivityLogModule {
     Vpn,
     Enrollment,
     Posture,
-    LdapSync,
+    ActiveDirectory,
+    Ldap,
 }
 
 /// Represents activity log event type as it's stored in the DB

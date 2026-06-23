@@ -808,8 +808,12 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
             };
             (module, event_type, description, metadata)
         }
-        Event::LdapSync(event) => {
-            let module = ActivityLogModule::LdapSync;
+        Event::LdapSync { uses_ad, event } => {
+            let module = if uses_ad {
+                ActivityLogModule::ActiveDirectory
+            } else {
+                ActivityLogModule::Ldap
+            };
             let description = match &event {
                 LdapSyncEventType::UserCreated { user } => {
                     Some(format!("LDAP sync created user {user}"))

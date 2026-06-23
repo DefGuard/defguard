@@ -4,12 +4,13 @@ use chrono::Utc;
 use defguard_common::db::{
     Id, NoId,
     models::{
-        AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, User, WebAuthn,
-        WireguardNetwork,
+        AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
+        WebAuthn, WireguardNetwork,
         gateway::Gateway,
         group::Group,
         oauth2client::OAuth2Client,
         proxy::Proxy,
+        settings::set_settings,
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
@@ -1396,8 +1397,17 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
     modified_user.email = "changed@example.com".into();
     let group = sample_group();
 
+    // Build the message directly (rather than via `from_ldap_sync_event`, which reads
+    // global settings) so these mapping cases stay pure. `uses_ad: false` => the `Ldap`
+    // module; the AD branch is covered by `test_ldap_sync_event_module_follows_uses_ad`.
     fn ldap_msg(event: LdapSyncEventType) -> EventLoggerMessage {
-        EventLoggerMessage::from_ldap_sync_event(event)
+        EventLoggerMessage {
+            context: test_context(),
+            event: Event::LdapSync {
+                uses_ad: false,
+                event,
+            },
+        }
     }
 
     let cases = vec![
@@ -1405,14 +1415,14 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
             name: "LdapSyncUserCreated",
             message: ldap_msg(LdapSyncEventType::UserCreated { user: user.clone() }),
             event_type: EventType::LdapSyncUserCreated,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("created user"),
         },
         EventTestCase {
             name: "LdapSyncUserDeleted",
             message: ldap_msg(LdapSyncEventType::UserDeleted { user: user.clone() }),
             event_type: EventType::LdapSyncUserDeleted,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("deleted user"),
         },
         EventTestCase {
@@ -1422,21 +1432,21 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 after: modified_user.clone(),
             }),
             event_type: EventType::LdapSyncUserModified,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("modified user"),
         },
         EventTestCase {
             name: "LdapSyncUserEnabled",
             message: ldap_msg(LdapSyncEventType::UserEnabled { user: user.clone() }),
             event_type: EventType::LdapSyncUserEnabled,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("enabled user"),
         },
         EventTestCase {
             name: "LdapSyncUserDisabled",
             message: ldap_msg(LdapSyncEventType::UserDisabled { user: user.clone() }),
             event_type: EventType::LdapSyncUserDisabled,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("disabled user"),
         },
         EventTestCase {
@@ -1445,7 +1455,7 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 group: group.clone(),
             }),
             event_type: EventType::LdapSyncGroupCreated,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("created group"),
         },
         EventTestCase {
@@ -1455,7 +1465,7 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 user: user.clone(),
             }),
             event_type: EventType::LdapSyncGroupMemberAdded,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("added user"),
         },
         EventTestCase {
@@ -1465,14 +1475,14 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 user: user.clone(),
             }),
             event_type: EventType::LdapSyncGroupMemberRemoved,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("removed user"),
         },
         EventTestCase {
             name: "LdapSyncOutboundUserCreated",
             message: ldap_msg(LdapSyncEventType::OutboundUserCreated { user: user.clone() }),
             event_type: EventType::LdapSyncOutboundUserCreated,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("synced user"),
         },
         EventTestCase {
@@ -1481,7 +1491,7 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 username: user.username.clone(),
             }),
             event_type: EventType::LdapSyncOutboundUserDeleted,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("removed user"),
         },
         EventTestCase {
@@ -1490,21 +1500,21 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 user: modified_user,
             }),
             event_type: EventType::LdapSyncOutboundUserModified,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("attributes"),
         },
         EventTestCase {
             name: "LdapSyncOutboundUserEnabled",
             message: ldap_msg(LdapSyncEventType::OutboundUserEnabled { user: user.clone() }),
             event_type: EventType::LdapSyncOutboundUserEnabled,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("enabled LDAP account"),
         },
         EventTestCase {
             name: "LdapSyncOutboundUserDisabled",
             message: ldap_msg(LdapSyncEventType::OutboundUserDisabled { user: user.clone() }),
             event_type: EventType::LdapSyncOutboundUserDisabled,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("disabled LDAP account"),
         },
         EventTestCase {
@@ -1514,7 +1524,7 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 username: user.username.clone(),
             }),
             event_type: EventType::LdapSyncOutboundGroupMemberAdded,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("added user"),
         },
         EventTestCase {
@@ -1524,7 +1534,7 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
                 username: user.username,
             }),
             event_type: EventType::LdapSyncOutboundGroupMemberRemoved,
-            module: ActivityLogModule::LdapSync,
+            module: ActivityLogModule::Ldap,
             description_contains: Some("removed user"),
         },
     ];
@@ -1539,6 +1549,10 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
 
 #[test]
 fn test_ldap_sync_events_use_system_context() {
+    // `from_ldap_sync_event` reads `ldap_uses_ad` from global settings, which panics if
+    // uninitialized; seed defaults (`ldap_uses_ad` defaults to false).
+    set_settings(Some(Settings::default()));
+
     let message = EventLoggerMessage::from_ldap_sync_event(LdapSyncEventType::UserCreated {
         user: sample_user(),
     });
@@ -1546,6 +1560,41 @@ fn test_ldap_sync_events_use_system_context() {
     assert_eq!(message.context.user_id, None);
     assert_eq!(message.context.username, "system:ldap-sync");
     assert_eq!(message.context.device, "system");
+    match message.event {
+        Event::LdapSync { uses_ad, .. } => {
+            assert!(!uses_ad, "default settings should report plain LDAP");
+        }
+        _ => panic!("expected an LDAP sync event"),
+    }
+}
+
+#[test]
+fn test_ldap_sync_event_module_follows_uses_ad() {
+    // The event types are shared between Active Directory and plain LDAP; only the
+    // module differs, driven by the `uses_ad` flag resolved at log time.
+    let ldap = map_to_activity_log_event(EventLoggerMessage {
+        context: test_context(),
+        event: Event::LdapSync {
+            uses_ad: false,
+            event: LdapSyncEventType::UserCreated {
+                user: sample_user(),
+            },
+        },
+    });
+    assert_eq!(ldap.module, ActivityLogModule::Ldap);
+    assert_eq!(ldap.event, EventType::LdapSyncUserCreated);
+
+    let active_directory = map_to_activity_log_event(EventLoggerMessage {
+        context: test_context(),
+        event: Event::LdapSync {
+            uses_ad: true,
+            event: LdapSyncEventType::UserCreated {
+                user: sample_user(),
+            },
+        },
+    });
+    assert_eq!(active_directory.module, ActivityLogModule::ActiveDirectory);
+    assert_eq!(active_directory.event, EventType::LdapSyncUserCreated);
 }
 
 #[test]

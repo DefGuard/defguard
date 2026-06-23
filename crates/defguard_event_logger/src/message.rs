@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
-    models::{Device, WireguardNetwork},
+    models::{Device, Settings, WireguardNetwork},
 };
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
@@ -27,7 +27,12 @@ pub enum Event {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
     },
-    LdapSync(LdapSyncEventType),
+    LdapSync {
+        /// Whether the directory backend is Active Directory (vs. plain LDAP).
+        /// Read from settings at log time to pick the activity log module.
+        uses_ad: bool,
+        event: LdapSyncEventType,
+    },
 }
 
 /// Messages that can be sent to the event logger
@@ -103,9 +108,13 @@ impl EventLoggerMessage {
     /// Translate an LDAP sync event into a logger message.
     #[must_use]
     pub fn from_ldap_sync_event(event: LdapSyncEventType) -> Self {
+        // Read the directory backend type at log time to pick the activity log
+        // module (Active Directory vs. plain LDAP). The event types themselves are
+        // shared between both backends.
+        let uses_ad = Settings::get_current_settings().ldap_uses_ad;
         Self {
             context: EventContext::system_ldap_sync(),
-            event: Event::LdapSync(event),
+            event: Event::LdapSync { uses_ad, event },
         }
     }
 }
