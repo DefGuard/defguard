@@ -75,8 +75,6 @@ type LocationsSectionProps = {
   locationOptions: PostureCheckEditorLocationOption[];
   values: PostureCheckEditorValues;
   updateValues: UpdateValues;
-  hideUnassigned?: boolean;
-  visibleLocationIds?: Set<number>;
 };
 
 const conditionDefinitions = (): Record<PostureCheckOsValue, ConditionDefinition[]> => ({
@@ -415,17 +413,10 @@ export const PostureCheckLocationsSection = ({
   locationOptions,
   updateValues,
   values,
-  hideUnassigned = false,
-  visibleLocationIds,
 }: LocationsSectionProps) => {
-  const visibleIds = visibleLocationIds ?? values.locations;
-  const options = hideUnassigned
-    ? locationOptions.filter((location) => visibleIds.has(location.id))
-    : locationOptions;
-
   return (
     <div className="posture-check-locations">
-      {options.map((location) => (
+      {locationOptions.map((location) => (
         <Checkbox
           key={location.id}
           active={values.locations.has(location.id)}
