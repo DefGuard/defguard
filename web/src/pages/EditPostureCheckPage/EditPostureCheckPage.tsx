@@ -46,8 +46,9 @@ import {
   normalizeEditPostureCheckFormValues,
 } from './form';
 
-const buildLocationOptions = (locations: NetworkLocation[]) =>
+const buildLocationOptions = (locations: NetworkLocation[], assigned: Set<number>) =>
   [...locations]
+    .filter((location) => assigned.has(location.id))
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((location) => ({ id: location.id, label: location.name }));
 
@@ -67,8 +68,8 @@ const EditPostureCheckForm = ({
   );
   const [values, setValues] = useState<EditPostureCheckFormValues>(defaults);
   const locationOptions = useMemo<PostureCheckEditorLocationOption[]>(
-    () => buildLocationOptions(locations),
-    [locations],
+    () => buildLocationOptions(locations, values.locations),
+    [locations, values.locations],
   );
 
   useEffect(() => {
@@ -147,7 +148,6 @@ const EditPostureCheckForm = ({
       <EditPageFormSection label={m.posture_checks_edit_locations()}>
         <PostureCheckLocationsSection
           locationOptions={locationOptions}
-          values={values}
           updateValues={updateValues}
         />
       </EditPageFormSection>

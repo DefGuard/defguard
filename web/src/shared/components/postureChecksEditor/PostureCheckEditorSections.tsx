@@ -73,7 +73,6 @@ type DefguardSectionProps = {
 
 type LocationsSectionProps = {
   locationOptions: PostureCheckEditorLocationOption[];
-  values: PostureCheckEditorValues;
   updateValues: UpdateValues;
 };
 
@@ -412,14 +411,13 @@ export const PostureCheckDefguardSection = ({
 export const PostureCheckLocationsSection = ({
   locationOptions,
   updateValues,
-  values,
 }: LocationsSectionProps) => {
   return (
     <div className="posture-check-locations">
       {locationOptions.map((location) => (
         <Checkbox
           key={location.id}
-          active={values.locations.has(location.id)}
+          active={true}
           text={location.label}
           onClick={() => {
             updateValues((current) => {
