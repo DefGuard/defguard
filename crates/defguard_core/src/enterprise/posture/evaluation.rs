@@ -220,8 +220,8 @@ fn evaluate_os_rule(
             Ok(Some(date_str)) => match chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
                 Ok(patch_date) => {
                     let today = chrono::Utc::now().date_naive();
-                    let age_days = (today - patch_date).num_days();
-                    if age_days > required_max_age_days as i64 {
+                    let age_days = (today - patch_date).num_days() as i32;
+                    if age_days > required_max_age_days {
                         failures.push(FailureReason::AndroidSecurityPatchTooOld {
                             required_max_age_days,
                             actual_age_days: age_days,

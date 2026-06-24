@@ -45,7 +45,7 @@ pub enum FailureReason {
     },
     AndroidSecurityPatchTooOld {
         required_max_age_days: i32,
-        actual_age_days: i64,
+        actual_age_days: i32,
     },
     DeviceIntegrityRequired,
     /// A required check could not be evaluated (InsufficientPermissions or DetectionFailed).
