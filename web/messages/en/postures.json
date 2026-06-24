@@ -47,7 +47,7 @@
   "posture_checks_edit_general": "General",
   "posture_checks_edit_operating_systems": "Operating systems",
   "posture_checks_edit_defguard": "Defguard",
-  "posture_checks_edit_locations": "Used to locations",
+  "posture_checks_edit_locations": "Assigned locations",
   "posture_checks_edit_defguard_note": "\u201cDefguard versions\u201d includes major releases as well as all subsequent patch updates with fixes and improvements.",
   "posture_checks_edit_delete_title": "Delete posture check",
   "posture_checks_edit_delete_body": "Are you sure you want to delete posture check **{name}**? This action cannot be undone.",
