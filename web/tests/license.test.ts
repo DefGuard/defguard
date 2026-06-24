@@ -183,6 +183,18 @@ describe('canUseEnterpriseFeature', () => {
     expect(result.error).toBe('expired');
   });
 
+  // Regression: the backend clears `features` to `[]` for an expired license while keeping
+  // `expired: true`. With the grant checked before expiry, an expired Enterprise license
+  // requesting a feature wrongly reported 'tier' (upgrade) instead of 'expired'.
+  it('should report expired (not tier) for an expired Enterprise license with cleared features', () => {
+    const result = canUseEnterpriseFeature(
+      makeLicense({ tier: 'Enterprise', expired: true, features: [] }),
+      LicenseFeature.DevicePosture,
+    );
+    expect(result.result).toBe(false);
+    expect(result.error).toBe('expired');
+  });
+
   it('should fall back to the strict Enterprise tier gate when no feature is requested', () => {
     const result = canUseEnterpriseFeature(
       makeLicense({ tier: 'Business', features: [LicenseFeature.DevicePosture] }),

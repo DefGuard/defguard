@@ -157,20 +157,30 @@ export const canUseEnterpriseFeature = (
   license: LicenseInfo | null,
   feature?: LicenseFeatureValue,
 ): LicenseCheckResult => {
-  const granted = isPresent(feature)
-    ? (license?.features?.includes(feature) ?? false)
-    : license?.tier === 'Enterprise';
-
-  if (!license || !granted)
+  if (!license)
     return {
       error: 'tier',
       result: false,
       tierCheck: 'Enterprise',
     };
 
+  // Check expiry before the grant: the backend clears `features` to `[]` for an expired
+  // license while keeping `expired: true`, so a granted-but-expired Enterprise license must
+  // surface as 'expired' rather than falling through to the 'tier' (upgrade) path.
   if (license.expired)
     return {
       error: 'expired',
+      result: false,
+      tierCheck: 'Enterprise',
+    };
+
+  const granted = isPresent(feature)
+    ? (license.features?.includes(feature) ?? false)
+    : license.tier === 'Enterprise';
+
+  if (!granted)
+    return {
+      error: 'tier',
       result: false,
       tierCheck: 'Enterprise',
     };
