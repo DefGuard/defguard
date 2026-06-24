@@ -100,6 +100,7 @@ fn set_test_license_business() {
         valid_until: None,
         version_date_limit: None,
         support_type: SupportType::Basic,
+        features: vec![],
     };
     set_cached_license(Some(license));
 }
@@ -2578,6 +2579,7 @@ async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     );
     set_cached_license(Some(license));
 
@@ -2635,6 +2637,7 @@ async fn test_ldap_login_does_not_create_user_when_user_license_limit_is_reached
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     );
     set_cached_license(Some(license));
 

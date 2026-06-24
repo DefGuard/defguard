@@ -23,6 +23,17 @@ enum SupportType {
   SUPPORT_TYPE_DIRECT_ENTERPRISE = 5;
 }
 
+// Per-license feature flags. Each value is an independent, additive grant that
+// enables a single capability, decoupled from the license tier. A flag may only
+// ever enable a feature, never restrict one.
+enum LicenseFeature {
+  LICENSE_FEATURE_UNSPECIFIED = 0;
+  LICENSE_FEATURE_SERVICE_LOCATIONS = 1;  // service locations
+  LICENSE_FEATURE_DEVICE_POSTURE = 2;     // device posture checks
+  LICENSE_FEATURE_ACL_ALLOWED_IPS = 3;    // ACL-derived AllowedIPs computation
+  LICENSE_FEATURE_COMPONENT_HA = 4;       // component high availability
+}
+
 message LicenseMetadata {
     string customer_id = 1;
     bool subscription = 2;
@@ -31,6 +42,7 @@ message LicenseMetadata {
     optional int64 version_date_limit = 5;
     LicenseTier tier = 6;
     SupportType support_type = 7;
+    repeated LicenseFeature features = 8;
 }
 
 message LicenseKey {
