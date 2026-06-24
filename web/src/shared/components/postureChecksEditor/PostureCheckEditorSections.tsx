@@ -23,6 +23,8 @@ import { SystemSelector } from '../SystemSelector/SystemSelector';
 export type PostureCheckEditorOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
   securityUpdateMaxAge: number | null;
+  /** Android only */
+  androidSecurityPatchLevelMaxAge: number | null;
   version: number | null;
 };
 
