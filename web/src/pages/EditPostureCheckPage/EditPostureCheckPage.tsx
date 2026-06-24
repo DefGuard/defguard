@@ -150,6 +150,7 @@ const EditPostureCheckForm = ({
           values={values}
           updateValues={updateValues}
           hideUnassigned
+          visibleLocationIds={defaults.locations}
         />
       </EditPageFormSection>
       <EditPageControls
