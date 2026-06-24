@@ -3,6 +3,7 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import { LicenseFeature } from '../../../shared/api/types';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
@@ -76,7 +77,10 @@ type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationInternalVpnStep = () => {
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const canUseEnterprise = canUseEnterpriseFeature(licenseInfo ?? null).result;
+  const canUseEnterprise = canUseEnterpriseFeature(
+    licenseInfo ?? null,
+    LicenseFeature.AclAllowedIps,
+  ).result;
 
   const { data: devices } = useQuery({
     queryKey: ['device', 'all'],

@@ -1,12 +1,17 @@
 import dayjs from 'dayjs';
 import { m } from '../../paraglide/messages';
 import {
+  LicenseFeature,
+  type LicenseFeatureValue,
   type LicenseInfo,
   type LicenseInfoApi,
+  LicenseTier,
+  type LicenseTierValue,
   SupportType,
   type SupportTypeNarrowValue,
   type SupportTypeValue,
 } from '../api/types';
+import { isPresent } from '../defguard-ui/utils/isPresent';
 import { openModal } from '../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../hooks/modalControls/modalTypes';
 
@@ -70,6 +75,31 @@ export const getSupportTypeLabel = (supportType: SupportTypeValue): string => {
   }
 };
 
+const tierIncludedFeatures: Record<LicenseTierValue, LicenseFeatureValue[]> = {
+  [LicenseTier.Enterprise]: Object.values(LicenseFeature),
+  [LicenseTier.Business]: [],
+};
+
+/// Returns only the features that are additive grants (not already covered by the tier
+/// baseline). Use this for display; never use it for gating (gating must use `features`).
+export const getAdditiveFeatures = (license: LicenseInfo): LicenseFeatureValue[] =>
+  license.features.filter((f) => !tierIncludedFeatures[license.tier].includes(f));
+
+export const getLicenseFeatureLabel = (feature: LicenseFeatureValue): string => {
+  switch (feature) {
+    case LicenseFeature.ComponentHa:
+      return m.settings_license_feature_component_ha();
+    case LicenseFeature.DevicePosture:
+      return m.settings_license_feature_device_posture();
+    case LicenseFeature.ServiceLocations:
+      return m.settings_license_feature_service_locations();
+    case LicenseFeature.AclAllowedIps:
+      return m.settings_license_feature_acl_allowed_ips();
+    default:
+      return feature;
+  }
+};
+
 export const licenseActionCheck = (
   checkResult: LicenseCheckResult,
   successCallback: () => void,
@@ -120,19 +150,37 @@ export const canUseBusinessFeature = (
   };
 };
 
+// When a specific `feature` is passed, the gate opens if the license grants that feature
+// individually (an additive flag). Without a
+// `feature`, the check falls back to the strict Enterprise-tier gate.
 export const canUseEnterpriseFeature = (
   license: LicenseInfo | null,
+  feature?: LicenseFeatureValue,
 ): LicenseCheckResult => {
-  if (license?.tier !== 'Enterprise')
+  if (!license)
     return {
       error: 'tier',
       result: false,
       tierCheck: 'Enterprise',
     };
 
+  // Check expiry before the grant: the backend clears `features` to `[]` for an expired
+  // license while keeping `expired: true`, so a granted-but-expired Enterprise license must
+  // surface as 'expired' rather than falling through to the 'tier' (upgrade) path.
   if (license.expired)
     return {
       error: 'expired',
+      result: false,
+      tierCheck: 'Enterprise',
+    };
+
+  const granted = isPresent(feature)
+    ? (license.features?.includes(feature) ?? false)
+    : license.tier === 'Enterprise';
+
+  if (!granted)
+    return {
+      error: 'tier',
       result: false,
       tierCheck: 'Enterprise',
     };
@@ -142,6 +190,27 @@ export const canUseEnterpriseFeature = (
     error: null,
     tierCheck: 'Enterprise',
   };
+};
+
+// Shared so the modal and the wizard route guard gate identically.
+export const canUseServiceLocations = (license: LicenseInfo | null): boolean =>
+  canUseEnterpriseFeature(license, LicenseFeature.ServiceLocations).result;
+
+// An Enterprise entry honors the additive `licenseFeature` flag, so a granted feature unlocks the
+// item on a lower tier; entries with no tier requirement are never locked.
+export const isNavItemLocked = (
+  license: LicenseInfo | null,
+  licenseTier: LicenseTierValue | undefined,
+  licenseFeature?: LicenseFeatureValue,
+): boolean => {
+  switch (licenseTier) {
+    case LicenseTier.Business:
+      return !canUseBusinessFeature(license).result;
+    case LicenseTier.Enterprise:
+      return !canUseEnterpriseFeature(license, licenseFeature).result;
+    default:
+      return false;
+  }
 };
 
 export const narrowLicenseSupport = (license: LicenseInfoApi): SupportTypeNarrowValue => {

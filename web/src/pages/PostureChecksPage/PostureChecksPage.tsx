@@ -9,6 +9,7 @@ import type { ColumnFiltersState } from '@tanstack/react-table';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
+import { LicenseFeature } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -56,7 +57,7 @@ const PostureChecksContent = () => {
     getLicenseInfoQueryOptions,
   );
   const canUseEnterprise = useMemo(
-    () => canUseEnterpriseFeature(licenseInfo).result,
+    () => canUseEnterpriseFeature(licenseInfo, LicenseFeature.DevicePosture).result,
     [licenseInfo],
   );
   const { data: versionMetadata, isLoading: versionMetadataLoading } = useQuery({
@@ -145,9 +146,12 @@ const PostureChecksContent = () => {
       loading: licenseInfoFetching,
       testId: 'add-posture-check',
       onClick: () => {
-        licenseActionCheck(canUseEnterpriseFeature(licenseInfo), () => {
-          void navigate({ to: '/add-posture-check' });
-        });
+        licenseActionCheck(
+          canUseEnterpriseFeature(licenseInfo, LicenseFeature.DevicePosture),
+          () => {
+            void navigate({ to: '/add-posture-check' });
+          },
+        );
       },
     }),
     [licenseInfo, licenseInfoFetching, navigate],

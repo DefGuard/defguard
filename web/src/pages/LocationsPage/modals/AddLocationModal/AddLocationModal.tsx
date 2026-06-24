@@ -14,6 +14,7 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenAddLocationModal } from '../../../../shared/hooks/modalControls/types';
+import { canUseServiceLocations } from '../../../../shared/utils/license';
 import { useAddLocationStore } from '../../../AddLocationPage/useAddLocationStore';
 
 const modalNameValue = ModalName.AddLocation;
@@ -45,14 +46,18 @@ export const AddLocationModal = () => {
         setModalData(null);
       }}
     >
-      {isPresent(modalData) && <ModalContent modalData={modalData} />}
+      {isPresent(modalData) && <AddLocationModalContent modalData={modalData} />}
     </Modal>
   );
 };
 
-const ModalContent = ({ modalData }: { modalData: OpenAddLocationModal }) => {
+export const AddLocationModalContent = ({
+  modalData,
+}: {
+  modalData: OpenAddLocationModal;
+}) => {
   const navigate = useNavigate();
-  const isEnterprise = modalData.license?.tier === 'Enterprise';
+  const serviceLocationsEnabled = canUseServiceLocations(modalData.license ?? null);
 
   return (
     <>
@@ -70,14 +75,14 @@ const ModalContent = ({ modalData }: { modalData: OpenAddLocationModal }) => {
       />
       <SizedBox height={ThemeSpacing.Md} />
       <SectionSelect
-        badgeProps={!isEnterprise ? enterpriseBadgeProps : undefined}
+        badgeProps={!serviceLocationsEnabled ? enterpriseBadgeProps : undefined}
         image="service-location"
         content={m.modal_add_location_service_content()}
         title={m.modal_add_location_service_title()}
         data-testid="add-service-location"
-        disabled={!isEnterprise}
+        disabled={!serviceLocationsEnabled}
         onClick={() => {
-          if (!isEnterprise) return;
+          if (!serviceLocationsEnabled) return;
           useAddLocationStore.getState().start({
             locationType: 'service',
             service_location_mode: LocationServiceMode.Prelogon,

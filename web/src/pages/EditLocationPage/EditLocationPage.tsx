@@ -9,6 +9,7 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type EditNetworkLocation,
+  LicenseFeature,
   LocationMfaMode,
   LocationServiceMode,
   type NetworkLocation,
@@ -344,9 +345,17 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const canUseEnterprise = useMemo(() => {
+  const canUseDevicePosture = useMemo(() => {
     if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo).result;
+    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.DevicePosture).result;
+  }, [licenseInfo]);
+  const canUseServiceLocations = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.ServiceLocations).result;
+  }, [licenseInfo]);
+  const canUseAllowedIpsFromAcl = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.AclAllowedIps).result;
   }, [licenseInfo]);
   const canUseBusiness = useMemo(() => {
     if (licenseInfo === undefined) return undefined;
@@ -355,17 +364,18 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const { data: postureChecks = [] } = useQuery({
     queryKey: ['device-posture'],
     queryFn: api.devicePosture.getDevicePostures,
-    enabled: canUseEnterprise === true,
+    enabled: canUseDevicePosture === true,
   });
-  const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
+  const serviceLocationLocked =
+    isPresent(canUseServiceLocations) && !canUseServiceLocations;
   const postureChecksSectionState = useMemo(
     () =>
       getPostureChecksSectionState({
         assignedPostureChecksCount: location.posture_checks.length,
-        canUseEnterprise,
+        canUseEnterprise: canUseDevicePosture,
         postureChecksCount: postureChecks.length,
       }),
-    [canUseEnterprise, location.posture_checks.length, postureChecks.length],
+    [canUseDevicePosture, location.posture_checks.length, postureChecks.length],
   );
   const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
 
@@ -652,7 +662,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          {isPresent(canUseEnterprise) && !canUseEnterprise && (
+          {isPresent(canUseAllowedIpsFromAcl) && !canUseAllowedIpsFromAcl && (
             <>
               <p className="acl-upsell-text">
                 <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
@@ -669,7 +679,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             {(field) => (
               <field.FormCheckbox
                 text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-                disabled={isPresent(canUseEnterprise) && !canUseEnterprise}
+                disabled={isPresent(canUseAllowedIpsFromAcl) && !canUseAllowedIpsFromAcl}
                 helperBlock={
                   <Helper>
                     <p>

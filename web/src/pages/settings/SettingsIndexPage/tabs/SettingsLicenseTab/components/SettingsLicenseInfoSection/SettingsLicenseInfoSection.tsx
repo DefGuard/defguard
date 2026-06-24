@@ -3,6 +3,7 @@ import './style.scss';
 import dayjs from 'dayjs';
 import { m } from '../../../../../../../paraglide/messages';
 import type {
+  LicenseFeatureValue,
   LicenseInfo,
   LicenseLimitsInfo,
 } from '../../../../../../../shared/api/types';
@@ -10,14 +11,20 @@ import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
 import {
   Icon,
+  IconKind,
   type IconKindValue,
 } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { ProgressionBar } from '../../../../../../../shared/defguard-ui/components/ProgressionBar/ProgressionBar';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
+import {
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import {
+  getAdditiveFeatures,
+  getLicenseFeatureLabel,
   getSupportTypeLabel,
   type LicenseState,
 } from '../../../../../../../shared/utils/license';
@@ -49,6 +56,8 @@ export const SettingsLicenseInfoSection = ({
     daysUntilExpiration !== null &&
     daysUntilExpiration > 0 &&
     daysUntilExpiration <= 30;
+
+  const displayedFeatures = getAdditiveFeatures(license);
 
   return (
     <div className="license-general-info">
@@ -104,7 +113,9 @@ export const SettingsLicenseInfoSection = ({
           />
         </>
       )}
-      <Divider spacing={ThemeSpacing.Xl} />
+      {!isExpired && (isPresent(license.limits) || displayedFeatures.length > 0) && (
+        <Divider spacing={ThemeSpacing.Xl} />
+      )}
       {!isExpired && isPresent(license.limits) && (
         <Fragment>
           <p className="limits-label">{m.settings_license_limits_title()}</p>
@@ -112,6 +123,31 @@ export const SettingsLicenseInfoSection = ({
           <LimitsSection limits={license.limits} />
         </Fragment>
       )}
+      {!isExpired && displayedFeatures.length > 0 && (
+        <FeaturesSection features={displayedFeatures} />
+      )}
+      <Divider spacing={ThemeSpacing.Xl} />
+    </div>
+  );
+};
+
+type FeaturesSectionProps = {
+  features: LicenseFeatureValue[];
+};
+
+const FeaturesSection = ({ features }: FeaturesSectionProps) => {
+  return (
+    <div className="license-features">
+      <p className="features-label">{m.settings_license_features_title()}</p>
+      <SizedBox height={ThemeSpacing.Md} />
+      <ul>
+        {features.map((feature) => (
+          <li key={feature}>
+            <Icon icon={IconKind.Check} staticColor={ThemeVariable.FgSuccess} />
+            <p>{getLicenseFeatureLabel(feature)}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

@@ -9,7 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
-import type { NetworkLocation } from '../../../shared/api/types';
+import { LicenseFeature, type NetworkLocation } from '../../../shared/api/types';
 import { GatewaysStatusBadge } from '../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
@@ -277,7 +277,10 @@ export const LocationsTable = () => {
                           });
                         };
                         if (row.gateways.length >= 1) {
-                          licenseActionCheck(canUseEnterpriseFeature(license), action);
+                          licenseActionCheck(
+                            canUseEnterpriseFeature(license, LicenseFeature.ComponentHa),
+                            action,
+                          );
                         } else {
                           action();
                         }

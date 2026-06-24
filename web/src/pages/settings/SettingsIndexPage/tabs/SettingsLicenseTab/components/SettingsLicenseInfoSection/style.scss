@@ -46,6 +46,36 @@
     color: var(--fg-neutral);
   }
 
+  .license-features {
+    margin-top: var(--spacing-lg);
+
+    .features-label {
+      font: var(--t-body-xs-400);
+      color: var(--fg-neutral);
+    }
+
+    ul {
+      display: flex;
+      flex-flow: column nowrap;
+      gap: var(--spacing-md);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+
+      li {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+
+        p {
+          font: var(--t-body-sm-400);
+          color: var(--fg-default);
+        }
+      }
+    }
+  }
+
   .license-limit-progress {
     .progression-bar.complete {
       .bar {
