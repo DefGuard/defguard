@@ -217,23 +217,21 @@ fn evaluate_os_rule(
             data.android_security_patch_date.as_ref(),
             "android_security_patch_date",
         ) {
-            Ok(Some(date_str)) => {
-                match chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
-                    Ok(patch_date) => {
-                        let today = chrono::Utc::now().date_naive();
-                        let age_days = (today - patch_date).num_days();
-                        if age_days > required_max_age_days as i64 {
-                            failures.push(FailureReason::AndroidSecurityPatchTooOld {
-                                required_max_age_days,
-                                actual_age_days: age_days,
-                            });
-                        }
+            Ok(Some(date_str)) => match chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+                Ok(patch_date) => {
+                    let today = chrono::Utc::now().date_naive();
+                    let age_days = (today - patch_date).num_days();
+                    if age_days > required_max_age_days as i64 {
+                        failures.push(FailureReason::AndroidSecurityPatchTooOld {
+                            required_max_age_days,
+                            actual_age_days: age_days,
+                        });
                     }
-                    Err(_) => failures.push(FailureReason::CheckUnavailable {
-                        check: "android_security_patch_date (unparseable)",
-                    }),
                 }
-            }
+                Err(_) => failures.push(FailureReason::CheckUnavailable {
+                    check: "android_security_patch_date (unparseable)",
+                }),
+            },
             Ok(None) => {} // NotApplicable — skip
             Err(name) => failures.push(FailureReason::CheckUnavailable { check: name }),
         }
