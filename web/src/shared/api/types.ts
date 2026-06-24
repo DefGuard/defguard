@@ -953,6 +953,7 @@ export type ApiDevicePostureOsRule =
       os_type: 'android';
       min_os_version: number | null;
       device_integrity_required: boolean | null;
+      android_security_patch_level_max_age: number | null;
     };
 
 export type EditDevicePostureOsRule = ApiDevicePostureOsRule;

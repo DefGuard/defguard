@@ -66,6 +66,7 @@ pub enum ApiOsRule {
     Android {
         min_os_version: Option<i32>,
         device_integrity_required: Option<bool>,
+        android_security_patch_level_max_age: Option<i32>,
     },
 }
 
@@ -102,6 +103,7 @@ impl ApiOsRule {
                 windows_security_update_max_age,
                 min_kernel_version: None,
                 device_integrity_required: None,
+                android_security_patch_level_max_age: None,
             },
             Self::Macos {
                 min_os_version,
@@ -118,6 +120,7 @@ impl ApiOsRule {
                 windows_security_update_max_age: None,
                 min_kernel_version: None,
                 device_integrity_required,
+                android_security_patch_level_max_age: None,
             },
             Self::Linux {
                 min_kernel_version,
@@ -133,6 +136,7 @@ impl ApiOsRule {
                 windows_security_update_max_age: None,
                 min_kernel_version,
                 device_integrity_required: None,
+                android_security_patch_level_max_age: None,
             },
             Self::Ios { min_os_version } => DevicePostureOsRule {
                 id: NoId,
@@ -145,10 +149,12 @@ impl ApiOsRule {
                 windows_security_update_max_age: None,
                 min_kernel_version: None,
                 device_integrity_required: None,
+                android_security_patch_level_max_age: None,
             },
             Self::Android {
                 min_os_version,
                 device_integrity_required,
+                android_security_patch_level_max_age,
             } => DevicePostureOsRule {
                 id: NoId,
                 posture_id,
@@ -160,6 +166,7 @@ impl ApiOsRule {
                 windows_security_update_max_age: None,
                 min_kernel_version: None,
                 device_integrity_required,
+                android_security_patch_level_max_age,
             },
         }
     }
@@ -190,6 +197,7 @@ impl From<DevicePostureOsRule<Id>> for ApiOsRule {
             OsType::Android => Self::Android {
                 min_os_version: rule.min_os_version,
                 device_integrity_required: rule.device_integrity_required,
+                android_security_patch_level_max_age: rule.android_security_patch_level_max_age,
             },
         }
     }

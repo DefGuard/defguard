@@ -114,6 +114,12 @@ export const getAndroidSection = (
         ? m.posture_checks_version_any()
         : `Android ${rule.min_os_version}+`,
   });
+  if (rule.android_security_patch_level_max_age !== null) {
+    rows.push({
+      label: 'Security patch',
+      value: `Within ${rule.android_security_patch_level_max_age} days`,
+    });
+  }
   if (otherItems.length > 0) {
     rows.push({ label: 'Other', value: otherItems });
   }

@@ -22,7 +22,10 @@ export type OperatingSystemConditionKey =
 
 export type OperatingSystemFormState = {
   conditions: OperatingSystemConditionKey[];
+  /** Windows only */
   securityUpdateMaxAge: number | null;
+  /** Android only */
+  androidSecurityPatchLevelMaxAge: number | null;
   version: PostureCheckOsVersionValue | null;
 };
 
@@ -56,26 +59,31 @@ const createDefaultOperatingSystemState = (
   [PostureCheckOs.Windows]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: getCurrentVersionOrAny(versionValues.windows),
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: getCurrentVersionOrAny(versionValues.macos),
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: getCurrentVersionOrAny(versionValues.linux),
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: getCurrentVersionOrAny(versionValues.ios),
   },
   [PostureCheckOs.Android]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: getCurrentVersionOrAny(versionValues.android),
   },
 });

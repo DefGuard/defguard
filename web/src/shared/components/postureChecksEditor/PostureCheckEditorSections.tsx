@@ -176,6 +176,7 @@ export const PostureCheckOperatingSystemsSection = ({
           versionOptions[0];
         const conditions = osConditions[operatingSystem];
         const showWindowsSecurityUpdate = operatingSystem === PostureCheckOs.Windows;
+        const showAndroidSecurityPatch = operatingSystem === PostureCheckOs.Android;
 
         const securityUpdateOptions: SelectOption<number | null>[] = [
           {
@@ -231,6 +232,19 @@ export const PostureCheckOperatingSystemsSection = ({
           }));
         };
 
+        const handleAndroidSecurityPatchLevelMaxAgeChange = (value: number | null) => {
+          updateValues((current) => ({
+            ...current,
+            operatingSystemState: {
+              ...current.operatingSystemState,
+              [operatingSystem]: {
+                ...current.operatingSystemState[operatingSystem],
+                androidSecurityPatchLevelMaxAge: value,
+              },
+            },
+          }));
+        };
+
         return (
           <div className="system-item" key={operatingSystem}>
             {index > 0 && <Divider />}
@@ -277,6 +291,21 @@ export const PostureCheckOperatingSystemsSection = ({
                         }
                         onChange={(option) =>
                           handleSecurityUpdateMaxAgeChange(option.value)
+                        }
+                      />
+                    </div>
+                  )}
+                  {showAndroidSecurityPatch && (
+                    <div className="select-slot">
+                      <Select
+                        options={securityUpdateOptions}
+                        value={
+                          securityUpdateOptions.find(
+                            (o) => o.value === details.androidSecurityPatchLevelMaxAge,
+                          ) ?? securityUpdateOptions[0]
+                        }
+                        onChange={(option) =>
+                          handleAndroidSecurityPatchLevelMaxAgeChange(option.value)
                         }
                       />
                     </div>

@@ -438,6 +438,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
             ApiOsRule::Android {
                 min_os_version: Some(android_version),
                 device_integrity_required: Some(true),
+                android_security_patch_level_max_age: None,
             },
         ],
     };
@@ -464,6 +465,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
             ApiOsRule::Android {
                 min_os_version: Some(android_version),
                 device_integrity_required: Some(true),
+                android_security_patch_level_max_age: None,
             },
         ],
     };
@@ -652,6 +654,7 @@ async fn test_device_posture_os_rules_duplicate_copies(
             ApiOsRule::Android {
                 min_os_version: None,
                 device_integrity_required: Some(true),
+                android_security_patch_level_max_age: Some(30),
             },
         ],
     };
