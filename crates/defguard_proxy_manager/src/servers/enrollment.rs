@@ -22,7 +22,10 @@ use defguard_core::{
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
-    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
+    events::{
+        BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent,
+        LdapSyncEventType,
+    },
     grpc::{
         GatewayCommand, InstanceInfo,
         client_version::ClientFeature,
@@ -53,6 +56,7 @@ pub(crate) struct EnrollmentServer {
     pool: PgPool,
     gateway_tx: Sender<GatewayCommand>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    ldap_tx: UnboundedSender<LdapSyncEventType>,
 }
 
 impl EnrollmentServer {
@@ -61,11 +65,13 @@ impl EnrollmentServer {
         pool: PgPool,
         gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+        ldap_tx: UnboundedSender<LdapSyncEventType>,
     ) -> Self {
         Self {
             pool,
             gateway_tx,
             bidi_event_tx,
+            ldap_tx,
         }
     }
 
@@ -506,7 +512,13 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
+        ldap_add_user(
+            &mut user,
+            Some(&request.password),
+            &self.pool,
+            &self.ldap_tx,
+        )
+        .await;
 
         info!("User {} activated", user.username);
 
@@ -1231,7 +1243,8 @@ mod test {
 
         let (gateway_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx);
+        let (ldap_tx, _) = unbounded_channel();
+        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx);
 
         let mut transaction = pool.begin().await.unwrap();
         let result = server

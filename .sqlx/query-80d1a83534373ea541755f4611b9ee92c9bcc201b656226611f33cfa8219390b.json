@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"timestamp\",\"user_id\",\"username\",\"location\",\"ip\" \"ip?: _\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"description\",\"metadata\" FROM \"activity_log_event\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"timestamp\",\"user_id\" \"user_id?: _\",\"username\",\"location\",\"ip\" \"ip?: _\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"description\",\"metadata\" FROM \"activity_log_event\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "user_id",
+        "name": "user_id?: _",
         "type_info": "Int8"
       },
       {
@@ -50,7 +50,9 @@
                 "client",
                 "vpn",
                 "enrollment",
-                "posture"
+                "posture",
+                "active_directory",
+                "ldap"
               ]
             }
           }
@@ -81,7 +83,7 @@
     "nullable": [
       false,
       false,
-      false,
+      true,
       false,
       true,
       true,
@@ -92,5 +94,5 @@
       true
     ]
   },
-  "hash": "bb1a2dd0364e14174e66faca34180d00030cc90495fa21c3745051c4b66017d5"
+  "hash": "80d1a83534373ea541755f4611b9ee92c9bcc201b656226611f33cfa8219390b"
 }

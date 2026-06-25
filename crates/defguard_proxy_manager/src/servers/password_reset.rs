@@ -4,7 +4,10 @@ use defguard_core::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_change_password,
     },
-    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
+    events::{
+        BidiRequestContext, BidiStreamEvent, BidiStreamEventType, LdapSyncEventType,
+        PasswordResetEvent,
+    },
     grpc::utils::parse_client_ip_agent,
     handlers::user::check_password_strength,
     headers::get_device_info,
@@ -21,16 +24,22 @@ use tonic::Status;
 pub(crate) struct PasswordResetServer {
     pool: PgPool,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    ldap_tx: UnboundedSender<LdapSyncEventType>,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(pool: PgPool, bidi_event_tx: UnboundedSender<BidiStreamEvent>) -> Self {
+    pub fn new(
+        pool: PgPool,
+        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+        ldap_tx: UnboundedSender<LdapSyncEventType>,
+    ) -> Self {
         // FIXME: check if LDAP feature is enabled
         // let ldap_feature_active = true;
         Self {
             pool,
             bidi_event_tx,
+            ldap_tx,
             // ldap_feature_active,
         }
     }
@@ -332,7 +341,7 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_change_password(&mut user, &request.password, &self.pool).await;
+        ldap_change_password(&mut user, &request.password, &self.pool, &self.ldap_tx).await;
 
         // Prepare event context and push the event
         let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;

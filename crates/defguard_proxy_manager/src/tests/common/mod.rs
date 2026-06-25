@@ -425,7 +425,8 @@ impl HandlerTestContext {
 
         let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx);
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx, ldap_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -605,7 +606,8 @@ impl ManagerTestContext {
 
         let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, _bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx);
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx, ldap_tx);
 
         let incompatible_components = Arc::new(std::sync::RwLock::new(
             defguard_core::version::IncompatibleComponents::default(),

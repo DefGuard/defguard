@@ -12,7 +12,7 @@ use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use super::{
     db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
@@ -31,6 +31,7 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
     handlers::user::check_username,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
@@ -328,6 +329,7 @@ async fn sync_user_groups<T: DirectorySync>(
     user: &User<Id>,
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing groups of user {} with the directory", user.email);
     let directory_groups = directory_sync.get_user_groups(&user.email).await?;
@@ -386,11 +388,11 @@ async fn sync_user_groups<T: DirectorySync>(
 
     let mut user_groups = HashMap::new();
     user_groups.insert(user, add_to_ldap_groups);
-    ldap_add_users_to_groups(user_groups, pool).await;
+    ldap_add_users_to_groups(user_groups, pool, ldap_tx).await;
 
     let mut user_groups = HashMap::new();
     user_groups.insert(user, remove_from_ldap_groups);
-    ldap_remove_users_from_groups(user_groups, pool).await;
+    ldap_remove_users_from_groups(user_groups, pool, ldap_tx).await;
 
     Ok(())
 }
@@ -422,6 +424,7 @@ pub async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -438,7 +441,7 @@ pub async fn sync_user_groups_if_configured(
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
-            sync_user_groups(&dir_sync, user, pool, gateway_tx).await?;
+            sync_user_groups(&dir_sync, user, pool, gateway_tx, ldap_tx).await?;
         }
         Err(err) => {
             error!("Failed to build directory sync client: {err}");
@@ -486,6 +489,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
     all_users: Option<&[DirectoryUser]>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' groups with the directory, this may take a while...");
@@ -597,6 +601,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
         affected_users.iter_mut().collect::<Vec<_>>(),
         pool,
         gateway_tx,
+        ldap_tx,
     ))
     .await;
     info!("Syncing all users' groups done.");
@@ -623,6 +628,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
 async fn sync_all_users_state(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
     all_users: &[DirectoryUser],
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
@@ -887,17 +893,19 @@ async fn sync_all_users_state(
     update_counts(pool).await?;
 
     // trigger LDAP sync
-    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
+    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool, ldap_tx).await;
     Box::pin(ldap_update_users_state(
         modified_users.iter_mut().collect::<Vec<_>>(),
         pool,
         gateway_tx,
+        ldap_tx,
     ))
     .await;
     Box::pin(ldap_update_users_state(
         created_users.iter_mut().collect::<Vec<_>>(),
         pool,
         gateway_tx,
+        ldap_tx,
     ))
     .await;
 
@@ -1012,6 +1020,7 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -1048,7 +1057,7 @@ pub(crate) async fn do_directory_sync(
                 DirectorySyncTarget::All | DirectorySyncTarget::Users
             ) {
                 let users = dir_sync.get_all_users().await?;
-                sync_all_users_state(pool, gateway_tx, &users).await?;
+                sync_all_users_state(pool, gateway_tx, ldap_tx, &users).await?;
                 all_users = Some(users);
             }
             if matches!(
@@ -1069,8 +1078,14 @@ pub(crate) async fn do_directory_sync(
                     }
                     _ => None, // No need to pass all users for other providers, for the time being.
                 };
-                sync_all_users_groups(&dir_sync, pool, gateway_tx, users_to_pass.as_deref())
-                    .await?;
+                sync_all_users_groups(
+                    &dir_sync,
+                    pool,
+                    gateway_tx,
+                    ldap_tx,
+                    users_to_pass.as_deref(),
+                )
+                .await?;
             }
         }
         Err(err) => {
