@@ -44,6 +44,17 @@ pub(crate) fn parse_client_version_platform(
     (version, platform)
 }
 
+/// Returns `true` when the platform's OS family is a mobile OS (Android or iOS).
+/// Returns `false` for desktop platforms and when platform info is absent.
+pub fn is_mobile_platform(platform: Option<&ClientPlatformInfo>) -> bool {
+    platform
+        .map(|p| {
+            let f = p.os_family.to_lowercase();
+            f == "android" || f == "ios"
+        })
+        .unwrap_or(false)
+}
+
 /// Represents a client feature that may have minimum version and OS family requirements.
 #[derive(Debug)]
 pub enum ClientFeature {
@@ -52,10 +63,16 @@ pub enum ClientFeature {
 }
 
 impl ClientFeature {
-    const fn min_version(&self) -> Option<Version> {
+    fn min_version(&self, platform: Option<&ClientPlatformInfo>) -> Option<Version> {
         match self {
             Self::ServiceLocations => Some(Version::new(1, 6, 0)),
-            Self::PostureChecks => Some(Version::new(2, 1, 0)),
+            Self::PostureChecks => {
+                if is_mobile_platform(platform) {
+                    Some(Version::new(1, 7, 0))
+                } else {
+                    Some(Version::new(2, 1, 0))
+                }
+            }
         }
     }
 
@@ -70,17 +87,19 @@ impl ClientFeature {
         let (version, platform) = parse_client_version_platform(info);
 
         // No minimum version = matches all
-        let version_matches = self.min_version().is_none_or(|min_version| {
-            // No version info = does not match
-            version
-                .as_ref()
-                .is_some_and(|version| version >= &min_version)
-        });
+        let version_matches = self
+            .min_version(platform.as_ref())
+            .is_none_or(|min_version| {
+                // No version info = does not match
+                version
+                    .as_ref()
+                    .is_some_and(|version| version >= &min_version)
+            });
 
         if !version_matches {
             debug!(
                 "Client version {version:?} does not meet minimum version {:?} for feature {self:?}",
-                self.min_version()
+                self.min_version(platform.as_ref())
             );
         }
 
@@ -389,8 +408,7 @@ mod tests {
 
     #[test]
     fn test_posture_checks_feature_support() {
-        // PostureChecks has no OS family requirement, so it should work on any platform
-        // as long as the client version is at least 2.1.0.
+        // Desktop platforms require >= 2.1.0.
         for os_family in ["windows", "macos", "linux"] {
             let info = create_device_info(
                 Some("2.1.0".to_owned()),
@@ -405,19 +423,74 @@ mod tests {
             );
         }
 
-        // Higher version is supported even without platform info.
-        let info = create_device_info(Some("2.5.0".to_owned()), None);
+        // Desktop version above minimum is supported.
+        let info = create_device_info(
+            Some("2.5.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "linux".to_owned(),
+                ..Default::default()
+            }),
+        );
         assert!(
             ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
-            "PostureChecks should be supported with higher version"
+            "PostureChecks should be supported with higher desktop version"
         );
 
-        // Version below minimum is not supported.
-        let info = create_device_info(Some("2.0.9".to_owned()), None);
+        // Desktop version below minimum is not supported.
+        let info = create_device_info(
+            Some("2.0.9".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "linux".to_owned(),
+                ..Default::default()
+            }),
+        );
         assert!(
             !ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
-            "PostureChecks should not be supported below minimum version"
+            "PostureChecks should not be supported below minimum desktop version"
         );
+
+        // Mobile platforms (Android/iOS) require >= 1.7.0.
+        for os_family in ["android", "ios", "Android", "IOS"] {
+            let info = create_device_info(
+                Some("1.7.0".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    ..Default::default()
+                }),
+            );
+            assert!(
+                ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+                "PostureChecks should be supported on {os_family} at version 1.7.0"
+            );
+        }
+
+        // Mobile version above minimum is supported.
+        let info = create_device_info(
+            Some("1.8.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "android".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should be supported on Android above minimum version"
+        );
+
+        // Mobile version below 1.7.0 is not supported.
+        for os_family in ["android", "ios"] {
+            let info = create_device_info(
+                Some("1.6.4".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    ..Default::default()
+                }),
+            );
+            assert!(
+                !ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+                "PostureChecks should not be supported on {os_family} below version 1.7.0"
+            );
+        }
 
         // Missing version info means the feature is not supported.
         let info = create_device_info(None, None);
@@ -430,6 +503,36 @@ mod tests {
         assert!(
             !ClientFeature::PostureChecks.is_supported_by_device(None),
             "PostureChecks should not be supported without device info"
+        );
+    }
+
+    #[test]
+    fn test_is_mobile_platform() {
+        for os_family in ["android", "Android", "ANDROID", "ios", "iOS", "IOS"] {
+            let platform = ClientPlatformInfo {
+                os_family: os_family.to_owned(),
+                ..Default::default()
+            };
+            assert!(
+                is_mobile_platform(Some(&platform)),
+                "{os_family} should be recognised as a mobile platform"
+            );
+        }
+
+        for os_family in ["windows", "macos", "linux", "darwin", "unknown"] {
+            let platform = ClientPlatformInfo {
+                os_family: os_family.to_owned(),
+                ..Default::default()
+            };
+            assert!(
+                !is_mobile_platform(Some(&platform)),
+                "{os_family} should not be recognised as a mobile platform"
+            );
+        }
+
+        assert!(
+            !is_mobile_platform(None),
+            "None platform should not be recognised as mobile"
         );
     }
 }

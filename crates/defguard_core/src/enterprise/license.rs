@@ -141,8 +141,8 @@ impl LicenseTier {
     /// starts from an empty baseline so only explicitly granted flags are active.
     pub(crate) fn included_features(self) -> &'static [LicenseFeature] {
         match self {
-            LicenseTier::Enterprise => LicenseFeature::VARIANTS,
-            LicenseTier::Business => &[],
+            Self::Enterprise => LicenseFeature::VARIANTS,
+            Self::Business => &[],
         }
     }
 }
