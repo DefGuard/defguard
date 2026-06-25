@@ -15,14 +15,14 @@ use tera::{Context, Function, Tera};
 use thiserror::Error;
 use tracing::{debug, warn};
 
-use crate::mail::{Attachment, MailMessage};
+use super::{Attachment, MailMessage};
 
 pub(crate) const DEFAULT_LANG: &str = "en_US";
 
 pub static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 
-static BASE_MJML: &str = include_str!("../templates/base.mjml");
-static MACROS_MJML: &str = include_str!("../templates/macros.mjml");
+static BASE_MJML: &str = include_str!("templates/base.mjml");
+static MACROS_MJML: &str = include_str!("templates/macros.mjml");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Debug, Error)]

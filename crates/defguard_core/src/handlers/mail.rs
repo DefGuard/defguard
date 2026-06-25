@@ -1,13 +1,13 @@
+use crate::mail::{
+    Attachment,
+    templates::{self, SUPPORT_EMAIL_ADDRESS},
+};
 use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
 use chrono::Utc;
 use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
-use defguard_mail::{
-    mail::Attachment,
-    templates::{self, SUPPORT_EMAIL_ADDRESS},
-};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -134,7 +134,7 @@ pub enum MailError {
     #[error("Database error: {0}")]
     Db(#[from] sqlx::Error),
     #[error("Template error: {0}")]
-    Template(#[from] defguard_mail::templates::TemplateError),
+    Template(#[from] crate::mail::templates::TemplateError),
 }
 
 pub async fn send_gateway_disconnected_email(

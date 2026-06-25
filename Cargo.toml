@@ -24,7 +24,6 @@ defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_gateway_manager = { path = "./crates/defguard_gateway_manager", version = "0.0.0" }
-defguard_mail = { path = "./crates/defguard_mail", version = "0.0.0" }
 defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
 defguard_proxy_manager = { path = "./crates/defguard_proxy_manager", version = "0.0.0" }
 defguard_session_manager = { path = "./crates/defguard_session_manager", version = "0.0.0" }

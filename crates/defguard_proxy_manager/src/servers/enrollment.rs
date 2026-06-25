@@ -13,6 +13,10 @@ use defguard_common::{
         },
     },
 };
+use defguard_core::mail::templates::{
+    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
+    new_device_added_mail,
+};
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     device_access::{build_device_config, join_device_to_all_networks},
@@ -31,10 +35,6 @@ use defguard_core::{
     handlers::user::check_password_strength,
     headers::get_device_info,
     is_valid_phone_number,
-};
-use defguard_mail::templates::{
-    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
-    new_device_added_mail,
 };
 use defguard_proto::client_types::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,

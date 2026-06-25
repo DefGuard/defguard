@@ -3,6 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use crate::mail::templates::new_device_oidc_login_mail;
 use axum::{
     Form,
     extract::{FromRef, FromRequestParts, Query, State},
@@ -22,7 +23,6 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
     },
 };
-use defguard_mail::templates::new_device_oidc_login_mail;
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,

@@ -1,3 +1,4 @@
+use crate::mail::templates;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
@@ -8,7 +9,6 @@ use defguard_common::{
     random::gen_alphanumeric,
     types::UrlParseError,
 };
-use defguard_mail::templates;
 use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
 use thiserror::Error;

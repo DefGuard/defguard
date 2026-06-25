@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::mail::templates::{TemplateLocation, new_device_added_mail};
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -16,7 +17,6 @@ use defguard_common::{
     },
     utils::parse_network_address_list,
 };
-use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;

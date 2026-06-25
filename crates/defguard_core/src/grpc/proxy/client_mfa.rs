@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use crate::mail::templates::mfa_code_mail;
 use chrono::Utc;
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
@@ -18,7 +19,6 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::templates::mfa_code_mail;
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,

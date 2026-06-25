@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use crate::mail::templates;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
@@ -10,7 +11,6 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_grpc_tls::certs::proxy_mtls_channel;
-use defguard_mail::templates;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
 };

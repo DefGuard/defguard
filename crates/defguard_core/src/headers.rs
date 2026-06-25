@@ -6,6 +6,7 @@ use std::{
     },
 };
 
+use crate::mail::templates::{SessionContext, TemplateError, new_device_login_mail};
 use axum::{
     body::Body,
     http::{HeaderName, HeaderValue, Request, header},
@@ -16,7 +17,6 @@ use defguard_common::db::{
     Id,
     models::{DeviceLoginEvent, User},
 };
-use defguard_mail::templates::{SessionContext, TemplateError, new_device_login_mail};
 use sqlx::PgPool;
 use uaparser::{Client, Parser, UserAgentParser};
 

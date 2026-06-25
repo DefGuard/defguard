@@ -8,6 +8,7 @@ pub mod handlers;
 pub mod ldap;
 pub mod license;
 pub mod limits;
+pub mod oauth2;
 pub mod posture;
 pub mod snat;
 mod utils;
@@ -16,6 +17,9 @@ use license::{get_cached_license, validate_license};
 use limits::get_counts;
 
 use crate::enterprise::license::LicenseTier;
+
+/// Shared HTTP request timeout for enterprise outbound calls (e.g. OAuth2 token endpoints).
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// Helper function to gate features which require a base license (Team or Business tier)
 #[must_use]

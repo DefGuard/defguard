@@ -3,6 +3,7 @@ use std::{
     str::FromStr,
 };
 
+use crate::mail::templates::{TemplateLocation, new_device_added_mail};
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
@@ -20,7 +21,6 @@ use defguard_common::{
     },
     utils::{SplitIp, split_ip},
 };
-use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use serde_json::json;
 use sqlx::PgConnection;
 

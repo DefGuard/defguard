@@ -1,3 +1,4 @@
+use crate::mail::templates::TemplateError;
 use axum::http::StatusCode;
 use defguard_common::{
     db::models::{
@@ -7,7 +8,6 @@ use defguard_common::{
     },
     types::UrlParseError,
 };
-use defguard_mail::templates::TemplateError;
 use defguard_static_ip::error::StaticIpError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;

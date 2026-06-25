@@ -1,8 +1,8 @@
+use crate::mail::templates::{desktop_start_mail, new_account_mail};
 use defguard_common::db::{
     Id,
     models::{Settings, user::User},
 };
-use defguard_mail::templates::{desktop_start_mail, new_account_mail};
 use reqwest::Url;
 use sqlx::{PgConnection, PgExecutor, PgPool};
 

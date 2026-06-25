@@ -1,5 +1,6 @@
 use std::{collections::HashSet, time::Duration};
 
+use crate::mail::templates;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     db::models::{
@@ -8,7 +9,6 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
-use defguard_mail::templates;
 use sqlx::{PgConnection, PgPool, query_as};
 use tokio::{
     sync::{broadcast, mpsc},

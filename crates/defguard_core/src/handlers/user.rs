@@ -1,5 +1,6 @@
 use std::{collections::HashSet, fmt};
 
+use crate::mail::templates;
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -12,7 +13,6 @@ use defguard_common::{
     },
     types::{group_diff::GroupDiff, user_info::UserInfo},
 };
-use defguard_mail::templates;
 use humantime::parse_duration;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
