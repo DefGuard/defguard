@@ -1,0 +1,22 @@
+%smtp-muted-sm {
+  font: var(--t-body-xxs-500);
+  color: var(--fg-muted);
+}
+
+#settings-smtp-page {
+  .smtp-auth-method-cards {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+  }
+
+  .smtp-cards-section-label {
+    @extend %smtp-muted-sm;
+
+    padding-bottom: var(--spacing-lg);
+  }
+}
+
+.smtp-auth-oauth-info {
+  @extend %smtp-muted-sm;
+}

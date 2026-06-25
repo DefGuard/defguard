@@ -87,5 +87,6 @@
   "failed_to_start_enrollment": "Failed to start enrollment",
   "misc_recommended": "Recommended",
   "footer_copyright": "Copyright © {year} Defguard Sp. z o.o.",
-  "error_unknown": "An unknown error occurred"
+  "error_unknown": "An unknown error occurred",
+  "controls_configure": "Configure"
 }
