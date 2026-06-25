@@ -780,7 +780,7 @@ pub(crate) async fn send_activate_user(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ActivateUser(ActivateUserRequest {
             token: Some(token.to_owned()),
-            password: password.to_owned(),
+            password: Some(password.to_owned()),
             phone_number: phone.map(str::to_owned),
         })),
     });

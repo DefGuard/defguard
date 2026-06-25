@@ -408,14 +408,6 @@ impl EnrollmentServer {
         }
         debug!("IP address {ip_address}, device info {device_info:?}");
 
-        // check if password is strong enough
-        debug!("Verifying password strength for user activation process.");
-        if let Err(err) = check_password_strength(&request.password) {
-            error!("Password not strong enough: {err}");
-            return Err(Status::invalid_argument("password not strong enough"));
-        }
-        debug!("Password is strong enough to complete the user activation process.");
-
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
         debug!(
@@ -438,15 +430,67 @@ impl EnrollmentServer {
         }
         debug!("User is active.");
 
+        // Externally-managed users whose identity provider disabled local password management
+        // must not set a Defguard password during enrollment. All other users must supply one.
+        let settings = Settings::get_current_settings();
+        let oidc_disable_password_management =
+            OpenIdProvider::current_disables_password_management(&self.pool)
+                .await
+                .map_err(|err| {
+                    error!("Failed to fetch OIDC provider settings: {err}");
+                    Status::internal("unexpected error")
+                })?;
+        let is_admin = user.is_admin(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to determine admin status for {}: {err}",
+                user.username
+            );
+            Status::internal("unexpected error")
+        })?;
+        let password_management_disabled = user.password_management_disabled(
+            is_admin,
+            &settings,
+            oidc_disable_password_management,
+        );
+        let password = if password_management_disabled {
+            if request.password.is_some() {
+                warn!(
+                    "Ignoring password supplied during enrollment for user {} - password \
+                     management is disabled by their identity provider.",
+                    user.username
+                );
+            }
+            None
+        } else {
+            let Some(password) = request.password.as_deref() else {
+                error!(
+                    "No password provided during activation for user {}",
+                    user.username
+                );
+                return Err(Status::invalid_argument("password required"));
+            };
+            debug!("Verifying password strength for user activation process.");
+            if let Err(err) = check_password_strength(password) {
+                error!("Password not strong enough: {err}");
+                return Err(Status::invalid_argument("password not strong enough"));
+            }
+            debug!("Password is strong enough to complete the user activation process.");
+            Some(password)
+        };
+
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
 
         // update user
-        info!("Update user details and set a new password.");
         user.phone = request.phone_number;
-        user.set_password(&request.password);
+        if let Some(password) = password {
+            info!("Update user details and set a new password.");
+            user.set_password(password);
+        } else {
+            info!("Update user details without setting a local password (externally managed).");
+        }
         user.save(&mut *transaction).await.map_err(|err| {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
@@ -506,7 +550,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
+        ldap_add_user(&mut user, password, &self.pool).await;
 
         info!("User {} activated", user.username);
 
@@ -1128,6 +1172,11 @@ async fn initial_info_from_user(
     let devices = user.user_devices(pool).await?;
     let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
     let is_admin = user.is_admin(pool).await?;
+    let settings = Settings::get_current_settings();
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(pool).await?;
+    let password_management_disabled =
+        user.password_management_disabled(is_admin, &settings, oidc_disable_password_management);
     Ok(InitialUserInfo {
         first_name: user.first_name,
         last_name: user.last_name,
@@ -1138,6 +1187,7 @@ async fn initial_info_from_user(
         device_names,
         enrolled,
         is_admin,
+        password_management_disabled,
     })
 }
 
