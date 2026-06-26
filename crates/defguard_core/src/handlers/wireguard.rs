@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use crate::mail::templates::{TemplateLocation, new_device_added_mail};
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -45,6 +44,7 @@ use crate::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
     },
+    mail::templates::{TemplateLocation, new_device_added_mail},
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 

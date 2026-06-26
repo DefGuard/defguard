@@ -1,7 +1,3 @@
-use crate::mail::{
-    Attachment,
-    templates::{self, SUPPORT_EMAIL_ADDRESS},
-};
 use axum::{
     extract::{Json, State},
     http::StatusCode,
@@ -19,6 +15,10 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    mail::{
+        Attachment,
+        templates::{self, SUPPORT_EMAIL_ADDRESS},
+    },
     server_config,
     support::dump_config,
 };

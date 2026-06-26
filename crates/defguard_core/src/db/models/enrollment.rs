@@ -1,4 +1,3 @@
-use crate::mail::templates;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
@@ -13,6 +12,8 @@ use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
 use thiserror::Error;
 use tonic::{Code, Status};
+
+use crate::mail::templates;
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";

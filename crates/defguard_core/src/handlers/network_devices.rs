@@ -3,7 +3,6 @@ use std::{
     str::FromStr,
 };
 
-use crate::mail::templates::{TemplateLocation, new_device_added_mail};
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
@@ -40,6 +39,7 @@ use crate::{
         device_for_admin_or_self,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
+    mail::templates::{TemplateLocation, new_device_added_mail},
 };
 
 #[derive(Serialize)]

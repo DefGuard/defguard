@@ -1,5 +1,4 @@
 use defguard_common::db::models::{Settings, User};
-use defguard_core::mail::templates::{password_reset_mail, password_reset_success_mail};
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::{
@@ -12,6 +11,7 @@ use defguard_core::{
     grpc::utils::parse_client_ip_agent,
     handlers::user::check_password_strength,
     headers::get_device_info,
+    mail::templates::{password_reset_mail, password_reset_success_mail},
 };
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,

@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use crate::mail::templates::mfa_code_mail;
 use chrono::Utc;
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
@@ -51,6 +50,7 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
+    mail::templates::mfa_code_mail,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 5 minutes

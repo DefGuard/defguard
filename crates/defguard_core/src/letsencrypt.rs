@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use crate::mail::templates;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
@@ -25,6 +24,8 @@ use tokio::{
     time::timeout,
 };
 use tonic::{Request, service::Interceptor};
+
+use crate::mail::templates;
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
 #[cfg(not(test))]

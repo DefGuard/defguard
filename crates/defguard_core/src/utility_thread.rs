@@ -1,6 +1,5 @@
 use std::{collections::HashSet, time::Duration};
 
-use crate::mail::templates;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     db::models::{
@@ -30,6 +29,7 @@ use crate::{
     grpc::GatewayCommand,
     letsencrypt::do_letsencrypt_refresh,
     location_management::allowed_peers::get_location_allowed_peers,
+    mail::templates,
     updates::do_new_version_check,
 };
 

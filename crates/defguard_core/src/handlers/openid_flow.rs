@@ -3,7 +3,6 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::mail::templates::new_device_oidc_login_mail;
 use axum::{
     Form,
     extract::{FromRef, FromRequestParts, Query, State},
@@ -51,6 +50,7 @@ use crate::{
     auth::{SessionInfo, UserClaims},
     error::WebError,
     handlers::{SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, cookie_domain},
+    mail::templates::new_device_oidc_login_mail,
     server_config,
 };
 

@@ -1,4 +1,3 @@
-use crate::mail::templates::TemplateError;
 use axum::http::StatusCode;
 use defguard_common::{
     db::models::{
@@ -24,6 +23,7 @@ use crate::{
     events::ApiEvent,
     handlers::{openid_flow::OidcFlowError, user::ValidationError},
     location_management::LocationManagementError,
+    mail::templates::TemplateError,
     user_management::UserManagementError,
 };
 
