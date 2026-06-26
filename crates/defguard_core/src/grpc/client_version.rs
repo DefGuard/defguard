@@ -66,6 +66,7 @@ impl ClientFeature {
     fn min_version(&self, platform: Option<&ClientPlatformInfo>) -> Option<Version> {
         match self {
             Self::ServiceLocations => Some(Version::new(1, 6, 0)),
+            // We do not keep mobile client and desktop client versions in sync.
             Self::PostureChecks => {
                 if is_mobile_platform(platform) {
                     Some(Version::new(1, 7, 0))
