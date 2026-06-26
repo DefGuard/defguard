@@ -287,8 +287,12 @@ export const PostureCheckOperatingSystemsSection = ({
                 {showWindowsSecurityUpdate && (
                   <div>
                     <Divider spacing={ThemeSpacing.Xl} />
-                    <DescriptionBlock title="Windows security updates">
-                      <p>{`Evaluates security update compliance for the selected period (excluding general OS updates).`}</p>
+                    <DescriptionBlock
+                      title={m.posture_checks_wizard_operating_systems_windows_security_updates_section_title()}
+                    >
+                      <p>
+                        {m.posture_checks_wizard_operating_systems_windows_security_updates_section_description()}
+                      </p>
                     </DescriptionBlock>
                     <SizedBox height={ThemeSpacing.Md} />
                     <EvenSplit>
@@ -309,8 +313,12 @@ export const PostureCheckOperatingSystemsSection = ({
                 {showAndroidSecurityPatch && (
                   <div>
                     <Divider spacing={ThemeSpacing.Xl} />
-                    <DescriptionBlock title="Android security patch level">
-                      <p>{`Evaluates Android security patch level compliance for the selected period.`}</p>
+                    <DescriptionBlock
+                      title={m.posture_checks_wizard_operating_systems_android_security_patch_title()}
+                    >
+                      <p>
+                        {m.posture_checks_wizard_operating_systems_android_security_patch_description()}
+                      </p>
                     </DescriptionBlock>
                     <SizedBox height={ThemeSpacing.Md} />
                     <EvenSplit>
