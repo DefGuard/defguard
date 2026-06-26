@@ -11,6 +11,7 @@ const GRANT_TYPE: &str = "client_credentials";
 pub struct TokenResponse {
     // token_type: String,
     access_token: String,
+    /// Absolute expiry time as a Unix timestamp (seconds since epoch)
     expires_in: u64,
 }
 

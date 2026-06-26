@@ -37,7 +37,7 @@ pub async fn get_app_info(State(appstate): State<AppState>, _session: SessionInf
     let settings = Settings::get_current_settings();
     let mut smtp_enabled = settings.smtp_configured();
     // XOAUTH2 is only for the business licence.
-    if settings.smtp.is_xoauth2() & !is_business_license_active() {
+    if settings.smtp.is_xoauth2() && !is_business_license_active() {
         smtp_enabled = false;
     }
 
