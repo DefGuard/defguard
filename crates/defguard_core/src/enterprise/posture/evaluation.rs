@@ -212,6 +212,32 @@ fn evaluate_os_rule(
         }
     }
 
+    // android_security_patch_level_max_age (Android only)
+    if let Some(required_max_age_days) = rule.android_security_patch_level_max_age {
+        match resolve_string_check(
+            data.android_security_patch_date.as_ref(),
+            "android_security_patch_date",
+        ) {
+            Ok(Some(date_str)) => match chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+                Ok(patch_date) => {
+                    let today = chrono::Utc::now().date_naive();
+                    let age_days = (today - patch_date).num_days() as i32;
+                    if age_days > required_max_age_days {
+                        failures.push(FailureReason::AndroidSecurityPatchTooOld {
+                            required_max_age_days,
+                            actual_age_days: age_days,
+                        });
+                    }
+                }
+                Err(_) => failures.push(FailureReason::CheckUnavailable {
+                    check: "android_security_patch_date (unparseable)",
+                }),
+            },
+            Ok(None) => {} // NotApplicable — skip
+            Err(name) => failures.push(FailureReason::CheckUnavailable { check: name }),
+        }
+    }
+
     // device_integrity_required (macOS, Android)
     if rule.device_integrity_required == Some(true) {
         match resolve_bool_check(data.device_integrity.as_ref(), "device_integrity") {

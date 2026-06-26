@@ -7,12 +7,10 @@
 .posture-check-operating-systems {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3xl);
 
   .system-item {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-3xl);
 
     > .policy-os-card > .content {
       padding-top: var(--spacing-md);
@@ -29,26 +27,6 @@
 .posture-check-os-card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
-
-  .selects {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-  }
-
-  .select-slot {
-    flex: 1 1 calc((100% - var(--spacing-md)) / 2);
-    min-width: 0;
-
-    &:only-child {
-      flex-basis: 100%;
-    }
-
-    > .select {
-      width: 100%;
-    }
-  }
 
   .conditions {
     display: flex;

@@ -215,6 +215,7 @@ pub(crate) async fn enable_linux_posture_for_location(pool: &PgPool, location_id
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(pool)
     .await

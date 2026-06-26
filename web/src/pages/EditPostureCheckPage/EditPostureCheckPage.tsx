@@ -135,7 +135,7 @@ const EditPostureCheckForm = ({
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_operating_systems()}>
         <PostureCheckOperatingSystemsSection
-          compact
+          asCards={false}
           values={values}
           versionValues={versionValues}
           updateValues={updateValues}
