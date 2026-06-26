@@ -10,7 +10,8 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use totp_lite::{Sha1, totp_custom};
 
 use super::common::{
-    X_FORWARDED_HOST, X_FORWARDED_URI, make_client, make_client_with_db, setup_pool,
+    X_FORWARDED_HOST, X_FORWARDED_URI, get_db_user, make_client, make_client_with_db,
+    setup_pool,
 };
 
 #[sqlx::test]
@@ -92,12 +93,8 @@ async fn test_forward_auth_mfa_not_completed(_: PgPoolOptions, options: PgConnec
     let response = client.post("/api/v1/auth/totp").json(&code).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // enable MFA
+    // enable MFA (this clears existing sessions)
     let response = client.put("/api/v1/auth/mfa").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // logout
-    let response = client.post("/api/v1/auth/logout").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // login password-only — MFA now required, session is PasswordVerified
@@ -132,12 +129,8 @@ async fn test_forward_auth_mfa_completed(_: PgPoolOptions, options: PgConnectOpt
     let response = client.post("/api/v1/auth/totp").json(&code).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // enable MFA
+    // enable MFA (this clears existing sessions)
     let response = client.put("/api/v1/auth/mfa").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // logout
-    let response = client.post("/api/v1/auth/logout").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // login password-only — MFA required
@@ -161,4 +154,38 @@ async fn test_forward_auth_mfa_completed(_: PgPoolOptions, options: PgConnectOpt
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn test_forward_auth_disabled_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    // login as hpotter (no MFA)
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // forward_auth accepts while user is active
+    let response = client
+        .get("/api/v1/forward_auth")
+        .header(X_FORWARDED_HOST, "app.example.com")
+        .header(X_FORWARDED_URI, "/test")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // disable the account
+    let mut user = get_db_user(&pool, "hpotter").await;
+    user.is_active = false;
+    user.save(&pool).await.unwrap();
+
+    // forward_auth with same session must redirect because user is disabled
+    let response = client
+        .get("/api/v1/forward_auth")
+        .header(X_FORWARDED_HOST, "app.example.com")
+        .header(X_FORWARDED_URI, "/test")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
 }
