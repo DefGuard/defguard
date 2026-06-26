@@ -15,6 +15,10 @@
     gap: var(--spacing-xs);
     max-width: 42rem;
   }
+
+  .posture-check-operating-systems {
+    row-gap: var(--spacing-2xl);
+  }
 }
 
 .add-posture-check-client-version-step {
