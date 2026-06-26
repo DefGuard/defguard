@@ -316,6 +316,7 @@ pub struct OpenIdProviderNoSecrets {
     pub directory_sync_target: DirectorySyncTarget,
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Vec<String>,
+    pub directory_sync_user_groups: Option<Vec<String>>,
 }
 
 impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
@@ -335,6 +336,7 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
             directory_sync_target: value.directory_sync_target,
             okta_dirsync_client_id: value.okta_dirsync_client_id,
             directory_sync_group_match: value.directory_sync_group_match,
+            directory_sync_user_groups: value.directory_sync_user_groups,
         }
     }
 }

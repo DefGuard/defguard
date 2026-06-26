@@ -744,6 +744,7 @@ pub(crate) async fn create_oidc_provider(
         directory_sync_group_match: Vec::new(),
         jumpcloud_api_key: None,
         prefetch_users: false,
+        directory_sync_user_groups: None,
     }
     .save(pool)
     .await

@@ -36,8 +36,8 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     enterprise::{
-        db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured,
+        db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
+        directory_sync::{sync_user_groups_if_configured, user_in_directory_groups},
         ldap::utils::ldap_update_user_state,
         license::get_cached_license,
         limits::{get_counts, update_counts},
@@ -338,6 +338,38 @@ pub async fn user_from_claims(
                         Create the user or make sure they belong to an allowed LDAP synchronization group."
                             .into(),
                     ));
+                }
+
+                // If user synchronization is enabled and limited to specific directory groups, only allow
+                // creating accounts for users who are members of one of those groups.
+                if provider.directory_sync_enabled
+                    && let Some(user_groups_filter) = provider
+                        .directory_sync_user_groups
+                        .as_ref()
+                        .filter(|groups| !groups.is_empty())
+                    && provider.kind == OpenIdProviderKind::Microsoft
+                {
+                    let in_groups = user_in_directory_groups(pool, email, user_groups_filter)
+                            .await
+                            .map_err(|err| {
+                                error!(
+                                    "Failed to check directory group membership of user with email address {} during OpenID account creation: {err}",
+                                    email.as_str()
+                                );
+                                WebError::Authorization(
+                                    "Failed to verify user's directory group membership".into(),
+                                )
+                            })?;
+                    if !in_groups {
+                        warn!(
+                                "User with email address {} is trying to log in for the first time but is not a member of any
+                                directory groups configured for user synchronization. Blocking account creation.",
+                                email.as_str()
+                            );
+                        return Err(WebError::UserGroupsNotSynced(
+                                "User is not a member of any of the directory groups allowed for account creation".into(),
+                            ));
+                    }
                 }
 
                 // Try to get the username from `preferred_username` claim.

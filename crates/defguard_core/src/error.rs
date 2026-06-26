@@ -44,6 +44,8 @@ pub enum WebError {
     Serialization(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
+    #[error("User groups not synced: {0}")]
+    UserGroupsNotSynced(String),
     #[error("Authentication error")]
     Authentication,
     #[error("Forbidden error: {0}")]

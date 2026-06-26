@@ -448,6 +448,19 @@ pub async fn sync_user_groups_if_configured(
     Ok(())
 }
 
+/// Checks whether a user with the given email address is a member of at least one of the
+/// given groups in the directory.
+pub(crate) async fn user_in_directory_groups(
+    pool: &PgPool,
+    user_email: &str,
+    groups: &[String],
+) -> Result<bool, DirectorySyncError> {
+    let mut dir_sync = DirectorySyncClient::build(pool).await?;
+    dir_sync.prepare().await?;
+    let user_groups = dir_sync.get_user_groups(user_email).await?;
+    Ok(user_groups.iter().any(|group| groups.contains(&group.name)))
+}
+
 /// Create a group if it doesn't exist and add a user to it if they are not already a member
 async fn create_and_add_to_group(
     user: &User<Id>,
@@ -624,6 +637,7 @@ async fn sync_all_users_state(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
     all_users: &[DirectoryUser],
+    prefetch_allowed_emails: Option<HashSet<String>>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
     let mut transaction = pool.begin().await?;
@@ -636,13 +650,22 @@ async fn sync_all_users_state(
     let admin_behavior = settings.directory_sync_admin_behavior;
     let prefetch_users = settings.prefetch_users;
 
+    let is_allowed_user = |user: &DirectoryUser| -> bool {
+        prefetch_allowed_emails
+            .as_ref()
+            .is_none_or(|allowed| allowed.contains(&user.email))
+    };
+
     // split directory users into separate lists for active and inactive users
-    let (active_directory_users, inactive_directory_users): (Vec<_>, Vec<_>) =
-        all_users.iter().partition(|user| user.active);
+    let (active_directory_users, inactive_directory_users): (Vec<_>, Vec<_>) = all_users
+        .iter()
+        .filter(|user| is_allowed_user(user))
+        .partition(|user| user.active);
 
     // prepare a list of user emails for matching users between directory and Defguard
     let all_directory_emails = all_users
         .iter()
+        .filter(|user| is_allowed_user(user))
         .map(|u| u.email.as_str())
         .collect::<Vec<&str>>();
 
@@ -682,9 +705,11 @@ async fn sync_all_users_state(
             .collect();
 
         // find all directory users not present in Defguard
+        // if user group filter is configured, only include users who are members of those groups
         let missing_defguard_users: Vec<_> = all_users
             .iter()
             .filter(|user| !existing_user_emails.contains(&user.email.as_str()))
+            .filter(|user| is_allowed_user(user))
             .collect();
 
         let core_settings = Settings::get_current_settings();
@@ -1028,9 +1053,14 @@ pub(crate) async fn do_directory_sync(
         return Ok(());
     }
 
-    let sync_target = provider
-        .ok_or(DirectorySyncError::NotConfigured)?
-        .directory_sync_target;
+    let provider = provider.ok_or(DirectorySyncError::NotConfigured)?;
+
+    let sync_target = provider.directory_sync_target;
+    let prefetch_users = provider.prefetch_users;
+    let user_groups_filter = provider
+        .directory_sync_user_groups
+        .clone()
+        .unwrap_or_default();
 
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
@@ -1048,7 +1078,51 @@ pub(crate) async fn do_directory_sync(
                 DirectorySyncTarget::All | DirectorySyncTarget::Users
             ) {
                 let users = dir_sync.get_all_users().await?;
-                sync_all_users_state(pool, gateway_tx, &users).await?;
+
+                // If prefetch is enabled and a user group filter is configured, build a set
+                // of emails of users who are members of those groups. Only those users will
+                // be imported by the prefetch. When the filter is empty we pass None and
+                // import everyone.
+                let prefetch_allowed_emails = if prefetch_users && !user_groups_filter.is_empty() {
+                    let groups = dir_sync.get_groups().await?;
+                    // get_groups() may itself be limited by the membership sync group filter (directory_sync_group_match),
+                    // so groups configured here must also be included there if that filter is in use.
+                    for group_name in &user_groups_filter {
+                        if !groups.iter().any(|group| &group.name == group_name) {
+                            warn!(
+                                "Group '{group_name}' configured for user prefetch was not found among the directory groups, its members won't be imported.
+                                Make sure the group name is correct and that it's also included in the membership sync group filter, if one is defined."
+                            );
+                        }
+                    }
+                    let mut emails = HashSet::new();
+                    for group in groups
+                        .iter()
+                        .filter(|group| user_groups_filter.contains(&group.name))
+                    {
+                        match dir_sync.get_group_members(group, Some(&users)).await {
+                            Ok(members) => {
+                                debug!(
+                                    "Adding {} members of group '{}' to the prefetch",
+                                    members.len(),
+                                    group.name
+                                );
+                                emails.extend(members);
+                            }
+                            Err(err) => {
+                                error!(
+                                    "Failed to get members of group '{}' for the prefetch filter: {err}",
+                                    group.name
+                                );
+                            }
+                        }
+                    }
+                    Some(emails)
+                } else {
+                    None
+                };
+
+                sync_all_users_state(pool, gateway_tx, &users, prefetch_allowed_emails).await?;
                 all_users = Some(users);
             }
             if matches!(
