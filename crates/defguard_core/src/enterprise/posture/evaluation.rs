@@ -17,10 +17,11 @@ use super::{
     },
 };
 use crate::enterprise::{
+    LicenseFeature,
     db::models::device_posture::{
         DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
     },
-    is_enterprise_license_active,
+    has_enterprise_access,
 };
 
 /// Resolves a `BoolCheck` signal:
@@ -245,7 +246,7 @@ pub(crate) async fn validate_posture(
     }
 
     // Policies exist - enforce the enterprise license.
-    if !is_enterprise_license_active() {
+    if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
         warn!(
             "No active enterprise license - posture check aborted for device {}",
             request.pubkey

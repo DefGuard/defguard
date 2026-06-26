@@ -102,6 +102,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;

@@ -111,6 +111,7 @@ pub(crate) fn set_test_license_business() {
         version_date_limit: None,
         tier: LicenseTier::Business,
         support_type: SupportType::Basic,
+        features: vec![],
     };
     set_cached_license(Some(license));
 }
@@ -126,6 +127,7 @@ pub(crate) fn set_test_license_enterprise() {
         version_date_limit: None,
         tier: LicenseTier::Enterprise,
         support_type: SupportType::Basic,
+        features: vec![],
     }));
 }
 

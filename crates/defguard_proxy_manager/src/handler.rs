@@ -31,6 +31,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     error::WebError,
+    events::LdapSyncEventType,
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
@@ -887,6 +888,7 @@ impl ProxyHandler {
                                                 &user,
                                                 &pool,
                                                 &gateway_tx,
+                                                &self.services.ldap,
                                             )
                                             .await
                                             {
@@ -901,6 +903,7 @@ impl ProxyHandler {
                                                     &mut user,
                                                     &pool,
                                                     &gateway_tx,
+                                                    &self.services.ldap,
                                                 )
                                                 .await;
                                             }
@@ -1227,6 +1230,7 @@ struct ProxyServices {
     password_reset: PasswordResetServer,
     client_mfa: ClientMfaServer,
     polling: PollingServer,
+    ldap: UnboundedSender<LdapSyncEventType>,
 }
 
 impl ProxyServices {
@@ -1236,9 +1240,14 @@ impl ProxyServices {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
-        let enrollment =
-            EnrollmentServer::new(pool.clone(), tx.wireguard.clone(), tx.bidi_events.clone());
-        let password_reset = PasswordResetServer::new(pool.clone(), tx.bidi_events.clone());
+        let enrollment = EnrollmentServer::new(
+            pool.clone(),
+            tx.wireguard.clone(),
+            tx.bidi_events.clone(),
+            tx.ldap.clone(),
+        );
+        let password_reset =
+            PasswordResetServer::new(pool.clone(), tx.bidi_events.clone(), tx.ldap.clone());
         let client_mfa = ClientMfaServer::new(
             pool.clone(),
             tx.wireguard.clone(),
@@ -1253,6 +1262,7 @@ impl ProxyServices {
             password_reset,
             client_mfa,
             polling,
+            ldap: tx.ldap.clone(),
         }
     }
 }

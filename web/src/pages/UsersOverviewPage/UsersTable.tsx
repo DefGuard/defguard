@@ -777,6 +777,10 @@ export const UsersTable = () => {
   });
 
   const handleBulkStartEnrollment = useCallback(() => {
+    if (!appInfo.smtp_enabled) {
+      Snackbar.error(m.state_smtp_not_configured_admin());
+      return;
+    }
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedUsers = selectedRows
       .filter((row) => row.original.username !== authUsername)
@@ -813,7 +817,7 @@ export const UsersTable = () => {
       },
       onError: () => Snackbar.error(m.users_bulk_start_enrollment_error()),
     });
-  }, [authUsername, table]);
+  }, [appInfo.smtp_enabled, authUsername, table]);
 
   const handleBulkDisable = useCallback(() => {
     const selectedRows = table.getFilteredSelectedRowModel().rows;

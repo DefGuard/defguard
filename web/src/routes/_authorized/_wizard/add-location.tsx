@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AddLocationPage } from '../../../pages/AddLocationPage/AddLocationPage';
 import { useAddLocationStore } from '../../../pages/AddLocationPage/useAddLocationStore';
-import { LicenseTier } from '../../../shared/api/types';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseServiceLocations } from '../../../shared/utils/license';
 
 export const Route = createFileRoute('/_authorized/_wizard/add-location')({
   component: AddLocationPage,
@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_authorized/_wizard/add-location')({
       const licenseInfo = await context.queryClient.fetchQuery(
         getLicenseInfoQueryOptions,
       );
-      if (licenseInfo?.tier !== LicenseTier.Enterprise) {
+      if (!canUseServiceLocations(licenseInfo)) {
         throw redirect({ to: '/locations', replace: true });
       }
     }

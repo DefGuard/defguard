@@ -70,6 +70,10 @@ const EditPostureCheckForm = ({
     () => buildLocationOptions(locations),
     [locations],
   );
+  const assignedLocationOptions = useMemo(
+    () => locationOptions.filter((location) => defaults.locations.has(location.id)),
+    [defaults.locations, locationOptions],
+  );
 
   useEffect(() => {
     setValues(defaults);
@@ -146,7 +150,7 @@ const EditPostureCheckForm = ({
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_locations()}>
         <PostureCheckLocationsSection
-          locationOptions={locationOptions}
+          locationOptions={assignedLocationOptions}
           values={values}
           updateValues={updateValues}
         />

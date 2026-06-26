@@ -110,6 +110,7 @@ pub(crate) async fn make_base_client(
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     );
 
     set_cached_license(Some(license));
@@ -146,6 +147,7 @@ pub(crate) async fn make_base_client(
             .as_bytes(),
     );
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
+    let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let tls_active = Arc::new(AtomicBool::new(false));
     let webapp = build_webapp(
@@ -158,6 +160,7 @@ pub(crate) async fn make_base_client(
         key,
         failed_logins,
         api_event_tx,
+        ldap_tx,
         Arc::default(),
         proxy_control_tx,
         Arc::clone(&tls_active),
@@ -313,6 +316,7 @@ pub(crate) fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
+        vec![],
     )));
 }
 

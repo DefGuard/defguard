@@ -664,8 +664,13 @@ pub async fn auth_callback(
     // since he already managed to login through the provider. Currently, there is no other way to
     // sync the groups for the MFA enabled user logging in through the provider without firing it on
     // every login attempt, even for standard, non-provider users.
-    if let Err(err) =
-        sync_user_groups_if_configured(&user, &appstate.pool, &appstate.gateway_tx).await
+    if let Err(err) = sync_user_groups_if_configured(
+        &user,
+        &appstate.pool,
+        &appstate.gateway_tx,
+        &appstate.ldap_tx,
+    )
+    .await
     {
         error!(
             "Failed to sync user groups for user {} with the directory while the user was trying \
@@ -673,7 +678,13 @@ pub async fn auth_callback(
             user.username
         );
     } else {
-        ldap_update_user_state(&mut user, &appstate.pool, &appstate.gateway_tx).await;
+        ldap_update_user_state(
+            &mut user,
+            &appstate.pool,
+            &appstate.gateway_tx,
+            &appstate.ldap_tx,
+        )
+        .await;
     }
 
     if let Some(mfa_info) = mfa_info {
@@ -855,6 +866,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
 
@@ -877,6 +889,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
 
@@ -894,6 +907,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
 

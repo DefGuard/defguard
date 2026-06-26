@@ -6,6 +6,8 @@ export const ActivityLogModule = {
   Vpn: 'vpn',
   Enrollment: 'enrollment',
   Posture: 'posture',
+  ActiveDirectory: 'active_directory',
+  Ldap: 'ldap',
 } as const;
 
 export type ActivityLogModuleValue =
@@ -124,6 +126,22 @@ export const ActivityLogEventType = {
   LocationPosturesAssigned: 'location_postures_assigned',
   DevicePostureCheckPassed: 'device_posture_check_passed',
   DevicePostureCheckFailed: 'device_posture_check_failed',
+
+  LdapSyncUserCreated: 'ldap_sync_user_created',
+  LdapSyncUserDeleted: 'ldap_sync_user_deleted',
+  LdapSyncUserModified: 'ldap_sync_user_modified',
+  LdapSyncUserEnabled: 'ldap_sync_user_enabled',
+  LdapSyncUserDisabled: 'ldap_sync_user_disabled',
+  LdapSyncGroupCreated: 'ldap_sync_group_created',
+  LdapSyncGroupMemberAdded: 'ldap_sync_group_member_added',
+  LdapSyncGroupMemberRemoved: 'ldap_sync_group_member_removed',
+  LdapSyncOutboundUserCreated: 'ldap_sync_outbound_user_created',
+  LdapSyncOutboundUserDeleted: 'ldap_sync_outbound_user_deleted',
+  LdapSyncOutboundUserModified: 'ldap_sync_outbound_user_modified',
+  LdapSyncOutboundUserEnabled: 'ldap_sync_outbound_user_enabled',
+  LdapSyncOutboundUserDisabled: 'ldap_sync_outbound_user_disabled',
+  LdapSyncOutboundGroupMemberAdded: 'ldap_sync_outbound_group_member_added',
+  LdapSyncOutboundGroupMemberRemoved: 'ldap_sync_outbound_group_member_removed',
 } as const;
 
 export type ActivityLogEventTypeValue =

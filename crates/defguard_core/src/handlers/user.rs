@@ -568,7 +568,13 @@ pub(crate) async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
+        ldap_add_user(
+            &mut user,
+            Some(&password),
+            &appstate.pool,
+            &appstate.ldap_tx,
+        )
+        .await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
@@ -981,6 +987,7 @@ pub(crate) async fn modify_user(
             &mut user,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         )
         .await;
     }
@@ -992,6 +999,7 @@ pub(crate) async fn modify_user(
         &mut user,
         &appstate.pool,
         &appstate.gateway_tx,
+        &appstate.ldap_tx,
     ))
     .await;
 
@@ -1005,6 +1013,7 @@ pub(crate) async fn modify_user(
                     .map(String::as_str)
                     .collect::<HashSet<&str>>(),
                 &appstate.pool,
+                &appstate.ldap_tx,
             )
             .await;
         }
@@ -1018,6 +1027,7 @@ pub(crate) async fn modify_user(
                     .map(String::as_str)
                     .collect::<HashSet<&str>>(),
                 &appstate.pool,
+                &appstate.ldap_tx,
             )
             .await;
         }
@@ -1120,7 +1130,7 @@ pub(crate) async fn delete_user(
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
         if let Some(user_for_ldap) = user_for_ldap {
-            ldap_delete_user(&user_for_ldap, &appstate.pool).await;
+            ldap_delete_user(&user_for_ldap, &appstate.pool, &appstate.ldap_tx).await;
         }
 
         info!("User {} deleted user {}", session.user.username, &username);
@@ -1180,7 +1190,13 @@ pub(crate) async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
+    ldap_change_password(
+        &mut user,
+        &data.new_password,
+        &appstate.pool,
+        &appstate.ldap_tx,
+    )
+    .await;
 
     info!("User {} changed his password.", &user.username);
     appstate.emit_event(ApiEvent {
@@ -1253,7 +1269,13 @@ pub(crate) async fn change_password(
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
+        ldap_change_password(
+            &mut user,
+            &data.new_password,
+            &appstate.pool,
+            &appstate.ldap_tx,
+        )
+        .await;
         info!(
             "Admin {} changed password for user {username}",
             session.user.username
@@ -1614,6 +1636,7 @@ pub(crate) async fn bulk_disable_users(
             user,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         ))
         .await;
     }
@@ -1697,6 +1720,7 @@ pub(crate) async fn bulk_enable_users(
             user,
             &appstate.pool,
             &appstate.gateway_tx,
+            &appstate.ldap_tx,
         ))
         .await;
     }
@@ -1796,7 +1820,7 @@ pub(crate) async fn bulk_delete_users(
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
     }
     for noid_user in &ldap_targets {
-        ldap_delete_user(noid_user, &appstate.pool).await;
+        ldap_delete_user(noid_user, &appstate.pool, &appstate.ldap_tx).await;
     }
 
     info!(

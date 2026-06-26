@@ -22,13 +22,14 @@ use pgp::{
 };
 use prost::Message;
 use sqlx::PgPool;
+use strum::VariantArray;
 use thiserror::Error;
 use tokio::time::sleep;
 
 use super::limits::Counts;
 use crate::grpc::proto::enterprise::license::{
-    LicenseKey, LicenseLimits, LicenseMetadata, LicenseTier as LicenseTierProto,
-    SupportType as SupportTypeProto,
+    LicenseFeature as LicenseFeatureProto, LicenseKey, LicenseLimits, LicenseMetadata,
+    LicenseTier as LicenseTierProto, SupportType as SupportTypeProto,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -134,6 +135,61 @@ impl fmt::Display for LicenseTier {
     }
 }
 
+impl LicenseTier {
+    /// Returns the set of features that this tier grants by default, independently of any
+    /// explicit additive flags on the license. Enterprise includes every feature; Business
+    /// starts from an empty baseline so only explicitly granted flags are active.
+    pub(crate) fn included_features(self) -> &'static [LicenseFeature] {
+        match self {
+            LicenseTier::Enterprise => LicenseFeature::VARIANTS,
+            LicenseTier::Business => &[],
+        }
+    }
+}
+
+/// Additive, per-license feature grants. Each flag enables a single enterprise capability on
+/// top of the license tier; it can only ever enable a feature, never restrict one.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, strum::VariantArray)]
+pub enum LicenseFeature {
+    ServiceLocations,
+    DevicePosture,
+    AclAllowedIps,
+    ComponentHa,
+}
+
+impl TryFrom<LicenseFeatureProto> for LicenseFeature {
+    type Error = LicenseError;
+
+    fn try_from(value: LicenseFeatureProto) -> Result<Self, Self::Error> {
+        match value {
+            LicenseFeatureProto::ServiceLocations => Ok(Self::ServiceLocations),
+            LicenseFeatureProto::DevicePosture => Ok(Self::DevicePosture),
+            LicenseFeatureProto::AclAllowedIps => Ok(Self::AclAllowedIps),
+            LicenseFeatureProto::ComponentHa => Ok(Self::ComponentHa),
+            LicenseFeatureProto::Unspecified => {
+                Err(LicenseError::DecodeError("Unspecified license feature"))
+            }
+        }
+    }
+}
+
+/// Map raw protobuf feature values onto the domain enum, skipping unrecognized/unspecified ones
+/// so an older Core can still decode a license that grants flags it doesn't know about yet.
+fn map_license_features(values: &[i32]) -> Vec<LicenseFeature> {
+    values
+        .iter()
+        .filter_map(|value| {
+            let feature = LicenseFeatureProto::try_from(*value)
+                .ok()
+                .and_then(|proto| LicenseFeature::try_from(proto).ok());
+            if feature.is_none() {
+                debug!("Ignoring unknown license feature value {value}");
+            }
+            feature
+        })
+        .collect()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct License {
     pub customer_id: String,
@@ -143,6 +199,7 @@ pub struct License {
     pub version_date_limit: Option<DateTime<Utc>>,
     pub tier: LicenseTier,
     pub support_type: SupportType,
+    pub features: Vec<LicenseFeature>,
 }
 
 impl License {
@@ -155,6 +212,7 @@ impl License {
         version_date_limit: Option<DateTime<Utc>>,
         tier: LicenseTier,
         support_type: SupportType,
+        features: Vec<LicenseFeature>,
     ) -> Self {
         Self {
             customer_id,
@@ -164,7 +222,13 @@ impl License {
             version_date_limit,
             tier,
             support_type,
+            features,
         }
+    }
+
+    #[must_use]
+    pub(crate) fn has_feature(&self, feature: LicenseFeature) -> bool {
+        self.features.contains(&feature)
     }
 
     fn decode(bytes: &[u8]) -> Result<Vec<u8>, LicenseError> {
@@ -257,6 +321,8 @@ impl License {
                     })
                     .and_then(SupportType::try_from)?;
 
+                let features = map_license_features(&metadata.features);
+
                 let license = Self::new(
                     metadata.customer_id,
                     metadata.subscription,
@@ -265,6 +331,7 @@ impl License {
                     version_date_limit,
                     license_tier,
                     support_type,
+                    features,
                 );
 
                 if license.requires_renewal() {
@@ -720,6 +787,65 @@ mod test {
     }
 
     #[test]
+    fn test_map_license_features() {
+        // known protobuf values map through to the domain enum, preserving order
+        assert_eq!(
+            map_license_features(&[1, 2, 3, 4]),
+            vec![
+                LicenseFeature::ServiceLocations,
+                LicenseFeature::DevicePosture,
+                LicenseFeature::AclAllowedIps,
+                LicenseFeature::ComponentHa,
+            ]
+        );
+
+        // unspecified (0) and unknown future values are dropped, recognized ones kept
+        assert_eq!(
+            map_license_features(&[0, 2, 99]),
+            vec![LicenseFeature::DevicePosture]
+        );
+
+        assert!(map_license_features(&[]).is_empty());
+    }
+
+    // Real signed keys (verified against the embedded test public key) carrying additive
+    // feature flags on a Business tier. Guards that the on-the-wire feature bytes decode to
+    // the expected domain enum, end to end through signature verification.
+    #[test]
+    fn test_license_feature_flags() {
+        // Business tier granting service locations, device posture and ACL-derived AllowedIPs.
+        let key = "CjsKIGIzZmY0ZWY2YWMxYjQwMDI5MTM4MmI4YzM2ODkzZmIyEAEYr4my0wYiBggZEEsYAjABOAJCAwECAxLRAYjPBAABCAA5FiEEmi48F+JuowjtzcqZqIRsAQKahIQFAmo1Hl8bFIAAAAAABAAObWFudTIsMi41KzEuMTIsMCwzAAoJEKiEbAECmoSEYzIEAJnS/zaxyvGGXo0HZqxaAabXXm8OJ0wBfPjAqBjgCZ0WfrP4dpEY93C7TnEWm9Ry2JuzhuvETghUvZ5NFwdM9rMaK6Or74yPDyWyrkFDPLvgQvQIMEBeZzw/8TuTq1yUfkaN837BahG5v7R/4Z9vF+liau3Aoh+dpAs0mRXMu1Z2";
+        let license = License::from_base64(key).unwrap();
+        assert_eq!(license.customer_id, "b3ff4ef6ac1b400291382b8c36893fb2");
+        assert_eq!(license.tier, LicenseTier::Business);
+        assert_eq!(
+            license.features,
+            vec![
+                LicenseFeature::ServiceLocations,
+                LicenseFeature::DevicePosture,
+                LicenseFeature::AclAllowedIps,
+            ]
+        );
+        assert!(license.has_feature(LicenseFeature::ServiceLocations));
+        assert!(!license.has_feature(LicenseFeature::ComponentHa));
+
+        // Business tier granting only component HA.
+        let key = "CjkKIGIzZmY0ZWY2YWMxYjQwMDI5MTM4MmI4YzM2ODkzZmIyEAEYr4my0wYiBggZEEsYAjABOAJCAQQS0QGIzwQAAQgAORYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJqNSLbGxSAAAAAAAQADm1hbnUyLDIuNSsxLjEyLDAsMwAKCRCohGwBApqEhHzHBACC/YGBSIEIV/AIU/EyLOAJHIPp1bQJQ1UXYVY79228x3z2JY3nblcXUEP/O5VJrVEv2FxiO8k5vyF2XtQr38CSu2vUxA29jn6bu23tfUb9+T9uXAOkkfNGiidy1iDTJQ+aXi2N3B75toRauDE+4SqEDN7ffxKOlIJLjYGyl8oysg==";
+        let license = License::from_base64(key).unwrap();
+        assert_eq!(license.tier, LicenseTier::Business);
+        assert_eq!(license.features, vec![LicenseFeature::ComponentHa]);
+        assert!(license.has_feature(LicenseFeature::ComponentHa));
+        assert!(!license.has_feature(LicenseFeature::DevicePosture));
+
+        // Business tier with no feature flags.
+        let key = "CjYKIGIzZmY0ZWY2YWMxYjQwMDI5MTM4MmI4YzM2ODkzZmIyEAEYr4my0wYiBggZEEsYAjABOAIS0QGIzwQAAQgAORYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJqNR56GxSAAAAAAAQADm1hbnUyLDIuNSsxLjEyLDAsMwAKCRCohGwBApqEhHb1A/9b4goZRHbMpf1WDRpV/EflWs9I/X5IAbX+U2hyyNEkC1zS4CxdKUNaDKJftbOP4uTqb0zjbf1r51Lr00LwVTkJMypZfVvpW6uzwMuRwyxYeQRE/iBXLNoRsf2tLV5pwnUWBLQ6y33xf0fypDZQWi7C9gQ6lEkkTXgDq4BoOVZkgg==";
+        let license = License::from_base64(key).unwrap();
+        assert_eq!(license.tier, LicenseTier::Business);
+        assert!(license.features.is_empty());
+        assert!(!license.has_feature(LicenseFeature::ServiceLocations));
+    }
+
+    #[test]
     fn test_legacy_license() {
         // use license key generated before user/device/location limits were introduced
         let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGNaw1LsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3fBjAAKCRCohGwBApqEhNX+A/9dQmucvCTm5ll9h7a8f1N7d7dAOQW8/xhVA4bZP3GATIya/RxZ+cp+oHRYvHwSiRG3smGbRzti9DdHaTC/X1nqjMvZ6M4pR+aBayFH7fSUQKRj5z40juZ/HTCH/236YG3IzUZmIasLYl8Em9AY3oobkkwh1Yw+v8XYaBTUsrOv9w==";
@@ -775,6 +901,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -787,6 +914,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -799,6 +927,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -811,6 +940,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -823,6 +953,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -842,6 +973,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -859,6 +991,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
     }
@@ -876,6 +1009,15 @@ mod test {
         let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
         let enterprise_license = License::from_base64(enterprise_license).unwrap();
         assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
+    }
+
+    #[test]
+    fn test_tier_included_features() {
+        assert_eq!(
+            LicenseTier::Enterprise.included_features(),
+            LicenseFeature::VARIANTS,
+        );
+        assert!(LicenseTier::Business.included_features().is_empty());
     }
 
     #[test]

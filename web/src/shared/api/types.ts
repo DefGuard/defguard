@@ -470,6 +470,17 @@ export const SupportType = {
   DirectEnterprise: 'DirectEnterprise',
 } as const;
 
+// Additive, per-license feature grants mirrored from the backend `LicenseFeature` enum.
+// Each value enables a single enterprise capability regardless of the license tier.
+export const LicenseFeature = {
+  ServiceLocations: 'ServiceLocations',
+  DevicePosture: 'DevicePosture',
+  AclAllowedIps: 'AclAllowedIps',
+  ComponentHa: 'ComponentHa',
+} as const;
+
+export type LicenseFeatureValue = (typeof LicenseFeature)[keyof typeof LicenseFeature];
+
 export type LicenseTierValue = (typeof LicenseTier)[keyof typeof LicenseTier];
 export type SupportTypeValue = (typeof SupportType)[keyof typeof SupportType];
 
@@ -487,6 +498,8 @@ export interface LicenseInfoApi {
   tier: LicenseTierValue;
   support_type: SupportTypeValue;
   limits: LicenseLimitsInfo | null;
+  // Effective set of enabled enterprise features (tier-granted plus additive flags).
+  features: LicenseFeatureValue[];
 }
 
 export interface LicenseInfoResponse {
@@ -1431,7 +1444,7 @@ export interface OpenIdAuthInfo {
 export interface ActivityLogEvent {
   id: number;
   timestamp: string;
-  user_id: number;
+  user_id: number | null;
   username: string;
   location?: string;
   ip: string | null;

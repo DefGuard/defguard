@@ -15,7 +15,7 @@ mod test {
     };
     use ipnetwork::IpNetwork;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-    use tokio::sync::broadcast;
+    use tokio::sync::{broadcast, mpsc};
 
     use super::super::*;
     use crate::{
@@ -25,8 +25,21 @@ mod test {
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{get_counts, update_counts},
         },
+        events::LdapSyncEventType,
         grpc::proto::enterprise::license::LicenseLimits,
     };
+
+    async fn do_test_directory_sync(pool: &PgPool, gateway_tx: &broadcast::Sender<GatewayCommand>) {
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
+        do_directory_sync(pool, gateway_tx, &ldap_tx).await.unwrap();
+    }
+
+    fn ldap_test_channel() -> (
+        mpsc::UnboundedSender<LdapSyncEventType>,
+        mpsc::UnboundedReceiver<LdapSyncEventType>,
+    ) {
+        mpsc::unbounded_channel()
+    }
 
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::find_by_name(pool, "test")
@@ -172,7 +185,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, None)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -213,7 +227,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, None)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -259,7 +274,8 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, None)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -313,7 +329,8 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, None)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -400,7 +417,8 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, None)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -473,7 +491,8 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, None)
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -535,7 +554,8 @@ mod test {
         make_test_user_and_device("testuser2", &pool).await;
         make_test_user_and_device("testuserdisabled", &pool).await;
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_groups(&client, &pool, &gateway_tx, Some(&all_users))
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_groups(&client, &pool, &gateway_tx, &ldap_tx, Some(&all_users))
             .await
             .unwrap();
 
@@ -588,9 +608,10 @@ mod test {
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user = make_test_user_and_device("testuser", &pool).await;
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        sync_user_groups_if_configured(&user, &pool, &gateway_tx)
+        sync_user_groups_if_configured(&user, &pool, &gateway_tx, &ldap_tx)
             .await
             .unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
@@ -619,7 +640,7 @@ mod test {
         let user = make_test_user_and_device("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
     }
@@ -653,7 +674,7 @@ mod test {
         let user2_pre_sync = make_test_user_and_device("user2", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
@@ -696,7 +717,7 @@ mod test {
         make_test_user_and_device("user2", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
@@ -729,7 +750,7 @@ mod test {
         assert_eq!(user_groups.len(), 1);
         assert!(user.is_admin(&pool).await.unwrap());
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
 
         // He should still be an admin as it's the last one
         assert!(user.is_admin(&pool).await.unwrap());
@@ -738,7 +759,7 @@ mod test {
         let user2 = make_test_user_and_device("testuser2", &pool).await;
         user2.add_to_group(&pool, &admin_grp).await.unwrap();
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
 
         let admins = User::find_admins(&pool).await.unwrap();
         // There should be only one admin left
@@ -747,7 +768,7 @@ mod test {
         let defguard_user = make_test_user_and_device("defguard", &pool).await;
         make_admin(&pool, &defguard_user).await;
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
     }
 
     #[sqlx::test]
@@ -773,7 +794,7 @@ mod test {
         make_admin(&pool, &defguard_user).await;
         assert!(defguard_user.is_admin(&pool).await.unwrap());
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
 
         // The user should still be an admin
         assert!(defguard_user.is_admin(&pool).await.unwrap());
@@ -785,7 +806,7 @@ mod test {
             .await
             .unwrap();
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
         let user = User::find_by_username(&pool, "defguard").await.unwrap();
         assert!(user.is_none());
     }
@@ -814,7 +835,7 @@ mod test {
         let defguard_users = User::all(&pool).await.unwrap();
         assert!(defguard_users.is_empty());
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
 
         // no users in Defguard after sync
         let defguard_users = User::all(&pool).await.unwrap();
@@ -848,7 +869,7 @@ mod test {
         let defguard_users = User::all(&pool).await.unwrap();
         assert!(defguard_users.is_empty());
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
 
         // all active directory users were synced
         let defguard_users = User::all(&pool).await.unwrap();
@@ -882,7 +903,10 @@ mod test {
         let defguard_users = User::all(&pool).await.unwrap();
         assert!(defguard_users.is_empty());
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        do_directory_sync(&pool, &gateway_tx, &ldap_tx)
+            .await
+            .unwrap();
 
         // all directory users are members of group1, so all of them were imported
         let defguard_users = User::all(&pool).await.unwrap();
@@ -916,7 +940,10 @@ mod test {
         provider.directory_sync_user_groups = Some(vec!["nonexistent-group".to_string()]);
         provider.save(&pool).await.unwrap();
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        do_directory_sync(&pool, &gateway_tx, &ldap_tx)
+            .await
+            .unwrap();
 
         // no users were imported
         let defguard_users = User::all(&pool).await.unwrap();
@@ -953,9 +980,16 @@ mod test {
         // only allow one of the directory users to be imported
         let allowed_emails = HashSet::from(["testuser@email.com".to_string()]);
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&pool, &gateway_tx, &all_users, Some(allowed_emails))
-            .await
-            .unwrap();
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &all_users,
+            Some(allowed_emails),
+        )
+        .await
+        .unwrap();
 
         // only the allowed user was imported
         let defguard_users = User::all(&pool).await.unwrap();
@@ -1029,11 +1063,12 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
         update_counts(&pool).await.unwrap();
 
-        do_directory_sync(&pool, &gateway_tx).await.unwrap();
+        do_test_directory_sync(&pool, &gateway_tx).await;
         update_counts(&pool).await.unwrap();
 
         let user_count = get_counts().user();

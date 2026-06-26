@@ -19,7 +19,7 @@ use crate::{
             DevicePosture, DevicePostureLocation, DevicePostureOsRule, DevicePostureSnapshot,
             OsType,
         },
-        handlers::EnterpriseLicenseInfo,
+        handlers::{DevicePostureFeature, LicenseGated},
         posture::version_list::{
             ANDROID_OS_VERSIONS, CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
             MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
@@ -596,7 +596,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
     )
 )]
 pub async fn create_device_posture(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -674,7 +674,7 @@ pub async fn create_device_posture(
 ///
 /// Returns an error when the requester is unauthorized or lacks the required license.
 pub async fn get_device_posture_versions(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
 ) -> ApiResult {
@@ -709,7 +709,7 @@ pub async fn get_device_posture_versions(
     )
 )]
 pub async fn list_device_postures(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     pagination: Query<PaginationParams>,
@@ -785,7 +785,7 @@ pub async fn list_device_postures(
     )
 )]
 pub async fn get_device_posture(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     Path(id): Path<Id>,
@@ -832,7 +832,7 @@ pub async fn get_device_posture(
     )
 )]
 pub async fn update_device_posture(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -922,7 +922,7 @@ pub async fn update_device_posture(
     )
 )]
 pub async fn delete_device_posture(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -979,7 +979,7 @@ pub async fn delete_device_posture(
     )
 )]
 pub async fn duplicate_device_posture(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1078,7 +1078,7 @@ pub struct AssignLocationsData {
     )
 )]
 pub async fn set_postures_for_location(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1133,7 +1133,7 @@ pub async fn set_postures_for_location(
     )
 )]
 pub async fn set_locations_for_posture(
-    _license: EnterpriseLicenseInfo,
+    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
