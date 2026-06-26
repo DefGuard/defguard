@@ -787,6 +787,27 @@ pub(crate) async fn send_activate_user(
     context.mock_proxy_mut().recv_outbound().await
 }
 
+/// Send an `ActivateUser` request with no password, as the desktop client does for
+/// externally-managed users whose identity provider disabled local password management.
+pub(crate) async fn send_activate_user_without_password(
+    context: &mut HandlerTestContext,
+    token: &str,
+    phone: Option<&str>,
+) -> CoreResponse {
+    static ACT_CTR: AtomicU64 = AtomicU64::new(2500);
+    let id = ACT_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ActivateUser(ActivateUserRequest {
+            token: Some(token.to_owned()),
+            password: None,
+            phone_number: phone.map(str::to_owned),
+        })),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
 /// Send a `CodeMfaSetupStart` request for the given method and return the raw
 /// `CoreResponse`.
 pub(crate) async fn send_code_mfa_setup_start(
