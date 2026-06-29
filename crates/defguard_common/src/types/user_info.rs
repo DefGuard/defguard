@@ -44,19 +44,19 @@ pub struct UserInfo {
 /// based on their group names.
 async fn has_non_mfa_location_access(pool: &PgPool, groups: &[String]) -> sqlx::Result<bool> {
     query_scalar!(
-        r#"SELECT EXISTS(
-            SELECT 1 FROM wireguard_network wn
-            WHERE wn.location_mfa_mode = 'disabled'
-            AND (
-                wn.allow_all_groups
-                OR EXISTS(
-                    SELECT 1 FROM wireguard_network_allowed_group wnag
-                    JOIN "group" g ON g.id = wnag.group_id
-                    WHERE wnag.network_id = wn.id
-                    AND g.name = ANY($1)
-                )
-            )
-        )"#,
+        "SELECT EXISTS( \
+            SELECT 1 FROM wireguard_network wn \
+            WHERE wn.location_mfa_mode = 'disabled' \
+            AND ( \
+                wn.allow_all_groups \
+                OR EXISTS( \
+                    SELECT 1 FROM wireguard_network_allowed_group wnag \
+                    JOIN \"group\" g ON g.id = wnag.group_id \
+                    WHERE wnag.network_id = wn.id \
+                    AND g.name = ANY($1) \
+                ) \
+            ) \
+        )",
         groups,
     )
     .fetch_one(pool)
