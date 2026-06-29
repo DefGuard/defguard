@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgConnection, PgPool, query_scalar};
 use utoipa::ToSchema;
 
 use crate::{
@@ -37,6 +37,31 @@ pub struct UserInfo {
     pub is_admin: bool,
     pub ldap_pass_requires_change: bool,
     pub devices: Vec<UserDevice>,
+    pub has_non_mfa_location_access: bool,
+}
+
+/// Check whether any network with MFA disabled is accessible to a user
+/// based on their group names.
+async fn has_non_mfa_location_access(pool: &PgPool, groups: &[String]) -> sqlx::Result<bool> {
+    query_scalar!(
+        "SELECT EXISTS( \
+            SELECT 1 FROM wireguard_network wn \
+            WHERE wn.location_mfa_mode = 'disabled' \
+            AND ( \
+                wn.allow_all_groups \
+                OR EXISTS( \
+                    SELECT 1 FROM wireguard_network_allowed_group wnag \
+                    JOIN \"group\" g ON g.id = wnag.group_id \
+                    WHERE wnag.network_id = wn.id \
+                    AND g.name = ANY($1) \
+                ) \
+            ) \
+        )",
+        groups,
+    )
+    .fetch_one(pool)
+    .await
+    .map(|v| v.unwrap_or(false))
 }
 
 impl UserInfo {
@@ -48,6 +73,8 @@ impl UserInfo {
         let enrolled = user.is_enrolled();
         let is_admin = user.is_admin(pool).await?;
         let devices = user.user_devices(pool).await?;
+
+        let has_non_mfa_location_access = has_non_mfa_location_access(pool, &groups).await?;
 
         Ok(Self {
             id: user.id,
@@ -68,6 +95,7 @@ impl UserInfo {
             is_admin,
             ldap_pass_requires_change: user.ldap_pass_randomized,
             devices,
+            has_non_mfa_location_access,
         })
     }
 
@@ -158,10 +186,21 @@ impl UserInfo {
 
 #[cfg(test)]
 mod test {
+    use std::{slice::from_ref, str::FromStr};
+
+    use ipnetwork::IpNetwork;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::setup_pool;
+    use crate::db::{
+        models::{
+            MFAMethod,
+            group::Group,
+            user::User,
+            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+        },
+        setup_pool,
+    };
 
     /// Build a minimal `UserInfo` from an existing saved `User<Id>`.
     /// Only the fields exercised by `handle_update_user_fields` need to be set
@@ -380,5 +419,207 @@ mod test {
         assert_eq!(user.email, "new@defguard");
         assert_eq!(user.phone, Some("+48777888999".into()));
         assert_eq!(user.mfa_method, MFAMethod::OneTimePassword);
+    }
+
+    /// User with no groups and no networks: should be false.
+    #[sqlx::test]
+    async fn test_no_networks_returns_false(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let groups: Vec<String> = vec![];
+        let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(!result);
+    }
+
+    /// allow_all_groups network with MFA disabled: any user should have access.
+    #[sqlx::test]
+    async fn test_allow_all_groups_disabled_mfa(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        WireguardNetwork::new(
+            "open-network".to_owned(),
+            50051,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            true, // allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.1.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let groups: Vec<String> = vec![];
+        let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(result);
+    }
+
+    /// Network restricted to a specific group, user is a member, MFA disabled.
+    #[sqlx::test]
+    async fn test_group_member_has_access(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let group = Group::new("engineering").save(&pool).await.unwrap();
+
+        let network = WireguardNetwork::new(
+            "eng-network".to_owned(),
+            50052,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.2.1.0/24").unwrap()],
+            false, // not allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.2.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        network
+            .set_allowed_groups(&mut transaction, from_ref(&group.name))
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let groups = vec!["engineering".to_owned()];
+        let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(result);
+    }
+
+    /// Network restricted to a group the user is NOT in, MFA disabled.
+    #[sqlx::test]
+    async fn test_non_member_has_no_access(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let group = Group::new("engineering").save(&pool).await.unwrap();
+
+        let network = WireguardNetwork::new(
+            "eng-network".to_owned(),
+            50053,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.3.1.0/24").unwrap()],
+            false,
+            false,
+            false,
+            false, // not allow_all_groups
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.3.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        network
+            .set_allowed_groups(&mut transaction, &[group.name])
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let groups: Vec<String> = vec![];
+        let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(!result);
+    }
+
+    /// Network with allow_all_groups but MFA is internal: should still be false.
+    #[sqlx::test]
+    async fn test_mfa_internal_blocks_access(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        WireguardNetwork::new(
+            "mfa-network".to_owned(),
+            50054,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.4.1.0/24").unwrap()],
+            true, // allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.4.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let groups: Vec<String> = vec!["any-group".into()];
+        let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(!result);
+    }
+
+    /// Two networks: one MFA-enabled accessible, one MFA-disabled accessible → true.
+    #[sqlx::test]
+    async fn test_mixed_networks_when_one_disabled(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let group = Group::new("ops").save(&pool).await.unwrap();
+
+        // MFA-disabled network for the ops group.
+        let mfa_disabled_net = WireguardNetwork::new(
+            "ops-net".to_owned(),
+            50055,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.5.1.0/24").unwrap()],
+            false,
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.5.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // MFA-internal network that allow_all_groups (anyone, but MFA required).
+        WireguardNetwork::new(
+            "mfa-net".to_owned(),
+            50056,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.6.1.0/24").unwrap()],
+            true, // allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.6.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        mfa_disabled_net
+            .set_allowed_groups(&mut transaction, from_ref(&group.name))
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let groups = vec!["ops".to_owned()];
+        let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(result);
     }
 }
