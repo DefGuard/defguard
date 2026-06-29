@@ -278,26 +278,28 @@ export const ProfileAuthCard = () => {
     <ProfileCard id="profile-auth-card">
       <h2>{m.profile_auth_card_title()}</h2>
       {!user.password_management_disabled && (
-        <div className="section">
-          <div className="header">
-            <p className="section-title">{m.profile_auth_card_section_password()}</p>
+        <>
+          <div className="section">
+            <div className="header">
+              <p className="section-title">{m.profile_auth_card_section_password()}</p>
+            </div>
+            <Button
+              variant="outlined"
+              iconLeft="lock-open"
+              text={m.profile_auth_card_password_change()}
+              testId="change-password"
+              onClick={() => {
+                // open admin form only if admin and is not editing self
+                openModal('changePassword', {
+                  user,
+                  adminForm: isCurrentUserAdmin && user.username !== authUsername,
+                });
+              }}
+            />
           </div>
-          <Button
-            variant="outlined"
-            iconLeft="lock-open"
-            text={m.profile_auth_card_password_change()}
-            testId="change-password"
-            onClick={() => {
-              // open admin form only if admin and is not editing self
-              openModal('changePassword', {
-                user,
-                adminForm: isCurrentUserAdmin && user.username !== authUsername,
-              });
-            }}
-          />
-        </div>
+          <Divider orientation="horizontal" />
+        </>
       )}
-      <Divider orientation="horizontal" />
       <div className="section">
         <div className="header">
           <p className="section-title">{m.profile_auth_card_section_2fa()}</p>
