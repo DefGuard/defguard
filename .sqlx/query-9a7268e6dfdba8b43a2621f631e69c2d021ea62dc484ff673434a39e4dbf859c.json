@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(\n            SELECT 1 FROM wireguard_network wn\n            WHERE wn.location_mfa_mode = 'disabled'\n            AND (\n                wn.allow_all_groups\n                OR EXISTS(\n                    SELECT 1 FROM wireguard_network_allowed_group wnag\n                    JOIN \"group\" g ON g.id = wnag.group_id\n                    WHERE wnag.network_id = wn.id\n                    AND g.name = ANY($1)\n                )\n            )\n        )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9a7268e6dfdba8b43a2621f631e69c2d021ea62dc484ff673434a39e4dbf859c"
+}
