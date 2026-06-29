@@ -35,8 +35,10 @@ use crate::{
         SessionExtractor, SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    enterprise::db::models::openid_provider::OpenIdProvider,
-    enterprise::ldap::{error::LdapError, utils::login_through_ldap},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider,
+        ldap::{error::LdapError, utils::login_through_ldap},
+    },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ClientIpAddr, SIGN_IN_COOKIE_NAME, cookie_domain, user_for_admin_or_self},

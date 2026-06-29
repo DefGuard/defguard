@@ -206,8 +206,7 @@ mod test {
 
     use super::*;
     use crate::{
-        config::DefGuardConfig,
-        config::SERVER_CONFIG,
+        config::{DefGuardConfig, SERVER_CONFIG},
         db::{
             models::{
                 MFAMethod,

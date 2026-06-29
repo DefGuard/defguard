@@ -33,9 +33,8 @@ use crate::{
     enrollment_management::{
         send_enrollment_invitation, start_desktop_configuration, start_user_enrollment,
     },
-    enterprise::db::models::openid_provider::OpenIdProvider,
     enterprise::{
-        db::models::api_tokens::ApiToken,
+        db::models::{api_tokens::ApiToken, openid_provider::OpenIdProvider},
         handlers::CanManageDevices,
         ldap::{
             model::{ldap_sync_allowed_for_user, maybe_update_rdn},

@@ -1,7 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use chrono::NaiveDate;
-use defguard_common::db::models::settings::update_current_settings;
 use defguard_common::{
     db::{
         Id,
@@ -11,7 +10,7 @@ use defguard_common::{
             gateway::Gateway,
             group::Group,
             oauth2client::OAuth2Client,
-            settings::Settings,
+            settings::{Settings, update_current_settings},
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
         },
@@ -2591,6 +2590,7 @@ async fn test_password_management_disabled_for_oidc_user(
         None,
         false,
         true, // disable_password_management
+        None, // directory_sync_user_groups
     )
     .save(&pool)
     .await

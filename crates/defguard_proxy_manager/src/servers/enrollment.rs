@@ -416,11 +416,13 @@ impl EnrollmentServer {
 
         // check if password is strong enough
         debug!("Verifying password strength for user activation process.");
-        if let Err(err) = check_password_strength(&request.password) {
-            error!("Password not strong enough: {err}");
-            return Err(Status::invalid_argument("password not strong enough"));
+        if let Some(password) = &request.password {
+            if let Err(err) = check_password_strength(password) {
+                error!("Password not strong enough: {err}");
+                return Err(Status::invalid_argument("password not strong enough"));
+            }
+            debug!("Password is strong enough to complete the user activation process.");
         }
-        debug!("Password is strong enough to complete the user activation process.");
 
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
@@ -452,7 +454,9 @@ impl EnrollmentServer {
         // update user
         info!("Update user details and set a new password.");
         user.phone = request.phone_number;
-        user.set_password(&request.password);
+        if let Some(password) = &request.password {
+            user.set_password(password);
+        }
         user.save(&mut *transaction).await.map_err(|err| {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
@@ -514,7 +518,7 @@ impl EnrollmentServer {
 
         ldap_add_user(
             &mut user,
-            Some(&request.password),
+            request.password.as_deref(),
             &self.pool,
             &self.ldap_tx,
         )
@@ -1140,6 +1144,12 @@ async fn initial_info_from_user(
     let devices = user.user_devices(pool).await?;
     let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
     let is_admin = user.is_admin(pool).await?;
+    let oidc_disable_pw = OpenIdProvider::current_disables_password_management(pool)
+        .await
+        .unwrap_or(false);
+    let settings = Settings::get_current_settings();
+    let password_management_disabled =
+        user.password_management_disabled(is_admin, &settings, oidc_disable_pw);
     Ok(InitialUserInfo {
         first_name: user.first_name,
         last_name: user.last_name,
@@ -1150,6 +1160,7 @@ async fn initial_info_from_user(
         device_names,
         enrolled,
         is_admin,
+        password_management_disabled,
     })
 }
 
