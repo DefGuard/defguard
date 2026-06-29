@@ -982,6 +982,8 @@ async fn test_activate_externally_managed_user_skips_password(
     // Create an LDAP-sourced user with no local password.
     let mut user = create_user(&context.pool).await;
     user.from_ldap = true;
+    // Set enrollment_pending so is_enrolled() returns false even though from_ldap = true.
+    user.enrollment_pending = true;
     user.save(&context.pool)
         .await
         .expect("failed to save LDAP user");
@@ -1167,6 +1169,8 @@ async fn test_activate_oidc_user_with_password_management_disabled_skips_passwor
     // Create an OIDC-sourced user with no local password.
     let mut user = create_user(&context.pool).await;
     user.openid_sub = Some("oidc-sub-123".to_owned());
+    // Set enrollment_pending so is_enrolled() returns false even though openid_sub is set.
+    user.enrollment_pending = true;
     user.save(&context.pool)
         .await
         .expect("failed to save OIDC user");

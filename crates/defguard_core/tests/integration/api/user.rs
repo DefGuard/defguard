@@ -2487,10 +2487,11 @@ async fn test_password_management_disabled_for_ldap_user(
     assert_eq!(response.status(), StatusCode::OK);
 
     let ldap_user = get_db_user(&pool, "ldapuser").await;
-    client.verify_api_events_with_user(&[
-        (ApiEventType::UserLogin, ldap_user.id, "ldapuser"),
-        (ApiEventType::PasswordChanged, ldap_user.id, "ldapuser"),
-    ]);
+    client.verify_api_events_with_user(&[(
+        ApiEventType::PasswordChanged,
+        ldap_user.id,
+        "ldapuser",
+    )]);
 }
 
 /// An admin user is always exempt from password-management gating, even when sourced externally.
