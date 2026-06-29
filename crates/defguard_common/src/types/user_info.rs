@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgConnection, PgPool, query_scalar};
 use utoipa::ToSchema;
 
 use crate::{
@@ -37,6 +37,31 @@ pub struct UserInfo {
     pub is_admin: bool,
     pub ldap_pass_requires_change: bool,
     pub devices: Vec<UserDevice>,
+    pub has_non_mfa_location_access: bool,
+}
+
+/// Check whether any network with MFA disabled is accessible to a user
+/// based on their group names.
+async fn has_non_mfa_location_access(pool: &PgPool, groups: &[String]) -> sqlx::Result<bool> {
+    query_scalar!(
+        r#"SELECT EXISTS(
+            SELECT 1 FROM wireguard_network wn
+            WHERE wn.location_mfa_mode = 'disabled'
+            AND (
+                wn.allow_all_groups
+                OR EXISTS(
+                    SELECT 1 FROM wireguard_network_allowed_group wnag
+                    JOIN "group" g ON g.id = wnag.group_id
+                    WHERE wnag.network_id = wn.id
+                    AND g.name = ANY($1)
+                )
+            )
+        )"#,
+        groups,
+    )
+    .fetch_one(pool)
+    .await
+    .map(|v| v.unwrap_or(false))
 }
 
 impl UserInfo {
@@ -48,6 +73,8 @@ impl UserInfo {
         let enrolled = user.is_enrolled();
         let is_admin = user.is_admin(pool).await?;
         let devices = user.user_devices(pool).await?;
+
+        let has_non_mfa_location_access = has_non_mfa_location_access(pool, &groups).await?;
 
         Ok(Self {
             id: user.id,
@@ -68,6 +95,7 @@ impl UserInfo {
             is_admin,
             ldap_pass_requires_change: user.ldap_pass_randomized,
             devices,
+            has_non_mfa_location_access,
         })
     }
 

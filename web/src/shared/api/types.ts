@@ -307,6 +307,7 @@ export interface User {
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
   devices: Device[];
+  has_non_mfa_location_access: boolean;
 }
 
 export interface LoginRequest {
