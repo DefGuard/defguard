@@ -19,7 +19,9 @@ use defguard_common::{
 };
 use defguard_core::{
     enterprise::{
-        db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        },
         license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
         limits::update_counts,
     },
@@ -2581,9 +2583,9 @@ async fn test_password_management_disabled_for_oidc_user(
         None,
         false,
         600,
-        defguard_core::enterprise::db::models::openid_provider::DirectorySyncUserBehavior::Keep,
-        defguard_core::enterprise::db::models::openid_provider::DirectorySyncUserBehavior::Keep,
-        defguard_core::enterprise::db::models::openid_provider::DirectorySyncTarget::All,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncTarget::All,
         None,
         None,
         Vec::new(),
