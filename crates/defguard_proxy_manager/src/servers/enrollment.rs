@@ -453,7 +453,11 @@ impl EnrollmentServer {
             let oidc_disable_password_management =
                 OpenIdProvider::current_disables_password_management(&self.pool)
                     .await
-                    .unwrap_or(false);
+                    .unwrap_or_else(|err| {
+                        // Default to false on transient DB errors
+                        error!("Failed to check OIDC password management flag: {err}");
+                        false
+                    });
             let settings = Settings::get_current_settings();
             let is_admin = user.is_admin(&self.pool).await.map_err(|err| {
                 error!("Failed to check if user is admin: {err}");
@@ -1167,9 +1171,7 @@ async fn initial_info_from_user(
     let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
     let is_admin = user.is_admin(pool).await?;
     let oidc_disable_password_management =
-        OpenIdProvider::current_disables_password_management(pool)
-            .await
-            .unwrap_or(false);
+        OpenIdProvider::current_disables_password_management(pool).await?;
     let settings = Settings::get_current_settings();
     let password_management_disabled =
         user.password_management_disabled(is_admin, &settings, oidc_disable_password_management);
