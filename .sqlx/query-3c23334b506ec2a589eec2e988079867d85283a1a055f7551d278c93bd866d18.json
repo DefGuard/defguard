@@ -50,9 +50,7 @@
                 "client",
                 "vpn",
                 "enrollment",
-                "posture",
-                "active_directory",
-                "ldap"
+                "posture"
               ]
             }
           }
@@ -82,7 +80,7 @@
     "nullable": [
       false,
       false,
-      true,
+      false,
       false,
       true,
       true,

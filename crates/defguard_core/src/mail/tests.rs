@@ -23,10 +23,7 @@ use sqlx::{
 use tera::Context;
 use tokio::time::sleep;
 
-use super::{
-    mail::{Attachment, MailMessage},
-    templates,
-};
+use super::{Attachment, MailMessage, templates};
 
 #[test]
 fn dg25_8_server_side_template_injection() {
@@ -444,7 +441,7 @@ fn send_certificate_expired(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 mod markdown_to_html {
-    use crate::templates::markdown_to_html;
+    use super::templates::markdown_to_html;
 
     fn has_tag(html: &str, tag: &str) -> bool {
         html.contains(&format!("<{tag}"))

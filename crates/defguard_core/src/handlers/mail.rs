@@ -4,10 +4,6 @@ use axum::{
 };
 use chrono::Utc;
 use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
-use defguard_mail::{
-    mail::Attachment,
-    templates::{self, SUPPORT_EMAIL_ADDRESS},
-};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -19,6 +15,10 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    mail::{
+        Attachment,
+        templates::{self, SUPPORT_EMAIL_ADDRESS},
+    },
     server_config,
     support::dump_config,
 };
@@ -134,7 +134,7 @@ pub enum MailError {
     #[error("Database error: {0}")]
     Db(#[from] sqlx::Error),
     #[error("Template error: {0}")]
-    Template(#[from] defguard_mail::templates::TemplateError),
+    Template(#[from] crate::mail::templates::TemplateError),
 }
 
 pub async fn send_gateway_disconnected_email(

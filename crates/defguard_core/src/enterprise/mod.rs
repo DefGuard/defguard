@@ -8,6 +8,7 @@ pub mod handlers;
 pub mod ldap;
 pub mod license;
 pub mod limits;
+pub mod oauth2;
 pub mod posture;
 pub mod snat;
 mod utils;
@@ -18,6 +19,9 @@ use strum::VariantArray;
 
 pub use crate::enterprise::license::LicenseFeature;
 use crate::enterprise::license::LicenseTier;
+
+/// Shared HTTP request timeout for enterprise outbound calls (e.g. OAuth2 token endpoints).
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// Returns whether a valid license grants the given feature, considering both the tier baseline
 /// and any explicit additive flags. Does not check validity; call `validate_license` first.

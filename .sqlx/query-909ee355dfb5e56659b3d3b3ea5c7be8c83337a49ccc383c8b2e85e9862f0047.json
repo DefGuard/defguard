@@ -26,9 +26,7 @@
                 "client",
                 "vpn",
                 "enrollment",
-                "posture",
-                "active_directory",
-                "ldap"
+                "posture"
               ]
             }
           }

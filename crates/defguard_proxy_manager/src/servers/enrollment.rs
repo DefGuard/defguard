@@ -34,10 +34,10 @@ use defguard_core::{
     handlers::user::check_password_strength,
     headers::get_device_info,
     is_valid_phone_number,
-};
-use defguard_mail::templates::{
-    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
-    new_device_added_mail,
+    mail::templates::{
+        TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
+        new_device_added_mail,
+    },
 };
 use defguard_proto::client_types::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
@@ -428,9 +428,9 @@ impl EnrollmentServer {
             "Fetching user {} data to check if the user already has a password.",
             user.username
         );
-        if user.has_password() {
-            error!("User {} already activated", user.username);
-            return Err(Status::invalid_argument("user already activated"));
+        if user.is_enrolled() {
+            error!("User {} already enrolled", user.username);
+            return Err(Status::invalid_argument("user already enrolled"));
         }
         debug!("User doesn't have a password yet. Continue user activation process...");
 

@@ -96,3 +96,54 @@ jobs:
           done
           (aws s3 ls s3://apt.defguard.net/dists/ --recursive; aws s3 ls s3://apt.defguard.net/pool/ --recursive) | awk '{print "<a href=\""$4"\">"$4"</a><br>"}' > index.html
           aws s3 cp index.html s3://apt.defguard.net/ --acl public-read
+
+  verify-apt-repo:
+    needs:
+      - apt-sign
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+    steps:
+      - name: Verify published repository signatures and metadata
+        run: |
+          set -euo pipefail
+          sudo apt update -y
+          sudo apt install -y curl gpg
+
+          WORKDIR=$(mktemp -d)
+          trap 'rm -rf "$WORKDIR"' EXIT
+          cd "$WORKDIR"
+
+          curl -fsSL https://apt.defguard.net/defguard.asc | gpg --dearmor -o keyring.gpg
+
+          for DIST in trixie bookworm; do
+            echo "=== Verifying $DIST ==="
+            curl -fsSL "https://apt.defguard.net/dists/${DIST}/Release" -o Release
+            curl -fsSL "https://apt.defguard.net/dists/${DIST}/Release.gpg" -o Release.gpg
+            curl -fsSL "https://apt.defguard.net/dists/${DIST}/InRelease" -o InRelease
+
+            gpgv --keyring "$WORKDIR/keyring.gpg" Release.gpg Release
+            gpgv --keyring "$WORKDIR/keyring.gpg" InRelease
+
+            for COMPONENT in $(awk '/^Components:/ {for (i=2; i<=NF; i++) print $i}' Release); do
+              PACKAGES_PATH="${COMPONENT}/binary-amd64/Packages"
+              EXPECTED_SHA=$(awk -v p="$PACKAGES_PATH" '/^SHA256:/{s=1; next} /^[A-Za-z]/{s=0} s && $3 == p {print $1; exit}' Release)
+              # InRelease must describe the same metadata as the detached-signed
+              # Release, otherwise apt clients see a signature/content mismatch
+              INRELEASE_SHA=$(awk -v p="$PACKAGES_PATH" '/^SHA256:/{s=1; next} /^[A-Za-z-]/{s=0} s && $3 == p {print $1; exit}' InRelease)
+              if [ -z "$EXPECTED_SHA" ] || [ "$EXPECTED_SHA" != "$INRELEASE_SHA" ]; then
+                echo "SHA256 entry for $PACKAGES_PATH missing or differs between Release and InRelease in $DIST"
+                exit 1
+              fi
+              curl -fsSL "https://apt.defguard.net/dists/${DIST}/${PACKAGES_PATH}" -o Packages
+              ACTUAL_SHA=$(sha256sum Packages | awk '{print $1}')
+              if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+                echo "Checksum mismatch for $DIST/$PACKAGES_PATH"
+                echo "expected: $EXPECTED_SHA"
+                echo "actual:   $ACTUAL_SHA"
+                exit 1
+              fi
+              echo "$DIST/$PACKAGES_PATH OK"
+            done
+          done

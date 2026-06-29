@@ -401,6 +401,7 @@ export interface MfaFinishResponse {
 
 export const WebErrorCode = {
   NetworkFull: 'network_full',
+  UserGroupsNotSynced: 'user_groups_not_synced',
 } as const;
 
 export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
@@ -1101,6 +1102,15 @@ export const SmtpEncryption = {
 
 export type SmtpEncryptionValue = (typeof SmtpEncryption)[keyof typeof SmtpEncryption];
 
+export const SmtpAuthentication = {
+  None: 'None',
+  Login: 'Login',
+  XOAuth2: 'XOAuth2',
+} as const;
+
+export type SmtpAuthenticationValue =
+  (typeof SmtpAuthentication)[keyof typeof SmtpAuthentication];
+
 export interface SettingsSMTP {
   smtp_encryption: SmtpEncryptionValue;
   smtp_server: string | null;
@@ -1108,6 +1118,12 @@ export interface SettingsSMTP {
   smtp_user: string | null;
   smtp_password: string | null;
   smtp_sender: string | null;
+  smtp_authentication: SmtpAuthenticationValue;
+  smtp_oauth_issuer_url: string | null;
+  smtp_oauth_client_id: string | null;
+  smtp_oauth_client_secret: string | null;
+  smtp_oauth_refresh_token: string | null;
+  smtp_oauth_tenant_id: string | null;
 }
 
 export interface SettingsEnrollment {
@@ -1268,6 +1284,7 @@ export interface OpenIdProvider {
   directory_sync_group_match?: string[] | null;
   jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
+  directory_sync_user_groups?: string[] | null;
 }
 
 export interface OpenIdProviders {
@@ -1279,10 +1296,11 @@ export type OpenIdProvidersResponse = OpenIdProviders | undefined;
 
 export type AddOpenIdProvider = Omit<
   OpenIdProvider,
-  'id' | 'directory_sync_group_match'
+  'id' | 'directory_sync_group_match' | 'directory_sync_user_groups'
 > &
   OpenIdProviderSettings & {
     directory_sync_group_match?: string | null;
+    directory_sync_user_groups?: string | null;
   };
 
 export interface TestDirectorySyncResponse {

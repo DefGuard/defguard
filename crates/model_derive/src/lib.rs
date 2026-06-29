@@ -10,6 +10,7 @@ enum ModelType {
     Enum,
     Ip,
     Option,
+    OptionRef,
     Ref,
     Secret,
 }
@@ -31,6 +32,8 @@ fn model_attr(field: &Field) -> syn::Result<Option<ModelType>> {
                     ModelType::Ip
                 } else if meta.path.is_ident("option") {
                     ModelType::Option
+                } else if meta.path.is_ident("option_ref") {
+                    ModelType::OptionRef
                 } else if meta.path.is_ident("ref") {
                     ModelType::Ref
                 } else if meta.path.is_ident("secret") {
@@ -174,7 +177,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
             match model_type {
                 ModelType::Secret => cs_aliased_fields.push_str("?: SecretString\""),
                 ModelType::Ip => cs_aliased_fields.push_str(": IpAddr\""),
-                ModelType::Option => cs_aliased_fields.push_str("?: _\""),
+                ModelType::Option | ModelType::OptionRef => cs_aliased_fields.push_str("?: _\""),
                 ModelType::Enum | ModelType::Ref => cs_aliased_fields.push_str(": _\""),
             }
         }
@@ -200,6 +203,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     quote! { &self.#name }
                 }
             }
+            Some(ModelType::OptionRef) => quote! { self.#name.as_deref() },
             Some(ModelType::Secret) => {
                 // FIXME: hard-coded struct name
                 quote! { &self.#name as &Option<SecretString> }

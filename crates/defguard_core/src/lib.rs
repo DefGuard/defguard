@@ -208,6 +208,7 @@ pub mod handlers;
 pub mod headers;
 pub mod letsencrypt;
 pub mod location_management;
+pub mod mail;
 pub mod setup_logs;
 pub mod support;
 pub mod updates;

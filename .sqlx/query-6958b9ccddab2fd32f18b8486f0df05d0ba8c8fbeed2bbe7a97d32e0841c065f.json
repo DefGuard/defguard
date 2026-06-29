@@ -1,11 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"kind\" = $4,\"client_id\" = $5,\"client_secret\" = $6,\"display_name\" = $7,\"google_service_account_key\" = $8,\"google_service_account_email\" = $9,\"admin_email\" = $10,\"directory_sync_enabled\" = $11,\"directory_sync_interval\" = $12,\"directory_sync_user_behavior\" = $13,\"directory_sync_admin_behavior\" = $14,\"directory_sync_target\" = $15,\"okta_private_jwk\" = $16,\"okta_dirsync_client_id\" = $17,\"directory_sync_group_match\" = $18,\"jumpcloud_api_key\" = $19,\"prefetch_users\" = $20 WHERE id = $1",
+  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"kind\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\",\"directory_sync_admin_behavior\",\"directory_sync_target\",\"okta_private_jwk\",\"okta_dirsync_client_id\",\"directory_sync_group_match\",\"jumpcloud_api_key\",\"prefetch_users\",\"directory_sync_user_groups\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
         "Text",
         {
@@ -71,10 +76,13 @@
         "Text",
         "TextArray",
         "Text",
-        "Bool"
+        "Bool",
+        "TextArray"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "f6110462d7fd58131e1a2d8cb52711ed9e490ab111a2c0cbb499587f351697b8"
+  "hash": "6958b9ccddab2fd32f18b8486f0df05d0ba8c8fbeed2bbe7a97d32e0841c065f"
 }

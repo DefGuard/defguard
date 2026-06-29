@@ -79,6 +79,9 @@ jobs:
       - X64
     env:
       SQLX_OFFLINE: "1"
+      # Force the installed stable toolchain. RUSTUP_TOOLCHAIN takes precedence
+      # over any stale rustup directory override left on the self-hosted runner.
+      RUSTUP_TOOLCHAIN: "stable"
       # sccache
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
@@ -221,14 +224,15 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
             freebsd/defguard=/usr/local/etc/rc.d/defguard
-            .env.example=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf.sample"
           fpm_opts:
             "--architecture amd64
             --output-type freebsd
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
             --freebsd-osversion '*'
-            --depends openssl"
+            --depends openssl
+            --after-install freebsd/post-install.sh"
 
       - name: Upload Linux x86_64 archive
         uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2

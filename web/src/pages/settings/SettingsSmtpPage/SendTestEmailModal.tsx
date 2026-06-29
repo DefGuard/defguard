@@ -109,7 +109,6 @@ const ModalContent = () => {
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
           <form.Subscribe
             selector={(s) => ({
               isDefault: s.isDefaultValue || s.isPristine,

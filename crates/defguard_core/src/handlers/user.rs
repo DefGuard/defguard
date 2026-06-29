@@ -12,7 +12,6 @@ use defguard_common::{
     },
     types::{group_diff::GroupDiff, user_info::UserInfo},
 };
-use defguard_mail::templates;
 use humantime::parse_duration;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -51,6 +50,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
+    mail::templates,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 

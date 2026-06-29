@@ -419,6 +419,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
+        directory_sync_user_groups: None,
     };
 
     let response = client
@@ -521,6 +522,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
+        directory_sync_user_groups: None,
     };
 
     let response = client
