@@ -446,6 +446,28 @@ impl EnrollmentServer {
         }
         debug!("User is active.");
 
+        // Reject password-less activation for users whose password management is NOT
+        // disabled. Externally-managed users (LDAP/AD or OIDC with the flag enabled)
+        // are allowed to skip the password; local users must supply one.
+        if request.password.is_none() {
+            let oidc_disable_password_management =
+                OpenIdProvider::current_disables_password_management(&self.pool)
+                    .await
+                    .unwrap_or(false);
+            let settings = Settings::get_current_settings();
+            let is_admin = user.is_admin(&self.pool).await.map_err(|err| {
+                error!("Failed to check if user is admin: {err}");
+                Status::internal("unexpected error")
+            })?;
+            if !user.password_management_disabled(
+                is_admin,
+                &settings,
+                oidc_disable_password_management,
+            ) {
+                return Err(Status::invalid_argument("password required for this user"));
+            }
+        }
+
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
@@ -1144,12 +1166,13 @@ async fn initial_info_from_user(
     let devices = user.user_devices(pool).await?;
     let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
     let is_admin = user.is_admin(pool).await?;
-    let oidc_disable_pw = OpenIdProvider::current_disables_password_management(pool)
-        .await
-        .unwrap_or(false);
+    let oidc_disable_password_management =
+        OpenIdProvider::current_disables_password_management(pool)
+            .await
+            .unwrap_or(false);
     let settings = Settings::get_current_settings();
     let password_management_disabled =
-        user.password_management_disabled(is_admin, &settings, oidc_disable_pw);
+        user.password_management_disabled(is_admin, &settings, oidc_disable_password_management);
     Ok(InitialUserInfo {
         first_name: user.first_name,
         last_name: user.last_name,

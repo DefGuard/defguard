@@ -1,11 +1,19 @@
 use defguard_common::{
-    db::models::{
-        Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
-        settings::update_current_settings,
+    db::{
+        NoId,
+        models::{
+            Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+            settings::update_current_settings,
+        },
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::{BidiStreamEventType, EnrollmentEvent};
+use defguard_core::{
+    enterprise::db::models::openid_provider::{
+        DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+    },
+    events::{BidiStreamEventType, EnrollmentEvent},
+};
 use defguard_proto::{
     client_types::{
         EnrollmentStartRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest,
@@ -1110,6 +1118,90 @@ async fn test_enrollment_config_includes_acl_allowed_ips(
     assert!(
         allowed_ips.contains("192.168.1.0/24"),
         "config allowed_ips should contain ACL-derived IP 192.168.1.0/24, got: {allowed_ips}"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// An OIDC-sourced user whose provider has `disable_password_management` enabled must:
+///  - be able to complete activation WITHOUT supplying a password, and
+///  - remain without a local password hash after activation (authentication is delegated to
+///    the external IdP).
+#[sqlx::test]
+async fn test_activate_oidc_user_with_password_management_disabled_skips_password(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Create an OIDC provider with disable_password_management enabled.
+    OpenIdProvider::<NoId> {
+        id: NoId,
+        name: "test-oidc".to_owned(),
+        base_url: "https://test-oidc.example.com".to_owned(),
+        kind: OpenIdProviderKind::Custom,
+        client_id: "client-id".to_owned(),
+        client_secret: "client-secret".to_owned(),
+        display_name: Some("Test OIDC".to_owned()),
+        google_service_account_key: None,
+        google_service_account_email: None,
+        admin_email: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 600,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep,
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep,
+        directory_sync_target: DirectorySyncTarget::All,
+        okta_private_jwk: None,
+        okta_dirsync_client_id: None,
+        directory_sync_group_match: Vec::new(),
+        jumpcloud_api_key: None,
+        prefetch_users: false,
+        disable_password_management: true,
+        directory_sync_user_groups: None,
+    }
+    .save(&context.pool)
+    .await
+    .expect("failed to save OIDC provider");
+
+    // Create an OIDC-sourced user with no local password.
+    let mut user = create_user(&context.pool).await;
+    user.openid_sub = Some("oidc-sub-123".to_owned());
+    user.save(&context.pool)
+        .await
+        .expect("failed to save OIDC user");
+    assert!(!user.has_password());
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    // Drain the EnrollmentStarted bidi event.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    // Activation WITHOUT a password must succeed.
+    let response = send_activate_user_without_password(&mut context, &token.id, None).await;
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        Some(core_response::Payload::CoreError(e)) => {
+            panic!("expected Empty, got CoreError: {}", e.message)
+        }
+        other => panic!(
+            "expected Empty response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // The user must remain without a local password hash, and be enrolled.
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        !updated.has_password(),
+        "externally-managed OIDC user must not gain a local password hash during enrollment"
+    );
+    assert!(
+        !updated.enrollment_pending,
+        "enrollment_pending must be cleared after activation"
     );
 
     context.finish().await.expect_server_finished().await;
