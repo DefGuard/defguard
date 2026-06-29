@@ -18,6 +18,7 @@ use crate::{
     enterprise::db::models::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
+        enterprise_settings::EnterpriseSettings,
         openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
         snat::UserSnatBinding,
     },
@@ -186,6 +187,10 @@ pub struct VpnClientMfaMetadata {
     pub location: WireguardNetwork<Id>,
     pub device: Device<Id>,
     pub method: ClientMFAMethod,
+    /// Name of the device used to approve the login when the mobile approve MFA
+    /// method is used. Omitted for all other methods.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mobile_auth_device_name: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -311,6 +316,7 @@ pub struct OpenIdProviderNoSecrets {
     pub directory_sync_target: DirectorySyncTarget,
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Vec<String>,
+    pub directory_sync_user_groups: Option<Vec<String>>,
 }
 
 impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
@@ -330,6 +336,7 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
             directory_sync_target: value.directory_sync_target,
             okta_dirsync_client_id: value.okta_dirsync_client_id,
             directory_sync_group_match: value.directory_sync_group_match,
+            directory_sync_user_groups: value.directory_sync_user_groups,
         }
     }
 }
@@ -338,6 +345,12 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
 pub struct SettingsUpdateMetadata {
     pub before: SettingsNoSecrets,
     pub after: SettingsNoSecrets,
+}
+
+#[derive(Serialize)]
+pub struct EnterpriseSettingsUpdateMetadata {
+    pub before: EnterpriseSettings,
+    pub after: EnterpriseSettings,
 }
 
 #[derive(Serialize)]

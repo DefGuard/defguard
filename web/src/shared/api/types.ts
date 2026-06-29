@@ -308,6 +308,7 @@ export interface User {
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
   devices: Device[];
+  has_non_mfa_location_access: boolean;
 }
 
 export interface LoginRequest {
@@ -401,6 +402,7 @@ export interface MfaFinishResponse {
 
 export const WebErrorCode = {
   NetworkFull: 'network_full',
+  UserGroupsNotSynced: 'user_groups_not_synced',
 } as const;
 
 export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
@@ -470,6 +472,17 @@ export const SupportType = {
   DirectEnterprise: 'DirectEnterprise',
 } as const;
 
+// Additive, per-license feature grants mirrored from the backend `LicenseFeature` enum.
+// Each value enables a single enterprise capability regardless of the license tier.
+export const LicenseFeature = {
+  ServiceLocations: 'ServiceLocations',
+  DevicePosture: 'DevicePosture',
+  AclAllowedIps: 'AclAllowedIps',
+  ComponentHa: 'ComponentHa',
+} as const;
+
+export type LicenseFeatureValue = (typeof LicenseFeature)[keyof typeof LicenseFeature];
+
 export type LicenseTierValue = (typeof LicenseTier)[keyof typeof LicenseTier];
 export type SupportTypeValue = (typeof SupportType)[keyof typeof SupportType];
 
@@ -487,6 +500,8 @@ export interface LicenseInfoApi {
   tier: LicenseTierValue;
   support_type: SupportTypeValue;
   limits: LicenseLimitsInfo | null;
+  // Effective set of enabled enterprise features (tier-granted plus additive flags).
+  features: LicenseFeatureValue[];
 }
 
 export interface LicenseInfoResponse {
@@ -922,6 +937,8 @@ export interface SettingsEnterprise {
   admin_device_management: boolean;
   client_traffic_policy: ClientTrafficPolicyValue;
   only_client_activation: boolean;
+  display_download_step: boolean;
+  display_password_reset: boolean;
 }
 
 export type ApiDevicePostureOsRule =
@@ -952,6 +969,7 @@ export type ApiDevicePostureOsRule =
       os_type: 'android';
       min_os_version: number | null;
       device_integrity_required: boolean | null;
+      android_security_patch_level_max_age: number | null;
     };
 
 export type EditDevicePostureOsRule = ApiDevicePostureOsRule;
@@ -1085,6 +1103,15 @@ export const SmtpEncryption = {
 
 export type SmtpEncryptionValue = (typeof SmtpEncryption)[keyof typeof SmtpEncryption];
 
+export const SmtpAuthentication = {
+  None: 'None',
+  Login: 'Login',
+  XOAuth2: 'XOAuth2',
+} as const;
+
+export type SmtpAuthenticationValue =
+  (typeof SmtpAuthentication)[keyof typeof SmtpAuthentication];
+
 export interface SettingsSMTP {
   smtp_encryption: SmtpEncryptionValue;
   smtp_server: string | null;
@@ -1092,6 +1119,12 @@ export interface SettingsSMTP {
   smtp_user: string | null;
   smtp_password: string | null;
   smtp_sender: string | null;
+  smtp_authentication: SmtpAuthenticationValue;
+  smtp_oauth_issuer_url: string | null;
+  smtp_oauth_client_id: string | null;
+  smtp_oauth_client_secret: string | null;
+  smtp_oauth_refresh_token: string | null;
+  smtp_oauth_tenant_id: string | null;
 }
 
 export interface SettingsEnrollment {
@@ -1254,6 +1287,7 @@ export interface OpenIdProvider {
   jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
   disable_password_management: boolean;
+  directory_sync_user_groups?: string[] | null;
 }
 
 export interface OpenIdProviders {
@@ -1265,10 +1299,11 @@ export type OpenIdProvidersResponse = OpenIdProviders | undefined;
 
 export type AddOpenIdProvider = Omit<
   OpenIdProvider,
-  'id' | 'directory_sync_group_match'
+  'id' | 'directory_sync_group_match' | 'directory_sync_user_groups'
 > &
   OpenIdProviderSettings & {
     directory_sync_group_match?: string | null;
+    directory_sync_user_groups?: string | null;
   };
 
 export interface TestDirectorySyncResponse {
@@ -1414,7 +1449,7 @@ export interface OpenIdAuthInfo {
 export interface ActivityLogEvent {
   id: number;
   timestamp: string;
-  user_id: number;
+  user_id: number | null;
   username: string;
   location?: string;
   ip: string | null;

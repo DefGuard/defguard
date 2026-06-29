@@ -39,7 +39,7 @@ use defguard_common::{
 use defguard_proto::gateway::Configuration;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
-use events::ApiEvent;
+use events::{ApiEvent, LdapSyncEventType};
 use handlers::{
     activity_log::get_activity_log_events,
     auth::disable_user_mfa,
@@ -208,6 +208,7 @@ pub mod handlers;
 pub mod headers;
 pub mod letsencrypt;
 pub mod location_management;
+pub mod mail;
 pub mod setup_logs;
 pub mod support;
 pub mod updates;
@@ -266,6 +267,7 @@ pub fn build_webapp(
     key: Key,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    ldap_tx: UnboundedSender<LdapSyncEventType>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
     tls_active: Arc<AtomicBool>,
@@ -747,6 +749,7 @@ pub fn build_webapp(
         key,
         failed_logins,
         event_tx,
+        ldap_tx,
         incompatible_components,
         proxy_control_tx.clone(),
         tls_active,
@@ -817,6 +820,7 @@ pub async fn run_web_server(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    ldap_tx: UnboundedSender<LdapSyncEventType>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
@@ -837,6 +841,7 @@ pub async fn run_web_server(
         key,
         failed_logins,
         event_tx,
+        ldap_tx,
         incompatible_components,
         proxy_control_tx,
         Arc::clone(&tls_active),

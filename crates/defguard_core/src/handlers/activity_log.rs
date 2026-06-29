@@ -99,7 +99,7 @@ impl fmt::Display for SortOrder {
 pub struct ApiActivityLogEvent {
     pub id: Id,
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
+    pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
     pub ip: Option<IpNetwork>,

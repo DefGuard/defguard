@@ -5,7 +5,7 @@ import { cloneDeep, omit } from 'lodash-es';
 import { type Dispatch, Fragment, type SetStateAction, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
-import type { ApiDevicePosture } from '../../../../shared/api/types';
+import { type ApiDevicePosture, LicenseFeature } from '../../../../shared/api/types';
 import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
 import { Card } from '../../../../shared/components/Card/Card';
 import { Controls } from '../../../../shared/components/Controls/Controls';
@@ -35,7 +35,9 @@ export const AddLocationPostureCheckStep = () => {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const canUseEnterprise =
-    licenseInfo === undefined ? undefined : canUseEnterpriseFeature(licenseInfo).result;
+    licenseInfo === undefined
+      ? undefined
+      : canUseEnterpriseFeature(licenseInfo, LicenseFeature.DevicePosture).result;
   const postureLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
   const { data: postures } = useQuery({
     queryFn: api.devicePosture.getDevicePostures,

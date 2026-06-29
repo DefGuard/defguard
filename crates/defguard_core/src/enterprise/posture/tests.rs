@@ -43,6 +43,7 @@ fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
+        vec![],
     );
     set_cached_license(Some(license));
     set_counts(Counts::new(1, 1, 1, 1));
@@ -162,6 +163,7 @@ async fn save_linux_policy(
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(pool)
     .await
@@ -206,6 +208,7 @@ async fn save_windows_os_version_policy(
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(pool)
     .await
@@ -249,6 +252,7 @@ async fn save_windows_policy(
         windows_security_update_max_age,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(pool)
     .await
@@ -261,6 +265,60 @@ async fn save_windows_policy(
     )
     .await
     .unwrap();
+}
+
+async fn save_android_policy(
+    pool: &sqlx::PgPool,
+    location_id: i64,
+    android_security_patch_level_max_age: Option<i32>,
+) {
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "android-policy".to_owned(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureOsRule {
+        id: defguard_common::db::NoId,
+        posture_id: policy.id,
+        os_type: OsType::Android,
+        min_os_version: None,
+        disk_encryption_required: None,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_max_age: None,
+        min_kernel_version: None,
+        device_integrity_required: None,
+        android_security_patch_level_max_age,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+}
+
+fn android_posture_data(patch_date: &str) -> DevicePostureData {
+    DevicePostureData {
+        defguard_client_version: "1.6.0".to_owned(),
+        os_type: "android".to_owned(),
+        os_version: Some(string_check_value("14.0")),
+        android_security_patch_date: Some(StringCheck {
+            result: Some(string_check::Result::Value(patch_date.to_owned())),
+        }),
+        ..Default::default()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -373,6 +431,7 @@ async fn fail_unrecognized_os_version(_: PgPoolOptions, options: PgConnectOption
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -435,6 +494,7 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -496,6 +556,7 @@ async fn fail_unrecognized_kernel_version(_: PgPoolOptions, options: PgConnectOp
         windows_security_update_max_age: None,
         min_kernel_version: Some(6),
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -653,6 +714,7 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
         windows_security_update_max_age: None,
         min_kernel_version: Some(6),
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -702,6 +764,7 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: Some(true),
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -756,6 +819,7 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -1017,6 +1081,7 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -1044,6 +1109,7 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -1184,6 +1250,7 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
         windows_security_update_max_age: None,
         min_kernel_version: Some(6),
         device_integrity_required: None,
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -1236,6 +1303,7 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
         windows_security_update_max_age: None,
         min_kernel_version: None,
         device_integrity_required: Some(true),
+        android_security_patch_level_max_age: None,
     }
     .save(&pool)
     .await
@@ -1276,6 +1344,73 @@ async fn fail_check_unavailable_unspecified(_: PgPoolOptions, options: PgConnect
 
     let mut data = linux_posture_data("22.04", true);
     data.disk_encryption = Some(bool_check_unavailable(UnavailableReason::Unspecified));
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::CheckUnavailable { .. })
+    ));
+}
+
+#[sqlx::test]
+async fn pass_android_security_patch_within_max_age(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_android_policy(&pool, location_id, Some(30)).await;
+
+    // Patch date 15 days ago — within the 30-day limit.
+    let patch_date = (Utc::now() - TimeDelta::days(15))
+        .format("%Y-%m-%d")
+        .to_string();
+    let data = android_posture_data(&patch_date);
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
+}
+
+#[sqlx::test]
+async fn fail_android_security_patch_too_old(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_android_policy(&pool, location_id, Some(30)).await;
+
+    // Patch date 90 days ago — exceeds the 30-day limit.
+    let patch_date = (Utc::now() - TimeDelta::days(90))
+        .format("%Y-%m-%d")
+        .to_string();
+    let data = android_posture_data(&patch_date);
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::AndroidSecurityPatchTooOld { .. })
+    ));
+}
+
+#[sqlx::test]
+async fn fail_android_security_patch_unparseable(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_android_policy(&pool, location_id, Some(30)).await;
+
+    let data = android_posture_data("not-a-date");
 
     let result = validate_posture(&pool, &make_request(location_id, Some(data)))
         .await

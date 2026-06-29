@@ -34,7 +34,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     mutationFn: (locationIds: number[]) =>
       api.devicePosture.setLocationsForDevicePosture(row.id, locationIds),
     meta: {
-      invalidate: [['device-posture'], ['network']],
+      invalidate: [['device-posture'], ['network'], ['activity-log']],
     },
     onSuccess: () => {
       Snackbar.default(m.modal_assign_posture_check_locations_success());
@@ -47,7 +47,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
   const { mutate: duplicatePosture } = useMutation({
     mutationFn: api.devicePosture.duplicateDevicePosture,
     meta: {
-      invalidate: [['device-posture'], ['network']],
+      invalidate: [['device-posture'], ['network'], ['activity-log']],
     },
     onSuccess: (response) => {
       const posture = response.data;

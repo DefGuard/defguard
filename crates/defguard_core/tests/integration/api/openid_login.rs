@@ -61,6 +61,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         jumpcloud_api_key: None,
         prefetch_users: false,
         disable_password_management: false,
+        directory_sync_user_groups: None,
     };
 
     let response = client
@@ -102,6 +103,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
@@ -169,6 +171,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
         jumpcloud_api_key: None,
         prefetch_users: false,
         disable_password_management: false,
+        directory_sync_user_groups: None,
     };
     let response = client
         .post("/api/v1/openid/provider")

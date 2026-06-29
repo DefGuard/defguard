@@ -8,12 +8,15 @@ pub mod metadata;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
 #[sqlx(type_name = "activity_log_module", rename_all = "snake_case")]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ActivityLogModule {
     Defguard,
     Client,
     Vpn,
     Enrollment,
+    Posture,
+    ActiveDirectory,
+    Ldap,
 }
 
 /// Represents activity log event type as it's stored in the DB
@@ -81,6 +84,8 @@ pub enum EventType {
     VpnClientMfaDisconnected,
     VpnClientMfaSuccess,
     VpnClientMfaFailed,
+    VpnClientSessionSuperseded,
+    VpnClientMfaSessionSuperseded,
     // Enrollment events
     EnrollmentTokenAdded,
     EnrollmentStarted,
@@ -97,6 +102,7 @@ pub enum EventType {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
+    EnterpriseSettingsUpdated,
     // Groups management
     GroupsBulkAssigned,
     GroupAdded,
@@ -133,6 +139,22 @@ pub enum EventType {
     LocationPosturesAssigned,
     DevicePostureCheckPassed,
     DevicePostureCheckFailed,
+    // LDAP sync events
+    LdapSyncUserCreated,
+    LdapSyncUserDeleted,
+    LdapSyncUserModified,
+    LdapSyncUserEnabled,
+    LdapSyncUserDisabled,
+    LdapSyncGroupCreated,
+    LdapSyncGroupMemberAdded,
+    LdapSyncGroupMemberRemoved,
+    LdapSyncOutboundUserCreated,
+    LdapSyncOutboundUserDeleted,
+    LdapSyncOutboundUserModified,
+    LdapSyncOutboundUserEnabled,
+    LdapSyncOutboundUserDisabled,
+    LdapSyncOutboundGroupMemberAdded,
+    LdapSyncOutboundGroupMemberRemoved,
 }
 
 #[derive(Model, FromRow, Serialize)]
@@ -140,7 +162,8 @@ pub enum EventType {
 pub struct ActivityLogEvent<I = NoId> {
     pub id: I,
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
+    #[model(option)]
+    pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
     #[model(option)]

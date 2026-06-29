@@ -22,11 +22,12 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     db::AppEvent,
     enterprise::{
+        LicenseFeature,
         db::models::{
             enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
             openid_provider::OpenIdProvider,
         },
-        is_business_license_active, is_enterprise_license_active,
+        has_enterprise_access, is_business_license_active,
     },
     grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
 };
@@ -217,5 +218,5 @@ pub use defguard_common::gateway_event::{
 #[must_use]
 pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
     location.service_location_mode != ServiceLocationMode::Disabled
-        && !is_enterprise_license_active()
+        && !has_enterprise_access(Some(LicenseFeature::ServiceLocations))
 }

@@ -42,10 +42,11 @@ fn make_acme_certificate_request(
 }
 
 /// Complete the manager-level handshake: wait for the proxy to connect then
-/// consume the `InitialInfo` response.
+/// consume the `InitialInfo` and `PublicSettings` responses.
 async fn complete_manager_handshake(mock_proxy: &mut MockProxyHarness) {
     mock_proxy.wait_connected().await;
     mock_proxy.recv_initial_info().await;
+    mock_proxy.recv_public_settings().await;
 }
 
 /// Sending `AcmeCertificate` causes the handler to persist the certificate

@@ -36,8 +36,8 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     enterprise::{
-        db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured,
+        db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
+        directory_sync::{sync_user_groups_if_configured, user_in_directory_groups},
         ldap::utils::ldap_update_user_state,
         license::get_cached_license,
         limits::{get_counts, update_counts},
@@ -340,6 +340,38 @@ pub async fn user_from_claims(
                     ));
                 }
 
+                // If user synchronization is enabled and limited to specific directory groups, only allow
+                // creating accounts for users who are members of one of those groups.
+                if provider.directory_sync_enabled
+                    && let Some(user_groups_filter) = provider
+                        .directory_sync_user_groups
+                        .as_ref()
+                        .filter(|groups| !groups.is_empty())
+                    && provider.kind == OpenIdProviderKind::Microsoft
+                {
+                    let in_groups = user_in_directory_groups(pool, email, user_groups_filter)
+                            .await
+                            .map_err(|err| {
+                                error!(
+                                    "Failed to check directory group membership of user with email address {} during OpenID account creation: {err}",
+                                    email.as_str()
+                                );
+                                WebError::Authorization(
+                                    "Failed to verify user's directory group membership".into(),
+                                )
+                            })?;
+                    if !in_groups {
+                        warn!(
+                                "User with email address {} is trying to log in for the first time but is not a member of any
+                                directory groups configured for user synchronization. Blocking account creation.",
+                                email.as_str()
+                            );
+                        return Err(WebError::UserGroupsNotSynced(
+                                "User is not a member of any of the directory groups allowed for account creation".into(),
+                            ));
+                    }
+                }
+
                 // Try to get the username from `preferred_username` claim.
                 // If it's not there, extract it from email.
                 let username = if let Some(username) = token_claims.preferred_username() {
@@ -632,8 +664,13 @@ pub async fn auth_callback(
     // since he already managed to login through the provider. Currently, there is no other way to
     // sync the groups for the MFA enabled user logging in through the provider without firing it on
     // every login attempt, even for standard, non-provider users.
-    if let Err(err) =
-        sync_user_groups_if_configured(&user, &appstate.pool, &appstate.gateway_tx).await
+    if let Err(err) = sync_user_groups_if_configured(
+        &user,
+        &appstate.pool,
+        &appstate.gateway_tx,
+        &appstate.ldap_tx,
+    )
+    .await
     {
         error!(
             "Failed to sync user groups for user {} with the directory while the user was trying \
@@ -641,7 +678,13 @@ pub async fn auth_callback(
             user.username
         );
     } else {
-        ldap_update_user_state(&mut user, &appstate.pool, &appstate.gateway_tx).await;
+        ldap_update_user_state(
+            &mut user,
+            &appstate.pool,
+            &appstate.gateway_tx,
+            &appstate.ldap_tx,
+        )
+        .await;
     }
 
     if let Some(mfa_info) = mfa_info {
@@ -823,6 +866,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
 
@@ -845,6 +889,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
 
@@ -862,6 +907,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
 

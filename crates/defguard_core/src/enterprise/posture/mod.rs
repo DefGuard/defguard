@@ -43,6 +43,10 @@ pub enum FailureReason {
         required_max_age_days: i32,
         actual_age_days: i32,
     },
+    AndroidSecurityPatchTooOld {
+        required_max_age_days: i32,
+        actual_age_days: i32,
+    },
     DeviceIntegrityRequired,
     /// A required check could not be evaluated (InsufficientPermissions or DetectionFailed).
     CheckUnavailable {
@@ -87,6 +91,14 @@ impl fmt::Display for FailureReason {
             } => write!(
                 f,
                 "last Windows security update is {actual_age_days} days old \
+                 (max allowed: {required_max_age_days})"
+            ),
+            Self::AndroidSecurityPatchTooOld {
+                required_max_age_days,
+                actual_age_days,
+            } => write!(
+                f,
+                "Android security patch is {actual_age_days} days old \
                  (max allowed: {required_max_age_days})"
             ),
             Self::DeviceIntegrityRequired => write!(f, "device integrity check failed"),

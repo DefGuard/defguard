@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/playwright:v1.32.0-focal as base
 WORKDIR /app
 COPY package.json .
 COPY pnpm-lock.yaml .
-RUN npm i -g pnpm
+RUN npm i -g pnpm@11
 RUN pnpm i --frozen-lockfile
 FROM base as runner
 COPY --from=base /app /app

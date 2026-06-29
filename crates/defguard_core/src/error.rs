@@ -7,7 +7,6 @@ use defguard_common::{
     },
     types::UrlParseError,
 };
-use defguard_mail::templates::TemplateError;
 use defguard_static_ip::error::StaticIpError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
@@ -24,6 +23,7 @@ use crate::{
     events::ApiEvent,
     handlers::{openid_flow::OidcFlowError, user::ValidationError},
     location_management::LocationManagementError,
+    mail::templates::TemplateError,
     user_management::UserManagementError,
 };
 
@@ -44,6 +44,8 @@ pub enum WebError {
     Serialization(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
+    #[error("User groups not synced: {0}")]
+    UserGroupsNotSynced(String),
     #[error("Authentication error")]
     Authentication,
     #[error("Forbidden error: {0}")]

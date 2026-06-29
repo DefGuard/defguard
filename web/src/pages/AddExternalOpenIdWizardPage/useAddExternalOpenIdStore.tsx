@@ -55,6 +55,7 @@ export const addExternalOpenIdStoreDefaults: StoreValues = {
     jumpcloud_api_key: null,
     prefetch_users: false,
     disable_password_management: false,
+    directory_sync_user_groups: null,
 
     // Core settings
     create_account: false,

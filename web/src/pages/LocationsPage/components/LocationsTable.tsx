@@ -9,7 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
-import type { NetworkLocation } from '../../../shared/api/types';
+import { LicenseFeature, type NetworkLocation } from '../../../shared/api/types';
 import { GatewaysStatusBadge } from '../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
@@ -277,7 +277,10 @@ export const LocationsTable = () => {
                           });
                         };
                         if (row.gateways.length >= 1) {
-                          licenseActionCheck(canUseEnterpriseFeature(license), action);
+                          licenseActionCheck(
+                            canUseEnterpriseFeature(license, LicenseFeature.ComponentHa),
+                            action,
+                          );
                         } else {
                           action();
                         }
@@ -296,7 +299,7 @@ export const LocationsTable = () => {
                           title: m.modal_delete_location_title(),
                           contentMd: m.modal_delete_location_body({ name: row.name }),
                           actionPromise: () => api.location.deleteLocation(row.id),
-                          invalidateKeys: [['network'], ['enterprise_info']],
+                          invalidateKeys: [['network'], ['gateway'], ['enterprise_info']],
                           submitProps: { text: m.controls_delete(), variant: 'critical' },
                           onSuccess: () => Snackbar.default(m.location_delete_success()),
                           onError: () => Snackbar.error(m.location_delete_failed()),

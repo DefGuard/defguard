@@ -73,7 +73,7 @@ export const PostureChecksTable = ({
       locations: number[];
     }) => api.devicePosture.setLocationsForDevicePosture(postureCheckId, locations),
     meta: {
-      invalidate: [['device-posture'], ['network']],
+      invalidate: [['device-posture'], ['network'], ['activity-log']],
     },
     onSuccess: () => {
       Snackbar.default(m.modal_assign_posture_check_locations_success());
@@ -86,7 +86,7 @@ export const PostureChecksTable = ({
   const { mutate: duplicatePosture } = useMutation({
     mutationFn: api.devicePosture.duplicateDevicePosture,
     meta: {
-      invalidate: [['device-posture'], ['network']],
+      invalidate: [['device-posture'], ['network'], ['activity-log']],
     },
     onSuccess: (response) => {
       const posture = response.data;

@@ -46,7 +46,7 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.setAutoAdoptionInternalUrlSettings,
-    meta: { invalidate: ['setupStatus'] },
+    meta: { invalidate: [['info'], ['internal_ssl_info']] },
     onSuccess: (response) => {
       useAutoAdoptionSetupWizardStore.setState({
         internal_ssl_type: form.getFieldValue('ssl_type'),

@@ -18,7 +18,6 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::templates::mfa_code_mail;
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
@@ -51,9 +50,10 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
+    mail::templates::mfa_code_mail,
 };
 
-const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 5 minutes
 
 // How much time the user has to approve remote MFA with mobile device
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_secs(60);
@@ -78,6 +78,13 @@ pub struct ClientLoginSession {
     pub(crate) user: User<Id>,
     pub(crate) openid_auth_completed: bool,
     pub(crate) biometric_challenge: Option<BiometricChallenge>,
+}
+
+pub enum SessionDisconnectReason {
+    /// Closed because a new authorization is creating a replacement session.
+    Superseded,
+    /// Closed for any other reason (normal teardown).
+    Disconnected,
 }
 
 pub struct ClientMfaServer {
@@ -565,6 +572,9 @@ impl ClientMfaServer {
         let context =
             BidiRequestContext::new(user.id, user.username.clone(), ip, format!("{device}"));
 
+        // name of the device used to approve a mobile approve login; populated below
+        let mut mobile_auth_device_name: Option<String> = None;
+
         // validate code
         match method {
             MfaMethod::MobileApprove => {
@@ -585,6 +595,12 @@ impl ClientMfaServer {
                 {
                     return Err(Status::invalid_argument("Arguments invalid"));
                 }
+                // record the approving device's name for the success activity log event
+                mobile_auth_device_name =
+                    BiometricAuth::find_device(&self.pool, user.id, &auth_device_pub_key)
+                        .await
+                        .map_err(|_| Status::internal("unexpected error"))?
+                        .map(|auth_device| auth_device.name);
                 match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
                     Ok(()) => {
                         debug!("Signature verified successfully.");
@@ -801,6 +817,7 @@ impl ClientMfaServer {
                     location: location.clone(),
                     device: device.clone(),
                     method,
+                    mobile_auth_device_name,
                 },
             )),
         })?;
@@ -1022,8 +1039,15 @@ impl ClientMfaServer {
         // disconnect all active sessions
         for session in active_sessions {
             debug!("Disconnecting previous active MFA VPN session {session:?}.");
-            self.disconnect_session(&mut *conn, session, location, user, device)
-                .await?;
+            self.disconnect_session(
+                &mut *conn,
+                session,
+                location,
+                user,
+                device,
+                SessionDisconnectReason::Superseded,
+            )
+            .await?;
         }
 
         // create new MFA session
@@ -1043,6 +1067,7 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
+        reason: SessionDisconnectReason,
     ) -> Result<(), Status> {
         let is_connected = session.state == VpnClientSessionState::Connected;
         let is_mfa_session = session.mfa_method.is_some();
@@ -1080,15 +1105,21 @@ impl ClientMfaServer {
                 ip: None,
                 device_name: format!("{device}"),
             };
+            let event = match reason {
+                SessionDisconnectReason::Superseded => DesktopClientMfaEvent::SessionSuperseded {
+                    location: location.clone(),
+                    device: device.clone(),
+                    is_mfa_session,
+                },
+                SessionDisconnectReason::Disconnected => DesktopClientMfaEvent::Disconnected {
+                    location: location.clone(),
+                    device: device.clone(),
+                    is_mfa_session,
+                },
+            };
             self.emit_event(BidiStreamEvent {
                 context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::Disconnected {
-                        location: location.clone(),
-                        device: device.clone(),
-                        is_mfa_session,
-                    },
-                )),
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(event)),
             })
             .map_err(Status::from)?;
         }
@@ -1245,7 +1276,7 @@ mod tests {
             .save(&pool)
             .await
             .expect("failed to create previous posture session");
-        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+        let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
 
         server
             .handle_posture_check(DevicePostureCheckRequest {
@@ -1276,6 +1307,27 @@ mod tests {
                 assert!(network_info.preshared_key.is_some());
             }
             other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        // replacing a connected posture-only session emits the unified session
+        // superseded audit event, flagged as a non-MFA session
+        let event = event_rx
+            .try_recv()
+            .expect("expected session replaced audit event for replaced posture session");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::SessionSuperseded {
+                    location: event_location,
+                    device: event_device,
+                    is_mfa_session,
+                } => {
+                    assert_eq!(event_location.id, location.id);
+                    assert_eq!(event_device.id, device.id);
+                    assert!(!is_mfa_session);
+                }
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
         }
 
         let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
@@ -1337,7 +1389,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_replacing_connected_mfa_session_emits_mfa_disconnect_event(
+    async fn test_replacing_connected_mfa_session_emits_session_superseded_event(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1385,10 +1437,10 @@ mod tests {
 
         let event = event_rx
             .try_recv()
-            .expect("expected MFA disconnect audit event for replaced connected session");
+            .expect("expected session replaced audit event for replaced connected session");
         match event.event {
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
-                DesktopClientMfaEvent::Disconnected {
+                DesktopClientMfaEvent::SessionSuperseded {
                     location: event_location,
                     device: event_device,
                     is_mfa_session,
@@ -1462,75 +1514,6 @@ mod tests {
             event_rx.try_recv(),
             Err(tokio::sync::mpsc::error::TryRecvError::Empty)
         ));
-
-        let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
-            .await
-            .expect("failed to query old session")
-            .expect("expected old session");
-        assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
-    }
-
-    #[sqlx::test]
-    async fn test_replacing_connected_non_mfa_session_emits_standard_disconnect_event(
-        _: PgPoolOptions,
-        options: PgConnectOptions,
-    ) {
-        let pool = setup_pool(options).await;
-        let location = create_mfa_location(&pool).await;
-        let user = create_user(&pool).await;
-        let device = create_device(&pool, user.id).await;
-        attach_device_to_location(&pool, location.id, device.id).await;
-        let old_session = VpnClientSession::new(
-            location.id,
-            user.id,
-            device.id,
-            Some(Utc::now().naive_utc()),
-            None,
-        )
-        .save(&pool)
-        .await
-        .expect("failed to create existing connected non-MFA session");
-
-        let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
-        let mut conn = pool.acquire().await.expect("failed to acquire connection");
-
-        server
-            .create_new_session(
-                &mut conn,
-                &location,
-                &user,
-                &device,
-                Some(VpnClientMfaMethod::Totp),
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
-            )
-            .await
-            .expect("should replace connected non-MFA session");
-
-        assert!(matches!(
-            gateway_rx.try_recv(),
-            Err(broadcast::error::TryRecvError::Empty)
-        ));
-
-        let event = event_rx.try_recv().expect(
-            "expected standard disconnect audit event for replaced connected non-MFA session",
-        );
-        match event.event {
-            BidiStreamEventType::DesktopClientMfa(event) => match *event {
-                DesktopClientMfaEvent::Disconnected {
-                    location: event_location,
-                    device: event_device,
-                    is_mfa_session,
-                } => {
-                    assert_eq!(event_location.id, location.id);
-                    assert_eq!(event_device.id, device.id);
-                    assert!(!is_mfa_session);
-                }
-                other => panic!("unexpected bidi event: {other:?}"),
-            },
-            other => panic!("unexpected bidi stream event type: {other:?}"),
-        }
-        assert_eq!(event.context.user_id, user.id);
-        assert_eq!(event.context.username, user.username);
 
         let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
             .await
@@ -1744,6 +1727,7 @@ mod tests {
             None,
             LicenseTier::Enterprise,
             SupportType::Basic,
+            vec![],
         );
         set_cached_license(Some(license));
         set_counts(Counts::new(1, 1, 1, 1));
@@ -1783,6 +1767,7 @@ mod tests {
             windows_security_update_max_age: None,
             min_kernel_version: None,
             device_integrity_required: None,
+            android_security_patch_level_max_age: None,
         }
         .save(pool)
         .await

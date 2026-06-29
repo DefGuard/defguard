@@ -34,7 +34,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
   const { mutate: toggleWebhook } = useMutation({
     mutationFn: api.webhook.changeWebhookState,
     meta: {
-      invalidate: ['webhook'],
+      invalidate: [['webhook'], ['settings_essentials']],
     },
   });
   const addButtonProps = useMemo(
@@ -130,7 +130,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
                       title: m.webhooks_delete_confirm_title(),
                       contentMd: m.webhooks_delete_confirm_body(),
                       actionPromise: () => api.webhook.deleteWebhook(row.id),
-                      invalidateKeys: [['webhook']],
+                      invalidateKeys: [['webhook'], ['settings_essentials']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
                       onSuccess: () => Snackbar.default(m.webhooks_delete_success()),
                       onError: () => Snackbar.error(m.webhooks_delete_failed()),

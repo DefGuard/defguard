@@ -10,16 +10,20 @@ members = ["crates/*", "tools/*"]
 default-members = ["crates/*"]
 resolver = "2"
 
+[workspace.lints.clippy]
+uninlined_format_args = "deny"
+manual_let_else = "warn"
+redundant_closure = "warn"
+
 [workspace.dependencies]
 # internal crates
 
 defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
-defguard_common = { path = "./crates/defguard_common", version = "2.0.1" }
+defguard_common = { path = "./crates/defguard_common", version = "2.1.0" }
 defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_gateway_manager = { path = "./crates/defguard_gateway_manager", version = "0.0.0" }
-defguard_mail = { path = "./crates/defguard_mail", version = "0.0.0" }
 defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
 defguard_proxy_manager = { path = "./crates/defguard_proxy_manager", version = "0.0.0" }
 defguard_session_manager = { path = "./crates/defguard_session_manager", version = "0.0.0" }

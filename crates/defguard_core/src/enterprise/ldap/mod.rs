@@ -15,7 +15,7 @@ use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use self::error::LdapError;
 use crate::{
@@ -27,6 +27,7 @@ use crate::{
         },
         limits::update_counts,
     },
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
 };
 
@@ -47,6 +48,7 @@ pub mod utils;
 pub(crate) async fn do_ldap_sync(
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();
@@ -93,7 +95,10 @@ pub(crate) async fn do_ldap_sync(
         }
     };
 
-    if let Err(err) = ldap_connection.sync(pool, is_ldap_desynced(), wg_tx).await {
+    if let Err(err) = ldap_connection
+        .sync(pool, is_ldap_desynced(), wg_tx, ldap_tx)
+        .await
+    {
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(err);
     }
@@ -374,6 +379,7 @@ impl LDAPConnection {
         users: Vec<&mut User<Id>>,
         pool: &PgPool,
         wg_tx: &Sender<GatewayCommand>,
+        ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         debug!("Updating users state in LDAP");
 
@@ -445,7 +451,7 @@ impl LDAPConnection {
                 debug!(
                     "User {user} is in LDAP and is allowed to be synced, synchronizing his data"
                 );
-                self.sync_user_data(user, pool, wg_tx).await?;
+                self.sync_user_data(user, pool, wg_tx, ldap_tx).await?;
                 debug!("User {user} data synchronized");
             }
         }

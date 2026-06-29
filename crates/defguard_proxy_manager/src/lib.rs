@@ -13,10 +13,11 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    events::BidiStreamEvent, grpc::proxy::client_mfa::ClientLoginSession,
+    events::{BidiStreamEvent, LdapSyncEventType},
+    grpc::proxy::client_mfa::ClientLoginSession,
     version::IncompatibleComponents,
 };
-use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
+use defguard_proto::proxy::{CoreResponse, HttpsCerts, PublicSettings, core_response};
 use sqlx::PgPool;
 #[cfg(test)]
 use tokio::sync::Notify;
@@ -385,6 +386,27 @@ impl ProxyManager {
                                 }
                             }
                         }
+                        Some(ProxyControlMessage::BroadcastPublicSettings {
+                            display_password_reset,
+                            display_download_step,
+                        }) => {
+                            debug!("Broadcasting PublicSettings to all connected proxies");
+                            let msg = CoreResponse {
+                                id: 0,
+                                payload: Some(core_response::Payload::PublicSettings(
+                                    PublicSettings {
+                                        display_password_reset,
+                                        display_download_step,
+                                    },
+                                )),
+                            };
+                            if let Ok(map) = handler_tx_map.read() {
+                                for (pid, tx) in map.iter() {
+                                    debug!("Sending PublicSettings to proxy {pid}");
+                                    let _ = tx.send(msg.clone());
+                                }
+                            }
+                        }
                         None => {
                             debug!("Proxy control channel closed");
                             break;
@@ -403,17 +425,20 @@ impl ProxyManager {
 pub struct ProxyTxSet {
     wireguard: Sender<GatewayCommand>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
+    pub(crate) ldap: UnboundedSender<LdapSyncEventType>,
 }
 
 impl ProxyTxSet {
     #[must_use]
-    pub const fn new(
+    pub fn new(
         wireguard: Sender<GatewayCommand>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
+        ldap: UnboundedSender<LdapSyncEventType>,
     ) -> Self {
         Self {
             wireguard,
             bidi_events,
+            ldap,
         }
     }
 }

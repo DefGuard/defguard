@@ -304,7 +304,7 @@ export const getDeletePostureCheckModalData = (
         })
       : m.modal_delete_posture_check_content_empty(),
     actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
-    invalidateKeys: [['device-posture'], ['network']],
+    invalidateKeys: [['device-posture'], ['network'], ['activity-log']],
     submitProps: {
       text: m.controls_delete(),
       variant: 'critical',

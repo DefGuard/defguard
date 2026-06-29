@@ -82,6 +82,10 @@ pub struct SmtpSettings {
     #[sqlx(rename = "smtp_oauth_refresh_token")]
     #[patch(attribute(serde(rename = "smtp_oauth_refresh_token")))]
     pub oauth_refresh_token: Option<String>,
+    #[serde(rename = "smtp_oauth_tenant_id")]
+    #[sqlx(rename = "smtp_oauth_tenant_id")]
+    #[patch(attribute(serde(rename = "smtp_oauth_tenant_id")))]
+    pub oauth_tenant_id: Option<String>,
 }
 
 impl SmtpSettings {
@@ -105,6 +109,39 @@ impl SmtpSettings {
 
         Ok(())
     }
+
+    /// Check if all required options are properly configured.
+    /// This is meant to be used to check if sending emails is enabled in current instance.
+    #[must_use]
+    pub fn is_configured(&self) -> bool {
+        let string_not_empty = |string: &String| !string.is_empty();
+        let secret_not_empty = |secret: &SecretStringWrapper| !secret.expose_secret().is_empty();
+
+        self.port.is_some()
+            && self.server.as_ref().is_some_and(string_not_empty)
+            && self.sender.as_ref().is_some_and(string_not_empty)
+            && match self.authentication {
+                SmtpAuthentication::None => true,
+                SmtpAuthentication::Login => {
+                    self.user.as_ref().is_some_and(string_not_empty)
+                        && self.password.as_ref().is_some_and(secret_not_empty)
+                }
+                SmtpAuthentication::XOAuth2 => {
+                    self.oauth_issuer_url.as_ref().is_some_and(string_not_empty)
+                        && self.oauth_client_id.as_ref().is_some_and(string_not_empty)
+                        && self
+                            .oauth_client_secret
+                            .as_ref()
+                            .is_some_and(secret_not_empty)
+                }
+            }
+    }
+
+    /// Returns `true` is SMTP authentication is using XOAUTH2.
+    #[must_use]
+    pub fn is_xoauth2(&self) -> bool {
+        matches!(self.authentication, SmtpAuthentication::XOAuth2)
+    }
 }
 
 // Implement manually to avoid exposing secrets.
@@ -119,6 +156,7 @@ impl fmt::Debug for SmtpSettings {
             .field("authentication", &self.authentication)
             .field("oauth_issuer_url", &self.oauth_issuer_url)
             .field("oauth_client_id", &self.oauth_client_id)
+            .field("oauth_tenant_id", &self.oauth_tenant_id)
             .finish_non_exhaustive()
     }
 }

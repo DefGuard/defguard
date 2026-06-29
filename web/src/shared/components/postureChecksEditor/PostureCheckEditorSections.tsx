@@ -1,5 +1,4 @@
 import './style.scss';
-
 import { getOperatingSystemVersionOptionLabel } from '../../../pages/AddPostureCheckWizardPage/operatingSystemVersionLabels';
 import { addPostureCheckOperatingSystems } from '../../../pages/AddPostureCheckWizardPage/types';
 import type { OperatingSystemConditionKey } from '../../../pages/AddPostureCheckWizardPage/useAddPostureCheckWizardStore';
@@ -12,17 +11,23 @@ import {
 import { m } from '../../../paraglide/messages';
 import { Checkbox } from '../../defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
+import { EvenSplit } from '../../defguard-ui/components/EvenSplit/EvenSplit';
 import { Input } from '../../defguard-ui/components/Input/Input';
 import { InteractiveBlock } from '../../defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
+import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { Textarea } from '../../defguard-ui/components/Textarea/Textarea';
+import { ThemeSpacing } from '../../defguard-ui/types';
+import { DescriptionBlock } from '../DescriptionBlock/DescriptionBlock';
 import { PolicyOsCard } from '../policyPostures/PolicyOsCard/PolicyOsCard';
 import { SystemSelector } from '../SystemSelector/SystemSelector';
 
 export type PostureCheckEditorOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
   securityUpdateMaxAge: number | null;
+  /** Android only */
+  androidSecurityPatchLevelMaxAge: number | null;
   version: number | null;
 };
 
@@ -62,7 +67,7 @@ type OperatingSystemsSectionProps = {
   values: PostureCheckEditorValues;
   versionValues: PostureCheckVersionValues;
   updateValues: UpdateValues;
-  compact?: boolean;
+  asCards?: boolean;
 };
 
 type DefguardSectionProps = {
@@ -156,7 +161,7 @@ export const PostureCheckGeneralSection = ({
 };
 
 export const PostureCheckOperatingSystemsSection = ({
-  compact = false,
+  asCards = false,
   updateValues,
   values,
   versionValues,
@@ -176,6 +181,7 @@ export const PostureCheckOperatingSystemsSection = ({
           versionOptions[0];
         const conditions = osConditions[operatingSystem];
         const showWindowsSecurityUpdate = operatingSystem === PostureCheckOs.Windows;
+        const showAndroidSecurityPatch = operatingSystem === PostureCheckOs.Android;
 
         const securityUpdateOptions: SelectOption<number | null>[] = [
           {
@@ -231,11 +237,24 @@ export const PostureCheckOperatingSystemsSection = ({
           }));
         };
 
+        const handleAndroidSecurityPatchLevelMaxAgeChange = (value: number | null) => {
+          updateValues((current) => ({
+            ...current,
+            operatingSystemState: {
+              ...current.operatingSystemState,
+              [operatingSystem]: {
+                ...current.operatingSystemState[operatingSystem],
+                androidSecurityPatchLevelMaxAge: value,
+              },
+            },
+          }));
+        };
+
         return (
           <div className="system-item" key={operatingSystem}>
-            {index > 0 && <Divider />}
+            {index > 0 && !asCards && <Divider spacing={ThemeSpacing.Xl3} />}
             <PolicyOsCard
-              hideCard={compact}
+              hideCard={!asCards}
               os={operatingSystem}
               onDiscard={() => {
                 updateValues((current) => ({
@@ -247,27 +266,36 @@ export const PostureCheckOperatingSystemsSection = ({
               }}
             >
               <div className="posture-check-os-card">
-                <div className="selects">
-                  <div className="select-slot">
-                    <Select
-                      options={versionOptions}
-                      value={selectedVersion}
-                      onChange={(option) => {
-                        updateValues((current) => ({
-                          ...current,
-                          operatingSystemState: {
-                            ...current.operatingSystemState,
-                            [operatingSystem]: {
-                              ...current.operatingSystemState[operatingSystem],
-                              version: option.value,
-                            },
+                <EvenSplit>
+                  <Select
+                    options={versionOptions}
+                    value={selectedVersion}
+                    onChange={(option) => {
+                      updateValues((current) => ({
+                        ...current,
+                        operatingSystemState: {
+                          ...current.operatingSystemState,
+                          [operatingSystem]: {
+                            ...current.operatingSystemState[operatingSystem],
+                            version: option.value,
                           },
-                        }));
-                      }}
-                    />
-                  </div>
-                  {showWindowsSecurityUpdate && (
-                    <div className="select-slot">
+                        },
+                      }));
+                    }}
+                  />
+                </EvenSplit>
+                {showWindowsSecurityUpdate && (
+                  <div>
+                    <Divider spacing={ThemeSpacing.Xl} />
+                    <DescriptionBlock
+                      title={m.posture_checks_wizard_operating_systems_windows_security_updates_section_title()}
+                    >
+                      <p>
+                        {m.posture_checks_wizard_operating_systems_windows_security_updates_section_description()}
+                      </p>
+                    </DescriptionBlock>
+                    <SizedBox height={ThemeSpacing.Md} />
+                    <EvenSplit>
                       <Select
                         options={securityUpdateOptions}
                         value={
@@ -279,12 +307,38 @@ export const PostureCheckOperatingSystemsSection = ({
                           handleSecurityUpdateMaxAgeChange(option.value)
                         }
                       />
-                    </div>
-                  )}
-                </div>
+                    </EvenSplit>
+                  </div>
+                )}
+                {showAndroidSecurityPatch && (
+                  <div>
+                    <Divider spacing={ThemeSpacing.Xl} />
+                    <DescriptionBlock
+                      title={m.posture_checks_wizard_operating_systems_android_security_patch_title()}
+                    >
+                      <p>
+                        {m.posture_checks_wizard_operating_systems_android_security_patch_description()}
+                      </p>
+                    </DescriptionBlock>
+                    <SizedBox height={ThemeSpacing.Md} />
+                    <EvenSplit>
+                      <Select
+                        options={securityUpdateOptions}
+                        value={
+                          securityUpdateOptions.find(
+                            (o) => o.value === details.androidSecurityPatchLevelMaxAge,
+                          ) ?? securityUpdateOptions[0]
+                        }
+                        onChange={(option) =>
+                          handleAndroidSecurityPatchLevelMaxAgeChange(option.value)
+                        }
+                      />
+                    </EvenSplit>
+                  </div>
+                )}
                 {conditions.length > 0 && (
                   <>
-                    <Divider />
+                    <Divider spacing={ThemeSpacing.Xl} />
                     <div className="conditions">
                       <div className="conditions-copy">
                         <p className="title">
@@ -336,6 +390,9 @@ export const PostureCheckOperatingSystemsSection = ({
           </div>
         );
       })}
+      {values.configuredOperatingSystems.length > 0 &&
+        visibleSystemSelectors.length > 0 &&
+        !asCards && <Divider spacing={ThemeSpacing.Xl3} />}
       {visibleSystemSelectors.length > 0 && (
         <div className="selectors">
           {visibleSystemSelectors.map((operatingSystem) => (

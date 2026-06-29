@@ -70,6 +70,10 @@ const EditPostureCheckForm = ({
     () => buildLocationOptions(locations),
     [locations],
   );
+  const assignedLocationOptions = useMemo(
+    () => locationOptions.filter((location) => defaults.locations.has(location.id)),
+    [defaults.locations, locationOptions],
+  );
 
   useEffect(() => {
     setValues(defaults);
@@ -93,7 +97,7 @@ const EditPostureCheckForm = ({
       );
     },
     meta: {
-      invalidate: [['device-posture'], ['network']],
+      invalidate: [['device-posture'], ['network'], ['activity-log']],
     },
     onSuccess: () => {
       Snackbar.default(m.posture_checks_edit_save_success());
@@ -131,7 +135,7 @@ const EditPostureCheckForm = ({
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_operating_systems()}>
         <PostureCheckOperatingSystemsSection
-          compact
+          asCards={false}
           values={values}
           versionValues={versionValues}
           updateValues={updateValues}
@@ -146,7 +150,7 @@ const EditPostureCheckForm = ({
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_locations()}>
         <PostureCheckLocationsSection
-          locationOptions={locationOptions}
+          locationOptions={assignedLocationOptions}
           values={values}
           updateValues={updateValues}
         />
@@ -160,7 +164,7 @@ const EditPostureCheckForm = ({
               title: m.posture_checks_edit_delete_title(),
               contentMd: m.posture_checks_edit_delete_body({ name: postureCheck.name }),
               actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
-              invalidateKeys: [['device-posture'], ['network']],
+              invalidateKeys: [['device-posture'], ['network'], ['activity-log']],
               submitProps: { text: m.controls_delete(), variant: 'critical' },
               onSuccess: () => {
                 Snackbar.default(m.posture_checks_edit_delete_success());

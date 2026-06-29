@@ -66,12 +66,14 @@ pub(crate) fn assert_initial_info_received(response: &CoreResponse) {
     );
 }
 
-/// Consume the `InitialInfo` message that the handler sends immediately after
-/// establishing the bidi stream.  Most lifecycle tests call this before
-/// injecting any business messages.
+/// Consume the `InitialInfo` and `PublicSettings` messages that the handler
+/// sends immediately after establishing the bidi stream.  Most lifecycle tests
+/// call this before injecting any business messages.
 pub(crate) async fn complete_proxy_handshake(context: &mut HandlerTestContext) {
     let response = context.mock_proxy_mut().recv_outbound().await;
     assert_initial_info_received(&response);
+    // PublicSettings follows InitialInfo on connect.
+    context.mock_proxy_mut().recv_public_settings().await;
 }
 
 /// Assert that a `CoreResponse` carries a `DeviceConfig` payload and return a
@@ -109,6 +111,7 @@ pub(crate) fn set_test_license_business() {
         version_date_limit: None,
         tier: LicenseTier::Business,
         support_type: SupportType::Basic,
+        features: vec![],
     };
     set_cached_license(Some(license));
 }
@@ -124,6 +127,7 @@ pub(crate) fn set_test_license_enterprise() {
         version_date_limit: None,
         tier: LicenseTier::Enterprise,
         support_type: SupportType::Basic,
+        features: vec![],
     }));
 }
 
@@ -743,6 +747,7 @@ pub(crate) async fn create_oidc_provider(
         jumpcloud_api_key: None,
         prefetch_users: false,
         disable_password_management: false,
+        directory_sync_user_groups: None,
     }
     .save(pool)
     .await

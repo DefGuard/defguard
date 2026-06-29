@@ -1,0 +1,62 @@
+.smtp-auth-method-card {
+  box-sizing: border-box;
+  padding: var(--spacing-md);
+  border: var(--border-1) solid var(--border-disabled);
+  border-radius: var(--spacing-lg);
+
+  @include animate(border-color);
+
+  & > .inner {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    column-gap: var(--spacing-lg);
+
+    & > .icon-track {
+      height: 48px;
+      width: 48px;
+
+      & > .icon-box {
+        height: 48px;
+        width: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-action-muted);
+        border: var(--border-1) solid var(--border-disabled);
+        border-radius: var(--spacing-lg);
+        box-sizing: border-box;
+
+        &.variant-google,
+        &.variant-microsoft {
+          background-color: var(--bg-white);
+        }
+      }
+    }
+
+    & > .content-track {
+      & > .top {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        column-gap: var(--spacing-sm);
+        padding-bottom: var(--spacing-xs);
+      }
+
+      .name {
+        font: var(--t-body-primary-500);
+        color: var(--fg-default);
+      }
+
+      .description {
+        font: var(--t-body-xs-400);
+        color: var(--fg-muted);
+      }
+    }
+
+    & > .action-track {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}

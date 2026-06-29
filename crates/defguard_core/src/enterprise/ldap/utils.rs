@@ -8,7 +8,7 @@ use defguard_common::db::{
     models::{User, group::Group},
 };
 use sqlx::PgPool;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use super::{LDAPConnection, error::LdapError};
 use crate::{
@@ -18,6 +18,7 @@ use crate::{
         license::get_cached_license,
         limits::get_counts,
     },
+    events::LdapSyncEventType,
     grpc::GatewayCommand,
 };
 
@@ -29,6 +30,12 @@ fn reached_user_license_limit() -> Option<(u32, u32)> {
     user_limit
         .filter(|limit| user_count >= *limit)
         .map(|limit| (user_count, limit))
+}
+
+fn emit_ldap_sync_event(ldap_tx: &UnboundedSender<LdapSyncEventType>, event: LdapSyncEventType) {
+    if let Err(err) = ldap_tx.send(event) {
+        error!("Failed to send LDAP sync activity log event: {err}");
+    }
 }
 
 /// Retrieves a user from LDAP if they are in the configured LDAP sync groups.
@@ -113,9 +120,10 @@ pub async fn ldap_update_user_state(
     user: &mut User<Id>,
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let vec = vec![user];
-    Box::pin(ldap_update_users_state(vec, pool, wg_tx)).await;
+    Box::pin(ldap_update_users_state(vec, pool, wg_tx, ldap_tx)).await;
 }
 
 /// See the [`LDAPConnection::update_users_state`] function for details.
@@ -123,12 +131,13 @@ pub(crate) async fn ldap_update_users_state(
     users: Vec<&mut User<Id>>,
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let _ = Box::pin(with_ldap_status(pool, async {
         debug!("Updating users state in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection
-            .update_users_state(users, pool, wg_tx)
+            .update_users_state(users, pool, wg_tx, ldap_tx)
             .await?;
         Ok(())
     }))
@@ -139,7 +148,12 @@ pub(crate) async fn ldap_update_users_state(
 /// This will set the `ldap_pass_randomized` field to `true` in the user.
 ///
 /// If the user already exists, the creation will be skipped.
-pub async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &PgPool) {
+pub async fn ldap_add_user(
+    user: &mut User<Id>,
+    password: Option<&str>,
+    pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
+) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Creating user {user} in LDAP");
         if !ldap_sync_allowed_for_user(user, pool).await? {
@@ -156,7 +170,13 @@ pub async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &P
             return Ok(());
         }
         match ldap_connection.add_user(user, password, pool).await {
-            Ok(()) => Ok(()),
+            Ok(()) => {
+                emit_ldap_sync_event(
+                    ldap_tx,
+                    LdapSyncEventType::OutboundUserCreated { user: user.clone() },
+                );
+                Ok(())
+            }
             // This user might exist in LDAP, just try to set the password.
             Err(err) => {
                 warn!("There was an error while trying to create the user {user} in LDAP: {err}");
@@ -190,6 +210,7 @@ pub(crate) async fn ldap_handle_user_modify(
     current_user: &mut User<Id>,
     pool: &PgPool,
     wg_tx: &Sender<GatewayCommand>,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let _: Result<(), LdapError> = Box::pin(with_ldap_status(pool, async {
         debug!("Handling user modify for {old_username} in LDAP");
@@ -203,7 +224,7 @@ pub(crate) async fn ldap_handle_user_modify(
                 stale"
             );
             ldap_connection
-                .update_users_state(vec![current_user], pool, wg_tx)
+                .update_users_state(vec![current_user], pool, wg_tx, ldap_tx)
                 .await?;
         }
         ldap_connection
@@ -220,8 +241,12 @@ pub(crate) async fn ldap_handle_user_modify(
 /// For example, by calling the [`User::ldap_sync_allowed`] method on the user.
 //
 // The mentioned method can't be called here since the user is already dropped from the database
-pub(crate) async fn ldap_delete_user<I>(user: &User<I>, pool: &PgPool) {
-    ldap_delete_users(vec![user], pool).await;
+pub(crate) async fn ldap_delete_user<I>(
+    user: &User<I>,
+    pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
+) {
+    ldap_delete_users(vec![user], pool, ldap_tx).await;
 }
 
 /// Deletes multiple users from LDAP.
@@ -231,13 +256,23 @@ pub(crate) async fn ldap_delete_user<I>(user: &User<I>, pool: &PgPool) {
 /// For example, by calling the [`User::ldap_sync_allowed`] method on each user.
 //
 // The mentioned method can't be called here since the user is already dropped from the database
-pub(crate) async fn ldap_delete_users<I>(users: Vec<&User<I>>, pool: &PgPool) {
+pub(crate) async fn ldap_delete_users<I>(
+    users: Vec<&User<I>>,
+    pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
+) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Deleting {:?} users from LDAP", users.len());
         let mut ldap_connection = LDAPConnection::create().await?;
         for user in users {
             debug!("Deleting user {user} from LDAP");
             ldap_connection.delete_user(user).await?;
+            emit_ldap_sync_event(
+                ldap_tx,
+                LdapSyncEventType::OutboundUserDeleted {
+                    username: user.username.clone(),
+                },
+            );
             debug!("User {user} deleted from LDAP");
         }
 
@@ -251,22 +286,29 @@ pub(crate) async fn ldap_remove_user_from_groups(
     user: &User<Id>,
     groups: HashSet<&str>,
     pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let map = HashMap::from([(user, groups)]);
-    ldap_remove_users_from_groups(map, pool).await;
+    ldap_remove_users_from_groups(map, pool, ldap_tx).await;
 }
 
 /// Add singular user to multiple groups in LDAP. Convenience wrapper around
 /// [`ldap_add_users_to_groups`].
-pub(crate) async fn ldap_add_user_to_groups(user: &User<Id>, groups: HashSet<&str>, pool: &PgPool) {
+pub(crate) async fn ldap_add_user_to_groups(
+    user: &User<Id>,
+    groups: HashSet<&str>,
+    pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
+) {
     let map = HashMap::from([(user, groups)]);
-    ldap_add_users_to_groups(map, pool).await;
+    ldap_add_users_to_groups(map, pool, ldap_tx).await;
 }
 
 /// Bulk add users to groups in ldap.
 pub(crate) async fn ldap_add_users_to_groups(
     user_groups: HashMap<&User<Id>, HashSet<&str>>,
     pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
@@ -290,6 +332,13 @@ pub(crate) async fn ldap_add_users_to_groups(
 
             for group in groups {
                 ldap_connection.add_user_to_group(user, group).await?;
+                emit_ldap_sync_event(
+                    ldap_tx,
+                    LdapSyncEventType::OutboundGroupMemberAdded {
+                        group: group.to_owned(),
+                        username: user.username.clone(),
+                    },
+                );
             }
         }
 
@@ -302,6 +351,7 @@ pub(crate) async fn ldap_add_users_to_groups(
 pub(crate) async fn ldap_remove_users_from_groups(
     user_groups: HashMap<&User<Id>, HashSet<&str>>,
     pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
@@ -325,6 +375,13 @@ pub(crate) async fn ldap_remove_users_from_groups(
             for group in groups {
                 if ldap_connection.group_exists(group).await? {
                     ldap_connection.remove_user_from_group(user, group).await?;
+                    emit_ldap_sync_event(
+                        ldap_tx,
+                        LdapSyncEventType::OutboundGroupMemberRemoved {
+                            group: group.to_owned(),
+                            username: user.username.clone(),
+                        },
+                    );
                 } else {
                     debug!("Group {group} doesn't exist in LDAP, skipping removal of user {user}");
                 }
@@ -336,7 +393,12 @@ pub(crate) async fn ldap_remove_users_from_groups(
     .await;
 }
 
-pub async fn ldap_change_password(user: &mut User<Id>, password: &str, pool: &PgPool) {
+pub async fn ldap_change_password(
+    user: &mut User<Id>,
+    password: &str,
+    pool: &PgPool,
+    ldap_tx: &UnboundedSender<LdapSyncEventType>,
+) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Changing password for user {user} in LDAP");
         if !ldap_sync_allowed_for_user(user, pool).await? {
@@ -361,8 +423,19 @@ pub async fn ldap_change_password(user: &mut User<Id>, password: &str, pool: &Pg
             debug!("User {user} doesn't exist in LDAP, creating it with the provided password");
             let user_groups = user.member_of_names(pool).await?;
             ldap_connection.add_user(user, Some(password), pool).await?;
+            emit_ldap_sync_event(
+                ldap_tx,
+                LdapSyncEventType::OutboundUserCreated { user: user.clone() },
+            );
             for group in user_groups {
                 ldap_connection.add_user_to_group(user, &group).await?;
+                emit_ldap_sync_event(
+                    ldap_tx,
+                    LdapSyncEventType::OutboundGroupMemberAdded {
+                        group,
+                        username: user.username.clone(),
+                    },
+                );
             }
             debug!("User {user} created in LDAP with the provided password");
         }

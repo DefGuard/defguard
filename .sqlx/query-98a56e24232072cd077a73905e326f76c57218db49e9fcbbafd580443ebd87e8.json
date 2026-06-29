@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"enterprisesettings\" SET admin_device_management = $1, client_traffic_policy = $2, only_client_activation = $3, display_download_step = $4, display_password_reset = $5 WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        {
+          "Custom": {
+            "name": "client_traffic_policy",
+            "kind": {
+              "Enum": [
+                "none",
+                "disable_all_traffic",
+                "force_all_traffic"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "98a56e24232072cd077a73905e326f76c57218db49e9fcbbafd580443ebd87e8"
+}

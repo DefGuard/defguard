@@ -215,7 +215,7 @@ const VirtualImageTab = () => {
       <CodeSnippet
         value={`#cloud-config
 write_files:
-  - path: /opt/defguard/active-profiles
+  - path: /opt/stacks/defguard/active-profiles
     permissions: '0644'
     content: |
       gateway

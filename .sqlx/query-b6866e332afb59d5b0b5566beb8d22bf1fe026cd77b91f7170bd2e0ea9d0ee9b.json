@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_posture_os_rule\" SET \"posture_id\" = $2,\"os_type\" = $3,\"min_os_version\" = $4,\"disk_encryption_required\" = $5,\"antivirus_required\" = $6,\"ad_domain_joined_required\" = $7,\"windows_security_update_max_age\" = $8,\"min_kernel_version\" = $9,\"device_integrity_required\" = $10,\"android_security_patch_level_max_age\" = $11 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "os_type",
+            "kind": {
+              "Enum": [
+                "windows",
+                "macos",
+                "linux",
+                "ios",
+                "android"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b6866e332afb59d5b0b5566beb8d22bf1fe026cd77b91f7170bd2e0ea9d0ee9b"
+}

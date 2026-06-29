@@ -38,7 +38,12 @@ export const AddExternalOpenIdDirectoryStep = () => {
       }
     },
     meta: {
-      invalidate: [['settings'], ['info'], ['openid', 'provider']],
+      invalidate: [
+        ['settings'],
+        ['info'],
+        ['openid', 'provider'],
+        ['settings_essentials'],
+      ],
     },
   });
 

@@ -486,7 +486,7 @@ impl Settings {
             challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
             smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
             smtp_authentication, smtp_oauth_issuer_url, smtp_oauth_client_id, \
-            smtp_oauth_client_secret, smtp_oauth_refresh_token, \
+            smtp_oauth_client_secret, smtp_oauth_refresh_token, smtp_oauth_tenant_id, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, \
@@ -633,7 +633,8 @@ impl Settings {
             enrollment_session_timeout_minutes = $70, \
             password_reset_session_timeout_minutes = $71, \
             ldap_sync_account_status = $72, \
-            ldap_disable_password_management = $73 \
+            ldap_disable_password_management = $73, \
+            smtp_oauth_tenant_id = $74 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -708,6 +709,7 @@ impl Settings {
             self.password_reset_session_timeout_minutes,
             self.ldap_sync_account_status,
             self.ldap_disable_password_management,
+            self.smtp.oauth_tenant_id,
         )
         .execute(executor)
         .await?;

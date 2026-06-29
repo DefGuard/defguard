@@ -29,7 +29,8 @@ const basicSchema = z
       .string(m.form_error_required())
       .trim()
       .min(1, m.form_error_required()),
-    directory_sync_group_match: z.string().trim().optional(),
+    directory_sync_group_match: z.string().trim().nullable(),
+    directory_sync_user_groups: z.string().trim().nullable(),
   })
   .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
 
@@ -87,6 +88,13 @@ export const EditMicrosoftProviderForm = ({
             ? [provider.directory_sync_group_match]
             : null,
       ),
+      directory_sync_user_groups: joinCsv(
+        Array.isArray(provider.directory_sync_user_groups)
+          ? provider.directory_sync_user_groups
+          : provider.directory_sync_user_groups
+            ? [provider.directory_sync_user_groups]
+            : null,
+      ),
       microsoftTenantId: tenantId,
     };
   }, [provider]);
@@ -104,6 +112,7 @@ export const EditMicrosoftProviderForm = ({
         ...value,
         base_url,
         directory_sync_group_match: value.directory_sync_group_match ?? '',
+        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
       });
     },
   });
@@ -247,6 +256,15 @@ export const EditMicrosoftProviderForm = ({
                     <field.FormInput
                       label={m.settings_openid_provider_label_sync_only_matching_groups()}
                       helper={m.settings_openid_provider_helper_microsoft_group_match()}
+                    />
+                  )}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="directory_sync_user_groups">
+                  {(field) => (
+                    <field.FormInput
+                      label={m.settings_openid_provider_label_sync_users_from_groups()}
+                      helper={m.settings_openid_provider_helper_sync_users_from_groups()}
                     />
                   )}
                 </form.AppField>

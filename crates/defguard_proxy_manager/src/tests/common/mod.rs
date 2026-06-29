@@ -355,6 +355,20 @@ impl MockProxyHarness {
         }
     }
 
+    /// Receive the `PublicSettings` message that follows `InitialInfo` on connect.
+    pub(crate) async fn recv_public_settings(&mut self) -> core_response::Payload {
+        let response = self.recv_outbound().await;
+        match response.payload {
+            Some(core_response::Payload::PublicSettings(s)) => {
+                core_response::Payload::PublicSettings(s)
+            }
+            other => panic!(
+                "expected PublicSettings as second message from handler, got: {:?}",
+                other.as_ref().map(std::mem::discriminant)
+            ),
+        }
+    }
+
     pub(crate) async fn expect_server_finished(mut self) {
         let server_task = assert_some!(
             self.server_task.take(),
@@ -411,7 +425,8 @@ impl HandlerTestContext {
 
         let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx);
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx, ldap_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -591,7 +606,8 @@ impl ManagerTestContext {
 
         let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, _bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx);
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx, ldap_tx);
 
         let incompatible_components = Arc::new(std::sync::RwLock::new(
             defguard_core::version::IncompatibleComponents::default(),

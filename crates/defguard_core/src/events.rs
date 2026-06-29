@@ -17,6 +17,7 @@ use crate::{
         activity_log_stream::ActivityLogStream,
         api_tokens::ApiToken,
         device_posture::{DevicePosture, DevicePostureSnapshot},
+        enterprise_settings::EnterpriseSettings,
         openid_provider::OpenIdProvider,
         snat::UserSnatBinding,
     },
@@ -239,6 +240,10 @@ pub enum ApiEventType {
         after: Settings,
     },
     SettingsDefaultBrandingRestored,
+    EnterpriseSettingsUpdated {
+        before: EnterpriseSettings,
+        after: EnterpriseSettings,
+    },
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
         groups: Vec<Group<Id>>,
@@ -428,6 +433,9 @@ pub enum DesktopClientMfaEvent {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
+        /// Name of the device used to approve the login when the mobile approve
+        /// MFA method is used. `None` for all other methods.
+        mobile_auth_device_name: Option<String>,
     },
     Failed {
         device: Device<Id>,
@@ -451,4 +459,29 @@ pub enum DesktopClientMfaEvent {
         device_posture_data: Option<DevicePostureData>,
         failed_checks: Vec<String>,
     },
+    SessionSuperseded {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        is_mfa_session: bool,
+    },
+}
+
+#[derive(Debug, PartialEq, EnumCount)]
+#[allow(clippy::large_enum_variant)]
+pub enum LdapSyncEventType {
+    UserCreated { user: User<Id> },
+    UserDeleted { user: User<Id> },
+    UserModified { before: User<Id>, after: User<Id> },
+    UserEnabled { user: User<Id> },
+    UserDisabled { user: User<Id> },
+    GroupCreated { group: Group<Id> },
+    GroupMemberAdded { group: Group<Id>, user: User<Id> },
+    GroupMemberRemoved { group: Group<Id>, user: User<Id> },
+    OutboundUserCreated { user: User<Id> },
+    OutboundUserDeleted { username: String },
+    OutboundUserModified { user: User<Id> },
+    OutboundUserEnabled { user: User<Id> },
+    OutboundUserDisabled { user: User<Id> },
+    OutboundGroupMemberAdded { group: String, username: String },
+    OutboundGroupMemberRemoved { group: String, username: String },
 }

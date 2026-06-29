@@ -62,6 +62,7 @@ fn set_test_license_business() {
         tier: LicenseTier::Business,
         valid_until: None,
         version_date_limit: None,
+        features: vec![],
     };
     set_cached_license(Some(license));
 }

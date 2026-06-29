@@ -10,15 +10,15 @@ use defguard_core::{
             ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
             ClientConfigurationTokenMetadata, ClientDeviceMetadata, DeviceMetadata,
             DeviceModifiedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata,
-            GatewayDeletedMetadata, GatewayModifiedMetadata, GroupAssignedMetadata,
-            GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
-            GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata,
-            MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
-            NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
-            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
-            PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata,
-            SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata,
-            UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            EnterpriseSettingsUpdateMetadata, GatewayDeletedMetadata, GatewayModifiedMetadata,
+            GroupAssignedMetadata, GroupMembersModifiedMetadata, GroupMetadata,
+            GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
+            MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
+            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
+            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
+            PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata,
+            ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
+            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
             UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
             VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
             WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
@@ -26,7 +26,7 @@ use defguard_core::{
     },
     events::{
         ApiEvent, ApiEventType, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
-        PasswordResetEvent,
+        LdapSyncEventType, PasswordResetEvent,
     },
 };
 use defguard_session_manager::events::{SessionManagerEvent, SessionManagerEventType};
@@ -49,6 +49,7 @@ pub async fn run_event_logger(
     api_event_rx: UnboundedReceiver<ApiEvent>,
     bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
+    ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
     activity_log_stream_reload_notify: Arc<Notify>,
     activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
@@ -61,6 +62,7 @@ pub async fn run_event_logger(
         api_event_rx,
         bidi_event_rx,
         session_manager_event_rx,
+        ldap_sync_event_rx,
         activity_log_stream_reload_notify,
         event_logger_tx,
     ));
@@ -94,6 +96,7 @@ async fn translate_and_forward(
     mut api_event_rx: UnboundedReceiver<ApiEvent>,
     mut bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     mut session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
+    mut ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
     reload_notify: Arc<Notify>,
     event_logger_tx: tokio::sync::mpsc::UnboundedSender<EventLoggerMessage>,
 ) {
@@ -111,12 +114,48 @@ async fn translate_and_forward(
                 error!("Session manager event channel closed");
                 break;
             },
+            event = ldap_sync_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_ldap_sync_event(e) } else {
+                error!("LDAP sync event channel closed");
+                break;
+            },
         };
 
         if event_logger_tx.send(message).is_err() {
             debug!("Event logger channel closed, translation task shutting down");
             break;
         }
+    }
+}
+
+/// Returns the activity log module for an API-derived event.
+///
+/// Most API events are Defguard management events and keep the historical
+/// `Defguard` module. Device posture management events are categorized under
+/// `Posture` so they can be filtered and exported independently.
+fn api_event_module(event_type: &EventType) -> ActivityLogModule {
+    match event_type {
+        EventType::DevicePostureCreated
+        | EventType::DevicePostureUpdated
+        | EventType::DevicePostureDeleted
+        | EventType::DevicePostureDuplicated
+        | EventType::DevicePostureLocationsAssigned
+        | EventType::LocationPosturesAssigned => ActivityLogModule::Posture,
+        _ => ActivityLogModule::Defguard,
+    }
+}
+
+/// Returns the activity log module for a BIDI-derived event.
+///
+/// Desktop client MFA events default to the `Vpn` module because they describe
+/// VPN authorization/session activity. Posture check pass/fail events are routed
+/// to `Posture` so posture evaluation activity is not mixed with generic VPN MFA
+/// activity.
+fn bidi_event_module(event_type: &EventType) -> ActivityLogModule {
+    match event_type {
+        EventType::DevicePostureCheckPassed | EventType::DevicePostureCheckFailed => {
+            ActivityLogModule::Posture
+        }
+        _ => ActivityLogModule::Vpn,
     }
 }
 
@@ -133,7 +172,6 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
 
     let (module, event, description, metadata) = match message.event {
         Event::Api(event) => {
-            let module = ActivityLogModule::Defguard;
             let description = get_api_event_description(&event);
 
             let (event_type, metadata) = match event {
@@ -396,6 +434,11 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ApiEventType::SettingsDefaultBrandingRestored => {
                     (EventType::SettingsDefaultBrandingRestored, None)
                 }
+                ApiEventType::EnterpriseSettingsUpdated { before, after } => (
+                    EventType::EnterpriseSettingsUpdated,
+                    serde_json::to_value(EnterpriseSettingsUpdateMetadata { before, after })
+                        .ok(),
+                ),
                 ApiEventType::ActivityLogStreamCreated { stream } => (
                     EventType::ActivityLogStreamCreated,
                     serde_json::to_value(ActivityLogStreamMetadata {
@@ -586,18 +629,25 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     serde_json::to_value(EnrollmentTokenMetadata { user: user.into() }).ok(),
                 ),
             };
+
+            let module = api_event_module(&event_type);
             (module, event_type, description, metadata)
         }
         Event::Bidi(BidiStreamEventType::DesktopClientMfa(event)) => {
-            let module = ActivityLogModule::Vpn;
             let description = match &*event {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
                     method,
-                } => Some(format!(
-                    "Device {device} completed MFA authorization for location {location} using {method}"
-                )),
+                    mobile_auth_device_name,
+                } => Some(match mobile_auth_device_name {
+                    Some(auth_device) => format!(
+                        "Device {device} completed MFA authorization for location {location} using {method} (approved on {auth_device})"
+                    ),
+                    None => format!(
+                        "Device {device} completed MFA authorization for location {location} using {method}"
+                    ),
+                }),
                 DesktopClientMfaEvent::Failed {
                     location,
                     device,
@@ -632,18 +682,25 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     "Device posture check failed for device {device}: {}",
                     failed_checks.join(",")
                 )),
+                DesktopClientMfaEvent::SessionSuperseded {
+                    device, location, ..
+                } => Some(format!(
+                    "VPN session for {device} in location {location} superseded by new authorization"
+                )),
             };
             let (event_type, metadata) = match *event {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
                     method,
+                    mobile_auth_device_name,
                 } => (
                     EventType::VpnClientMfaSuccess,
                     serde_json::to_value(VpnClientMfaMetadata {
                         location,
                         device,
                         method,
+                        mobile_auth_device_name,
                     })
                     .ok(),
                 ),
@@ -695,7 +752,25 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
+                DesktopClientMfaEvent::SessionSuperseded {
+                    location,
+                    device,
+                    is_mfa_session,
+                } => {
+                    if is_mfa_session {
+                        (
+                            EventType::VpnClientMfaSessionSuperseded,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    } else {
+                        (
+                            EventType::VpnClientSessionSuperseded,
+                            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                        )
+                    }
+                }
             };
+            let module = bidi_event_module(&event_type);
             (module, event_type, description, metadata)
         }
         Event::SessionManager {
@@ -734,6 +809,137 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 SessionManagerEventType::MfaClientDisconnected => (
                     EventType::VpnClientMfaDisconnected,
                     serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
+            };
+            (module, event_type, description, metadata)
+        }
+        Event::LdapSync { uses_ad, event } => {
+            let module = if uses_ad {
+                ActivityLogModule::ActiveDirectory
+            } else {
+                ActivityLogModule::Ldap
+            };
+            let description = match &event {
+                LdapSyncEventType::UserCreated { user } => {
+                    Some(format!("LDAP sync created user {user}"))
+                }
+                LdapSyncEventType::UserDeleted { user } => {
+                    Some(format!("LDAP sync deleted user {user}"))
+                }
+                LdapSyncEventType::UserModified { after, .. } => {
+                    Some(format!("LDAP sync modified user {after}"))
+                }
+                LdapSyncEventType::UserEnabled { user } => {
+                    Some(format!("LDAP sync enabled user {user}"))
+                }
+                LdapSyncEventType::UserDisabled { user } => {
+                    Some(format!("LDAP sync disabled user {user}"))
+                }
+                LdapSyncEventType::GroupCreated { group } => {
+                    Some(format!("LDAP sync created group {}", group.name))
+                }
+                LdapSyncEventType::GroupMemberAdded { group, user } => Some(format!(
+                    "LDAP sync added user {user} to group {}",
+                    group.name
+                )),
+                LdapSyncEventType::GroupMemberRemoved { group, user } => Some(format!(
+                    "LDAP sync removed user {user} from group {}",
+                    group.name
+                )),
+                LdapSyncEventType::OutboundUserCreated { user } => {
+                    Some(format!("Defguard synced user {user} to LDAP"))
+                }
+                LdapSyncEventType::OutboundUserDeleted { username } => {
+                    Some(format!("Defguard removed user {username} from LDAP"))
+                }
+                LdapSyncEventType::OutboundUserModified { user } => {
+                    Some(format!("Defguard synced user {user} attributes to LDAP"))
+                }
+                LdapSyncEventType::OutboundUserEnabled { user } => {
+                    Some(format!("Defguard enabled LDAP account for user {user}"))
+                }
+                LdapSyncEventType::OutboundUserDisabled { user } => {
+                    Some(format!("Defguard disabled LDAP account for user {user}"))
+                }
+                LdapSyncEventType::OutboundGroupMemberAdded { group, username } => Some(format!(
+                    "Defguard added user {username} to LDAP group {group}"
+                )),
+                LdapSyncEventType::OutboundGroupMemberRemoved { group, username } => Some(format!(
+                    "Defguard removed user {username} from LDAP group {group}"
+                )),
+            };
+            let (event_type, metadata) = match event {
+                LdapSyncEventType::UserCreated { user } => (
+                    EventType::LdapSyncUserCreated,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::UserDeleted { user } => (
+                    EventType::LdapSyncUserDeleted,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::UserModified { before, after } => (
+                    EventType::LdapSyncUserModified,
+                    serde_json::to_value(UserModifiedMetadata {
+                        before: before.into(),
+                        after: after.into(),
+                    })
+                    .ok(),
+                ),
+                LdapSyncEventType::UserEnabled { user } => (
+                    EventType::LdapSyncUserEnabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::UserDisabled { user } => (
+                    EventType::LdapSyncUserDisabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::GroupCreated { group } => (
+                    EventType::LdapSyncGroupCreated,
+                    serde_json::to_value(GroupMetadata { group }).ok(),
+                ),
+                LdapSyncEventType::GroupMemberAdded { group, user } => (
+                    EventType::LdapSyncGroupMemberAdded,
+                    serde_json::to_value(GroupAssignedMetadata {
+                        group,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                LdapSyncEventType::GroupMemberRemoved { group, user } => (
+                    EventType::LdapSyncGroupMemberRemoved,
+                    serde_json::to_value(GroupAssignedMetadata {
+                        group,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                LdapSyncEventType::OutboundUserCreated { user } => (
+                    EventType::LdapSyncOutboundUserCreated,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundUserDeleted { username } => (
+                    EventType::LdapSyncOutboundUserDeleted,
+                    Some(serde_json::json!({ "username": username })),
+                ),
+                LdapSyncEventType::OutboundUserModified { user } => (
+                    EventType::LdapSyncOutboundUserModified,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundUserEnabled { user } => (
+                    EventType::LdapSyncOutboundUserEnabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundUserDisabled { user } => (
+                    EventType::LdapSyncOutboundUserDisabled,
+                    serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                LdapSyncEventType::OutboundGroupMemberAdded { group, username } => (
+                    EventType::LdapSyncOutboundGroupMemberAdded,
+                    Some(serde_json::json!({ "group": group, "username": username })),
+                ),
+                LdapSyncEventType::OutboundGroupMemberRemoved { group, username } => (
+                    EventType::LdapSyncOutboundGroupMemberRemoved,
+                    Some(serde_json::json!({ "group": group, "username": username })),
                 ),
             };
             (module, event_type, description, metadata)

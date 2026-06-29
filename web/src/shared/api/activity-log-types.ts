@@ -5,6 +5,9 @@ export const ActivityLogModule = {
   Client: 'client',
   Vpn: 'vpn',
   Enrollment: 'enrollment',
+  Posture: 'posture',
+  ActiveDirectory: 'active_directory',
+  Ldap: 'ldap',
 } as const;
 
 export type ActivityLogModuleValue =
@@ -50,6 +53,8 @@ export const ActivityLogEventType = {
   VpnClientMfaDisconnected: 'vpn_client_mfa_disconnected',
   VpnClientMfaSuccess: 'vpn_client_mfa_success',
   VpnClientMfaFailed: 'vpn_client_mfa_failed',
+  VpnClientSessionSuperseded: 'vpn_client_session_superseded',
+  VpnClientMfaSessionSuperseded: 'vpn_client_mfa_session_superseded',
 
   EnrollmentTokenAdded: 'enrollment_token_added',
   EnrollmentStarted: 'enrollment_started',
@@ -78,6 +83,7 @@ export const ActivityLogEventType = {
   SettingsUpdated: 'settings_updated',
   SettingsUpdatedPartial: 'settings_updated_partial',
   SettingsDefaultBrandingRestored: 'settings_default_branding_restored',
+  EnterpriseSettingsUpdated: 'enterprise_settings_updated',
 
   GroupsBulkAssigned: 'groups_bulk_assigned',
   GroupAdded: 'group_added',
@@ -111,6 +117,31 @@ export const ActivityLogEventType = {
 
   GatewayModified: 'gateway_modified',
   GatewayDeleted: 'gateway_deleted',
+
+  DevicePostureCreated: 'device_posture_created',
+  DevicePostureUpdated: 'device_posture_updated',
+  DevicePostureDeleted: 'device_posture_deleted',
+  DevicePostureDuplicated: 'device_posture_duplicated',
+  DevicePostureLocationsAssigned: 'device_posture_locations_assigned',
+  LocationPosturesAssigned: 'location_postures_assigned',
+  DevicePostureCheckPassed: 'device_posture_check_passed',
+  DevicePostureCheckFailed: 'device_posture_check_failed',
+
+  LdapSyncUserCreated: 'ldap_sync_user_created',
+  LdapSyncUserDeleted: 'ldap_sync_user_deleted',
+  LdapSyncUserModified: 'ldap_sync_user_modified',
+  LdapSyncUserEnabled: 'ldap_sync_user_enabled',
+  LdapSyncUserDisabled: 'ldap_sync_user_disabled',
+  LdapSyncGroupCreated: 'ldap_sync_group_created',
+  LdapSyncGroupMemberAdded: 'ldap_sync_group_member_added',
+  LdapSyncGroupMemberRemoved: 'ldap_sync_group_member_removed',
+  LdapSyncOutboundUserCreated: 'ldap_sync_outbound_user_created',
+  LdapSyncOutboundUserDeleted: 'ldap_sync_outbound_user_deleted',
+  LdapSyncOutboundUserModified: 'ldap_sync_outbound_user_modified',
+  LdapSyncOutboundUserEnabled: 'ldap_sync_outbound_user_enabled',
+  LdapSyncOutboundUserDisabled: 'ldap_sync_outbound_user_disabled',
+  LdapSyncOutboundGroupMemberAdded: 'ldap_sync_outbound_group_member_added',
+  LdapSyncOutboundGroupMemberRemoved: 'ldap_sync_outbound_group_member_removed',
 } as const;
 
 export type ActivityLogEventTypeValue =

@@ -46,6 +46,7 @@ pub struct AddProviderData {
     pub jumpcloud_api_key: Option<String>,
     pub prefetch_users: bool,
     pub disable_password_management: bool,
+    pub directory_sync_user_groups: Option<String>,
     // Core settings
     pub create_account: bool,
     pub username_handling: OpenIdUsernameHandling,
@@ -157,6 +158,21 @@ pub(crate) async fn add_openid_provider(
         Vec::new()
     };
 
+    let user_groups = if let Some(user_groups) = provider_data.directory_sync_user_groups {
+        if user_groups.is_empty() {
+            None
+        } else {
+            Some(
+                user_groups
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect(),
+            )
+        }
+    } else {
+        None
+    };
+
     // Currently, we only support one OpenID provider at a time
     let new_provider = OpenIdProvider::new(
         provider_data.name,
@@ -179,6 +195,7 @@ pub(crate) async fn add_openid_provider(
         provider_data.jumpcloud_api_key,
         provider_data.prefetch_users,
         provider_data.disable_password_management,
+        user_groups,
     )
     .upsert(&appstate.pool)
     .await?;
@@ -386,6 +403,21 @@ pub(crate) async fn modify_openid_provider(
             Vec::new()
         };
 
+        let user_groups = if let Some(user_groups) = provider_data.directory_sync_user_groups {
+            if user_groups.is_empty() {
+                None
+            } else {
+                Some(
+                    user_groups
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect(),
+                )
+            }
+        } else {
+            None
+        };
+
         provider.base_url = provider_data.base_url;
         provider.kind = provider_data.kind;
         provider.client_id = provider_data.client_id;
@@ -404,6 +436,7 @@ pub(crate) async fn modify_openid_provider(
         provider.directory_sync_group_match = group_match;
         provider.jumpcloud_api_key = provider_data.jumpcloud_api_key;
         provider.prefetch_users = provider_data.prefetch_users;
+        provider.directory_sync_user_groups = user_groups;
         provider.save(&mut *transaction).await?;
         transaction.commit().await?;
 

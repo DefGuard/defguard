@@ -32,6 +32,8 @@ export const AddDeviceModalStartStep = () => {
 
   if (!user) return null;
 
+  const showManualSetup = user.has_non_mfa_location_access;
+
   return (
     <div id="add-device-start-step">
       <div
@@ -55,35 +57,39 @@ export const AddDeviceModalStartStep = () => {
         </div>
         <Icon icon="arrow-small" rotationDirection="right" />
       </div>
-      <SizedBox height={ThemeSpacing.Xl2} />
-      <FoldButton
-        open={advancedOpen}
-        onChange={setAdvancedOpen}
-        textClose={m.modal_add_user_device_hide_advanced()}
-        textOpen={m.modal_add_user_device_show_advanced()}
-      />
-      <Fold open={advancedOpen}>
-        <SizedBox height={ThemeSpacing.Md} />
-        <div
-          data-testid="client-manual"
-          className="option"
-          role="button"
-          onClick={() => {
-            useAddUserDeviceModal.setState({
-              step: AddUserDeviceModalStep.ManualSetup,
-            });
-          }}
-        >
-          <div className="image">
-            <img alt="option-image" src={manualImage} />
-          </div>
-          <div className="description">
-            <p>{m.modal_add_user_device_start_manual_title()}</p>
-            <p>{m.modal_add_user_device_start_manual_subtitle()}</p>
-          </div>
-          <Icon icon="arrow-small" rotationDirection="right" />
-        </div>
-      </Fold>
+      {showManualSetup && (
+        <>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <FoldButton
+            open={advancedOpen}
+            onChange={setAdvancedOpen}
+            textClose={m.modal_add_user_device_hide_advanced()}
+            textOpen={m.modal_add_user_device_show_advanced()}
+          />
+          <Fold open={advancedOpen}>
+            <SizedBox height={ThemeSpacing.Md} />
+            <div
+              data-testid="client-manual"
+              className="option"
+              role="button"
+              onClick={() => {
+                useAddUserDeviceModal.setState({
+                  step: AddUserDeviceModalStep.ManualSetup,
+                });
+              }}
+            >
+              <div className="image">
+                <img alt="option-image" src={manualImage} />
+              </div>
+              <div className="description">
+                <p>{m.modal_add_user_device_start_manual_title()}</p>
+                <p>{m.modal_add_user_device_start_manual_subtitle()}</p>
+              </div>
+              <Icon icon="arrow-small" rotationDirection="right" />
+            </div>
+          </Fold>
+        </>
+      )}
     </div>
   );
 };

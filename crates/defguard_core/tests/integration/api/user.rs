@@ -1027,6 +1027,7 @@ async fn test_add_user_blocked_when_user_count_exceeds_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     )));
 
     let new_user = AddUserData {

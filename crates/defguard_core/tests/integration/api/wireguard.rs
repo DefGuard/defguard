@@ -170,6 +170,7 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
+        vec![],
     )));
 
     let response = client
@@ -419,6 +420,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         jumpcloud_api_key: None,
         prefetch_users: false,
         disable_password_management: false,
+        directory_sync_user_groups: None,
     };
 
     let response = client
@@ -522,6 +524,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         jumpcloud_api_key: None,
         prefetch_users: false,
         disable_password_management: false,
+        directory_sync_user_groups: None,
     };
 
     let response = client
@@ -1704,6 +1707,7 @@ fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
+        vec![],
     )));
 }
 

@@ -109,7 +109,7 @@ export const AddPostureCheckSummaryStep = () => {
                 title: m.posture_checks_wizard_confirm_modal_title(),
                 contentMd: m.posture_checks_wizard_confirm_modal_content(),
                 actionPromise: () => api.devicePosture.addDevicePosture(requestData),
-                invalidateKeys: [['device-posture']],
+                invalidateKeys: [['device-posture'], ['activity-log']],
                 submitProps: {
                   text: m.posture_checks_wizard_summary_submit(),
                 },

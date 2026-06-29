@@ -250,6 +250,80 @@ async fn test_activate_user_already_activated_returns_error(
     context.finish().await.expect_server_finished().await;
 }
 
+/// Regression: a user with a password whose enrollment was retriggered
+/// (`enrollment_pending == true`) must be able to enroll again, because the
+/// activation gate checks `is_enrolled()` rather than `has_password()`.
+#[sqlx::test]
+async fn test_activate_user_with_password_but_enrollment_pending_can_reenroll(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mut user = create_user(&context.pool).await;
+    user.set_password("OldPassw0rd!");
+    user.enrollment_pending = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save user with pending enrollment");
+    assert!(!user.is_enrolled());
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    let response = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        other => panic!(
+            "expected Empty on re-enrollment of pending user, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(!updated.enrollment_pending);
+    assert!(updated.is_enrolled());
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Regression: a user who is already enrolled (password set, not
+/// enrollment-pending) must be rejected with `InvalidArgument` when enrolling.
+#[sqlx::test]
+async fn test_activate_user_already_enrolled_cannot_reenroll(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mut user = create_user(&context.pool).await;
+    user.set_password("OldPassw0rd!");
+    user.enrollment_pending = false;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save already-enrolled user");
+    assert!(user.is_enrolled());
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "activating an already-enrolled user must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
 #[sqlx::test]
 async fn test_new_device_sends_gateway_device_created_event(
     _: PgPoolOptions,

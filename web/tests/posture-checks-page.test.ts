@@ -269,26 +269,31 @@ describe('posture checks page helpers', () => {
         windows: {
           conditions: ['active-directory', 'disk-encryption'],
           securityUpdateMaxAge: null,
+          androidSecurityPatchLevelMaxAge: null,
           version: 11,
         },
         macos: {
           conditions: [],
           securityUpdateMaxAge: null,
+          androidSecurityPatchLevelMaxAge: null,
           version: null,
         },
         linux: {
           conditions: [],
           securityUpdateMaxAge: null,
+          androidSecurityPatchLevelMaxAge: null,
           version: null,
         },
         ios: {
           conditions: [],
           securityUpdateMaxAge: null,
+          androidSecurityPatchLevelMaxAge: null,
           version: null,
         },
         android: {
           conditions: ['device-integrity'],
           securityUpdateMaxAge: null,
+          androidSecurityPatchLevelMaxAge: undefined,
           version: 15,
         },
       },

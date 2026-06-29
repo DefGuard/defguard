@@ -19,7 +19,6 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::templates::{mfa_activation_mail, mfa_code_mail, mfa_configured_mail};
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
 use uaparser::Parser;
@@ -42,6 +41,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ClientIpAddr, SIGN_IN_COOKIE_NAME, cookie_domain, user_for_admin_or_self},
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
+    mail::templates::{mfa_activation_mail, mfa_code_mail, mfa_configured_mail},
     server_config,
 };
 
