@@ -106,6 +106,7 @@ describe('add posture check wizard store', () => {
     store.updateOperatingSystemDetails(PostureCheckOs.Windows, {
       conditions: ['disk-encryption', 'antivirus'],
       securityUpdateMaxAge: null,
+      androidSecurityPatchLevelMaxAge: null,
       version: 10,
     });
 
@@ -116,6 +117,7 @@ describe('add posture check wizard store', () => {
       {
         conditions: ['disk-encryption', 'antivirus'],
         securityUpdateMaxAge: null,
+        androidSecurityPatchLevelMaxAge: null,
         version: 10,
       },
     );

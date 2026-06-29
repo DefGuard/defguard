@@ -75,6 +75,7 @@ const buildOperatingSystemRule = (
         device_integrity_required: hasCondition(details.conditions, 'device-integrity')
           ? true
           : null,
+        android_security_patch_level_max_age: details.androidSecurityPatchLevelMaxAge,
       };
   }
 };

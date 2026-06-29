@@ -1763,6 +1763,7 @@ mod tests {
             windows_security_update_max_age: None,
             min_kernel_version: None,
             device_integrity_required: None,
+            android_security_patch_level_max_age: None,
         }
         .save(pool)
         .await

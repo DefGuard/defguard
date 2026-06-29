@@ -63,7 +63,7 @@ export const AddPostureCheckOperatingSystemsStep = ({ versionValues }: Props) =>
           </AppText>
         </div>
         <PostureCheckOperatingSystemsSection
-          compact
+          asCards={true}
           values={values}
           versionValues={versionValues}
           updateValues={(updater) => {

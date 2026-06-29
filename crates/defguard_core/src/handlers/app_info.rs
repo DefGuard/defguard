@@ -1,6 +1,6 @@
 use axum::{extract::State, http::StatusCode};
 use defguard_common::{
-    VERSION,
+    REPORTED_VERSION,
     db::models::{Settings, WireguardNetwork},
 };
 
@@ -44,7 +44,7 @@ pub async fn get_app_info(State(appstate): State<AppState>, _session: SessionInf
     let res = AppInfo {
         network_present: !networks.is_empty(),
         smtp_enabled,
-        version: VERSION.into(),
+        version: REPORTED_VERSION.into(),
         ldap_info: LdapInfo {
             enabled: settings.ldap_enabled,
             ad: settings.ldap_uses_ad,

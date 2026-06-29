@@ -4,7 +4,10 @@ import { PostureCheckOs, type PostureCheckOsValue } from '../PostureChecksPage/t
 
 export type EditPostureCheckOperatingSystemState = {
   conditions: OperatingSystemConditionKey[];
+  /** Windows only */
   securityUpdateMaxAge: number | null;
+  /** Android only */
+  androidSecurityPatchLevelMaxAge: number | null;
   version: number | null;
 };
 
@@ -33,26 +36,31 @@ export const getDefaultEditPostureCheckOperatingSystemState = (): Record<
   [PostureCheckOs.Windows]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: null,
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: null,
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: null,
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: null,
   },
   [PostureCheckOs.Android]: {
     conditions: [],
     securityUpdateMaxAge: null,
+    androidSecurityPatchLevelMaxAge: null,
     version: null,
   },
 });
@@ -105,6 +113,10 @@ export const getInitialEditPostureCheckFormValues = (
       securityUpdateMaxAge:
         rule.os_type === PostureCheckOs.Windows
           ? rule.windows_security_update_max_age
+          : null,
+      androidSecurityPatchLevelMaxAge:
+        rule.os_type === PostureCheckOs.Android
+          ? rule.android_security_patch_level_max_age
           : null,
       version: getRuleVersion(rule),
     };

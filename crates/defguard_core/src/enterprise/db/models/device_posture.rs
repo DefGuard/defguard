@@ -46,6 +46,8 @@ pub struct DevicePostureOsRule<I = NoId> {
     pub min_kernel_version: Option<i32>,
     // macOS, iOS, Android only
     pub device_integrity_required: Option<bool>,
+    // Android only
+    pub android_security_patch_level_max_age: Option<i32>,
 }
 
 impl DevicePostureOsRule<Id> {
@@ -59,7 +61,7 @@ impl DevicePostureOsRule<Id> {
             "SELECT id, posture_id, os_type \"os_type: OsType\", min_os_version, \
             disk_encryption_required, antivirus_required, ad_domain_joined_required, \
             windows_security_update_max_age, min_kernel_version, \
-            device_integrity_required \
+            device_integrity_required, android_security_patch_level_max_age \
             FROM device_posture_os_rule WHERE posture_id = $1",
             posture_id
         )

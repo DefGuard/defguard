@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"posture_id\",\"os_type\" \"os_type: _\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_max_age\",\"min_kernel_version\",\"device_integrity_required\" FROM \"device_posture_os_rule\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"posture_id\",\"os_type\" \"os_type: _\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_max_age\",\"min_kernel_version\",\"device_integrity_required\",\"android_security_patch_level_max_age\" FROM \"device_posture_os_rule\"",
   "describe": {
     "columns": [
       {
@@ -65,13 +65,15 @@
         "ordinal": 9,
         "name": "device_integrity_required",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "android_security_patch_level_max_age",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -83,8 +85,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "603525e948f6627c30183b71ba56b47f37347a518ebc43954e392950cbf30a47"
+  "hash": "7ab8ced718c14c368158492ff45bb42258647f5f34ac725dc66d7abba3f4aa72"
 }
