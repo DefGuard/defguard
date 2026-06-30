@@ -28,7 +28,7 @@ test.describe('MFA authentication', () => {
 
     await loginBasic(page, testUser);
     await page.goto(routes.base + routes.auth.email);
-    const { otp: code } = TOTP.generate(secret, {
+    const { otp: code } = await TOTP.generate(secret, {
       digits: 6,
       period: EMAIL_CODE_VALIDITY_TIME, //FIXME: Probably a bug, email codes should be valid for 60 seconds
     });
