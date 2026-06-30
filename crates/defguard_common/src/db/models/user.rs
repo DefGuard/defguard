@@ -1805,16 +1805,16 @@ mod test {
         }
     }
 
-    fn settings_with(ldap_flag: bool) -> Settings {
-        let mut s = Settings::default();
-        s.ldap_disable_password_management = ldap_flag;
-        s
+    fn settings_with_ldap_password_management(password_management_disabled: bool) -> Settings {
+        let mut settings = Settings::default();
+        settings.ldap_disable_password_management = password_management_disabled;
+        settings
     }
 
     #[test]
     fn test_admin_always_exempt() {
         let user = make_user(true, None, None);
-        let settings = settings_with(true);
+        let settings = settings_with_ldap_password_management(true);
         // Admin + LDAP user without password + LDAP flag on => still false
         assert!(!user.password_management_disabled(true, &settings, false));
         // Admin + OIDC user without password + OIDC flag on => still false
@@ -1828,7 +1828,7 @@ mod test {
     #[test]
     fn test_user_with_password_always_allowed() {
         let user = make_user(true, None, Some("hash"));
-        let settings = settings_with(true);
+        let settings = settings_with_ldap_password_management(true);
         // Non-admin LDAP user with password => false (has local password)
         assert!(!user.password_management_disabled(false, &settings, false));
         // Non-admin OIDC user with password => false
@@ -1840,7 +1840,7 @@ mod test {
     fn test_local_user_never_disabled() {
         // User with no external source and no password => still a local user, not disabled
         let user = make_user(false, None, None);
-        let settings = settings_with(true);
+        let settings = settings_with_ldap_password_management(true);
         assert!(!user.password_management_disabled(false, &settings, true));
         // User with no external source but with password => not disabled
         let user = make_user(false, None, Some("hash"));
@@ -1850,28 +1850,28 @@ mod test {
     #[test]
     fn test_ldap_user_disabled_when_flag_on_no_password_non_admin() {
         let user = make_user(true, None, None);
-        let settings = settings_with(true);
+        let settings = settings_with_ldap_password_management(true);
         assert!(user.password_management_disabled(false, &settings, false));
     }
 
     #[test]
     fn test_ldap_user_allowed_when_flag_off() {
         let user = make_user(true, None, None);
-        let settings = settings_with(false);
+        let settings = settings_with_ldap_password_management(false);
         assert!(!user.password_management_disabled(false, &settings, false));
     }
 
     #[test]
     fn test_oidc_user_disabled_when_flag_on_no_password_non_admin() {
         let user = make_user(false, Some("sub"), None);
-        let settings = settings_with(false);
+        let settings = settings_with_ldap_password_management(false);
         assert!(user.password_management_disabled(false, &settings, true));
     }
 
     #[test]
     fn test_oidc_user_allowed_when_flag_off() {
         let user = make_user(false, Some("sub"), None);
-        let settings = settings_with(false);
+        let settings = settings_with_ldap_password_management(false);
         assert!(!user.password_management_disabled(false, &settings, false));
     }
 
@@ -1879,17 +1879,17 @@ mod test {
     fn test_dual_source_user_disabled_when_either_flag_on() {
         let user = make_user(true, Some("sub"), None);
         // LDAP flag on, OIDC flag off => disabled (LDAP wins)
-        let settings = settings_with(true);
+        let settings = settings_with_ldap_password_management(true);
         assert!(user.password_management_disabled(false, &settings, false));
         // LDAP flag off, OIDC flag on => disabled (OIDC wins)
-        let settings = settings_with(false);
+        let settings = settings_with_ldap_password_management(false);
         assert!(user.password_management_disabled(false, &settings, true));
     }
 
     #[test]
     fn test_dual_source_user_allowed_when_both_flags_off() {
         let user = make_user(true, Some("sub"), None);
-        let settings = settings_with(false);
+        let settings = settings_with_ldap_password_management(false);
         assert!(!user.password_management_disabled(false, &settings, false));
     }
 }

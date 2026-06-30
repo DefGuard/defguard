@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 use crate::{
     db::{
         Id,
-        models::{MFAMethod, device::UserDevice, group::Group, settings::get_settings, user::User},
+        models::{MFAMethod, Settings, device::UserDevice, group::Group, user::User},
     },
     types::group_diff::GroupDiff,
 };
@@ -79,9 +79,12 @@ impl UserInfo {
         let enrolled = user.is_enrolled();
         let is_admin = user.is_admin(pool).await?;
         let devices = user.user_devices(pool).await?;
-        let password_management_disabled = get_settings().as_ref().is_some_and(|settings| {
-            user.password_management_disabled(is_admin, settings, oidc_disable_password_management)
-        });
+        let settings = Settings::get_current_settings();
+        let password_management_disabled = user.password_management_disabled(
+            is_admin,
+            &settings,
+            oidc_disable_password_management,
+        );
 
         let has_non_mfa_location_access = has_non_mfa_location_access(pool, &groups).await?;
 

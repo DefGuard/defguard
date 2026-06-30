@@ -453,11 +453,11 @@ impl EnrollmentServer {
             let oidc_disable_password_management =
                 OpenIdProvider::current_disables_password_management(&self.pool)
                     .await
-                    .unwrap_or_else(|err| {
+                    .map_err(|err| {
                         // Default to false on transient DB errors
                         error!("Failed to check OIDC password management flag: {err}");
-                        false
-                    });
+                        Status::internal("unexpected error")
+                    })?;
             let settings = Settings::get_current_settings();
             let is_admin = user.is_admin(&self.pool).await.map_err(|err| {
                 error!("Failed to check if user is admin: {err}");
