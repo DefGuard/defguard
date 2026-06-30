@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::extract::cookie::CookieJar;
-use defguard_common::db::models::{Session, Settings};
+use defguard_common::db::models::{Session, SessionState, Settings, user::User};
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
@@ -79,8 +79,38 @@ pub async fn forward_auth(
                 );
                 let _result = session.delete(&appstate.pool).await;
             } else {
-                // If session is verified return 200 response
-                return Ok(ForwardAuthResponse::Accept);
+                // FIXME: This duplicates the MFA and is_active checks from
+                // SessionInfo (auth/mod.rs). Extract a shared session validation
+                // helper so these checks cannot drift apart again.
+                match User::find_by_id(&appstate.pool, session.user_id).await {
+                    Ok(Some(user)) => {
+                        if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+                            info!(
+                                "Session {} for user id {} MFA not completed, redirecting to login",
+                                session.id, session.user_id
+                            );
+                        } else if !user.is_active {
+                            info!(
+                                "User id {} is disabled, redirecting to login",
+                                session.user_id
+                            );
+                        } else {
+                            return Ok(ForwardAuthResponse::Accept);
+                        }
+                    }
+                    Ok(None) => {
+                        info!(
+                            "User id {} not found for session {}, redirecting to login",
+                            session.user_id, session.id
+                        );
+                    }
+                    Err(err) => {
+                        warn!(
+                            "Failed to load user id {} for session {}: {err}, redirecting to login",
+                            session.user_id, session.id
+                        );
+                    }
+                }
             }
         }
     }
