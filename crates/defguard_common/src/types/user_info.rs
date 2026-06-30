@@ -70,6 +70,7 @@ impl UserInfo {
     pub async fn from_user(
         pool: &PgPool,
         user: User<Id>,
+        // FIXME: remove this and just fetch straight from DB once we reorganize enterprise code to allow required imports here
         oidc_disable_password_management: bool,
     ) -> sqlx::Result<Self> {
         let name = format!("{} {}", user.first_name, user.last_name);
