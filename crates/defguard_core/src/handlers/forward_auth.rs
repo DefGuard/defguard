@@ -7,7 +7,12 @@ use axum_extra::extract::cookie::CookieJar;
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
-use crate::{appstate::AppState, db::Session, error::WebError, server_config};
+use crate::{
+    appstate::AppState,
+    db::{Session, SessionState, User},
+    error::WebError,
+    server_config,
+};
 
 // Header names
 static FORWARDED_HOST: &str = "x-forwarded-host";
@@ -78,8 +83,38 @@ pub async fn forward_auth(
                 );
                 let _result = session.delete(&appstate.pool).await;
             } else {
-                // If session is verified return 200 response
-                return Ok(ForwardAuthResponse::Accept);
+                // FIXME: This duplicates the MFA and is_active checks from
+                // SessionInfo (auth/mod.rs). Extract a shared session validation
+                // helper so these checks cannot drift apart again.
+                match User::find_by_id(&appstate.pool, session.user_id).await {
+                    Ok(Some(user)) => {
+                        if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+                            info!(
+                                "Session {} for user id {} MFA not completed, redirecting to login",
+                                session.id, session.user_id
+                            );
+                        } else if !user.is_active {
+                            info!(
+                                "User id {} is disabled, redirecting to login",
+                                session.user_id
+                            );
+                        } else {
+                            return Ok(ForwardAuthResponse::Accept);
+                        }
+                    }
+                    Ok(None) => {
+                        info!(
+                            "User id {} not found for session {}, redirecting to login",
+                            session.user_id, session.id
+                        );
+                    }
+                    Err(err) => {
+                        warn!(
+                            "Failed to load user id {} for session {}: {err}, redirecting to login",
+                            session.user_id, session.id
+                        );
+                    }
+                }
             }
         }
     }
