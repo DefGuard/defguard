@@ -107,7 +107,7 @@ export const AddLocationFirewallStep = () => {
         />
         <div className="right">
           <Button
-            testId="create-location"
+            testId="firewall-continue"
             text={m.controls_continue()}
             onClick={() => {
               handleSubmit();
