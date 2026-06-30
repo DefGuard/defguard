@@ -30,7 +30,7 @@ export const enableTOTP = async (
   const totpSecret =
     (await page.getByTestId('totp-code').locator('p').textContent()) ?? '';
 
-  const { otp: token } = TOTP.generate(totpSecret);
+  const { otp: token } = await TOTP.generate(totpSecret);
 
   await page.getByTestId('field-code').fill(token);
   await page.getByTestId('submit-totp').click();

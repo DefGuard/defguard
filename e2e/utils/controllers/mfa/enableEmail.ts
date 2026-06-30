@@ -49,7 +49,7 @@ export const enableEmailMFA = async (
   await page.getByTestId('enable-email').click();
   await page.getByTestId('field-code').waitFor({ state: 'visible' });
   const secret = await extractEmailSecret(user.username);
-  const { otp: code } = TOTP.generate(secret, {
+  const { otp: code } = await TOTP.generate(secret, {
     digits: 6,
     period: 300,
   });
