@@ -1159,6 +1159,7 @@ mod tests {
         models::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
+            settings::initialize_current_settings,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -1198,6 +1199,9 @@ mod tests {
     ) {
         set_enterprise_license();
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
         let location = create_non_mfa_location(&pool).await;
         save_linux_posture_policy(&pool, location.id).await;
         let user = create_user(&pool).await;
@@ -1258,6 +1262,9 @@ mod tests {
     ) {
         set_enterprise_license();
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
         let location = create_non_mfa_location(&pool).await;
         save_linux_posture_policy(&pool, location.id).await;
         let user = create_user(&pool).await;
