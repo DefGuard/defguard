@@ -249,6 +249,8 @@
   "settings_ldap_checkbox_server_is_active_directory": "LDAP server is Active Directory",
   "settings_ldap_checkbox_sync_account_status": "Synchronize account disabled status",
   "settings_ldap_checkbox_verify_tls_certificate": "Verify TLS certificate",
+  "settings_ldap_checkbox_disable_password_management": "Disable password management",
+  "settings_ldap_checkbox_disable_password_management_helper": "When enabled, users sourced from LDAP without a local password cannot change or reset their password through Defguard.",
   "settings_ldap_helper_url": "",
   "settings_ldap_label_bind_username": "Bind username",
   "settings_ldap_helper_bind_username": "",

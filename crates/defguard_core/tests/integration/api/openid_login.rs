@@ -60,6 +60,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
+        disable_password_management: false,
         directory_sync_user_groups: None,
     };
 
@@ -169,6 +170,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
         username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
+        disable_password_management: false,
         directory_sync_user_groups: None,
     };
     let response = client

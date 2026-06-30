@@ -304,6 +304,7 @@ export interface User {
   enrolled: boolean;
   is_admin: boolean;
   ldap_pass_requires_change: boolean;
+  password_management_disabled: boolean;
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
   devices: Device[];
@@ -1173,6 +1174,7 @@ export interface SettingsLDAP {
   ldap_sync_groups: string[];
   ldap_remote_enrollment_enabled: boolean;
   ldap_remote_enrollment_send_invite: boolean;
+  ldap_disable_password_management: boolean;
 }
 
 export interface SettingsOpenID {
@@ -1284,6 +1286,7 @@ export interface OpenIdProvider {
   directory_sync_group_match?: string[] | null;
   jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
+  disable_password_management: boolean;
   directory_sync_user_groups?: string[] | null;
 }
 

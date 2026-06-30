@@ -1,13 +1,23 @@
 use defguard_common::{
-    db::models::{
-        Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
-        settings::update_current_settings,
+    db::{
+        NoId,
+        models::{
+            Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+            settings::update_current_settings,
+        },
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::{BidiStreamEventType, EnrollmentEvent};
+use defguard_core::{
+    enterprise::db::models::openid_provider::{
+        DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+    },
+    events::{BidiStreamEventType, EnrollmentEvent},
+};
 use defguard_proto::{
-    client_types::{ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest},
+    client_types::{
+        EnrollmentStartRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest,
+    },
     proxy::{CoreRequest, core_request, core_response},
 };
 use ipnetwork::IpNetwork;
@@ -19,8 +29,8 @@ use super::support::{
     complete_proxy_handshake, configure_ldap, configure_smtp, create_acl_network,
     create_enrollment_token, create_network, create_polling_token, create_user,
     create_user_with_device, insert_acl_rule_for_network, make_device_info, send_activate_user,
-    send_code_mfa_setup_finish, send_code_mfa_setup_start, set_test_license_enterprise,
-    start_enrollment_session, totp_code_from_base32_secret,
+    send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
+    set_test_license_enterprise, start_enrollment_session, totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -948,6 +958,122 @@ async fn test_activate_non_ldap_user_does_not_set_ldap_remote_enrollment_complet
     context.finish().await.expect_server_finished().await;
 }
 
+/// An externally-managed user (LDAP-sourced, with the LDAP "disable password
+/// management" flag on) must:
+///  - be advertised to the client with `password_management_disabled = true` in the
+///    enrollment-start response, so the client hides the password step, and
+///  - be able to complete activation WITHOUT supplying a password, without gaining a
+///    local password hash.
+#[sqlx::test]
+async fn test_activate_externally_managed_user_skips_password(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Enable the LDAP "disable password management" flag.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_disable_password_management = true;
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+
+    // Create an LDAP-sourced user with no local password.
+    let mut user = create_user(&context.pool).await;
+    user.from_ldap = true;
+    // Set enrollment_pending so is_enrolled() returns false even though from_ldap = true.
+    user.enrollment_pending = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save LDAP user");
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+
+    // The enrollment-start response must advertise that password management is disabled.
+    context.mock_proxy().send_request(CoreRequest {
+        id: 700,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::EnrollmentStart(
+            EnrollmentStartRequest {
+                token: token.id.clone(),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let start = match &response.payload {
+        Some(core_response::Payload::EnrollmentStart(r)) => r,
+        other => panic!(
+            "expected EnrollmentStart response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    };
+    assert!(
+        start
+            .user
+            .as_ref()
+            .expect("EnrollmentStartResponse must include user")
+            .password_management_disabled,
+        "externally-managed user must be advertised with password_management_disabled = true"
+    );
+    // Drain the EnrollmentStarted bidi event.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    // Activation WITHOUT a password must succeed.
+    let response = send_activate_user_without_password(&mut context, &token.id, None).await;
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        Some(core_response::Payload::CoreError(e)) => {
+            panic!("expected Empty, got CoreError: {}", e.message)
+        }
+        other => panic!(
+            "expected Empty response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // The user must remain without a local password hash, and be enrolled.
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        !updated.has_password(),
+        "externally-managed user must not gain a local password hash during enrollment"
+    );
+    assert!(
+        !updated.enrollment_pending,
+        "enrollment_pending must be cleared after activation"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A user who is NOT externally managed must still supply a password during
+/// activation; omitting it returns `InvalidArgument`.
+#[sqlx::test]
+async fn test_activate_user_without_password_returns_error_for_local_user(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_activate_user_without_password(&mut context, &token.id, None).await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "missing password for a non-externally-managed user must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
 /// When enrolling a new device on a location with the ACL AllowedIPs toggle
 /// enabled, the returned config should contain both manual and ACL-derived IPs.
 #[sqlx::test]
@@ -994,6 +1120,92 @@ async fn test_enrollment_config_includes_acl_allowed_ips(
     assert!(
         allowed_ips.contains("192.168.1.0/24"),
         "config allowed_ips should contain ACL-derived IP 192.168.1.0/24, got: {allowed_ips}"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// An OIDC-sourced user whose provider has `disable_password_management` enabled must:
+///  - be able to complete activation WITHOUT supplying a password, and
+///  - remain without a local password hash after activation (authentication is delegated to
+///    the external IdP).
+#[sqlx::test]
+async fn test_activate_oidc_user_with_password_management_disabled_skips_password(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Create an OIDC provider with disable_password_management enabled.
+    OpenIdProvider::<NoId> {
+        id: NoId,
+        name: "test-oidc".to_owned(),
+        base_url: "https://test-oidc.example.com".to_owned(),
+        kind: OpenIdProviderKind::Custom,
+        client_id: "client-id".to_owned(),
+        client_secret: "client-secret".to_owned(),
+        display_name: Some("Test OIDC".to_owned()),
+        google_service_account_key: None,
+        google_service_account_email: None,
+        admin_email: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 600,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep,
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep,
+        directory_sync_target: DirectorySyncTarget::All,
+        okta_private_jwk: None,
+        okta_dirsync_client_id: None,
+        directory_sync_group_match: Vec::new(),
+        jumpcloud_api_key: None,
+        prefetch_users: false,
+        disable_password_management: true,
+        directory_sync_user_groups: None,
+    }
+    .save(&context.pool)
+    .await
+    .expect("failed to save OIDC provider");
+
+    // Create an OIDC-sourced user with no local password.
+    let mut user = create_user(&context.pool).await;
+    user.openid_sub = Some("oidc-sub-123".to_owned());
+    // Set enrollment_pending so is_enrolled() returns false even though openid_sub is set.
+    user.enrollment_pending = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save OIDC user");
+    assert!(!user.has_password());
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    // Drain the EnrollmentStarted bidi event.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    // Activation WITHOUT a password must succeed.
+    let response = send_activate_user_without_password(&mut context, &token.id, None).await;
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        Some(core_response::Payload::CoreError(e)) => {
+            panic!("expected Empty, got CoreError: {}", e.message)
+        }
+        other => panic!(
+            "expected Empty response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // The user must remain without a local password hash, and be enrolled.
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        !updated.has_password(),
+        "externally-managed OIDC user must not gain a local password hash during enrollment"
+    );
+    assert!(
+        !updated.enrollment_pending,
+        "enrollment_pending must be cleared after activation"
     );
 
     context.finish().await.expect_server_finished().await;

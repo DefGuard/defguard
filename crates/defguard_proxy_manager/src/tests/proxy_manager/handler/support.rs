@@ -746,6 +746,7 @@ pub(crate) async fn create_oidc_provider(
         directory_sync_group_match: Vec::new(),
         jumpcloud_api_key: None,
         prefetch_users: false,
+        disable_password_management: false,
         directory_sync_user_groups: None,
     }
     .save(pool)
@@ -784,7 +785,28 @@ pub(crate) async fn send_activate_user(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ActivateUser(ActivateUserRequest {
             token: Some(token.to_owned()),
-            password: password.to_owned(),
+            password: Some(password.to_owned()),
+            phone_number: phone.map(str::to_owned),
+        })),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send an `ActivateUser` request with no password, as the desktop client does for
+/// externally-managed users whose identity provider disabled local password management.
+pub(crate) async fn send_activate_user_without_password(
+    context: &mut HandlerTestContext,
+    token: &str,
+    phone: Option<&str>,
+) -> CoreResponse {
+    static ACT_CTR: AtomicU64 = AtomicU64::new(2500);
+    let id = ACT_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ActivateUser(ActivateUserRequest {
+            token: Some(token.to_owned()),
+            password: None,
             phone_number: phone.map(str::to_owned),
         })),
     });
