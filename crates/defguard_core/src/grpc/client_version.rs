@@ -77,37 +77,42 @@ impl ClientFeature {
         }
     }
 
+    fn required_os_type(&self) -> Option<Vec<&'static str>> {
+        match self {
+            Self::ServiceLocations => Some(vec!["windows", "linux"]),
+            Self::PostureChecks => None,
+        }
+    }
+
     fn required_os_family(&self) -> Option<Vec<&'static str>> {
         match self {
-            Self::ServiceLocations => Some(vec!["windows"]),
+            Self::ServiceLocations => Some(vec!["windows", "unix"]),
             Self::PostureChecks => None,
         }
     }
 
     pub fn is_supported_by_device(&self, info: Option<&DeviceInfo>) -> bool {
-        let (version, platform) = parse_client_version_platform(info);
+        let (version, r#type) = parse_client_version_platform(info);
 
         // No minimum version = matches all
-        let version_matches = self
-            .min_version(platform.as_ref())
-            .is_none_or(|min_version| {
-                // No version info = does not match
-                version
-                    .as_ref()
-                    .is_some_and(|version| version >= &min_version)
-            });
+        let version_matches = self.min_version(r#type.as_ref()).is_none_or(|min_version| {
+            // No version info = does not match
+            version
+                .as_ref()
+                .is_some_and(|version| version >= &min_version)
+        });
 
         if !version_matches {
             debug!(
                 "Client version {version:?} does not meet minimum version {:?} for feature {self:?}",
-                self.min_version(platform.as_ref())
+                self.min_version(r#type.as_ref())
             );
         }
 
         // No required OS family = matches all
         let platform_matches = self.required_os_family().is_none_or(|platforms| {
             platforms.iter().any(|p| {
-                platform
+                r#type
                     .as_ref()
                     .is_some_and(|platform| platform.os_family.eq_ignore_ascii_case(p))
             })
@@ -115,13 +120,30 @@ impl ClientFeature {
 
         if !platform_matches {
             debug!(
-                "Client OS {:?} does not meet required OS {:?} for feature {self:?}",
-                platform.as_ref().map(|p| &p.os_family),
+                "Client OS {:?} does not meet required OS family {:?} for feature {self:?}",
+                r#type.as_ref().map(|p| &p.os_family),
                 self.required_os_family()
             );
         }
+        //
+        // No required OS type = matches all
+        let type_matches = self.required_os_type().is_none_or(|types| {
+            types.iter().any(|t| {
+                r#type
+                    .as_ref()
+                    .is_some_and(|r#type| r#type.os_type.eq_ignore_ascii_case(t))
+            })
+        });
 
-        version_matches && platform_matches
+        if !type_matches {
+            debug!(
+                "Client OS {:?} does not meet required OS type {:?} for feature {self:?}",
+                r#type.as_ref().map(|p| &p.os_type),
+                self.required_os_type()
+            );
+        }
+
+        version_matches && platform_matches && type_matches
     }
 }
 
