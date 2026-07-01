@@ -3,17 +3,17 @@ name: Continuous integration
 on:
   push:
     branches:
-      - main
       - dev
       - "release/**"
+      - "stable/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
   pull_request:
     branches:
-      - main
       - dev
       - "release/**"
+      - "stable/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -56,7 +56,9 @@ jobs:
           submodules: recursive
 
       - name: Scan code with Trivy
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
           scan-type: "fs"
           scan-ref: "."

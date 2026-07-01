@@ -31,23 +31,6 @@
       "last 1 safari version"
     ]
   },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "react-native"
-      ]
-    },
-    "ignoredBuiltDependencies": [
-      "@swc/core",
-      "esbuild"
-    ],
-    "onlyBuiltDependencies": [
-      "@swc/core"
-    ],
-    "overrides": {
-      "mdast-util-to-hast": "13.2.1"
-    }
-  },
   "dependencies": {
     "@floating-ui/react": "^0.27.19",
     "@github/webauthn-json": "^2.1.1",
@@ -61,7 +44,7 @@
     "@tanstack/react-virtual": "3.13.12",
     "@tanstack/virtual-core": "3.13.12",
     "@use-gesture/react": "^10.3.1",
-    "axios": "^1.15.0",
+    "axios": "^1.18.1",
     "byte-size": "^9.0.1",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
@@ -87,7 +70,7 @@
     "motion": "^12.35.0",
     "numbro": "^2.5.0",
     "qrcode": "^1.5.4",
-    "qs": "^6.15.0",
+    "qs": "^6.15.3",
     "radash": "^12.1.1",
     "react": "^19.2.4",
     "react-click-away-listener": "^2.4.0",
@@ -101,8 +84,8 @@
     "react-markdown": "^10.1.0",
     "react-qr-code": "^2.0.18",
     "react-resize-detector": "^12.3.0",
-    "react-router": "^6.30.3",
-    "react-router-dom": "^6.30.3",
+    "react-router": "^6.30.4",
+    "react-router-dom": "^6.30.4",
     "react-tracked": "^2.0.1",
     "react-virtualized-auto-sizer": "^1.0.26",
     "recharts": "^3.7.0",

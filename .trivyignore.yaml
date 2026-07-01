@@ -1,0 +1,7 @@
+ignorePaths:
+- e2e/**
+
+vulnerabilities:
+- id: GHSA-22w3-693w-x895
+  expired_at: 2026-08-31
+  statement: "Fix is in webauthn-rs 0.5.5 but that version was never published to crates.io (only 0.6.1-dev exists). Upgrading to a pre-release dev version is too risky for this stable branch. LOW severity."
