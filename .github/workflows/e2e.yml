@@ -30,7 +30,7 @@ jobs:
         run: |
           # strip "refs/heads.” to get just the branch name
           BRANCH=${GITHUB_REF#refs/heads/}
-          if [[ "$BRANCH" == release/* ]]; then
+          if [[ "$BRANCH" == release/* ]] || [[ "$BRANCH" == stable/* ]]; then
             # replace '/' with '-' on release branches
             IMAGE_TAG=${BRANCH//\//-}
           else
