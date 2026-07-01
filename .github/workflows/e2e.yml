@@ -50,9 +50,8 @@ jobs:
         id: pnpm-install
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
-          cache: true
-          version: 11
           run_install: false
+          version: 11
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -148,9 +147,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
           run_install: false
+          version: 11
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -244,9 +242,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
           run_install: false
+          version: 11
 
       - name: Get pnpm store directory
         id: pnpm-cache
