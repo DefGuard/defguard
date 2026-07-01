@@ -105,6 +105,7 @@ mod test {
             Vec::new(),
             None,
             prefetch_users,
+            false,
             None,
         )
         .save(pool)

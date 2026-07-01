@@ -23,6 +23,7 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
@@ -117,6 +118,7 @@ const formSchema = z.object({
   ),
   ldap_uses_ad: z.boolean(),
   ldap_sync_account_status: z.boolean(),
+  ldap_disable_password_management: z.boolean(),
   ldap_user_rdn_attr: z.string().trim().nullable(),
   ldap_sync_groups: z.string().trim().nullable(),
   ldap_remote_enrollment_enabled: z.boolean(),
@@ -159,6 +161,8 @@ const PageForm = () => {
       ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
       ldap_sync_account_status: settings?.ldap_sync_account_status ?? false,
+      ldap_disable_password_management:
+        settings?.ldap_disable_password_management ?? false,
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
       ldap_sync_groups: settings?.ldap_sync_groups.join(', ') || null,
       ldap_remote_enrollment_enabled: settings?.ldap_remote_enrollment_enabled ?? false,
@@ -302,6 +306,20 @@ const PageForm = () => {
                 )
               }
             </form.Subscribe>
+            <form.AppField name="ldap_disable_password_management">
+              {(field) => (
+                <field.FormCheckbox
+                  text={m.settings_ldap_checkbox_disable_password_management()}
+                  helperBlock={
+                    <Helper>
+                      <p>
+                        {m.settings_ldap_checkbox_disable_password_management_helper()}
+                      </p>
+                    </Helper>
+                  }
+                />
+              )}
+            </form.AppField>
           </div>
           <SizedBox height={ThemeSpacing.Xl2} />
           <EvenSplit>

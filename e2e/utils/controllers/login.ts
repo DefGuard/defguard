@@ -33,7 +33,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   await waitForRoute(page, routes.auth.totp);
   const codeField = await page.getByTestId('field-code');
   await codeField.clear();
-  const { otp: token } = TOTP.generate(totpSecret);
+  const { otp: token } = await TOTP.generate(totpSecret);
   await codeField.fill(token);
   const responsePromise = page.waitForResponse(
     (resp) => resp.url().includes('/api/v1/auth') && resp.request().method() === 'POST',

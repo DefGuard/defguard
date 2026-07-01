@@ -10,6 +10,7 @@ use defguard_common::{
             gateway::Gateway,
             group::Group,
             oauth2client::OAuth2Client,
+            settings::{Settings, update_current_settings},
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
         },
@@ -18,6 +19,9 @@ use defguard_common::{
 };
 use defguard_core::{
     enterprise::{
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        },
         license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
         limits::update_counts,
     },
@@ -2416,4 +2420,214 @@ async fn test_modify_user_admin_enables_user(_: PgPoolOptions, options: PgConnec
         },
         ApiEventType::UserEnabled { user: updated },
     ]);
+}
+
+/// Password management is disabled for an LDAP-sourced, non-admin user with no local password
+/// when the LDAP "disable password management" flag is on.
+#[sqlx::test]
+async fn test_password_management_disabled_for_ldap_user(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Create an LDAP-sourced user with no local password hash.
+    let ldap_user = User::new("ldapuser", None, "LDAP", "User", "ldap@example.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE \"user\" SET from_ldap = true WHERE id = $1")
+        .bind(ldap_user.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Enable the LDAP disable-password-management flag.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_disable_password_management = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    // Login as admin to exercise admin-level password operations on the LDAP user.
+    client.login_user("admin", "pass123").await;
+
+    // change_password (admin → LDAP user) → 403
+    let response = client
+        .put("/api/v1/user/ldapuser/password")
+        .json(&PasswordChange {
+            new_password: "NewPass123!".into(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // reset_password (admin → LDAP user) → 403
+    let response = client
+        .post("/api/v1/user/ldapuser/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // Give the LDAP user a local password and verify they are now allowed
+    // (passing password_hash guard in password_management_disabled).
+    client.drain_all_events();
+    let mut u = get_db_user(&pool, "ldapuser").await;
+    u.set_password("temppass");
+    u.save(&pool).await.unwrap();
+
+    client.login_user("ldapuser", "temppass").await;
+    let response = client
+        .put("/api/v1/user/change_password")
+        .json(&PasswordChangeSelf {
+            old_password: "temppass".into(),
+            new_password: "NewPass456!".into(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let ldap_user = get_db_user(&pool, "ldapuser").await;
+    client.verify_api_events_with_user(&[(
+        ApiEventType::PasswordChanged,
+        ldap_user.id,
+        "ldapuser",
+    )]);
+}
+
+/// An admin user is always exempt from password-management gating, even when sourced externally.
+#[sqlx::test]
+async fn test_password_management_disabled_admin_exempt(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Make the admin user appear LDAP-sourced, then enable the LDAP disable flag.
+    // Admin keeps their local password so they can still authenticate;
+    // the is_admin check in the helper runs before the password_hash check,
+    // so having a password hash does not weaken the test.
+    let admin = get_db_user(&pool, "admin").await;
+    sqlx::query("UPDATE \"user\" SET from_ldap = true WHERE id = $1")
+        .bind(admin.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_disable_password_management = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    // Admin should still be able to change someone else's password.
+    client.login_user("admin", "pass123").await;
+    let response = client
+        .put("/api/v1/user/hpotter/password")
+        .json(&PasswordChange {
+            new_password: "NewPass789!".into(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    client.verify_api_events_with_user(&[(
+        ApiEventType::PasswordChangedByAdmin { user: hpotter },
+        1,
+        "admin",
+    )]);
+}
+
+/// A user with a local password hash is always allowed, even if externally sourced.
+#[sqlx::test]
+async fn test_password_management_disabled_allowed_with_local_password(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // hpotter is a local user with a password => change_self_password should work.
+    client.login_user("hpotter", "pass123").await;
+    let response = client
+        .put("/api/v1/user/change_password")
+        .json(&PasswordChangeSelf {
+            old_password: "pass123".into(),
+            new_password: "NewPass000!".into(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    client.verify_api_events_with_user(&[(ApiEventType::PasswordChanged, hpotter.id, "hpotter")]);
+}
+
+/// Password management is disabled for an OIDC-sourced non-admin user when the provider flag is on.
+#[sqlx::test]
+async fn test_password_management_disabled_for_oidc_user(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Create an OIDC provider with disable_password_management enabled.
+    OpenIdProvider::new(
+        "test-oidc".to_owned(),
+        "https://example.com".to_owned(),
+        OpenIdProviderKind::Custom,
+        "client-id".to_owned(),
+        "client-secret".to_owned(),
+        None,
+        None,
+        None,
+        None,
+        false,
+        600,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncTarget::All,
+        None,
+        None,
+        Vec::new(),
+        None,
+        false,
+        true, // disable_password_management
+        None, // directory_sync_user_groups
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Create an OIDC-sourced user with no local password.
+    let oidc_user = User::new("oidcuser", None, "OIDC", "User", "oidc@example.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE \"user\" SET openid_sub = $1, password_hash = NULL WHERE id = $2")
+        .bind("sub-123")
+        .bind(oidc_user.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Login as admin to exercise admin-level password operations on the OIDC user.
+    client.login_user("admin", "pass123").await;
+
+    // change_password -> 403
+    let response = client
+        .put("/api/v1/user/oidcuser/password")
+        .json(&PasswordChange {
+            new_password: "NewPass123!".into(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // reset_password -> 403
+    let response = client
+        .post("/api/v1/user/oidcuser/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }

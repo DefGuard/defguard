@@ -124,6 +124,7 @@ pub struct OpenIdProvider<I = NoId> {
     // Fetch all users from directory and create them in Defguard
     // TODO: currently only supported for Microsoft
     pub prefetch_users: bool,
+    pub disable_password_management: bool,
     #[model(option_ref)]
     // If set, only users who are members of these groups will be imported by the user prefetch
     pub directory_sync_user_groups: Option<Vec<String>>,
@@ -151,6 +152,7 @@ impl OpenIdProvider {
         directory_sync_group_match: Vec<String>,
         jumpcloud_api_key: Option<String>,
         prefetch_users: bool,
+        disable_password_management: bool,
         directory_sync_user_groups: Option<Vec<String>>,
     ) -> Self {
         Self {
@@ -174,6 +176,7 @@ impl OpenIdProvider {
             directory_sync_group_match,
             jumpcloud_api_key,
             prefetch_users,
+            disable_password_management,
             directory_sync_user_groups,
         }
     }
@@ -188,8 +191,9 @@ impl OpenIdProvider {
                 directory_sync_admin_behavior = $13, directory_sync_target = $14, \
                 okta_private_jwk = $15, okta_dirsync_client_id = $16, \
                 directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19, \
-                directory_sync_user_groups = $20 \
-                WHERE id = $21",
+                disable_password_management = $20, \
+                directory_sync_user_groups = $21 \
+                WHERE id = $22",
                 self.name,
                 self.base_url,
                 self.kind as OpenIdProviderKind,
@@ -209,6 +213,7 @@ impl OpenIdProvider {
                 &self.directory_sync_group_match,
                 self.jumpcloud_api_key,
                 self.prefetch_users,
+                self.disable_password_management,
                 self.directory_sync_user_groups.as_deref(),
                 provider.id,
             )
@@ -235,6 +240,7 @@ impl OpenIdProvider<Id> {
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
             okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users, \
+            disable_password_management, \
             directory_sync_user_groups \
             FROM openidprovider WHERE name = $1",
             name
@@ -255,10 +261,22 @@ impl OpenIdProvider<Id> {
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
             okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users, \
+            disable_password_management, \
             directory_sync_user_groups \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(executor)
         .await
+    }
+
+    /// Returns whether the currently-configured OIDC provider (if any) has password
+    /// management disabled for its users. Returns `false` when no provider is configured.
+    pub async fn current_disables_password_management<'e, E>(executor: E) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        Ok(Self::get_current(executor)
+            .await?
+            .is_some_and(|provider| provider.disable_password_management))
     }
 }

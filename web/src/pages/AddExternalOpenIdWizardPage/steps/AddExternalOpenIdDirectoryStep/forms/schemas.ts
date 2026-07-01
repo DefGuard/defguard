@@ -13,6 +13,7 @@ export const baseExternalProviderConfigSchema = z.object({
   client_secret: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   display_name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   create_account: z.boolean(m.form_error_invalid()),
+  disable_password_management: z.boolean(),
   username_handling: z.enum(OpenIdProviderUsernameHandling),
 });
 

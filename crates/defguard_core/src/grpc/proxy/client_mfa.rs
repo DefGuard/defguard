@@ -201,7 +201,9 @@ impl ClientMfaServer {
             error!("Failed to find user with ID {}", device.user_id);
             return Err(Status::invalid_argument("user not found"));
         };
-        let user_info = UserInfo::from_user(&self.pool, user.clone())
+        // `password_management_disabled` is irrelevant here (internal access validation,
+        // not an API response), so the OIDC flag is not loaded.
+        let user_info = UserInfo::from_user(&self.pool, user.clone(), false)
             .await
             .map_err(|_| {
                 error!("Failed to fetch user info for {}", user.username);
@@ -914,7 +916,9 @@ impl ClientMfaServer {
         }
 
         // Validate that the user is allowed to access this location.
-        let user_info = UserInfo::from_user(&self.pool, user.clone())
+        // `password_management_disabled` is irrelevant here (internal access validation,
+        // not an API response), so the OIDC flag is not loaded.
+        let user_info = UserInfo::from_user(&self.pool, user.clone(), false)
             .await
             .map_err(|_| {
                 error!(
@@ -1155,6 +1159,7 @@ mod tests {
         models::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
+            settings::initialize_current_settings,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -1194,6 +1199,9 @@ mod tests {
     ) {
         set_enterprise_license();
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
         let location = create_non_mfa_location(&pool).await;
         save_linux_posture_policy(&pool, location.id).await;
         let user = create_user(&pool).await;
@@ -1254,6 +1262,9 @@ mod tests {
     ) {
         set_enterprise_license();
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
         let location = create_non_mfa_location(&pool).await;
         save_linux_posture_policy(&pool, location.id).await;
         let user = create_user(&pool).await;
