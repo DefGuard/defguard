@@ -39,11 +39,6 @@
     "playwright": "^1.58.2",
     "totp-generator": "^1.0.0"
   },
-  "pnpm": {
-    "overrides": {
-      "form-data": "4.0.6"
-    }
-  },
   "volta": {
     "node": "19.9.0"
   }

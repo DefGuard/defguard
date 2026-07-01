@@ -31,24 +31,6 @@
       "last 1 safari version"
     ]
   },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "react-native"
-      ]
-    },
-    "ignoredBuiltDependencies": [
-      "@swc/core",
-      "esbuild"
-    ],
-    "onlyBuiltDependencies": [
-      "@swc/core"
-    ],
-    "overrides": {
-      "mdast-util-to-hast": "13.2.1",
-      "form-data": "4.0.6"
-    }
-  },
   "dependencies": {
     "@floating-ui/react": "^0.27.19",
     "@github/webauthn-json": "^2.1.1",
