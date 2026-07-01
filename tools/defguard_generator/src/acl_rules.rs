@@ -6,13 +6,15 @@ pub async fn generate_acl_rules(pool: PgPool, num_rules: u32) -> Result<()> {
     truncate_with_restart(&pool).await?;
 
     for index in 0..num_rules {
-        let mut acl_rule = AclRule::default();
-        acl_rule.name = format!("Generated {index}");
-        acl_rule.state = RuleState::Applied;
-        acl_rule.all_locations = true;
-        acl_rule.allow_all_users = true;
-        acl_rule.allow_all_groups = true;
-        acl_rule.allow_all_network_devices = true;
+        let acl_rule = AclRule {
+            name: format!("Generated {index}"),
+            state: RuleState::Applied,
+            all_locations: true,
+            allow_all_users: true,
+            allow_all_groups: true,
+            allow_all_network_devices: true,
+            ..Default::default()
+        };
         acl_rule.save(&pool).await?;
     }
 
