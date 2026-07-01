@@ -10,8 +10,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use totp_lite::{Sha1, totp_custom};
 
 use super::common::{
-    X_FORWARDED_HOST, X_FORWARDED_URI, get_db_user, make_client, make_client_with_db,
-    setup_pool,
+    X_FORWARDED_HOST, X_FORWARDED_URI, get_db_user, make_client, make_client_with_db, setup_pool,
 };
 
 #[sqlx::test]
