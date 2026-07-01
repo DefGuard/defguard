@@ -1,7 +1,7 @@
 FROM public.ecr.aws/docker/library/node:24 AS web
 
 WORKDIR /app
-COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml web/.npmrc ./
 RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .
