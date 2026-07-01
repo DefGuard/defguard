@@ -53,6 +53,7 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('finish').click();
 
   await page.getByTestId('acl-continue').click();
+  await page.getByTestId('firewall-continue').click();
   await page.getByTestId('create-location').click();
   await page.locator('.icon-button .icon[data-kind="close"]').click();
 
@@ -92,6 +93,7 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('continue').click();
   await page.getByTestId('continue').click();
   await page.getByTestId('acl-continue').click();
+  await page.getByTestId('firewall-continue').click();
   await page.getByTestId('create-location').click();
   await page.locator('.icon-button .icon[data-kind="close"]').click();
 
