@@ -11,11 +11,12 @@ import { SettingsLayout } from '../../../shared/components/SettingsLayout/Settin
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import type { LdapDryRunResult, Settings } from '../../../shared/api/types';
 import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
@@ -43,6 +44,7 @@ import {
   getSettingsQueryOptions,
 } from '../../../shared/query';
 import { canUseBusinessFeature } from '../../../shared/utils/license';
+import { LdapDryRunModal } from './modals/LdapDryRunModal/LdapDryRunModal';
 
 const breadcrumbsLinks = [
   <Link
@@ -125,8 +127,15 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+const csvToArray = (value: string | null): string[] =>
+  value
+    ? value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
 const PageForm = () => {
-  const isAppLdapEnabled = useApp((s) => s.appInfo.ldap_info.enabled);
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
@@ -181,16 +190,32 @@ const PageForm = () => {
     },
   });
 
-  const { mutate: handleLdapTest, isPending: testInProgress } = useMutation({
-    mutationFn: api.settings.getLdapConnectionStatus,
-    onSuccess: () => {
-      Snackbar.default(m.settings_ldap_test_success());
+  const [dryRunResult, setDryRunResult] = useState<LdapDryRunResult | null>(null);
+  const [dryRunModalOpen, setDryRunModalOpen] = useState(false);
+
+  const { mutate: handleLdapDryRun, isPending: dryRunInProgress } = useMutation({
+    mutationFn: (data: Settings) => api.settings.ldapDryRun(data),
+    onSuccess: (res) => {
+      setDryRunResult(res.data);
+      setDryRunModalOpen(true);
     },
     onError: (e) => {
       Snackbar.error(m.settings_ldap_test_failed());
       console.error(e);
     },
   });
+
+  const { mutate: handleLdapConnectionTest, isPending: connectionTestInProgress } =
+    useMutation({
+      mutationFn: (data: Settings) => api.settings.testLdapSettings(data),
+      onSuccess: () => {
+        Snackbar.default(m.settings_ldap_test_success());
+      },
+      onError: (e) => {
+        Snackbar.error(m.settings_ldap_test_failed());
+        console.error(e);
+      },
+    });
 
   const form = useAppForm({
     defaultValues,
@@ -208,18 +233,10 @@ const PageForm = () => {
 
       await mutateAsync({
         ...value,
-        ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes
-          ? value.ldap_user_auxiliary_obj_classes
-              .split(',')
-              .map((item) => item.trim())
-              .filter(Boolean)
-          : [],
-        ldap_sync_groups: value.ldap_sync_groups
-          ? value.ldap_sync_groups
-              .split(',')
-              .map((item) => item.trim())
-              .filter(Boolean)
-          : [],
+        ldap_user_auxiliary_obj_classes: csvToArray(
+          value.ldap_user_auxiliary_obj_classes,
+        ),
+        ldap_sync_groups: csvToArray(value.ldap_sync_groups),
       });
       formApi.reset(value);
     },
@@ -607,10 +624,7 @@ const PageForm = () => {
               {({ isDefaultValue, isSubmitting }) => (
                 <>
                   <TooltipProvider
-                    disabled={
-                      !(!isAppLdapEnabled || !isDefaultValue) ||
-                      !canUseBusinessLicenseCheck
-                    }
+                    disabled={requiredFieldsFilled && canUseBusinessLicenseCheck}
                   >
                     <TooltipTrigger>
                       <div>
@@ -621,13 +635,25 @@ const PageForm = () => {
                           iconLeft={IconKind.Refresh}
                           disabled={
                             isSubmitting ||
-                            !isDefaultValue ||
-                            !isAppLdapEnabled ||
+                            !requiredFieldsFilled ||
                             !canUseBusinessLicenseCheck
                           }
-                          loading={testInProgress}
+                          loading={dryRunInProgress || connectionTestInProgress}
                           onClick={() => {
-                            handleLdapTest();
+                            const values = form.state.values;
+                            const submitted = {
+                              ...settings,
+                              ...values,
+                              ldap_user_auxiliary_obj_classes: csvToArray(
+                                values.ldap_user_auxiliary_obj_classes,
+                              ),
+                              ldap_sync_groups: csvToArray(values.ldap_sync_groups),
+                            } as Settings;
+                            if (values.ldap_sync_enabled) {
+                              handleLdapDryRun(submitted);
+                            } else {
+                              handleLdapConnectionTest(submitted);
+                            }
                           }}
                         />
                       </div>
@@ -648,6 +674,11 @@ const PageForm = () => {
           </div>
         </Controls>
       </form.AppForm>
+      <LdapDryRunModal
+        isOpen={dryRunModalOpen}
+        result={dryRunResult}
+        onClose={() => setDryRunModalOpen(false)}
+      />
     </form>
   );
 };

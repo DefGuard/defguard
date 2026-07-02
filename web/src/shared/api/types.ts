@@ -1175,6 +1175,21 @@ export interface SettingsLDAP {
   ldap_remote_enrollment_send_invite: boolean;
 }
 
+export type LdapDryRunAction = 'add' | 'remove';
+
+export interface LdapDryRunUser {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  action: LdapDryRunAction;
+}
+
+export interface LdapDryRunResult {
+  defguard: LdapDryRunUser[];
+  ldap: LdapDryRunUser[];
+}
+
 export interface SettingsOpenID {
   openid_create_account: boolean;
 }

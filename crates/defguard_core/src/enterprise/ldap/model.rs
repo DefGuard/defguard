@@ -297,7 +297,26 @@ where
 {
     let settings = Settings::get_current_settings();
     let sync_account_status = settings.ldap_uses_ad && settings.ldap_sync_account_status;
-    let sync_groups = settings.ldap_sync_groups;
+    ldap_sync_allowed_for_user_scoped(
+        user,
+        executor,
+        sync_account_status,
+        &settings.ldap_sync_groups,
+    )
+    .await
+}
+
+/// Same as [`ldap_sync_allowed_for_user`] but with the scoping settings passed explicitly.
+/// Needed by flows running with settings that differ from the saved ones (LDAP dry run).
+pub(crate) async fn ldap_sync_allowed_for_user_scoped<'e, E>(
+    user: &User<Id>,
+    executor: E,
+    sync_account_status: bool,
+    sync_groups: &[String],
+) -> sqlx::Result<bool>
+where
+    E: PgExecutor<'e>,
+{
     let my_groups = user.member_of(executor).await?;
     Ok(
         (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))

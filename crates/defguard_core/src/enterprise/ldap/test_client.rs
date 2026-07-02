@@ -4,7 +4,7 @@ use std::{
     vec::Vec,
 };
 
-use defguard_common::db::models::{User, group::Group};
+use defguard_common::db::models::{Settings, User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
@@ -260,6 +260,14 @@ impl LDAPConnection {
     pub async fn create() -> Result<Self, LdapError> {
         Ok(Self {
             config: LDAPConfig::default(),
+            url: String::new(),
+            test_client: TestClient::default(),
+        })
+    }
+
+    pub async fn create_with_settings(settings: Settings) -> Result<Self, LdapError> {
+        Ok(Self {
+            config: LDAPConfig::try_from(settings)?,
             url: String::new(),
             test_client: TestClient::default(),
         })

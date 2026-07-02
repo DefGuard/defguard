@@ -78,6 +78,7 @@ use defguard_common::db::{
         settings::{LdapSyncStatus, update_current_settings},
     },
 };
+use serde::Serialize;
 use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
@@ -86,8 +87,8 @@ use crate::{
     enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
         ldap::model::{
-            get_users_without_ldap_path, ldap_sync_allowed_for_user, update_from_ldap_user,
-            user_from_searchentry,
+            get_users_without_ldap_path, ldap_sync_allowed_for_user,
+            ldap_sync_allowed_for_user_scoped, update_from_ldap_user, user_from_searchentry,
         },
         license::get_cached_license,
         limits::{get_counts, update_counts},
@@ -164,6 +165,74 @@ pub(super) struct UserSyncChanges {
     pub add_defguard: Vec<User>,
     pub delete_ldap: Vec<User>,
     pub add_ldap: Vec<User<Id>>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LdapDryRunAction {
+    Add,
+    Remove,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LdapDryRunUser {
+    pub username: String,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub action: LdapDryRunAction,
+}
+
+/// Preview of the user changes a full sync would make, split by the system that would be
+/// modified. Built from [`UserSyncChanges`].
+#[derive(Debug, Serialize)]
+pub struct LdapDryRunResult {
+    pub defguard: Vec<LdapDryRunUser>,
+    pub ldap: Vec<LdapDryRunUser>,
+}
+
+fn dry_run_user<I>(user: &User<I>, action: LdapDryRunAction) -> LdapDryRunUser {
+    LdapDryRunUser {
+        username: user.username.clone(),
+        email: user.email.clone(),
+        first_name: user.first_name.clone(),
+        last_name: user.last_name.clone(),
+        action,
+    }
+}
+
+impl From<UserSyncChanges> for LdapDryRunResult {
+    fn from(changes: UserSyncChanges) -> Self {
+        let mut defguard = Vec::new();
+        defguard.extend(
+            changes
+                .add_defguard
+                .iter()
+                .map(|u| dry_run_user(u, LdapDryRunAction::Add)),
+        );
+        defguard.extend(
+            changes
+                .delete_defguard
+                .iter()
+                .map(|u| dry_run_user(u, LdapDryRunAction::Remove)),
+        );
+
+        let mut ldap = Vec::new();
+        ldap.extend(
+            changes
+                .add_ldap
+                .iter()
+                .map(|u| dry_run_user(u, LdapDryRunAction::Add)),
+        );
+        ldap.extend(
+            changes
+                .delete_ldap
+                .iter()
+                .map(|u| dry_run_user(u, LdapDryRunAction::Remove)),
+        );
+
+        Self { defguard, ldap }
+    }
 }
 
 /// Computes what users should be added/deleted and where
@@ -758,17 +827,7 @@ impl super::LDAPConnection {
             sync_group_members.extend(members);
         }
 
-        let mut all_ldap_users = self.get_all_users().await?;
-        let mut all_defguard_users = User::all(pool).await?;
-
-        // Filter out users that should be ignored from sync
-        let mut filtered_users = Vec::new();
-        for user in all_defguard_users {
-            if ldap_sync_allowed_for_user(&user, pool).await? {
-                filtered_users.push(user);
-            }
-        }
-        all_defguard_users = filtered_users;
+        let (mut all_ldap_users, mut all_defguard_users) = self.get_sync_users(pool).await?;
 
         let ldap_usernames = all_ldap_users
             .iter()
@@ -831,6 +890,87 @@ impl super::LDAPConnection {
         }
 
         Ok(())
+    }
+
+    /// Fetches all LDAP users alongside the Defguard users that are allowed to participate in
+    /// sync, filtering out the ones that should be ignored.
+    async fn get_sync_users(
+        &mut self,
+        pool: &PgPool,
+    ) -> Result<(Vec<User>, Vec<User<Id>>), LdapError> {
+        let all_ldap_users = self.get_all_users().await?;
+        let all_defguard_users = User::all(pool).await?;
+
+        let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
+        let mut filtered_users = Vec::new();
+        for user in all_defguard_users {
+            if ldap_sync_allowed_for_user_scoped(
+                &user,
+                pool,
+                sync_account_status,
+                &self.config.ldap_sync_groups,
+            )
+            .await?
+            {
+                filtered_users.push(user);
+            }
+        }
+
+        Ok((all_ldap_users, filtered_users))
+    }
+
+    /// Computes the user additions/removals a full sync would perform, without applying any
+    /// of them.
+    pub async fn dry_run(
+        &mut self,
+        pool: &PgPool,
+        authority: Authority,
+    ) -> Result<LdapDryRunResult, LdapError> {
+        debug!("Performing LDAP dry run with authority: {authority:?}");
+
+        let (mut all_ldap_users, mut all_defguard_users) = self.get_sync_users(pool).await?;
+
+        // Mirror `fix_missing_user_path()` in memory.
+        let ldap_paths_by_username: HashMap<&str, (&str, Option<&str>)> = all_ldap_users
+            .iter()
+            .map(|u| {
+                (
+                    u.username.as_str(),
+                    (u.ldap_rdn_value(), u.ldap_user_path.as_deref()),
+                )
+            })
+            .collect();
+        for defguard_user in &mut all_defguard_users {
+            if defguard_user.ldap_user_path.is_some() {
+                continue;
+            }
+            if let Some((ldap_rdn, ldap_path)) =
+                ldap_paths_by_username.get(defguard_user.username.as_str())
+            {
+                if defguard_user.ldap_rdn_value() == *ldap_rdn {
+                    defguard_user.ldap_user_path = ldap_path.map(str::to_owned);
+                }
+            }
+        }
+
+        let mut user_changes = compute_user_sync_changes(
+            &mut all_ldap_users,
+            &mut all_defguard_users,
+            authority,
+            &self.config,
+        );
+
+        let existing_usernames = User::all(pool)
+            .await?
+            .into_iter()
+            .map(|user| user.username)
+            .collect::<HashSet<_>>();
+        user_changes
+            .add_defguard
+            .retain(|user| !existing_usernames.contains(&user.username));
+
+        debug!("LDAP dry run completed");
+        Ok(LdapDryRunResult::from(user_changes))
     }
 
     async fn apply_user_group_sync_changes(
