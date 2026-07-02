@@ -28,6 +28,11 @@ FROM chef AS builder
 ARG DEFGUARD_BUILD_VERSION
 ENV DEFGUARD_BUILD_VERSION=$DEFGUARD_BUILD_VERSION
 
+# Force BuildKit cache invalidation when the build version changes.
+# Without this, the ENV layer gets cached with a stale value and
+# the compiled binary won't pick up the correct DEFGUARD_BUILD_VERSION.
+RUN echo "Building defguard version: ${DEFGUARD_BUILD_VERSION}"
+
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --bin defguard --release --recipe-path recipe.json
