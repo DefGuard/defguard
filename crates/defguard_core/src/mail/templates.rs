@@ -614,6 +614,23 @@ pub async fn password_reset_success_mail(
     Ok(())
 }
 
+/// Notification that password reset has been disabled for this user.
+pub async fn password_reset_disabled_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) =
+        get_base_tera_mjml(Context::new(), None, ip_address, device_info)?;
+
+    let message = MailMessage::PasswordResetDisabled;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
+}
+
 /// Certificate is about to expire.
 pub async fn certificate_expiration_mail(
     to: &str,

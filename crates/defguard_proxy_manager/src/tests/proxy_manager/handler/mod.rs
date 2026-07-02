@@ -1,4 +1,4 @@
-mod support;
+pub(crate) mod support;
 
 mod acme;
 mod enrollment;

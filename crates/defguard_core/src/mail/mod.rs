@@ -334,6 +334,7 @@ pub enum MailMessage {
     MFACode,
     PasswordReset,
     PasswordResetDone,
+    PasswordResetDisabled,
     UserImportBlocked,
     /// Enrollment notification for admins.
     EnrollmentNotification,
@@ -371,6 +372,7 @@ impl MailMessage {
             Self::MFACode => "Defguard: Multi-Factor Authentication code for login".to_string(),
             Self::PasswordReset => "Defguard: Password reset".to_string(),
             Self::PasswordResetDone => "Defguard: Password reset success".to_string(),
+            Self::PasswordResetDisabled => "Defguard: Password reset disabled".to_string(),
             Self::UserImportBlocked => "User import blocked".to_string(),
             Self::EnrollmentNotification => "Defguard: User enrollment completed".to_string(),
             Self::LetsencryptCertRefreshFailed => {
@@ -398,6 +400,7 @@ impl MailMessage {
             Self::MFACode => "mfa-code",
             Self::PasswordReset => "password-reset",
             Self::PasswordResetDone => "password-reset-done",
+            Self::PasswordResetDisabled => "password-reset-disabled",
             Self::UserImportBlocked => "user-import-blocked",
             Self::EnrollmentNotification => "enrollment-admin-notification",
             Self::LetsencryptCertRefreshFailed => "letsencrypt-cert-refresh-failed",
@@ -423,6 +426,7 @@ impl MailMessage {
             Self::MFACode => include_str!("templates/mfa-code.mjml"),
             Self::PasswordReset => include_str!("templates/password-reset.mjml"),
             Self::PasswordResetDone => include_str!("templates/password-reset-done.mjml"),
+            Self::PasswordResetDisabled => include_str!("templates/password-reset-disabled.mjml"),
             Self::UserImportBlocked => include_str!("templates/plain-notification.mjml"),
             Self::EnrollmentNotification => {
                 include_str!("templates/enrollment-admin-notification.mjml")
@@ -453,6 +457,7 @@ impl MailMessage {
             Self::MFACode => include_str!("templates/mfa-code.text"),
             Self::PasswordReset => include_str!("templates/password-reset.text"),
             Self::PasswordResetDone => include_str!("templates/password-reset-done.text"),
+            Self::PasswordResetDisabled => include_str!("templates/password-reset-disabled.text"),
             Self::UserImportBlocked => include_str!("templates/plain-notification.text"),
             Self::EnrollmentNotification => {
                 include_str!("templates/enrollment-admin-notification.text")

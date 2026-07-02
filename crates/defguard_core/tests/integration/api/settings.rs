@@ -1,12 +1,19 @@
-use defguard_common::db::models::{
-    Settings,
-    settings::{SettingsPatch, update_current_settings},
+use std::time::Duration;
+
+use defguard_common::{
+    db::models::{
+        Settings,
+        settings::{SettingsPatch, update_current_settings},
+    },
+    types::proxy::ProxyControlMessage,
 };
 use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
+use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::sleep;
 
-use super::common::{make_test_client, setup_pool};
+use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_settings(_: PgPoolOptions, options: PgConnectOptions) {
@@ -299,5 +306,70 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     assert!(
         from_db.ldap_remote_enrollment_send_invite,
         "ldap_remote_enrollment_send_invite must be persisted to DB after enabling"
+    );
+}
+
+/// When SMTP settings change from unconfigured to configured via the settings
+/// API, a `BroadcastPublicSettings` control message must be sent so connected
+/// proxies receive the updated password-reset visibility.
+///
+/// The `display_password_reset` in the broadcast is the folded value
+/// (`enterprise_toggle && smtp_configured()`).
+#[sqlx::test]
+async fn test_smtp_change_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+
+    // Drain any messages sent during setup (e.g. from app startup).
+    while proxy_control_rx.try_recv().is_ok() {}
+
+    // Patch settings to enable SMTP.  Previously SMTP is unconfigured, so
+    // smtp_configured() transitions from false → true and the handler must
+    // broadcast the updated public settings.
+    let settings = json!({
+        "smtp_server": "smtp.example.com",
+        "smtp_port": 587,
+        "smtp_sender": "noreply@example.com",
+    });
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Allow the async broadcast to land.
+    sleep(Duration::from_millis(100)).await;
+
+    let mut found = false;
+    loop {
+        match proxy_control_rx.try_recv() {
+            Ok(ProxyControlMessage::BroadcastPublicSettings {
+                display_password_reset,
+                display_download_step,
+            }) => {
+                assert!(
+                    display_password_reset,
+                    "with SMTP configured, display_password_reset should be true"
+                );
+                assert!(
+                    display_download_step,
+                    "display_download_step should remain the enterprise default"
+                );
+                found = true;
+            }
+            Ok(_) => {} // ignore other control messages
+            Err(_) => break,
+        }
+    }
+    assert!(
+        found,
+        "BroadcastPublicSettings should have been sent after SMTP config change"
     );
 }

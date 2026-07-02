@@ -69,7 +69,7 @@ pub async fn patch_enterprise_settings(
         && let Err(err) = appstate
             .proxy_control_tx
             .send(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset: settings.display_password_reset,
+                display_password_reset: settings.edge_can_display_password_reset(),
                 display_download_step: settings.display_download_step,
             })
             .await
