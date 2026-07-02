@@ -55,7 +55,7 @@ export const DryRunTable = ({ data }: { data: LdapDryRunUser[] }) => {
         cell: (info) => {
           const added = info.getValue() === 'add';
           return (
-            <TableCell>
+            <TableCell flex>
               <Badge
                 variant={added ? BadgeVariant.Success : BadgeVariant.Critical}
                 text={
