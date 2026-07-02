@@ -3,6 +3,10 @@ use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
 
+/// Extracts the semantic client version and decoded platform metadata from proxy device info.
+///
+/// Invalid or missing fields are logged and returned as `None` so feature checks can fail closed
+/// without rejecting the whole request.
 pub(crate) fn parse_client_version_platform(
     info: Option<&DeviceInfo>,
 ) -> (Option<Version>, Option<ClientPlatformInfo>) {
@@ -44,21 +48,29 @@ pub(crate) fn parse_client_version_platform(
     (version, platform)
 }
 
-/// Represents a client feature that may have minimum version and OS family requirements.
+/// Features whose availability depends on client version and platform metadata.
 #[derive(Debug)]
 pub enum ClientFeature {
     ServiceLocations,
     PostureChecks,
 }
 
+/// One supported client/platform combination for a feature.
+///
+/// A feature is available when at least one of its rules matches. `None` platform fields behave as
+/// wildcards, while `min_version` is always required.
 #[derive(Debug)]
 struct ClientFeatureRule {
+    /// Oldest client version that supports this rule.
     min_version: Version,
+    /// Required Rust OS family reported by the client, or any family when absent.
     os_family: Option<&'static str>,
+    /// Required Rust OS type reported by the client, or any type when absent.
     os_type: Option<&'static str>,
 }
 
 impl ClientFeatureRule {
+    /// Returns whether the supplied platform satisfies this rule's platform predicates.
     fn matches_platform(&self, platform: Option<&ClientPlatformInfo>) -> bool {
         let requires_platform = self.os_family.is_some() || self.os_type.is_some();
         let Some(platform) = platform else {
@@ -72,6 +84,7 @@ impl ClientFeatureRule {
                 .is_none_or(|os_type| platform.os_type.eq_ignore_ascii_case(os_type))
     }
 
+    /// Returns whether both client version and platform satisfy this rule.
     fn matches(&self, version: Option<&Version>, platform: Option<&ClientPlatformInfo>) -> bool {
         version.is_some_and(|version| version >= &self.min_version)
             && self.matches_platform(platform)
@@ -79,6 +92,7 @@ impl ClientFeatureRule {
 }
 
 impl ClientFeature {
+    /// Returns all platform/version combinations that support this feature.
     fn rules(&self) -> Vec<ClientFeatureRule> {
         match self {
             Self::ServiceLocations => vec![
@@ -114,6 +128,10 @@ impl ClientFeature {
         }
     }
 
+    /// Returns `true` when the supplied device info supports this feature.
+    ///
+    /// Missing or invalid version information never matches. Missing platform information matches only
+    /// rules without platform constraints.
     pub fn is_supported_by_device(&self, info: Option<&DeviceInfo>) -> bool {
         let (version, platform) = parse_client_version_platform(info);
         let rules = self.rules();
