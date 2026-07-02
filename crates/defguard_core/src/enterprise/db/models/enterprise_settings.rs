@@ -1,3 +1,4 @@
+use defguard_common::db::models::Settings;
 use sqlx::{PgExecutor, Type, query, query_as};
 use struct_patch::Patch;
 
@@ -57,6 +58,15 @@ impl EnterpriseSettings {
         } else {
             Ok(Self::default())
         }
+    }
+
+    /// The effective password-reset visibility for Edge components.
+    /// Password reset requires email delivery, so if SMTP is missing the
+    /// option should not appear even when the admin toggle is on.
+    #[must_use]
+    pub fn edge_can_display_password_reset(&self) -> bool {
+        let settings = Settings::get_current_settings();
+        self.display_password_reset && settings.smtp_configured()
     }
 
     pub(crate) async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>

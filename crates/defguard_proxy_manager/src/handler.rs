@@ -399,7 +399,7 @@ impl ProxyHandler {
             // Push public settings (Edge UI controls) to the newly-connected proxy.
             if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
                 let public_settings = PublicSettings {
-                    display_password_reset: settings.display_password_reset,
+                    display_password_reset: settings.edge_can_display_password_reset(),
                     display_download_step: settings.display_download_step,
                 };
                 let _ = tx.send(CoreResponse {
@@ -1202,7 +1202,7 @@ impl ProxyHandler {
         // Push public settings to the test proxy.
         if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
             let public_settings = PublicSettings {
-                display_password_reset: settings.display_password_reset,
+                display_password_reset: settings.edge_can_display_password_reset(),
                 display_download_step: settings.display_download_step,
             };
             let _ = tx.send(CoreResponse {
