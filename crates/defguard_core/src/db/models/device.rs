@@ -1,4 +1,4 @@
-use std::{fmt, net::IpAddr};
+use std::{collections::HashSet, fmt, net::IpAddr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
@@ -853,6 +853,7 @@ impl Device<Id> {
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
+        used_ips: &HashSet<IpAddr>,
         reserved_ips: Option<&[IpAddr]>,
         current_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
@@ -882,15 +883,16 @@ impl Device<Id> {
             }
             let mut picked = None;
             for ip in address {
-                if network
-                    .can_assign_ips(transaction, &[ip], Some(self.id))
-                    .await
-                    .is_ok()
-                    && !reserved.contains(&ip)
-                {
-                    picked = Some(ip);
-                    break;
+                if ip == address.network() || ip == address.broadcast() || ip == address.ip() {
+                    continue;
                 }
+
+                if used_ips.contains(&ip) || reserved.contains(&ip) {
+                    continue;
+                }
+
+                picked = Some(ip);
+                break;
             }
 
             // Return error if no address can be assigned
