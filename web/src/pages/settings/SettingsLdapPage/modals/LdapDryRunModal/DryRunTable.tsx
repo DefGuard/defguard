@@ -116,7 +116,7 @@ export const DryRunTable = ({ data }: { data: LdapDryRunUser[] }) => {
           subtitle={m.modal_ldap_dry_run_search_empty_subtitle()}
         />
       ) : (
-        <TableBody table={table} shrink />
+        <TableBody table={table} maxVisibleRows={10} />
       )}
     </>
   );
