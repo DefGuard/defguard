@@ -2,7 +2,8 @@ use defguard_common::db::models::{Settings, User};
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_change_password,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        ldap::utils::ldap_change_password,
     },
     events::{
         BidiRequestContext, BidiStreamEvent, BidiStreamEventType, LdapSyncEventType,
@@ -11,7 +12,9 @@ use defguard_core::{
     grpc::utils::parse_client_ip_agent,
     handlers::user::check_password_strength,
     headers::get_device_info,
-    mail::templates::{password_reset_mail, password_reset_success_mail},
+    mail::templates::{
+        password_reset_disabled_mail, password_reset_mail, password_reset_success_mail,
+    },
 };
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
@@ -130,12 +133,59 @@ impl PasswordResetServer {
             return Ok(());
         };
 
-        // Do not allow password change if user is disabled or not enrolled
-        if !user.has_password() || !user.is_active {
+        // Do not allow password reset for inactive (disabled) users.
+        if !user.is_active {
             debug!(
-                "Password reset skipped for disabled or not enrolled user {} ({email})",
+                "Password reset skipped for disabled user {} ({email})",
                 user.username
             );
+            return Ok(());
+        }
+
+        // Externally-managed users get a clear feedback email;
+        // other passwordless users (e.g. half-enrolled) stay silent.
+        if !user.has_password() {
+            let is_admin = user.is_admin(&self.pool).await.map_err(|err| {
+                error!("Failed to check if user is admin: {err}");
+                Status::internal("unexpected error")
+            })?;
+            let settings = Settings::get_current_settings();
+            let oidc_disable_password_management =
+                OpenIdProvider::current_disables_password_management(&self.pool)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to check OIDC password management flag: {err}");
+                        Status::internal("unexpected error")
+                    })?;
+
+            if user.password_management_disabled(
+                is_admin,
+                &settings,
+                oidc_disable_password_management,
+            ) {
+                debug!(
+                    "Password reset disabled for externally-managed user {} ({email})",
+                    user.username
+                );
+                if let Err(err) = password_reset_disabled_mail(
+                    &user.email,
+                    &mut *self.pool.acquire().await.map_err(|err| {
+                        error!("Failed to acquire DB connection: {err}");
+                        Status::internal("unexpected error")
+                    })?,
+                    Some(&ip_address),
+                    Some(&device_info),
+                )
+                .await
+                {
+                    error!("Failed to send password reset disabled email: {err}");
+                }
+            } else {
+                debug!(
+                    "Password reset skipped for passwordless user {} ({email})",
+                    user.username
+                );
+            }
             return Ok(());
         }
 
