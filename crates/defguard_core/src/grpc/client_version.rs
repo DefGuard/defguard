@@ -85,11 +85,11 @@ impl ClientFeature {
                 ClientFeatureRule {
                     min_version: Version::new(1, 6, 0),
                     os_family: Some("windows"),
-                    os_type: Some("windows"),
+                    os_type: None,
                 },
                 ClientFeatureRule {
                     min_version: Version::new(2, 1, 0),
-                    os_family: Some("unix"),
+                    os_family: None,
                     os_type: Some("linux"),
                 },
             ],
