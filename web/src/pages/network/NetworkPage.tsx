@@ -22,6 +22,7 @@ export const NetworkPage = () => {
   } = useApi();
   const { LL } = useI18nContext();
   const setNetworks = useNetworkPageStore((state) => state.setNetworks);
+  const selectedNetworkId = useNetworkPageStore((state) => state.selectedNetworkId);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const { data: networksData } = useQuery({
@@ -44,7 +45,7 @@ export const NetworkPage = () => {
       {breakpoint === 'desktop' && <NetworkTabs />}
       <Card className="network-card" hideMobile>
         <NetworkControls />
-        <NetworkEditForm />
+        <NetworkEditForm key={selectedNetworkId} />
         <NetworkGatewaySetup />
       </Card>
     </PageContainer>
