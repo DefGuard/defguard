@@ -44,17 +44,6 @@ pub(crate) fn parse_client_version_platform(
     (version, platform)
 }
 
-/// Returns `true` when the platform's OS family is a mobile OS (Android or iOS).
-/// Returns `false` for desktop platforms and when platform info is absent.
-pub fn is_mobile_platform(platform: Option<&ClientPlatformInfo>) -> bool {
-    platform
-        .map(|p| {
-            let f = p.os_family.to_lowercase();
-            f == "android" || f == "ios"
-        })
-        .unwrap_or(false)
-}
-
 /// Represents a client feature that may have minimum version and OS family requirements.
 #[derive(Debug)]
 pub enum ClientFeature {
@@ -62,88 +51,87 @@ pub enum ClientFeature {
     PostureChecks,
 }
 
+#[derive(Debug)]
+struct ClientFeatureRule {
+    min_version: Version,
+    os_family: Option<&'static str>,
+    os_type: Option<&'static str>,
+}
+
+impl ClientFeatureRule {
+    fn matches_platform(&self, platform: Option<&ClientPlatformInfo>) -> bool {
+        let requires_platform = self.os_family.is_some() || self.os_type.is_some();
+        let Some(platform) = platform else {
+            return !requires_platform;
+        };
+
+        self.os_family
+            .is_none_or(|family| platform.os_family.eq_ignore_ascii_case(family))
+            && self
+                .os_type
+                .is_none_or(|os_type| platform.os_type.eq_ignore_ascii_case(os_type))
+    }
+
+    fn matches(&self, version: Option<&Version>, platform: Option<&ClientPlatformInfo>) -> bool {
+        version.is_some_and(|version| version >= &self.min_version)
+            && self.matches_platform(platform)
+    }
+}
+
 impl ClientFeature {
-    fn min_version(&self, platform: Option<&ClientPlatformInfo>) -> Option<Version> {
+    fn rules(&self) -> Vec<ClientFeatureRule> {
         match self {
-            Self::ServiceLocations => Some(Version::new(1, 6, 0)),
-            // We do not keep mobile client and desktop client versions in sync.
-            Self::PostureChecks => {
-                if is_mobile_platform(platform) {
-                    Some(Version::new(1, 7, 0))
-                } else {
-                    Some(Version::new(2, 1, 0))
-                }
-            }
-        }
-    }
-
-    fn required_os_type(&self) -> Option<Vec<&'static str>> {
-        match self {
-            Self::ServiceLocations => Some(vec!["windows", "linux"]),
-            Self::PostureChecks => None,
-        }
-    }
-
-    fn required_os_family(&self) -> Option<Vec<&'static str>> {
-        match self {
-            Self::ServiceLocations => Some(vec!["windows", "unix"]),
-            Self::PostureChecks => None,
+            Self::ServiceLocations => vec![
+                ClientFeatureRule {
+                    min_version: Version::new(1, 6, 0),
+                    os_family: Some("windows"),
+                    os_type: Some("windows"),
+                },
+                ClientFeatureRule {
+                    min_version: Version::new(2, 1, 0),
+                    os_family: Some("unix"),
+                    os_type: Some("linux"),
+                },
+            ],
+            Self::PostureChecks => vec![
+                // We do not keep mobile client and desktop client versions in sync.
+                ClientFeatureRule {
+                    min_version: Version::new(1, 7, 0),
+                    os_family: Some("android"),
+                    os_type: None,
+                },
+                ClientFeatureRule {
+                    min_version: Version::new(1, 7, 0),
+                    os_family: Some("ios"),
+                    os_type: None,
+                },
+                ClientFeatureRule {
+                    min_version: Version::new(2, 1, 0),
+                    os_family: None,
+                    os_type: None,
+                },
+            ],
         }
     }
 
     pub fn is_supported_by_device(&self, info: Option<&DeviceInfo>) -> bool {
-        let (version, r#type) = parse_client_version_platform(info);
+        let (version, platform) = parse_client_version_platform(info);
+        let rules = self.rules();
+        let supported = rules
+            .iter()
+            .any(|rule| rule.matches(version.as_ref(), platform.as_ref()));
 
-        // No minimum version = matches all
-        let version_matches = self.min_version(r#type.as_ref()).is_none_or(|min_version| {
-            // No version info = does not match
-            version
-                .as_ref()
-                .is_some_and(|version| version >= &min_version)
-        });
-
-        if !version_matches {
+        if !supported {
             debug!(
-                "Client version {version:?} does not meet minimum version {:?} for feature {self:?}",
-                self.min_version(r#type.as_ref())
-            );
-        }
-
-        // No required OS family = matches all
-        let platform_matches = self.required_os_family().is_none_or(|platforms| {
-            platforms.iter().any(|p| {
-                r#type
+                "Client version {version:?} and platform {:?} do not match support rules {:?} for feature {self:?}",
+                platform
                     .as_ref()
-                    .is_some_and(|platform| platform.os_family.eq_ignore_ascii_case(p))
-            })
-        });
-
-        if !platform_matches {
-            debug!(
-                "Client OS {:?} does not meet required OS family {:?} for feature {self:?}",
-                r#type.as_ref().map(|p| &p.os_family),
-                self.required_os_family()
-            );
-        }
-        //
-        // No required OS type = matches all
-        let type_matches = self.required_os_type().is_none_or(|types| {
-            types.iter().any(|t| {
-                r#type
-                    .as_ref()
-                    .is_some_and(|r#type| r#type.os_type.eq_ignore_ascii_case(t))
-            })
-        });
-
-        if !type_matches {
-            debug!(
-                "Client OS {:?} does not meet required OS type {:?} for feature {self:?}",
-                r#type.as_ref().map(|p| &p.os_type),
-                self.required_os_type()
+                    .map(|platform| (&platform.os_family, &platform.os_type)),
+                rules,
             );
         }
 
-        version_matches && platform_matches && type_matches
+        supported
     }
 }
 
@@ -310,27 +298,42 @@ mod tests {
             "ServiceLocations should not be supported below minimum version"
         );
 
-        // Test with wrong OS family (linux)
+        // Linux requires >= 2.1.0.
         let info = create_device_info(
-            Some("1.6.0".to_owned()),
+            Some("2.0.9".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "linux".to_owned(),
-                os_type: "Ubuntu".to_owned(),
+                os_family: "unix".to_owned(),
+                os_type: "linux".to_owned(),
                 version: "22.04".to_owned(),
                 ..Default::default()
             }),
         );
         assert!(
             !ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
-            "ServiceLocations should not be supported on Linux"
+            "ServiceLocations should not be supported on Linux below version 2.1.0"
         );
 
-        // Test with wrong OS family (macos)
+        // Linux is supported since 2.1.0.
         let info = create_device_info(
-            Some("1.6.0".to_owned()),
+            Some("2.1.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "macos".to_owned(),
-                os_type: "macOS".to_owned(),
+                os_family: "unix".to_owned(),
+                os_type: "linux".to_owned(),
+                version: "22.04".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should be supported on Linux at version 2.1.0"
+        );
+
+        // Test with unsupported OS family (macos)
+        let info = create_device_info(
+            Some("2.1.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "unix".to_owned(),
+                os_type: "macos".to_owned(),
                 version: "14.0".to_owned(),
                 ..Default::default()
             }),
@@ -526,36 +529,6 @@ mod tests {
         assert!(
             !ClientFeature::PostureChecks.is_supported_by_device(None),
             "PostureChecks should not be supported without device info"
-        );
-    }
-
-    #[test]
-    fn test_is_mobile_platform() {
-        for os_family in ["android", "Android", "ANDROID", "ios", "iOS", "IOS"] {
-            let platform = ClientPlatformInfo {
-                os_family: os_family.to_owned(),
-                ..Default::default()
-            };
-            assert!(
-                is_mobile_platform(Some(&platform)),
-                "{os_family} should be recognised as a mobile platform"
-            );
-        }
-
-        for os_family in ["windows", "macos", "linux", "darwin", "unknown"] {
-            let platform = ClientPlatformInfo {
-                os_family: os_family.to_owned(),
-                ..Default::default()
-            };
-            assert!(
-                !is_mobile_platform(Some(&platform)),
-                "{os_family} should not be recognised as a mobile platform"
-            );
-        }
-
-        assert!(
-            !is_mobile_platform(None),
-            "None platform should not be recognised as mobile"
         );
     }
 }
