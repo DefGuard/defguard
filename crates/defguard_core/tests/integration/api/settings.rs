@@ -226,7 +226,11 @@ async fn test_ldap_connection_test_with_submitted_settings(
     submitted.ldap_group_obj_class = Some("posixGroup".to_owned());
     submitted.ldap_group_member_attr = Some("memberUid".to_owned());
     submitted.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".to_owned());
-    let response = client.post("/api/v1/ldap/test").json(&submitted).send().await;
+    let response = client
+        .post("/api/v1/ldap/test")
+        .json(&submitted)
+        .send()
+        .await;
     assert_eq!(
         response.status(),
         StatusCode::BAD_REQUEST,
