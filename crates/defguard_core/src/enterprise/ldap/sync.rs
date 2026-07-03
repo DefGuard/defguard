@@ -946,10 +946,9 @@ impl super::LDAPConnection {
             }
             if let Some((ldap_rdn, ldap_path)) =
                 ldap_paths_by_username.get(defguard_user.username.as_str())
+                && defguard_user.ldap_rdn_value() == *ldap_rdn
             {
-                if defguard_user.ldap_rdn_value() == *ldap_rdn {
-                    defguard_user.ldap_user_path = ldap_path.map(str::to_owned);
-                }
+                defguard_user.ldap_user_path = ldap_path.map(str::to_owned);
             }
         }
 
