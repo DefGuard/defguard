@@ -24,13 +24,21 @@ export const enableTOTP = async (
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
   await waitForRoute(page, routes.me);
+  // Dismiss the version-update toast which overlays form controls.
+  const dismissBtn = page.locator('#toasts-root button:has-text("Dismiss")');
+  try {
+    await dismissBtn.click({ timeout: 5000 });
+  } catch {
+    // Toast not present — continue.
+  }
+  await page.getByTestId('edit-user').waitFor({ state: 'visible', timeout: 10000 });
   await page.getByTestId('edit-user').click();
   await page.getByTestId('edit-totp').scrollIntoViewIfNeeded();
   await page.getByTestId('edit-totp').click();
   await page.getByTestId('enable-totp-option').click();
   await page.getByTestId('copy-totp').click();
   const totpSecret = await getPageClipboard(page);
-  const { otp: token } = TOTP.generate(totpSecret);
+  const { otp: token } = await TOTP.generate(totpSecret);
   const totpForm = page.getByTestId('register-totp-form');
   await totpForm.getByTestId('field-code').fill(token);
   await totpForm.locator('button[type="submit"]').click();

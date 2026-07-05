@@ -26,8 +26,9 @@ test.describe('Test user authentication', () => {
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
-    await waitForRoute(page, routes.admin.wizard);
-    expect(page.url()).toBe(routes.base + routes.admin.wizard);
+    // Admin lands on overview because wizard was completed in globalSetup.
+    await page.waitForURL('**/admin/overview**', { waitUntil: 'networkidle' });
+    expect(page.url()).toContain(routes.admin.overview);
   });
 
   test('Create user and login as him', async ({ page, browser }) => {
@@ -45,7 +46,8 @@ test.describe('Test user authentication', () => {
     await acceptRecovery(page);
     await loginTOTP(page, defaultUserAdmin, secret);
     await page.waitForLoadState('networkidle');
-    await waitForRoute(page, routes.admin.wizard);
+    // Admin lands on overview because wizard was completed in globalSetup.
+    await page.waitForURL('**/admin/overview**', { waitUntil: 'networkidle' });
   });
 
   test('Login with user TOTP', async ({ page, browser }) => {
@@ -75,7 +77,7 @@ test.describe('Test user authentication', () => {
     const { secret } = await enableEmailMFA(browser, testUser);
     await loginBasic(page, testUser);
     await page.goto(routes.base + routes.auth.email);
-    const { otp: code } = TOTP.generate(secret, {
+    const { otp: code } = await TOTP.generate(secret, {
       digits: 6,
       period: 60,
     });

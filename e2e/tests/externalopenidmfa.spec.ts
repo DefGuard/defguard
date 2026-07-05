@@ -59,10 +59,14 @@ test.describe('External OIDC.', () => {
     expect(testUserProfile.devices.length).toBe(1);
     const createdDevice = testUserProfile.devices[0];
     const pubkey = createdDevice.wireguard_pubkey;
+    // The device is assigned to exactly one network (the one created in beforeEach).
+    const deviceNetworks = createdDevice.networks;
+    expect(deviceNetworks.length).toBeGreaterThan(0);
+    const locationId = deviceNetworks[0].network_id;
     const data = {
       method: 2,
       pubkey: pubkey,
-      location_id: 1,
+      location_id: locationId,
     };
     const response = await page.request.post(mfaStartUrl, {
       data: data,

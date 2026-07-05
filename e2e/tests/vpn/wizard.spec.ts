@@ -5,6 +5,7 @@ import path from 'path';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { NetworkForm } from '../../types';
+import { apiDeleteAllNetworks } from '../../utils/api/networks';
 import {
   apiCreateUsersBulk,
   apiGetUserProfile,
@@ -18,12 +19,12 @@ import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
-  test.beforeAll(() => {
+  // Reset the DB and remove the dummy network created by globalSetup before
+  // each test, so the setup wizard is shown and its UI flow is exercised
+  // (rather than createNetwork falling back to the API).
+  test.beforeEach(async () => {
     dockerRestart();
-  });
-
-  test.afterEach(() => {
-    dockerRestart();
+    await apiDeleteAllNetworks();
   });
 
   test('Wizard Import', async ({ page }) => {

@@ -30,7 +30,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   const codeField = page.getByTestId('field-code');
   await codeField.clear();
   const responsePromise = page.waitForResponse('**/verify');
-  const { otp: token } = TOTP.generate(totpSecret);
+  const { otp: token } = await TOTP.generate(totpSecret);
   await codeField.type(token);
   await page.locator('button[type="submit"]').click();
   const response = await responsePromise;

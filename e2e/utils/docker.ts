@@ -20,7 +20,7 @@ const dockerCheckContainers = (): boolean => {
 };
 
 // Poll the core's health endpoint until it returns 200.
-const waitForCore = () => {
+export const waitForCore = () => {
   execSync(
     `until curl -sf ${testsConfig.BASE_URL}/api/v1/health > /dev/null; do sleep 2; done`,
     { timeout: 120_000 },
