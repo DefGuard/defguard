@@ -29,7 +29,7 @@ export const enableTOTP = async (
   try {
     await dismissBtn.click({ timeout: 5000 });
   } catch {
-    // Toast not present — continue.
+    // Toast not present - continue.
   }
   await page.getByTestId('edit-user').waitFor({ state: 'visible', timeout: 10000 });
   await page.getByTestId('edit-user').click();

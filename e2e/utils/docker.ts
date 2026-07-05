@@ -50,6 +50,21 @@ export const dockerCreateTemplate = () => {
   waitForCore();
 };
 
+// Drop and recreate an empty `defguard` DB, then restart core so it re-applies
+// migrations and re-seeds the default admin. Guarantees a pristine,
+// wizard-incomplete database before the template snapshot is built, regardless
+// of any leftover state from a previous run.
+export const resetToFreshDb = () => {
+  execSync(`${dockerCompose} kill core`);
+  psql(
+    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'",
+  );
+  psql('DROP DATABASE IF EXISTS defguard');
+  psql('CREATE DATABASE defguard OWNER defguard');
+  execSync(`${dockerCompose} start core`);
+  waitForCore();
+};
+
 // Reset the database to the template snapshot.
 // Called before each test (via beforeEach).
 export const dockerRestart = () => {

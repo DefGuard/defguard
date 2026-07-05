@@ -19,7 +19,7 @@ export const createNetwork = async (browser: Browser, network: NetworkForm) => {
   try {
     await setupButton.waitFor({ state: 'visible', timeout: 5000 });
   } catch {
-    // Wizard already completed — create network via API instead.
+    // Wizard already completed - create network via API instead.
     const apiCtx = await request.newContext({ baseURL: testsConfig.BASE_URL });
     const authRes = await apiCtx.post('/api/v1/auth', {
       data: {

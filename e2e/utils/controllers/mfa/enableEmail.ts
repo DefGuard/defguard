@@ -53,7 +53,7 @@ export const enableEmailMFA = async (
   try {
     await dismissBtn.click({ timeout: 3000 });
   } catch {
-    // Toast not present — continue.
+    // Toast not present - continue.
   }
   await page.getByTestId('edit-user').click();
   await page.getByTestId('edit-email-mfa').scrollIntoViewIfNeeded();

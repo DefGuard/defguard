@@ -3,19 +3,23 @@ import { execSync } from 'child_process';
 
 import { defaultUserAdmin, testsConfig } from '../config';
 import { loginBasic } from './controllers/login';
-import { dockerCompose, dockerCreateTemplate, dockerUp, waitForCore } from './docker';
+import { dockerCompose, dockerCreateTemplate, dockerUp, resetToFreshDb } from './docker';
 
-const templateExists = (): boolean => {
+// True only if the template exists AND has the marker network created by
+// completeWizard. A template left over from an older harness (wizard
+// incomplete) is treated as stale and rebuilt.
+const templateIsValid = (): boolean => {
   try {
     const out = execSync(
-      `${dockerCompose} exec db psql -U defguard -d postgres -tAc ` +
-        `"SELECT 1 FROM pg_database WHERE datname = 'defguard_template'"`,
+      `${dockerCompose} exec db psql -U defguard -d defguard_template -tAc ` +
+        `"SELECT 1 FROM wireguard_network WHERE name = '_e2e_wizard_done' LIMIT 1"`,
       { stdio: 'pipe' },
     )
       .toString()
       .trim();
     return out === '1';
   } catch {
+    // Template DB missing or query failed - treat as invalid.
     return false;
   }
 };
@@ -48,17 +52,17 @@ const completeWizard = async () => {
   }
 
   await browser.close();
-  console.log('Wizard completed — dummy network created.');
+  console.log('Wizard completed - dummy network created.');
 };
 
 const globalSetup = async () => {
   dockerUp();
-  await waitForCore();
-  if (!templateExists()) {
+  if (!templateIsValid()) {
+    resetToFreshDb();
     await completeWizard();
     dockerCreateTemplate();
   } else {
-    console.log('Template already exists, skipping wizard.');
+    console.log('Valid template already exists, skipping wizard.');
   }
 };
 
