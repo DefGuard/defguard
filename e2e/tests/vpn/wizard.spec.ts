@@ -15,7 +15,6 @@ import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
@@ -75,7 +74,6 @@ test.describe('Setup VPN (wizard) ', () => {
       const selectElement = page.getByTestId(`user-select-${rowIndex}`);
       const selectFloatingExpand = page.locator('.select-floating-ui');
       await selectElement.click();
-      await waitForPromise(200);
       await selectFloatingExpand.waitFor({ state: 'visible' });
       await page
         .locator('.select-floating-ui button > span')

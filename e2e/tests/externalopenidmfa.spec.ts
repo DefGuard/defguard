@@ -88,7 +88,6 @@ test.describe('External OIDC.', () => {
 
     const url = testsConfig.ENROLLMENT_URL + '/openid/mfa' + `?token=${token}`;
     await page.goto(url);
-    await waitForPromise(2000);
     await page.getByTestId('openid-allow').click();
     await waitForPromise(2000);
 

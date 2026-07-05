@@ -62,7 +62,6 @@ export const enableEmailMFA = async (
   await page.getByTestId('enable-email-mfa-option').click();
   const formElement = page.locator('#register-mfa-email-form');
   await requestPromise;
-  await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
   const { otp: code } = await TOTP.generate(secret, {
     digits: 6,

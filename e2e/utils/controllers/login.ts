@@ -4,7 +4,6 @@ import { TOTP } from 'totp-generator';
 
 import { routes, testsConfig } from '../../config';
 import { User } from '../../types';
-import { waitForPromise } from '../waitForPromise';
 import { waitForRoute } from '../waitForRoute';
 
 type AuthInfo = User | Pick<User, 'username' | 'password'>;
@@ -21,7 +20,11 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await page.getByTestId('login-form-submit').click();
   const response = await responsePromise;
   expect([200, 201].includes(response.status())).toBeTruthy();
-  await waitForPromise(2000);
+  // Wait for the SPA to navigate away from the login page after successful auth
+  // (to /me, /admin/*, or an MFA step) instead of a fixed delay.
+  await page.waitForURL((url) => !url.pathname.endsWith(routes.auth.login), {
+    timeout: 10_000,
+  });
 };
 
 export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: string) => {

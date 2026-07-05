@@ -11,7 +11,6 @@ import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClie
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('External OIDC.', () => {
@@ -73,7 +72,6 @@ test.describe('External OIDC.', () => {
   test('Complete enrollment through external OIDC', async ({ page }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
-    await waitForPromise(2000);
     await page.getByTestId('start-enrollment').click();
     const oidcLoginButton = page.locator('button.oidc-button');
     expect(oidcLoginButton).not.toBeNull();

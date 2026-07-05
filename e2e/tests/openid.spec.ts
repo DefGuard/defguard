@@ -10,7 +10,6 @@ import { copyOpenIdClientId } from '../utils/controllers/openid/copyClientId';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 // FIXME containerize test client so tests can run without external testing client
@@ -44,7 +43,10 @@ test.describe('Authorize OpenID client.', () => {
     await page.waitForURL(routes.base + routes.consent + '**');
     await page.getByTestId('openid-allow').click();
     await page.waitForURL('https://oidcdebugger.com/**');
-    await waitForPromise(2000);
+    await page
+      .locator('.debug__callback-header')
+      .locator('h1')
+      .waitFor({ state: 'visible' });
     const headerMessage = await page
       .locator('.debug__callback-header')
       .locator('h1')
@@ -67,7 +69,10 @@ test.describe('Authorize OpenID client.', () => {
     await page.waitForURL(routes.base + routes.consent + '**');
     await page.getByTestId('openid-allow').click();
     await page.waitForURL('https://oidcdebugger.com/**');
-    await waitForPromise(2000);
+    await page
+      .locator('.debug__callback-header')
+      .locator('h1')
+      .waitFor({ state: 'visible' });
     const headerMessage = await page
       .locator('.debug__callback-header')
       .locator('h1')
@@ -93,7 +98,10 @@ test.describe('Authorize OpenID client.', () => {
     await page.waitForURL(routes.base + routes.consent + '**');
     await page.getByTestId('openid-allow').click();
     await page.waitForURL('https://oidcdebugger.com/**');
-    await waitForPromise(2000);
+    await page
+      .locator('.debug__callback-header')
+      .locator('h1')
+      .waitFor({ state: 'visible' });
     const headerMessage = await page
       .locator('.debug__callback-header')
       .locator('h1')
