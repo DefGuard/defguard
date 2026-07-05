@@ -19,8 +19,8 @@ import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
   // Reset the DB and remove the dummy network created by globalSetup before
-  // each test, so the setup wizard is shown and its UI flow is exercised
-  // (rather than createNetwork falling back to the API).
+  // each test, so the setup wizard is shown. The Wizard Import test navigates
+  // to the wizard directly; createNetwork clears networks on its own.
   test.beforeEach(async () => {
     dockerRestart();
     await apiDeleteAllNetworks();
