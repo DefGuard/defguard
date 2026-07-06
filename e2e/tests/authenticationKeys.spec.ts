@@ -6,6 +6,7 @@ import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
+import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Authentication keys', () => {
@@ -73,11 +74,13 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     expect(profileKeys[0].name).toBe('test ssh');
     expect(profileKeys[0].key_type).toBe(AuthenticationKeyType.SSH);
     // check if it can be deleted
-    const deletePromise = page.waitForResponse('**/auth_key');
     const card = page.locator('.authentication-key-item');
-    card.waitFor({
-      state: 'visible',
-    });
+    await card.waitFor({ state: 'visible' });
+    // Let the list finish re-rendering after creation. The EditButton menu holds
+    // local open state and dismisses on remount, so opening it before the list
+    // settles makes "Delete Key" disappear mid-click (races in CI).
+    await waitForPromise(1000);
+    const deletePromise = page.waitForResponse('**/auth_key');
     await card.locator('.edit-button').click();
     await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
     await page
@@ -109,8 +112,13 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     expect(profileKeys[0].name).toBe('test pgp');
     expect(profileKeys[0].key_type).toBe(AuthenticationKeyType.GPG);
     // check if it can be deleted
-    const deletePromise = page.waitForResponse('**/auth_key');
     const card = page.locator('.authentication-key-item');
+    await card.waitFor({ state: 'visible' });
+    // Let the list finish re-rendering after creation. The EditButton menu holds
+    // local open state and dismisses on remount, so opening it before the list
+    // settles makes "Delete Key" disappear mid-click (races in CI).
+    await waitForPromise(1000);
+    const deletePromise = page.waitForResponse('**/auth_key');
     await card.locator('.edit-button').click();
     await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
     await page
