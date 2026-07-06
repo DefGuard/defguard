@@ -50,8 +50,7 @@ jobs:
         id: pnpm-install
         uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
         with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
+          package_json_file: e2e/package.json
           run_install: false
 
       - name: Get pnpm store directory
@@ -148,8 +147,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
         with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
+          package_json_file: e2e/package.json
           run_install: false
 
       - name: Get pnpm store directory
@@ -244,8 +242,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
         with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
+          package_json_file: e2e/package.json
           run_install: false
 
       - name: Get pnpm store directory
