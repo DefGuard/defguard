@@ -22,9 +22,9 @@ import {
 } from '../../../shared/defguard-ui/types';
 import amazonImage from '../assets/amazon.png';
 import kubernetesImage from '../assets/kub.png';
-import teraImage from '../assets/terra.png';
 import opnsenseImage from '../assets/opnsense.png';
-import vyosImage from '../assets/vyos.png'
+import teraImage from '../assets/terra.png';
+import vyosImage from '../assets/vyos.png';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
 
@@ -241,7 +241,7 @@ const OtherDeploymentMethod = ({
     <Card>
       <div className="inner-track">
         <div className="image-tack">
-          <img src={image} width={44} height={44} />
+          <img src={image} width={32} height={32} />
         </div>
         <div className="content">
           <p className="title">{name}</p>

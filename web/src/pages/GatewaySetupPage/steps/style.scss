@@ -58,12 +58,12 @@
         display: flex;
         flex-flow: row nowrap;
         column-gap: var(--spacing-xl);
-        align-items: flex-start;
+        align-items: center;
         justify-content: flex-start;
 
         .image-tack {
-          width: 44px;
-          height: 44px;
+          width: 32px;
+          height: 32px;
 
           img {
             width: inherit;
