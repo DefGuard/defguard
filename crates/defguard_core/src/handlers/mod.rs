@@ -67,6 +67,13 @@ pub(crate) mod yubikey;
 pub enum WebErrorCode {
     NetworkFull,
     UserGroupsNotSynced,
+    CertMissingCertPem,
+    CertMissingKeyPem,
+    CertInvalidCertOrKey,
+    CertInvalidValidityPeriod,
+    CertExpired,
+    CertNotYetValid,
+    CertParseError,
 }
 
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -294,6 +301,37 @@ impl From<WebError> for ApiResponse {
                 Self::new(
                     json!({"msg": msg, "code": WebErrorCode::UserGroupsNotSynced}),
                     StatusCode::UNAUTHORIZED,
+                )
+            }
+            WebError::CertMissingCertPem => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::CertMissingCertPem}),
+                StatusCode::BAD_REQUEST,
+            ),
+            WebError::CertMissingKeyPem => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::CertMissingKeyPem}),
+                StatusCode::BAD_REQUEST,
+            ),
+            WebError::CertInvalidCertOrKey => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::CertInvalidCertOrKey}),
+                StatusCode::BAD_REQUEST,
+            ),
+            WebError::CertInvalidValidityPeriod => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::CertInvalidValidityPeriod}),
+                StatusCode::BAD_REQUEST,
+            ),
+            WebError::CertExpired => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::CertExpired}),
+                StatusCode::BAD_REQUEST,
+            ),
+            WebError::CertNotYetValid => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::CertNotYetValid}),
+                StatusCode::BAD_REQUEST,
+            ),
+            WebError::CertParseError(msg) => {
+                warn!(msg);
+                Self::new(
+                    json!({"msg": msg, "code": WebErrorCode::CertParseError}),
+                    StatusCode::BAD_REQUEST,
                 )
             }
             WebError::TemplateError(err) => {

@@ -100,6 +100,20 @@ pub enum WebError {
     #[error(transparent)]
     #[schema(value_type=Object)]
     IpNetwork(#[from] ipnetwork::IpNetworkError),
+    #[error("cert_pem is required for own_cert")]
+    CertMissingCertPem,
+    #[error("key_pem is required for own_cert")]
+    CertMissingKeyPem,
+    #[error("Invalid certificate or private key PEM")]
+    CertInvalidCertOrKey,
+    #[error("Certificate validity period is invalid")]
+    CertInvalidValidityPeriod,
+    #[error("Certificate has expired")]
+    CertExpired,
+    #[error("Certificate is not valid yet")]
+    CertNotYetValid,
+    #[error("Certificate error: {0}")]
+    CertParseError(String),
 }
 
 impl From<tonic::Status> for WebError {
@@ -259,8 +273,13 @@ impl From<CertSettingsError> for WebError {
     fn from(err: CertSettingsError) -> Self {
         error!("{err}");
         match err {
-            CertSettingsError::InvalidCert(msg) => Self::BadRequest(msg),
-            CertSettingsError::Cert(e) => Self::CertificateError(e),
+            CertSettingsError::MissingCertPem => Self::CertMissingCertPem,
+            CertSettingsError::MissingKeyPem => Self::CertMissingKeyPem,
+            CertSettingsError::InvalidCertOrKey => Self::CertInvalidCertOrKey,
+            CertSettingsError::InvalidValidityPeriod => Self::CertInvalidValidityPeriod,
+            CertSettingsError::CertExpired => Self::CertExpired,
+            CertSettingsError::CertNotYetValid => Self::CertNotYetValid,
+            CertSettingsError::Cert(e) => Self::CertParseError(e.to_string()),
             CertSettingsError::Url(e) => Self::BadRequest(e),
             CertSettingsError::Settings(e) => Self::BadRequest(e.to_string()),
             CertSettingsError::Db(e) => Self::DbError(e.to_string()),

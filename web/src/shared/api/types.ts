@@ -403,6 +403,13 @@ export interface MfaFinishResponse {
 export const WebErrorCode = {
   NetworkFull: 'network_full',
   UserGroupsNotSynced: 'user_groups_not_synced',
+  CertMissingCertPem: 'cert_missing_cert_pem',
+  CertMissingKeyPem: 'cert_missing_key_pem',
+  CertInvalidCertOrKey: 'cert_invalid_cert_or_key',
+  CertInvalidValidityPeriod: 'cert_invalid_validity_period',
+  CertExpired: 'cert_expired',
+  CertNotYetValid: 'cert_not_yet_valid',
+  CertParseError: 'cert_parse_error',
 } as const;
 
 export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
