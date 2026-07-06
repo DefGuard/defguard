@@ -36,10 +36,18 @@
       column-gap: var(--spacing-sm);
       align-items: center;
       justify-content: flex-start;
+      max-width: 100%;
 
       span {
         font: inherit;
         color: inherit;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .icon {
+        flex-shrink: 0;
       }
     }
 
@@ -61,6 +69,10 @@
             width: inherit;
             height: inherit;
           }
+        }
+
+        .content {
+          overflow: hidden;
         }
       }
     }

@@ -23,6 +23,8 @@ import {
 import amazonImage from '../assets/amazon.png';
 import kubernetesImage from '../assets/kub.png';
 import teraImage from '../assets/terra.png';
+import opnsenseImage from '../assets/opnsense.png';
+import vyosImage from '../assets/vyos.png'
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
 
@@ -80,6 +82,7 @@ export const SetupDeployGatewayStep = () => {
         }}
         text={m.gateway_setup_step_deploy_confirm()}
       />
+      <SizedBox height={10} />
       <Controls>
         <Button
           variant={'outlined'}
@@ -274,6 +277,16 @@ const OthersTab = () => {
           name={`Terraform`}
           link={`https://docs.defguard.net/deployment-strategies/terraform`}
           image={teraImage}
+        />
+        <OtherDeploymentMethod
+          name={`VyOS`}
+          link={`https://docs.defguard.net/deployment-strategies/running-gateway-on-vyos`}
+          image={vyosImage}
+        />
+        <OtherDeploymentMethod
+          name={`OPNSense`}
+          link={`https://docs.defguard.net/deployment-strategies/running-gateway-on-opnsense-firewall`}
+          image={opnsenseImage}
         />
       </div>
       <SizedBox height={ThemeSpacing.Lg} />
