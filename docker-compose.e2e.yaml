@@ -20,6 +20,12 @@ services:
       RUST_BACKTRACE: 1
     ports:
       - "8000:8000"
+    extra_hosts:
+      # Keep e2e hermetic: blackhole the external update-check endpoint so the
+      # core never caches a "new version". Otherwise the frontend shows a
+      # persistent update toast that overlays and intercepts clicks (flaky in
+      # CI, which has internet; absent locally where the call fails).
+      - "pkgs.defguard.net:127.0.0.1"
     depends_on:
       - db
 

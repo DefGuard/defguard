@@ -24,13 +24,6 @@ export const enableTOTP = async (
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
   await waitForRoute(page, routes.me);
-  // Dismiss the version-update toast which overlays form controls.
-  const dismissBtn = page.locator('#toasts-root button:has-text("Dismiss")');
-  try {
-    await dismissBtn.click({ timeout: 5000 });
-  } catch {
-    // Toast not present - continue.
-  }
   await page.getByTestId('edit-user').waitFor({ state: 'visible', timeout: 10000 });
   await page.getByTestId('edit-user').click();
   await page.getByTestId('edit-totp').scrollIntoViewIfNeeded();
