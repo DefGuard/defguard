@@ -3,7 +3,6 @@ import { Browser } from 'playwright';
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
-import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
 
 // create user via default admin on separate context
@@ -40,9 +39,8 @@ export const createUser = async (
     });
     await page.getByTestId('edit-user').click();
     await page.waitForLoadState('networkidle');
-    await waitForPromise(2000);
     await page.getByTestId('groups-select').locator('.select-container').click();
-    await waitForPromise(2000);
+    await page.locator('.select-floating-ui').waitFor({ state: 'visible' });
     for (const group of groups) {
       await page
         .locator('.select-floating-ui')

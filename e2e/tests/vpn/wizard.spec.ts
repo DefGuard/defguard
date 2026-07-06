@@ -5,6 +5,7 @@ import path from 'path';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
 import { NetworkForm } from '../../types';
+import { apiDeleteAllNetworks } from '../../utils/api/networks';
 import {
   apiCreateUsersBulk,
   apiGetUserProfile,
@@ -14,16 +15,15 @@ import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
-  test.beforeAll(() => {
+  // Reset the DB and remove the dummy network created by globalSetup before
+  // each test, so the setup wizard is shown. The Wizard Import test navigates
+  // to the wizard directly; createNetwork clears networks on its own.
+  test.beforeEach(async () => {
     dockerRestart();
-  });
-
-  test.afterEach(() => {
-    dockerRestart();
+    await apiDeleteAllNetworks();
   });
 
   test('Wizard Import', async ({ page }) => {
@@ -74,7 +74,6 @@ test.describe('Setup VPN (wizard) ', () => {
       const selectElement = page.getByTestId(`user-select-${rowIndex}`);
       const selectFloatingExpand = page.locator('.select-floating-ui');
       await selectElement.click();
-      await waitForPromise(200);
       await selectFloatingExpand.waitFor({ state: 'visible' });
       await page
         .locator('.select-floating-ui button > span')

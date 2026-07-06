@@ -9,7 +9,6 @@ import { disableUser } from '../utils/controllers/toggleUserState';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 
 const testNetwork: NetworkForm = {
   name: 'test network',
@@ -34,7 +33,6 @@ test.describe('Enrollment tests', () => {
     await waitForBase(page);
     await disableUser(browser, user);
     await page.goto(testsConfig.ENROLLMENT_URL);
-    await waitForPromise(2000);
     // Test if we can send the token
     await enrollmentController.startEnrollment(page);
     await enrollmentController.fillTokenForm(token, page);

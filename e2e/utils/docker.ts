@@ -20,9 +20,9 @@ const dockerCheckContainers = (): boolean => {
 };
 
 // Poll the core's health endpoint until it returns 200.
-const waitForCore = () => {
+export const waitForCore = () => {
   execSync(
-    `until curl -sf ${testsConfig.BASE_URL}/api/v1/health > /dev/null; do sleep 2; done`,
+    `until curl -sf ${testsConfig.BASE_URL}/api/v1/health > /dev/null; do sleep 0.5; done`,
     { timeout: 120_000 },
   );
 };
@@ -46,6 +46,21 @@ export const dockerCreateTemplate = () => {
   );
   psql('DROP DATABASE IF EXISTS defguard_template');
   psql('CREATE DATABASE defguard_template TEMPLATE defguard OWNER defguard');
+  execSync(`${dockerCompose} start core`);
+  waitForCore();
+};
+
+// Drop and recreate an empty `defguard` DB, then restart core so it re-applies
+// migrations and re-seeds the default admin. Guarantees a pristine,
+// wizard-incomplete database before the template snapshot is built, regardless
+// of any leftover state from a previous run.
+export const resetToFreshDb = () => {
+  execSync(`${dockerCompose} kill core`);
+  psql(
+    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'",
+  );
+  psql('DROP DATABASE IF EXISTS defguard');
+  psql('CREATE DATABASE defguard OWNER defguard');
   execSync(`${dockerCompose} start core`);
   waitForCore();
 };

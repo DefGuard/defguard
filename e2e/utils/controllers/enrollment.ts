@@ -3,7 +3,6 @@ import { Browser, expect, Page } from '@playwright/test';
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
-import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
 import { logout } from './logout';
 
@@ -32,12 +31,10 @@ export const createUserEnrollment = async (
   await formElement.getByTestId('field-phone').fill(user.phone);
   await formElement.getByTestId('field-enable_enrollment').click();
   await formElement.locator('button[type="submit"]').click();
-  waitForPromise(2000);
   const modalElement = page.locator('#add-user-modal');
   const enrollmentForm = modalElement.getByTestId('start-enrollment-form');
   await enrollmentForm.locator('.toggle-option').nth(1).click();
   await enrollmentForm.locator('button[type="submit"]').click();
-  waitForPromise(2000);
   // Copy to clipboard
   const tokenStep = modalElement.locator('#enrollment-token-step');
   const tokenDiv = tokenStep.locator('.copy-field.spacer').nth(1); // field with token

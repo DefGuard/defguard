@@ -1,3 +1,6 @@
+# default Docker image tag for e2e tests
+IMAGE_TAG := "stable-1.x"
+
 # build release binary
 build:
     cargo build --release
@@ -30,6 +33,10 @@ lint:
 # run all migrations
 migrate:
     sqlx migrate run
+
+# run e2e tests (requires Docker, IMAGE_TAG defaults to stable-1.x)
+e2e-test *ARGS='':
+    cd e2e && IMAGE_TAG="{{IMAGE_TAG}}" pnpm exec playwright test {{ARGS}}
 
 # update sqlx query data
 query-data:

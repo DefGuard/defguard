@@ -6,7 +6,6 @@ import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Authentication keys', () => {
@@ -79,7 +78,6 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     card.waitFor({
       state: 'visible',
     });
-    await waitForPromise(1000);
     await card.locator('.edit-button').click();
     await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
     await page
@@ -113,9 +111,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     // check if it can be deleted
     const deletePromise = page.waitForResponse('**/auth_key');
     const card = page.locator('.authentication-key-item');
-    await waitForPromise(200);
     await card.locator('.edit-button').click();
-    await waitForPromise(200);
     await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
     await page
       .locator('.modal-content')

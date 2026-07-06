@@ -48,6 +48,13 @@ export const enableEmailMFA = async (
   await waitForPromise(5000);
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
+  // Dismiss the version-update toast which overlays form controls.
+  const dismissBtn = page.locator('#toasts-root button:has-text("Dismiss")');
+  try {
+    await dismissBtn.click({ timeout: 3000 });
+  } catch {
+    // Toast not present - continue.
+  }
   await page.getByTestId('edit-user').click();
   await page.getByTestId('edit-email-mfa').scrollIntoViewIfNeeded();
   await page.getByTestId('edit-email-mfa').click();
@@ -55,9 +62,8 @@ export const enableEmailMFA = async (
   await page.getByTestId('enable-email-mfa-option').click();
   const formElement = page.locator('#register-mfa-email-form');
   await requestPromise;
-  await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
-  const { otp: code } = TOTP.generate(secret, {
+  const { otp: code } = await TOTP.generate(secret, {
     digits: 6,
     period: 60,
   });

@@ -2,6 +2,7 @@ import { Browser, expect } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../../config';
 import { NetworkForm } from '../../../types';
+import { apiDeleteAllNetworks } from '../../api/networks';
 import { waitForBase } from '../../waitForBase';
 import { loginBasic } from '../login';
 
@@ -10,6 +11,11 @@ export const createNetwork = async (browser: Browser, network: NetworkForm) => {
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
+
+  // Delete any existing networks (e.g. the dummy one from the template) so the
+  // wizard appears and devices are assigned to the test network.
+  await apiDeleteAllNetworks();
+
   await page.goto(routes.base + routes.admin.wizard);
   await page.getByTestId('setup-network').click();
   const navNext = page.getByTestId('wizard-next');
@@ -25,7 +31,7 @@ export const createNetwork = async (browser: Browser, network: NetworkForm) => {
   // select location MFA mode
   if (network.location_mfa_mode) {
     const mfaModeSelect = page.locator('div.location-mfa-mode-select');
-    let mode: number; // TODO: do it better
+    let mode: number;
     switch (network.location_mfa_mode) {
       case 'none':
         mode = 0;
@@ -40,10 +46,7 @@ export const createNetwork = async (browser: Browser, network: NetworkForm) => {
         mode = 0;
         break;
     }
-    // 0 - do not enforce mfa
-    // 1 - internal mfa
-    // 2 - external mfa
-    const mfaMode = mfaModeSelect.locator(`div.location-mfa-mode`).nth(mode);
+    const mfaMode = mfaModeSelect.locator('div.location-mfa-mode').nth(mode);
     await mfaMode.click();
   }
 
