@@ -133,6 +133,7 @@ const formSchema = z.object({
   smtp_oauth_client_secret: z.string().trim().nullable(),
   smtp_oauth_refresh_token: z.string().trim().nullable(),
   smtp_oauth_tenant_id: z.string().trim().nullable(),
+  smtp_tls_verify_cert: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -150,6 +151,7 @@ const emptyValues: FormFields = {
   smtp_oauth_client_secret: null,
   smtp_oauth_refresh_token: null,
   smtp_oauth_tenant_id: null,
+  smtp_tls_verify_cert: true,
 };
 
 const Content = ({
@@ -165,6 +167,7 @@ const Content = ({
     smtp_port: 587,
     smtp_sender: '',
     smtp_encryption: SmtpEncryption.StartTls,
+    smtp_tls_verify_cert: true,
     smtp_user: null,
     smtp_password: null,
     smtp_oauth_issuer_url: null,
@@ -188,6 +191,7 @@ const Content = ({
       smtp_oauth_client_secret: settings.smtp_oauth_client_secret ?? null,
       smtp_oauth_refresh_token: settings.smtp_oauth_refresh_token ?? null,
       smtp_oauth_tenant_id: settings.smtp_oauth_tenant_id ?? null,
+      smtp_tls_verify_cert: settings.smtp_tls_verify_cert,
     }),
     [settings],
   );
@@ -224,6 +228,7 @@ const Content = ({
       smtp_port: form.state.values.smtp_port,
       smtp_sender: form.state.values.smtp_sender,
       smtp_encryption: form.state.values.smtp_encryption as SmtpEncryptionValue,
+      smtp_tls_verify_cert: form.state.values.smtp_tls_verify_cert,
       smtp_user: form.state.values.smtp_user,
       smtp_password: form.state.values.smtp_password,
       smtp_oauth_issuer_url: form.state.values.smtp_oauth_issuer_url,
@@ -321,6 +326,7 @@ const Content = ({
             smtp_server: result.smtp_server ?? cur.smtp_server,
             smtp_port: result.smtp_port ?? cur.smtp_port,
             smtp_encryption: result.smtp_encryption ?? cur.smtp_encryption,
+            smtp_tls_verify_cert: result.smtp_tls_verify_cert ?? cur.smtp_tls_verify_cert,
             smtp_user: result.smtp_user !== undefined ? result.smtp_user : cur.smtp_user,
             smtp_password:
               result.smtp_password !== undefined

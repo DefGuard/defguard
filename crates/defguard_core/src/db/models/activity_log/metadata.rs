@@ -372,6 +372,7 @@ pub struct SettingsNoSecrets {
     pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
     pub smtp_sender: Option<String>,
+    pub smtp_tls_verify_cert: bool,
     // Enrollment
     pub enrollment_vpn_step_optional: bool,
     pub enrollment_welcome_message: Option<String>,
@@ -431,6 +432,7 @@ impl From<Settings> for SettingsNoSecrets {
             smtp_encryption: value.smtp.encryption,
             smtp_user: value.smtp.user,
             smtp_sender: value.smtp.sender,
+            smtp_tls_verify_cert: value.smtp.tls_verify_cert,
             enrollment_vpn_step_optional: value.enrollment_vpn_step_optional,
             enrollment_welcome_message: value.enrollment_welcome_message,
             enrollment_welcome_email: value.enrollment_welcome_email,

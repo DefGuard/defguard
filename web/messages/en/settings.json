@@ -233,6 +233,7 @@
   "settings_smtp_helper_sender_email_address": "",
   "settings_smtp_label_encryption": "Encryption",
   "settings_smtp_helper_encryption": "",
+  "settings_smtp_checkbox_verify_tls_certificate": "Verify TLS certificate",
   "settings_smtp_helper_server_username": "",
   "settings_smtp_helper_server_password": "",
   "settings_smtp_test_email_helper_email": "",
