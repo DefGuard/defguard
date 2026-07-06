@@ -20,7 +20,7 @@ use tokio::sync::{
 use super::{
     model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
     sync::{
-        Authority, compute_group_sync_changes, compute_user_sync_changes,
+        Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
         extract_intersecting_users, is_ldap_desynced, set_ldap_sync_status,
     },
     test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
@@ -1839,6 +1839,193 @@ async fn test_fix_missing_user_path(_: PgPoolOptions, options: PgConnectOptions)
         );
         assert_eq!(updated_user.id, user4.id);
     }
+}
+
+/// A dry run must preview the additions/removals a full sync would make while writing nothing
+/// to LDAP or the Defguard database. This guards the hard "no import" requirement of the LDAP
+/// setup preview.
+#[sqlx::test]
+async fn test_ldap_dry_run_previews_changes_without_writing(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    // Present only in Defguard: a full sync with LDAP authority would remove this user.
+    make_test_user("defguard_only", Some("defguard_only".to_owned()), None)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // Present only in LDAP: a full sync with LDAP authority would import this user.
+    let ldap_only = make_test_user("ldap_only", Some("ldap_only".to_owned()), None);
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_only, &config);
+
+    let before = defguard_sync_snapshot(&pool).await;
+    ldap_conn.test_client_mut().clear_events();
+
+    let result = ldap_conn.dry_run(&pool, Authority::LDAP).await.unwrap();
+
+    let added: Vec<_> = result
+        .defguard
+        .iter()
+        .filter(|u| matches!(u.action, LdapDryRunAction::Add))
+        .map(|u| u.username.as_str())
+        .collect();
+    let removed: Vec<_> = result
+        .defguard
+        .iter()
+        .filter(|u| matches!(u.action, LdapDryRunAction::Remove))
+        .map(|u| u.username.as_str())
+        .collect();
+    assert_eq!(added, vec!["ldap_only"]);
+    assert_eq!(removed, vec!["defguard_only"]);
+
+    // The dry run must not touch LDAP or the Defguard database.
+    assert!(
+        ldap_conn.test_client.get_events().is_empty(),
+        "dry run emitted LDAP operations: {:?}",
+        ldap_conn.test_client.get_events()
+    );
+    assert_eq!(
+        before,
+        defguard_sync_snapshot(&pool).await,
+        "dry run mutated Defguard state"
+    );
+}
+
+/// A Defguard user that exists in LDAP but has no stored LDAP path must not be previewed as
+/// both removed and re-added. A real full sync backfills the missing path first (so the DNs
+/// match and the user is treated as unchanged); the dry run replicates that in memory.
+#[sqlx::test]
+async fn test_ldap_dry_run_does_not_double_list_user_with_missing_path(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    // Locally-created user with no LDAP path yet, same RDN as the LDAP entry.
+    make_test_user("shared_user", Some("shared_user".to_owned()), None)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // Same user in LDAP, living in an OU (so its DN differs until the path is reconciled).
+    let mut ldap_user = make_test_user("shared_user", Some("shared_user".to_owned()), None);
+    ldap_user.ldap_user_path = Some("ou=people,dc=example,dc=com".to_owned());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    let result = ldap_conn.dry_run(&pool, Authority::LDAP).await.unwrap();
+
+    let mentions: Vec<_> = result
+        .defguard
+        .iter()
+        .chain(result.ldap.iter())
+        .filter(|u| u.username == "shared_user")
+        .collect();
+    assert!(
+        mentions.is_empty(),
+        "user with a missing path was listed as a change: {mentions:?}"
+    );
+}
+
+/// A disabled Defguard user that also exists in LDAP is outside the sync scope, so the change
+/// computation sees them as missing from Defguard. A real sync skips such additions because
+/// the username already exists in the database; the dry run must not preview them as "to be
+/// added" either.
+#[sqlx::test]
+async fn test_ldap_dry_run_skips_disabled_users_existing_in_defguard(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut disabled_user = make_test_user("disabled_user", Some("disabled_user".to_owned()), None);
+    disabled_user.is_active = false;
+    disabled_user.save(&pool).await.unwrap();
+
+    let ldap_user = make_test_user("disabled_user", Some("disabled_user".to_owned()), None);
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    let result = ldap_conn.dry_run(&pool, Authority::LDAP).await.unwrap();
+
+    let mentions: Vec<_> = result
+        .defguard
+        .iter()
+        .chain(result.ldap.iter())
+        .filter(|u| u.username == "disabled_user")
+        .collect();
+    assert!(
+        mentions.is_empty(),
+        "disabled user already present in Defguard was listed as a change: {mentions:?}"
+    );
+}
+
+/// The dry run previews not yet saved settings, so user scoping must follow the connection's
+/// config (built from the submitted form values) instead of the globally saved settings.
+/// Here the saved settings have no sync group restriction, while the submitted config limits
+/// the sync to one group: only members of that group may appear in the preview.
+#[sqlx::test]
+async fn test_ldap_dry_run_scopes_users_by_submitted_settings(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    // Mirrors a dry run request whose form values restrict the sync to one group.
+    ldap_conn.config.ldap_sync_groups = vec!["ldap_sync_group".to_owned()];
+
+    let sync_group = Group::new("ldap_sync_group").save(&pool).await.unwrap();
+
+    // Both users exist only in Defguard, so with LDAP authority any in-scope user is
+    // previewed as removed.
+    let synced_user = make_test_user("synced_user", Some("synced_user".to_owned()), None)
+        .save(&pool)
+        .await
+        .unwrap();
+    synced_user.add_to_group(&pool, &sync_group).await.unwrap();
+    make_test_user("outside_user", Some("outside_user".to_owned()), None)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let result = ldap_conn.dry_run(&pool, Authority::LDAP).await.unwrap();
+
+    let removed: Vec<_> = result
+        .defguard
+        .iter()
+        .filter(|u| matches!(u.action, LdapDryRunAction::Remove))
+        .map(|u| u.username.as_str())
+        .collect();
+    assert_eq!(
+        removed,
+        vec!["synced_user"],
+        "preview must scope users by the submitted sync groups, not the saved settings"
+    );
 }
 
 #[sqlx::test]

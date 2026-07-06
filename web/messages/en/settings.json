@@ -299,7 +299,7 @@
   "settings_ldap_helper_sync_interval": "",
   "settings_ldap_toggle_enable_integration": "Enable LDAP integration",
   "settings_ldap_button_test_connection": "Test connection",
-  "settings_ldap_test_connection_tooltip": "To test connection please fill the form and save the changes first.",
+  "settings_ldap_test_connection_tooltip": "To test the synchronization, please fill in all required fields first.",
   "settings_ldap_section_remote_enrollment_title": "Secure remote enrollment",
   "settings_ldap_section_remote_enrollment_description": "Control how Defguard synchronizes users with LDAP — disable sync, import users from LDAP, or keep both systems updated automatically.",
   "settings_ldap_label_remote_enrollment_enabled": "Enable Secure Remote Enrollment",

@@ -1,0 +1,39 @@
+.ldap-dry-run-modal {
+  min-height: 720px;
+  display: flex;
+  flex-direction: column;
+
+  .description {
+    color: var(--fg-muted);
+    font: var(--t-body-sm-400);
+  }
+
+  .table {
+    padding: 0;
+    border-bottom: 1px solid var(--border-disabled);
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    overflow: hidden;
+
+    // the container border above replaces it; both would render doubled
+    .table-row-container.last {
+      border-bottom: 0;
+    }
+
+    // per design the overflowing table has no visible scrollbar
+    .table-scroll {
+      scrollbar-width: none;
+    }
+  }
+
+  & > .modal-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+  }
+
+  .empty-state {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

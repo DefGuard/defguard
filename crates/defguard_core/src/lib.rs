@@ -161,8 +161,9 @@ use crate::{
         proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
         resource_display::get_locations_display,
         settings::{
-            get_settings, get_settings_essentials, patch_settings, set_default_branding,
-            test_ldap_settings, update_settings,
+            get_settings, get_settings_essentials, ldap_dry_run, patch_settings,
+            set_default_branding, test_ldap_settings, test_submitted_ldap_settings,
+            update_settings,
         },
         ssh_authorized_keys::get_authorized_keys,
         static_ips::{
@@ -416,7 +417,11 @@ pub fn build_webapp(
                     .post(change_enabled),
             )
             // ldap
-            .route("/ldap/test", get(test_ldap_settings))
+            .route(
+                "/ldap/test",
+                get(test_ldap_settings).post(test_submitted_ldap_settings),
+            )
+            .route("/ldap/dry_run", post(ldap_dry_run))
             // activity log
             .route("/activity_log", get(get_activity_log_events))
             // Proxy routes
