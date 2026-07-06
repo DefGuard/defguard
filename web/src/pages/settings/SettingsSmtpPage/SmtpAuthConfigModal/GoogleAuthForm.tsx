@@ -31,6 +31,7 @@ const schema = z.object({
     .regex(patternValidEmail, m.form_error_email()),
   smtp_oauth_client_id: z.string().trim().nullable(),
   smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_tls_verify_cert: z.boolean(),
 });
 
 export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
@@ -42,6 +43,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
       smtp_sender: initialValues.smtp_sender,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
       smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+      smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
     },
     validationLogic: formChangeLogic,
     validators: { onSubmit: schema, onChange: schema },
@@ -85,6 +87,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
           smtp_server: GOOGLE_SMTP_SERVER,
           smtp_port: PROVIDER_SMTP_PORT,
           smtp_encryption: SmtpEncryption.StartTls,
+          smtp_tls_verify_cert: value.smtp_tls_verify_cert,
         });
       } catch (err) {
         handleOAuthError(err);
@@ -134,6 +137,14 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
             )}
           </form.AppField>
         </EvenSplit>
+        <SizedBox height={ThemeSpacing.Md} />
+        <form.AppField name="smtp_tls_verify_cert">
+          {(field) => (
+            <field.FormCheckbox
+              text={m.settings_smtp_checkbox_verify_tls_certificate()}
+            />
+          )}
+        </form.AppField>
         <SizedBox height={ThemeSpacing.Md} />
         <p className="smtp-auth-oauth-info">{m.settings_smtp_auth_oauth_info()}</p>
         <FieldError error={oauthError} />

@@ -487,6 +487,7 @@ impl Settings {
             smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
             smtp_authentication, smtp_oauth_issuer_url, smtp_oauth_client_id, \
             smtp_oauth_client_secret, smtp_oauth_refresh_token, smtp_oauth_tenant_id, \
+            smtp_tls_verify_cert, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, \
@@ -634,7 +635,8 @@ impl Settings {
             password_reset_session_timeout_minutes = $71, \
             ldap_sync_account_status = $72, \
             ldap_disable_password_management = $73, \
-            smtp_oauth_tenant_id = $74 \
+            smtp_oauth_tenant_id = $74, \
+            smtp_tls_verify_cert = $75 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -710,6 +712,7 @@ impl Settings {
             self.ldap_sync_account_status,
             self.ldap_disable_password_management,
             self.smtp.oauth_tenant_id,
+            self.smtp.tls_verify_cert,
         )
         .execute(executor)
         .await?;

@@ -29,6 +29,7 @@ const schema = z.object({
   smtp_oauth_scope: z.string().trim(),
   smtp_oauth_client_id: z.string().trim().nullable(),
   smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_tls_verify_cert: z.boolean(),
 });
 
 export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
@@ -42,6 +43,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
       smtp_oauth_scope: CUSTOM_SCOPE_DEFAULT,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
       smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+      smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
     },
     validationLogic: formChangeLogic,
     validators: { onSubmit: schema, onChange: schema },
@@ -91,6 +93,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
         await onApply({
           authentication: SmtpAuthentication.XOAuth2,
           smtp_sender: value.smtp_sender,
+          smtp_tls_verify_cert: value.smtp_tls_verify_cert,
           smtp_oauth_issuer_url: value.smtp_oauth_issuer_url,
           smtp_oauth_client_id: value.smtp_oauth_client_id,
           smtp_oauth_client_secret: value.smtp_oauth_client_secret,
@@ -161,6 +164,14 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
               required
               label={m.settings_smtp_label_oauth_scope()}
               helper={m.settings_smtp_helper_oauth_scope()}
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Md} />
+        <form.AppField name="smtp_tls_verify_cert">
+          {(field) => (
+            <field.FormCheckbox
+              text={m.settings_smtp_checkbox_verify_tls_certificate()}
             />
           )}
         </form.AppField>

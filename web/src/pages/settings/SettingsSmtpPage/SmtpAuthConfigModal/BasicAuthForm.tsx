@@ -20,6 +20,7 @@ const schema = z.object({
     .min(1, m.form_error_required())
     .regex(patternValidEmail, m.form_error_email()),
   smtp_encryption: z.enum(SmtpEncryption),
+  smtp_tls_verify_cert: z.boolean(),
   smtp_user: z.string().trim().nullable(),
   smtp_password: z.string().trim().nullable(),
 });
@@ -31,6 +32,7 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
       smtp_port: initialValues.smtp_port,
       smtp_sender: initialValues.smtp_sender,
       smtp_encryption: initialValues.smtp_encryption,
+      smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
       smtp_user: initialValues.smtp_user,
       smtp_password: initialValues.smtp_password,
     },
@@ -43,6 +45,7 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
         smtp_port: value.smtp_port,
         smtp_sender: value.smtp_sender,
         smtp_encryption: value.smtp_encryption,
+        smtp_tls_verify_cert: value.smtp_tls_verify_cert,
         smtp_user: value.smtp_user,
         smtp_password: value.smtp_password,
       });
@@ -123,6 +126,14 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
             )}
           </form.AppField>
         </EvenSplit>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="smtp_tls_verify_cert">
+          {(field) => (
+            <field.FormCheckbox
+              text={m.settings_smtp_checkbox_verify_tls_certificate()}
+            />
+          )}
+        </form.AppField>
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (
             <ModalControls
