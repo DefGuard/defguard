@@ -1,12 +1,18 @@
 use std::time::Duration;
 
-use defguard_common::types::proxy::ProxyControlMessage;
+use defguard_common::{
+    db::models::settings::{Settings, update_current_settings},
+    types::proxy::ProxyControlMessage,
+};
 use defguard_proto::proxy::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::tests::common::{
-    ManagerTestContext, MockProxyHarness, create_proxy, create_proxy_with_enabled,
-    mock_proxy_socket_path, reload_proxy, wait_for_proxy_connection_state,
+use crate::tests::{
+    common::{
+        ManagerTestContext, MockProxyHarness, create_proxy, create_proxy_with_enabled,
+        mock_proxy_socket_path, reload_proxy, wait_for_proxy_connection_state,
+    },
+    proxy_manager::handler::support::configure_smtp,
 };
 
 const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
@@ -606,8 +612,8 @@ async fn test_broadcast_public_settings_reaches_proxy(_: PgPoolOptions, options:
 }
 
 /// When connected without a Business license, `EnterpriseSettings::get()` returns
-/// defaults (both `true`), so the `PublicSettings` pushed on connect should have
-/// both flags set to `true`.
+/// defaults (both `true`), but `display_password_reset` is folded with SMTP
+/// configuration. Without SMTP configured the flag must be `false`.
 #[sqlx::test]
 async fn test_public_settings_pushed_on_connect(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
@@ -625,12 +631,50 @@ async fn test_public_settings_pushed_on_connect(_: PgPoolOptions, options: PgCon
     match response.payload {
         Some(core_response::Payload::PublicSettings(s)) => {
             assert!(
-                s.display_password_reset,
-                "display_password_reset should default to true"
+                !s.display_password_reset,
+                "display_password_reset should be false without SMTP"
             );
             assert!(
                 s.display_download_step,
                 "display_download_step should default to true"
+            );
+        }
+        other => panic!(
+            "expected PublicSettings on connect, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    context.finish().await;
+}
+
+/// When SMTP is configured, `EnterpriseSettings::edge_can_display_password_reset()`
+/// returns the admin toggle unmodified, so the default `true` passes through.
+#[sqlx::test]
+async fn test_public_settings_on_connect_with_smtp(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = ManagerTestContext::new(options).await;
+
+    // Enable SMTP so the fold passes through the enterprise default.
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+
+    let proxy = create_proxy(&context.pool).await;
+    let mut mock = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy, &mock);
+
+    context.start().await;
+    mock.wait_connected().await;
+    mock.recv_initial_info().await;
+
+    let response = mock.recv_outbound().await;
+    match response.payload {
+        Some(core_response::Payload::PublicSettings(s)) => {
+            assert!(
+                s.display_password_reset,
+                "display_password_reset should be true with SMTP configured"
             );
         }
         other => panic!(

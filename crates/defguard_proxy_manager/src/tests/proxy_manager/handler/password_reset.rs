@@ -1,4 +1,7 @@
-use defguard_common::db::models::User;
+use defguard_common::db::models::{
+    User,
+    settings::{Settings, update_current_settings},
+};
 use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
 use defguard_proto::proxy::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -213,6 +216,98 @@ async fn test_password_reset_start_wrong_token_type_returns_error(
         code,
         tonic::Code::PermissionDenied,
         "enrollment token used in PasswordResetStart must return PermissionDenied"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// An externally-managed (LDAP) user with password management disabled must
+/// receive a "disabled" notification email and no password reset token must be
+/// created. The HTTP/gRPC response is indistinguishable from an unknown email.
+#[sqlx::test]
+async fn test_password_reset_init_disabled_user_no_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Enable LDAP password management disabling in settings.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_disable_password_management = true;
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+
+    // Create an LDAP-sourced user without a local password.
+    let mut user = create_user(&context.pool).await;
+    user.from_ldap = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save LDAP user");
+
+    let response = send_password_reset_init(&mut context, &user.email).await;
+
+    // Response must be Empty — indistinguishable from unknown email.
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!(
+            "expected Empty response for disabled user, got: {:?}",
+            response.payload.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // No PASSWORD_RESET token must have been created.
+    let count: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
+    )
+    .bind(user.id)
+    .fetch_one(&context.pool)
+    .await
+    .expect("failed to query token count");
+    assert_eq!(
+        count.0, 0,
+        "no password reset token should be created for disabled user"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A user without a local password who is NOT externally-managed must receive
+/// the same silent `Empty` response and no token — no feedback sent at all.
+#[sqlx::test]
+async fn test_password_reset_init_passwordless_user_silent_no_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Create a user with no password and no external IdP affiliation.
+    let user = create_user(&context.pool).await;
+
+    let response = send_password_reset_init(&mut context, &user.email).await;
+
+    // Response must be Empty — silent, same as unknown email.
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!(
+            "expected Empty response for passwordless user, got: {:?}",
+            response.payload.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // No PASSWORD_RESET token must have been created.
+    let count: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
+    )
+    .bind(user.id)
+    .fetch_one(&context.pool)
+    .await
+    .expect("failed to query token count");
+    assert_eq!(
+        count.0, 0,
+        "no password reset token should be created for passwordless user"
     );
 
     context.finish().await.expect_server_finished().await;

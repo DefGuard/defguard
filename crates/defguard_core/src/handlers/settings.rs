@@ -3,12 +3,15 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use defguard_common::db::{
-    Id,
-    models::{
-        Settings, SettingsEssentials,
-        settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Settings, SettingsEssentials,
+            settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+        },
     },
+    types::proxy::ProxyControlMessage,
 };
 use sqlx::PgPool;
 use struct_patch::Patch;
@@ -18,6 +21,7 @@ use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
         handlers::LicenseInfo,
         ldap::{LDAPConnection, sync::Authority},
         license::update_cached_license,
@@ -64,6 +68,24 @@ pub(crate) async fn update_settings(
 
     update_current_settings(&appstate.pool, data).await?;
     update_cached_license(license.as_deref())?;
+
+    // If SMTP configuration changed (e.g. server/port/sender toggled),
+    // push updated password-reset visibility to all connected proxies.
+    if before.smtp_configured() != after.smtp_configured()
+        && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
+    {
+        let display_password_reset = enterprise_settings.edge_can_display_password_reset();
+        if let Err(err) = appstate
+            .proxy_control_tx
+            .send(ProxyControlMessage::BroadcastPublicSettings {
+                display_password_reset,
+                display_download_step: enterprise_settings.display_download_step,
+            })
+            .await
+        {
+            error!("Failed to broadcast PublicSettings after SMTP config change: {err:?}");
+        }
+    }
 
     info!("User {} updated settings", session.user.username);
     appstate.emit_event(ApiEvent {
@@ -160,6 +182,24 @@ pub async fn patch_settings(
     if let Some(license_key) = &license {
         update_cached_license(license_key.as_deref())?;
         debug!("Updated cached license after saving settings patch");
+    }
+
+    // If SMTP configuration changed (e.g. server/port/sender toggled),
+    // push updated password-reset visibility to all connected proxies.
+    if before.smtp_configured() != after.smtp_configured()
+        && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
+    {
+        let display_password_reset = enterprise_settings.edge_can_display_password_reset();
+        if let Err(err) = appstate
+            .proxy_control_tx
+            .send(ProxyControlMessage::BroadcastPublicSettings {
+                display_password_reset,
+                display_download_step: enterprise_settings.display_download_step,
+            })
+            .await
+        {
+            error!("Failed to broadcast PublicSettings after SMTP config change: {err:?}");
+        }
     }
 
     info!("Admin {} patched settings", session.user.username);

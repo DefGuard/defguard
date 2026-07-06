@@ -26,10 +26,12 @@ use strum::VariantArray;
 use thiserror::Error;
 use tokio::time::sleep;
 
-use super::limits::Counts;
-use crate::grpc::proto::enterprise::license::{
-    LicenseFeature as LicenseFeatureProto, LicenseKey, LicenseLimits, LicenseMetadata,
-    LicenseTier as LicenseTierProto, SupportType as SupportTypeProto,
+use crate::{
+    enterprise::limits::Counts,
+    grpc::proto::enterprise::license::{
+        LicenseFeature as LicenseFeatureProto, LicenseKey, LicenseLimits, LicenseMetadata,
+        LicenseTier as LicenseTierProto, SupportType as SupportTypeProto,
+    },
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -707,9 +709,10 @@ pub async fn run_periodic_license_check(
 
             // When the license is removed or expired, revert Edge UI controls
             // to their defaults so proxies no longer apply restricted settings.
+            let settings = Settings::get_current_settings();
             if let Err(err) = proxy_control_tx
                 .send(ProxyControlMessage::BroadcastPublicSettings {
-                    display_password_reset: true,
+                    display_password_reset: settings.smtp_configured(),
                     display_download_step: true,
                 })
                 .await

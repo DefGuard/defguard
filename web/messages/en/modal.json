@@ -15,7 +15,7 @@
   "modal_add_location_title": "Select location type",
   "modal_add_location_regular_title": "Regular location",
   "modal_add_location_regular_content": "Set up your location manually by defining all configuration parameters yourself.",
-  "modal_add_location_service_title": "Service location (Windows only)",
+  "modal_add_location_service_title": "Service location (Windows, Linux)",
   "modal_add_location_service_content": "A service location is a special kind of location that allows establishing automatic VPN connections on system boot.",
   "modal_delete_network_device_title": "Delete device",
   "modal_delete_network_device_body": "Are you sure you want to delete this device? This action cannot be undone.",
