@@ -30,7 +30,7 @@
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
     "@playwright/test": "^1.61.1",
-    "@scure/base": "^1.2.6",
+    "@scure/base": "^2.0.0",
     "@types/lodash": "^4.17.24",
     "@types/pg": "^8.20.0",
     "axios": "^1.18.1",
