@@ -274,7 +274,10 @@ impl GatewayHandler {
         }
 
         debug!("Sending Gateway disconnect email notification");
-        let name = self.gateway.name.clone();
+        let name = match Gateway::find_by_id(&self.pool, self.gateway.id).await {
+            Ok(Some(gateway)) => gateway.name,
+            _ => self.gateway.name.clone(),
+        };
         let pool = self.pool.clone();
         let url = format!("{}:{}", self.gateway.address, self.gateway.port);
 
@@ -316,11 +319,16 @@ impl GatewayHandler {
         }
 
         debug!("Sending Gateway reconnect email notification");
-        let gateway_name = self.gateway.name.clone();
+        let gateway_id = self.gateway.id;
+        let fallback_name = self.gateway.name.clone();
         let pool = self.pool.clone();
         let url = format!("{}:{}", self.gateway.address, self.gateway.port);
 
         tokio::spawn(async move {
+            let gateway_name = match Gateway::find_by_id(&pool, gateway_id).await {
+                Ok(Some(gateway)) => gateway.name,
+                _ => fallback_name,
+            };
             if let Err(err) =
                 send_gateway_reconnected_email(gateway_name, network_name, &url, &pool).await
             {
