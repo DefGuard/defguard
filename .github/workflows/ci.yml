@@ -90,7 +90,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
+        uses: taiki-e/install-action@50414676f9f5d50a65992c6dd2ed02641263226c # v2
         with:
           tool: cargo-deny
 
@@ -145,7 +145,7 @@ jobs:
         run: apt-get update && apt-get -y install protobuf-compiler
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
+        uses: taiki-e/install-action@50414676f9f5d50a65992c6dd2ed02641263226c # v2
         with:
           tool: cargo-nextest
 
@@ -220,7 +220,7 @@ jobs:
           name: nextest-archive
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@3235f8901fd37ffed0052b276cec25a362fb82e9 # v2
+        uses: taiki-e/install-action@50414676f9f5d50a65992c6dd2ed02641263226c # v2
         with:
           tool: cargo-nextest
 
