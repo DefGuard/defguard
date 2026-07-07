@@ -31,4 +31,5 @@ export type SelectMultipleProps<T extends SelectionKey, M = unknown> = {
   onToggleChange: (value: boolean) => void;
   selectionCustomItemRender?: SelectionSectionCustomRender<T, M>;
   selectionModalProps?: SelectionModalOverrides<T, M>;
+  disabled?: boolean;
 };
