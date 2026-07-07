@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.32.0-focal as base
+FROM mcr.microsoft.com/playwright:v1.32.1-focal as base
 WORKDIR /app
 COPY package.json .
 COPY pnpm-lock.yaml .
