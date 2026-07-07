@@ -56,7 +56,7 @@ http = "1.4"
 hyper-rustls = { version = "0.27", features = ["http2"] }
 humantime = "2.1"
 # match version used by sqlx
-ipnetwork = "0.20"
+ipnetwork = "0.21"
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
 ldap3 = { version = "0.12", default-features = false, features = ["tls"] }
