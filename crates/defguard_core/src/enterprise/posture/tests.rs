@@ -103,15 +103,6 @@ fn linux_posture_data(os_version: &str, disk_encryption: bool) -> DevicePostureD
     }
 }
 
-fn linux_posture_data_with_kernel(kernel_version: &str) -> DevicePostureData {
-    DevicePostureData {
-        defguard_client_version: "1.6.0".to_owned(),
-        os_type: "linux".to_owned(),
-        linux_kernel_version: Some(string_check_value(kernel_version)),
-        ..Default::default()
-    }
-}
-
 fn windows_posture_data() -> DevicePostureData {
     DevicePostureData {
         defguard_client_version: "1.6.0".to_owned(),
@@ -402,69 +393,6 @@ async fn fail_missing_posture_data(_: PgPoolOptions, options: PgConnectOptions) 
     ));
 }
 
-/// Device reports OS version 99 (not in any known list) — must produce UnrecognizedVersion.
-#[sqlx::test]
-async fn fail_unrecognized_os_version(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-    set_enterprise_license();
-    let location_id = create_location(&pool).await;
-
-    // Windows policy requiring min_os_version 11 — device claims version 99 (unknown).
-    let policy = DevicePosture {
-        id: defguard_common::db::NoId,
-        name: "win-unrecognized".to_owned(),
-        description: None,
-        min_client_version: None,
-        allow_prerelease_client: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    DevicePostureOsRule {
-        id: defguard_common::db::NoId,
-        posture_id: policy.id,
-        os_type: OsType::Windows,
-        min_os_version: Some(11),
-        disk_encryption_required: None,
-        antivirus_required: None,
-        ad_domain_joined_required: None,
-        windows_security_update_max_age: None,
-        min_kernel_version: None,
-        device_integrity_required: None,
-        android_security_patch_level_max_age: None,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    DevicePostureLocation::set_for_location(
-        &mut pool.acquire().await.unwrap(),
-        location_id,
-        &[policy.id],
-    )
-    .await
-    .unwrap();
-
-    let data = DevicePostureData {
-        defguard_client_version: "1.6.0".to_owned(),
-        os_type: "windows".to_owned(),
-        os_version: Some(string_check_value("99.0")),
-        ..Default::default()
-    };
-
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
-        .await
-        .unwrap();
-
-    assert!(
-        matches!(
-            result,
-            super::PostureResult::Fail(ref reasons) if reasons.len() == 1
-                && matches!(reasons[0], super::FailureReason::UnrecognizedVersion { check: "os_version", .. })
-        ),
-        "expected UnrecognizedVersion for Windows OS version 99"
-    );
-}
-
 /// Device on a known-but-old OS version still produces OsVersionTooOld (regression guard).
 #[sqlx::test]
 async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnectOptions) {
@@ -525,89 +453,6 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
                 && matches!(reasons[0], super::FailureReason::OsVersionTooOld { required: 11, .. })
         ),
         "expected OsVersionTooOld for Windows 10 against required 11"
-    );
-}
-
-/// Device reports kernel version 99 (not in LINUX_KERNEL_VERSIONS) - must produce UnrecognizedVersion.
-#[sqlx::test]
-async fn fail_unrecognized_kernel_version(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-    set_enterprise_license();
-    let location_id = create_location(&pool).await;
-
-    let policy = DevicePosture {
-        id: defguard_common::db::NoId,
-        name: "kernel-unrecognized".to_owned(),
-        description: None,
-        min_client_version: None,
-        allow_prerelease_client: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    DevicePostureOsRule {
-        id: defguard_common::db::NoId,
-        posture_id: policy.id,
-        os_type: OsType::Linux,
-        min_os_version: None,
-        disk_encryption_required: None,
-        antivirus_required: None,
-        ad_domain_joined_required: None,
-        windows_security_update_max_age: None,
-        min_kernel_version: Some(6),
-        device_integrity_required: None,
-        android_security_patch_level_max_age: None,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    DevicePostureLocation::set_for_location(
-        &mut pool.acquire().await.unwrap(),
-        location_id,
-        &[policy.id],
-    )
-    .await
-    .unwrap();
-
-    let data = linux_posture_data_with_kernel("99.0.0");
-
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
-        .await
-        .unwrap();
-
-    assert!(
-        matches!(
-            result,
-            super::PostureResult::Fail(ref reasons) if reasons.len() == 1
-                && matches!(reasons[0], super::FailureReason::UnrecognizedVersion { check: "linux_kernel_version", .. })
-        ),
-        "expected UnrecognizedVersion for kernel version 99"
-    );
-}
-
-/// Client reports version 1.7.0 (major.minor "1.7" not in CLIENT_VERSIONS) — UnrecognizedVersion.
-#[sqlx::test]
-async fn fail_unrecognized_client_version(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-    set_enterprise_license();
-    let location_id = create_location(&pool).await;
-
-    save_linux_policy(&pool, location_id, None, Some("1.6"), true).await;
-
-    let mut data = linux_posture_data("6.1.0", true);
-    data.defguard_client_version = "1.7.0".to_owned();
-
-    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
-        .await
-        .unwrap();
-
-    assert!(
-        matches!(
-            result,
-            super::PostureResult::Fail(ref reasons) if reasons.len() == 1
-                && matches!(reasons[0], super::FailureReason::UnrecognizedVersion { check: "client_version", .. })
-        ),
-        "expected UnrecognizedVersion for client 1.7.0"
     );
 }
 

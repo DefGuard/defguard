@@ -52,11 +52,6 @@ pub enum FailureReason {
     CheckUnavailable {
         check: &'static str,
     },
-    /// The device reported a version that is not in the known list for its OS or component.
-    UnrecognizedVersion {
-        check: &'static str,
-        actual: String,
-    },
 }
 
 impl fmt::Display for FailureReason {
@@ -104,9 +99,6 @@ impl fmt::Display for FailureReason {
             Self::DeviceIntegrityRequired => write!(f, "device integrity check failed"),
             Self::CheckUnavailable { check } => {
                 write!(f, "required check '{check}' could not be evaluated")
-            }
-            Self::UnrecognizedVersion { check, actual } => {
-                write!(f, "unrecognized {check} version: {actual}")
             }
         }
     }
