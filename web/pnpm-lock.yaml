@@ -185,7 +185,7 @@ importers:
         version: 10.5.0(postcss@8.5.15)
       globals:
         specifier: ^17.6.0
-        version: 17.6.0
+        version: 17.7.0
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -1991,8 +1991,8 @@ packages:
     resolution: {integrity: sha512-awConJSVCHVGND6x3tmMaKcQvwXLhjdkmomy2W+Goaui8YPgYgXJZewhg3fWC+DlfqqQuWg8AwqjGTD2nAPVWg==}
     engines: {node: '>=6'}
 
-  globals@17.6.0:
-    resolution: {integrity: sha512-sepffkT8stwnIYbsMBpoCHJuJM5l98FUF2AnE07hfvE0m/qp3R586hw4jF4uadbhvg1ooIdzuu7CsfD2jzCaNA==}
+  globals@17.7.0:
+    resolution: {integrity: sha512-Czmyns5dUsq4seFBR/Kdydhmo8y9kC79hiSkPn0YcGtNnYWnrgt0vjrSjx9tspoDGWm2CMarffRuLjM4xUz8xg==}
     engines: {node: '>=18'}
 
   globby@16.2.0:
@@ -4844,7 +4844,7 @@ snapshots:
       kind-of: 6.0.3
       which: 1.3.1
 
-  globals@17.6.0: {}
+  globals@17.7.0: {}
 
   globby@16.2.0:
     dependencies:
