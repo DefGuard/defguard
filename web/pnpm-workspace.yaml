@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: @vitejs/plugin-react@6.0.3
+  - "@vitejs/plugin-react@6.0.3"
