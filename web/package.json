@@ -102,7 +102,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
-    "@biomejs/biome": "2.2.2",
+    "@biomejs/biome": "2.2.3",
     "@csstools/css-parser-algorithms": "^3.0.5",
     "@csstools/css-tokenizer": "^3.0.4",
     "@hookform/devtools": "^4.4.0",
