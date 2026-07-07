@@ -136,7 +136,7 @@ tonic-prost-build = "0.14"
 totp-lite = { version = "2.0" }
 tower = "0.5"
 tower_governor = "0.8"
-tower-http = { version = "0.6", features = ["fs", "trace", "timeout"] }
+tower-http = { version = "0.7", features = ["fs", "trace", "timeout"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
