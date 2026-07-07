@@ -84,7 +84,7 @@ prost = "0.14"
 prost-types = "0.14"
 pulldown-cmark = "0.13"
 # match version used by sqlx
-rand = "0.8"
+rand = "0.9"
 rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
