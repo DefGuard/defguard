@@ -65,7 +65,7 @@ humantime = "2.1"
 ipnetwork = "0.20"
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
-ldap3 = { git = "https://github.com/DefGuard/ldap3", rev = "65ae9ad320770c63f366233ebe121534e16b59a7", features = ["tls"] }
+ldap3 = { git = "https://github.com/DefGuard/ldap3", rev = "1107b192bb12783d8727025a77aeec079612afad", features = ["tls"] }
 lettre = { version = "0.11", default-features = false, features = [
     "builder",
     "smtp-transport",
