@@ -897,7 +897,7 @@ mod test {
             true,
         )
         .await;
-        provider.directory_sync_user_groups = Some(vec!["group1".to_string()]);
+        provider.directory_sync_user_groups = Some(vec!["group1".to_owned()]);
         provider.save(&pool).await.unwrap();
 
         // no users in Defguard before sync
@@ -938,7 +938,7 @@ mod test {
             true,
         )
         .await;
-        provider.directory_sync_user_groups = Some(vec!["nonexistent-group".to_string()]);
+        provider.directory_sync_user_groups = Some(vec!["nonexistent-group".to_owned()]);
         provider.save(&pool).await.unwrap();
 
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
@@ -979,7 +979,7 @@ mod test {
         assert!(defguard_users.is_empty());
 
         // only allow one of the directory users to be imported
-        let allowed_emails = HashSet::from(["testuser@email.com".to_string()]);
+        let allowed_emails = HashSet::from(["testuser@email.com".to_owned()]);
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
         sync_all_users_state(
@@ -1018,12 +1018,12 @@ mod test {
 
         // the test provider returns group1 as the only group of any user
         assert!(
-            user_in_directory_groups(&pool, "testuser@email.com", &["group1".to_string()])
+            user_in_directory_groups(&pool, "testuser@email.com", &["group1".to_owned()])
                 .await
                 .unwrap()
         );
         assert!(
-            !user_in_directory_groups(&pool, "testuser@email.com", &["group2".to_string()])
+            !user_in_directory_groups(&pool, "testuser@email.com", &["group2".to_owned()])
                 .await
                 .unwrap()
         );

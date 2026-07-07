@@ -165,7 +165,7 @@ pub(crate) async fn add_openid_provider(
             Some(
                 user_groups
                     .split(',')
-                    .map(|s| s.trim().to_string())
+                    .map(|s| s.trim().to_owned())
                     .collect(),
             )
         }
@@ -410,7 +410,7 @@ pub(crate) async fn modify_openid_provider(
                 Some(
                     user_groups
                         .split(',')
-                        .map(|s| s.trim().to_string())
+                        .map(|s| s.trim().to_owned())
                         .collect(),
                 )
             }

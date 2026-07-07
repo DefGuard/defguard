@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import z from 'zod';
 import { m } from '../../../../../paraglide/messages';
 import api from '../../../../../shared/api/api';
-import type { InternalSslType } from '../../../../../shared/api/types';
+import { getApiErrorMessage } from '../../../../../shared/api/apiErrorMessages';
+import type { ApiError, InternalSslType } from '../../../../../shared/api/types';
 import { Controls } from '../../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
@@ -15,7 +17,6 @@ import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
 import '../../../../SetupPage/autoAdoption/steps/style.scss';
-import { getApiErrorMessage } from '../../utils';
 import { SettingsCoreCertificateWizardStep } from '../types';
 import { useSettingsCoreCertificateWizardStore } from '../useSettingsCoreCertificateWizardStore';
 
@@ -43,8 +44,14 @@ export const SettingsCoreCertificateWizardInternalUrlSettingsStep = () => {
         activeStep: SettingsCoreCertificateWizardStep.InternalUrlSslConfig,
       });
     },
-    onError: (error) => {
-      Snackbar.error(getApiErrorMessage(error) ?? m.settings_msg_save_failed());
+    onError: (error: AxiosError<ApiError>) => {
+      const code = error.response?.data?.code;
+      const fallback = error.response?.data?.msg ?? m.settings_msg_save_failed();
+      if (code) {
+        Snackbar.error(getApiErrorMessage(code, fallback));
+      } else {
+        Snackbar.error(fallback);
+      }
       console.error('Failed to save core internal URL settings:', error);
     },
   });

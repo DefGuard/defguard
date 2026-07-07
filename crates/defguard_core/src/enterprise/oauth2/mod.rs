@@ -95,7 +95,7 @@ async fn microsoft_access_token(smtp_settings: &mut SmtpSettings) -> Result<Stri
 
     let oauth2 = MicrosoftOAuth2::new(
         client_id.clone(),
-        client_secret.expose_secret().to_string(),
+        client_secret.expose_secret().to_owned(),
         tenant_id.clone(),
         OUTLOOK_DEFAULT_SCOPE.into(),
     );

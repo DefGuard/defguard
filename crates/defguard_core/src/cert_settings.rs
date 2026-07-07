@@ -16,8 +16,18 @@ use utoipa::ToSchema;
 /// Errors arising from certificate settings operations.
 #[derive(Debug, Error)]
 pub enum CertSettingsError {
-    #[error("Invalid certificate: {0}")]
-    InvalidCert(String),
+    #[error("cert_pem is required for own_cert")]
+    MissingCertPem,
+    #[error("key_pem is required for own_cert")]
+    MissingKeyPem,
+    #[error("Invalid certificate or private key PEM")]
+    InvalidCertOrKey,
+    #[error("Certificate validity period is invalid")]
+    InvalidValidityPeriod,
+    #[error("Certificate has expired")]
+    CertExpired,
+    #[error("Certificate is not valid yet")]
+    CertNotYetValid,
     #[error("Certificate error: {0}")]
     Cert(#[from] CertificateError),
     #[error("URL parse error: {0}")]
@@ -36,9 +46,7 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, Ce
 
     RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())
         .await
-        .map_err(|_| {
-            CertSettingsError::InvalidCert("Invalid certificate or private key PEM".to_owned())
-        })?;
+        .map_err(|_| CertSettingsError::InvalidCertOrKey)?;
 
     let cert_der = parse_pem_certificate(cert_pem)?;
     let info = CertificateInfo::from_der(cert_der.as_ref())?;
@@ -47,21 +55,15 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, Ce
     let now = Utc::now().naive_utc();
 
     if info.not_after <= info.not_before {
-        return Err(CertSettingsError::InvalidCert(
-            "Certificate validity period is invalid".to_owned(),
-        ));
+        return Err(CertSettingsError::InvalidValidityPeriod);
     }
 
     if info.not_after <= now {
-        return Err(CertSettingsError::InvalidCert(
-            "Certificate has expired".to_owned(),
-        ));
+        return Err(CertSettingsError::CertExpired);
     }
 
     if info.not_before > now {
-        return Err(CertSettingsError::InvalidCert(
-            "Certificate is not valid yet".to_owned(),
-        ));
+        return Err(CertSettingsError::CertNotYetValid);
     }
 
     Ok(info)
@@ -206,12 +208,8 @@ pub async fn apply_internal_url_settings(
             })
         }
         InternalSslType::OwnCert => {
-            let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                CertSettingsError::InvalidCert("cert_pem is required for own_cert".to_owned())
-            })?;
-            let key_pem_str = config.key_pem.ok_or_else(|| {
-                CertSettingsError::InvalidCert("key_pem is required for own_cert".to_owned())
-            })?;
+            let cert_pem_str = config.cert_pem.ok_or(CertSettingsError::MissingCertPem)?;
+            let key_pem_str = config.key_pem.ok_or(CertSettingsError::MissingKeyPem)?;
 
             let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
             let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
@@ -332,12 +330,8 @@ pub async fn apply_external_url_settings(
             })
         }
         ExternalSslType::OwnCert => {
-            let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                CertSettingsError::InvalidCert("cert_pem is required for own_cert".to_owned())
-            })?;
-            let key_pem_str = config.key_pem.ok_or_else(|| {
-                CertSettingsError::InvalidCert("key_pem is required for own_cert".to_owned())
-            })?;
+            let cert_pem_str = config.cert_pem.ok_or(CertSettingsError::MissingCertPem)?;
+            let key_pem_str = config.key_pem.ok_or(CertSettingsError::MissingKeyPem)?;
 
             let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
             let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
@@ -438,7 +432,10 @@ pub(crate) async fn refresh_proxy_self_signed_cert(
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use defguard_certs::CertificateAuthority;
+    use defguard_certs::{
+        CertificateAuthority, Csr, DnType, ExtendedKeyUsagePurpose, PemLabel, der_to_pem,
+        generate_key_pair,
+    };
     use defguard_common::db::{
         models::{
             Certificates, CoreCertSource, ProxyCertSource, Settings,
@@ -449,7 +446,7 @@ mod tests {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::{
-        CertSettingsError, extract_hostname, refresh_core_self_signed_cert,
+        CertSettingsError, extract_hostname, parse_cert, refresh_core_self_signed_cert,
         refresh_proxy_self_signed_cert,
     };
 
@@ -523,6 +520,68 @@ mod tests {
             msg.contains("Invalid defguard URL"),
             "unexpected error: {msg}"
         );
+    }
+
+    #[tokio::test]
+    async fn parse_cert_invalid_pem() {
+        let err = parse_cert("not a certificate", "not a key")
+            .await
+            .err()
+            .expect("expected an error");
+        assert!(matches!(err, CertSettingsError::InvalidCertOrKey));
+    }
+
+    #[tokio::test]
+    async fn parse_cert_key_mismatch() {
+        let ca = make_ca();
+
+        let key_pair = generate_key_pair().expect("failed to generate key pair");
+        let san = vec!["example.com".to_owned()];
+        let dn = vec![(DnType::CommonName, "example.com")];
+        let csr = Csr::new(&key_pair, &san, dn).expect("failed to build CSR");
+        let cert = ca
+            .sign_web_server_cert(&csr)
+            .expect("failed to sign certificate");
+        let cert_pem =
+            der_to_pem(cert.der(), PemLabel::Certificate).expect("failed to encode cert");
+
+        let other_key_pair = generate_key_pair().expect("failed to generate key pair");
+        let mismatched_key_pem = der_to_pem(
+            other_key_pair.serialize_der().as_slice(),
+            PemLabel::PrivateKey,
+        )
+        .expect("failed to encode key");
+
+        let err = parse_cert(&cert_pem, &mismatched_key_pem)
+            .await
+            .err()
+            .expect("expected an error");
+        assert!(matches!(err, CertSettingsError::InvalidCertOrKey));
+    }
+
+    #[tokio::test]
+    async fn parse_cert_expired() {
+        let ca = make_ca();
+
+        let key_pair = generate_key_pair().expect("failed to generate key pair");
+        let san = vec!["example.com".to_owned()];
+        let dn = vec![(DnType::CommonName, "example.com")];
+        let csr = Csr::new(&key_pair, &san, dn).expect("failed to build CSR");
+        let cert = ca
+            .sign_csr_with_validity(&csr, 0, &[ExtendedKeyUsagePurpose::ServerAuth])
+            .expect("failed to sign certificate");
+        let cert_pem =
+            der_to_pem(cert.der(), PemLabel::Certificate).expect("failed to encode cert");
+        let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)
+            .expect("failed to encode key");
+
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        let err = parse_cert(&cert_pem, &key_pem)
+            .await
+            .err()
+            .expect("expected an error");
+        assert!(matches!(err, CertSettingsError::CertExpired));
     }
 
     #[sqlx::test]
