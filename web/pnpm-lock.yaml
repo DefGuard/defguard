@@ -246,7 +246,7 @@ importers:
         version: 4.17.12
       '@types/node':
         specifier: ^24.11.0
-        version: 24.11.0
+        version: 24.11.1
       '@types/qs':
         specifier: ^6.14.0
         version: 6.14.0
@@ -261,7 +261,7 @@ importers:
         version: 5.3.3
       '@vitejs/plugin-react-swc':
         specifier: ^4.2.3
-        version: 4.2.3(vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))
+        version: 4.2.3(vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))
       '@vitest/ui':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18)
@@ -300,13 +300,13 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^7.3.1
-        version: 7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+        version: 7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
       vite-plugin-package-version:
         specifier: ^1.1.0
-        version: 1.1.0(vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))
+        version: 1.1.0(vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@types/node@24.11.0)(@vitest/ui@4.0.18)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+        version: 4.0.18(@types/node@24.11.1)(@vitest/ui@4.0.18)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
 
 packages:
 
@@ -1266,8 +1266,8 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
-  '@types/node@24.11.0':
-    resolution: {integrity: sha512-fPxQqz4VTgPI/IQ+lj9r0h+fDR66bzoeMGHp8ASee+32OSGIkeASsoZuJixsQoVef1QJbeubcPBxKk22QVoWdw==}
+  '@types/node@24.11.1':
+    resolution: {integrity: sha512-MOw3rIVR4djfMH7ft9ZJLPViaJwkZvMfrzumElas79IwMUEl8ykkuQmgL9MAMz7vO8G3vuz9b7Gu+keYZx7Xrw==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -1303,6 +1303,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@use-gesture/core@10.3.1':
     resolution: {integrity: sha512-WcINiDt8WjqBdUXye25anHiNxPc0VOrlT8F6LLkU6cycrOGUDyY/yyFmsg3k8i5OLvv25llc0QC45GhR/C8llw==}
@@ -1570,10 +1571,12 @@ packages:
   conventional-changelog-atom@2.0.8:
     resolution: {integrity: sha512-xo6v46icsFTK3bb7dY/8m2qvc8sZemRgdqLb/bjpBsH2UyOS8rKNTgcb5025Hri6IpANPApbXMg15QLb1LJpBw==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-codemirror@2.0.8:
     resolution: {integrity: sha512-z5DAsn3uj1Vfp7po3gpt2Boc+Bdwmw2++ZHa5Ak9k0UKsYAO5mH1UBTN0qSCuJZREIhX6WU4E1p3IW2oRCNzQw==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-config-spec@2.1.0:
     resolution: {integrity: sha512-IpVePh16EbbB02V+UA+HQnnPIohgXvJRxHcS5+Uwk4AT5LjzCZJm5sp/yqs5C6KZJ1jMsV4paEV13BN1pvDuxQ==}
@@ -1585,26 +1588,32 @@ packages:
   conventional-changelog-core@4.2.4:
     resolution: {integrity: sha512-gDVS+zVJHE2v4SLc6B0sLsPiloR0ygU7HaDW14aNJE1v4SlqJPILPl/aJC7YdtRE4CybBf8gDwObBvKha8Xlyg==}
     engines: {node: '>=10'}
+    deprecated: Deprecated and no longer maintained. Please use conventional-changelog instead.
 
   conventional-changelog-ember@2.0.9:
     resolution: {integrity: sha512-ulzIReoZEvZCBDhcNYfDIsLTHzYHc7awh+eI44ZtV5cx6LVxLlVtEmcO+2/kGIHGtw+qVabJYjdI5cJOQgXh1A==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-eslint@3.0.9:
     resolution: {integrity: sha512-6NpUCMgU8qmWmyAMSZO5NrRd7rTgErjrm4VASam2u5jrZS0n38V7Y9CzTtLT2qwz5xEChDR4BduoWIr8TfwvXA==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-express@2.0.6:
     resolution: {integrity: sha512-SDez2f3iVJw6V563O3pRtNwXtQaSmEfTCaTBPCqn0oG0mfkq0rX4hHBq5P7De2MncoRixrALj3u3oQsNK+Q0pQ==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-jquery@3.0.11:
     resolution: {integrity: sha512-x8AWz5/Td55F7+o/9LQ6cQIPwrCjfJQ5Zmfqi8thwUEKHstEn4kTIofXub7plf1xvFA2TqhZlq7fy5OmV6BOMw==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-jshint@2.0.9:
     resolution: {integrity: sha512-wMLdaIzq6TNnMHMy31hql02OEQ8nCQfExw1SE0hYL5KvU+JCTuPaDO+7JiogGT2gJAxiUGATdtYYfh+nT+6riA==}
     engines: {node: '>=10'}
+    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-preset-loader@2.3.4:
     resolution: {integrity: sha512-GEKRWkrSAZeTq5+YjUZOYxdHq+ci4dNwHvpaBC3+ENalzFWuCWa9EZXSuZBpkr72sMdKB+1fyDV4takK1Lf58g==}
@@ -1993,7 +2002,7 @@ packages:
   git-raw-commits@2.0.11:
     resolution: {integrity: sha512-VnctFhw+xfj8Va1xtfEqCUD2XDrbAPSJx+hSrE5K7fGdjZruW7XV+QOrN7LF/RJyvspRiD2I0asWsxFp0ya26A==}
     engines: {node: '>=10'}
-    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   git-remote-origin-url@2.0.0:
@@ -2003,7 +2012,7 @@ packages:
   git-semver-tags@4.1.1:
     resolution: {integrity: sha512-OWyMt5zBe7xFs8vglMmhM9lRQzCWL3WjHtxNNfJTMngGym7pC1kh8sP6jevfydJ6LP3ZvGxfb6ABYgPUM0mtsA==}
     engines: {node: '>=10'}
-    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   gitconfiglocal@1.0.0:
@@ -3260,6 +3269,7 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   validate-npm-package-license@3.0.4:
@@ -4206,7 +4216,7 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
-  '@types/node@24.11.0':
+  '@types/node@24.11.1':
     dependencies:
       undici-types: 7.16.0
 
@@ -4250,11 +4260,11 @@ snapshots:
       '@use-gesture/core': 10.3.1
       react: 19.2.4
 
-  '@vitejs/plugin-react-swc@4.2.3(vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))':
+  '@vitejs/plugin-react-swc@4.2.3(vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.2
       '@swc/core': 1.15.18
-      vite: 7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+      vite: 7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
     transitivePeerDependencies:
       - '@swc/helpers'
 
@@ -4267,13 +4277,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.0.18(vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))':
+  '@vitest/mocker@4.0.18(vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))':
     dependencies:
       '@vitest/spy': 4.0.18
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+      vite: 7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
 
   '@vitest/pretty-format@4.0.18':
     dependencies:
@@ -4301,7 +4311,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.11.0)(@vitest/ui@4.0.18)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+      vitest: 4.0.18(@types/node@24.11.1)(@vitest/ui@4.0.18)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
 
   '@vitest/utils@4.0.18':
     dependencies:
@@ -6488,11 +6498,11 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite-plugin-package-version@1.1.0(vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)):
+  vite-plugin-package-version@1.1.0(vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)):
     dependencies:
-      vite: 7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+      vite: 7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
 
-  vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1):
+  vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -6501,17 +6511,17 @@ snapshots:
       rollup: 4.59.0
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 24.11.0
+      '@types/node': 24.11.1
       fsevents: 2.3.3
       jiti: 2.4.2
       sass: 1.70.0
       terser: 5.37.0
       yaml: 2.6.1
 
-  vitest@4.0.18(@types/node@24.11.0)(@vitest/ui@4.0.18)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1):
+  vitest@4.0.18(@types/node@24.11.1)(@vitest/ui@4.0.18)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1):
     dependencies:
       '@vitest/expect': 4.0.18
-      '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))
+      '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))
       '@vitest/pretty-format': 4.0.18
       '@vitest/runner': 4.0.18
       '@vitest/snapshot': 4.0.18
@@ -6528,10 +6538,10 @@ snapshots:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.3.1(@types/node@24.11.0)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
+      vite: 7.3.1(@types/node@24.11.1)(jiti@2.4.2)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 24.11.0
+      '@types/node': 24.11.1
       '@vitest/ui': 4.0.18(vitest@4.0.18)
     transitivePeerDependencies:
       - jiti
