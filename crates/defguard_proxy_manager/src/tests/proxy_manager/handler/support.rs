@@ -483,6 +483,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
 /// The code is valid immediately and can be passed directly to
 /// `ClientMfaFinishRequest::code`.
 pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> String {
+    configure_working_smtp(pool).await;
     user.new_email_secret(pool).await.expect("new_email_secret");
     user.enable_email_mfa(pool).await.expect("enable_email_mfa");
     // generate_email_mfa_code uses the in-memory secret; note that
@@ -937,6 +938,88 @@ pub(crate) fn configure_smtp(settings: &mut Settings) {
     settings.smtp.server = Some("smtp.example.com".into());
     settings.smtp.port = Some(587);
     settings.smtp.sender = Some("noreply@example.com".into());
+}
+
+/// Spawn a minimal in-process SMTP server that accepts any message and replies
+/// with success codes, then point `pool`'s current settings at it.
+///
+/// MFA emails (`mfa_code_mail`/`mfa_activation_mail`) are actually sent
+/// (awaited) rather than fired-and-forgotten, so tests exercising the email
+/// MFA method need a real, reachable SMTP endpoint or the send fails with
+/// `SmtpNotConfigured`/`MailSendFailed`.
+pub(crate) async fn configure_working_smtp(pool: &PgPool) {
+    use tokio::{
+        io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+        net::TcpListener,
+    };
+
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("failed to bind fake SMTP listener");
+    let addr = listener.local_addr().expect("failed to get local addr");
+
+    tokio::spawn(async move {
+        loop {
+            let Ok((stream, _)) = listener.accept().await else {
+                return;
+            };
+            tokio::spawn(async move {
+                let (reader, mut writer) = stream.into_split();
+                let mut reader = BufReader::new(reader);
+                let _ = writer.write_all(b"220 localhost ESMTP\r\n").await;
+                let mut line = String::new();
+                loop {
+                    line.clear();
+                    match reader.read_line(&mut line).await {
+                        Ok(0) => return,
+                        Ok(_) => {}
+                        Err(_) => return,
+                    }
+                    let upper = line.trim_end().to_ascii_uppercase();
+                    if upper.starts_with("EHLO") || upper.starts_with("HELO") {
+                        let _ = writer.write_all(b"250 localhost\r\n").await;
+                    } else if upper.starts_with("MAIL FROM")
+                        || upper.starts_with("RCPT TO")
+                        || upper.starts_with("RSET")
+                    {
+                        let _ = writer.write_all(b"250 OK\r\n").await;
+                    } else if upper.starts_with("DATA") {
+                        let _ = writer
+                            .write_all(b"354 End data with <CR><LF>.<CR><LF>\r\n")
+                            .await;
+                        loop {
+                            line.clear();
+                            match reader.read_line(&mut line).await {
+                                Ok(0) => return,
+                                Ok(_) => {}
+                                Err(_) => return,
+                            }
+                            if line == ".\r\n" || line == ".\n" {
+                                break;
+                            }
+                        }
+                        let _ = writer.write_all(b"250 OK message queued\r\n").await;
+                    } else if upper.starts_with("QUIT") {
+                        let _ = writer.write_all(b"221 Bye\r\n").await;
+                        return;
+                    } else {
+                        let _ = writer.write_all(b"250 OK\r\n").await;
+                    }
+                }
+            });
+        }
+    });
+
+    let mut settings = Settings::get_current_settings();
+    settings.smtp.server = Some(addr.ip().to_string());
+    settings.smtp.port = Some(i32::from(addr.port()));
+    settings.smtp.sender = Some("noreply@example.com".into());
+    settings.smtp.encryption = defguard_common::db::models::settings::smtp::SmtpEncryption::None;
+    settings.smtp.authentication =
+        defguard_common::db::models::settings::smtp::SmtpAuthentication::None;
+    update_current_settings(pool, settings)
+        .await
+        .expect("failed to persist fake SMTP settings");
 }
 
 /// Set minimal LDAP fields on a [`Settings`] so that `ldap_configured()` returns `true`.
