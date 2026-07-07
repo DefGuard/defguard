@@ -841,6 +841,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                         text={m.location_service_mode_mfa_warning()}
                       />
                     )}
+                    {postureChecksSectionState.hasAssignedPostureChecks && (
+                      <InfoBanner
+                        variant="warning"
+                        icon="info-outlined"
+                        text={m.location_service_mode_postures_warning()}
+                      />
+                    )}
                     <EditPageFormSection
                       label={m.location_edit_section_location_type()}
                       labelContent={serviceLocationLabelContent}
@@ -848,19 +855,31 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
                         text={m.location_service_mode_regular()}
-                        disabled={mfaEnabled || serviceLocationLocked}
+                        disabled={
+                          mfaEnabled ||
+                          serviceLocationLocked ||
+                          postureChecksSectionState.hasAssignedPostureChecks
+                        }
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Prelogon}
                         text={m.location_service_mode_prelogon()}
-                        disabled={mfaEnabled || serviceLocationLocked}
+                        disabled={
+                          mfaEnabled ||
+                          serviceLocationLocked ||
+                          postureChecksSectionState.hasAssignedPostureChecks
+                        }
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Alwayson}
                         text={m.location_service_mode_always_on()}
-                        disabled={mfaEnabled || serviceLocationLocked}
+                        disabled={
+                          mfaEnabled ||
+                          serviceLocationLocked ||
+                          postureChecksSectionState.hasAssignedPostureChecks
+                        }
                       />
                     </EditPageFormSection>
                   </>

@@ -100,6 +100,7 @@
   "location_posture_service_location_warning": "Postures can't be enabled for service locations. To enforce posture checks, select the Regular location type.",
   "location_edit_section_location_type": "Location type",
   "location_service_mode_mfa_warning": "MFA-protected locations can't be set as service locations. Disable MFA to use a service location type.",
+  "location_service_mode_postures_warning": "Locations with assigned posture checks can't be set as service locations. Remove posture checks to use a service location type.",
   "location_access_section_label": "Location Access",
   "location_access_selected_group_count_one": "+{count} group",
   "location_access_selected_group_count_other": "+{count} groups",
