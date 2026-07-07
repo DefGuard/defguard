@@ -46,4 +46,4 @@ url = "2.5"
 matches.workspace = true
 
 [build-dependencies]
-vergen-git2 = "9.1"
+vergen-git2 = "10.0"
