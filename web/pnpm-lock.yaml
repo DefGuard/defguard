@@ -70,7 +70,7 @@ importers:
         version: 1.2.0
       humanize-duration:
         specifier: ^3.33.2
-        version: 3.33.2
+        version: 3.34.0
       ipaddr.js:
         specifier: ^2.4.0
         version: 2.4.0
@@ -2083,8 +2083,8 @@ packages:
     resolution: {integrity: sha512-K3GbkIWqyvvlpfhBPlbEvD97TtqBpAYA4kt+cn2lD2x2HuohzZCibcA2nOlnJT6exqvJLggoB5nv2dNf192nEA==}
     hasBin: true
 
-  humanize-duration@3.33.2:
-    resolution: {integrity: sha512-K7Ny/ULO1hDm2nnhvAY+SJV1skxFb61fd073SG1IWJl+D44ULrruCuTyjHKjBVVcSuTlnY99DKtgEG39CM5QOQ==}
+  humanize-duration@3.34.0:
+    resolution: {integrity: sha512-NDxhYxiiRzsST6xULIHuYWRvsCtviJXRdjarhyWyh78S4Ou+MWhM2k4HQ+y7iegdrzreXe11isd0au1N2PB/pQ==}
 
   ignore@7.0.5:
     resolution: {integrity: sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==}
@@ -4983,7 +4983,7 @@ snapshots:
 
   human-id@4.2.0: {}
 
-  humanize-duration@3.33.2: {}
+  humanize-duration@3.34.0: {}
 
   ignore@7.0.5: {}
 
