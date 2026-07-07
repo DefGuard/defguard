@@ -157,32 +157,12 @@ impl From<MailError> for WebError {
     fn from(err: MailError) -> Self {
         match err {
             MailError::SmtpNotConfigured => Self::SmtpNotConfigured,
-            MailError::Sqlx(err) => {
-                error!("Mail-related database error while sending mail: {err}");
-                Self::DbError(err.to_string())
-            }
-            MailError::Lettre(err) => {
-                error!("Failed to send mail: failed to construct the message: {err}");
-                Self::MailSendFailed
-            }
-            MailError::Address(err) => {
-                error!("Failed to send mail: invalid email address: {err}");
-                Self::MailSendFailed
-            }
-            MailError::Smtp(err) => {
-                error!("Failed to send mail: SMTP transport error: {err}");
-                Self::MailSendFailed
-            }
-            MailError::InvalidPort(port) => {
-                error!("Failed to send mail: invalid SMTP port configured: {port}");
-                Self::MailSendFailed
-            }
-            MailError::OAuth2(err) => {
-                error!(
-                    "Failed to send mail: failed to obtain OAuth2 access token for SMTP authentication: {err}"
-                );
-                Self::MailSendFailed
-            }
+            MailError::Sqlx(err) => Self::DbError(err.to_string()),
+            MailError::Lettre(_)
+            | MailError::Address(_)
+            | MailError::Smtp(_)
+            | MailError::InvalidPort(_)
+            | MailError::OAuth2(_) => Self::MailSendFailed,
         }
     }
 }

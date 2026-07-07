@@ -46,7 +46,12 @@ use defguard_proto::{
 };
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
-use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+    net::TcpListener,
+    sync::mpsc::UnboundedReceiver,
+    time::timeout,
+};
 use tonic::Code;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
@@ -948,11 +953,6 @@ pub(crate) fn configure_smtp(settings: &mut Settings) {
 /// MFA method need a real, reachable SMTP endpoint or the send fails with
 /// `SmtpNotConfigured`/`MailSendFailed`.
 pub(crate) async fn configure_working_smtp(pool: &PgPool) {
-    use tokio::{
-        io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-        net::TcpListener,
-    };
-
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("failed to bind fake SMTP listener");
