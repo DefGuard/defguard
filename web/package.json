@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
-    "@inlang/paraglide-js": "2.20.1",
+    "@inlang/paraglide-js": "2.20.2",
     "@tanstack/devtools-vite": "^0.8.0",
     "@tanstack/react-devtools": "^0.10.7",
     "@tanstack/react-query-devtools": "^5.101.0",
