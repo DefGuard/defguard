@@ -15,6 +15,7 @@ import { Divider } from '../../../../../../../shared/defguard-ui/components/Divi
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { QrCard } from '../../../../../../../shared/defguard-ui/components/QrCard/QrCard';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../../../../../shared/defguard-ui/utils/zod';
@@ -74,6 +75,7 @@ const ModalContent = () => {
       invalidate: [['user', username]],
     },
     onSuccess: (response) => {
+      Snackbar.default(m.modal_mfa_enable_totp_success());
       if (response.data.codes) {
         closeModal(modalName);
         openModal(ModalName.RecoveryCodes, response.data.codes);

@@ -241,6 +241,9 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         header: m.profile_devices_col_connected(),
         enableSorting: false,
         minSize: 200,
+        meta: {
+          flex: !canModifyDevices,
+        },
         cell: (info) => CellWithFallback(info.getValue()),
       }),
       ...(canModifyDevices

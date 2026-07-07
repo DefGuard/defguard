@@ -23,7 +23,7 @@ use crate::{
     events::ApiEvent,
     handlers::{openid_flow::OidcFlowError, user::ValidationError},
     location_management::LocationManagementError,
-    mail::templates::TemplateError,
+    mail::{MailError, templates::TemplateError},
     user_management::UserManagementError,
 };
 
@@ -36,6 +36,10 @@ pub enum WebError {
     WebauthnRegistration(String),
     #[error("Email error: {0}")]
     Email(String),
+    #[error("SMTP is not configured")]
+    SmtpNotConfigured,
+    #[error("Failed to send verification email")]
+    MailSendFailed,
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
     #[error("Object already exists: {0}")]
@@ -68,7 +72,7 @@ pub enum WebError {
     BadRequest(String),
     #[error(transparent)]
     #[schema(value_type=Object)]
-    TemplateError(#[from] TemplateError),
+    TemplateError(TemplateError),
     #[error("License error: {0}")]
     #[schema(value_type=Object)]
     LicenseError(#[from] LicenseError),
@@ -137,6 +141,29 @@ impl From<sqlx::Error> for WebError {
 impl From<ModelError> for WebError {
     fn from(error: ModelError) -> Self {
         Self::ModelError(error.to_string())
+    }
+}
+
+impl From<TemplateError> for WebError {
+    fn from(err: TemplateError) -> Self {
+        match err {
+            TemplateError::Mail(mail_err) => mail_err.into(),
+            other => Self::TemplateError(other),
+        }
+    }
+}
+
+impl From<MailError> for WebError {
+    fn from(err: MailError) -> Self {
+        match err {
+            MailError::SmtpNotConfigured => Self::SmtpNotConfigured,
+            MailError::Sqlx(err) => Self::DbError(err.to_string()),
+            MailError::Lettre(_)
+            | MailError::Address(_)
+            | MailError::Smtp(_)
+            | MailError::InvalidPort(_)
+            | MailError::OAuth2(_) => Self::MailSendFailed,
+        }
     }
 }
 

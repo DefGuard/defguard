@@ -8,5 +8,7 @@
   "api_error_cert_invalid_validity_period": "The certificate's validity period is invalid",
   "api_error_cert_expired": "The uploaded certificate has expired",
   "api_error_cert_not_yet_valid": "The uploaded certificate is not valid yet",
-  "api_error_cert_parse_error": "The certificate could not be parsed"
+  "api_error_cert_parse_error": "The certificate could not be parsed",
+  "api_error_smtp_not_configured": "Email server is not configured. Please contact your administrator.",
+  "api_error_mail_send_failed": "We couldn't send the verification email. Please try again or contact your administrator."
 }

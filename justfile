@@ -66,6 +66,10 @@ fix-clippy:
         -W clippy::str_to_string \
         -W clippy::explicit_iter_loop
 
+# run all tests with cargo nextest (needs a running Postgres for DATABASE_URL)
+test *ARGS:
+    cargo nextest run --locked --all-features {{ARGS}}
+
 # run LDAP integration tests against a throwaway OpenLDAP container (needs a running Postgres for DATABASE_URL, like other rust tests)
 test-ldap *ARGS:
     #!/usr/bin/env bash

@@ -30,7 +30,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "3.14.3",
     "@uidotdev/usehooks": "^2.4.1",
-    "axios": "1.17.0",
+    "axios": "1.18.1",
     "byte-size": "^9.0.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.21",

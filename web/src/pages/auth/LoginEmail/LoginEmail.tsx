@@ -1,11 +1,14 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import type z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import { getApiErrorMessage } from '../../../shared/api/apiErrorMessages';
 import type { ApiError } from '../../../shared/api/types';
 import { LoginPage } from '../../../shared/components/LoginPage/LoginPage';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { useEffectOnce } from '../../../shared/defguard-ui/hooks/useEffectOnce';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
@@ -23,11 +26,16 @@ const defaultValues: FormFields = {
 };
 
 export const LoginEmail = () => {
-  useQuery({
-    queryFn: api.auth.mfa.email.resend,
-    queryKey: ['auth', 'email'],
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
+  const { mutate: resend } = useMutation({
+    mutationFn: api.auth.mfa.email.resend,
+    onError: (error: AxiosError<ApiError>) => {
+      const code = error.response?.data?.code;
+      Snackbar.error(isPresent(code) ? getApiErrorMessage(code) : m.error_unknown());
+    },
+  });
+
+  useEffectOnce(() => {
+    resend();
   });
 
   const { mutateAsync } = useMutation({
