@@ -228,6 +228,12 @@ impl MicrosoftDirectorySync {
         result
     }
 
+    fn matches_group_filter(&self, display_name: &str) -> bool {
+        self.group_filter
+            .iter()
+            .any(|filter| filter.eq_ignore_ascii_case(display_name))
+    }
+
     async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
         let access_token = self
             .access_token
@@ -421,7 +427,7 @@ impl MicrosoftDirectorySync {
             );
             combined_response.value.retain(|group| {
                 if let Some(display_name) = &group.display_name {
-                    self.group_filter.contains(display_name)
+                    self.matches_group_filter(display_name)
                 } else {
                     warn!(
                         "Group with ID {} doesn't have a display name set, skipping its synchronization.",
@@ -727,5 +733,19 @@ mod tests {
         assert_eq!(users.len(), 2);
         assert_eq!(users[0].email, "email@email.com".to_string());
         assert_eq!(users[1].email, "email2@email.com".to_string());
+    }
+
+    #[test]
+    fn test_group_filter_match_is_case_insensitive() {
+        let client = MicrosoftDirectorySync::new(
+            "client_id".to_string(),
+            "client_secret".to_string(),
+            "https://login.microsoftonline.com/tenant/v2.0".to_string(),
+            vec!["developers".to_string()],
+        );
+
+        assert!(client.matches_group_filter("Developers"));
+        assert!(client.matches_group_filter("developers"));
+        assert!(!client.matches_group_filter("Infra"));
     }
 }
