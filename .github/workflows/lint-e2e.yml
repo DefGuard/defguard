@@ -32,7 +32,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
         with:
-          version: 10
+          version: 11
 
       # Change to '--frozen-lockfile' once this gets fixed:
       # https://github.com/pnpm/action-setup/issues/40
