@@ -72,7 +72,7 @@ lettre = { version = "0.11", default-features = false, features = [
     "tokio1-rustls-tls",
 ] }
 matches = "0.1"
-md4 = "0.10"
+md4 = "0.11"
 openidconnect = { version = "4.0", default-features = false, features = [
     "reqwest",
 ] }
