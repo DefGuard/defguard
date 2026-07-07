@@ -1,6 +1,6 @@
 minimumReleaseAge: 2880
 overrides:
-  isbot: "5.1.42"
+  isbot: "5.1.43"
   seroval: ">=1.4.1"
   launch-editor: ">=2.14.1"
   js-yaml@<4.2.0: ">=4.2.0"
@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: isbot@5.1.43
+  - isbot@5.1.43
