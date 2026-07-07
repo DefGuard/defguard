@@ -143,7 +143,7 @@ webauthn-rs = { version = "0.5", features = [
     "danger-allow-state-serialisation",
 ] }
 webauthn-rs-proto = "0.5"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+x25519-dalek = { version = "3.0", features = ["static_secrets"] }
 x509-parser = "0.18"
 
 [profile.release]
