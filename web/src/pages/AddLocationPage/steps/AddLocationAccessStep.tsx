@@ -16,6 +16,7 @@ import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 export const AddLocationAccessStep = () => {
+  const locationType = useAddLocationStore((s) => s.locationType);
   const [allowAllGroups, setAllowAllGroups] = useState(
     useAddLocationStore.getState().allow_all_groups,
   );
@@ -76,7 +77,10 @@ export const AddLocationAccessStep = () => {
           onClick={() => {
             saveChanges(selected, allowAllGroups);
             useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.Mfa,
+              activeStep:
+                locationType === 'service'
+                  ? AddLocationPageStep.ServiceLocationSettings
+                  : AddLocationPageStep.Mfa,
             });
           }}
         />
@@ -91,7 +95,10 @@ export const AddLocationAccessStep = () => {
               }
               saveChanges(selected, allowAllGroups);
               useAddLocationStore.setState({
-                activeStep: AddLocationPageStep.Firewall,
+                activeStep:
+                  locationType === 'service'
+                    ? AddLocationPageStep.Firewall
+                    : AddLocationPageStep.PostureCheck,
               });
             }}
           />
