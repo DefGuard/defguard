@@ -258,5 +258,18 @@
   "modal_app_update_go_to_release": "Go to release page",
   "modal_app_update_dismiss": "Dismiss",
   "modal_app_update_snackbar_message": "New version {version} is available",
-  "modal_app_update_snackbar_action": "What's new"
+  "modal_app_update_snackbar_action": "What's new",
+  "modal_ldap_dry_run_title": "Test synchronization results",
+  "modal_ldap_dry_run_description": "The results below show the outcome of the connection check using the current synchronization settings. These changes will be applied to the system if the configuration is saved and activated.",
+  "modal_ldap_dry_run_tab_defguard": "Defguard",
+  "modal_ldap_dry_run_tab_ldap": "LDAP",
+  "modal_ldap_dry_run_search_placeholder": "Search",
+  "modal_ldap_dry_run_col_username": "Username",
+  "modal_ldap_dry_run_col_email": "Email",
+  "modal_ldap_dry_run_col_status": "Status",
+  "modal_ldap_dry_run_status_added": "Will be added",
+  "modal_ldap_dry_run_status_removed": "Will be removed",
+  "modal_ldap_dry_run_empty_title": "No changes detected",
+  "modal_ldap_dry_run_empty_subtitle": "Based on the current LDAP configuration, no changes will be applied to users in this group.",
+  "modal_ldap_dry_run_search_empty_subtitle": "Please try another search request."
 }

@@ -22,7 +22,10 @@ use defguard_common::db::models::{
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Body, Mailbox, MultiPart, SinglePart, header::ContentType},
-    transport::smtp::authentication::{Credentials, Mechanism},
+    transport::smtp::{
+        authentication::{Credentials, Mechanism},
+        client::{Tls, TlsParameters},
+    },
 };
 use serde::Serialize;
 use sqlx::PgConnection;
@@ -268,10 +271,19 @@ impl Mail {
             return Err(MailError::SmtpNotConfigured);
         };
 
+        let tls_params = TlsParameters::builder(server.clone())
+            .dangerous_accept_invalid_certs(!smtp_settings.tls_verify_cert)
+            .dangerous_accept_invalid_hostnames(!smtp_settings.tls_verify_cert)
+            .build()?;
+
         let mut builder = match smtp_settings.encryption {
             SmtpEncryption::None => Builder::builder_dangerous(server),
-            SmtpEncryption::StartTls => Builder::starttls_relay(server)?,
-            SmtpEncryption::ImplicitTls => Builder::relay(server)?,
+            SmtpEncryption::StartTls => {
+                Builder::builder_dangerous(server).tls(Tls::Required(tls_params))
+            }
+            SmtpEncryption::ImplicitTls => {
+                Builder::builder_dangerous(server).tls(Tls::Wrapper(tls_params))
+            }
         }
         .port(port.try_into().map_err(|_| MailError::InvalidPort(port))?)
         .timeout(Some(SMTP_TIMEOUT));

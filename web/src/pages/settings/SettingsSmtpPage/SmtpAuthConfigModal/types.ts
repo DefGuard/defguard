@@ -8,6 +8,7 @@ export type SmtpAuthModalValues = {
   smtp_port: number;
   smtp_sender: string;
   smtp_encryption: SmtpEncryptionValue;
+  smtp_tls_verify_cert: boolean;
   smtp_user: string | null;
   smtp_password: string | null;
   smtp_oauth_issuer_url: string | null;
@@ -23,6 +24,7 @@ export type SmtpAuthApplyResult = {
   smtp_port?: number;
   smtp_sender: string;
   smtp_encryption?: SmtpEncryptionValue;
+  smtp_tls_verify_cert?: boolean;
   smtp_user?: string | null;
   smtp_password?: string | null;
   smtp_oauth_issuer_url?: string | null;

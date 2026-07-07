@@ -72,6 +72,7 @@ import type {
   GetInternalSslInfoResponse,
   GroupInfo,
   IpValidation,
+  LdapDryRunResult,
   LicenseCheckResponse,
   LicenseInfo,
   LicenseInfoResponse,
@@ -478,6 +479,8 @@ const api = {
       client.patch('/settings_enterprise', data),
     getSettingsEssentials: () => client.get<SettingsEssentials>('/settings_essentials'),
     getLdapConnectionStatus: () => client.get(`/ldap/test`),
+    testLdapSettings: (data: Settings) => client.post('/ldap/test', data),
+    ldapDryRun: (data: Settings) => client.post<LdapDryRunResult>('/ldap/dry_run', data),
   },
   openIdProvider: {
     getOpenIdProvider: () =>

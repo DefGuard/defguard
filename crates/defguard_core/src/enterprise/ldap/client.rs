@@ -29,7 +29,11 @@ fn try_construct_entry(entry: ResultEntry) -> Option<SearchEntry> {
 
 impl LDAPConnection {
     pub async fn create() -> Result<Self, LdapError> {
-        let settings = Settings::get_current_settings();
+        Self::create_with_settings(Settings::get_current_settings()).await
+    }
+
+    /// Establishes an LDAP connection using the provided settings
+    pub async fn create_with_settings(settings: Settings) -> Result<Self, LdapError> {
         let config = LDAPConfig::try_from(settings.clone())?;
         let url = settings.ldap_url.ok_or(LdapError::MissingSettings(
             "LDAP URL is required for LDAP configuration to work".to_owned(),

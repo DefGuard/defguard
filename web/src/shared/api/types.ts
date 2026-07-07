@@ -1132,6 +1132,7 @@ export interface SettingsSMTP {
   smtp_oauth_client_secret: string | null;
   smtp_oauth_refresh_token: string | null;
   smtp_oauth_tenant_id: string | null;
+  smtp_tls_verify_cert: boolean;
 }
 
 export interface SettingsEnrollment {
@@ -1182,6 +1183,21 @@ export interface SettingsLDAP {
   ldap_remote_enrollment_enabled: boolean;
   ldap_remote_enrollment_send_invite: boolean;
   ldap_disable_password_management: boolean;
+}
+
+export type LdapDryRunAction = 'add' | 'remove';
+
+export interface LdapDryRunUser {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  action: LdapDryRunAction;
+}
+
+export interface LdapDryRunResult {
+  defguard: LdapDryRunUser[];
+  ldap: LdapDryRunUser[];
 }
 
 export interface SettingsOpenID {

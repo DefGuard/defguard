@@ -1,10 +1,11 @@
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use defguard_common::{
     db::models::{
         Settings,
         settings::{SettingsPatch, update_current_settings},
     },
+    secret::SecretStringWrapper,
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::handlers::Auth;
@@ -197,6 +198,54 @@ async fn test_ldap_settings_validation(_: PgPoolOptions, options: PgConnectOptio
         response.status(),
         StatusCode::OK,
         "enabling LDAP with all required fields should return 200"
+    );
+}
+
+#[sqlx::test]
+async fn test_ldap_connection_test_with_submitted_settings(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let saved_settings: Settings = response.json().await;
+
+    let mut submitted = saved_settings.clone();
+    submitted.ldap_url = Some("ldap://127.0.0.1:1".to_owned());
+    submitted.ldap_bind_username = Some("cn=admin,dc=example,dc=com".to_owned());
+    submitted.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    submitted.ldap_username_attr = Some("uid".to_owned());
+    submitted.ldap_user_search_base = Some("ou=users,dc=example,dc=com".to_owned());
+    submitted.ldap_user_obj_class = Some("inetOrgPerson".to_owned());
+    submitted.ldap_member_attr = Some("memberUid".to_owned());
+    submitted.ldap_groupname_attr = Some("cn".to_owned());
+    submitted.ldap_group_obj_class = Some("posixGroup".to_owned());
+    submitted.ldap_group_member_attr = Some("memberUid".to_owned());
+    submitted.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".to_owned());
+    let response = client
+        .post("/api/v1/ldap/test")
+        .json(&submitted)
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "connection test against an unreachable server should return 400"
+    );
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let settings_after: Settings = response.json().await;
+    assert_eq!(
+        settings_after, saved_settings,
+        "the connection test must not save the submitted settings"
     );
 }
 

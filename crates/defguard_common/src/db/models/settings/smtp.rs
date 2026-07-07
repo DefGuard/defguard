@@ -86,6 +86,10 @@ pub struct SmtpSettings {
     #[sqlx(rename = "smtp_oauth_tenant_id")]
     #[patch(attribute(serde(rename = "smtp_oauth_tenant_id")))]
     pub oauth_tenant_id: Option<String>,
+    #[serde(rename = "smtp_tls_verify_cert")]
+    #[sqlx(rename = "smtp_tls_verify_cert")]
+    #[patch(attribute(serde(rename = "smtp_tls_verify_cert")))]
+    pub tls_verify_cert: bool,
 }
 
 impl SmtpSettings {

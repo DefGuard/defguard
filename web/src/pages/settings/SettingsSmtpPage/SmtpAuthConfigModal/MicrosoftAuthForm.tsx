@@ -25,6 +25,7 @@ const schema = z.object({
   smtp_oauth_tenant_id: z.string().trim().nullable(),
   smtp_oauth_client_id: z.string().trim().nullable(),
   smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_tls_verify_cert: z.boolean(),
 });
 
 export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
@@ -34,6 +35,7 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
       smtp_oauth_tenant_id: initialValues.smtp_oauth_tenant_id,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
       smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+      smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
     },
     validationLogic: formChangeLogic,
     validators: { onSubmit: schema, onChange: schema },
@@ -44,6 +46,7 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
         smtp_server: MICROSOFT_SMTP_SERVER,
         smtp_port: PROVIDER_SMTP_PORT,
         smtp_encryption: SmtpEncryption.StartTls,
+        smtp_tls_verify_cert: value.smtp_tls_verify_cert,
         smtp_oauth_issuer_url: isMicrosoftIssuerUrl(initialValues.smtp_oauth_issuer_url)
           ? initialValues.smtp_oauth_issuer_url
           : MICROSOFT_ISSUER_URL,
@@ -105,6 +108,14 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
             )}
           </form.AppField>
         </EvenSplit>
+        <SizedBox height={ThemeSpacing.Md} />
+        <form.AppField name="smtp_tls_verify_cert">
+          {(field) => (
+            <field.FormCheckbox
+              text={m.settings_smtp_checkbox_verify_tls_certificate()}
+            />
+          )}
+        </form.AppField>
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (
             <ModalControls
