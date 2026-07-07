@@ -3,7 +3,7 @@ overrides:
   isbot: "5.1.42"
   seroval: ">=1.4.1"
   launch-editor: ">=2.14.1"
-  js-yaml@<4.2.0: ">=4.2.0"
+  js-yaml@<4.2.0: ">=4.3.0"
 
 allowBuilds:
   '@parcel/watcher': true
@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: js-yaml@4.3.0
+  - js-yaml@4.3.0
