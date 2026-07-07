@@ -100,7 +100,7 @@ claims.workspace = true
 hyper-util = "0.1"
 lber = "0.5"
 matches.workspace = true
-reqwest = { version = "0.12", features = [
+reqwest = { version = "0.13", features = [
     "cookies",
     "json",
     "multipart",

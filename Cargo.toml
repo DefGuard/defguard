@@ -80,7 +80,7 @@ pulldown-cmark = "0.13"
 # match version used by sqlx
 rand = "0.8"
 rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 rsa = "0.9"
 rust-ini = "0.21"
 rustls = { version = "0.23", features = ["ring"] }
