@@ -62,7 +62,7 @@ http = "1.4"
 hyper-rustls = { version = "0.27", features = ["http2"] }
 humantime = "2.1"
 # match version used by sqlx
-ipnetwork = "0.20"
+ipnetwork = "0.21"
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
 ldap3 = { git = "https://github.com/DefGuard/ldap3", rev = "65ae9ad320770c63f366233ebe121534e16b59a7", features = ["tls"] }

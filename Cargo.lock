@@ -1396,7 +1396,7 @@ dependencies = [
  "defguard_certs",
  "ed25519-dalek",
  "humantime",
- "ipnetwork",
+ "ipnetwork 0.21.1",
  "jsonwebtoken",
  "matches",
  "model_derive",
@@ -1451,7 +1451,7 @@ dependencies = [
  "humantime",
  "hyper-util",
  "image",
- "ipnetwork",
+ "ipnetwork 0.21.1",
  "jsonwebkey",
  "jsonwebtoken",
  "ldap3",
@@ -1521,7 +1521,7 @@ dependencies = [
  "defguard_common",
  "defguard_core",
  "defguard_session_manager",
- "ipnetwork",
+ "ipnetwork 0.21.1",
  "serde_json",
  "sqlx",
  "strum",
@@ -1620,7 +1620,7 @@ dependencies = [
  "defguard_version",
  "hyper-rustls",
  "hyper-util",
- "ipnetwork",
+ "ipnetwork 0.21.1",
  "jsonwebkey",
  "jsonwebtoken",
  "openidconnect",
@@ -1647,7 +1647,7 @@ dependencies = [
  "chrono",
  "defguard_common",
  "defguard_core",
- "ipnetwork",
+ "ipnetwork 0.21.1",
  "sqlx",
  "strum",
  "strum_macros",
@@ -1673,7 +1673,7 @@ dependencies = [
  "defguard_version",
  "defguard_web_ui",
  "futures",
- "ipnetwork",
+ "ipnetwork 0.21.1",
  "rcgen",
  "reqwest",
  "semver",
@@ -3168,6 +3168,12 @@ checksum = "bf466541e9d546596ee94f9f69590f89473455f88372423e0008fc1a7daf100e"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "ipnetwork"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf370abdafd54d13e54a620e8c3e1145f28e46cc9d704bc6d94414559df41763"
 
 [[package]]
 name = "is_terminal_polyfill"
@@ -6002,7 +6008,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "hashlink",
  "indexmap 2.14.0",
- "ipnetwork",
+ "ipnetwork 0.20.0",
  "log",
  "memchr",
  "native-tls",
@@ -6123,7 +6129,7 @@ dependencies = [
  "hkdf",
  "hmac",
  "home",
- "ipnetwork",
+ "ipnetwork 0.20.0",
  "itoa",
  "log",
  "md-5",
