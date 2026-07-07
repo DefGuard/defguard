@@ -1,6 +1,7 @@
 {
   "name": "e2e",
   "version": "0.1.0",
+  "packageManager": "pnpm@11.9.0",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
