@@ -965,3 +965,142 @@ async fn test_device_posture_assignment_not_found(_: PgPoolOptions, options: PgC
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     client.assert_event_queue_is_empty();
 }
+
+/// Create a service location (prelogon mode) and return its ID.
+async fn make_service_location(client: &TestClient, name: &str) -> i64 {
+    let response = client
+        .post("/api/v1/network")
+        .json(&serde_json::json!({
+            "name": name,
+            "address": "10.2.2.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.15",
+            "allowed_ips": "10.2.2.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "prelogon"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let net: serde_json::Value = response.json().await;
+    net["id"].as_i64().unwrap()
+}
+
+#[sqlx::test]
+async fn test_set_postures_for_service_location_rejected(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, _) = setup(options).await;
+
+    let service_location_id = make_service_location(&client, "service-net").await;
+    let posture: ApiDevicePosture = client
+        .post("/api/v1/device-posture")
+        .json(&make_edit("Posture"))
+        .send()
+        .await
+        .json()
+        .await;
+    client.drain_all_events();
+
+    // assigning posture checks to a service location is rejected
+    let response = client
+        .put(format!("/api/v1/network/{service_location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: vec![posture.id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    // nothing was assigned to the posture
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", posture.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert!(fetched.locations.is_empty());
+
+    // clearing (empty list) is still allowed on a service location
+    let response = client
+        .put(format!("/api/v1/network/{service_location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: Vec::new(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn test_set_locations_for_posture_rejects_service_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, _) = setup(options).await;
+
+    let regular_net: serde_json::Value = make_network(&client, "regular-net").await.json().await;
+    let regular_location_id = regular_net["id"].as_i64().unwrap();
+    let service_location_id = make_service_location(&client, "service-net").await;
+
+    let posture: ApiDevicePosture = client
+        .post("/api/v1/device-posture")
+        .json(&make_edit("Posture"))
+        .send()
+        .await
+        .json()
+        .await;
+    client.drain_all_events();
+
+    // assigning a service location to a posture is rejected
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![service_location_id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    // a mix containing a service location is rejected too — nothing is assigned
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![regular_location_id, service_location_id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", posture.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert!(fetched.locations.is_empty());
+
+    // assigning only regular locations still works
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![regular_location_id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result, vec![regular_location_id]);
+}
