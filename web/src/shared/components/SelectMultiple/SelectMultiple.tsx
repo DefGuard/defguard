@@ -29,6 +29,7 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
   onToggleChange,
   selectionCustomItemRender,
   selectionModalProps,
+  disabled,
 }: SelectMultipleProps<T, M>) => {
   const selectedOptions = useMemo(
     () => options.filter((o) => selected.has(o.id)),
@@ -83,7 +84,12 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
           {selectedOptions.length > 5 && <Chip text={counterText(selected.size - 5)} />}
         </div>
         {selectedOptions.length > 0 && <SizedBox height={ThemeSpacing.Md} />}
-        <button type="button" onClick={handleEdit} className="select-multiple-edit">
+        <button
+          disabled={disabled}
+          type="button"
+          onClick={handleEdit}
+          className="select-multiple-edit"
+        >
           {isPresent(editIcon) && (
             <Icon icon={editIcon} size={20} staticColor={ThemeVariable.FgAction} />
           )}

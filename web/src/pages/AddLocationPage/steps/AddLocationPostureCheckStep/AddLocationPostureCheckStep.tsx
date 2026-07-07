@@ -1,7 +1,5 @@
 import './style.scss';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { cloneDeep, omit } from 'lodash-es';
+import { useQuery } from '@tanstack/react-query';
 import { type Dispatch, Fragment, type SetStateAction, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
@@ -13,7 +11,6 @@ import { renderPostureCheckSelectionItem } from '../../../../shared/components/P
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
@@ -23,16 +20,14 @@ import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions } from '../../../../shared/query';
 import { canUseEnterpriseFeature } from '../../../../shared/utils/license';
-import { useGatewayWizardStore } from '../../../GatewaySetupPage/useGatewayWizardStore';
 import businessFeatureCardImage from '../../assets/business-feature-icon.png';
-import actionCardImage from '../../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../../types';
 import { useAddLocationStore } from '../../useAddLocationStore';
 
 export const AddLocationPostureCheckStep = () => {
-  const [addPostures, setAddPostures] = useState(false);
-  const [showGateway, setShowGateway] = useState(true);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const storedPostureChecks = useAddLocationStore.getState().posture_checks;
+  const [addPostures, setAddPostures] = useState(storedPostureChecks.length > 0);
+  const [selected, setSelected] = useState<Set<number>>(new Set(storedPostureChecks));
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const canUseEnterprise =
     licenseInfo === undefined
@@ -46,42 +41,12 @@ export const AddLocationPostureCheckStep = () => {
   });
   const hasPostures = isPresent(postures) && postures.length > 0;
   const canAssignPostures = canUseEnterprise === true && hasPostures;
-  const navigate = useNavigate();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: api.location.addLocation,
-    meta: {
-      invalidate: [['network'], ['enterprise_info']],
-    },
-    onSuccess: ({ data }) => {
-      if (showGateway) {
-        useGatewayWizardStore.getState().start({ network_id: data.id });
-        navigate({ to: '/setup-gateway', replace: true }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      } else {
-        navigate({ to: '/locations', replace: true }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      }
-    },
-  });
-
-  const handleSubmit = () => {
-    const storageState = cloneDeep(
-      omit(useAddLocationStore.getState(), [
-        'start',
-        'reset',
-        'activeStep',
-        'locationType',
-      ]),
-    );
-    storageState.posture_checks = addPostures ? Array.from(selected) : [];
-    mutate(storageState);
+  const handleContinue = () => {
+    useAddLocationStore.setState({
+      posture_checks: addPostures ? Array.from(selected) : [],
+      activeStep: AddLocationPageStep.Firewall,
+    });
   };
 
   return (
@@ -141,37 +106,22 @@ export const AddLocationPostureCheckStep = () => {
           />
         )}
       </Fold>
-      <Divider spacing={ThemeSpacing.Xl2} />
-      <ActionCard
-        imageSrc={actionCardImage}
-        title={m.add_location_firewall_gateway_activation_title()}
-        subtitle={m.add_location_firewall_gateway_activation_subtitle()}
-      >
-        <Checkbox
-          text={m.add_location_firewall_gateway_activation_checkbox()}
-          active={showGateway}
-          onClick={() => {
-            setShowGateway((s) => !s);
-          }}
-        />
-      </ActionCard>
       <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
           onClick={() => {
             useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.Firewall,
+              activeStep: AddLocationPageStep.AccessControl,
             });
           }}
         />
         <div className="right">
           <Button
-            testId="create-location"
-            text={m.add_location_create_location()}
-            loading={isPending}
+            testId="posture-continue"
+            text={m.controls_continue()}
             onClick={() => {
-              handleSubmit();
+              handleContinue();
             }}
           />
         </div>

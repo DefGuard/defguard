@@ -258,6 +258,12 @@ impl WireguardNetwork {
 }
 
 impl<I> WireguardNetwork<I> {
+    /// Returns `true` if this location is configured as a service location.
+    #[must_use]
+    pub fn is_service_location(&self) -> bool {
+        self.service_location_mode != ServiceLocationMode::Disabled
+    }
+
     /// Address list getter.
     pub fn address(&self) -> &[IpNetwork] {
         self.address.as_slice()

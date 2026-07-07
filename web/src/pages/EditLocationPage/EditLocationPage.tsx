@@ -723,6 +723,142 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
         </EditPageFormSection>
+        <form.Subscribe selector={(state) => state.values.allow_all_groups}>
+          {(allowAllGroups) => (
+            <EditPageFormSection label={m.location_access_section_label()}>
+              {isPresent(groupsOptions) && (
+                <form.AppField name="allowed_groups">
+                  {(field) => (
+                    <field.FormSelectMultiple
+                      options={groupsOptions}
+                      counterText={getSelectedGroupsCounterText}
+                      editText={m.location_access_edit_groups()}
+                      modalTitle={m.location_access_select_allowed_groups()}
+                      toggleText={m.location_access_all_groups_have_access()}
+                      toggleValue={allowAllGroups}
+                      onToggleChange={(value) => {
+                        form.setFieldValue('allow_all_groups', value);
+                      }}
+                    />
+                  )}
+                </form.AppField>
+              )}
+            </EditPageFormSection>
+          )}
+        </form.Subscribe>
+        <EditPageFormSection
+          label={m.add_location_step_firewall_label()}
+          labelContent={firewallLabelContent}
+        >
+          <form.AppField name="firewall">
+            {(field) => (
+              <field.FormRadio
+                value={LocationFirewall.Disabled}
+                text={m.location_firewall_option_disabled()}
+                disabled={firewallLocked}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Md} />
+          <form.AppField name="firewall">
+            {(field) => (
+              <field.FormRadio
+                value={LocationFirewall.Allow}
+                text={m.location_firewall_option_default_allow()}
+                disabled={firewallLocked}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Md} />
+          <form.AppField name="firewall">
+            {(field) => (
+              <field.FormRadio
+                value={LocationFirewall.Deny}
+                text={m.location_firewall_option_default_deny()}
+                disabled={firewallLocked}
+              />
+            )}
+          </form.AppField>
+        </EditPageFormSection>
+        <form.Subscribe
+          selector={(s) => s.values.location_mfa_mode !== LocationMfaMode.Disabled}
+        >
+          {(mfaEnabled) => (
+            <form.AppField
+              name="service_location_mode"
+              validators={{ onChangeListenTo: ['location_mfa_mode'] }}
+              listeners={{
+                onChange: ({ value, fieldApi }) => {
+                  const mfa = fieldApi.form.getFieldValue('location_mfa_mode');
+                  if (
+                    value !== LocationServiceMode.Disabled &&
+                    mfa !== LocationMfaMode.Disabled
+                  ) {
+                    fieldApi.form.setFieldValue(
+                      'location_mfa_mode',
+                      LocationMfaMode.Disabled,
+                    );
+                  }
+                },
+              }}
+            >
+              {(field) => {
+                return (
+                  <>
+                    {mfaEnabled && (
+                      <InfoBanner
+                        variant="warning"
+                        icon="info-outlined"
+                        text={m.location_service_mode_mfa_warning()}
+                      />
+                    )}
+                    {postureChecksSectionState.hasAssignedPostureChecks && (
+                      <InfoBanner
+                        variant="warning"
+                        icon="info-outlined"
+                        text={m.location_service_mode_postures_warning()}
+                      />
+                    )}
+                    <EditPageFormSection
+                      label={m.location_edit_section_location_type()}
+                      labelContent={serviceLocationLabelContent}
+                    >
+                      <field.FormRadio
+                        value={LocationServiceMode.Disabled}
+                        text={m.location_service_mode_regular()}
+                        disabled={
+                          mfaEnabled ||
+                          serviceLocationLocked ||
+                          postureChecksSectionState.hasAssignedPostureChecks
+                        }
+                      />
+                      <SizedBox height={ThemeSpacing.Md} />
+                      <field.FormRadio
+                        value={LocationServiceMode.Prelogon}
+                        text={m.location_service_mode_prelogon()}
+                        disabled={
+                          mfaEnabled ||
+                          serviceLocationLocked ||
+                          postureChecksSectionState.hasAssignedPostureChecks
+                        }
+                      />
+                      <SizedBox height={ThemeSpacing.Md} />
+                      <field.FormRadio
+                        value={LocationServiceMode.Alwayson}
+                        text={m.location_service_mode_always_on()}
+                        disabled={
+                          mfaEnabled ||
+                          serviceLocationLocked ||
+                          postureChecksSectionState.hasAssignedPostureChecks
+                        }
+                      />
+                    </EditPageFormSection>
+                  </>
+                );
+              }}
+            </form.AppField>
+          )}
+        </form.Subscribe>
         <form.Subscribe
           selector={(s) =>
             s.values.service_location_mode !== LocationServiceMode.Disabled
@@ -810,187 +946,97 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           )}
         </form.Subscribe>
         <form.Subscribe
-          selector={(s) => s.values.location_mfa_mode !== LocationMfaMode.Disabled}
+          selector={(s) =>
+            s.values.service_location_mode !== LocationServiceMode.Disabled
+          }
         >
-          {(mfaEnabled) => (
-            <form.AppField
-              name="service_location_mode"
-              validators={{ onChangeListenTo: ['location_mfa_mode'] }}
-              listeners={{
-                onChange: ({ value, fieldApi }) => {
-                  const mfa = fieldApi.form.getFieldValue('location_mfa_mode');
-                  if (
-                    value !== LocationServiceMode.Disabled &&
-                    mfa !== LocationMfaMode.Disabled
-                  ) {
-                    fieldApi.form.setFieldValue(
-                      'location_mfa_mode',
-                      LocationMfaMode.Disabled,
-                    );
-                  }
-                },
-              }}
-            >
-              {(field) => {
-                return (
-                  <>
-                    {mfaEnabled && (
-                      <InfoBanner
-                        variant="warning"
-                        icon="info-outlined"
-                        text={m.location_service_mode_mfa_warning()}
-                      />
-                    )}
-                    <EditPageFormSection
-                      label={m.location_edit_section_location_type()}
-                      labelContent={serviceLocationLabelContent}
-                    >
-                      <field.FormRadio
-                        value={LocationServiceMode.Disabled}
-                        text={m.location_service_mode_regular()}
-                        disabled={mfaEnabled || serviceLocationLocked}
-                      />
-                      <SizedBox height={ThemeSpacing.Md} />
-                      <field.FormRadio
-                        value={LocationServiceMode.Prelogon}
-                        text={m.location_service_mode_prelogon()}
-                        disabled={mfaEnabled || serviceLocationLocked}
-                      />
-                      <SizedBox height={ThemeSpacing.Md} />
-                      <field.FormRadio
-                        value={LocationServiceMode.Alwayson}
-                        text={m.location_service_mode_always_on()}
-                        disabled={mfaEnabled || serviceLocationLocked}
-                      />
-                    </EditPageFormSection>
-                  </>
-                );
-              }}
-            </form.AppField>
-          )}
-        </form.Subscribe>
-        <form.Subscribe selector={(state) => state.values.allow_all_groups}>
-          {(allowAllGroups) => (
-            <EditPageFormSection label={m.location_access_section_label()}>
-              {isPresent(groupsOptions) && (
-                <form.AppField name="allowed_groups">
-                  {(field) => (
-                    <field.FormSelectMultiple
-                      options={groupsOptions}
-                      counterText={getSelectedGroupsCounterText}
-                      editText={m.location_access_edit_groups()}
-                      modalTitle={m.location_access_select_allowed_groups()}
-                      toggleText={m.location_access_all_groups_have_access()}
-                      toggleValue={allowAllGroups}
-                      onToggleChange={(value) => {
-                        form.setFieldValue('allow_all_groups', value);
+          {(isServiceLocation) => (
+            <>
+              {isServiceLocation && (
+                <InfoBanner
+                  icon="info-outlined"
+                  variant="warning"
+                  text={m.location_posture_service_location_warning()}
+                />
+              )}
+              <EditPageFormSection
+                label={m.cmp_nav_item_posture_checks()}
+                labelContent={postureChecksLabelContent}
+              >
+                {postureChecksSectionState.showEmptyState && (
+                  <div className="posture-checks-empty-state">
+                    <img
+                      src={postureCheckShield}
+                      alt=""
+                      className="posture-check-shield"
+                    />
+                    <p>
+                      {m.location_posture_checks_empty_state_before_link()}{' '}
+                      <Link to="/acl/posture-checks">
+                        {m.cmp_nav_item_posture_checks()}
+                      </Link>{' '}
+                      {m.location_posture_checks_empty_state_after_link()}
+                    </p>
+                  </div>
+                )}
+                {postureChecksSectionState.showAssignedPostureChecks && (
+                  <div className="posture-checks-assigned-state">
+                    <SelectMultiple
+                      options={postureCheckOptions}
+                      selected={
+                        new Set(
+                          assignedPostureChecks.map((postureCheck) => postureCheck.id),
+                        )
+                      }
+                      modalTitle={m.location_posture_checks_select()}
+                      editText={m.location_posture_checks_edit()}
+                      editIcon={IconKind.Edit}
+                      toggleValue={false}
+                      counterText={() => ''}
+                      disabled={isServiceLocation}
+                      onSelectionChange={(values) => {
+                        setLocationPostures({
+                          postures: values.filter(
+                            (value): value is number => typeof value === 'number',
+                          ),
+                        });
+                      }}
+                      onToggleChange={() => {}}
+                      selectionCustomItemRender={renderPostureCheckSelectionItem}
+                      selectionModalProps={{
+                        contentClassName: 'posture-check-assignment-modal',
+                        enableDividers: true,
+                        itemGap: 12,
+                        searchPlaceholder: m.controls_search(),
+                        visibleItemsLimit: 6,
                       }}
                     />
-                  )}
-                </form.AppField>
-              )}
-            </EditPageFormSection>
+                  </div>
+                )}
+                {postureChecksSectionState.showAssignButton && (
+                  <Button
+                    variant="outlined"
+                    iconLeft={IconKind.ConnectedDevices}
+                    loading={isUpdatingLocationPostures}
+                    text={m.posture_checks_wizard_title()}
+                    onClick={openPostureChecksSelection}
+                    disabled={isServiceLocation}
+                  />
+                )}
+                {postureChecksSectionState.showLockedButton && (
+                  <div className="posture-checks-locked-state">
+                    <Button
+                      variant="primary"
+                      disabled
+                      iconLeft={IconKind.ConnectedDevices}
+                      text={m.posture_checks_wizard_title()}
+                    />
+                  </div>
+                )}
+              </EditPageFormSection>
+            </>
           )}
         </form.Subscribe>
-        <EditPageFormSection
-          label={m.add_location_step_firewall_label()}
-          labelContent={firewallLabelContent}
-        >
-          <form.AppField name="firewall">
-            {(field) => (
-              <field.FormRadio
-                value={LocationFirewall.Disabled}
-                text={m.location_firewall_option_disabled()}
-                disabled={firewallLocked}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Md} />
-          <form.AppField name="firewall">
-            {(field) => (
-              <field.FormRadio
-                value={LocationFirewall.Allow}
-                text={m.location_firewall_option_default_allow()}
-                disabled={firewallLocked}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Md} />
-          <form.AppField name="firewall">
-            {(field) => (
-              <field.FormRadio
-                value={LocationFirewall.Deny}
-                text={m.location_firewall_option_default_deny()}
-                disabled={firewallLocked}
-              />
-            )}
-          </form.AppField>
-        </EditPageFormSection>
-        <EditPageFormSection
-          label={m.cmp_nav_item_posture_checks()}
-          labelContent={postureChecksLabelContent}
-        >
-          {postureChecksSectionState.showEmptyState && (
-            <div className="posture-checks-empty-state">
-              <img src={postureCheckShield} alt="" className="posture-check-shield" />
-              <p>
-                {m.location_posture_checks_empty_state_before_link()}{' '}
-                <Link to="/acl/posture-checks">{m.cmp_nav_item_posture_checks()}</Link>{' '}
-                {m.location_posture_checks_empty_state_after_link()}
-              </p>
-            </div>
-          )}
-          {postureChecksSectionState.showAssignedPostureChecks && (
-            <div className="posture-checks-assigned-state">
-              <SelectMultiple
-                options={postureCheckOptions}
-                selected={
-                  new Set(assignedPostureChecks.map((postureCheck) => postureCheck.id))
-                }
-                modalTitle={m.location_posture_checks_select()}
-                editText={m.location_posture_checks_edit()}
-                editIcon={IconKind.Edit}
-                toggleValue={false}
-                counterText={() => ''}
-                onSelectionChange={(values) => {
-                  setLocationPostures({
-                    postures: values.filter(
-                      (value): value is number => typeof value === 'number',
-                    ),
-                  });
-                }}
-                onToggleChange={() => {}}
-                selectionCustomItemRender={renderPostureCheckSelectionItem}
-                selectionModalProps={{
-                  contentClassName: 'posture-check-assignment-modal',
-                  enableDividers: true,
-                  itemGap: 12,
-                  searchPlaceholder: m.controls_search(),
-                  visibleItemsLimit: 6,
-                }}
-              />
-            </div>
-          )}
-          {postureChecksSectionState.showAssignButton && (
-            <Button
-              variant="outlined"
-              iconLeft={IconKind.ConnectedDevices}
-              loading={isUpdatingLocationPostures}
-              text={m.posture_checks_wizard_title()}
-              onClick={openPostureChecksSelection}
-            />
-          )}
-          {postureChecksSectionState.showLockedButton && (
-            <div className="posture-checks-locked-state">
-              <Button
-                variant="primary"
-                disabled
-                iconLeft={IconKind.ConnectedDevices}
-                text={m.posture_checks_wizard_title()}
-              />
-            </div>
-          )}
-        </EditPageFormSection>
         <form.Subscribe
           selector={(form) => ({
             isSubmitting: form.isSubmitting,

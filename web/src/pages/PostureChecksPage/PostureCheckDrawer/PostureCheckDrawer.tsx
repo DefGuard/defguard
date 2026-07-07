@@ -18,7 +18,7 @@ import {
 } from '../../../shared/query';
 import { buildOsSections } from '../../../shared/utils/postureInfo';
 import { buildPostureCheckMenuItems } from '../postureCheckMenu';
-import type { PostureCheckRow } from '../postureChecks';
+import { buildFilteredLocationOptions, type PostureCheckRow } from '../postureChecks';
 
 type ContentProps = {
   row: PostureCheckRow;
@@ -63,12 +63,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
       Snackbar.error(m.posture_checks_duplication_failed());
     },
   });
-  const locationOptions = locations.map((loc) => ({
-    id: loc.id,
-    label: loc.name,
-    searchFields: [loc.name, ...loc.address],
-  }));
-
+  const locationOptions = buildFilteredLocationOptions(locations);
   const assignedLocationNames = locationOptions
     .filter((loc) => row.locations.includes(loc.id))
     .map((loc) => loc.label);
