@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: motion@12.41.0
+  - motion@12.41.0
