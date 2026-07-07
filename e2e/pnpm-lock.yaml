@@ -39,8 +39,8 @@ importers:
         specifier: ^1.61.0
         version: 1.61.0
       totp-generator:
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^2.0.0
+        version: 2.0.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.4.1
@@ -951,6 +951,9 @@ packages:
     resolution: {integrity: sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==}
     hasBin: true
 
+  jssha@3.3.2:
+    resolution: {integrity: sha512-0RhFxzijV4W0qTXa97D5b6twAWXX7SEOpw8qzAZyZ+oeGOP9e84PnDSLjl7SBB1vBQ+chSUwsZR06i1AzA+nEA==}
+
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
@@ -1270,9 +1273,8 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  totp-generator@1.1.0:
-    resolution: {integrity: sha512-v0vrIlUst47S9OGr6h7fij7CfG+cRFau+rsdvAB1LYdvhED8DgxbXCr4fjUvkF1bcLB//ngXxixAn9TOmH2e0w==}
-    deprecated: Deprecated in favor for 2.0.0
+  totp-generator@2.0.1:
+    resolution: {integrity: sha512-50DiKmv9zKTPzCgWOqQYVBMvxh+tpL9O3IUFIqzGUlFXzJyb/IQZac8bonXudvLbfuDY8laZ9qTDX+yAvTBNSQ==}
 
   ts-api-utils@2.5.0:
     resolution: {integrity: sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==}
@@ -2320,6 +2322,8 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
+  jssha@3.3.2: {}
+
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
@@ -2688,7 +2692,9 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
 
-  totp-generator@1.1.0: {}
+  totp-generator@2.0.1:
+    dependencies:
+      jssha: 3.3.2
 
   ts-api-utils@2.5.0(typescript@5.8.2):
     dependencies:
