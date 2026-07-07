@@ -23,7 +23,11 @@ import type { TableFilterMessages } from '../../shared/defguard-ui/components/ta
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { getLocationsQueryOptions } from '../../shared/query';
 import { buildPostureCheckMenuItems } from './postureCheckMenu';
-import type { PostureCheckColumnFilterOptions, PostureCheckRow } from './postureChecks';
+import {
+  buildFilteredLocationOptions,
+  type PostureCheckColumnFilterOptions,
+  type PostureCheckRow,
+} from './postureChecks';
 import './style.scss';
 
 type Props = {
@@ -56,12 +60,7 @@ export const PostureChecksTable = ({
   const navigate = useNavigate();
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
   const locationOptions = useMemo(
-    () =>
-      locations.map((location) => ({
-        id: location.id,
-        label: location.name,
-        searchFields: [location.name, ...location.address],
-      })),
+    () => buildFilteredLocationOptions(locations),
     [locations],
   );
   const { mutate: assignLocations } = useMutation({

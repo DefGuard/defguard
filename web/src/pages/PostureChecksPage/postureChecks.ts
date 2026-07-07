@@ -1,6 +1,11 @@
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { ApiDevicePosture, ApiDevicePostureOsRule } from '../../shared/api/types';
+import {
+  type ApiDevicePosture,
+  type ApiDevicePostureOsRule,
+  LocationServiceMode,
+  type NetworkLocation,
+} from '../../shared/api/types';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
@@ -348,4 +353,14 @@ export const filterPostureChecks = (rows: PostureCheckRow[], search: string) => 
 
     return searchableValues.some((value) => value.toLowerCase().includes(query));
   });
+};
+
+export const buildFilteredLocationOptions = (locations: NetworkLocation[]) => {
+  return locations
+    .filter((location) => location.service_location_mode === LocationServiceMode.Disabled)
+    .map((loc) => ({
+      id: loc.id,
+      label: loc.name,
+      searchFields: [loc.name, ...loc.address],
+    }));
 };
