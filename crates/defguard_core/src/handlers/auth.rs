@@ -806,7 +806,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     let settings = Settings::get_current_settings();
     if !settings.smtp_configured() {
         error!("Unable to start email MFA configuration. SMTP is not configured.");
-        return Err(WebError::Email("SMTP not configured".into()));
+        return Err(WebError::SmtpNotConfigured);
     }
 
     // generate TOTP secret

@@ -16,16 +16,20 @@ import { useMutation } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import api from '../../../../../../../shared/api/api';
+import { getApiErrorMessage } from '../../../../../../../shared/api/apiErrorMessages';
 import type { ApiError } from '../../../../../../../shared/api/types';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { useEffectOnce } from '../../../../../../../shared/defguard-ui/hooks/useEffectOnce';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../../../../../shared/formLogic';
+import { useTimer } from '../../../../../../../shared/hooks/useTimer';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
 const modalName = ModalName.EmailMfaSetup;
+const RESEND_TIMEOUT = 60;
 
 export const EmailMfaSetupModal = () => {
   const [isOpen, setOpen] = useState(false);
@@ -94,8 +98,21 @@ const ModalContent = () => {
     },
   });
 
+  const { secondsLeft: resendSecondsLeft, start: startResendTimer } = useTimer();
+
   const { mutate: resendEmail, isPending: isResending } = useMutation({
     mutationFn: api.auth.mfa.email.init,
+    onSuccess: () => {
+      startResendTimer(RESEND_TIMEOUT);
+    },
+    onError: (e: AxiosError<ApiError>) => {
+      const code = e.response?.data?.code;
+      if (code) {
+        Snackbar.error(getApiErrorMessage(code));
+      } else {
+        Snackbar.error(m.error_unknown());
+      }
+    },
   });
 
   const form = useAppForm({
@@ -126,7 +143,19 @@ const ModalContent = () => {
   const canSubmit = useStore(form.store, (s) => s.canSubmit);
 
   useEffectOnce(() => {
-    void api.auth.mfa.email.init();
+    api.auth.mfa.email
+      .init()
+      .then(() => {
+        startResendTimer(RESEND_TIMEOUT);
+      })
+      .catch((e: AxiosError<ApiError>) => {
+        const code = e.response?.data?.code;
+        if (code) {
+          Snackbar.error(getApiErrorMessage(code));
+        } else {
+          Snackbar.error(m.error_unknown());
+        }
+      });
   });
 
   return (
@@ -178,9 +207,19 @@ const ModalContent = () => {
         <div className="controls-extra">
           <Button
             variant="outlined"
-            text={m.modal_mfa_enable_email_resend()}
+            text={
+              resendSecondsLeft > 0
+                ? m.modal_mfa_enable_email_resend_countdown({
+                    seconds: resendSecondsLeft,
+                  })
+                : m.modal_mfa_enable_email_resend()
+            }
             loading={isResending}
-            onClick={() => resendEmail()}
+            disabled={resendSecondsLeft > 0}
+            onClick={() => {
+              form.reset();
+              resendEmail();
+            }}
           />
         </div>
       </ModalControls>

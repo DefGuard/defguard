@@ -23,7 +23,7 @@ use crate::{
     events::ApiEvent,
     handlers::{openid_flow::OidcFlowError, user::ValidationError},
     location_management::LocationManagementError,
-    mail::templates::TemplateError,
+    mail::{MailError, templates::TemplateError},
     user_management::UserManagementError,
 };
 
@@ -36,6 +36,10 @@ pub enum WebError {
     WebauthnRegistration(String),
     #[error("Email error: {0}")]
     Email(String),
+    #[error("SMTP is not configured")]
+    SmtpNotConfigured,
+    #[error("Failed to send verification email")]
+    MailSendFailed,
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
     #[error("Object already exists: {0}")]
@@ -68,7 +72,7 @@ pub enum WebError {
     BadRequest(String),
     #[error(transparent)]
     #[schema(value_type=Object)]
-    TemplateError(#[from] TemplateError),
+    TemplateError(TemplateError),
     #[error("License error: {0}")]
     #[schema(value_type=Object)]
     LicenseError(#[from] LicenseError),
@@ -137,6 +141,49 @@ impl From<sqlx::Error> for WebError {
 impl From<ModelError> for WebError {
     fn from(error: ModelError) -> Self {
         Self::ModelError(error.to_string())
+    }
+}
+
+impl From<TemplateError> for WebError {
+    fn from(err: TemplateError) -> Self {
+        match err {
+            TemplateError::Mail(mail_err) => mail_err.into(),
+            other => Self::TemplateError(other),
+        }
+    }
+}
+
+impl From<MailError> for WebError {
+    fn from(err: MailError) -> Self {
+        match err {
+            MailError::SmtpNotConfigured => Self::SmtpNotConfigured,
+            MailError::Sqlx(err) => {
+                error!("Mail-related database error while sending mail: {err}");
+                Self::DbError(err.to_string())
+            }
+            MailError::Lettre(err) => {
+                error!("Failed to send mail: failed to construct the message: {err}");
+                Self::MailSendFailed
+            }
+            MailError::Address(err) => {
+                error!("Failed to send mail: invalid email address: {err}");
+                Self::MailSendFailed
+            }
+            MailError::Smtp(err) => {
+                error!("Failed to send mail: SMTP transport error: {err}");
+                Self::MailSendFailed
+            }
+            MailError::InvalidPort(port) => {
+                error!("Failed to send mail: invalid SMTP port configured: {port}");
+                Self::MailSendFailed
+            }
+            MailError::OAuth2(err) => {
+                error!(
+                    "Failed to send mail: failed to obtain OAuth2 access token for SMTP authentication: {err}"
+                );
+                Self::MailSendFailed
+            }
+        }
     }
 }
 

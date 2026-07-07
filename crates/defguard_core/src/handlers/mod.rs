@@ -74,6 +74,8 @@ pub enum WebErrorCode {
     CertExpired,
     CertNotYetValid,
     CertParseError,
+    SmtpNotConfigured,
+    MailSendFailed,
 }
 
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -334,6 +336,14 @@ impl From<WebError> for ApiResponse {
                     StatusCode::BAD_REQUEST,
                 )
             }
+            WebError::SmtpNotConfigured => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::SmtpNotConfigured}),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ),
+            WebError::MailSendFailed => Self::new(
+                json!({"msg": web_error.to_string(), "code": WebErrorCode::MailSendFailed}),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ),
             WebError::TemplateError(err) => {
                 error!("Template error: {err}");
                 Self::new(

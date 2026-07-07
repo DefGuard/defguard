@@ -410,6 +410,8 @@ export const WebErrorCode = {
   CertExpired: 'cert_expired',
   CertNotYetValid: 'cert_not_yet_valid',
   CertParseError: 'cert_parse_error',
+  SmtpNotConfigured: 'smtp_not_configured',
+  MailSendFailed: 'mail_send_failed',
 } as const;
 
 export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
