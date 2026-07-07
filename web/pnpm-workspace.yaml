@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: autoprefixer@10.5.1
+  - autoprefixer@10.5.1
