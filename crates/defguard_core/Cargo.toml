@@ -21,7 +21,7 @@ defguard_static_ip = { workspace = true }
 # mail (moved in-crate from the former defguard_mail crate)
 lettre.workspace = true
 pulldown-cmark.workspace = true
-css-inline = "0.20"
+css-inline = "0.21"
 image = "0.25" # match with qrforge
 mrml = "6.0"
 qrforge = { version = "0.1", default-features = false, features = ["image"] }

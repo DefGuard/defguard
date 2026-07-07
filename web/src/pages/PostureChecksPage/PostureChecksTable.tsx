@@ -135,7 +135,7 @@ export const PostureChecksTable = ({
       }),
       columnHelper.accessor('macosFilters', {
         id: 'macos',
-        header: 'MacOS',
+        header: 'macOS',
         minSize: 180,
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
