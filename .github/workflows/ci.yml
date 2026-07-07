@@ -254,7 +254,7 @@ jobs:
         run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf -
 
       - name: Log in to ghcr.io
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
