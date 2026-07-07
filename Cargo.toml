@@ -111,7 +111,7 @@ ssh-key = "0.6"
 struct-patch = { version = "0.12", default-features = false, features = ["nesting"] }
 strum = { version = "0.28", features = ["derive"] }
 strum_macros = "0.28"
-tera = "1.20"
+tera = "2.0"
 thiserror = "2.0"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
