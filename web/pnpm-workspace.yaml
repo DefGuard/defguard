@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: stylelint@17.14.0
+  - stylelint@17.14.0
