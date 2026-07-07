@@ -15,3 +15,8 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: @tanstack/react-router@1.170.17
+  - "@tanstack/react-router@1.170.17"
+  # Renovate security update: @tanstack/router-plugin@1.168.19
+  - "@tanstack/router-plugin@1.168.19"
