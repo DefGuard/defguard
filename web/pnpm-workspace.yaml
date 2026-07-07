@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: @inlang/paraglide-js@2.20.2
+  - "@inlang/paraglide-js@2.20.2"
