@@ -15,3 +15,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: recharts@3.9.0
+  - recharts@3.9.0
