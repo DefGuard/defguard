@@ -15,3 +15,8 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - sharp
+minimumReleaseAgeExclude:
+  # Renovate security update: @vitest/ui@4.1.10
+  - "@vitest/ui@4.1.10"
+  # Renovate security update: vitest@4.1.10
+  - vitest@4.1.10
