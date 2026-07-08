@@ -250,7 +250,7 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
         </form.AppField>
         <Divider spacing={ThemeSpacing.Xl} />
         <DescriptionBlock title={m.modal_ce_openid_client_label_scopes_title()}>
-          <p>{m.test_placeholder_long()}</p>
+          <p>{m.modal_ce_openid_client_label_scopes_text()}</p>
         </DescriptionBlock>
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="scopes">

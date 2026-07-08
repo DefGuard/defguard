@@ -16,6 +16,10 @@ import { ModalControls } from '../../../../shared/defguard-ui/components/ModalCo
 import { SuggestedIpInput } from '../../../../shared/defguard-ui/components/SuggestedIPInput/SuggestedIPInput';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import {
+  createZodIssue,
+  zodIssueMessage,
+} from '../../../../shared/defguard-ui/utils/zod';
 import { useAppForm } from '../../../../shared/form';
 import {
   closeModal,
@@ -24,6 +28,7 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenAssignUserIPModal } from '../../../../shared/hooks/modalControls/types';
+import { getDuplicateIpFieldPaths } from '../../../../shared/utils/ipFieldDuplicates';
 import './style.scss';
 import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
 
@@ -51,6 +56,25 @@ const formSchema = z.object({
 });
 
 type FormFields = z.infer<typeof formSchema>;
+
+const buildDuplicateFieldErrors = (value: FormFields): Record<string, string> => {
+  const errors: Record<string, string> = {};
+  value.locations.forEach((loc, locIdx) => {
+    const entries = loc.devices.flatMap((dev, devIdx) =>
+      dev.ips.map((ip, ipIdx) => ({
+        path: `locations[${locIdx}].devices[${devIdx}].ips[${ipIdx}].modifiable_part`,
+        ip:
+          ip.modifiable_part.trim().length > 0
+            ? `${ip.network_part}${ip.modifiable_part}`
+            : '',
+      })),
+    );
+    getDuplicateIpFieldPaths(entries).forEach((path) => {
+      errors[path] = m.modal_assign_user_ip_duplicate_error();
+    });
+  });
+  return errors;
+};
 
 export const AssignUserIPModal = () => {
   const [isOpen, setOpen] = useState(false);
@@ -169,6 +193,20 @@ const AssignmentForm = ({
       onSubmit: formSchema,
     },
     onSubmit: async ({ value }) => {
+      const duplicateFields = buildDuplicateFieldErrors(value);
+      if (Object.keys(duplicateFields).length > 0) {
+        form.setErrorMap({
+          onSubmit: {
+            fields: Object.fromEntries(
+              Object.entries(duplicateFields).map(([path, message]) => [
+                path,
+                createZodIssue(message, [path]),
+              ]),
+            ),
+          },
+        });
+        return;
+      }
       await updateDevices(value);
     },
   });
@@ -250,7 +288,7 @@ const AssignmentForm = ({
                         data={ipData}
                         value={field.state.value}
                         loading={field.state.meta.isValidating}
-                        error={field.state.meta.errors[0]?.toString()}
+                        error={zodIssueMessage(field.state.meta.errors[0])}
                         onChange={(val) => field.handleChange(val ?? '')}
                         onBlur={field.handleBlur}
                         helper={m.form_helper_assigned_ip_address()}
