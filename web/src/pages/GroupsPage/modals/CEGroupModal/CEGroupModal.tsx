@@ -1,6 +1,21 @@
+import { useMutation } from '@tanstack/react-query';
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
+import type { CreateGroupRequest, User } from '../../../../shared/api/types';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
+import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
+import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
+import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 import {
   closeModal,
   subscribeCloseModal,
@@ -8,20 +23,6 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenCEGroupModal } from '../../../../shared/hooks/modalControls/types';
-import './style.scss';
-import { useMutation } from '@tanstack/react-query';
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from 'react';
-import api from '../../../../shared/api/api';
-import type { CreateGroupRequest, User } from '../../../../shared/api/types';
-import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
-import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
-import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { useAppForm } from '../../../../shared/form';
-import { formChangeLogic } from '../../../../shared/formLogic';
 
 interface ModalState extends OpenCEGroupModal {
   step: 'start' | 'users';
@@ -225,9 +226,10 @@ const StartStep = ({ reservedNames, setModalState, groupInfo, startForm }: StepP
           </form.AppField>
         </form.AppForm>
         <Divider spacing={ThemeSpacing.Xl} />
-        <p>{m.modal_add_group_admin_title()}</p>
-        <p>{m.modal_add_group_admin_explain()}</p>
-        <Divider spacing={ThemeSpacing.Lg} />
+        <DescriptionBlock title={m.modal_add_group_admin_title()}>
+          <p>{m.modal_add_group_admin_explain()}</p>
+        </DescriptionBlock>
+        <SizedBox height={ThemeSpacing.Lg} />
         <Checkbox
           text={m.modal_add_group_form_label_admin()}
           active={isAdmin}
