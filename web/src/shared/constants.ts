@@ -8,6 +8,7 @@ export const externalLink = {
     sales: 'https://defguard.net/contact/',
     scheduleCall:
       'https://docs.google.com/forms/d/e/1FAIpQLSdKr1NXH1DlQuAF5oQWvT7Zri5yPQ3txvwz3qgtb1n9FtKTgw/viewform',
+    openTicket: 'https://support.defguard.net/support/auth/login/customer/?customer_id=',
   },
   github: {
     bugReport: 'https://github.com/DefGuard/defguard/issues/new?template=02-bug.yml',

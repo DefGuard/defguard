@@ -170,18 +170,32 @@ const PageContent = () => {
               title={m.support_page_assistance_title()}
               description={m.support_page_assistance_desc()}
             />
-            <Button
-              variant="outlined"
-              text={m.support_page_assistance_btn_call()}
-              iconRight="calendar"
-              onClick={() =>
-                window.open(
-                  externalLink.defguard.scheduleCall,
-                  '_blank',
-                  'noopener,noreferrer',
-                )
-              }
-            />
+            <ButtonsGroup>
+              <Button
+                variant="outlined"
+                text={m.support_page_assistance_btn_ticket()}
+                iconRight="open-in-new-window"
+                onClick={() =>
+                  window.open(
+                    externalLink.defguard.openTicket + licenseInfo?.customer_id,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+              />
+              <Button
+                variant="outlined"
+                text={m.support_page_assistance_btn_call()}
+                iconRight="calendar"
+                onClick={() =>
+                  window.open(
+                    externalLink.defguard.scheduleCall,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+              />
+            </ButtonsGroup>
           </MarkedSection>
         </>
       )}

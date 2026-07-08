@@ -236,7 +236,7 @@ const NETWORK_IMPORT_BODY_LIMIT: usize = 4 * 1024 * 1024; // 4 MB
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// How often the rate limiter evicts stale per-IP entries from its in-memory store.
-const RATE_LIMITER_CLEANUP_PERIOD: Duration = Duration::from_secs(60);
+const RATE_LIMITER_CLEANUP_PERIOD: Duration = Duration::from_mins(1);
 
 static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
