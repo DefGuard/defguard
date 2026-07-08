@@ -7,7 +7,7 @@ use tokio::time::sleep;
 use tracing::{debug, error, info, instrument};
 
 // How long to sleep between loop iterations
-const PURGE_LOOP_SLEEP: Duration = Duration::from_mins(5); // 5 minutes
+const PURGE_LOOP_SLEEP: Duration = Duration::from_mins(5);
 
 #[instrument(skip_all)]
 pub async fn run_periodic_stats_purge(
