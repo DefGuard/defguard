@@ -511,6 +511,7 @@ export interface LicenseInfoApi {
   limits: LicenseLimitsInfo | null;
   // Effective set of enabled enterprise features (tier-granted plus additive flags).
   features: LicenseFeatureValue[];
+  customer_id: string;
 }
 
 export interface LicenseInfoResponse {

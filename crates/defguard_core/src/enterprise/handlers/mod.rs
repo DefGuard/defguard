@@ -1,9 +1,3 @@
-use crate::{
-    auth::{AdminRole, SessionInfo},
-    enterprise::get_counts,
-    handlers::{ApiResponse, ApiResult},
-};
-
 pub mod acl;
 pub mod activity_log_stream;
 pub mod api_tokens;
@@ -23,10 +17,15 @@ use serde::Serialize;
 use super::{
     LicenseFeature,
     db::models::enterprise_settings::EnterpriseSettings,
-    effective_features, has_enterprise_access, is_business_license_active,
+    effective_features, get_counts, has_enterprise_access, is_business_license_active,
     license::{LicenseTier, get_cached_license, validate_license},
 };
-use crate::{appstate::AppState, error::WebError};
+use crate::{
+    appstate::AppState,
+    auth::{AdminRole, SessionInfo},
+    error::WebError,
+    handlers::{ApiResponse, ApiResult},
+};
 
 pub struct LicenseInfo {
     pub valid: bool,
@@ -102,57 +101,56 @@ where
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let license = get_cached_license();
-    let license_info = license
-        .as_ref()
-        .map(|license: &crate::enterprise::license::License| {
-            let counts = get_counts();
-            let limits_info = license.limits.map(|limits| LicenseLimitsInfo {
-                locations: LimitInfo {
-                    current: counts.location(),
-                    limit: limits.locations,
-                },
-                users: LimitInfo {
-                    current: counts.user(),
-                    limit: limits.users,
-                },
-                devices: limits.network_devices.map_or(
-                    Some(LimitInfo {
-                        current: counts.user_device() + counts.network_device(),
-                        limit: limits.devices,
-                    }),
-                    |_| None,
-                ),
-                user_devices: limits.network_devices.map(|_| LimitInfo {
-                    current: counts.user_device(),
+    let license_info = license.as_ref().map(|license| {
+        let counts = get_counts();
+        let limits_info = license.limits.map(|limits| LicenseLimitsInfo {
+            locations: LimitInfo {
+                current: counts.location(),
+                limit: limits.locations,
+            },
+            users: LimitInfo {
+                current: counts.user(),
+                limit: limits.users,
+            },
+            devices: limits.network_devices.map_or(
+                Some(LimitInfo {
+                    current: counts.user_device() + counts.network_device(),
                     limit: limits.devices,
                 }),
-                network_devices: limits
-                    .network_devices
-                    .map(|network_devices_limit| LimitInfo {
-                        current: counts.network_device(),
-                        limit: network_devices_limit,
-                    }),
-            });
-
-            let valid = validate_license(Some(license), &counts, LicenseTier::Business).is_ok();
-            let features = if valid {
-                effective_features(license)
-            } else {
-                vec![]
-            };
-
-            serde_json::json!({
-                "valid_until": license.valid_until,
-                "subscription": license.subscription,
-                "expired": license.is_max_overdue(),
-                "limits_exceeded": counts.is_over_license_limits(license),
-                "tier": license.tier,
-                "support_type": license.support_type,
-                "limits": limits_info,
-                // effective set of enabled features (tier-granted plus additive flags)
-                "features": features,
-            })
+                |_| None,
+            ),
+            user_devices: limits.network_devices.map(|_| LimitInfo {
+                current: counts.user_device(),
+                limit: limits.devices,
+            }),
+            network_devices: limits
+                .network_devices
+                .map(|network_devices_limit| LimitInfo {
+                    current: counts.network_device(),
+                    limit: network_devices_limit,
+                }),
         });
+
+        let valid = validate_license(Some(license), &counts, LicenseTier::Business).is_ok();
+        let features = if valid {
+            effective_features(license)
+        } else {
+            Vec::new()
+        };
+
+        serde_json::json!({
+            "valid_until": license.valid_until,
+            "subscription": license.subscription,
+            "expired": license.is_max_overdue(),
+            "limits_exceeded": counts.is_over_license_limits(license),
+            "tier": license.tier,
+            "support_type": license.support_type,
+            "limits": limits_info,
+            // effective set of enabled features (tier-granted plus additive flags)
+            "features": features,
+            "customer_id": license.customer_id,
+        })
+    });
     Ok(ApiResponse::json(
         serde_json::json!({"license_info": license_info}),
         StatusCode::OK,
