@@ -27,7 +27,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::BidiStreamEvent;
+use defguard_core::events::{ApiEvent, BidiStreamEvent};
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
     proxy_server,
@@ -400,6 +400,7 @@ pub(crate) struct HandlerTestContext {
     pub(crate) proxy: Proxy<Id>,
     pub(crate) gateway_tx: broadcast::Sender<GatewayCommand>,
     pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
+    pub(crate) event_rx: UnboundedReceiver<ApiEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
     /// Keep-alive handle: holds the sender so the handler's shutdown receiver
@@ -426,7 +427,8 @@ impl HandlerTestContext {
         let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
-        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx, ldap_tx);
+        let (event_tx, event_rx) = mpsc::unbounded_channel();
+        let tx_set = ProxyTxSet::new(gateway_tx.clone(), bidi_events_tx, ldap_tx, event_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -470,6 +472,7 @@ impl HandlerTestContext {
             proxy,
             gateway_tx,
             bidi_events_rx,
+            event_rx,
             mock_proxy: Some(mock_proxy),
             handler_task: Some(handler_task),
             _shutdown_tx: Some(shutdown_tx),
@@ -607,7 +610,8 @@ impl ManagerTestContext {
         let (gateway_tx, _) = broadcast::channel(16);
         let (bidi_events_tx, _bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
-        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx, ldap_tx);
+        let (event_tx, _event_rx) = mpsc::unbounded_channel();
+        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx, ldap_tx, event_tx);
 
         let incompatible_components = Arc::new(std::sync::RwLock::new(
             defguard_core::version::IncompatibleComponents::default(),

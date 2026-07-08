@@ -1,7 +1,14 @@
 #![allow(deprecated)]
 use defguard_common::db::models::settings::{Settings, update_current_settings};
 use defguard_core::{
-    db::models::enrollment::Token, enterprise::handlers::openid_login::build_state,
+    db::models::enrollment::Token,
+    enterprise::{
+        handlers::openid_login::build_state,
+        license::{License, LicenseTier, SupportType, set_cached_license},
+        limits::update_counts,
+    },
+    events::{ApiEvent, ApiEventType},
+    grpc::proto::enterprise::license::LicenseLimits,
 };
 use defguard_proto::{
     client_types::{AuthFlowType, AuthInfoRequest, MfaMethod},
@@ -11,6 +18,7 @@ use defguard_proto::{
     },
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::timeout;
 
 use super::support::{
     assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
@@ -18,7 +26,7 @@ use super::support::{
     expect_bidi_mfa_success, make_device_info, make_oidc_code, send_mfa_finish, send_mfa_start,
     set_public_proxy_url, set_test_license_business,
 };
-use crate::tests::common::{HandlerTestContext, MockOidcProvider};
+use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
 #[sqlx::test]
 async fn test_auth_callback_creates_new_user_on_first_login(
@@ -515,6 +523,82 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
         token.user_id, user.id,
         "enrollment token must belong to the pre-existing user"
     );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_auth_callback_blocked_by_license_limit_emits_user_import_blocked_event(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Reach the user limit: one existing user, license capped at one user.
+    create_user(&context.pool).await;
+    update_counts(&context.pool)
+        .await
+        .expect("failed to refresh license usage counts");
+    set_cached_license(Some(License {
+        customer_id: "test-customer-id".into(),
+        subscription: false,
+        valid_until: None,
+        limits: Some(LicenseLimits {
+            users: 1,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        version_date_limit: None,
+        tier: LicenseTier::Business,
+        support_type: SupportType::Basic,
+        features: vec![],
+    }));
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let raw_nonce = "test-nonce-license-limit";
+    let email = "blocked-oidc-user@example.com";
+    let code = make_oidc_code("blocked-oidc-user-sub", email, raw_nonce);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 20,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code,
+            nonce: raw_nonce.to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::Internal,
+        "expected Internal status when license user limit is reached"
+    );
+
+    let ApiEvent { event, .. } = timeout(RECEIVE_TIMEOUT, context.event_rx.recv())
+        .await
+        .expect("timed out waiting for UserImportBlocked activity log event")
+        .expect("event channel closed");
+    match *event {
+        ApiEventType::UserImportBlocked {
+            email: blocked_email,
+            user_count,
+            limit,
+            ..
+        } => {
+            assert_eq!(blocked_email, email);
+            assert_eq!(user_count, 1);
+            assert_eq!(limit, 1);
+        }
+        other => panic!("expected UserImportBlocked event, got: {other:?}"),
+    }
 
     clear_test_license();
     context.finish().await.expect_server_finished().await;

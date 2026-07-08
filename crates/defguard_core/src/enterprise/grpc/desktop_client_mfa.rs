@@ -78,7 +78,7 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
-        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+        let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),
@@ -114,7 +114,19 @@ impl ClientMfaServer {
             }
         };
 
-        match user_from_claims(&self.pool, Nonce::new(request.nonce.clone()), code, url).await {
+        // This path only re-verifies an already-existing user's identity via OpenID
+        // for MFA, so it never creates a new account, hence no `ApiEvent` channel.
+        match user_from_claims(
+            &self.pool,
+            Nonce::new(request.nonce.clone()),
+            code,
+            url,
+            Some(ip),
+            Some(&user_agent),
+            None,
+        )
+        .await
+        {
             Ok(claims_user) => {
                 // if thats not our user, prevent login
                 if claims_user.id != user.id {

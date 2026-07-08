@@ -22,6 +22,7 @@ export const ActivityLogEventType = {
   UserMfaLoginFailed: 'user_mfa_login_failed',
   UserLogout: 'user_logout',
   UserAdded: 'user_added',
+  UserImportBlocked: 'user_import_blocked',
   UserModified: 'user_modified',
   UserRemoved: 'user_removed',
   UserGroupsModified: 'user_groups_modified',

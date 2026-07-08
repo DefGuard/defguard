@@ -31,7 +31,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     error::WebError,
-    events::LdapSyncEventType,
+    events::{ApiEvent, LdapSyncEventType},
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
@@ -879,6 +879,9 @@ impl ProxyHandler {
                                         Nonce::new(request.nonce),
                                         code,
                                         callback_url,
+                                        None,
+                                        None,
+                                        Some(&self.services.event_tx),
                                     )
                                     .await
                                     {
@@ -951,6 +954,9 @@ impl ProxyHandler {
                                                 ),
                                                 WebError::BadRequest(message) => {
                                                     (Code::InvalidArgument as i32, message)
+                                                }
+                                                WebError::LicenseLimitReached(message) => {
+                                                    (Code::ResourceExhausted as i32, message)
                                                 }
                                                 _ => (
                                                     Code::Internal as i32,
@@ -1231,6 +1237,7 @@ struct ProxyServices {
     client_mfa: ClientMfaServer,
     polling: PollingServer,
     ldap: UnboundedSender<LdapSyncEventType>,
+    event_tx: UnboundedSender<ApiEvent>,
 }
 
 impl ProxyServices {
@@ -1263,6 +1270,7 @@ impl ProxyServices {
             client_mfa,
             polling,
             ldap: tx.ldap.clone(),
+            event_tx: tx.event_tx.clone(),
         }
     }
 }

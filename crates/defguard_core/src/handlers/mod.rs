@@ -67,6 +67,7 @@ pub(crate) mod yubikey;
 pub enum WebErrorCode {
     NetworkFull,
     UserGroupsNotSynced,
+    LicenseLimitReached,
     CertMissingCertPem,
     CertMissingKeyPem,
     CertInvalidCertOrKey,
@@ -301,6 +302,13 @@ impl From<WebError> for ApiResponse {
                 Self::new(
                     json!({"msg": msg, "code": WebErrorCode::UserGroupsNotSynced}),
                     StatusCode::UNAUTHORIZED,
+                )
+            }
+            WebError::LicenseLimitReached(msg) => {
+                warn!(msg);
+                Self::new(
+                    json!({"msg": msg, "code": WebErrorCode::LicenseLimitReached}),
+                    StatusCode::FORBIDDEN,
                 )
             }
             WebError::CertMissingCertPem => Self::new(

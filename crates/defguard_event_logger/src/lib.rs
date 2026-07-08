@@ -18,10 +18,11 @@ use defguard_core::{
             OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
             PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata,
             ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
-            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
-            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
-            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
-            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
+            UserImportBlockedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata,
+            UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata,
+            VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+            VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
+            WebHookStateChangedMetadata,
         },
     },
     events::{
@@ -331,6 +332,21 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ApiEventType::UserAdded { user } => (
                     EventType::UserAdded,
                     serde_json::to_value(UserMetadata { user: user.into() }).ok(),
+                ),
+                ApiEventType::UserImportBlocked {
+                    username,
+                    email,
+                    user_count,
+                    limit,
+                } => (
+                    EventType::UserImportBlocked,
+                    serde_json::to_value(UserImportBlockedMetadata {
+                        username,
+                        email,
+                        user_count,
+                        limit,
+                    })
+                    .ok(),
                 ),
                 ApiEventType::UserRemoved { user } => (
                     EventType::UserRemoved,

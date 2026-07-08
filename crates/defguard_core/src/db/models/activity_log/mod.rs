@@ -45,6 +45,7 @@ pub enum EventType {
     MfaSecurityKeyRemoved,
     // User management
     UserAdded,
+    UserImportBlocked,
     UserRemoved,
     UserModified,
     UserGroupsModified,

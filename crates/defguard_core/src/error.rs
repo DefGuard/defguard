@@ -46,6 +46,8 @@ pub enum WebError {
     Authorization(String),
     #[error("User groups not synced: {0}")]
     UserGroupsNotSynced(String),
+    #[error("License limit reached: {0}")]
+    LicenseLimitReached(String),
     #[error("Authentication error")]
     Authentication,
     #[error("Forbidden error: {0}")]
