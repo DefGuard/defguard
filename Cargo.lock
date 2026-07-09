@@ -1781,6 +1781,7 @@ name = "defguard_vpn_stats_purge"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "defguard_common",
  "humantime",
  "sqlx",
  "tokio",
