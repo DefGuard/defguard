@@ -1,3 +1,4 @@
+import { omit } from 'lodash-es';
 import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
@@ -32,30 +33,34 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   syncSchema,
 ]);
 
-const validationSchema = syncSchema
-  .omit({ okta_dirsync_client_id: true, okta_private_jwk: true })
-  .extend({
-    okta_dirsync_client_id: z.string(),
-    okta_private_jwk: z.string(),
-  })
-  .superRefine((val, ctx) => {
-    if (val.directory_sync_enabled) {
-      if (val.okta_dirsync_client_id.trim().length === 0) {
-        ctx.addIssue({
-          path: ['okta_dirsync_client_id'],
-          code: 'custom',
-          message: m.form_error_required(),
-        });
+const makeValidationSchema = (hadDirectorySyncConfigured: boolean) =>
+  syncSchema
+    .omit({ okta_dirsync_client_id: true, okta_private_jwk: true })
+    .extend({
+      okta_dirsync_client_id: z.string(),
+      okta_private_jwk: z.string(),
+    })
+    .superRefine((val, ctx) => {
+      if (val.directory_sync_enabled) {
+        if (val.okta_dirsync_client_id.trim().length === 0) {
+          ctx.addIssue({
+            path: ['okta_dirsync_client_id'],
+            code: 'custom',
+            message: m.form_error_required(),
+          });
+        }
+        // The private key is never sent back by the backend, so a blank value here means
+        // "keep the existing key" rather than "no key was ever set" - only require it when
+        // directory sync is being configured for the first time.
+        if (!hadDirectorySyncConfigured && val.okta_private_jwk.trim().length === 0) {
+          ctx.addIssue({
+            path: ['okta_private_jwk'],
+            code: 'custom',
+            message: m.form_error_required(),
+          });
+        }
       }
-      if (val.okta_private_jwk.trim().length === 0) {
-        ctx.addIssue({
-          path: ['okta_private_jwk'],
-          code: 'custom',
-          message: m.form_error_required(),
-        });
-      }
-    }
-  });
+    });
 
 type FormFields = z.infer<typeof discriminatedSchema>;
 
@@ -83,6 +88,13 @@ export const EditOktaProviderForm = ({
     };
   }, [provider]);
 
+  const hadDirectorySyncConfigured = Boolean(provider.okta_dirsync_client_id);
+
+  const validationSchema = useMemo(
+    () => makeValidationSchema(hadDirectorySyncConfigured),
+    [hadDirectorySyncConfigured],
+  );
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -91,6 +103,10 @@ export const EditOktaProviderForm = ({
       onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
+      if ('okta_private_jwk' in value && value.okta_private_jwk.trim().length === 0) {
+        await onSubmit(omit(value, ['okta_private_jwk']));
+        return;
+      }
       await onSubmit(value);
     },
   });
@@ -242,7 +258,12 @@ export const EditOktaProviderForm = ({
                 <form.AppField name="okta_private_jwk">
                   {(field) => (
                     <field.FormInput
-                      required
+                      required={!hadDirectorySyncConfigured}
+                      placeholder={
+                        hadDirectorySyncConfigured
+                          ? m.settings_openid_provider_placeholder_okta_private_jwk()
+                          : undefined
+                      }
                       label={m.settings_openid_provider_label_okta_directory_sync_client_private_key()}
                       type="password"
                       helper={m.settings_openid_provider_helper_okta_directory_sync_client_private_key()}
