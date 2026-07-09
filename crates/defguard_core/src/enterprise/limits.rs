@@ -22,7 +22,7 @@ pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> sqlx::Re
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
         "SELECT \
-        (SELECT count(*) FROM \"user\") \"users!\", \
+        (SELECT count(*) FROM \"user\" WHERE is_active) \"users!\", \
         (SELECT count(*) FROM device WHERE device_type = 'user') \"user_devices!\", \
         (SELECT count(*) FROM device WHERE device_type = 'network') \"network_devices!\",
         (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"

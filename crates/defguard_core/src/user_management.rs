@@ -88,6 +88,7 @@ pub async fn disable_user(
 ) -> Result<(), UserManagementError> {
     user.is_active = false;
     user.save(&mut *conn).await?;
+    update_counts(&mut *conn).await?;
     user.logout_all_sessions(&mut *conn).await?;
     sync_allowed_user_devices(user, conn, gateway_tx).await?;
     Ok(())
