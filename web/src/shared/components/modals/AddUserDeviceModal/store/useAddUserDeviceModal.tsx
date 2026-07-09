@@ -12,6 +12,7 @@ interface StoreValues {
   user?: User;
   devices?: UserDevice[];
   createDeviceResponse?: AddDeviceResponse;
+  hideManualConfiguration: boolean;
   manualConfig?: {
     publicKey: string;
     privateKey?: string;
@@ -21,6 +22,7 @@ interface StoreValues {
 type OpenValues = {
   user: User;
   devices: UserDevice[];
+  hideManualConfiguration: boolean;
 };
 
 interface Store extends StoreValues {
@@ -30,6 +32,7 @@ interface Store extends StoreValues {
 }
 
 const defaults: StoreValues = {
+  hideManualConfiguration: false,
   isOpen: false,
   step: AddUserDeviceModalStep.StartChoice,
   devices: undefined,

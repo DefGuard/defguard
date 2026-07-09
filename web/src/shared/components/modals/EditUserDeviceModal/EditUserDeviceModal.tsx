@@ -1,7 +1,7 @@
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { cloneDeep } from 'lodash-es';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../api/api';
@@ -72,6 +72,7 @@ const ModalContent = ({
   reservedNames,
   reservedPubkeys,
   username,
+  hidePubkey,
 }: OpenEditDeviceModal) => {
   const formSchema = useMemo(
     () =>
@@ -131,16 +132,20 @@ const ModalContent = ({
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="publicKey">
-            {(field) => (
-              <field.FormInput
-                label={m.form_label_device_public_key()}
-                helper={m.form_helper_device_public_key()}
-                required
-              />
-            )}
-          </form.AppField>
+          {!hidePubkey && (
+            <Fragment>
+              <SizedBox height={ThemeSpacing.Xl} />
+              <form.AppField name="publicKey">
+                {(field) => (
+                  <field.FormInput
+                    label={m.form_label_device_public_key()}
+                    helper={m.form_helper_device_public_key()}
+                    required
+                  />
+                )}
+              </form.AppField>
+            </Fragment>
+          )}
         </form.AppForm>
       </form>
       <ModalControls

@@ -35,6 +35,7 @@ export interface OpenEditDeviceModal {
   reservedNames: string[];
   reservedPubkeys: string[];
   username: string;
+  hidePubkey: boolean;
 }
 
 export interface OpenAuthKeyRenameModal {
