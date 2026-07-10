@@ -188,6 +188,7 @@
   "modal_ce_openid_client_label_redirect": "Redirect URL {index}",
   "modal_ce_openid_client_label_redirect_add": "Add URL",
   "modal_ce_openid_client_label_scopes_title": "Scopes",
+  "modal_ce_openid_client_label_scopes_text": "Scopes define what information this application can request about a user, such as their profile details, email address, or group membership. Select only the scopes required for the application to function.",
   "modal_ce_openid_client_label_name": "Application name",
   "modal_ce_openid_client_helper_name": "",
   "modal_ce_openid_client_helper_redirect_uri": "",
