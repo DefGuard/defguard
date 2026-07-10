@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT (SELECT count(*) FROM \"user\") \"users!\", (SELECT count(*) FROM device WHERE device_type = 'user') \"user_devices!\", (SELECT count(*) FROM device WHERE device_type = 'network') \"network_devices!\",\n        (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"\n        ",
+  "query": "SELECT (SELECT count(*) FROM \"user\" WHERE is_active) \"users!\", (SELECT count(*) FROM device WHERE device_type = 'user') \"user_devices!\", (SELECT count(*) FROM device WHERE device_type = 'network') \"network_devices!\",\n        (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"\n        ",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       null
     ]
   },
-  "hash": "8941a709b6223b3ef010a1c41098738c87ab132a63c1736382bca59e882c47e4"
+  "hash": "97b1f59b98de39bdd76a0960447f900acda7960bd61c7bb3f2650a3b289526af"
 }

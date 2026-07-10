@@ -973,6 +973,20 @@ pub(crate) async fn modify_user(
             return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
         }
 
+        // check if re-enabling a disabled user will go over license limits
+        if !user.is_active && user_info.is_active {
+            let user_count = get_counts().user();
+
+            if get_cached_license()
+                .as_ref()
+                .and_then(|l| l.limits.as_ref())
+                .is_some_and(|l| user_count >= l.users)
+            {
+                error!("Enabling user {username} blocked! License limit reached.");
+                return Ok(WebError::Forbidden("License limit reached").into());
+            }
+        }
+
         // update VPN gateway config if user status or groups have changed
         group_diff = user_info
             .handle_user_groups(&mut transaction, &mut user)
@@ -1003,6 +1017,9 @@ pub(crate) async fn modify_user(
 
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
+    if status_changing {
+        update_counts(&appstate.pool).await?;
+    }
     let user_info = UserInfo::from_user(
         &appstate.pool,
         user.clone(),
@@ -1770,6 +1787,24 @@ pub(crate) async fn bulk_enable_users(
         ));
     }
 
+    // check if enabling the requested users will go over license limits
+    let to_enable_count = users.iter().filter(|user| !user.is_active).count() as u32;
+    if to_enable_count > 0 {
+        let user_count = get_counts().user();
+
+        if get_cached_license()
+            .as_ref()
+            .and_then(|l| l.limits.as_ref())
+            .is_some_and(|l| user_count + to_enable_count > l.users)
+        {
+            error!(
+                "User {} bulk-enabling users blocked! License limit reached.",
+                session.user.username
+            );
+            return Ok(WebError::Forbidden("License limit reached").into());
+        }
+    }
+
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
     for user in users {
@@ -1784,6 +1819,9 @@ pub(crate) async fn bulk_enable_users(
         events.push((before, user_to_enable));
     }
     transaction.commit().await?;
+    if to_enable_count > 0 {
+        update_counts(&appstate.pool).await?;
+    }
 
     for (_, user) in &mut events {
         Box::pin(ldap_update_user_state(

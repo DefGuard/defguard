@@ -1047,6 +1047,222 @@ async fn test_add_user_blocked_when_user_count_exceeds_license_limit(
 }
 
 #[sqlx::test]
+async fn test_disabled_users_not_counted_towards_license_limit(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("admin", "pass123").await;
+
+    // baseline is admin + hpotter, both active
+    let hpotter = get_db_user(&pool, "hpotter").await;
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [hpotter.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let license = get_cached_license().clone();
+    set_cached_license(Some(License::new(
+        "test_customer".to_owned(),
+        false,
+        None,
+        Some(LicenseLimits {
+            users: 2,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+        vec![],
+    )));
+
+    // only admin is active, so there is still room under the limit of 2
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    set_cached_license(license);
+}
+
+#[sqlx::test]
+async fn test_modify_user_enable_blocked_when_it_would_exceed_license_limit(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let added_dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // disable the new user so there is something to re-enable; active count drops back to 2
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [added_dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    assert!(!disabled_dumbledore.is_active);
+
+    let license = get_cached_license().clone();
+    set_cached_license(Some(License::new(
+        "test_customer".to_owned(),
+        false,
+        None,
+        Some(LicenseLimits {
+            users: 2,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+        vec![],
+    )));
+
+    // active count is already at the limit of 2 (admin, hpotter), so re-enabling must be blocked
+    let mut user_details = fetch_user_details(&client, "adumbledore").await;
+    user_details.user.is_active = true;
+    let response = client
+        .put("/api/v1/user/adumbledore")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let still_disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    assert!(!still_disabled_dumbledore.is_active);
+
+    set_cached_license(license);
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: added_dumbledore.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_dumbledore,
+            after: disabled_dumbledore,
+        },
+    ]);
+}
+
+#[sqlx::test]
+async fn test_bulk_enable_users_blocked_when_it_would_exceed_license_limit(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("admin", "pass123").await;
+
+    for (username, email) in [
+        ("adumbledore", "a.dumbledore@hogwart.edu.uk"),
+        ("mmcgonagall", "m.mcgonagall@hogwart.edu.uk"),
+    ] {
+        let new_user = AddUserData {
+            username: username.into(),
+            last_name: format!("{username}-last"),
+            first_name: format!("{username}-first"),
+            email: email.into(),
+            phone: Some("1234".into()),
+            password: Some("Password1234543$!".into()),
+        };
+        let response = client.post("/api/v1/user").json(&new_user).send().await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let added_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let added_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+
+    // disable both new users; active count drops back to 2 (admin, hpotter)
+    let response = client
+        .post("/api/v1/user/bulk-disable")
+        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let disabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+
+    let license = get_cached_license().clone();
+    set_cached_license(Some(License::new(
+        "test_customer".to_owned(),
+        false,
+        None,
+        Some(LicenseLimits {
+            users: 3,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+        vec![],
+    )));
+
+    // active count is 2 (admin, hpotter); re-enabling both would bring it to 4, over the limit of 3
+    let response = client
+        .post("/api/v1/user/bulk-enable")
+        .json(&serde_json::json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let still_disabled_dumbledore = get_db_user(&pool, "adumbledore").await;
+    let still_disabled_mcgonagall = get_db_user(&pool, "mmcgonagall").await;
+    assert!(!still_disabled_dumbledore.is_active);
+    assert!(!still_disabled_mcgonagall.is_active);
+
+    set_cached_license(license);
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: added_dumbledore.clone(),
+        },
+        ApiEventType::UserAdded {
+            user: added_mcgonagall.clone(),
+        },
+        ApiEventType::UserModified {
+            before: added_dumbledore,
+            after: disabled_dumbledore,
+        },
+        ApiEventType::UserModified {
+            before: added_mcgonagall,
+            after: disabled_mcgonagall,
+        },
+    ]);
+}
+
+#[sqlx::test]
 async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
