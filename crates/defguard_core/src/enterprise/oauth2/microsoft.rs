@@ -23,7 +23,7 @@ impl TokenResponse {
 
     #[must_use]
     pub fn expires_in(&self) -> SystemTime {
-        SystemTime::UNIX_EPOCH + Duration::from_secs(self.expires_in)
+        SystemTime::now() + Duration::from_secs(self.expires_in)
     }
 }
 
