@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use axum::{Json, extract::State, http::StatusCode};
 use axum_extra::{
     TypedHeader,
@@ -24,6 +26,7 @@ use reqwest::Url;
 use serde_json::json;
 use sqlx::PgPool;
 use time::Duration;
+use tokio::sync::mpsc::UnboundedSender;
 
 const COOKIE_MAX_AGE: Duration = Duration::days(1);
 static CSRF_COOKIE_NAME: &str = "csrf";
@@ -43,6 +46,7 @@ use crate::{
         limits::{get_counts, update_counts},
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
         ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
@@ -200,11 +204,20 @@ pub async fn make_oidc_client(
 }
 
 /// Get or create `User` from OpenID claims.
+///
+/// `ip_addr`/`user_agent`/`event_tx` are only used to emit an activity log event
+/// when account creation is blocked by the license user limit. Pass `None` for
+/// `event_tx` only if this call can never create a new account (e.g. the desktop
+/// client MFA flow, which merely re-verifies an existing user's identity);
+/// any caller that can create accounts should supply a real `ApiEvent` sender.
 pub async fn user_from_claims(
     pool: &PgPool,
     nonce: Nonce,
     code: AuthorizationCode,
     callback_url: Url,
+    ip_addr: Option<IpAddr>,
+    user_agent: Option<&str>,
+    event_tx: Option<&UnboundedSender<ApiEvent>>,
 ) -> Result<User<Id>, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound("OpenID provider not set".into()));
@@ -410,6 +423,10 @@ pub async fn user_from_claims(
                 }
 
                 if let Some((user_count, limit)) = reached_user_license_limit() {
+                    // Details (username/email/counts) are recorded in the activity
+                    // log and admin notification email, but deliberately not
+                    // returned to the client, which only learns that it should
+                    // contact an administrator.
                     error!(
                         "Skipping OpenID account creation for user {username} (email: {}) because \
                         license user limit has been reached ({user_count}/{limit})",
@@ -421,7 +438,30 @@ pub async fn user_from_claims(
                             {err}"
                         );
                     }
-                    return Err(WebError::Forbidden("License limit reached."));
+                    if let Some(event_tx) = event_tx
+                        && let Err(err) = event_tx.send(ApiEvent {
+                            context: ApiRequestContext::new(
+                                None::<Id>,
+                                username.clone(),
+                                ip_addr,
+                                user_agent.unwrap_or_default().to_string(),
+                            ),
+                            event: Box::new(ApiEventType::UserImportBlocked {
+                                username: username.clone(),
+                                email: email.as_str().to_string(),
+                                user_count,
+                                limit,
+                            }),
+                        })
+                    {
+                        error!(
+                            "Failed to emit activity log event for blocked OpenID account \
+                            creation: {err}"
+                        );
+                    }
+                    return Err(WebError::LicenseLimitReached(
+                        "Could not log in. Please contact your administrator.".to_string(),
+                    ));
                 }
 
                 // Extract all necessary information from the token or call the userinfo endpoint.
@@ -634,6 +674,9 @@ pub async fn auth_callback(
         Nonce::new(cookie_nonce),
         payload.code,
         settings.callback_url()?,
+        Some(ip_addr),
+        Some(user_agent.as_str()),
+        Some(&appstate.event_tx),
     )
     .await?;
 

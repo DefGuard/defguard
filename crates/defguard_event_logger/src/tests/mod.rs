@@ -563,6 +563,18 @@ fn api_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("Added"),
         },
         EventTestCase {
+            name: "UserImportBlocked",
+            message: api_message(ApiEventType::UserImportBlocked {
+                username: "testuser".to_string(),
+                email: "testuser@example.com".to_string(),
+                user_count: 10,
+                limit: 10,
+            }),
+            event_type: EventType::UserImportBlocked,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Blocked"),
+        },
+        EventTestCase {
             name: "UserRemoved",
             message: api_message(ApiEventType::UserRemoved { user: user.clone() }),
             event_type: EventType::UserRemoved,

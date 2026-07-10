@@ -32,7 +32,10 @@ export const Route = createFileRoute('/auth/callback')({
       }, 1000);
     } catch (e) {
       const code = (e as AxiosError<ApiError>).response?.data?.code;
-      if (code === WebErrorCode.UserGroupsNotSynced) {
+      if (
+        code === WebErrorCode.UserGroupsNotSynced ||
+        code === WebErrorCode.LicenseLimitReached
+      ) {
         setTimeout(() => {
           Snackbar.error(getApiErrorMessage(code));
         }, 1000);

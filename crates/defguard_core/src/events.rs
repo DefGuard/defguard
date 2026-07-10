@@ -31,7 +31,9 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
+    /// `None` for events about a user that doesn't have an account yet, e.g. an
+    /// OpenID login blocked before the corresponding account could be created.
+    pub user_id: Option<Id>,
     pub username: String,
     pub ip: Option<IpAddr>,
     pub device: String,
@@ -40,7 +42,7 @@ pub struct ApiRequestContext {
 impl ApiRequestContext {
     #[must_use]
     pub fn new(
-        user_id: Id,
+        user_id: impl Into<Option<Id>>,
         username: String,
         ip: impl Into<Option<IpAddr>>,
         device: String,
@@ -48,7 +50,7 @@ impl ApiRequestContext {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
-            user_id,
+            user_id: user_id.into(),
             username,
             ip: ip.into(),
             device,
@@ -132,6 +134,14 @@ pub enum ApiEventType {
     },
     UserAdded {
         user: User<Id>,
+    },
+    /// Account auto-provisioning (e.g. via OpenID or LDAP) was blocked because it
+    /// would have exceeded the license user limit.
+    UserImportBlocked {
+        username: String,
+        email: String,
+        user_count: u32,
+        limit: u32,
     },
     UserRemoved {
         user: User<Id>,

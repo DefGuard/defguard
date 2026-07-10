@@ -114,6 +114,14 @@ pub struct UserMetadata {
 }
 
 #[derive(Serialize)]
+pub struct UserImportBlockedMetadata {
+    pub username: String,
+    pub email: String,
+    pub user_count: u32,
+    pub limit: u32,
+}
+
+#[derive(Serialize)]
 pub struct UserModifiedMetadata {
     pub before: UserNoSecrets,
     pub after: UserNoSecrets,

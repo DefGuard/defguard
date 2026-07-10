@@ -56,6 +56,15 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
                 user.email
             ))
         }
+        ApiEventType::UserImportBlocked {
+            username,
+            email,
+            user_count,
+            limit,
+        } => Some(format!(
+            "Blocked automatic creation of account for user {username} (email: {email}) \
+            because the license user limit has been reached ({user_count}/{limit})"
+        )),
         ApiEventType::UserRemoved { user } => Some(format!("Removed user {user}")),
         ApiEventType::UserModified { before, after } => {
             let mut description = format!("Modified user {after}");

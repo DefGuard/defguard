@@ -403,6 +403,7 @@ export interface MfaFinishResponse {
 export const WebErrorCode = {
   NetworkFull: 'network_full',
   UserGroupsNotSynced: 'user_groups_not_synced',
+  LicenseLimitReached: 'license_limit_reached',
   CertMissingCertPem: 'cert_missing_cert_pem',
   CertMissingKeyPem: 'cert_missing_key_pem',
   CertInvalidCertOrKey: 'cert_invalid_cert_or_key',

@@ -155,7 +155,7 @@ impl EventContext {
 
         Self {
             timestamp: val.timestamp,
-            user_id: Some(val.user_id),
+            user_id: val.user_id,
             username: val.username,
             location,
             ip: val.ip,

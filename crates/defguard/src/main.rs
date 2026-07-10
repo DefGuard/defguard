@@ -244,7 +244,12 @@ async fn main() -> Result<(), anyhow::Error> {
     let proxy_secret_key = settings.secret_key_required()?;
     let proxy_manager = ProxyManager::new(
         pool.clone(),
-        ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone(), ldap_tx.clone()),
+        ProxyTxSet::new(
+            gateway_tx.clone(),
+            bidi_event_tx.clone(),
+            ldap_tx.clone(),
+            api_event_tx.clone(),
+        ),
         Arc::clone(&incompatible_components),
         proxy_control_rx,
         proxy_secret_key,

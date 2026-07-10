@@ -193,7 +193,8 @@ impl TestClient {
                 "Event type mismatch at index {index}: expected {expected_event:?}, got {event:?}",
             );
             assert_eq!(
-                expected_user_id, user_id,
+                Some(*expected_user_id),
+                *user_id,
                 "User ID mismatch at index {index}: expected {expected_user_id:?}, got {user_id:?}",
             );
             assert_eq!(
@@ -206,7 +207,7 @@ impl TestClient {
     /// Receive all messages currently present in API event queue
     ///
     /// Can also be used to clear the queue.
-    pub fn drain_all_events(&mut self) -> Vec<(ApiEventType, Id, String)> {
+    pub fn drain_all_events(&mut self) -> Vec<(ApiEventType, Option<Id>, String)> {
         let mut all_events = Vec::new();
 
         loop {
