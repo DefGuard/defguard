@@ -438,8 +438,8 @@ pub async fn user_from_claims(
                             {err}"
                         );
                     }
-                    if let Some(event_tx) = event_tx {
-                        if let Err(err) = event_tx.send(ApiEvent {
+                    if let Some(event_tx) = event_tx
+                        && let Err(err) = event_tx.send(ApiEvent {
                             context: ApiRequestContext::new(
                                 None::<Id>,
                                 username.clone(),
@@ -452,12 +452,12 @@ pub async fn user_from_claims(
                                 user_count,
                                 limit,
                             }),
-                        }) {
-                            error!(
-                                "Failed to emit activity log event for blocked OpenID account \
-                                creation: {err}"
-                            );
-                        }
+                        })
+                    {
+                        error!(
+                            "Failed to emit activity log event for blocked OpenID account \
+                            creation: {err}"
+                        );
                     }
                     return Err(WebError::LicenseLimitReached(
                         "Could not log in. Please contact your administrator.".to_string(),

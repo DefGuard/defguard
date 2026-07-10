@@ -578,8 +578,8 @@ async fn test_auth_callback_blocked_by_license_limit_emits_user_import_blocked_e
     let code = assert_error_response(&response);
     assert_eq!(
         code,
-        tonic::Code::Internal,
-        "expected Internal status when license user limit is reached"
+        tonic::Code::ResourceExhausted,
+        "expected ResourceExhausted status when license user limit is reached"
     );
 
     let ApiEvent { event, .. } = timeout(RECEIVE_TIMEOUT, context.event_rx.recv())
