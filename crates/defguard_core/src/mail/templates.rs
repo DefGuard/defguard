@@ -119,9 +119,7 @@ pub async fn test_mail(
 
     let message = MailMessage::Test;
     message.fill_context(conn, &mut context).await?;
-    if let Err(err) = message.mail(&mut tera, &context, to)?.send().await {
-        warn!("Failed to send test email: {err}");
-    }
+    message.mail(&mut tera, &context, to)?.send().await?;
 
     Ok(())
 }

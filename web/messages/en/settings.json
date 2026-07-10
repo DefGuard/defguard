@@ -215,7 +215,7 @@
   "settings_smtp_reset_success": "SMTP settings reset",
   "settings_smtp_reset_failed": "Failed to reset SMTP settings",
   "settings_smtp_test_success": "Test email sent",
-  "settings_smtp_test_failed": "Failed to send test email",
+  "settings_smtp_test_failed": "Failed to send test email, check the logs for more information",
   "settings_smtp_title": "SMTP Configuration",
   "settings_smtp_subtitle": "Configure the SMTP server used to send system messages to users.",
   "settings_smtp_section_server_title": "Server settings",

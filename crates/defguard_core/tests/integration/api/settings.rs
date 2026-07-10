@@ -142,6 +142,35 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     );
 }
 
+#[sqlx::test]
+async fn test_mail_reports_smtp_failure(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // point SMTP at an unreachable server so the send fails deterministically
+    let patch: SettingsPatch = serde_json::from_str(
+        r#"{
+            "smtp_server": "127.0.0.1",
+            "smtp_port": 1,
+            "smtp_sender": "noreply@example.com"
+        }"#,
+    )
+    .unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/mail/test")
+        .json(&json!({ "to": "recipient@example.com" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+}
+
 // JSON fragment containing all required LDAP fields except ldap_url (add that at the call site).
 const VALID_LDAP_FIELDS_NO_URL: &str = r#"
     "ldap_bind_username": "cn=admin,dc=example,dc=com",

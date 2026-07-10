@@ -40,14 +40,24 @@ pub(crate) async fn test_mail(
     );
 
     let mut conn = appstate.pool.begin().await?;
-    templates::test_mail(&data.to, &mut conn, Some(&session.session.into())).await?;
+    let result = templates::test_mail(&data.to, &mut conn, Some(&session.session.into())).await;
 
-    info!(
-        "User {} sent test mail to {}",
-        session.user.username, data.to
-    );
-
-    Ok(ApiResponse::with_status(StatusCode::OK))
+    Ok(match result {
+        Ok(()) => {
+            info!(
+                "User {} sent test mail to {}",
+                session.user.username, data.to
+            );
+            ApiResponse::with_status(StatusCode::OK)
+        }
+        Err(err) => {
+            error!(
+                "User {} failed to send test mail to {}: {err}",
+                session.user.username, data.to
+            );
+            ApiResponse::with_status(StatusCode::SERVICE_UNAVAILABLE)
+        }
+    })
 }
 
 async fn read_logs() -> String {
