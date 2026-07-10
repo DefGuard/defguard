@@ -58,16 +58,22 @@ async fn test_device_posture_enterprise_license_required(
     let edit = make_edit("test");
     let saved = get_cached_license().clone();
 
-    // no license → 403
+    // no license → GET is accessible, POST is forbidden
     set_cached_license(None);
     let response = client.get("/api/v1/device-posture").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&edit)
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     client.assert_event_queue_is_empty();
 
-    // business-only license (default from make_test_client) → 403
+    // business-only license (default from make_test_client) → GET is accessible, POST is forbidden
     set_cached_license(saved.clone()); // restore Business tier
     let response = client.get("/api/v1/device-posture").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert_eq!(response.status(), StatusCode::OK);
     let response = client
         .post("/api/v1/device-posture")
         .json(&edit)

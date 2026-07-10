@@ -1034,17 +1034,32 @@ pub(crate) async fn modify_device(
     debug!("User {} updating device {device_id}", session.user.username);
 
     let settings = EnterpriseSettings::get(&appstate.pool).await?;
-    if settings.only_client_activation && !session.is_admin {
+    if settings.admin_device_management && !session.is_admin {
         warn!(
-            "User {} tried to add a device, but manual device management is disaled",
+            "User {} tried to edit a device, but manual device management is disaled",
             session.user.username
         );
         return Err(WebError::Forbidden("Manual device management is disabled"));
     }
 
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    // store device before mods
     let before = device.clone();
+
+    if settings.only_client_activation
+        && !session.is_admin
+        && (data.wireguard_pubkey != before.wireguard_pubkey
+            || data.description != before.description)
+    {
+        warn!(
+            "User {} tried to modify fields other than device name for device {device_id}, but \
+            only client activation is enabled",
+            session.user.username
+        );
+        return Err(WebError::BadRequest(
+            "Only the device name can be edited when only client activation is enabled".into(),
+        ));
+    }
+
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     if networks.is_empty() {

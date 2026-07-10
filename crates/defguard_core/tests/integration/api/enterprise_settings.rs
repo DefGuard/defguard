@@ -353,6 +353,11 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let created_device: serde_json::Value = response.json().await;
+    let device_id = created_device["device"]["id"].as_i64().unwrap();
+    let device_pubkey = created_device["device"]["wireguard_pubkey"]
+        .as_str()
+        .unwrap();
 
     // ensure normal users can't manage devices
     let auth = Auth::new("hpotter", "pass123");
@@ -371,23 +376,42 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
-    // modify
+    // modify: renaming an existing device is still allowed
+    let device = json!({
+        "name": "modifieddevice",
+        "wireguard_pubkey": device_pubkey,
+    });
+    let response = client
+        .put(format!("/api/v1/device/{device_id}"))
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // modify: changing the pubkey is not allowed
     let device = json!({
         "name": "modifieddevice",
         "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
     });
-    let response = client.put("/api/v1/device/2").json(&device).send().await;
+    let response = client
+        .put(format!("/api/v1/device/{device_id}"))
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-
-    // delete
+    // modify: changing the description is not allowed
     let device = json!({
         "name": "modifieddevice",
-        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+        "wireguard_pubkey": device_pubkey,
+        "description": "new description",
     });
-    let response = client.put("/api/v1/device/2").json(&device).send().await;
-
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client
+        .put(format!("/api/v1/device/{device_id}"))
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]

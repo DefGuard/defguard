@@ -669,7 +669,6 @@ pub async fn create_device_posture(
     responses(
         (status = 200, description = "Valid device posture OS and client versions", body = DevicePostureVersionMetadata),
         (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required")
     ),
     security(
         ("cookie" = []),
@@ -681,11 +680,7 @@ pub async fn create_device_posture(
 /// # Errors
 ///
 /// Returns an error when the requester is unauthorized or lacks the required license.
-pub async fn get_device_posture_versions(
-    _license: LicenseGated<DevicePostureFeature>,
-    _admin: AdminRole,
-    session: SessionInfo,
-) -> ApiResult {
+pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo) -> ApiResult {
     debug!(
         "User {} fetching device posture version metadata",
         session.user.username
@@ -708,7 +703,6 @@ pub async fn get_device_posture_versions(
     responses(
         (status = 200, description = "Paginated list of device posture check policies", body = [ApiDevicePosture]),
         (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
         (status = 500, description = "Internal server error")
     ),
     security(
@@ -717,7 +711,6 @@ pub async fn get_device_posture_versions(
     )
 )]
 pub async fn list_device_postures(
-    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     pagination: Query<PaginationParams>,
@@ -783,7 +776,6 @@ pub async fn list_device_postures(
     responses(
         (status = 200, description = "Device posture check policy", body = ApiDevicePosture),
         (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
         (status = 404, description = "Not found"),
         (status = 500, description = "Internal server error")
     ),
@@ -793,7 +785,6 @@ pub async fn list_device_postures(
     )
 )]
 pub async fn get_device_posture(
-    _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
     session: SessionInfo,
     Path(id): Path<Id>,

@@ -627,6 +627,7 @@ export const UsersTable = () => {
               reservedNames: reservedDeviceNames,
               reservedPubkeys,
               username,
+              hidePubkey: false,
             });
           },
         },

@@ -1,6 +1,7 @@
 import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../../../paraglide/messages';
 import api from '../../../../../api/api';
 import { Fold } from '../../../../../defguard-ui/components/Fold/Fold';
@@ -15,7 +16,9 @@ import manualImage from './assets/manual.png';
 
 export const AddDeviceModalStartStep = () => {
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const user = useAddUserDeviceModal((s) => s.user);
+  const [user, hideManualConfiguration] = useAddUserDeviceModal(
+    useShallow((s) => [s.user, s.hideManualConfiguration]),
+  );
 
   const { mutate: startClientActivation, isPending } = useMutation({
     mutationFn: api.user.startClientActivation,
@@ -32,7 +35,7 @@ export const AddDeviceModalStartStep = () => {
 
   if (!user) return null;
 
-  const showManualSetup = user.has_non_mfa_location_access;
+  const showManualSetup = user.has_non_mfa_location_access && !hideManualConfiguration;
 
   return (
     <div id="add-device-start-step">
