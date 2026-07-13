@@ -40,19 +40,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Compute assignees and commit list
+      - name: Compute assignees
         id: assignees
         run: |
           LAST_GREEN="${{ steps.last-green.outputs.sha }}"
 
           if [[ -n "$LAST_GREEN" ]]; then
             SHAS=$(git log --format='%H' "$LAST_GREEN..HEAD" | head -20)
-            COMMIT_LIST=$(git log --format='- %h %s (%an)' "$LAST_GREEN..HEAD" | head -10)
-            COMMIT_COUNT=$(git rev-list --count "$LAST_GREEN..HEAD")
           else
             SHAS=$(git log -1 --format='%H' HEAD)
-            COMMIT_LIST=$(git log -1 --format='- %h %s (%an)' HEAD)
-            COMMIT_COUNT=1
           fi
 
           USERNAMES=""
@@ -66,56 +62,8 @@ jobs:
           USERNAMES=$(echo "$USERNAMES" | tr ',' '\n' | head -5 | tr '\n' ',' | sed 's/,$//')
 
           echo "usernames=$USERNAMES" >> $GITHUB_OUTPUT
-          {
-            echo "commit_list<<EOF"
-            echo "$COMMIT_LIST"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Collect failed jobs and artifact links
-        id: failed-jobs
-        run: |
-          FAILED_JOBS=$(gh run view ${{ github.run_id }} --json jobs \
-            --jq '[.jobs[] | select(.conclusion=="failure" and .name != "trigger-e2e") | .name] | join(", ")')
-          FAILED_COUNT=$(gh run view ${{ github.run_id }} --json jobs \
-            --jq '[.jobs[] | select(.conclusion=="failure" and .name != "trigger-e2e")] | length')
-
-          ARTIFACTS=$(gh api "/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            --jq '[.artifacts[] | select(.name | startswith("playwright-report-")) | "- [\(.name)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/\(.id))"] | join("\n")')
-
-          echo "count=$FAILED_COUNT" >> $GITHUB_OUTPUT
-          echo "summary=${FAILED_COUNT} e2e job(s) failed: ${FAILED_JOBS}" >> $GITHUB_OUTPUT
-          {
-            echo "artifacts<<EOF"
-            echo "$ARTIFACTS"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Build failure summary
-        id: summary
-        run: |
-          COMMIT_TRUNCATED=""
-          if [[ "${{ steps.assignees.outputs.commit_count }}" -gt 10 ]]; then
-            COMMIT_TRUNCATED=$'\n... and '"$(( ${{ steps.assignees.outputs.commit_count }} - 10 ))"$' more commits'
-          fi
-
-          SUMMARY="${{ steps.failed-jobs.outputs.summary }}"
-          SUMMARY+=$'\n\n**Playwright reports:**\n'
-          SUMMARY+="${{ steps.failed-jobs.outputs.artifacts }}"
-          SUMMARY+=$'\n\n**Commits since last green (${{ steps.assignees.outputs.commit_count }} total):**\n'
-          SUMMARY+="${{ steps.assignees.outputs.commit_list }}"
-          SUMMARY+="$COMMIT_TRUNCATED"
-
-          {
-            echo "text<<DELIM"
-            echo "$SUMMARY"
-            echo "DELIM"
-          } >> $GITHUB_OUTPUT
 
       - name: File alert issue
         uses: DefGuard/ci-workflows/actions/alert-issue@main
@@ -123,7 +71,7 @@ jobs:
           source: ${{ inputs.source }}
           repo: ${{ github.repository }}
           branch: ${{ github.ref_name }}
-          failure_summary: ${{ steps.summary.outputs.text }}
+          failure_summary: e2e suite failed
           run_link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           assignees: ${{ steps.assignees.outputs.usernames }}
           extra_labels: ${{ inputs.extra_labels }}
