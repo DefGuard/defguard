@@ -1,0 +1,132 @@
+name: E2E failure alert
+on:
+  workflow_call:
+    inputs:
+      source:
+        type: string
+        default: e2e
+        description: 'Alert source identifier (change only for test harnesses)'
+      extra_labels:
+        type: string
+        default: e2e
+        description: 'Additional labels beyond release-blocker'
+    secrets:
+      ALERT_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Find last green e2e run
+        id: last-green
+        run: |
+          LAST_GREEN=$(gh run list \
+            --repo '${{ github.repository }}' \
+            --branch '${{ github.ref_name }}' \
+            --workflow e2e.yml \
+            --status success \
+            --limit 1 \
+            --json headSha \
+            --jq '.[0].headSha // ""')
+          echo "sha=$LAST_GREEN" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Compute assignees and commit list
+        id: assignees
+        run: |
+          LAST_GREEN="${{ steps.last-green.outputs.sha }}"
+
+          if [[ -n "$LAST_GREEN" ]]; then
+            SHAS=$(git log --format='%H' "$LAST_GREEN..HEAD" | head -20)
+            COMMIT_LIST=$(git log --format='- %h %s (%an)' "$LAST_GREEN..HEAD" | head -10)
+            COMMIT_COUNT=$(git rev-list --count "$LAST_GREEN..HEAD")
+          else
+            SHAS=$(git log -1 --format='%H' HEAD)
+            COMMIT_LIST=$(git log -1 --format='- %h %s (%an)' HEAD)
+            COMMIT_COUNT=1
+          fi
+
+          USERNAMES=""
+          for sha in $SHAS; do
+            USER=$(gh api "repos/${{ github.repository }}/commits/$sha" \
+              --jq '.author.login // empty' 2>/dev/null || echo "")
+            [[ -z "$USER" ]] && continue
+            [[ ",$USERNAMES," == *",$USER,"* ]] && continue
+            USERNAMES="${USERNAMES}${USERNAMES:+,}${USER}"
+          done
+          USERNAMES=$(echo "$USERNAMES" | tr ',' '\n' | head -5 | tr '\n' ',' | sed 's/,$//')
+
+          echo "usernames=$USERNAMES" >> $GITHUB_OUTPUT
+          {
+            echo "commit_list<<EOF"
+            echo "$COMMIT_LIST"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Collect failed jobs and artifact links
+        id: failed-jobs
+        run: |
+          FAILED_JOBS=$(gh run view ${{ github.run_id }} --json jobs \
+            --jq '[.jobs[] | select(.conclusion=="failure" and .name != "trigger-e2e") | .name] | join(", ")')
+          FAILED_COUNT=$(gh run view ${{ github.run_id }} --json jobs \
+            --jq '[.jobs[] | select(.conclusion=="failure" and .name != "trigger-e2e")] | length')
+
+          ARTIFACTS=$(gh api "/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            --jq '[.artifacts[] | select(.name | startswith("playwright-report-")) | "- [\(.name)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/\(.id))"] | join("\n")')
+
+          echo "count=$FAILED_COUNT" >> $GITHUB_OUTPUT
+          echo "summary=${FAILED_COUNT} e2e job(s) failed: ${FAILED_JOBS}" >> $GITHUB_OUTPUT
+          {
+            echo "artifacts<<EOF"
+            echo "$ARTIFACTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build failure summary
+        id: summary
+        run: |
+          COMMIT_TRUNCATED=""
+          if [[ "${{ steps.assignees.outputs.commit_count }}" -gt 10 ]]; then
+            COMMIT_TRUNCATED=$'\n... and '"$(( ${{ steps.assignees.outputs.commit_count }} - 10 ))"$' more commits'
+          fi
+
+          SUMMARY="${{ steps.failed-jobs.outputs.summary }}"
+          SUMMARY+=$'\n\n**Playwright reports:**\n'
+          SUMMARY+="${{ steps.failed-jobs.outputs.artifacts }}"
+          SUMMARY+=$'\n\n**Commits since last green (${{ steps.assignees.outputs.commit_count }} total):**\n'
+          SUMMARY+="${{ steps.assignees.outputs.commit_list }}"
+          SUMMARY+="$COMMIT_TRUNCATED"
+
+          {
+            echo "text<<DELIM"
+            echo "$SUMMARY"
+            echo "DELIM"
+          } >> $GITHUB_OUTPUT
+
+      - name: File alert issue
+        uses: DefGuard/ci-workflows/actions/alert-issue@main
+        with:
+          source: ${{ inputs.source }}
+          repo: ${{ github.repository }}
+          branch: ${{ github.ref_name }}
+          failure_summary: ${{ steps.summary.outputs.text }}
+          run_link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          assignees: ${{ steps.assignees.outputs.usernames }}
+          extra_labels: ${{ inputs.extra_labels }}
+        env:
+          ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}
+          SPRINT_PROJECT_NUMBER: ${{ vars.SPRINT_PROJECT_NUMBER }}
