@@ -67,7 +67,7 @@ export const ProfileGeneralCard = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: [['user'], ['user', profileUser.username]],
+      invalidate: [['user'], ['user', profileUser.username], ['enterprise_info']],
     },
   });
 

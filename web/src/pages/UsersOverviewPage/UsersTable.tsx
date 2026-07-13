@@ -188,7 +188,7 @@ export const UsersTable = () => {
     onSuccess: () => Snackbar.default(m.users_edit_success()),
     onError: () => Snackbar.error(m.users_edit_error()),
     meta: {
-      invalidate: [['user'], ['group'], ['group-info'], ['activity-log']],
+      invalidate: [['user'], ['group'], ['group-info'], ['activity-log'], ['enterprise_info']],
     },
   });
 
