@@ -28,11 +28,12 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
         with:
-          version: 11
+          package_json_file: web/package.json
+          run_install: false
 
-      - name: install deps
+      - name: Install deps
         working-directory: ./web
-        run: pnpm i --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Generate paraglide messages
         working-directory: ./web
