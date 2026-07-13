@@ -1,0 +1,39 @@
+Acer Swift
+Apple iMac
+Apple Mac mini
+Apple Mac Pro
+Apple Mac Studio
+Apple MacBook Air
+Apple MacBook Pro
+Asus ROG Zephyrus
+Asus ZenBook
+Chromebook
+Dell Alienware
+Dell Inspiron
+Dell Latitude
+Dell OptiPlex
+Dell Precision
+Dell XPS
+Google Pixel
+Google Pixel Pro
+HP EliteBook
+HP Envy
+HP Pavilion
+HP ProDesk
+HP Spectre
+iPhone
+iPhone Pro
+iPhone Pro Max
+Lenovo IdeaPad
+Lenovo Legion
+Lenovo ThinkCentre
+Lenovo ThinkPad
+Microsoft Surface Laptop
+Microsoft Surface Studio
+Motorola Edge
+OnePlus
+Samsung Galaxy A
+Samsung Galaxy S
+Samsung Galaxy Z Flip
+Samsung Galaxy Z Fold
+Sony Xperia

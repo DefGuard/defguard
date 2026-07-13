@@ -34,7 +34,7 @@ enum Commands {
     /// Generates fake VPN session statistics.
     VpnSessionStats {
         #[arg(long)]
-        location_id: Id,
+        location_id: Option<Id>,
         #[arg(long)]
         num_users: usize,
         #[arg(long)]
