@@ -66,7 +66,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: File alert issue
-        uses: DefGuard/ci-workflows/actions/alert-issue@main
+        uses: DefGuard/ci-workflows/actions/alert-issue@v1.0.0
         with:
           source: ${{ inputs.source }}
           repo: ${{ github.repository }}
