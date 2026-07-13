@@ -42,3 +42,10 @@ jobs:
     if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
     uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit
+
+  alert-e2e-failure:
+    needs: trigger-e2e
+    if: failure()
+    uses: ./.github/workflows/alert-e2e-failure.yml
+    secrets:
+      ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}
