@@ -345,7 +345,7 @@ export const UsersTable = () => {
                           active: false,
                           username: rowData.username,
                         }),
-                      invalidateKeys: [['user']],
+                      invalidateKeys: [['user'], ['enterprise_info']],
                       submitProps: {
                         text: m.users_row_menu_disable(),
                         variant: 'critical',
@@ -364,7 +364,7 @@ export const UsersTable = () => {
                           active: true,
                           username: rowData.username,
                         }),
-                      invalidateKeys: [['user']],
+                      invalidateKeys: [['user'], ['enterprise_info']],
                       submitProps: {
                         text: m.users_row_menu_enable(),
                       },
