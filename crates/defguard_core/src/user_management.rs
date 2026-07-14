@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use defguard_common::db::{
     Id,
-    models::{User, WireguardNetwork, device::DeviceInfo},
+    models::{Settings, User, WireguardNetwork, device::DeviceInfo, settings::set_settings},
 };
 use sqlx::PgConnection;
 use thiserror::Error;
@@ -52,8 +52,15 @@ pub async fn delete_user_and_cleanup_devices(
         events.push(GatewayCommand::DeviceDeleted(device_info));
     }
 
+    let was_default_admin = Settings::get_current_settings().default_admin_id == Some(user.id);
+
     user.delete(&mut *conn).await?;
     update_counts(&mut *conn).await?;
+
+    // Update settings because they may also change due to a DB constraint.
+    if was_default_admin && let Some(settings) = Settings::get(&mut *conn).await? {
+        set_settings(Some(settings));
+    }
 
     // send firewall config updates to affected locations
     // if they have ACL enabled & enterprise features are active
