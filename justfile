@@ -1,3 +1,6 @@
+# default Docker image tag for e2e tests
+IMAGE_TAG := "release-2.1"
+
 # build release binary
 build:
     cargo build --release
@@ -90,3 +93,7 @@ test-ldap *ARGS:
     status=$?
     docker compose -p defguard-ldap -f docker-compose.ldap-test.yaml down
     exit $status
+
+# run e2e tests (requires Docker, IMAGE_TAG defaults to release-2.1)
+e2e-test *ARGS='':
+    cd e2e && IMAGE_TAG="{{IMAGE_TAG}}" pnpm exec playwright test {{ARGS}}
