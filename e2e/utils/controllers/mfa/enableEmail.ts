@@ -1,38 +1,17 @@
 import { Browser } from 'playwright';
 import { TOTP } from 'totp-generator';
 
-import { defaultUserAdmin, routes } from '../../../config';
+import { routes } from '../../../config';
 import { User } from '../../../types';
 import { extractEmailSecret } from '../../db/extractEmailSecret';
 import { waitForBase } from '../../waitForBase';
 import { acceptRecovery } from '../acceptRecovery';
 import { loginBasic } from '../login';
-import { logout } from '../logout';
+import { setupSMTP } from '../settings';
 
 export type EnableEmailResult = {
   secret: string;
   recoveryCodes?: string[];
-};
-
-export const setupSMTP = async (browser: Browser) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await waitForBase(page);
-  await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.settings.smtp);
-  await page.getByTestId('smtp-card-basic-configure').click();
-  await page.getByTestId('field-smtp_server').waitFor({ state: 'visible' });
-  await page.getByTestId('field-smtp_server').fill('testServer.com');
-  await page.getByTestId('field-smtp_port').fill('543');
-  await page.getByTestId('field-smtp_user').fill('testuser');
-  await page.getByTestId('field-smtp_password').fill('test');
-  await page.getByTestId('field-smtp_sender').fill('test@test.com');
-  const saveButton = await page.getByTestId('submit');
-  if (await saveButton.isEnabled()) {
-    await saveButton.click();
-  }
-  await logout(page);
-  await context.close();
 };
 
 export const enableEmailMFA = async (
