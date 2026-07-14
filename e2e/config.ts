@@ -42,6 +42,7 @@ export const routes = {
     aliases: '/acl/aliases',
   },
   locations: '/locations',
+  enrollment: '/enrollment',
   network_devices: '/network-devices',
   openid_apps: '/openid',
   webhooks: '/webhooks',

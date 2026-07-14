@@ -209,6 +209,7 @@ const GeneralTabContent = ({
             <form.AppField name="display_password_reset">
               {(field) => (
                 <field.FormInteractiveBlock
+                  data-testid="field-display-password-reset"
                   disabled={noLicense}
                   variant="toggle"
                   title={m.settings_enrollment_display_password_reset_label()}
@@ -220,6 +221,7 @@ const GeneralTabContent = ({
             <form.AppField name="display_download_step">
               {(field) => (
                 <field.FormInteractiveBlock
+                  data-testid="field-display-download-step"
                   disabled={noLicense}
                   variant="toggle"
                   title={m.settings_enrollment_display_download_label()}
@@ -269,6 +271,7 @@ const GeneralTabContent = ({
               <div className="right">
                 <Button
                   variant="primary"
+                  testId="save-enrollment-settings"
                   text={m.controls_save_changes()}
                   disabled={isDefault || !canSubmit}
                   loading={isSubmitting}
