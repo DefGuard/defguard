@@ -2525,6 +2525,91 @@ async fn test_bulk_delete_deduplicates_ids(_: PgPoolOptions, options: PgConnectO
 }
 
 #[sqlx::test]
+async fn test_delete_user_clears_stale_default_admin_settings_cache(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // simulate `dumbledore` being the default admin set up during initial setup
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    settings.default_admin_id = Some(dumbledore.id);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client.delete("/api/v1/user/adumbledore").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(from_db.default_admin_id, None);
+
+    // any settings update used to fail with a `fk_default_admin` violation here, since the
+    // in-memory cache still held the now-dangling `dumbledore.id`
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&serde_json::json!({ "wireguard_enabled": false }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn test_bulk_delete_users_clears_stale_default_admin_settings_cache(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: None,
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    settings.default_admin_id = Some(dumbledore.id);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client
+        .post("/api/v1/user/bulk-delete")
+        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(from_db.default_admin_id, None);
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&serde_json::json!({ "wireguard_enabled": false }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
 async fn test_bulk_start_enrollment_deduplicates_ids(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, pool) = make_client_with_db(pool).await;
