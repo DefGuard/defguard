@@ -9,7 +9,9 @@ import {
   selectPasswordReset,
   setEmail,
   setPassword,
+  waitForEdgePasswordResetEnabled,
 } from '../utils/controllers/passwordReset';
+import { setupSMTP } from '../utils/controllers/settings';
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
 import { dockerRestart } from '../utils/docker';
@@ -25,8 +27,11 @@ test.describe('Reset password', () => {
     await createUser(browser, user);
   });
 
-  test('Reset user password', async ({ page }) => {
+  test('Reset user password', async ({ page, browser }) => {
     await waitForBase(page);
+    // Password reset is only shown on Edge once SMTP is configured in Core.
+    await setupSMTP(browser);
+    await waitForEdgePasswordResetEnabled(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
@@ -48,6 +53,9 @@ test.describe('Reset password', () => {
   // TODO: Enable when https://github.com/DefGuard/defguard/issues/2425 is fixed
   test.skip('Reset disabled user password', async ({ page, browser }) => {
     await waitForBase(page);
+    // Password reset is only shown on Edge once SMTP is configured in Core.
+    await setupSMTP(browser);
+    await waitForEdgePasswordResetEnabled(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
