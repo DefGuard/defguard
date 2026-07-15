@@ -619,3 +619,22 @@ pub struct ClientDeviceMetadata {
     pub device_id: Id,
     pub device_name: String,
 }
+
+#[derive(Serialize)]
+pub struct OidcDirectorySyncUserMetadata {
+    pub provider: String,
+    pub user: UserNoSecrets,
+}
+
+#[derive(Serialize)]
+pub struct OidcDirectorySyncGroupMetadata {
+    pub provider: String,
+    pub group: Group<Id>,
+}
+
+#[derive(Serialize)]
+pub struct OidcDirectorySyncGroupMemberMetadata {
+    pub provider: String,
+    pub group: Group<Id>,
+    pub user: UserNoSecrets,
+}
