@@ -46,6 +46,7 @@ pub mod message;
 const MESSAGE_LIMIT: usize = 100;
 
 /// Run the event logger service
+#[allow(clippy::too_many_arguments)]
 pub async fn run_event_logger(
     pool: PgPool,
     api_event_rx: UnboundedReceiver<ApiEvent>,
