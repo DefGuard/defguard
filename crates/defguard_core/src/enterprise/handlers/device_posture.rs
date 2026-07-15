@@ -8,7 +8,7 @@ use axum::{
 use axum_extra::extract::Query as AxumExtraQuery;
 use defguard_common::db::{Id, NoId, models::WireguardNetwork};
 use serde::{Deserialize, Serialize};
-use sqlx::{Postgres, QueryBuilder};
+use sqlx::{PgConnection, Postgres, QueryBuilder};
 use utoipa::ToSchema;
 
 use crate::{
@@ -19,6 +19,7 @@ use crate::{
             DevicePosture, DevicePostureLocation, DevicePostureOsRule, DevicePostureSnapshot,
             OsType,
         },
+        firewall::try_get_location_firewall_config,
         handlers::{DevicePostureFeature, LicenseGated},
         posture::version_list::{
             ANDROID_OS_VERSIONS, CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
@@ -27,14 +28,50 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    grpc::GatewayCommand,
     handlers::{
         ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
+    location_management::allowed_peers::get_location_allowed_peers,
 };
 
 fn owned_client_versions(values: &[&str]) -> Vec<String> {
     values.iter().map(|value| (*value).to_owned()).collect()
+}
+
+fn same_id_set(left: &[Id], right: &[Id]) -> bool {
+    left.iter().copied().collect::<HashSet<_>>() == right.iter().copied().collect::<HashSet<_>>()
+}
+
+async fn build_location_peer_refresh_commands(
+    conn: &mut PgConnection,
+    location_ids: impl IntoIterator<Item = Id>,
+) -> Result<Vec<GatewayCommand>, WebError> {
+    let mut seen = HashSet::new();
+    let mut commands = Vec::new();
+
+    for location_id in location_ids {
+        if !seen.insert(location_id) {
+            continue;
+        }
+
+        let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? else {
+            warn!("Skipping gateway peer refresh for missing location {location_id}");
+            continue;
+        };
+
+        let peers = get_location_allowed_peers(&location, &mut *conn).await?;
+        let maybe_firewall_config = try_get_location_firewall_config(&location, &mut *conn).await?;
+        commands.push(GatewayCommand::NetworkModified(
+            location.id,
+            location,
+            peers,
+            maybe_firewall_config,
+        ));
+    }
+
+    Ok(commands)
 }
 
 /// Per-OS rule included in a posture check policy API.
@@ -939,7 +976,13 @@ pub async fn delete_device_posture(
     let os_rules = DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?;
     let location_ids = DevicePostureLocation::find_by_posture(&appstate.pool, id).await?;
 
-    device_posture.clone().delete(&appstate.pool).await?;
+    let mut tx = appstate.pool.begin().await?;
+    device_posture.clone().delete(&mut *tx).await?;
+    let gateway_commands =
+        build_location_peer_refresh_commands(&mut tx, location_ids.clone()).await?;
+    tx.commit().await?;
+
+    appstate.send_multiple_gateway_commands(gateway_commands);
 
     appstate.emit_event(ApiEvent {
         context,
@@ -1101,9 +1144,17 @@ pub async fn set_postures_for_location(
     }
 
     let mut tx = appstate.pool.begin().await?;
+    let old_postures = DevicePostureLocation::find_by_location(&mut *tx, location_id).await?;
     let result =
         DevicePostureLocation::set_for_location(&mut tx, location_id, &data.postures).await?;
+    let gateway_commands = if same_id_set(&old_postures, &result) {
+        Vec::new()
+    } else {
+        build_location_peer_refresh_commands(&mut tx, [location_id]).await?
+    };
     tx.commit().await?;
+
+    appstate.send_multiple_gateway_commands(gateway_commands);
 
     appstate.emit_event(ApiEvent {
         context,
@@ -1168,9 +1219,21 @@ pub async fn set_locations_for_posture(
     }
 
     let mut tx = appstate.pool.begin().await?;
+    let old_locations = DevicePostureLocation::find_by_posture(&mut *tx, posture_id).await?;
     let result =
         DevicePostureLocation::set_for_posture(&mut tx, posture_id, &data.locations).await?;
+    let gateway_commands = if same_id_set(&old_locations, &result) {
+        Vec::new()
+    } else {
+        build_location_peer_refresh_commands(
+            &mut tx,
+            old_locations.iter().copied().chain(result.iter().copied()),
+        )
+        .await?
+    };
     tx.commit().await?;
+
+    appstate.send_multiple_gateway_commands(gateway_commands);
 
     appstate.emit_event(ApiEvent {
         context,

@@ -1,4 +1,4 @@
-use defguard_common::db::setup_pool;
+use defguard_common::db::{Id, setup_pool};
 use defguard_core::{
     enterprise::{
         db::models::device_posture::{DevicePosture, DevicePostureSnapshot},
@@ -13,6 +13,7 @@ use defguard_core::{
         },
     },
     events::ApiEventType,
+    grpc::GatewayCommand,
 };
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -43,6 +44,51 @@ async fn setup(options: PgConnectOptions) -> (TestClient, ClientState) {
     client.drain_all_events();
     set_enterprise_license();
     (client, state)
+}
+
+fn drain_gateway_events(gateway_rx: &mut tokio::sync::broadcast::Receiver<GatewayCommand>) {
+    while gateway_rx.try_recv().is_ok() {}
+}
+
+fn expect_network_modified_peers(
+    gateway_rx: &mut tokio::sync::broadcast::Receiver<GatewayCommand>,
+    location_id: Id,
+    expected_pubkeys: &[&str],
+) {
+    let event = gateway_rx.try_recv().unwrap();
+    let GatewayCommand::NetworkModified(id, _, peers, _) = event else {
+        panic!("expected NetworkModified, got {event:?}");
+    };
+    assert_eq!(id, location_id);
+    let actual_pubkeys = peers
+        .iter()
+        .map(|peer| peer.pubkey.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(actual_pubkeys, expected_pubkeys);
+}
+
+async fn create_posture(client: &TestClient, name: &str) -> ApiDevicePosture {
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&make_edit(name))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    response.json().await
+}
+
+async fn create_admin_device(client: &TestClient) -> &'static str {
+    const PUBKEY: &str = "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=";
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&serde_json::json!({
+            "name": "posture-test-device",
+            "wireguard_pubkey": PUBKEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    PUBKEY
 }
 
 #[sqlx::test]
@@ -945,6 +991,167 @@ async fn test_device_posture_set_postures_for_location(
         let fetched: ApiDevicePosture = response.json().await;
         assert!(fetched.locations.is_empty());
     }
+}
+
+#[sqlx::test]
+async fn test_assigning_first_posture_refreshes_gateway_with_no_direct_peers(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, state) = setup(options).await;
+    let mut gateway_rx = state.gateway_rx;
+
+    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let location_id = net["id"].as_i64().unwrap();
+    let _device_pubkey = create_admin_device(&client).await;
+    let posture = create_posture(&client, "Posture").await;
+    drain_gateway_events(&mut gateway_rx);
+    client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/network/{location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: vec![posture.id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    expect_network_modified_peers(&mut gateway_rx, location_id, &[]);
+    let events = client.drain_all_events();
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::LocationPosturesAssigned { .. }
+    ));
+}
+
+#[sqlx::test]
+async fn test_removing_last_posture_refreshes_gateway_with_direct_peers(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, state) = setup(options).await;
+    let mut gateway_rx = state.gateway_rx;
+
+    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let location_id = net["id"].as_i64().unwrap();
+    let device_pubkey = create_admin_device(&client).await;
+    let posture = create_posture(&client, "Posture").await;
+    drain_gateway_events(&mut gateway_rx);
+    client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/network/{location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: vec![posture.id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    expect_network_modified_peers(&mut gateway_rx, location_id, &[]);
+    client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/network/{location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: Vec::new(),
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    expect_network_modified_peers(&mut gateway_rx, location_id, &[device_pubkey]);
+    let events = client.drain_all_events();
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::LocationPosturesAssigned { .. }
+    ));
+}
+
+#[sqlx::test]
+async fn test_reassigning_posture_locations_refreshes_old_and_new_locations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, state) = setup(options).await;
+    let mut gateway_rx = state.gateway_rx;
+
+    let net1: serde_json::Value = make_network(&client, "net1").await.json().await;
+    let net2: serde_json::Value = make_network(&client, "net2").await.json().await;
+    let loc1 = net1["id"].as_i64().unwrap();
+    let loc2 = net2["id"].as_i64().unwrap();
+    let device_pubkey = create_admin_device(&client).await;
+    let posture = create_posture(&client, "Posture").await;
+    drain_gateway_events(&mut gateway_rx);
+    client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![loc1],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    expect_network_modified_peers(&mut gateway_rx, loc1, &[]);
+    client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![loc2],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    expect_network_modified_peers(&mut gateway_rx, loc1, &[device_pubkey]);
+    expect_network_modified_peers(&mut gateway_rx, loc2, &[]);
+    let events = client.drain_all_events();
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::DevicePostureLocationsAssigned { .. }
+    ));
+}
+
+#[sqlx::test]
+async fn test_deleting_assigned_posture_refreshes_gateway_with_direct_peers(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, state) = setup(options).await;
+    let mut gateway_rx = state.gateway_rx;
+
+    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let location_id = net["id"].as_i64().unwrap();
+    let device_pubkey = create_admin_device(&client).await;
+    let posture = create_posture(&client, "Posture").await;
+    drain_gateway_events(&mut gateway_rx);
+    client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/network/{location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: vec![posture.id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    expect_network_modified_peers(&mut gateway_rx, location_id, &[]);
+    client.drain_all_events();
+
+    let response = client
+        .delete(format!("/api/v1/device-posture/{}", posture.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    expect_network_modified_peers(&mut gateway_rx, location_id, &[device_pubkey]);
+    let events = client.drain_all_events();
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::DevicePostureDeleted { .. }
+    ));
 }
 
 #[sqlx::test]
