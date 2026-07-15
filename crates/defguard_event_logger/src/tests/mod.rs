@@ -31,8 +31,8 @@ use defguard_core::{
     },
     events::{
         ApiEventType, BidiRequestContext, BidiStreamEvent, BidiStreamEventType,
-        DesktopClientMfaEvent, EnrollmentEvent as CoreEnrollmentEvent, LdapSyncEventType,
-        PasswordResetEvent,
+        DesktopClientMfaEvent, DirectorySyncEvent, DirectorySyncEventType,
+        EnrollmentEvent as CoreEnrollmentEvent, LdapSyncEventType, PasswordResetEvent,
     },
 };
 use defguard_session_manager::events::SessionManagerEventType;
@@ -1572,6 +1572,129 @@ fn ldap_event_cases() -> Vec<EventTestCase> {
     cases
 }
 
+fn directory_sync_event_cases() -> Vec<EventTestCase> {
+    let user = sample_user();
+    let group = sample_group();
+
+    fn dirsync_msg(event: DirectorySyncEventType) -> EventLoggerMessage {
+        EventLoggerMessage {
+            context: test_context(),
+            event: Event::OidcDirectorySync {
+                provider: "Google".to_owned(),
+                event,
+            },
+        }
+    }
+
+    let cases = vec![
+        EventTestCase {
+            name: "OidcDirectorySyncUserCreated",
+            message: dirsync_msg(DirectorySyncEventType::UserCreated { user: user.clone() }),
+            event_type: EventType::OidcDirectorySyncUserCreated,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("created user"),
+        },
+        EventTestCase {
+            name: "OidcDirectorySyncUserDeleted",
+            message: dirsync_msg(DirectorySyncEventType::UserDeleted { user: user.clone() }),
+            event_type: EventType::OidcDirectorySyncUserDeleted,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("deleted user"),
+        },
+        EventTestCase {
+            name: "OidcDirectorySyncUserEnabled",
+            message: dirsync_msg(DirectorySyncEventType::UserEnabled { user: user.clone() }),
+            event_type: EventType::OidcDirectorySyncUserEnabled,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("enabled user"),
+        },
+        EventTestCase {
+            name: "OidcDirectorySyncUserDisabled",
+            message: dirsync_msg(DirectorySyncEventType::UserDisabled { user: user.clone() }),
+            event_type: EventType::OidcDirectorySyncUserDisabled,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("disabled user"),
+        },
+        EventTestCase {
+            name: "OidcDirectorySyncGroupCreated",
+            message: dirsync_msg(DirectorySyncEventType::GroupCreated {
+                group: group.clone(),
+            }),
+            event_type: EventType::OidcDirectorySyncGroupCreated,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("created group"),
+        },
+        EventTestCase {
+            name: "OidcDirectorySyncGroupMemberAdded",
+            message: dirsync_msg(DirectorySyncEventType::GroupMemberAdded {
+                group: group.clone(),
+                user: user.clone(),
+            }),
+            event_type: EventType::OidcDirectorySyncGroupMemberAdded,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("added user"),
+        },
+        EventTestCase {
+            name: "OidcDirectorySyncGroupMemberRemoved",
+            message: dirsync_msg(DirectorySyncEventType::GroupMemberRemoved {
+                group: group.clone(),
+                user: user.clone(),
+            }),
+            event_type: EventType::OidcDirectorySyncGroupMemberRemoved,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("removed user"),
+        },
+    ];
+
+    assert_eq!(
+        cases.len(),
+        DirectorySyncEventType::COUNT,
+        "missing test case for new DirectorySyncEventType variant"
+    );
+    cases
+}
+
+#[test]
+fn test_directory_sync_events_use_system_context() {
+    let message = EventLoggerMessage::from_directory_sync_event(DirectorySyncEvent {
+        provider: "Google".to_owned(),
+        event: DirectorySyncEventType::UserCreated {
+            user: sample_user(),
+        },
+    });
+
+    assert_eq!(message.context.user_id, None);
+    assert_eq!(message.context.username, "system:oidc-directory-sync");
+    assert_eq!(message.context.device, "system");
+    match message.event {
+        Event::OidcDirectorySync { provider, .. } => {
+            assert_eq!(provider, "Google");
+        }
+        _ => panic!("expected an OIDC directory sync event"),
+    }
+}
+
+#[test]
+fn test_directory_sync_description_contains_provider() {
+    // The provider name must be present in the activity log entry so it's clear
+    // which directory the change came from.
+    let result = map_to_activity_log_event(EventLoggerMessage {
+        context: test_context(),
+        event: Event::OidcDirectorySync {
+            provider: "Okta".to_owned(),
+            event: DirectorySyncEventType::UserCreated {
+                user: sample_user(),
+            },
+        },
+    });
+    assert_eq!(result.module, ActivityLogModule::OidcDirectorySync);
+    assert_eq!(result.event, EventType::OidcDirectorySyncUserCreated);
+    assert!(
+        result.description.unwrap_or_default().contains("Okta"),
+        "description should mention the provider name"
+    );
+}
+
 #[test]
 fn test_ldap_sync_events_use_system_context() {
     // `from_ldap_sync_event` reads `ldap_uses_ad` from global settings, which panics if
@@ -1628,6 +1751,7 @@ fn test_all_event_variants_map_to_correct_activity_log_events() {
     cases.extend(bidi_event_cases());
     cases.extend(session_manager_cases());
     cases.extend(ldap_event_cases());
+    cases.extend(directory_sync_event_cases());
 
     for case in cases {
         let result = map_to_activity_log_event(case.message);
