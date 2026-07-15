@@ -148,6 +148,7 @@ pub(crate) async fn make_base_client(
     );
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
     let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (dirsync_tx, _dirsync_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let tls_active = Arc::new(AtomicBool::new(false));
     let webapp = build_webapp(
@@ -161,6 +162,7 @@ pub(crate) async fn make_base_client(
         failed_logins,
         api_event_tx,
         ldap_tx,
+        dirsync_tx,
         Arc::default(),
         proxy_control_tx,
         Arc::clone(&tls_active),
