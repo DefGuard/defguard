@@ -25,18 +25,28 @@ mod test {
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{get_counts, update_counts},
         },
-        events::LdapSyncEventType,
+        events::{DirectorySyncEvent, LdapSyncEventType},
         grpc::proto::enterprise::license::LicenseLimits,
     };
 
     async fn do_test_directory_sync(pool: &PgPool, gateway_tx: &broadcast::Sender<GatewayCommand>) {
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
-        do_directory_sync(pool, gateway_tx, &ldap_tx).await.unwrap();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        do_directory_sync(pool, gateway_tx, &ldap_tx, &dirsync_tx)
+            .await
+            .unwrap();
     }
 
     fn ldap_test_channel() -> (
         mpsc::UnboundedSender<LdapSyncEventType>,
         mpsc::UnboundedReceiver<LdapSyncEventType>,
+    ) {
+        mpsc::unbounded_channel()
+    }
+
+    fn dirsync_test_channel() -> (
+        mpsc::UnboundedSender<DirectorySyncEvent>,
+        mpsc::UnboundedReceiver<DirectorySyncEvent>,
     ) {
         mpsc::unbounded_channel()
     }
@@ -187,7 +197,8 @@ mod test {
 
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &dirsync_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -229,7 +240,8 @@ mod test {
 
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &dirsync_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -276,7 +288,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &dirsync_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -331,7 +344,8 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &dirsync_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -419,7 +433,8 @@ mod test {
 
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &dirsync_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -493,7 +508,8 @@ mod test {
 
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &all_users, None)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(&pool, &gateway_tx, &ldap_tx, &dirsync_tx, &all_users, None)
             .await
             .unwrap();
 
@@ -556,9 +572,18 @@ mod test {
         make_test_user_and_device("testuserdisabled", &pool).await;
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        sync_all_users_groups(&client, &pool, &gateway_tx, &ldap_tx, Some(&all_users))
-            .await
-            .unwrap();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_groups(
+            &client,
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            "Test",
+            Some(&all_users),
+        )
+        .await
+        .unwrap();
 
         let mut groups = Group::all(&pool).await.unwrap();
 
@@ -610,9 +635,10 @@ mod test {
         client.prepare().await.unwrap();
         let user = make_test_user_and_device("testuser", &pool).await;
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        sync_user_groups_if_configured(&user, &pool, &gateway_tx, &ldap_tx)
+        sync_user_groups_if_configured(&user, &pool, &gateway_tx, &ldap_tx, &dirsync_tx)
             .await
             .unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
@@ -905,7 +931,8 @@ mod test {
         assert!(defguard_users.is_empty());
 
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        do_directory_sync(&pool, &gateway_tx, &ldap_tx)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        do_directory_sync(&pool, &gateway_tx, &ldap_tx, &dirsync_tx)
             .await
             .unwrap();
 
@@ -942,7 +969,8 @@ mod test {
         provider.save(&pool).await.unwrap();
 
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
-        do_directory_sync(&pool, &gateway_tx, &ldap_tx)
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        do_directory_sync(&pool, &gateway_tx, &ldap_tx, &dirsync_tx)
             .await
             .unwrap();
 
@@ -982,10 +1010,12 @@ mod test {
         let allowed_emails = HashSet::from(["testuser@email.com".to_owned()]);
         let all_users = client.get_all_users().await.unwrap();
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
         sync_all_users_state(
             &pool,
             &gateway_tx,
             &ldap_tx,
+            &dirsync_tx,
             &all_users,
             Some(allowed_emails),
         )
