@@ -436,6 +436,38 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     client.assert_event_queue_is_empty();
 
+    let bad_desktop_catalog = EditDevicePosture {
+        name: "Bad Desktop Catalog".to_owned(),
+        description: None,
+        min_desktop_client_version: Some(MOBILE_CLIENT_VERSIONS[0].to_owned()),
+        min_mobile_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: Vec::new(),
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&bad_desktop_catalog)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    let bad_mobile_catalog = EditDevicePosture {
+        name: "Bad Mobile Catalog".to_owned(),
+        description: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: Some(DESKTOP_CLIENT_VERSIONS[0].to_owned()),
+        allow_prerelease_client: false,
+        os_rules: Vec::new(),
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&bad_mobile_catalog)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
     // create a valid one
     let edit = make_edit("Valid");
     let response = client
@@ -586,6 +618,22 @@ async fn test_device_posture_list_filters_os_and_defguard(
     let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
     assert_eq!(page.data.len(), 1);
     assert_eq!(page.data[0].name, "Filtered posture");
+
+    let response = client
+        .get("/api/v1/device-posture?defguard_desktop=1.7.0")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
+    assert!(page.data.is_empty());
+
+    let response = client
+        .get("/api/v1/device-posture?defguard_mobile=2.1")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
+    assert!(page.data.is_empty());
 }
 
 #[sqlx::test]

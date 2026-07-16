@@ -304,6 +304,47 @@ async fn save_android_policy(
     .unwrap();
 }
 
+async fn save_desktop_mobile_client_version_policy(pool: &sqlx::PgPool, location_id: i64) {
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "desktop-mobile-client-version-policy".to_owned(),
+        description: None,
+        min_desktop_client_version: Some("2.1".to_owned()),
+        min_mobile_client_version: Some("1.7.0".to_owned()),
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    for os_type in [OsType::Linux, OsType::Android] {
+        DevicePostureOsRule {
+            id: defguard_common::db::NoId,
+            posture_id: policy.id,
+            os_type,
+            min_os_version: None,
+            disk_encryption_required: None,
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_max_age: None,
+            min_kernel_version: None,
+            device_integrity_required: None,
+            android_security_patch_level_max_age: None,
+        }
+        .save(pool)
+        .await
+        .unwrap();
+    }
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+}
+
 fn android_posture_data(patch_date: &str) -> DevicePostureData {
     DevicePostureData {
         defguard_client_version: "1.6.0".to_owned(),
@@ -481,6 +522,55 @@ async fn pass_known_client_version_meets_minimum(_: PgPoolOptions, options: PgCo
         matches!(result, super::PostureResult::Pass),
         "expected Pass for client 2.1.2 against required 2.1"
     );
+}
+
+#[sqlx::test]
+async fn pass_mobile_client_version_uses_mobile_minimum(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_desktop_mobile_client_version_policy(&pool, location_id).await;
+
+    let mut data = android_posture_data("2026-01-01");
+    data.defguard_client_version = "1.7.0".to_owned();
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(
+        matches!(result, super::PostureResult::Pass),
+        "expected Android client 1.7.0 to satisfy mobile minimum despite desktop minimum 2.1"
+    );
+}
+
+#[sqlx::test]
+async fn fail_desktop_client_version_uses_desktop_minimum(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_desktop_mobile_client_version_policy(&pool, location_id).await;
+
+    let mut data = linux_posture_data("22.04", true);
+    data.defguard_client_version = "1.7.0".to_owned();
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::ClientVersionTooOld { ref required, .. } if required == "2.1")
+    ));
 }
 
 #[sqlx::test]
