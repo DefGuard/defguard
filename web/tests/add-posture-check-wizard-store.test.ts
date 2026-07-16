@@ -14,7 +14,8 @@ const versionValues = getPostureCheckVersionValues({
     android: [13, 14, 15, 16],
   },
   linux_kernel_versions: [5, 6, 7],
-  client_versions: ['1.6', '2.0'],
+  desktop_client_versions: ['1.6', '2.0'],
+  mobile_client_versions: ['1.7.0'],
 } satisfies DevicePostureVersionMetadata);
 
 describe('add posture check wizard store', () => {
@@ -24,18 +25,34 @@ describe('add posture check wizard store', () => {
   });
 
   it('stores defguard client-version settings and restores their defaults on reset', () => {
-    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().minimumDesktopClientVersion,
+    ).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().minimumMobileClientVersion,
+    ).toBeNull();
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(false);
 
-    useAddPostureCheckWizardStore.getState().setMinimumClientVersion('1.6');
+    useAddPostureCheckWizardStore.getState().setMinimumDesktopClientVersion('1.6');
+    useAddPostureCheckWizardStore.getState().setMinimumMobileClientVersion('1.7.0');
     useAddPostureCheckWizardStore.getState().setAllowPrereleaseClient(true);
 
-    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBe('1.6');
+    expect(useAddPostureCheckWizardStore.getState().minimumDesktopClientVersion).toBe(
+      '1.6',
+    );
+    expect(useAddPostureCheckWizardStore.getState().minimumMobileClientVersion).toBe(
+      '1.7.0',
+    );
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(true);
 
     useAddPostureCheckWizardStore.getState().reset();
 
-    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().minimumDesktopClientVersion,
+    ).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().minimumMobileClientVersion,
+    ).toBeNull();
     expect(useAddPostureCheckWizardStore.getState().allowPrereleaseClient).toBe(false);
   });
 
@@ -52,7 +69,8 @@ describe('add posture check wizard store', () => {
   it('resets unavailable concrete versions to Any when metadata changes', () => {
     const store = useAddPostureCheckWizardStore.getState();
 
-    store.setMinimumClientVersion('1.6');
+    store.setMinimumDesktopClientVersion('1.6');
+    store.setMinimumMobileClientVersion('1.7.0');
     store.updateOperatingSystemDetails(PostureCheckOs.Windows, {
       version: 10,
     });
@@ -69,11 +87,17 @@ describe('add posture check wizard store', () => {
           android: [13],
         },
         linux_kernel_versions: [6],
-        client_versions: ['2.0'],
+        desktop_client_versions: ['2.0'],
+        mobile_client_versions: ['1.7.1'],
       } satisfies DevicePostureVersionMetadata),
     );
 
-    expect(useAddPostureCheckWizardStore.getState().minimumClientVersion).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().minimumDesktopClientVersion,
+    ).toBeNull();
+    expect(
+      useAddPostureCheckWizardStore.getState().minimumMobileClientVersion,
+    ).toBeNull();
     expect(
       useAddPostureCheckWizardStore.getState().operatingSystemState.windows.version,
     ).toBeNull();

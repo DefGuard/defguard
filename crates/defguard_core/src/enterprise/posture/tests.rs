@@ -129,14 +129,15 @@ async fn save_linux_policy(
     pool: &sqlx::PgPool,
     location_id: i64,
     disk_encryption_required: Option<bool>,
-    min_client_version: Option<&str>,
+    min_desktop_client_version: Option<&str>,
     allow_prerelease_client: bool,
 ) {
     let policy = DevicePosture {
         id: defguard_common::db::NoId,
         name: "test-policy".to_owned(),
         description: None,
-        min_client_version: min_client_version.map(str::to_owned),
+        min_desktop_client_version: min_desktop_client_version.map(str::to_owned),
+        min_mobile_client_version: None,
         allow_prerelease_client,
     }
     .save(pool)
@@ -181,7 +182,8 @@ async fn save_windows_os_version_policy(
         id: defguard_common::db::NoId,
         name: "windows-os-version-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -225,7 +227,8 @@ async fn save_windows_policy(
         id: defguard_common::db::NoId,
         name: "windows-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -267,7 +270,8 @@ async fn save_android_policy(
         id: defguard_common::db::NoId,
         name: "android-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -290,6 +294,47 @@ async fn save_android_policy(
     .save(pool)
     .await
     .unwrap();
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+}
+
+async fn save_desktop_mobile_client_version_policy(pool: &sqlx::PgPool, location_id: i64) {
+    let policy = DevicePosture {
+        id: defguard_common::db::NoId,
+        name: "desktop-mobile-client-version-policy".to_owned(),
+        description: None,
+        min_desktop_client_version: Some("2.1".to_owned()),
+        min_mobile_client_version: Some("1.7.0".to_owned()),
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    for os_type in [OsType::Linux, OsType::Android] {
+        DevicePostureOsRule {
+            id: defguard_common::db::NoId,
+            posture_id: policy.id,
+            os_type,
+            min_os_version: None,
+            disk_encryption_required: None,
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_max_age: None,
+            min_kernel_version: None,
+            device_integrity_required: None,
+            android_security_patch_level_max_age: None,
+        }
+        .save(pool)
+        .await
+        .unwrap();
+    }
 
     DevicePostureLocation::set_for_location(
         &mut pool.acquire().await.unwrap(),
@@ -405,7 +450,8 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
         id: defguard_common::db::NoId,
         name: "win-too-old".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -479,6 +525,55 @@ async fn pass_known_client_version_meets_minimum(_: PgPoolOptions, options: PgCo
 }
 
 #[sqlx::test]
+async fn pass_mobile_client_version_uses_mobile_minimum(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_desktop_mobile_client_version_policy(&pool, location_id).await;
+
+    let mut data = android_posture_data("2026-01-01");
+    data.defguard_client_version = "1.7.0".to_owned();
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(
+        matches!(result, super::PostureResult::Pass),
+        "expected Android client 1.7.0 to satisfy mobile minimum despite desktop minimum 2.1"
+    );
+}
+
+#[sqlx::test]
+async fn fail_desktop_client_version_uses_desktop_minimum(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_desktop_mobile_client_version_policy(&pool, location_id).await;
+
+    let mut data = linux_posture_data("22.04", true);
+    data.defguard_client_version = "1.7.0".to_owned();
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        result,
+        super::PostureResult::Fail(ref reasons) if reasons.len() == 1
+            && matches!(reasons[0], super::FailureReason::ClientVersionTooOld { ref required, .. } if required == "2.1")
+    ));
+}
+
+#[sqlx::test]
 async fn pass_antivirus_present(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();
@@ -542,7 +637,8 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
         id: defguard_common::db::NoId,
         name: "kernel-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -592,7 +688,8 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
         id: defguard_common::db::NoId,
         name: "integrity-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -647,7 +744,8 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
         id: defguard_common::db::NoId,
         name: "windows-only".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -909,7 +1007,8 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         id: defguard_common::db::NoId,
         name: "policy-a".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -937,7 +1036,8 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         id: defguard_common::db::NoId,
         name: "policy-b".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -1078,7 +1178,8 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
         id: defguard_common::db::NoId,
         name: "kernel-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -1131,7 +1232,8 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
         id: defguard_common::db::NoId,
         name: "integrity-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)

@@ -1,3 +1,4 @@
+use defguard_common::db::Id;
 use defguard_proto::enterprise::posture::{
     DevicePostureCheckRequest, DevicePostureData, UnavailableReason,
     bool_check::Result as BoolResult, int32_check::Result as Int32Result,
@@ -211,6 +212,18 @@ fn evaluate_os_rule(
     }
 }
 
+fn client_version_requirement<'a>(
+    policy: &'a DevicePosture<Id>,
+    os_type: Option<&OsType>,
+) -> Option<&'a String> {
+    match os_type {
+        Some(OsType::Ios | OsType::Android) => policy.min_mobile_client_version.as_ref(),
+        Some(OsType::Windows | OsType::Macos | OsType::Linux) | None => {
+            policy.min_desktop_client_version.as_ref()
+        }
+    }
+}
+
 /// Evaluates posture signals against all policies assigned to the location.
 ///
 /// Returns [`PostureResult::Pass`] when no postures are assigned or all pass.
@@ -260,8 +273,9 @@ pub(crate) async fn validate_posture(
             continue;
         };
 
-        // Policy-level: client version checks.
-        if let Some(ref required) = policy.min_client_version {
+        // Policy-level: client version checks. Mobile clients use their own minimum version.
+        let required_client_version = client_version_requirement(&policy, os_type.as_ref());
+        if let Some(required) = required_client_version {
             let actual = &data.defguard_client_version;
             if actual.is_empty() {
                 all_failures.push(FailureReason::CheckUnavailable {
@@ -282,10 +296,10 @@ pub(crate) async fn validate_posture(
         }
 
         if !policy.allow_prerelease_client {
-            // If min_client_version is set and version is empty, CheckUnavailable was
+            // If a platform-specific minimum is set and version is empty, CheckUnavailable was
             // already pushed above — avoid a duplicate entry.
             if data.defguard_client_version.is_empty() {
-                if policy.min_client_version.is_none() {
+                if required_client_version.is_none() {
                     all_failures.push(FailureReason::CheckUnavailable {
                         check: "defguard_client_version",
                     });

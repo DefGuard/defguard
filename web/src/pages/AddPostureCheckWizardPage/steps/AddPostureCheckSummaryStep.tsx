@@ -26,8 +26,11 @@ export const AddPostureCheckSummaryStep = () => {
   const configuredOperatingSystems = useAddPostureCheckWizardStore(
     (s) => s.configuredOperatingSystems,
   );
-  const minimumClientVersion = useAddPostureCheckWizardStore(
-    (s) => s.minimumClientVersion,
+  const minimumDesktopClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumDesktopClientVersion,
+  );
+  const minimumMobileClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumMobileClientVersion,
   );
   const allowPrereleaseClient = useAddPostureCheckWizardStore(
     (s) => s.allowPrereleaseClient,
@@ -42,7 +45,8 @@ export const AddPostureCheckSummaryStep = () => {
     allowPrereleaseClient,
     configuredOperatingSystems,
     description,
-    minimumClientVersion,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
     name,
     operatingSystemState,
   });
@@ -54,7 +58,11 @@ export const AddPostureCheckSummaryStep = () => {
         operatingSystemState[operatingSystem],
       ),
     ),
-    buildClientSummarySection(minimumClientVersion, allowPrereleaseClient),
+    buildClientSummarySection(
+      minimumDesktopClientVersion,
+      minimumMobileClientVersion,
+      allowPrereleaseClient,
+    ),
   ];
 
   return (

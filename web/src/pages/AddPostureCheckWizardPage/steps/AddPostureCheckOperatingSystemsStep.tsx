@@ -24,8 +24,11 @@ export const AddPostureCheckOperatingSystemsStep = ({ versionValues }: Props) =>
     (s) => s.configuredOperatingSystems,
   );
   const description = useAddPostureCheckWizardStore((s) => s.description);
-  const minimumClientVersion = useAddPostureCheckWizardStore(
-    (s) => s.minimumClientVersion,
+  const minimumDesktopClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumDesktopClientVersion,
+  );
+  const minimumMobileClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumMobileClientVersion,
   );
   const name = useAddPostureCheckWizardStore((s) => s.name);
   const operatingSystemState = useAddPostureCheckWizardStore(
@@ -46,7 +49,8 @@ export const AddPostureCheckOperatingSystemsStep = ({ versionValues }: Props) =>
     configuredOperatingSystems,
     description,
     locations: new Set<number>(),
-    minimumClientVersion,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
     name,
     operatingSystemState,
   };

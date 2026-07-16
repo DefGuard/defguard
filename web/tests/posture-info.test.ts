@@ -8,7 +8,8 @@ describe('posture check drawer info', () => {
       id: 1,
       name: 'Any version policy',
       description: null,
-      min_client_version: null,
+      min_desktop_client_version: null,
+      min_mobile_client_version: null,
       allow_prerelease_client: false,
       locations: [],
       os_rules: [
@@ -33,7 +34,10 @@ describe('posture check drawer info', () => {
       }),
       expect.objectContaining({
         name: 'Defguard',
-        rows: [{ label: 'Version', value: 'Any version' }],
+        rows: [
+          { label: 'Desktop', value: 'Any version' },
+          { label: 'Mobile app', value: 'Any version' },
+        ],
       }),
     ]);
   });

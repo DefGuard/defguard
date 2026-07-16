@@ -192,18 +192,33 @@ export const PostureChecksTable = ({
           </TableCell>
         ),
       }),
-      columnHelper.accessor('defguardFilters', {
-        id: 'defguard',
-        header: 'Defguard',
+      columnHelper.accessor('defguardDesktopFilters', {
+        id: 'defguard_desktop',
+        header: 'Desktop client',
         minSize: 180,
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',
         meta: {
-          filterOptions: columnFilterOptions.defguard,
+          filterOptions: columnFilterOptions.defguard_desktop,
         },
         cell: (info) => (
           <TableCell>
-            <span>{info.row.original.defguard}</span>
+            <span>{info.row.original.defguardDesktop}</span>
+          </TableCell>
+        ),
+      }),
+      columnHelper.accessor('defguardMobileFilters', {
+        id: 'defguard_mobile',
+        header: 'Mobile app',
+        minSize: 180,
+        enableColumnFilter: true,
+        filterFn: 'arrIncludesSome',
+        meta: {
+          filterOptions: columnFilterOptions.defguard_mobile,
+        },
+        cell: (info) => (
+          <TableCell>
+            <span>{info.row.original.defguardMobile}</span>
           </TableCell>
         ),
       }),

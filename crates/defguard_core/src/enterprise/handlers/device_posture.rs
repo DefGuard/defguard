@@ -22,8 +22,8 @@ use crate::{
         firewall::try_get_location_firewall_config,
         handlers::{DevicePostureFeature, LicenseGated},
         posture::version_list::{
-            ANDROID_OS_VERSIONS, CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
-            MACOS_OS_VERSIONS, WINDOWS_OS_VERSIONS,
+            ANDROID_OS_VERSIONS, DESKTOP_CLIENT_VERSIONS, IOS_OS_VERSIONS, LINUX_KERNEL_VERSIONS,
+            MACOS_OS_VERSIONS, MOBILE_CLIENT_VERSIONS, WINDOWS_OS_VERSIONS,
         },
     },
     error::WebError,
@@ -246,7 +246,8 @@ pub struct ApiDevicePosture {
     pub id: Id,
     pub name: String,
     pub description: Option<String>,
-    pub min_client_version: Option<String>,
+    pub min_desktop_client_version: Option<String>,
+    pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
     pub os_rules: Vec<ApiOsRule>,
     /// IDs of VPN locations this policy is assigned to.
@@ -259,7 +260,8 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
             id: p.id,
             name: p.name,
             description: p.description,
-            min_client_version: p.min_client_version,
+            min_desktop_client_version: p.min_desktop_client_version,
+            min_mobile_client_version: p.min_mobile_client_version,
             allow_prerelease_client: p.allow_prerelease_client,
             os_rules: Vec::new(),
             locations: Vec::new(),
@@ -297,7 +299,8 @@ impl Default for DevicePostureOsVersionCatalog {
 pub struct DevicePostureVersionMetadata {
     pub os_versions: DevicePostureOsVersionCatalog,
     pub linux_kernel_versions: Vec<i32>,
-    pub client_versions: Vec<String>,
+    pub desktop_client_versions: Vec<String>,
+    pub mobile_client_versions: Vec<String>,
 }
 
 impl DevicePostureVersionMetadata {
@@ -306,7 +309,8 @@ impl DevicePostureVersionMetadata {
         Self {
             os_versions: DevicePostureOsVersionCatalog::new(),
             linux_kernel_versions: LINUX_KERNEL_VERSIONS.to_vec(),
-            client_versions: owned_client_versions(CLIENT_VERSIONS),
+            desktop_client_versions: owned_client_versions(DESKTOP_CLIENT_VERSIONS),
+            mobile_client_versions: owned_client_versions(MOBILE_CLIENT_VERSIONS),
         }
     }
 }
@@ -322,7 +326,8 @@ impl Default for DevicePostureVersionMetadata {
 pub struct EditDevicePosture {
     pub name: String,
     pub description: Option<String>,
-    pub min_client_version: Option<String>,
+    pub min_desktop_client_version: Option<String>,
+    pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
     #[serde(default)]
     pub os_rules: Vec<ApiOsRule>,
@@ -340,6 +345,10 @@ pub struct ListDevicePostureFilters {
     pub ios: Vec<String>,
     #[serde(default)]
     pub android: Vec<String>,
+    #[serde(default)]
+    pub defguard_desktop: Vec<String>,
+    #[serde(default)]
+    pub defguard_mobile: Vec<String>,
     #[serde(default)]
     pub defguard: Vec<String>,
 }
@@ -500,21 +509,24 @@ fn apply_device_posture_filters(
     apply_os_rule_filters(query_builder, "i", OsType::Ios, &filters.ios);
     apply_os_rule_filters(query_builder, "a", OsType::Android, &filters.android);
 
+    append_string_array_filter(
+        query_builder,
+        &filters.defguard_desktop,
+        " AND dp.min_desktop_client_version",
+    );
+    append_string_array_filter(
+        query_builder,
+        &filters.defguard_mobile,
+        " AND dp.min_mobile_client_version",
+    );
+
     if !filters.defguard.is_empty() {
-        let mut versions = Vec::new();
         let mut requirements = HashSet::new();
 
         for filter in &filters.defguard {
-            match DefguardRequirementFilter::parse(filter) {
-                Some(requirement) => {
-                    requirements.insert(requirement);
-                }
-                None => versions.push(filter.clone()),
+            if let Some(requirement) = DefguardRequirementFilter::parse(filter) {
+                requirements.insert(requirement);
             }
-        }
-
-        if !versions.is_empty() {
-            append_string_array_filter(query_builder, &versions, " AND dp.min_client_version");
         }
 
         append_bool_filter(
@@ -527,15 +539,23 @@ fn apply_device_posture_filters(
 
 /// Validates the base fields of an [`EditDevicePosture`] request.
 ///
-/// Returns `Err(WebError::BadRequest(...))` if `min_client_version` is set to
-/// a value not present in [`CLIENT_VERSIONS`].
+/// Returns `Err(WebError::BadRequest(...))` if client version fields are set to
+/// values not present in their supported version catalogs.
 fn validate_device_posture_base(data: &EditDevicePosture) -> Result<(), WebError> {
-    if let Some(ref version) = data.min_client_version
-        && !CLIENT_VERSIONS.contains(&version.as_str())
+    if let Some(ref version) = data.min_desktop_client_version
+        && !DESKTOP_CLIENT_VERSIONS.contains(&version.as_str())
     {
         return Err(WebError::BadRequest(format!(
-            "Unknown client version '{version}'. Valid values: {}",
-            CLIENT_VERSIONS.join(", ")
+            "Unknown desktop client version '{version}'. Valid values: {}",
+            DESKTOP_CLIENT_VERSIONS.join(", ")
+        )));
+    }
+    if let Some(ref version) = data.min_mobile_client_version
+        && !MOBILE_CLIENT_VERSIONS.contains(&version.as_str())
+    {
+        return Err(WebError::BadRequest(format!(
+            "Unknown mobile client version '{version}'. Valid values: {}",
+            MOBILE_CLIENT_VERSIONS.join(", ")
         )));
     }
     validate_device_posture_os_rules(&data.os_rules)
@@ -658,7 +678,8 @@ pub async fn create_device_posture(
     let EditDevicePosture {
         name,
         description,
-        min_client_version,
+        min_desktop_client_version,
+        min_mobile_client_version,
         allow_prerelease_client,
         os_rules,
     } = data;
@@ -669,7 +690,8 @@ pub async fn create_device_posture(
         id: NoId,
         name,
         description,
-        min_client_version,
+        min_desktop_client_version,
+        min_mobile_client_version,
         allow_prerelease_client,
     }
     .save(&mut *tx)
@@ -763,7 +785,8 @@ pub async fn list_device_postures(
 
     let mut conn = appstate.pool.acquire().await?;
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, name, description, min_client_version, allow_prerelease_client \
+        "SELECT id, name, description, min_desktop_client_version, \
+         min_mobile_client_version, allow_prerelease_client \
          FROM device_posture dp WHERE 1=1 ",
     );
     apply_device_posture_filters(&mut query_builder, &filters);
@@ -891,7 +914,8 @@ pub async fn update_device_posture(
     let EditDevicePosture {
         name,
         description,
-        min_client_version,
+        min_desktop_client_version,
+        min_mobile_client_version,
         allow_prerelease_client,
         os_rules,
     } = data;
@@ -900,7 +924,8 @@ pub async fn update_device_posture(
         id,
         name,
         description,
-        min_client_version,
+        min_desktop_client_version,
+        min_mobile_client_version,
         allow_prerelease_client,
     };
 
@@ -1045,7 +1070,8 @@ pub async fn duplicate_device_posture(
         id: NoId,
         name: format!("Copy of {}", original.name),
         description: original.description.clone(),
-        min_client_version: original.min_client_version.clone(),
+        min_desktop_client_version: original.min_desktop_client_version.clone(),
+        min_mobile_client_version: original.min_mobile_client_version.clone(),
         allow_prerelease_client: original.allow_prerelease_client,
     }
     .save(&mut *tx)

@@ -197,7 +197,8 @@ pub(crate) async fn enable_linux_posture_for_location(pool: &PgPool, location_id
         id: NoId,
         name: "session-manager-test-posture".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)

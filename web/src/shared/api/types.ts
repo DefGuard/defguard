@@ -989,7 +989,8 @@ export interface ApiDevicePosture {
   id: number;
   name: string;
   description: string | null;
-  min_client_version: string | null;
+  min_desktop_client_version: string | null;
+  min_mobile_client_version: string | null;
   allow_prerelease_client: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
@@ -1002,7 +1003,8 @@ export interface AssignPosturesData {
 export interface EditDevicePostureRequest {
   name: string;
   description: string | null;
-  min_client_version: string | null;
+  min_desktop_client_version: string | null;
+  min_mobile_client_version: string | null;
   allow_prerelease_client: boolean;
   os_rules: EditDevicePostureOsRule[];
 }
@@ -1017,7 +1019,8 @@ export interface DevicePostureOsVersionCatalog {
 export interface DevicePostureVersionMetadata {
   os_versions: DevicePostureOsVersionCatalog;
   linux_kernel_versions: number[];
-  client_versions: string[];
+  desktop_client_versions: string[];
+  mobile_client_versions: string[];
 }
 
 export type InitialSetupStepValue =
@@ -1569,6 +1572,8 @@ export interface DevicePostureListFilters extends PaginationParams {
   linux?: string[];
   ios?: string[];
   android?: string[];
+  defguard_desktop?: string[];
+  defguard_mobile?: string[];
   defguard?: string[];
 }
 

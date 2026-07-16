@@ -31,7 +31,8 @@ const makeVersionMetadata = (): DevicePostureVersionMetadata => ({
     android: [13, 14, 15, 16],
   },
   linux_kernel_versions: [5, 6, 7],
-  client_versions: ['1.6', '2.0'],
+  desktop_client_versions: ['1.6', '2.0'],
+  mobile_client_versions: ['1.7.0'],
 });
 
 describe('posture checks page helpers', () => {
@@ -40,7 +41,8 @@ describe('posture checks page helpers', () => {
       id: 1,
       name: 'First posture check',
       description: 'Example posture check',
-      min_client_version: '1.6',
+      min_desktop_client_version: '1.6',
+      min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
       locations: [2],
       os_rules: [
@@ -83,8 +85,10 @@ describe('posture checks page helpers', () => {
       iosFilters: [17],
       android: 'Android 15+, Device integrity',
       androidFilters: [15, PostureCheckRequirement.DeviceIntegrity],
-      defguard: 'Defguard 1.6+, Pre-release allowed',
-      defguardFilters: ['1.6', PostureCheckRequirement.PrereleaseAllowed],
+      defguardDesktop: 'Desktop 1.6+',
+      defguardDesktopFilters: ['1.6'],
+      defguardMobile: 'Defguard 1.7.0+',
+      defguardMobileFilters: ['1.7.0'],
     });
   });
 
@@ -93,7 +97,8 @@ describe('posture checks page helpers', () => {
       id: 2,
       name: 'Second posture check',
       description: 'Example posture check',
-      min_client_version: null,
+      min_desktop_client_version: null,
+      min_mobile_client_version: null,
       allow_prerelease_client: false,
       locations: [],
       os_rules: [
@@ -122,8 +127,10 @@ describe('posture checks page helpers', () => {
       iosFilters: [],
       android: '-',
       androidFilters: [],
-      defguard: 'Any version',
-      defguardFilters: [],
+      defguardDesktop: 'Any version',
+      defguardDesktopFilters: [],
+      defguardMobile: 'Any version',
+      defguardMobileFilters: [],
     });
   });
 
@@ -149,8 +156,10 @@ describe('posture checks page helpers', () => {
         iosFilters: [17],
         android: 'Android 15+, Device integrity',
         androidFilters: [15, PostureCheckRequirement.DeviceIntegrity],
-        defguard: 'Defguard 1.6+, Prerelease allowed',
-        defguardFilters: ['1.6', PostureCheckRequirement.PrereleaseAllowed],
+        defguardDesktop: 'Desktop 1.6+',
+        defguardDesktopFilters: ['1.6'],
+        defguardMobile: 'Defguard 1.7.0+',
+        defguardMobileFilters: ['1.7.0'],
       },
       {
         id: 100,
@@ -166,14 +175,15 @@ describe('posture checks page helpers', () => {
         iosFilters: [],
         android: '-',
         androidFilters: [],
-        defguard: '-',
-        defguardFilters: [],
+        defguardDesktop: '-',
+        defguardDesktopFilters: [],
+        defguardMobile: '-',
+        defguardMobileFilters: [],
       },
     ];
 
     expect(filterPostureChecks(rows, 'second posture')).toEqual([rows[1]]);
     expect(filterPostureChecks(rows, 'android 15+')).toEqual([rows[0]]);
-    expect(filterPostureChecks(rows, 'prerelease allowed')).toEqual([rows[0]]);
     expect(filterPostureChecks(rows, '')).toEqual(rows);
     expect(filterPostureChecks(rows, 'not-present')).toEqual([]);
   });
@@ -187,7 +197,8 @@ describe('posture checks page helpers', () => {
         android: [15],
       },
       linux_kernel_versions: [6, 7],
-      client_versions: ['1.6'],
+      desktop_client_versions: ['1.6'],
+      mobile_client_versions: ['1.7.0'],
     };
 
     expect(getPostureCheckVersionValues(metadata)).toEqual({
@@ -196,7 +207,8 @@ describe('posture checks page helpers', () => {
       linux: [6, 7],
       ios: [18],
       android: [15],
-      defguard: ['1.6'],
+      defguardDesktop: ['1.6'],
+      defguardMobile: ['1.7.0'],
     });
   });
 
@@ -213,20 +225,18 @@ describe('posture checks page helpers', () => {
       PostureCheckRequirement.AdJoined,
       PostureCheckRequirement.SecurityUpdates,
     ]);
-    expect(postureCheckColumnFilterOptions.defguard.map((option) => option.id)).toEqual([
-      '1.6',
-      '2.0',
-      PostureCheckRequirement.PrereleaseAllowed,
-    ]);
+    expect(
+      postureCheckColumnFilterOptions.defguard_desktop.map((option) => option.id),
+    ).toEqual(['1.6', '2.0']);
+    expect(
+      postureCheckColumnFilterOptions.defguard_mobile.map((option) => option.id),
+    ).toEqual(['1.7.0']);
   });
 
   it('maps typed filter values to backend request values', () => {
     expect(mapPostureCheckFilterValueToRequestValue(11)).toBe('11');
     expect(mapPostureCheckFilterValueToRequestValue(6)).toBe('6');
     expect(mapPostureCheckFilterValueToRequestValue('1.6')).toBe('1.6');
-    expect(
-      mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
-    ).toBe('Pre-release allowed');
   });
 
   it('maps an existing posture check into editable form state with assigned locations', () => {
@@ -234,7 +244,8 @@ describe('posture checks page helpers', () => {
       id: 5,
       name: 'Edit posture check',
       description: 'Existing policy',
-      min_client_version: '2.0',
+      min_desktop_client_version: '2.0',
+      min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
       locations: [9, 3],
       os_rules: [
@@ -263,7 +274,8 @@ describe('posture checks page helpers', () => {
       configuredOperatingSystems: ['windows', 'android'],
       description: 'Existing policy',
       locations: [3, 9],
-      minimumClientVersion: '2.0',
+      minimumDesktopClientVersion: '2.0',
+      minimumMobileClientVersion: '1.7.0',
       name: 'Edit posture check',
       operatingSystemState: {
         windows: {

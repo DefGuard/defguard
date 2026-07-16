@@ -33,8 +33,10 @@ export type PostureCheckRow = {
   iosFilters: PostureCheckFilterValue[];
   android: string;
   androidFilters: PostureCheckFilterValue[];
-  defguard: string;
-  defguardFilters: PostureCheckFilterValue[];
+  defguardDesktop: string;
+  defguardDesktopFilters: PostureCheckFilterValue[];
+  defguardMobile: string;
+  defguardMobileFilters: PostureCheckFilterValue[];
 };
 
 const emptyRequirement = '-';
@@ -49,7 +51,8 @@ export type PostureCheckColumnFilterOptions = {
   linux: SelectionOption<PostureCheckFilterValue>[];
   ios: SelectionOption<PostureCheckFilterValue>[];
   android: SelectionOption<PostureCheckFilterValue>[];
-  defguard: SelectionOption<PostureCheckFilterValue>[];
+  defguard_desktop: SelectionOption<PostureCheckFilterValue>[];
+  defguard_mobile: SelectionOption<PostureCheckFilterValue>[];
 };
 
 const requirementFilterDefinitions = {
@@ -67,9 +70,6 @@ const requirementFilterDefinitions = {
   },
   [PostureCheckRequirement.DeviceIntegrity]: {
     label: PostureCheckRequirement.DeviceIntegrity,
-  },
-  [PostureCheckRequirement.PrereleaseAllowed]: {
-    label: PostureCheckRequirement.PrereleaseAllowed,
   },
 } as const satisfies Record<PostureCheckRequirementValue, PostureCheckFilterDefinition>;
 
@@ -125,10 +125,14 @@ export const getPostureCheckColumnFilterOptions = (
     ...toSelectionOptions(versionValues.android, (value) => `Android ${value}+`),
     ...toRequirementSelectionOptions([PostureCheckRequirement.DeviceIntegrity]),
   ],
-  defguard: [
-    ...toSelectionOptions(versionValues.defguard, (value) => `Defguard ${value}+`),
-    ...toRequirementSelectionOptions([PostureCheckRequirement.PrereleaseAllowed]),
-  ],
+  defguard_desktop: toSelectionOptions(
+    versionValues.defguardDesktop,
+    (value) => `${value}+`,
+  ),
+  defguard_mobile: toSelectionOptions(
+    versionValues.defguardMobile,
+    (value) => `${value}+`,
+  ),
 });
 
 export const mapPostureCheckFilterValueToRequestValue = (
@@ -268,15 +272,19 @@ export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureChec
   iosFilters: getOsRuleFilters(getDevicePostureRule(posture, PostureCheckOs.Ios)),
   android: getOsRuleSummary(getDevicePostureRule(posture, PostureCheckOs.Android)),
   androidFilters: getOsRuleFilters(getDevicePostureRule(posture, PostureCheckOs.Android)),
-  defguard: joinRequirementParts([
-    posture.min_client_version === null
+  defguardDesktop:
+    posture.min_desktop_client_version === null
       ? m.posture_checks_version_any()
-      : `Defguard ${posture.min_client_version}+`,
-    posture.allow_prerelease_client && 'Pre-release allowed',
+      : `Desktop ${posture.min_desktop_client_version}+`,
+  defguardDesktopFilters: joinFilters([
+    mapVersionFilterValue(posture.min_desktop_client_version),
   ]),
-  defguardFilters: joinFilters([
-    mapVersionFilterValue(posture.min_client_version),
-    posture.allow_prerelease_client && PostureCheckRequirement.PrereleaseAllowed,
+  defguardMobile:
+    posture.min_mobile_client_version === null
+      ? m.posture_checks_version_any()
+      : `Defguard ${posture.min_mobile_client_version}+`,
+  defguardMobileFilters: joinFilters([
+    mapVersionFilterValue(posture.min_mobile_client_version),
   ]),
 });
 
@@ -348,7 +356,8 @@ export const filterPostureChecks = (rows: PostureCheckRow[], search: string) => 
       row.linux,
       row.ios,
       row.android,
-      row.defguard,
+      row.defguardDesktop,
+      row.defguardMobile,
     ];
 
     return searchableValues.some((value) => value.toLowerCase().includes(query));

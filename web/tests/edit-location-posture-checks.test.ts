@@ -24,7 +24,17 @@ vi.mock('../src/paraglide/messages', () => ({
     posture_checks_wizard_operating_systems_condition_device_integrity: () =>
       'Device integrity enabled',
     posture_checks_wizard_summary_defguard_version: ({ version }: { version: string }) =>
-      `Defguard ${version} and higher`,
+      `${version} and higher`,
+    posture_checks_wizard_summary_desktop_client_version: ({
+      version,
+    }: {
+      version: string;
+    }) => `Desktop client: ${version}`,
+    posture_checks_wizard_summary_mobile_application_version: ({
+      version,
+    }: {
+      version: string;
+    }) => `Mobile application: ${version}`,
     posture_checks_wizard_summary_prerelease: () =>
       'Allow pre-release versions of the Defguard client.',
     posture_checks_wizard_summary_defguard_label: () => 'Defguard',
@@ -135,7 +145,8 @@ describe('edit location posture-checks section state', () => {
       id: 1,
       name: 'Windows admins',
       description: null,
-      min_client_version: '2.0',
+      min_desktop_client_version: '2.0',
+      min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
       locations: [],
       os_rules: [
@@ -174,7 +185,8 @@ describe('edit location posture-checks section state', () => {
       {
         label: 'Defguard',
         lines: [
-          'Defguard 2.0 and higher',
+          'Desktop client: 2.0 and higher',
+          'Mobile application: 1.7.0 and higher',
           'Allow pre-release versions of the Defguard client.',
         ],
       },
@@ -186,7 +198,8 @@ describe('edit location posture-checks section state', () => {
       id: 2,
       name: 'Any version policy',
       description: null,
-      min_client_version: null,
+      min_desktop_client_version: null,
+      min_mobile_client_version: null,
       allow_prerelease_client: false,
       locations: [],
       os_rules: [
@@ -208,7 +221,7 @@ describe('edit location posture-checks section state', () => {
       },
       {
         label: 'Defguard',
-        lines: ['Any version'],
+        lines: ['Desktop client: Any version', 'Mobile application: Any version'],
       },
     ]);
   });
@@ -222,7 +235,8 @@ describe('edit location posture-checks section state', () => {
         id: 1,
         name: 'Windows admins',
         description: null,
-        min_client_version: '2.0',
+        min_desktop_client_version: '2.0',
+        min_mobile_client_version: '1.7.0',
         allow_prerelease_client: false,
         locations: [],
         os_rules: [
