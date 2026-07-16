@@ -24,7 +24,7 @@ vi.mock('../src/paraglide/messages', () => ({
     posture_checks_wizard_operating_systems_condition_device_integrity: () =>
       'Device integrity enabled',
     posture_checks_wizard_summary_defguard_version: ({ version }: { version: string }) =>
-      `Defguard ${version} and higher`,
+      `${version} and higher`,
     posture_checks_wizard_summary_desktop_client_version: ({
       version,
     }: {
@@ -185,8 +185,8 @@ describe('edit location posture-checks section state', () => {
       {
         label: 'Defguard',
         lines: [
-          'Desktop client: Defguard 2.0 and higher',
-          'Mobile application: Defguard 1.7.0 and higher',
+          'Desktop client: 2.0 and higher',
+          'Mobile application: 1.7.0 and higher',
           'Allow pre-release versions of the Defguard client.',
         ],
       },

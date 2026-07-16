@@ -133,11 +133,11 @@ export const getPostureCheckColumnFilterOptions = (
   ],
   defguard_desktop: toSelectionOptions(
     versionValues.defguardDesktop,
-    (value) => `Defguard ${value}+`,
+    (value) => `${value}+`,
   ),
   defguard_mobile: toSelectionOptions(
     versionValues.defguardMobile,
-    (value) => `Defguard ${value}+`,
+    (value) => `${value}+`,
   ),
   defguard: toRequirementSelectionOptions([PostureCheckRequirement.PrereleaseAllowed]),
 });
@@ -282,14 +282,14 @@ export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureChec
   defguardDesktop:
     posture.min_desktop_client_version === null
       ? m.posture_checks_version_any()
-      : `Defguard ${posture.min_desktop_client_version}+`,
+      : `${posture.min_desktop_client_version}+`,
   defguardDesktopFilters: joinFilters([
     mapVersionFilterValue(posture.min_desktop_client_version),
   ]),
   defguardMobile:
     posture.min_mobile_client_version === null
       ? m.posture_checks_version_any()
-      : `Defguard ${posture.min_mobile_client_version}+`,
+      : `${posture.min_mobile_client_version}+`,
   defguardMobileFilters: joinFilters([
     mapVersionFilterValue(posture.min_mobile_client_version),
   ]),

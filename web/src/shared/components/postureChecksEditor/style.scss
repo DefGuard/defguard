@@ -75,12 +75,24 @@
     color: var(--fg-muted);
   }
 
+  .client-version-selects {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-lg);
+  }
+
   .interactive-block .interactive-content {
     gap: var(--spacing-xs);
 
     p {
       margin: 0;
     }
+  }
+}
+
+@media (width <= 768px) {
+  .posture-check-defguard .client-version-selects {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -455,28 +455,30 @@ export const PostureCheckDefguardSection = ({
   return (
     <div className="posture-check-defguard">
       <p className="note">{m.posture_checks_edit_defguard_note()}</p>
-      <Select
-        label={m.posture_checks_desktop_client()}
-        options={desktopVersionOptions}
-        value={selectedDesktopVersion}
-        onChange={(option) => {
-          updateValues((current) => ({
-            ...current,
-            minimumDesktopClientVersion: option.value,
-          }));
-        }}
-      />
-      <Select
-        label={m.posture_checks_mobile_application()}
-        options={mobileVersionOptions}
-        value={selectedMobileVersion}
-        onChange={(option) => {
-          updateValues((current) => ({
-            ...current,
-            minimumMobileClientVersion: option.value,
-          }));
-        }}
-      />
+      <div className="client-version-selects">
+        <Select
+          label={m.posture_checks_desktop_client()}
+          options={desktopVersionOptions}
+          value={selectedDesktopVersion}
+          onChange={(option) => {
+            updateValues((current) => ({
+              ...current,
+              minimumDesktopClientVersion: option.value,
+            }));
+          }}
+        />
+        <Select
+          label={m.posture_checks_mobile_application()}
+          options={mobileVersionOptions}
+          value={selectedMobileVersion}
+          onChange={(option) => {
+            updateValues((current) => ({
+              ...current,
+              minimumMobileClientVersion: option.value,
+            }));
+          }}
+        />
+      </div>
       <InteractiveBlock
         variant="checkbox"
         title={m.posture_checks_wizard_client_version_prerelease_title()}
