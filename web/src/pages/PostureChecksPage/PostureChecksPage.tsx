@@ -86,7 +86,6 @@ const PostureChecksContent = () => {
             android: [],
             defguard_desktop: [],
             defguard_mobile: [],
-            defguard: [],
           },
     [versionValues],
   );

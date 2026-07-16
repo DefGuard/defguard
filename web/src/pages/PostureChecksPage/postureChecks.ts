@@ -37,8 +37,6 @@ export type PostureCheckRow = {
   defguardDesktopFilters: PostureCheckFilterValue[];
   defguardMobile: string;
   defguardMobileFilters: PostureCheckFilterValue[];
-  defguard: string;
-  defguardFilters: PostureCheckFilterValue[];
 };
 
 const emptyRequirement = '-';
@@ -55,7 +53,6 @@ export type PostureCheckColumnFilterOptions = {
   android: SelectionOption<PostureCheckFilterValue>[];
   defguard_desktop: SelectionOption<PostureCheckFilterValue>[];
   defguard_mobile: SelectionOption<PostureCheckFilterValue>[];
-  defguard: SelectionOption<PostureCheckFilterValue>[];
 };
 
 const requirementFilterDefinitions = {
@@ -73,9 +70,6 @@ const requirementFilterDefinitions = {
   },
   [PostureCheckRequirement.DeviceIntegrity]: {
     label: PostureCheckRequirement.DeviceIntegrity,
-  },
-  [PostureCheckRequirement.PrereleaseAllowed]: {
-    label: PostureCheckRequirement.PrereleaseAllowed,
   },
 } as const satisfies Record<PostureCheckRequirementValue, PostureCheckFilterDefinition>;
 
@@ -139,7 +133,6 @@ export const getPostureCheckColumnFilterOptions = (
     versionValues.defguardMobile,
     (value) => `${value}+`,
   ),
-  defguard: toRequirementSelectionOptions([PostureCheckRequirement.PrereleaseAllowed]),
 });
 
 export const mapPostureCheckFilterValueToRequestValue = (
@@ -293,12 +286,6 @@ export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureChec
   defguardMobileFilters: joinFilters([
     mapVersionFilterValue(posture.min_mobile_client_version),
   ]),
-  defguard: joinRequirementParts([
-    posture.allow_prerelease_client && PostureCheckRequirement.PrereleaseAllowed,
-  ]),
-  defguardFilters: joinFilters([
-    posture.allow_prerelease_client && PostureCheckRequirement.PrereleaseAllowed,
-  ]),
 });
 
 export const getPostureCheckOsLabel = (value: PostureCheckOsValue) => {
@@ -371,7 +358,6 @@ export const filterPostureChecks = (rows: PostureCheckRow[], search: string) => 
       row.android,
       row.defguardDesktop,
       row.defguardMobile,
-      row.defguard,
     ];
 
     return searchableValues.some((value) => value.toLowerCase().includes(query));

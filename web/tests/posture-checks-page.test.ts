@@ -89,8 +89,6 @@ describe('posture checks page helpers', () => {
       defguardDesktopFilters: ['1.6'],
       defguardMobile: '1.7.0+',
       defguardMobileFilters: ['1.7.0'],
-      defguard: 'Pre-release allowed',
-      defguardFilters: [PostureCheckRequirement.PrereleaseAllowed],
     });
   });
 
@@ -133,8 +131,6 @@ describe('posture checks page helpers', () => {
       defguardDesktopFilters: [],
       defguardMobile: 'Any version',
       defguardMobileFilters: [],
-      defguard: '-',
-      defguardFilters: [],
     });
   });
 
@@ -164,8 +160,6 @@ describe('posture checks page helpers', () => {
         defguardDesktopFilters: ['1.6'],
         defguardMobile: '1.7.0+',
         defguardMobileFilters: ['1.7.0'],
-        defguard: 'Pre-release allowed',
-        defguardFilters: [PostureCheckRequirement.PrereleaseAllowed],
       },
       {
         id: 100,
@@ -185,14 +179,11 @@ describe('posture checks page helpers', () => {
         defguardDesktopFilters: [],
         defguardMobile: '-',
         defguardMobileFilters: [],
-        defguard: '-',
-        defguardFilters: [],
       },
     ];
 
     expect(filterPostureChecks(rows, 'second posture')).toEqual([rows[1]]);
     expect(filterPostureChecks(rows, 'android 15+')).toEqual([rows[0]]);
-    expect(filterPostureChecks(rows, 'pre-release allowed')).toEqual([rows[0]]);
     expect(filterPostureChecks(rows, '')).toEqual(rows);
     expect(filterPostureChecks(rows, 'not-present')).toEqual([]);
   });
@@ -240,18 +231,12 @@ describe('posture checks page helpers', () => {
     expect(
       postureCheckColumnFilterOptions.defguard_mobile.map((option) => option.id),
     ).toEqual(['1.7.0']);
-    expect(postureCheckColumnFilterOptions.defguard.map((option) => option.id)).toEqual([
-      PostureCheckRequirement.PrereleaseAllowed,
-    ]);
   });
 
   it('maps typed filter values to backend request values', () => {
     expect(mapPostureCheckFilterValueToRequestValue(11)).toBe('11');
     expect(mapPostureCheckFilterValueToRequestValue(6)).toBe('6');
     expect(mapPostureCheckFilterValueToRequestValue('1.6')).toBe('1.6');
-    expect(
-      mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
-    ).toBe('Pre-release allowed');
   });
 
   it('maps an existing posture check into editable form state with assigned locations', () => {

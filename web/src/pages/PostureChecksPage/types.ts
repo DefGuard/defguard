@@ -36,7 +36,6 @@ export const PostureCheckRequirement = {
   AdJoined: 'AD joined',
   SecurityUpdates: 'Security updates',
   DeviceIntegrity: 'Device integrity',
-  PrereleaseAllowed: 'Pre-release allowed',
 } as const;
 
 export type PostureCheckRequirementValue =

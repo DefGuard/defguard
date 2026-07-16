@@ -222,21 +222,6 @@ export const PostureChecksTable = ({
           </TableCell>
         ),
       }),
-      columnHelper.accessor('defguardFilters', {
-        id: 'defguard',
-        header: 'Defguard',
-        minSize: 180,
-        enableColumnFilter: true,
-        filterFn: 'arrIncludesSome',
-        meta: {
-          filterOptions: columnFilterOptions.defguard,
-        },
-        cell: (info) => (
-          <TableCell>
-            <span>{info.row.original.defguard}</span>
-          </TableCell>
-        ),
-      }),
       columnHelper.display({
         id: 'edit',
         header: '',
