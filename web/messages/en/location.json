@@ -74,6 +74,7 @@
   "location_type_regular": "Regular",
   "location_type_prelogon": "Pre-logon",
   "location_type_always": "Always",
+  "location_service_location_missing_license": "Access restricted due to missing license.",
   "location_service_mode_regular": "Regular location",
   "location_service_mode_prelogon": "Service location: Pre-logon (Windows only)",
   "location_service_mode_always_on": "Service location: Always on (Windows, Linux)",
