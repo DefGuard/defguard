@@ -16,7 +16,8 @@ export type EditPostureCheckFormValues = {
   configuredOperatingSystems: PostureCheckOsValue[];
   description: string | null;
   locations: Set<number>;
-  minimumClientVersion: string | null;
+  minimumDesktopClientVersion: string | null;
+  minimumMobileClientVersion: string | null;
   name: string;
   operatingSystemState: Record<PostureCheckOsValue, EditPostureCheckOperatingSystemState>;
 };
@@ -127,7 +128,8 @@ export const getInitialEditPostureCheckFormValues = (
     configuredOperatingSystems: postureCheck.os_rules.map((rule) => rule.os_type),
     description: postureCheck.description,
     locations: new Set(postureCheck.locations),
-    minimumClientVersion: postureCheck.min_client_version,
+    minimumDesktopClientVersion: postureCheck.min_desktop_client_version,
+    minimumMobileClientVersion: postureCheck.min_mobile_client_version,
     name: postureCheck.name,
     operatingSystemState,
   };

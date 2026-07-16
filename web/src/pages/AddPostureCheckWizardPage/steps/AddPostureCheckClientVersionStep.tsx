@@ -16,14 +16,20 @@ type Props = {
 export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
   const back = useAddPostureCheckWizardStore((s) => s.back);
   const next = useAddPostureCheckWizardStore((s) => s.next);
-  const minimumClientVersion = useAddPostureCheckWizardStore(
-    (s) => s.minimumClientVersion,
+  const minimumDesktopClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumDesktopClientVersion,
+  );
+  const minimumMobileClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.minimumMobileClientVersion,
   );
   const allowPrereleaseClient = useAddPostureCheckWizardStore(
     (s) => s.allowPrereleaseClient,
   );
-  const setMinimumClientVersion = useAddPostureCheckWizardStore(
-    (s) => s.setMinimumClientVersion,
+  const setMinimumDesktopClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.setMinimumDesktopClientVersion,
+  );
+  const setMinimumMobileClientVersion = useAddPostureCheckWizardStore(
+    (s) => s.setMinimumMobileClientVersion,
   );
   const setAllowPrereleaseClient = useAddPostureCheckWizardStore(
     (s) => s.setAllowPrereleaseClient,
@@ -42,7 +48,8 @@ export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
     configuredOperatingSystems,
     description,
     locations: new Set<number>(),
-    minimumClientVersion,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
     name,
     operatingSystemState,
   };
@@ -55,7 +62,8 @@ export const AddPostureCheckClientVersionStep = ({ versionValues }: Props) => {
           versionValues={versionValues}
           updateValues={(updater) => {
             const nextValues = updater(values);
-            setMinimumClientVersion(nextValues.minimumClientVersion);
+            setMinimumDesktopClientVersion(nextValues.minimumDesktopClientVersion);
+            setMinimumMobileClientVersion(nextValues.minimumMobileClientVersion);
             setAllowPrereleaseClient(nextValues.allowPrereleaseClient);
           }}
         />

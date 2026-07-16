@@ -130,11 +130,18 @@ export const getAndroidSection = (
 export const getDefguardSection = (posture: ApiDevicePosture): OsSection | null => {
   const rows: OsDetailRow[] = [];
   rows.push({
-    label: 'Version',
+    label: 'Desktop client',
     value:
-      posture.min_client_version === null
+      posture.min_desktop_client_version === null
         ? m.posture_checks_version_any()
-        : `Defguard ${posture.min_client_version} and higher`,
+        : `Defguard ${posture.min_desktop_client_version} and higher`,
+  });
+  rows.push({
+    label: 'Mobile application',
+    value:
+      posture.min_mobile_client_version === null
+        ? m.posture_checks_version_any()
+        : `Defguard ${posture.min_mobile_client_version} and higher`,
   });
   if (posture.allow_prerelease_client) {
     rows.push({ label: 'Other', value: 'Pre-release allowed' });

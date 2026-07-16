@@ -85,7 +85,8 @@ const EditPostureCheckForm = ({
         allowPrereleaseClient: nextValues.allowPrereleaseClient,
         configuredOperatingSystems: nextValues.configuredOperatingSystems,
         description: nextValues.description,
-        minimumClientVersion: nextValues.minimumClientVersion,
+        minimumDesktopClientVersion: nextValues.minimumDesktopClientVersion,
+        minimumMobileClientVersion: nextValues.minimumMobileClientVersion,
         name: nextValues.name,
         operatingSystemState: nextValues.operatingSystemState,
       });

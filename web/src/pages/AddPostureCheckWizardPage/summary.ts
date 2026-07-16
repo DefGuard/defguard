@@ -99,17 +99,31 @@ export const buildOperatingSystemSummarySection = (
 };
 
 export const buildClientSummarySection = (
-  minimumClientVersion: PostureCheckDefguardVersionValue,
+  minimumDesktopClientVersion: PostureCheckDefguardVersionValue,
+  minimumMobileClientVersion: PostureCheckDefguardVersionValue,
   allowPrereleaseClient: boolean,
 ): SummarySection => {
   const lines: SummaryLine[] = [
     {
-      text:
-        minimumClientVersion === null
-          ? m.posture_checks_version_any()
-          : m.posture_checks_wizard_summary_defguard_version({
-              version: minimumClientVersion,
-            }),
+      text: m.posture_checks_wizard_summary_desktop_client_version({
+        version:
+          minimumDesktopClientVersion === null
+            ? m.posture_checks_version_any()
+            : m.posture_checks_wizard_summary_defguard_version({
+                version: minimumDesktopClientVersion,
+              }),
+      }),
+      emphasized: true,
+    },
+    {
+      text: m.posture_checks_wizard_summary_mobile_application_version({
+        version:
+          minimumMobileClientVersion === null
+            ? m.posture_checks_version_any()
+            : m.posture_checks_wizard_summary_defguard_version({
+                version: minimumMobileClientVersion,
+              }),
+      }),
       emphasized: true,
     },
   ];

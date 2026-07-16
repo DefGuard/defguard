@@ -9,32 +9,38 @@ describe('add posture check payload', () => {
         allowPrereleaseClient: false,
         configuredOperatingSystems: [PostureCheckOs.Windows, PostureCheckOs.Linux],
         description: null,
-        minimumClientVersion: null,
+        minimumDesktopClientVersion: null,
+        minimumMobileClientVersion: null,
         name: 'Any version policy',
         operatingSystemState: {
           [PostureCheckOs.Windows]: {
             conditions: ['disk-encryption'],
             securityUpdateMaxAge: null,
+            androidSecurityPatchLevelMaxAge: null,
             version: null,
           },
           [PostureCheckOs.Macos]: {
             conditions: [],
             securityUpdateMaxAge: null,
+            androidSecurityPatchLevelMaxAge: null,
             version: null,
           },
           [PostureCheckOs.Linux]: {
             conditions: [],
             securityUpdateMaxAge: null,
+            androidSecurityPatchLevelMaxAge: null,
             version: null,
           },
           [PostureCheckOs.Ios]: {
             conditions: [],
             securityUpdateMaxAge: null,
+            androidSecurityPatchLevelMaxAge: null,
             version: null,
           },
           [PostureCheckOs.Android]: {
             conditions: [],
             securityUpdateMaxAge: null,
+            androidSecurityPatchLevelMaxAge: null,
             version: null,
           },
         },
@@ -42,7 +48,8 @@ describe('add posture check payload', () => {
     ).toEqual({
       name: 'Any version policy',
       description: null,
-      min_client_version: null,
+      min_desktop_client_version: null,
+      min_mobile_client_version: null,
       allow_prerelease_client: false,
       os_rules: [
         {

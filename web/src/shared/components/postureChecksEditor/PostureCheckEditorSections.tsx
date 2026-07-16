@@ -41,7 +41,8 @@ export type PostureCheckEditorValues = {
   configuredOperatingSystems: PostureCheckOsValue[];
   description: string | null;
   locations: Set<number>;
-  minimumClientVersion: PostureCheckDefguardVersionValue;
+  minimumDesktopClientVersion: PostureCheckDefguardVersionValue;
+  minimumMobileClientVersion: PostureCheckDefguardVersionValue;
   name: string;
   operatingSystemState: Record<
     PostureCheckOsValue,
@@ -425,32 +426,54 @@ export const PostureCheckDefguardSection = ({
   values,
   versionValues,
 }: DefguardSectionProps) => {
-  const versionOptions: SelectOption<PostureCheckDefguardVersionValue>[] = [
+  const buildVersionOptions = (
+    versions: readonly string[],
+  ): SelectOption<PostureCheckDefguardVersionValue>[] => [
     {
       key: 'any',
       label: m.posture_checks_version_any(),
       value: null,
     },
-    ...versionValues.defguard.map((version) => ({
+    ...versions.map((version) => ({
       key: version,
       label: m.posture_checks_wizard_client_version_option({ version }),
       value: version,
     })),
   ];
-  const selectedVersion =
-    versionOptions.find((option) => option.value === values.minimumClientVersion) ??
-    versionOptions[0];
+
+  const desktopVersionOptions = buildVersionOptions(versionValues.defguardDesktop);
+  const mobileVersionOptions = buildVersionOptions(versionValues.defguardMobile);
+  const selectedDesktopVersion =
+    desktopVersionOptions.find(
+      (option) => option.value === values.minimumDesktopClientVersion,
+    ) ?? desktopVersionOptions[0];
+  const selectedMobileVersion =
+    mobileVersionOptions.find(
+      (option) => option.value === values.minimumMobileClientVersion,
+    ) ?? mobileVersionOptions[0];
 
   return (
     <div className="posture-check-defguard">
       <p className="note">{m.posture_checks_edit_defguard_note()}</p>
       <Select
-        options={versionOptions}
-        value={selectedVersion}
+        label={m.posture_checks_desktop_client()}
+        options={desktopVersionOptions}
+        value={selectedDesktopVersion}
         onChange={(option) => {
           updateValues((current) => ({
             ...current,
-            minimumClientVersion: option.value,
+            minimumDesktopClientVersion: option.value,
+          }));
+        }}
+      />
+      <Select
+        label={m.posture_checks_mobile_application()}
+        options={mobileVersionOptions}
+        value={selectedMobileVersion}
+        onChange={(option) => {
+          updateValues((current) => ({
+            ...current,
+            minimumMobileClientVersion: option.value,
           }));
         }}
       />

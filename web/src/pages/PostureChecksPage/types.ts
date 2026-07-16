@@ -14,7 +14,8 @@ export type PostureCheckOsVersionValue = number | null;
 export type PostureCheckDefguardVersionValue = string | null;
 
 export type PostureCheckVersionValues = Record<PostureCheckOsValue, readonly number[]> & {
-  defguard: readonly string[];
+  defguardDesktop: readonly string[];
+  defguardMobile: readonly string[];
 };
 
 export const getPostureCheckVersionValues = (
@@ -25,7 +26,8 @@ export const getPostureCheckVersionValues = (
   linux: metadata.linux_kernel_versions,
   ios: metadata.os_versions.ios,
   android: metadata.os_versions.android,
-  defguard: metadata.client_versions,
+  defguardDesktop: metadata.desktop_client_versions,
+  defguardMobile: metadata.mobile_client_versions,
 });
 
 export const PostureCheckRequirement = {

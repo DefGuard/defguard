@@ -144,13 +144,30 @@ export const getPostureCheckAssignmentSummarySections = (
   });
 
   const clientLines = [
-    postureCheck.min_client_version === null
-      ? String(m.posture_checks_version_any())
-      : String(
-          m.posture_checks_wizard_summary_defguard_version({
-            version: postureCheck.min_client_version,
-          }),
-        ),
+    String(
+      m.posture_checks_wizard_summary_desktop_client_version({
+        version:
+          postureCheck.min_desktop_client_version === null
+            ? String(m.posture_checks_version_any())
+            : String(
+                m.posture_checks_wizard_summary_defguard_version({
+                  version: postureCheck.min_desktop_client_version,
+                }),
+              ),
+      }),
+    ),
+    String(
+      m.posture_checks_wizard_summary_mobile_application_version({
+        version:
+          postureCheck.min_mobile_client_version === null
+            ? String(m.posture_checks_version_any())
+            : String(
+                m.posture_checks_wizard_summary_defguard_version({
+                  version: postureCheck.min_mobile_client_version,
+                }),
+              ),
+      }),
+    ),
     postureCheck.allow_prerelease_client
       ? String(m.posture_checks_wizard_summary_prerelease())
       : null,
