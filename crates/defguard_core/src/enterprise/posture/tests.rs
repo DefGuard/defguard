@@ -129,14 +129,15 @@ async fn save_linux_policy(
     pool: &sqlx::PgPool,
     location_id: i64,
     disk_encryption_required: Option<bool>,
-    min_client_version: Option<&str>,
+    min_desktop_client_version: Option<&str>,
     allow_prerelease_client: bool,
 ) {
     let policy = DevicePosture {
         id: defguard_common::db::NoId,
         name: "test-policy".to_owned(),
         description: None,
-        min_client_version: min_client_version.map(str::to_owned),
+        min_desktop_client_version: min_desktop_client_version.map(str::to_owned),
+        min_mobile_client_version: None,
         allow_prerelease_client,
     }
     .save(pool)
@@ -181,7 +182,8 @@ async fn save_windows_os_version_policy(
         id: defguard_common::db::NoId,
         name: "windows-os-version-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -225,7 +227,8 @@ async fn save_windows_policy(
         id: defguard_common::db::NoId,
         name: "windows-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -267,7 +270,8 @@ async fn save_android_policy(
         id: defguard_common::db::NoId,
         name: "android-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -405,7 +409,8 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
         id: defguard_common::db::NoId,
         name: "win-too-old".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -542,7 +547,8 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
         id: defguard_common::db::NoId,
         name: "kernel-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -592,7 +598,8 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
         id: defguard_common::db::NoId,
         name: "integrity-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -647,7 +654,8 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
         id: defguard_common::db::NoId,
         name: "windows-only".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -909,7 +917,8 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         id: defguard_common::db::NoId,
         name: "policy-a".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -937,7 +946,8 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         id: defguard_common::db::NoId,
         name: "policy-b".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -1078,7 +1088,8 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
         id: defguard_common::db::NoId,
         name: "kernel-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)
@@ -1131,7 +1142,8 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
         id: defguard_common::db::NoId,
         name: "integrity-policy".to_owned(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: true,
     }
     .save(&pool)

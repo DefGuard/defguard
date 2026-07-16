@@ -1755,7 +1755,8 @@ mod tests {
             id: defguard_common::db::NoId,
             name: "client-mfa-test-posture".to_owned(),
             description: None,
-            min_client_version: None,
+            min_desktop_client_version: None,
+            min_mobile_client_version: None,
             allow_prerelease_client: true,
         }
         .save(pool)

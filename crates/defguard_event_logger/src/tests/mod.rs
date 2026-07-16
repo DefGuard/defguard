@@ -399,7 +399,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         id: 1,
         name: "dp".into(),
         description: None,
-        min_client_version: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
         allow_prerelease_client: false,
     };
     let posture_snapshot = DevicePostureSnapshot {
@@ -412,7 +413,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
             id: 2,
             name: "dp2".into(),
             description: Some("desc".into()),
-            min_client_version: None,
+            min_desktop_client_version: None,
+            min_mobile_client_version: None,
             allow_prerelease_client: true,
         },
         os_rules: Vec::new(),

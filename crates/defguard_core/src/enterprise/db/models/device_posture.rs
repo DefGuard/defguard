@@ -12,7 +12,8 @@ pub struct DevicePosture<I = NoId> {
     pub id: I,
     pub name: String,
     pub description: Option<String>,
-    pub min_client_version: Option<String>,
+    pub min_desktop_client_version: Option<String>,
+    pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
 }
 

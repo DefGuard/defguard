@@ -216,7 +216,8 @@ async fn test_create_network_with_posture_checks_assigns_postures(
         .json(&json!({
             "name": "Posture 1",
             "description": null,
-            "min_client_version": null,
+            "min_desktop_client_version": null,
+            "min_mobile_client_version": null,
             "allow_prerelease_client": false,
             "os_rules": []
         }))
@@ -230,7 +231,8 @@ async fn test_create_network_with_posture_checks_assigns_postures(
         .json(&json!({
             "name": "Posture 2",
             "description": null,
-            "min_client_version": null,
+            "min_desktop_client_version": null,
+            "min_mobile_client_version": null,
             "allow_prerelease_client": false,
             "os_rules": []
         }))
