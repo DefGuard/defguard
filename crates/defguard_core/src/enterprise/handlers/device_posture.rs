@@ -524,11 +524,8 @@ fn apply_device_posture_filters(
         let mut requirements = HashSet::new();
 
         for filter in &filters.defguard {
-            match DefguardRequirementFilter::parse(filter) {
-                Some(requirement) => {
-                    requirements.insert(requirement);
-                }
-                None => {}
+            if let Some(requirement) = DefguardRequirementFilter::parse(filter) {
+                requirements.insert(requirement);
             }
         }
 
