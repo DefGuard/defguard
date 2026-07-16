@@ -712,6 +712,7 @@ pub async fn auth_callback(
         &appstate.pool,
         &appstate.gateway_tx,
         &appstate.ldap_tx,
+        &appstate.dirsync_tx,
     )
     .await
     {

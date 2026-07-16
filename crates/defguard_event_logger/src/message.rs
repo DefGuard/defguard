@@ -7,7 +7,8 @@ use defguard_common::db::{
 };
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
-    BidiStreamEventType, DesktopClientMfaEvent, GrpcRequestContext, LdapSyncEventType,
+    BidiStreamEventType, DesktopClientMfaEvent, DirectorySyncEvent, DirectorySyncEventType,
+    GrpcRequestContext, LdapSyncEventType,
 };
 use defguard_session_manager::events::{
     SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType,
@@ -32,6 +33,13 @@ pub enum Event {
         /// Read from settings at log time to pick the activity log module.
         uses_ad: bool,
         event: LdapSyncEventType,
+    },
+    OidcDirectorySync {
+        /// Name of the directory provider the change came from (e.g. `Google`,
+        /// `Microsoft`, `Okta`, `JumpCloud`). Included in the resulting activity
+        /// log entry.
+        provider: String,
+        event: DirectorySyncEventType,
     },
 }
 
@@ -117,6 +125,16 @@ impl EventLoggerMessage {
             event: Event::LdapSync { uses_ad, event },
         }
     }
+
+    /// Translate an OIDC directory sync event into a logger message.
+    #[must_use]
+    pub fn from_directory_sync_event(dirsync_event: DirectorySyncEvent) -> Self {
+        let DirectorySyncEvent { provider, event } = dirsync_event;
+        Self {
+            context: EventContext::system_oidc_directory_sync(),
+            event: Event::OidcDirectorySync { provider, event },
+        }
+    }
 }
 
 /// Extract location from an API event variant, if it carries one.
@@ -198,6 +216,18 @@ impl EventContext {
             timestamp: chrono::Utc::now().naive_utc(),
             user_id: None,
             username: "system:ldap-sync".to_owned(),
+            location: None,
+            ip: None,
+            device: "system".to_owned(),
+        }
+    }
+
+    #[must_use]
+    pub fn system_oidc_directory_sync() -> Self {
+        Self {
+            timestamp: chrono::Utc::now().naive_utc(),
+            user_id: None,
+            username: "system:oidc-directory-sync".to_owned(),
             location: None,
             ip: None,
             device: "system".to_owned(),

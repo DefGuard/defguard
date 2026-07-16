@@ -28,7 +28,7 @@ format:
 
 # lint Rust project
 lint:
-    cargo clippy --all-targets --all-features
+    cargo clippy --all-targets --all-features -- -D warnings
 
 # run all migrations
 migrate:

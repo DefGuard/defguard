@@ -31,7 +31,7 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
-    events::LdapSyncEventType,
+    events::{DirectorySyncEvent, DirectorySyncEventType, LdapSyncEventType},
     grpc::GatewayCommand,
     handlers::user::check_username,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
@@ -39,6 +39,21 @@ use crate::{
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const REQUEST_PAGINATION_SLOWDOWN: Duration = Duration::from_millis(100);
+
+fn emit_directory_sync_events(
+    dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
+    provider: &str,
+    events: Vec<DirectorySyncEventType>,
+) {
+    for event in events {
+        if let Err(err) = dirsync_tx.send(DirectorySyncEvent {
+            provider: provider.to_owned(),
+            event,
+        }) {
+            error!("Failed to send OIDC directory sync activity log event: {err}");
+        }
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {
@@ -330,6 +345,8 @@ async fn sync_user_groups<T: DirectorySync>(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
+    provider_name: &str,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing groups of user {} with the directory", user.email);
     let directory_groups = directory_sync.get_user_groups(&user.email).await?;
@@ -349,6 +366,7 @@ async fn sync_user_groups<T: DirectorySync>(
     let current_group_names: Vec<&str> = current_groups.iter().map(|g| g.name.as_str()).collect();
     let mut add_to_ldap_groups = HashSet::new();
     let mut remove_from_ldap_groups = HashSet::new();
+    let mut dirsync_events = Vec::new();
 
     debug!(
         "User {} is a member of {} groups in Defguard: {:?}",
@@ -357,10 +375,19 @@ async fn sync_user_groups<T: DirectorySync>(
         current_group_names
     );
 
-    for group in &directory_group_names {
-        if !current_group_names.contains(group) {
-            create_and_add_to_group(user, group, pool).await?;
-            add_to_ldap_groups.insert(*group);
+    for group_name in &directory_group_names {
+        if !current_group_names.contains(group_name) {
+            let (group, created) = create_and_add_to_group(user, group_name, pool).await?;
+            if created {
+                dirsync_events.push(DirectorySyncEventType::GroupCreated {
+                    group: group.clone(),
+                });
+            }
+            dirsync_events.push(DirectorySyncEventType::GroupMemberAdded {
+                group,
+                user: user.clone(),
+            });
+            add_to_ldap_groups.insert(*group_name);
         }
     }
 
@@ -372,6 +399,10 @@ async fn sync_user_groups<T: DirectorySync>(
             );
             user.remove_from_group(&mut *transaction, current_group)
                 .await?;
+            dirsync_events.push(DirectorySyncEventType::GroupMemberRemoved {
+                group: current_group.clone(),
+                user: user.clone(),
+            });
             remove_from_ldap_groups.insert(current_group.name.as_str());
         }
     }
@@ -385,6 +416,8 @@ async fn sync_user_groups<T: DirectorySync>(
         ))
         })?;
     transaction.commit().await?;
+
+    emit_directory_sync_events(dirsync_tx, provider_name, dirsync_events);
 
     let mut user_groups = HashMap::new();
     user_groups.insert(user, add_to_ldap_groups);
@@ -425,6 +458,7 @@ pub async fn sync_user_groups_if_configured(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -432,8 +466,11 @@ pub async fn sync_user_groups_if_configured(
         return Ok(());
     }
 
-    let provider = OpenIdProvider::get_current(pool).await?;
-    if !is_directory_sync_enabled(provider.as_ref()) {
+    let Some(provider) = OpenIdProvider::get_current(pool).await? else {
+        debug!("No OpenID provider configured, skipping syncing user groups");
+        return Ok(());
+    };
+    if !provider.directory_sync_enabled {
         debug!("Directory sync is disabled, skipping syncing user groups");
         return Ok(());
     }
@@ -441,7 +478,16 @@ pub async fn sync_user_groups_if_configured(
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
-            sync_user_groups(&dir_sync, user, pool, gateway_tx, ldap_tx).await?;
+            sync_user_groups(
+                &dir_sync,
+                user,
+                pool,
+                gateway_tx,
+                ldap_tx,
+                dirsync_tx,
+                &provider.name,
+            )
+            .await?;
         }
         Err(err) => {
             error!("Failed to build directory sync client: {err}");
@@ -469,20 +515,20 @@ async fn create_and_add_to_group(
     user: &User<Id>,
     group_name: &str,
     pool: &PgPool,
-) -> Result<(), DirectorySyncError> {
+) -> Result<(Group<Id>, bool), DirectorySyncError> {
     debug!(
         "Creating group {} if it doesn't exist and adding user {group_name} to it if they are not \
         already a member",
         user.email
     );
-    let group = if let Some(group) = Group::find_by_name(pool, group_name).await? {
+    let (group, created) = if let Some(group) = Group::find_by_name(pool, group_name).await? {
         debug!("Group {group_name} already exists, skipping creation");
-        group
+        (group, false)
     } else {
         debug!("Group {group_name} didn't exist, creating it now");
         let new_group = Group::new(group_name).save(pool).await?;
         debug!("Group {group_name} created");
-        new_group
+        (new_group, true)
     };
 
     debug!(
@@ -494,7 +540,7 @@ async fn create_and_add_to_group(
         "User {} was added to group {group_name} if they weren't already a member",
         user.email
     );
-    Ok(())
+    Ok((group, created))
 }
 
 /// Sync all users' groups with the directory
@@ -503,6 +549,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
+    provider_name: &str,
     all_users: Option<&[DirectoryUser]>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' groups with the directory, this may take a while...");
@@ -542,6 +590,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     }
 
     let mut affected_users = Vec::new();
+    let mut dirsync_events = Vec::new();
 
     let mut transaction = pool.begin().await?;
     debug!("User-group mapping construction done, starting to apply the changes to the database");
@@ -554,6 +603,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
         };
 
         let current_groups = user.member_of(&mut *transaction).await?;
+        let current_group_names: HashSet<&str> =
+            current_groups.iter().map(|g| g.name.as_str()).collect();
         debug!(
             "User {} is a member of {} groups in Defguard: {:?}",
             user.email,
@@ -583,6 +634,10 @@ async fn sync_all_users_groups<T: DirectorySync>(
                     user.remove_from_group(&mut *transaction, current_group)
                         .await?;
                     admin_count -= 1;
+                    dirsync_events.push(DirectorySyncEventType::GroupMemberRemoved {
+                        group: current_group.clone(),
+                        user: user.clone(),
+                    });
                 } else {
                     debug!(
                         "Removing user {} from group {} as they are not a member of it in the \
@@ -591,12 +646,27 @@ async fn sync_all_users_groups<T: DirectorySync>(
                     );
                     user.remove_from_group(&mut *transaction, current_group)
                         .await?;
+                    dirsync_events.push(DirectorySyncEventType::GroupMemberRemoved {
+                        group: current_group.clone(),
+                        user: user.clone(),
+                    });
                 }
             }
         }
 
         for group in groups {
-            create_and_add_to_group(&user, group, pool).await?;
+            let (group, created) = create_and_add_to_group(&user, group, pool).await?;
+            if created {
+                dirsync_events.push(DirectorySyncEventType::GroupCreated {
+                    group: group.clone(),
+                });
+            }
+            if !current_group_names.contains(group.name.as_str()) {
+                dirsync_events.push(DirectorySyncEventType::GroupMemberAdded {
+                    group,
+                    user: user.clone(),
+                });
+            }
         }
 
         sync_allowed_user_devices(&user, &mut transaction, gateway_tx).await.map_err(|err| {
@@ -609,6 +679,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
         affected_users.push(user);
     }
     transaction.commit().await?;
+
+    emit_directory_sync_events(dirsync_tx, provider_name, dirsync_events);
 
     Box::pin(ldap_update_users_state(
         affected_users.iter_mut().collect::<Vec<_>>(),
@@ -642,6 +714,7 @@ async fn sync_all_users_state(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
     all_users: &[DirectoryUser],
     prefetch_allowed_emails: Option<HashSet<String>>,
 ) -> Result<(), DirectorySyncError> {
@@ -679,6 +752,7 @@ async fn sync_all_users_state(
     let mut modified_users = Vec::new();
     let mut deleted_users = Vec::new();
     let mut created_users = Vec::new();
+    let mut dirsync_events = Vec::new();
     let mut user_count = get_counts().user();
     let user_limit = get_cached_license()
         .as_ref()
@@ -690,6 +764,7 @@ async fn sync_all_users_state(
         &inactive_directory_users,
         &mut modified_users,
         gateway_tx,
+        &mut dirsync_events,
     )
     .await?;
 
@@ -697,6 +772,7 @@ async fn sync_all_users_state(
         &mut transaction,
         &active_directory_users,
         &mut modified_users,
+        &mut dirsync_events,
     )
     .await?;
 
@@ -781,6 +857,9 @@ async fn sync_all_users_state(
                     }
                     let new_user = user.save(&mut *transaction).await?;
                     user_count += 1;
+                    dirsync_events.push(DirectorySyncEventType::UserCreated {
+                        user: new_user.clone(),
+                    });
                     created_users.push(new_user);
                 }
             }
@@ -831,6 +910,8 @@ async fn sync_all_users_state(
                             ))
                         })?;
                         admin_count -= 1;
+                        dirsync_events
+                            .push(DirectorySyncEventType::UserDisabled { user: user.clone() });
                         modified_users.push(user);
                     } else {
                         debug!(
@@ -851,6 +932,7 @@ async fn sync_all_users_state(
                         "Deleting admin {} because they are not present in the directory",
                         user.email
                     );
+                    dirsync_events.push(DirectorySyncEventType::UserDeleted { user: user.clone() });
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
@@ -885,6 +967,8 @@ async fn sync_all_users_state(
                                 user.email
                             ))
                         })?;
+                        dirsync_events
+                            .push(DirectorySyncEventType::UserDisabled { user: user.clone() });
                         modified_users.push(user);
                     } else {
                         debug!(
@@ -898,6 +982,7 @@ async fn sync_all_users_state(
                         "Deleting user {} because they are not present in the directory",
                         user.email
                     );
+                    dirsync_events.push(DirectorySyncEventType::UserDeleted { user: user.clone() });
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
@@ -916,6 +1001,8 @@ async fn sync_all_users_state(
 
     transaction.commit().await?;
     update_counts(pool).await?;
+
+    emit_directory_sync_events(dirsync_tx, &settings.name, dirsync_events);
 
     // trigger LDAP sync
     ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool, ldap_tx).await;
@@ -944,6 +1031,7 @@ async fn sync_inactive_directory_users(
     inactive_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
     gateway_tx: &Sender<GatewayCommand>,
+    dirsync_events: &mut Vec<DirectorySyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     // find all active Defguard users disabled in directory
     let disabled_users_emails = inactive_directory_users
@@ -976,6 +1064,7 @@ async fn sync_inactive_directory_users(
                         user.email
                     ))
                 })?;
+            dirsync_events.push(DirectorySyncEventType::UserDisabled { user: user.clone() });
             modified_users.push(user);
         } else {
             debug!("User {} is already disabled, skipping", user.email);
@@ -990,6 +1079,7 @@ async fn sync_active_directory_users(
     transaction: &mut PgConnection,
     active_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
+    dirsync_events: &mut Vec<DirectorySyncEventType>,
 ) -> Result<(), DirectorySyncError> {
     // find all inactive Defguard users enabled in directory
     let enabled_users_emails = active_directory_users
@@ -1018,6 +1108,7 @@ async fn sync_active_directory_users(
         );
         user.is_active = true;
         user.save(&mut *transaction).await?;
+        dirsync_events.push(DirectorySyncEventType::UserEnabled { user: user.clone() });
         modified_users.push(user);
     }
     debug!("Done processing active directory users");
@@ -1046,6 +1137,7 @@ pub(crate) async fn do_directory_sync(
     pool: &PgPool,
     gateway_tx: &Sender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_business_license_active() {
@@ -1066,6 +1158,7 @@ pub(crate) async fn do_directory_sync(
 
     let sync_target = provider.directory_sync_target;
     let prefetch_users = provider.prefetch_users;
+    let provider_name = provider.name.clone();
     let user_groups_filter = provider
         .directory_sync_user_groups
         .clone()
@@ -1131,8 +1224,15 @@ pub(crate) async fn do_directory_sync(
                     None
                 };
 
-                sync_all_users_state(pool, gateway_tx, ldap_tx, &users, prefetch_allowed_emails)
-                    .await?;
+                sync_all_users_state(
+                    pool,
+                    gateway_tx,
+                    ldap_tx,
+                    dirsync_tx,
+                    &users,
+                    prefetch_allowed_emails,
+                )
+                .await?;
                 all_users = Some(users);
             }
             if matches!(
@@ -1158,6 +1258,8 @@ pub(crate) async fn do_directory_sync(
                     pool,
                     gateway_tx,
                     ldap_tx,
+                    dirsync_tx,
+                    &provider_name,
                     users_to_pass.as_deref(),
                 )
                 .await?;

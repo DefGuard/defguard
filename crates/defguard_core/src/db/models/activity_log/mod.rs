@@ -17,6 +17,7 @@ pub enum ActivityLogModule {
     Posture,
     ActiveDirectory,
     Ldap,
+    OidcDirectorySync,
 }
 
 /// Represents activity log event type as it's stored in the DB
@@ -156,6 +157,14 @@ pub enum EventType {
     LdapSyncOutboundUserDisabled,
     LdapSyncOutboundGroupMemberAdded,
     LdapSyncOutboundGroupMemberRemoved,
+    // OIDC directory sync events
+    OidcDirectorySyncUserCreated,
+    OidcDirectorySyncUserDeleted,
+    OidcDirectorySyncUserEnabled,
+    OidcDirectorySyncUserDisabled,
+    OidcDirectorySyncGroupCreated,
+    OidcDirectorySyncGroupMemberAdded,
+    OidcDirectorySyncGroupMemberRemoved,
 }
 
 #[derive(Model, FromRow, Serialize)]

@@ -74,6 +74,7 @@ pub fn build_migration_webapp(
     let (webhook_tx, webhook_rx) = mpsc::unbounded_channel::<AppEvent>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+    let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
     let (gateway_tx, gateway_rx) = broadcast::channel::<GatewayCommand>(64);
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
     let (proxy_control_tx, proxy_control_rx) = mpsc::channel(32);
@@ -94,6 +95,7 @@ pub fn build_migration_webapp(
         failed_logins.clone(),
         event_tx,
         ldap_tx,
+        dirsync_tx,
         incompatible_components,
         proxy_control_tx.clone(),
         Arc::new(AtomicBool::new(false)),

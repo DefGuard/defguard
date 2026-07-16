@@ -25,7 +25,7 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::update_counts,
     },
-    events::LdapSyncEventType,
+    events::{DirectorySyncEvent, LdapSyncEventType},
     grpc::GatewayCommand,
     letsencrypt::do_letsencrypt_refresh,
     location_management::allowed_peers::get_location_allowed_peers,
@@ -51,6 +51,7 @@ pub async fn run_utility_thread(
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
     web_reload_tx: broadcast::Sender<()>,
     ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: mpsc::UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), anyhow::Error> {
     let mut last_count_update = Instant::now();
     let mut last_directory_sync = Instant::now();
@@ -66,7 +67,7 @@ pub async fn run_utility_thread(
 
     let directory_sync_task = || async {
         if let Err(e) = Box::pin(
-            do_directory_sync(pool, &gateway_tx, &ldap_tx)
+            do_directory_sync(pool, &gateway_tx, &ldap_tx, &dirsync_tx)
                 .instrument(info_span!("directory_sync_task")),
         )
         .await

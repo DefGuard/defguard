@@ -18,7 +18,7 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, WebHook},
     error::WebError,
-    events::{ApiEvent, LdapSyncEventType},
+    events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType},
     grpc::{GatewayCommand, send_gateway_command, send_multiple_gateway_commands},
     version::IncompatibleComponents,
 };
@@ -35,6 +35,7 @@ pub struct AppState {
     key: Key,
     pub event_tx: UnboundedSender<ApiEvent>,
     pub ldap_tx: UnboundedSender<LdapSyncEventType>,
+    pub dirsync_tx: UnboundedSender<DirectorySyncEvent>,
     pub incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     pub proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
     /// Reflects whether the HTTP server is currently running with TLS
@@ -125,6 +126,7 @@ impl AppState {
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
         ldap_tx: UnboundedSender<LdapSyncEventType>,
+        dirsync_tx: UnboundedSender<DirectorySyncEvent>,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
         tls_active: Arc<AtomicBool>,
@@ -140,6 +142,7 @@ impl AppState {
             key,
             event_tx,
             ldap_tx,
+            dirsync_tx,
             incompatible_components,
             proxy_control_tx,
             tls_active,

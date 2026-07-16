@@ -14,20 +14,21 @@ use defguard_core::{
             GroupAssignedMetadata, GroupMembersModifiedMetadata, GroupMetadata,
             GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
             MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
-            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
-            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
-            PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata,
-            ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
-            UserImportBlockedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata,
-            UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata,
-            VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
-            VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
-            WebHookStateChangedMetadata,
+            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
+            OidcDirectorySyncGroupMemberMetadata, OidcDirectorySyncGroupMetadata,
+            OidcDirectorySyncUserMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
+            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
+            PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata,
+            SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserImportBlockedMetadata,
+            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
+            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
+            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
     },
     events::{
         ApiEvent, ApiEventType, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
-        LdapSyncEventType, PasswordResetEvent,
+        DirectorySyncEvent, DirectorySyncEventType, LdapSyncEventType, PasswordResetEvent,
     },
 };
 use defguard_session_manager::events::{SessionManagerEvent, SessionManagerEventType};
@@ -45,25 +46,28 @@ pub mod message;
 const MESSAGE_LIMIT: usize = 100;
 
 /// Run the event logger service
+#[allow(clippy::too_many_arguments)]
 pub async fn run_event_logger(
     pool: PgPool,
     api_event_rx: UnboundedReceiver<ApiEvent>,
     bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
     ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
+    directory_sync_event_rx: UnboundedReceiver<DirectorySyncEvent>,
     activity_log_stream_reload_notify: Arc<Notify>,
     activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
     let (event_logger_tx, mut event_logger_rx) =
         tokio::sync::mpsc::unbounded_channel::<EventLoggerMessage>();
 
-    // Spawn a task that reads from all three source channels and forwards
+    // Spawn a task that reads from all source channels and forwards
     // translated messages to the internal channel.
     tokio::spawn(translate_and_forward(
         api_event_rx,
         bidi_event_rx,
         session_manager_event_rx,
         ldap_sync_event_rx,
+        directory_sync_event_rx,
         activity_log_stream_reload_notify,
         event_logger_tx,
     ));
@@ -98,6 +102,7 @@ async fn translate_and_forward(
     mut bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     mut session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
     mut ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
+    mut directory_sync_event_rx: UnboundedReceiver<DirectorySyncEvent>,
     reload_notify: Arc<Notify>,
     event_logger_tx: tokio::sync::mpsc::UnboundedSender<EventLoggerMessage>,
 ) {
@@ -117,6 +122,10 @@ async fn translate_and_forward(
             },
             event = ldap_sync_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_ldap_sync_event(e) } else {
                 error!("LDAP sync event channel closed");
+                break;
+            },
+            event = directory_sync_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_directory_sync_event(e) } else {
+                error!("OIDC directory sync event channel closed");
                 break;
             },
         };
@@ -956,6 +965,92 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 LdapSyncEventType::OutboundGroupMemberRemoved { group, username } => (
                     EventType::LdapSyncOutboundGroupMemberRemoved,
                     Some(serde_json::json!({ "group": group, "username": username })),
+                ),
+            };
+            (module, event_type, description, metadata)
+        }
+        Event::OidcDirectorySync { provider, event } => {
+            let module = ActivityLogModule::OidcDirectorySync;
+            let description = match &event {
+                DirectorySyncEventType::UserCreated { user } => {
+                    Some(format!("{provider} directory sync created user {user}"))
+                }
+                DirectorySyncEventType::UserDeleted { user } => {
+                    Some(format!("{provider} directory sync deleted user {user}"))
+                }
+                DirectorySyncEventType::UserEnabled { user } => {
+                    Some(format!("{provider} directory sync enabled user {user}"))
+                }
+                DirectorySyncEventType::UserDisabled { user } => {
+                    Some(format!("{provider} directory sync disabled user {user}"))
+                }
+                DirectorySyncEventType::GroupCreated { group } => Some(format!(
+                    "{provider} directory sync created group {}",
+                    group.name
+                )),
+                DirectorySyncEventType::GroupMemberAdded { group, user } => Some(format!(
+                    "{provider} directory sync added user {user} to group {}",
+                    group.name
+                )),
+                DirectorySyncEventType::GroupMemberRemoved { group, user } => Some(format!(
+                    "{provider} directory sync removed user {user} from group {}",
+                    group.name
+                )),
+            };
+            let (event_type, metadata) = match event {
+                DirectorySyncEventType::UserCreated { user } => (
+                    EventType::OidcDirectorySyncUserCreated,
+                    serde_json::to_value(OidcDirectorySyncUserMetadata {
+                        provider,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                DirectorySyncEventType::UserDeleted { user } => (
+                    EventType::OidcDirectorySyncUserDeleted,
+                    serde_json::to_value(OidcDirectorySyncUserMetadata {
+                        provider,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                DirectorySyncEventType::UserEnabled { user } => (
+                    EventType::OidcDirectorySyncUserEnabled,
+                    serde_json::to_value(OidcDirectorySyncUserMetadata {
+                        provider,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                DirectorySyncEventType::UserDisabled { user } => (
+                    EventType::OidcDirectorySyncUserDisabled,
+                    serde_json::to_value(OidcDirectorySyncUserMetadata {
+                        provider,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                DirectorySyncEventType::GroupCreated { group } => (
+                    EventType::OidcDirectorySyncGroupCreated,
+                    serde_json::to_value(OidcDirectorySyncGroupMetadata { provider, group }).ok(),
+                ),
+                DirectorySyncEventType::GroupMemberAdded { group, user } => (
+                    EventType::OidcDirectorySyncGroupMemberAdded,
+                    serde_json::to_value(OidcDirectorySyncGroupMemberMetadata {
+                        provider,
+                        group,
+                        user: user.into(),
+                    })
+                    .ok(),
+                ),
+                DirectorySyncEventType::GroupMemberRemoved { group, user } => (
+                    EventType::OidcDirectorySyncGroupMemberRemoved,
+                    serde_json::to_value(OidcDirectorySyncGroupMemberMetadata {
+                        provider,
+                        group,
+                        user: user.into(),
+                    })
+                    .ok(),
                 ),
             };
             (module, event_type, description, metadata)

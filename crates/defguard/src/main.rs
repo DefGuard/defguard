@@ -203,6 +203,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (session_manager_event_tx, session_manager_event_rx) =
         unbounded_channel::<SessionManagerEvent>();
     let (ldap_tx, ldap_rx) = unbounded_channel();
+    let (dirsync_tx, dirsync_rx) = unbounded_channel();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -248,6 +249,7 @@ async fn main() -> Result<(), anyhow::Error> {
             gateway_tx.clone(),
             bidi_event_tx.clone(),
             ldap_tx.clone(),
+            dirsync_tx.clone(),
             api_event_tx.clone(),
         ),
         Arc::clone(&incompatible_components),
@@ -288,6 +290,7 @@ async fn main() -> Result<(), anyhow::Error> {
             failed_logins,
             api_event_tx,
             ldap_tx.clone(),
+            dirsync_tx.clone(),
             incompatible_components,
             proxy_control_tx.clone()
         ) => bail!("Web server returned early: {res:?}"),
@@ -299,7 +302,7 @@ async fn main() -> Result<(), anyhow::Error> {
             bail!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool, proxy_control_tx.clone()) =>
             bail!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx, web_reload_tx.clone(), ldap_tx) =>
+        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx, web_reload_tx.clone(), ldap_tx, dirsync_tx) =>
             bail!("Utility thread returned early: {res:?}"),
         res = run_event_logger(
             pool.clone(),
@@ -307,6 +310,7 @@ async fn main() -> Result<(), anyhow::Error> {
             bidi_event_rx,
             session_manager_event_rx,
             ldap_rx,
+            dirsync_rx,
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_tx.clone()
         ) => bail!("Activity log event logger returned early: {res:?}"),

@@ -495,3 +495,21 @@ pub enum LdapSyncEventType {
     OutboundGroupMemberAdded { group: String, username: String },
     OutboundGroupMemberRemoved { group: String, username: String },
 }
+
+#[derive(Debug, PartialEq, EnumCount)]
+#[allow(clippy::large_enum_variant)]
+pub enum DirectorySyncEventType {
+    UserCreated { user: User<Id> },
+    UserDeleted { user: User<Id> },
+    UserEnabled { user: User<Id> },
+    UserDisabled { user: User<Id> },
+    GroupCreated { group: Group<Id> },
+    GroupMemberAdded { group: Group<Id>, user: User<Id> },
+    GroupMemberRemoved { group: Group<Id>, user: User<Id> },
+}
+
+#[derive(Debug, PartialEq)]
+pub struct DirectorySyncEvent {
+    pub provider: String,
+    pub event: DirectorySyncEventType,
+}

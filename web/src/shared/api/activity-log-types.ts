@@ -8,6 +8,7 @@ export const ActivityLogModule = {
   Posture: 'posture',
   ActiveDirectory: 'active_directory',
   Ldap: 'ldap',
+  OidcDirectorySync: 'oidc_directory_sync',
 } as const;
 
 export type ActivityLogModuleValue =
@@ -143,6 +144,14 @@ export const ActivityLogEventType = {
   LdapSyncOutboundUserDisabled: 'ldap_sync_outbound_user_disabled',
   LdapSyncOutboundGroupMemberAdded: 'ldap_sync_outbound_group_member_added',
   LdapSyncOutboundGroupMemberRemoved: 'ldap_sync_outbound_group_member_removed',
+
+  OidcDirectorySyncUserCreated: 'oidc_directory_sync_user_created',
+  OidcDirectorySyncUserDeleted: 'oidc_directory_sync_user_deleted',
+  OidcDirectorySyncUserEnabled: 'oidc_directory_sync_user_enabled',
+  OidcDirectorySyncUserDisabled: 'oidc_directory_sync_user_disabled',
+  OidcDirectorySyncGroupCreated: 'oidc_directory_sync_group_created',
+  OidcDirectorySyncGroupMemberAdded: 'oidc_directory_sync_group_member_added',
+  OidcDirectorySyncGroupMemberRemoved: 'oidc_directory_sync_group_member_removed',
 } as const;
 
 export type ActivityLogEventTypeValue =
