@@ -130,14 +130,14 @@ export const getAndroidSection = (
 export const getDefguardSection = (posture: ApiDevicePosture): OsSection | null => {
   const rows: OsDetailRow[] = [];
   rows.push({
-    label: 'Desktop client',
+    label: 'Desktop',
     value:
       posture.min_desktop_client_version === null
         ? m.posture_checks_version_any()
         : `${posture.min_desktop_client_version} and higher`,
   });
   rows.push({
-    label: 'Mobile application',
+    label: 'Mobile app',
     value:
       posture.min_mobile_client_version === null
         ? m.posture_checks_version_any()

@@ -209,7 +209,7 @@ export const PostureChecksTable = ({
       }),
       columnHelper.accessor('defguardMobileFilters', {
         id: 'defguard_mobile',
-        header: 'Mobile application',
+        header: 'Mobile app',
         minSize: 180,
         enableColumnFilter: true,
         filterFn: 'arrIncludesSome',

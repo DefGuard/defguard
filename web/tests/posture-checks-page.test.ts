@@ -85,9 +85,9 @@ describe('posture checks page helpers', () => {
       iosFilters: [17],
       android: 'Android 15+, Device integrity',
       androidFilters: [15, PostureCheckRequirement.DeviceIntegrity],
-      defguardDesktop: '1.6+',
+      defguardDesktop: 'Desktop 1.6+',
       defguardDesktopFilters: ['1.6'],
-      defguardMobile: '1.7.0+',
+      defguardMobile: 'Defguard 1.7.0+',
       defguardMobileFilters: ['1.7.0'],
     });
   });
@@ -156,9 +156,9 @@ describe('posture checks page helpers', () => {
         iosFilters: [17],
         android: 'Android 15+, Device integrity',
         androidFilters: [15, PostureCheckRequirement.DeviceIntegrity],
-        defguardDesktop: '1.6+',
+        defguardDesktop: 'Desktop 1.6+',
         defguardDesktopFilters: ['1.6'],
-        defguardMobile: '1.7.0+',
+        defguardMobile: 'Defguard 1.7.0+',
         defguardMobileFilters: ['1.7.0'],
       },
       {

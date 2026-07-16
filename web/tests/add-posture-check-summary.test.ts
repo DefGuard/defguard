@@ -31,7 +31,7 @@ describe('add posture check summary helpers', () => {
       label: 'Defguard',
       lines: [
         { emphasized: true, text: 'Desktop client: 2.0 and higher' },
-        { emphasized: true, text: 'Mobile application: 1.7.0 and higher' },
+        { emphasized: true, text: 'Mobile app: 1.7.0 and higher' },
         { text: 'Allow pre-release versions of the Defguard client.' },
       ],
     });
@@ -59,7 +59,7 @@ describe('add posture check summary helpers', () => {
       label: 'Defguard',
       lines: [
         { emphasized: true, text: 'Desktop client: Any version' },
-        { emphasized: true, text: 'Mobile application: Any version' },
+        { emphasized: true, text: 'Mobile app: Any version' },
       ],
     });
   });

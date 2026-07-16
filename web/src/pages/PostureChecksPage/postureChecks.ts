@@ -275,14 +275,14 @@ export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureChec
   defguardDesktop:
     posture.min_desktop_client_version === null
       ? m.posture_checks_version_any()
-      : `${posture.min_desktop_client_version}+`,
+      : `Desktop ${posture.min_desktop_client_version}+`,
   defguardDesktopFilters: joinFilters([
     mapVersionFilterValue(posture.min_desktop_client_version),
   ]),
   defguardMobile:
     posture.min_mobile_client_version === null
       ? m.posture_checks_version_any()
-      : `${posture.min_mobile_client_version}+`,
+      : `Defguard ${posture.min_mobile_client_version}+`,
   defguardMobileFilters: joinFilters([
     mapVersionFilterValue(posture.min_mobile_client_version),
   ]),
