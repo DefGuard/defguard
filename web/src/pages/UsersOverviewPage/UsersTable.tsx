@@ -28,6 +28,7 @@ import {
   type StartEnrollmentResponse,
   type User,
   type UserSortKey,
+  WebErrorCode,
 } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
@@ -69,6 +70,17 @@ import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 type RowData = User;
 
 const columnHelper = createColumnHelper<RowData>();
+
+const getEnableErrorMessage = (
+  code: WebErrorCode | undefined,
+  genericMessage: string,
+  licenseLimitMessage: string,
+): string => {
+  if (code === WebErrorCode.LicenseLimitReached) {
+    return licenseLimitMessage;
+  }
+  return genericMessage;
+};
 
 export const UsersTable = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -351,7 +363,7 @@ export const UsersTable = () => {
                         variant: 'critical',
                       },
                       onSuccess: () => Snackbar.default(m.users_disable_success()),
-                      onError: (msg: string) => Snackbar.error(msg),
+                      onError: () => Snackbar.error(m.users_disable_error()),
                     });
                   } else {
                     openModal(ModalName.ConfirmAction, {
@@ -369,7 +381,14 @@ export const UsersTable = () => {
                         text: m.users_row_menu_enable(),
                       },
                       onSuccess: () => Snackbar.default(m.users_enable_success()),
-                      onError: (msg: string) => Snackbar.error(msg),
+                      onError: (_msg, code) =>
+                        Snackbar.error(
+                          getEnableErrorMessage(
+                            code,
+                            m.users_enable_error(),
+                            m.users_enable_error_license_limit(),
+                          ),
+                        ),
                     });
                   }
                 },
@@ -857,7 +876,7 @@ export const UsersTable = () => {
       onSuccess: () => {
         Snackbar.default(m.users_bulk_disable_success());
       },
-      onError: (msg: string) => Snackbar.error(msg),
+      onError: () => Snackbar.error(m.users_bulk_disable_error()),
     });
   }, [authUsername, table]);
 
@@ -883,7 +902,14 @@ export const UsersTable = () => {
       onSuccess: () => {
         Snackbar.default(m.users_bulk_enable_success());
       },
-      onError: (msg: string) => Snackbar.error(msg),
+      onError: (_msg, code) =>
+        Snackbar.error(
+          getEnableErrorMessage(
+            code,
+            m.users_bulk_enable_error(),
+            m.users_bulk_enable_error_license_limit(),
+          ),
+        ),
     });
   }, [table]);
 

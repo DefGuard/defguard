@@ -14,6 +14,7 @@ import type {
   StartEnrollmentResponse,
   UpdateInfo,
   User,
+  WebErrorCode,
   Webhook,
 } from '../../api/types';
 import type { ButtonProps } from '../../defguard-ui/components/Button/types';
@@ -27,7 +28,7 @@ export interface OpenConfirmActionModal {
   submitProps?: ButtonProps;
   contentContainerProps?: HTMLProps<HTMLDivElement>;
   onSuccess?: (result: unknown) => void;
-  onError?: (message: string) => void;
+  onError?: (message: string, code?: WebErrorCode) => void;
 }
 
 export interface OpenEditDeviceModal {

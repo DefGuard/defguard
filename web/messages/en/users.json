@@ -61,6 +61,7 @@
   "users_modal_bulk_enable_content": "Are you sure you want to enable {count} selected user account(s)?",
   "users_bulk_enable_success": "Accounts enabled",
   "users_bulk_enable_error": "Failed to enable accounts",
+  "users_bulk_enable_error_license_limit": "Cannot enable these accounts: your license's user limit has been reached.",
   "users_bulk_enable_no_eligible": "All selected accounts are already enabled.",
   "users_modal_bulk_delete_title": "Delete accounts",
   "users_modal_bulk_delete_content": "Are you sure you want to delete {count} selected user account(s)? This action is irreversible.",
@@ -71,6 +72,7 @@
   "users_modal_enable_content": "Are you sure you want to enable {name} account?",
   "users_enable_success": "Account enabled",
   "users_enable_error": "Failed to enable account",
+  "users_enable_error_license_limit": "Cannot enable this account: your license's user limit has been reached.",
   "modal_edit_user_groups_title": "Edit user groups",
   "users_edit_success": "User updated",
   "users_edit_error": "Failed to update user"
