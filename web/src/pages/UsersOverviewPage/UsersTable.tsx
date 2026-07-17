@@ -351,7 +351,7 @@ export const UsersTable = () => {
                         variant: 'critical',
                       },
                       onSuccess: () => Snackbar.default(m.users_disable_success()),
-                      onError: () => Snackbar.error(m.users_disable_error()),
+                      onError: (msg: string) => Snackbar.error(msg),
                     });
                   } else {
                     openModal(ModalName.ConfirmAction, {
@@ -369,7 +369,7 @@ export const UsersTable = () => {
                         text: m.users_row_menu_enable(),
                       },
                       onSuccess: () => Snackbar.default(m.users_enable_success()),
-                      onError: () => Snackbar.error(m.users_enable_error()),
+                      onError: (msg: string) => Snackbar.error(msg),
                     });
                   }
                 },
@@ -857,7 +857,7 @@ export const UsersTable = () => {
       onSuccess: () => {
         Snackbar.default(m.users_bulk_disable_success());
       },
-      onError: () => Snackbar.error(m.users_bulk_disable_error()),
+      onError: (msg: string) => Snackbar.error(msg),
     });
   }, [authUsername, table]);
 
@@ -883,7 +883,7 @@ export const UsersTable = () => {
       onSuccess: () => {
         Snackbar.default(m.users_bulk_enable_success());
       },
-      onError: () => Snackbar.error(m.users_bulk_enable_error()),
+      onError: (msg: string) => Snackbar.error(msg),
     });
   }, [table]);
 
