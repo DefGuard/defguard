@@ -976,14 +976,19 @@ pub(crate) async fn modify_user(
         // check if re-enabling a disabled user will go over license limits
         if !user.is_active && user_info.is_active {
             let user_count = get_counts().user();
-
-            if get_cached_license()
+            let user_limit = get_cached_license()
                 .as_ref()
                 .and_then(|l| l.limits.as_ref())
-                .is_some_and(|l| user_count >= l.users)
+                .map(|l| l.users);
+
+            if let Some(limit) = user_limit
+                && user_count >= limit
             {
-                error!("Enabling user {username} blocked! License limit reached.");
-                return Ok(WebError::Forbidden("License limit reached").into());
+                error!("Enabling user {username} blocked. License limit reached.");
+                return Ok(WebError::LicenseLimitReached(format!(
+                    "Cannot enable user {username}: license user limit reached ({user_count}/{limit})"
+                ))
+                .into());
             }
         }
 
@@ -1791,17 +1796,23 @@ pub(crate) async fn bulk_enable_users(
     let to_enable_count = users.iter().filter(|user| !user.is_active).count() as u32;
     if to_enable_count > 0 {
         let user_count = get_counts().user();
-
-        if get_cached_license()
+        let user_limit = get_cached_license()
             .as_ref()
             .and_then(|l| l.limits.as_ref())
-            .is_some_and(|l| user_count + to_enable_count > l.users)
+            .map(|l| l.users);
+
+        if let Some(limit) = user_limit
+            && user_count + to_enable_count > limit
         {
             error!(
                 "User {} bulk-enabling users blocked! License limit reached.",
                 session.user.username
             );
-            return Ok(WebError::Forbidden("License limit reached").into());
+            return Ok(WebError::LicenseLimitReached(format!(
+                "Cannot enable {to_enable_count} user(s): license user limit reached \
+                ({user_count}/{limit})"
+            ))
+            .into());
         }
     }
 
