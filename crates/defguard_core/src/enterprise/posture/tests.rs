@@ -1,5 +1,6 @@
 use chrono::{TimeDelta, Utc};
 use defguard_common::db::{
+    Id, NoId,
     models::{
         WireguardNetwork,
         wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -10,7 +11,7 @@ use defguard_proto::enterprise::posture::{
     BoolCheck, DevicePostureCheckRequest, DevicePostureData, Int32Check, StringCheck,
     UnavailableReason, bool_check, int32_check, string_check,
 };
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 
 use crate::{
     enterprise::{
@@ -49,7 +50,7 @@ fn set_enterprise_license() {
     set_counts(Counts::new(1, 1, 1, 1));
 }
 
-async fn create_location(pool: &sqlx::PgPool) -> i64 {
+async fn create_location(pool: &PgPool) -> Id {
     WireguardNetwork::new(
         "test-location".to_owned(),
         51820,
@@ -116,7 +117,7 @@ fn windows_posture_data() -> DevicePostureData {
     }
 }
 
-fn make_request(location_id: i64, data: Option<DevicePostureData>) -> DevicePostureCheckRequest {
+fn make_request(location_id: Id, data: Option<DevicePostureData>) -> DevicePostureCheckRequest {
     DevicePostureCheckRequest {
         location_id,
         pubkey: "testpubkey".to_owned(),
@@ -126,14 +127,14 @@ fn make_request(location_id: i64, data: Option<DevicePostureData>) -> DevicePost
 
 /// Creates a Linux posture policy with no OS version requirement (Linux has no version list).
 async fn save_linux_policy(
-    pool: &sqlx::PgPool,
-    location_id: i64,
+    pool: &PgPool,
+    location_id: Id,
     disk_encryption_required: Option<bool>,
     min_desktop_client_version: Option<&str>,
     allow_prerelease_client: bool,
 ) {
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "test-policy".to_owned(),
         description: None,
         min_desktop_client_version: min_desktop_client_version.map(str::to_owned),
@@ -145,7 +146,7 @@ async fn save_linux_policy(
     .unwrap();
 
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Linux,
         min_os_version: None,
@@ -173,13 +174,13 @@ async fn save_linux_policy(
 /// Creates a Windows posture policy requiring a minimum OS major version.
 /// Windows has a known version list `[10, 11]`, making it suitable for OS version tests.
 async fn save_windows_os_version_policy(
-    pool: &sqlx::PgPool,
-    location_id: i64,
+    pool: &PgPool,
+    location_id: Id,
     min_os_version: i32,
     disk_encryption_required: Option<bool>,
 ) {
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "windows-os-version-policy".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -191,7 +192,7 @@ async fn save_windows_os_version_policy(
     .unwrap();
 
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Windows,
         min_os_version: Some(min_os_version),
@@ -216,16 +217,10 @@ async fn save_windows_os_version_policy(
     .unwrap();
 }
 
-async fn save_windows_policy(
-    pool: &sqlx::PgPool,
-    location_id: i64,
-    antivirus_required: Option<bool>,
-    ad_domain_joined_required: Option<bool>,
-    windows_security_update_max_age: Option<i32>,
-) {
+async fn save_macos_policy(pool: &PgPool, location_id: Id) {
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
-        name: "windows-policy".to_owned(),
+        id: NoId,
+        name: "macos-policy".into(),
         description: None,
         min_desktop_client_version: None,
         min_mobile_client_version: None,
@@ -236,7 +231,52 @@ async fn save_windows_policy(
     .unwrap();
 
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
+        posture_id: policy.id,
+        os_type: OsType::Macos,
+        min_os_version: Some(15),
+        disk_encryption_required: None,
+        antivirus_required: None,
+        ad_domain_joined_required: None,
+        windows_security_update_max_age: None,
+        min_kernel_version: None,
+        device_integrity_required: None,
+        android_security_patch_level_max_age: None,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureLocation::set_for_location(
+        &mut pool.acquire().await.unwrap(),
+        location_id,
+        &[policy.id],
+    )
+    .await
+    .unwrap();
+}
+
+async fn save_windows_policy(
+    pool: &PgPool,
+    location_id: Id,
+    antivirus_required: Option<bool>,
+    ad_domain_joined_required: Option<bool>,
+    windows_security_update_max_age: Option<i32>,
+) {
+    let policy = DevicePosture {
+        id: NoId,
+        name: "windows-policy".into(),
+        description: None,
+        min_desktop_client_version: None,
+        min_mobile_client_version: None,
+        allow_prerelease_client: true,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+
+    DevicePostureOsRule {
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Windows,
         min_os_version: None,
@@ -262,13 +302,13 @@ async fn save_windows_policy(
 }
 
 async fn save_android_policy(
-    pool: &sqlx::PgPool,
-    location_id: i64,
+    pool: &PgPool,
+    location_id: Id,
     android_security_patch_level_max_age: Option<i32>,
 ) {
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
-        name: "android-policy".to_owned(),
+        id: NoId,
+        name: "android-policy".into(),
         description: None,
         min_desktop_client_version: None,
         min_mobile_client_version: None,
@@ -279,7 +319,7 @@ async fn save_android_policy(
     .unwrap();
 
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Android,
         min_os_version: None,
@@ -304,13 +344,13 @@ async fn save_android_policy(
     .unwrap();
 }
 
-async fn save_desktop_mobile_client_version_policy(pool: &sqlx::PgPool, location_id: i64) {
+async fn save_desktop_mobile_client_version_policy(pool: &PgPool, location_id: Id) {
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
-        name: "desktop-mobile-client-version-policy".to_owned(),
+        id: NoId,
+        name: "desktop-mobile-client-version-policy".into(),
         description: None,
-        min_desktop_client_version: Some("2.1".to_owned()),
-        min_mobile_client_version: Some("1.7.0".to_owned()),
+        min_desktop_client_version: Some("2.1".into()),
+        min_mobile_client_version: Some("1.7.0".into()),
         allow_prerelease_client: true,
     }
     .save(pool)
@@ -319,7 +359,7 @@ async fn save_desktop_mobile_client_version_policy(pool: &sqlx::PgPool, location
 
     for os_type in [OsType::Linux, OsType::Android] {
         DevicePostureOsRule {
-            id: defguard_common::db::NoId,
+            id: NoId,
             posture_id: policy.id,
             os_type,
             min_os_version: None,
@@ -420,6 +460,28 @@ async fn pass_boundary_os_version_exact(_: PgPoolOptions, options: PgConnectOpti
 }
 
 #[sqlx::test]
+async fn pass_macos_version(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_enterprise_license();
+    let location_id = create_location(&pool).await;
+
+    save_macos_policy(&pool, location_id).await;
+
+    let data = DevicePostureData {
+        defguard_client_version: "1.6.0".into(),
+        os_type: "macos".into(),
+        os_version: Some(string_check_value("26.0")),
+        ..Default::default()
+    };
+
+    let result = validate_posture(&pool, &make_request(location_id, Some(data)))
+        .await
+        .unwrap();
+
+    assert!(matches!(result, super::PostureResult::Pass));
+}
+
+#[sqlx::test]
 async fn fail_missing_posture_data(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_enterprise_license();
@@ -447,7 +509,7 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
 
     // Windows policy requiring 11 - device reports 10 (known, but too old).
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "win-too-old".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -458,7 +520,7 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Windows,
         min_os_version: Some(11),
@@ -634,7 +696,7 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
     let location_id = create_location(&pool).await;
 
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "kernel-policy".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -645,7 +707,7 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Linux,
         min_os_version: None,
@@ -685,7 +747,7 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
     let location_id = create_location(&pool).await;
 
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "integrity-policy".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -696,7 +758,7 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Macos,
         min_os_version: None,
@@ -741,7 +803,7 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Policy only has a Windows rule; device reports Linux.
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "windows-only".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -752,7 +814,7 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Windows,
         min_os_version: None,
@@ -1004,7 +1066,7 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
 
     // Policy A: passes (no strict requirements).
     let policy_a = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "policy-a".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -1015,7 +1077,7 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy_a.id,
         os_type: OsType::Linux,
         min_os_version: None,
@@ -1033,7 +1095,7 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
 
     // Policy B: requires disk encryption — will fail.
     let policy_b = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "policy-b".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -1044,7 +1106,7 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy_b.id,
         os_type: OsType::Linux,
         min_os_version: None,
@@ -1175,7 +1237,7 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     let location_id = create_location(&pool).await;
 
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "kernel-policy".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -1186,7 +1248,7 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Linux,
         min_os_version: None,
@@ -1229,7 +1291,7 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
     let location_id = create_location(&pool).await;
 
     let policy = DevicePosture {
-        id: defguard_common::db::NoId,
+        id: NoId,
         name: "integrity-policy".to_owned(),
         description: None,
         min_desktop_client_version: None,
@@ -1240,7 +1302,7 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
     .await
     .unwrap();
     DevicePostureOsRule {
-        id: defguard_common::db::NoId,
+        id: NoId,
         posture_id: policy.id,
         os_type: OsType::Macos,
         min_os_version: None,

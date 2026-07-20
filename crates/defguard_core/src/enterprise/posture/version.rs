@@ -12,7 +12,7 @@ pub(super) fn parse_version_lenient(s: &str) -> Option<Version> {
         p.parse::<u64>()
             .map_or_else(|_| p.to_owned(), |n| n.to_string())
     };
-    let parts: Vec<&str> = s.splitn(3, '.').collect();
+    let parts = s.splitn(3, '.').collect::<Vec<_>>();
     let padded = match parts.len() {
         1 => format!("{}.0.0", normalize(parts[0])),
         2 => format!("{}.{}.0", normalize(parts[0]), normalize(parts[1])),
