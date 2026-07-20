@@ -1,7 +1,7 @@
 use defguard_common::db::Id;
 use defguard_proto::enterprise::posture::{
-    DevicePostureCheckRequest, DevicePostureData, UnavailableReason,
-    bool_check::Result as BoolResult, int32_check::Result as Int32Result,
+    BoolCheck, DevicePostureCheckRequest, DevicePostureData, Int32Check, StringCheck,
+    UnavailableReason, bool_check::Result as BoolResult, int32_check::Result as Int32Result,
     string_check::Result as StringResult,
 };
 use sqlx::PgPool;
@@ -24,7 +24,7 @@ use crate::enterprise::{
 /// - `NotApplicable` → Ok(true)  (not applicable means the check is irrelevant for this OS)
 /// - `InsufficientPermissions` / `DetectionFailed` / absent → Err(check_name)
 fn resolve_bool_check(
-    signal: Option<&defguard_proto::enterprise::posture::BoolCheck>,
+    signal: Option<&BoolCheck>,
     check_name: &'static str,
 ) -> Result<bool, &'static str> {
     match signal.and_then(|c| c.result.as_ref()) {
@@ -41,7 +41,7 @@ fn resolve_bool_check(
 /// Returns `None` when the value is `NotApplicable` (skip the check silently).
 /// Returns `Err(check_name)` for unresolvable unavailability or absent field.
 fn resolve_string_check(
-    signal: Option<&defguard_proto::enterprise::posture::StringCheck>,
+    signal: Option<&StringCheck>,
     check_name: &'static str,
 ) -> Result<Option<String>, &'static str> {
     match signal.and_then(|c| c.result.as_ref()) {
@@ -58,7 +58,7 @@ fn resolve_string_check(
 /// Returns `None` when the value is `NotApplicable` (skip the check silently).
 /// Returns `Err(check_name)` for unresolvable unavailability or absent field.
 fn resolve_int32_check(
-    signal: Option<&defguard_proto::enterprise::posture::Int32Check>,
+    signal: Option<&Int32Check>,
     check_name: &'static str,
 ) -> Result<Option<i32>, &'static str> {
     match signal.and_then(|c| c.result.as_ref()) {
@@ -89,7 +89,7 @@ fn parse_os_type(s: &str) -> Option<OsType> {
 /// the same major release as the policy minimum always passes regardless of
 /// minor or patch differences. Client version comparisons use full semver.
 fn evaluate_os_rule(
-    rule: &DevicePostureOsRule<defguard_common::db::Id>,
+    rule: &DevicePostureOsRule<Id>,
     data: &DevicePostureData,
     failures: &mut Vec<FailureReason>,
 ) {
