@@ -522,6 +522,7 @@ pub async fn mfa_activation_mail(
     first_name: &str,
     code: &str,
     session: Option<&SessionContext>,
+    send_and_forget: bool,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
     let settings = Settings::get_current_settings();
@@ -538,7 +539,11 @@ pub async fn mfa_activation_mail(
 
     let message = MailMessage::MFAActivation;
     message.fill_context(conn, &mut context).await?;
-    message.mail(&mut tera, &context, to)?.send().await?;
+    if send_and_forget {
+        message.mail(&mut tera, &context, to)?.send_and_forget();
+    } else {
+        message.mail(&mut tera, &context, to)?.send().await?;
+    }
 
     Ok(())
 }
@@ -549,6 +554,7 @@ pub async fn mfa_code_mail(
     first_name: &str,
     code: &str,
     session: Option<&SessionContext>,
+    send_and_forget: bool,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
     let settings = Settings::get_current_settings();
@@ -565,7 +571,11 @@ pub async fn mfa_code_mail(
 
     let message = MailMessage::MFACode;
     message.fill_context(conn, &mut context).await?;
-    message.mail(&mut tera, &context, to)?.send().await?;
+    if send_and_forget {
+        message.mail(&mut tera, &context, to)?.send_and_forget();
+    } else {
+        message.mail(&mut tera, &context, to)?.send().await?;
+    }
 
     Ok(())
 }

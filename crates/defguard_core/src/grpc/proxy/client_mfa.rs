@@ -372,15 +372,22 @@ impl ClientMfaServer {
                     error!("Database error: {err}");
                     Status::internal("database error")
                 })?;
-                mfa_code_mail(&user.email, &mut transaction, &user.first_name, &code, None)
-                    .await
-                    .map_err(|err| {
-                        error!(
-                            "Failed to send email MFA code for user {}: {err}",
-                            user.username
-                        );
-                        Status::internal("unexpected error")
-                    })?;
+                mfa_code_mail(
+                    &user.email,
+                    &mut transaction,
+                    &user.first_name,
+                    &code,
+                    None,
+                    true,
+                )
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to send email MFA code for user {}: {err}",
+                        user.username
+                    );
+                    Status::internal("unexpected error")
+                })?;
             }
             MfaMethod::Oidc => {
                 if !is_business_license_active() {

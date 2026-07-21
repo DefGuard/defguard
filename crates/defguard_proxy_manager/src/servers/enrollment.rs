@@ -1061,12 +1061,19 @@ impl EnrollmentServer {
                     error!("Failed to generate MFA code for {user}\nReason:{err}");
                     Status::internal("Failed to generate MFA code".to_owned())
                 })?;
-                mfa_activation_mail(&user.email, &mut transaction, &user.first_name, &code, None)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to send MFA activation email\nReason:{err}");
-                        Status::internal("Failed to send activation email".to_owned())
-                    })?;
+                mfa_activation_mail(
+                    &user.email,
+                    &mut transaction,
+                    &user.first_name,
+                    &code,
+                    None,
+                    true,
+                )
+                .await
+                .map_err(|err| {
+                    error!("Failed to send MFA activation email\nReason:{err}");
+                    Status::internal("Failed to send activation email".to_owned())
+                })?;
                 Ok(CodeMfaSetupStartResponse { totp_secret: None })
             }
             MfaMethod::Totp => {
