@@ -1,5 +1,5 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use rsa::traits::PublicKeyParts;
+use rsa::{BigUint, RsaPrivateKey, traits::PublicKeyParts};
 use sha2::{Digest, Sha256};
 
 pub mod auth;
@@ -43,9 +43,17 @@ pub const KEY_LENGTH: usize = 32;
 /// Compute the RFC 7638 JWK thumbprint for an RSA private key.
 ///
 /// Used as the key ID (`kid`) for OpenID Connect signing keys.
-pub fn rsa_jwk_thumbprint(key: &rsa::RsaPrivateKey) -> String {
-    let n = URL_SAFE_NO_PAD.encode(key.n().to_bytes_be());
-    let e = URL_SAFE_NO_PAD.encode(key.e().to_bytes_be());
+pub fn rsa_jwk_thumbprint(key: &RsaPrivateKey) -> String {
+    rsa_jwk_thumbprint_from_public(key.n(), key.e())
+}
+
+/// Compute the RFC 7638 JWK thumbprint from an RSA public modulus and exponent.
+///
+/// The JWK members are emitted in the lexicographic order required by
+/// RFC 7638 (`e`, `kty`, `n`) with no whitespace; do not reorder or reformat.
+fn rsa_jwk_thumbprint_from_public(n: &BigUint, e: &BigUint) -> String {
+    let n = URL_SAFE_NO_PAD.encode(n.to_bytes_be());
+    let e = URL_SAFE_NO_PAD.encode(e.to_bytes_be());
     let canonical = format!(r#"{{"e":"{e}","kty":"RSA","n":"{n}"}}"#);
     let digest = Sha256::digest(canonical.as_bytes());
     URL_SAFE_NO_PAD.encode(digest)
@@ -55,10 +63,9 @@ pub fn rsa_jwk_thumbprint(key: &rsa::RsaPrivateKey) -> String {
 mod tests {
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
     use rand::rngs::OsRng;
-    use rsa::RsaPrivateKey;
-    use sha2::{Digest, Sha256};
+    use rsa::{BigUint, RsaPrivateKey};
 
-    use super::resolve_reported_version;
+    use super::{resolve_reported_version, rsa_jwk_thumbprint_from_public};
 
     #[test]
     fn reported_version_uses_build_override_for_prereleases_and_falls_back_otherwise() {
@@ -72,17 +79,18 @@ mod tests {
 
     #[test]
     fn test_rfc7638_thumbprint_known_answer() {
-        // RFC 7638 section 3.1 known values
+        // RFC 7638 section 3.1 known values (the JWK from RFC 7517 appendix A.1).
         let n_b64u = "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw";
         let e_b64u = "AQAB";
         let expected = "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs";
 
-        // Build canonical JSON exactly as the helper does
-        let canonical = format!(r#"{{"e":"{e_b64u}","kty":"RSA","n":"{n_b64u}"}}"#);
-        let digest = Sha256::digest(canonical.as_bytes());
-        let thumbprint = URL_SAFE_NO_PAD.encode(digest);
+        // Feed the known public parameters through the shipped helper so a
+        // regression in its canonicalization (member order, key names,
+        // encoding) is caught against the RFC's golden thumbprint.
+        let n = BigUint::from_bytes_be(&URL_SAFE_NO_PAD.decode(n_b64u).expect("valid base64url"));
+        let e = BigUint::from_bytes_be(&URL_SAFE_NO_PAD.decode(e_b64u).expect("valid base64url"));
 
-        assert_eq!(thumbprint, expected);
+        assert_eq!(rsa_jwk_thumbprint_from_public(&n, &e), expected);
     }
 
     #[test]
