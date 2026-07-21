@@ -95,7 +95,7 @@ jobs:
           tool: cargo-deny
 
       - name: Run cargo deny
-        run: cargo deny check
+        run: cargo deny check --hide-inclusion-graph
 
       - name: Show sccache stats
         if: always()
