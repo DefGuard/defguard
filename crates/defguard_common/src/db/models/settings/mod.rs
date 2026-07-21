@@ -7,7 +7,6 @@ use rsa::{
     RsaPrivateKey,
     pkcs1::EncodeRsaPrivateKey,
     pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding},
-    traits::PublicKeyParts,
 };
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -22,7 +21,8 @@ use webauthn_rs::prelude::WebauthnBuilder;
 
 use self::smtp::{SmtpAuthentication, SmtpEncryption, SmtpSettings, SmtpSettingsPatch};
 use crate::{
-    config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
+    config::DefGuardConfig, db::Id, global_value, rsa_jwk_thumbprint, secret::SecretStringWrapper,
+    types::AuthFlowType,
 };
 
 pub mod smtp;
@@ -418,7 +418,7 @@ impl Settings {
         let key_der = self.openid_signing_key_der.as_deref()?;
         let key = RsaPrivateKey::from_pkcs8_der(key_der).ok()?;
         let pem = key.to_pkcs1_pem(LineEnding::default()).ok()?;
-        let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
+        let key_id = JsonWebKeyId::new(rsa_jwk_thumbprint(&key));
         CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
     }
 
