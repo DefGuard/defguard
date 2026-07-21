@@ -9,7 +9,6 @@ use rsa::{
     RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
-    traits::PublicKeyParts,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
@@ -17,6 +16,7 @@ use serde::Serialize;
 use crate::{
     VERSION,
     db::{Id, models::Settings},
+    rsa_jwk_thumbprint,
 };
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
@@ -344,7 +344,7 @@ impl DefGuardConfig {
         #[allow(deprecated)]
         let key = self.openid_signing_key.as_ref()?;
         if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
-            let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
+            let key_id = JsonWebKeyId::new(rsa_jwk_thumbprint(key));
             CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
         } else {
             None
