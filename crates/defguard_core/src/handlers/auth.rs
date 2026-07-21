@@ -826,6 +826,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
         &user.first_name,
         &code,
         Some(&session.session.into()),
+        false,
     )
     .await?;
 
@@ -904,6 +905,7 @@ pub async fn request_email_mfa_code(
                 &user.first_name,
                 &code,
                 Some(&session.into()),
+                false,
             )
             .await?;
             info!("Sent email MFA code for user {}", user.username);

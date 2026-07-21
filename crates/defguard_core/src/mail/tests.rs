@@ -139,6 +139,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
         first_name,
         code,
         None,
+        true,
     )
     .await
     .unwrap();
@@ -184,6 +185,7 @@ fn send_mfa_activation(_: PgPoolOptions, options: PgConnectOptions) {
         first_name,
         code,
         None,
+        true,
     )
     .await
     .unwrap();
