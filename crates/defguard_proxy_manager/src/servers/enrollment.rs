@@ -1047,8 +1047,8 @@ impl EnrollmentServer {
                     error!("Failed to create email secret");
                     Status::internal("Failed to setup email mfa".to_owned())
                 })?;
-                user.clear_recovery_codes(&self.pool).await.map_err(|_| {
-                    error!("Failed to clear recovery codes");
+                user.clear_recovery_codes(&self.pool).await.map_err(|e| {
+                    error!("Failed to clear recovery codes: {e}");
                     Status::internal("Failed to clear recovery codes".to_owned())
                 })?;
                 info!("Created email secret for {}", &user.username);
@@ -1080,8 +1080,8 @@ impl EnrollmentServer {
                     error!("Failed to make new TOTP secret");
                     Status::internal("Failed to make new TOTP secret".to_owned())
                 })?;
-                user.clear_recovery_codes(&self.pool).await.map_err(|_| {
-                    error!("Failed to clear recovery codes");
+                user.clear_recovery_codes(&self.pool).await.map_err(|e| {
+                    error!("Failed to clear recovery codes: {e}");
                     Status::internal("Failed to clear recovery codes".to_owned())
                 })?;
                 info!("New TOTP secret created for {}", &user.username);
