@@ -108,7 +108,10 @@ export const EditOktaProviderForm = ({
       onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
-      const normalized = { ...value, directory_sync_user_groups: value.directory_sync_user_groups ?? '' };
+      const normalized = {
+        ...value,
+        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
+      };
       if (
         'okta_private_jwk' in normalized &&
         normalized.okta_private_jwk.trim().length === 0
