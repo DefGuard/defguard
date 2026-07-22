@@ -234,7 +234,7 @@ impl EnrollmentServer {
                 user.username, user.id
             );
             let (username, user_id) = (user.username.clone(), user.id);
-            let user_info = initial_info_from_user(&self.pool, user)
+            let user_info = initial_info_from_user(&self.pool, &user)
                 .await
                 .map_err(|err| {
                     error!(
@@ -1164,7 +1164,7 @@ impl EnrollmentServer {
 
 async fn initial_info_from_user(
     pool: &PgPool,
-    user: User<Id>,
+    user: &User<Id>,
 ) -> Result<InitialUserInfo, sqlx::Error> {
     let enrolled = user.is_enrolled();
     let devices = user.user_devices(pool).await?;
@@ -1176,11 +1176,11 @@ async fn initial_info_from_user(
     let password_management_disabled =
         user.password_management_disabled(is_admin, &settings, oidc_disable_password_management);
     Ok(InitialUserInfo {
-        first_name: user.first_name,
-        last_name: user.last_name,
-        login: user.username,
-        email: user.email,
-        phone_number: user.phone,
+        first_name: user.first_name.clone(),
+        last_name: user.last_name.clone(),
+        login: user.username.clone(),
+        email: user.email.clone(),
+        phone_number: user.phone.clone(),
         is_active: user.is_active,
         device_names,
         enrolled,

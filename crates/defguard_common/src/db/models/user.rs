@@ -409,9 +409,8 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         query!(
-            "UPDATE \"user\" SET recovery_codes = $2 WHERE id = $1",
+            "UPDATE \"user\" SET recovery_codes = '{}' WHERE id = $1",
             self.id,
-            &self.recovery_codes
         )
         .execute(executor)
         .await?;
