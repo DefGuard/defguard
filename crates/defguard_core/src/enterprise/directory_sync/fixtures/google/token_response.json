@@ -1,0 +1,6 @@
+{
+  "access_token": "ya29.c.b0Aaekm1KfR7fake_opaque_token_value",
+  "scope": "https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
