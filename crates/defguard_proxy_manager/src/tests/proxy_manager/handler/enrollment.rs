@@ -30,7 +30,8 @@ use super::support::{
     create_enrollment_token, create_network, create_polling_token, create_user,
     create_user_with_device, insert_acl_rule_for_network, make_device_info, send_activate_user,
     send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
-    set_test_license_enterprise, start_enrollment_session, totp_code_from_base32_secret,
+    set_test_license_enterprise, setup_user_totp_mfa, start_enrollment_session,
+    totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -602,6 +603,74 @@ async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
         updated.mfa_enabled,
         "mfa_enabled must be true after CodeMfaSetupFinish"
     );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_code_mfa_setup_finish_totp_recreates_recovery_codes_for_reenrollment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mut user = create_user(&context.pool).await;
+    user.set_password("OldPassw0rd!");
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    user.enable_mfa(&context.pool).await.expect("enable_mfa");
+    let old_recovery_codes = user
+        .get_recovery_codes(&context.pool)
+        .await
+        .expect("get_recovery_codes")
+        .expect("recovery codes should be created");
+    user.enrollment_pending = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save re-enrolling user");
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let start_resp = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Totp).await;
+    let totp_secret_b32 = match &start_resp.payload {
+        Some(core_response::Payload::CodeMfaSetupStartResponse(r)) => r
+            .totp_secret
+            .clone()
+            .expect("TOTP start must include a secret"),
+        other => panic!(
+            "expected CodeMfaSetupStartResponse, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    };
+    let code = totp_code_from_base32_secret(&totp_secret_b32);
+
+    let finish_resp =
+        send_code_mfa_setup_finish(&mut context, &token.id, MfaMethod::Totp, &code).await;
+    let new_recovery_codes = match &finish_resp.payload {
+        Some(core_response::Payload::CodeMfaSetupFinishResponse(r)) => r.recovery_codes.clone(),
+        Some(core_response::Payload::CoreError(e)) => {
+            panic!(
+                "expected CodeMfaSetupFinishResponse, got CoreError: {}",
+                e.message
+            )
+        }
+        other => panic!(
+            "expected CodeMfaSetupFinishResponse, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    };
+
+    assert!(!new_recovery_codes.is_empty());
+    assert_ne!(old_recovery_codes, new_recovery_codes);
+
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(updated.totp_enabled);
+    assert!(updated.mfa_enabled);
+    assert_eq!(updated.recovery_codes, new_recovery_codes);
 
     context.finish().await.expect_server_finished().await;
 }

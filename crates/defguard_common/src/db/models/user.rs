@@ -403,6 +403,22 @@ impl User<Id> {
         Ok(())
     }
 
+    /// Clear recovery codes so they can be regenerated after MFA is reconfigured.
+    pub async fn clear_recovery_codes<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "UPDATE \"user\" SET recovery_codes = '{}' WHERE id = $1",
+            self.id,
+        )
+        .execute(executor)
+        .await?;
+        self.recovery_codes.clear();
+
+        Ok(())
+    }
+
     pub async fn set_mfa_method<'e, E>(
         &mut self,
         executor: E,
