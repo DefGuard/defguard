@@ -39,7 +39,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     enterprise::{
-        db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
+        db::models::openid_provider::OpenIdProvider,
         directory_sync::{sync_user_groups_if_configured, user_in_directory_groups},
         ldap::utils::ldap_update_user_state,
         license::get_cached_license,
@@ -360,7 +360,6 @@ pub async fn user_from_claims(
                         .directory_sync_user_groups
                         .as_ref()
                         .filter(|groups| !groups.is_empty())
-                    && provider.kind == OpenIdProviderKind::Microsoft
                 {
                     let in_groups = user_in_directory_groups(pool, email, user_groups_filter)
                             .await

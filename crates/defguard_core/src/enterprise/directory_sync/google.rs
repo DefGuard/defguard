@@ -56,6 +56,9 @@ pub(crate) struct GoogleDirectorySync {
     access_token: Option<String>,
     token_expiry: Option<DateTime<Utc>>,
     admin_email: String,
+    access_token_url: String,
+    groups_url: String,
+    all_users_url: String,
 }
 
 /// Google Directory API responses
@@ -143,7 +146,19 @@ impl GoogleDirectorySync {
             access_token: None,
             token_expiry: None,
             admin_email: admin_email.into(),
+            access_token_url: ACCESS_TOKEN_URL.into(),
+            groups_url: GROUPS_URL.into(),
+            all_users_url: ALL_USERS_URL.into(),
         }
+    }
+
+    /// Overrides the Google API URLs so tests can point them at a mock server.
+    #[cfg(test)]
+    fn with_urls(mut self, access_token_url: &str, groups_url: &str, all_users_url: &str) -> Self {
+        self.access_token_url = access_token_url.into();
+        self.groups_url = groups_url.into();
+        self.all_users_url = all_users_url.into();
+        self
     }
 
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
@@ -166,7 +181,7 @@ impl GoogleDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let response = make_get_request(
-            ALL_USERS_URL,
+            &self.all_users_url,
             access_token,
             Some(&[
                 ("customer", "my_customer"),
@@ -196,7 +211,7 @@ impl GoogleDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
-                GROUPS_URL,
+                &self.groups_url,
                 access_token,
                 Some(
                     &query
@@ -248,7 +263,7 @@ impl GoogleDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
-                GROUPS_URL,
+                &self.groups_url,
                 access_token,
                 Some(
                     &query
@@ -295,10 +310,7 @@ impl GoogleDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
 
-        let url = format!(
-            "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
-            group.id
-        );
+        let url = format!("{}/{}/members", self.groups_url, group.id);
         let mut combined_response = GroupMembersResponse::default();
         let mut query = HashMap::from([
             ("includeDerivedMembership".to_owned(), "true".to_owned()),
@@ -356,7 +368,7 @@ impl GoogleDirectorySync {
         let token = self.build_token()?;
         let client = reqwest::Client::new();
         let response = client
-            .post(ACCESS_TOKEN_URL)
+            .post(&self.access_token_url)
             .query(&[("grant_type", GRANT_TYPE), ("assertion", &token)])
             .header(reqwest::header::CONTENT_LENGTH, 0)
             .timeout(REQUEST_TIMEOUT)
@@ -382,7 +394,7 @@ impl GoogleDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
-                ALL_USERS_URL,
+                &self.all_users_url,
                 access_token,
                 Some(
                     &query
@@ -480,7 +492,152 @@ impl DirectorySync for GoogleDirectorySync {
 
 #[cfg(test)]
 mod tests {
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path, query_param, query_param_is_missing},
+    };
+
     use super::*;
+
+    // Test-only key, unrelated to any real account; only needed for `build_token` to
+    // produce a syntactically valid JWT since Google's endpoints are mocked out.
+    const TEST_RSA_PRIVATE_KEY: &str = include_str!("fixtures/google/test_private_key.pem");
+
+    /// Loads a fixture from `fixtures/google/` (real Google Directory API response shapes)
+    /// and wraps it in a 200 JSON response.
+    fn response_from_fixture(name: &str) -> ResponseTemplate {
+        let body = match name {
+            "token_response.json" => include_str!("fixtures/google/token_response.json"),
+            "users_page1.json" => include_str!("fixtures/google/users_page1.json"),
+            "users_page2.json" => include_str!("fixtures/google/users_page2.json"),
+            "users_empty.json" => include_str!("fixtures/google/users_empty.json"),
+            "groups_response.json" => include_str!("fixtures/google/groups_response.json"),
+            "members_response.json" => include_str!("fixtures/google/members_response.json"),
+            other => panic!("unknown fixture: {other}"),
+        };
+        ResponseTemplate::new(200)
+            .insert_header("content-type", "application/json")
+            .set_body_string(body)
+    }
+
+    fn dirsync_with_mock_server(mock_server: &MockServer) -> GoogleDirectorySync {
+        let mut dirsync = GoogleDirectorySync::new("private_key", "client_email", "admin_email")
+            .with_urls(
+                &format!("{}/token", mock_server.uri()),
+                &format!("{}/groups", mock_server.uri()),
+                &format!("{}/users", mock_server.uri()),
+            );
+        dirsync.access_token = Some("test_token".into());
+        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+        dirsync
+    }
+
+    #[tokio::test]
+    async fn test_refresh_access_token() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from https://oauth2.googleapis.com/token (jwt-bearer grant).
+        Mock::given(method("POST"))
+            .and(path("/token"))
+            .respond_with(response_from_fixture("token_response.json"))
+            .mount(&mock_server)
+            .await;
+
+        let mut dirsync = GoogleDirectorySync::new("private_key", "client_email", "admin_email")
+            .with_urls(&format!("{}/token", mock_server.uri()), "", "");
+        dirsync.service_account_config.private_key = TEST_RSA_PRIVATE_KEY.into();
+
+        dirsync.refresh_access_token().await.unwrap();
+
+        assert_eq!(
+            dirsync.access_token.as_deref(),
+            Some("ya29.c.b0Aaekm1KfR7fake_opaque_token_value")
+        );
+        assert!(!dirsync.is_token_expired());
+    }
+
+    #[tokio::test]
+    async fn test_get_all_users_paginates() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from admin#directory#users (Directory API users.list).
+        Mock::given(method("GET"))
+            .and(path("/users"))
+            .and(query_param_is_missing("pageToken"))
+            .respond_with(response_from_fixture("users_page1.json"))
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/users"))
+            .and(query_param("pageToken", "EAIaBhACGgtGkAAfirstpage"))
+            .respond_with(response_from_fixture("users_page2.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let users = dirsync.get_all_users().await.unwrap();
+
+        assert_eq!(users.len(), 2);
+        assert!(
+            users
+                .iter()
+                .any(|u| u.email == "jane.doe@example.com" && u.active)
+        );
+        assert!(
+            users
+                .iter()
+                .any(|u| u.email == "john.smith@example.com" && !u.active)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_groups() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from admin#directory#groups (Directory API groups.list).
+        Mock::given(method("GET"))
+            .and(path("/groups"))
+            .respond_with(response_from_fixture("groups_response.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let groups = dirsync.get_groups().await.unwrap();
+
+        assert_eq!(groups.len(), 2);
+        assert!(groups.iter().any(|g| g.name == "Engineering"));
+        assert!(groups.iter().any(|g| g.name == "Sales"));
+    }
+
+    #[tokio::test]
+    async fn test_get_group_members() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from admin#directory#members (Directory API members.list).
+        Mock::given(method("GET"))
+            .and(path("/groups/01302m9251m2vt3/members"))
+            .respond_with(response_from_fixture("members_response.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let group = DirectoryGroup {
+            id: "01302m9251m2vt3".into(),
+            name: "Engineering".into(),
+        };
+        let members = dirsync.get_group_members(&group, None).await.unwrap();
+
+        assert_eq!(members, vec!["jane.doe@example.com".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn test_test_connection() {
+        let mock_server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/users"))
+            .respond_with(response_from_fixture("users_empty.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        dirsync.test_connection().await.unwrap();
+    }
 
     #[tokio::test]
     async fn test_token() {

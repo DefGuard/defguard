@@ -5,6 +5,12 @@ export const joinCsv = (values?: string[] | string | null): string => {
   return values.join(', ');
 };
 
+export const toCsvArray = (value?: string[] | string | null): string[] | null => {
+  if (Array.isArray(value)) return value;
+  if (value) return [value];
+  return null;
+};
+
 export const splitCsv = (value: string): string[] => {
   return value
     .split(',')
