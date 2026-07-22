@@ -15,6 +15,7 @@ use defguard_common::{
             vpn_session_stats::VpnSessionStats,
         },
     },
+    testing::smtp::MockSmtpServer,
     types::user_info::UserInfo,
 };
 use defguard_core::{
@@ -2931,4 +2932,38 @@ async fn test_password_management_disabled_for_oidc_user(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn test_reset_password_sends_email(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Configure a proxy URL (needed to build the reset link) and point SMTP at
+    // an in-process mock server so the reset email is actually delivered.
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://proxy.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
+
+    // Admin triggers a password reset for another user.
+    client.login_user("admin", "pass123").await;
+    let response = client
+        .post("/api/v1/user/hpotter/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // The reset email (sent fire-and-forget) is delivered to the target user
+    // and carries a tokenized reset link pointing at the configured proxy.
+    let mail = smtp.wait_for(|m| m.sent_to("h.potter@hogwart.edu.uk")).await;
+    assert!(
+        mail.body_contains("token"),
+        "reset email should contain a reset token link"
+    );
+    assert!(
+        mail.body_contains("proxy.example.com"),
+        "reset link should point at the configured proxy URL"
+    );
 }

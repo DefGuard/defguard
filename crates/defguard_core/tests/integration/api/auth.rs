@@ -1,9 +1,12 @@
 use std::time::SystemTime;
 
 use chrono::DateTime;
-use defguard_common::db::models::{
-    MFAInfo, MFAMethod, User,
-    user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+use defguard_common::{
+    db::models::{
+        MFAInfo, MFAMethod, User,
+        user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+    },
+    testing::smtp::{CapturedMail, MockSmtpServer},
 };
 use defguard_core::{
     events::ApiEventType,
@@ -403,19 +406,35 @@ async fn dg25_15_test_totp_brute_force(_: PgPoolOptions, options: PgConnectOptio
     }
 }
 
-// static EMAIL_CODE_REGEX: &str = r"<b>(?<code>\d{6})</b>";
-// fn extract_email_code(content: &str) -> &str {
-//     let re = regex::Regex::new(EMAIL_CODE_REGEX).unwrap();
-//     re.captures(content).unwrap().name("code").unwrap().as_str()
-// }
+/// Whether a captured email carries a 6-digit MFA code. The plain-text MIME
+/// part renders `{{ code }}` on its own line, so we look for a line that is
+/// exactly six digits.
+fn has_mfa_code(mail: &CapturedMail) -> bool {
+    mail.body
+        .lines()
+        .map(str::trim)
+        .any(|line| line.len() == 6 && line.bytes().all(|b| b.is_ascii_digit()))
+}
 
-/*
+/// Extract the 6-digit MFA code from a captured email (see [`has_mfa_code`]).
+fn extract_email_code(mail: &CapturedMail) -> String {
+    mail.body
+        .lines()
+        .map(str::trim)
+        .find(|line| line.len() == 6 && line.bytes().all(|b| b.is_ascii_digit()))
+        .expect("no 6-digit MFA code found in email body")
+        .to_string()
+}
+
 #[sqlx::test]
 async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
+
+    // stand up a mock SMTP server, but leave SMTP unconfigured for now
+    let smtp = MockSmtpServer::start().await;
 
     // try to initialize email MFA setup before logging in
     let response = client.post("/api/v1/auth/email/init").send().await;
@@ -428,53 +447,27 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
 
     // try to initialize email MFA setup without SMTP settings configured
     let response = client.post("/api/v1/auth/email/init").send().await;
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
 
-    // add dummy SMTP settings
-    let mut settings = Settings::get_current_settings();
-    settings.smtp.server = Some("smtp_server".into());
-    settings.smtp.port = Some(587);
-    settings.smtp.sender = Some("smtp@sender.pl".into());
-    update_current_settings(&pool, settings).await.unwrap();
+    // point SMTP at the mock server
+    smtp.configure(&pool).await;
 
-    // initialize email MFA setup
+    // initialize email MFA setup - sends the activation email (awaited)
     let response = client.post("/api/v1/auth/email/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // check email was sent
-    let mail = mail_rx.try_recv().unwrap();
-    assert_ok!(mail_rx.try_recv());
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "Defguard: new device logged in to your account"
-    );
+    // the activation email is the first one carrying a 6-digit code
+    let (activation_idx, activation_mail) = smtp.wait_for_from(0, has_mfa_code).await;
+    assert!(activation_mail.sent_to("h.potter@hogwart.edu.uk"));
+    let code = extract_email_code(&activation_mail);
 
-    // resend setup email
-    let response = client.post("/api/v1/auth/email/init").send().await;
+    // finish setup with the emailed code
+    let response = client
+        .post("/api/v1/auth/email")
+        .json(&AuthCode::new(code))
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let mail = mail_rx.try_recv().unwrap();
-    assert_err!(mail_rx.try_recv());
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "Defguard: Multi-Factor Authentication activation"
-    );
-    let code = extract_email_code(mail.content());
-
-    // finish setup
-    let code = AuthCode::new(code);
-    let response = client.post("/api/v1/auth/email").json(&code).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // check that confirmation email was sent
-    let mail = mail_rx.try_recv().unwrap();
-    assert_err!(mail_rx.try_recv());
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "MFA method Email has been activated on your account"
-    );
 
     // check recovery codes
     let recovery_codes: RecoveryCodes = response.json().await;
@@ -488,15 +481,14 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    // still unauthorized
+    // still unauthorized until the emailed code is provided
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // provide wrong code
-    let code = AuthCode::new("0");
     let response = client
         .post("/api/v1/auth/email/verify")
-        .json(&code)
+        .json(&AuthCode::new("0"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
@@ -505,40 +497,21 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    // request code
+    // request a login code - sends the code email (awaited)
     let response = client.get("/api/v1/auth/email").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // check that code email was sent
-    let mail = mail_rx.try_recv().unwrap();
-    assert_ok!(mail_rx.try_recv());
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "Defguard: new device logged in to your account"
-    );
-
-    // resend code
-    let response = client.get("/api/v1/auth/email").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let mail = mail_rx.try_recv().unwrap();
-    assert_err!(mail_rx.try_recv());
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "Defguard: Multi-Factor Authentication code for login"
-    );
-    let code = extract_email_code(mail.content());
-
-    // login
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    // grab the next code-bearing email after the activation one
+    let (_, code_mail) = smtp
+        .wait_for_from(activation_idx + 1, has_mfa_code)
+        .await;
+    assert!(code_mail.sent_to("h.potter@hogwart.edu.uk"));
+    let code = extract_email_code(&code_mail);
 
     // provide correct code
-    let code = AuthCode::new(code);
     let response = client
         .post("/api/v1/auth/email/verify")
-        .json(&code)
+        .json(&AuthCode::new(code))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -551,12 +524,10 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.delete("/api/v1/auth/mfa").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // login again
-    let auth = Auth::new("hpotter", "pass123");
+    // login again - MFA no longer required
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
-*/
 
 /*
 #[sqlx::test]
