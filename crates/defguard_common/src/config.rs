@@ -285,8 +285,10 @@ pub struct GatewayConfigArgs {
 pub struct CreateAdminArgs {
     #[arg(long)]
     pub username: String,
-    #[arg(long, env = "DEFGUARD_ADMIN_PASSWORD")]
+    #[arg(long)]
     pub password: SecretString,
+    #[command(flatten)]
+    pub group: Option<GroupSelector>,
 }
 
 #[derive(Args, Debug, Clone)]
