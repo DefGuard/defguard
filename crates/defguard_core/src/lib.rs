@@ -22,11 +22,15 @@ use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
-    config::{DefGuardConfig, GatewayConfigArgs, InitVpnLocationArgs, server_config},
+    config::{
+        AddUserToGroupArgs, ChangePasswordArgs, CreateAdminArgs, CreateGroupArgs, DefGuardConfig,
+        GatewayConfigArgs, InitVpnLocationArgs, SetAdminGroupArgs, server_config,
+    },
     db::{
-        init_db,
+        Id, init_db,
         models::{
             Certificates, Device, DeviceType, Settings, User, WireguardNetwork,
+            group::{Group, Permission},
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
@@ -84,6 +88,7 @@ use tracing::Level;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
@@ -1229,6 +1234,182 @@ pub async fn gateway_config(
     Ok(config)
 }
 
+pub async fn create_admin_user(pool: &PgPool, args: &CreateAdminArgs) -> Result<(), anyhow::Error> {
+    let admin_group = match &args.group {
+        None => Group::find_by_permission(pool, Permission::IsAdmin)
+            .await?
+            .into_iter()
+            .next()
+            .ok_or_else(|| {
+                anyhow!(
+                    "No admin group found. Create a group using create-group command and mark it as an admin group using the set-admin-group command."
+                )
+            })?,
+        Some(selector) => {
+            let group = resolve_group(pool, selector.name.as_deref(), selector.group_id).await?;
+            if !group.is_admin {
+                return Err(anyhow!(
+                    "Group '{}' is not a Defguard admin group.",
+                    group.name
+                ));
+            }
+            group
+        }
+    };
+
+    if User::find_by_username(pool, &args.username)
+        .await?
+        .is_some()
+    {
+        return Err(anyhow!(
+            "A user with username '{}' already exists.",
+            args.username
+        ));
+    }
+
+    let user = User::new(
+        args.username.clone(),
+        Some(args.password.expose_secret()),
+        "change-me".to_owned(),
+        "change-me".to_owned(),
+        format!("{}@change-me", args.username),
+        None,
+    )
+    .save(pool)
+    .await?;
+
+    user.add_to_group(pool, &admin_group).await?;
+
+    Ok(())
+}
+
+pub async fn change_user_password(
+    pool: &PgPool,
+    args: &ChangePasswordArgs,
+) -> Result<(), anyhow::Error> {
+    let mut user = User::find_by_username(pool, &args.username)
+        .await?
+        .ok_or_else(|| anyhow!("User '{}' not found.", args.username))?;
+    user.set_password(args.password.expose_secret());
+    user.save(pool).await?;
+
+    Ok(())
+}
+
+async fn group_not_found_error(pool: &PgPool, name: &str) -> Result<anyhow::Error, anyhow::Error> {
+    let available_groups = Group::all(pool)
+        .await?
+        .into_iter()
+        .map(|group| group.name)
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(anyhow!(
+        "Group '{name}' does not exist. Available groups: {available_groups}"
+    ))
+}
+
+async fn resolve_group(
+    pool: &PgPool,
+    name: Option<&str>,
+    group_id: Option<Id>,
+) -> Result<Group<Id>, anyhow::Error> {
+    if let Some(name) = name {
+        match Group::find_by_name(pool, name).await? {
+            Some(group) => Ok(group),
+            None => Err(group_not_found_error(pool, name).await?),
+        }
+    } else if let Some(id) = group_id {
+        Group::find_by_id(pool, id)
+            .await?
+            .ok_or_else(|| anyhow!("Group with ID {id} does not exist."))
+    } else {
+        Err(anyhow!("You must provide either --name or --group-id."))
+    }
+}
+
+pub async fn set_admin_group(
+    pool: &PgPool,
+    args: &SetAdminGroupArgs,
+) -> Result<String, anyhow::Error> {
+    let group = resolve_group(pool, args.group.name.as_deref(), args.group.group_id).await?;
+
+    if group.is_admin {
+        return Err(anyhow!(
+            "Group '{}' is already a Defguard admin group.",
+            group.name
+        ));
+    }
+
+    group
+        .set_permission(pool, Permission::IsAdmin, true)
+        .await?;
+
+    Ok(group.name)
+}
+
+pub async fn create_new_group(pool: &PgPool, args: &CreateGroupArgs) -> Result<(), anyhow::Error> {
+    if Group::find_by_name(pool, &args.name).await?.is_some() {
+        return Err(anyhow!("A group named '{}' already exists.", args.name));
+    }
+
+    Group::new(args.name.clone()).save(pool).await?;
+
+    Ok(())
+}
+
+pub async fn add_user_to_group(
+    pool: &PgPool,
+    args: &AddUserToGroupArgs,
+) -> Result<String, anyhow::Error> {
+    let user = User::find_by_username(pool, &args.username)
+        .await?
+        .ok_or_else(|| anyhow!("User '{}' not found.", args.username))?;
+
+    let group = resolve_group(pool, args.group.name.as_deref(), args.group.group_id).await?;
+
+    if user.member_of(pool).await?.iter().any(|g| g.id == group.id) {
+        return Err(anyhow!(
+            "User '{}' is already a member of group '{}'.",
+            args.username,
+            group.name
+        ));
+    }
+
+    user.add_to_group(pool, &group).await?;
+
+    Ok(group.name)
+}
+
+pub async fn disable_ldap_integration(pool: &PgPool) -> Result<(), anyhow::Error> {
+    let mut settings = Settings::get_current_settings();
+
+    if !settings.ldap_enabled {
+        return Err(anyhow!("LDAP integration is already disabled."));
+    }
+
+    settings.ldap_enabled = false;
+    update_current_settings(pool, settings).await?;
+
+    Ok(())
+}
+
+pub async fn disable_oidc_directory_sync(pool: &PgPool) -> Result<(), anyhow::Error> {
+    let mut provider = OpenIdProvider::get_current(pool)
+        .await?
+        .ok_or_else(|| anyhow!("No external identity provider is configured."))?;
+
+    if !provider.directory_sync_enabled {
+        return Err(anyhow!(
+            "OIDC directory synchronization is already disabled."
+        ));
+    }
+
+    provider.directory_sync_enabled = false;
+    provider.save(pool).await?;
+
+    Ok(())
+}
+
 pub fn is_valid_phone_number(number: &str) -> bool {
     PHONE_NUMBER_REGEX.is_match(number)
 }
@@ -1262,5 +1443,471 @@ mod test {
         for number in invalid_numbers {
             assert!(!is_valid_phone_number(number));
         }
+    }
+}
+
+#[cfg(test)]
+mod cli_command_tests {
+    use defguard_common::{
+        config::{
+            AddUserToGroupArgs, ChangePasswordArgs, CreateAdminArgs, CreateGroupArgs,
+            GroupSelector, SetAdminGroupArgs,
+        },
+        db::{
+            models::{
+                Settings, User,
+                group::{Group, Permission},
+                settings::{initialize_current_settings, set_settings},
+            },
+            setup_pool,
+        },
+    };
+    use secrecy::SecretString;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use super::{
+        add_user_to_group, change_user_password, create_admin_user, create_new_group,
+        disable_ldap_integration, disable_oidc_directory_sync, set_admin_group,
+    };
+    use crate::enterprise::db::models::openid_provider::{
+        DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+    };
+
+    #[sqlx::test]
+    async fn test_create_admin_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let args = CreateAdminArgs {
+            username: "cliadmin".to_owned(),
+            password: SecretString::from("pass123".to_owned()),
+            group: None,
+        };
+        create_admin_user(&pool, &args).await.unwrap();
+
+        let user = User::find_by_username(&pool, "cliadmin")
+            .await
+            .unwrap()
+            .expect("admin user should exist");
+        assert!(user.verify_password("pass123").is_ok());
+        assert!(user.is_admin(&pool).await.unwrap());
+
+        // creating the same username again fails
+        assert!(create_admin_user(&pool, &args).await.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_create_admin_user_without_admin_group_fails(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        for group in Group::find_by_permission(&pool, Permission::IsAdmin)
+            .await
+            .unwrap()
+        {
+            group
+                .set_permission(&pool, Permission::IsAdmin, false)
+                .await
+                .unwrap();
+        }
+
+        let args = CreateAdminArgs {
+            username: "cliadmin".to_owned(),
+            password: SecretString::from("pass123".to_owned()),
+            group: None,
+        };
+        assert!(create_admin_user(&pool, &args).await.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_create_admin_user_with_specific_group(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let mut admin_group = Group::new("admins");
+        admin_group.is_admin = true;
+        let admin_group = admin_group.save(&pool).await.unwrap();
+
+        // by name
+        create_admin_user(
+            &pool,
+            &CreateAdminArgs {
+                username: "byname".to_owned(),
+                password: SecretString::from("pass123".to_owned()),
+                group: Some(GroupSelector {
+                    name: Some("admins".to_owned()),
+                    group_id: None,
+                }),
+            },
+        )
+        .await
+        .unwrap();
+        let user = User::find_by_username(&pool, "byname")
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            user.member_of(&pool)
+                .await
+                .unwrap()
+                .iter()
+                .any(|group| group.id == admin_group.id)
+        );
+
+        // by id
+        create_admin_user(
+            &pool,
+            &CreateAdminArgs {
+                username: "byid".to_owned(),
+                password: SecretString::from("pass123".to_owned()),
+                group: Some(GroupSelector {
+                    name: None,
+                    group_id: Some(admin_group.id),
+                }),
+            },
+        )
+        .await
+        .unwrap();
+        let user = User::find_by_username(&pool, "byid")
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            user.member_of(&pool)
+                .await
+                .unwrap()
+                .iter()
+                .any(|group| group.id == admin_group.id)
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_create_admin_user_with_non_admin_group_fails(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        Group::new("plain").save(&pool).await.unwrap();
+
+        let result = create_admin_user(
+            &pool,
+            &CreateAdminArgs {
+                username: "cliadmin".to_owned(),
+                password: SecretString::from("pass123".to_owned()),
+                group: Some(GroupSelector {
+                    name: Some("plain".to_owned()),
+                    group_id: None,
+                }),
+            },
+        )
+        .await;
+
+        assert!(result.is_err());
+        // the user must not have been created when the group is rejected
+        assert!(
+            User::find_by_username(&pool, "cliadmin")
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_create_admin_user_with_nonexistent_group_fails(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        assert!(
+            create_admin_user(
+                &pool,
+                &CreateAdminArgs {
+                    username: "cliadmin".to_owned(),
+                    password: SecretString::from("pass123".to_owned()),
+                    group: Some(GroupSelector {
+                        name: Some("ghost".to_owned()),
+                        group_id: None,
+                    }),
+                },
+            )
+            .await
+            .is_err()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_change_user_password(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        User::new(
+            "bob",
+            Some("old-pass"),
+            "Bar",
+            "Bob",
+            "bob@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        change_user_password(
+            &pool,
+            &ChangePasswordArgs {
+                username: "bob".to_owned(),
+                password: SecretString::from("new-pass".to_owned()),
+            },
+        )
+        .await
+        .unwrap();
+
+        let user = User::find_by_username(&pool, "bob").await.unwrap().unwrap();
+        assert!(user.verify_password("new-pass").is_ok());
+        assert!(user.verify_password("old-pass").is_err());
+
+        // unknown user fails
+        assert!(
+            change_user_password(
+                &pool,
+                &ChangePasswordArgs {
+                    username: "nobody".to_owned(),
+                    password: SecretString::from("whatever".to_owned()),
+                },
+            )
+            .await
+            .is_err()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_create_new_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let args = CreateGroupArgs {
+            name: "developers".to_owned(),
+        };
+        create_new_group(&pool, &args).await.unwrap();
+        assert!(
+            Group::find_by_name(&pool, "developers")
+                .await
+                .unwrap()
+                .is_some()
+        );
+
+        // creating a group with an existing name fails
+        assert!(create_new_group(&pool, &args).await.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_set_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        Group::new("ops").save(&pool).await.unwrap();
+
+        // mark by name
+        let name = set_admin_group(
+            &pool,
+            &SetAdminGroupArgs {
+                group: GroupSelector {
+                    name: Some("ops".to_owned()),
+                    group_id: None,
+                },
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(name, "ops");
+        assert!(
+            Group::find_by_name(&pool, "ops")
+                .await
+                .unwrap()
+                .unwrap()
+                .is_admin
+        );
+
+        // marking an already-admin group fails
+        assert!(
+            set_admin_group(
+                &pool,
+                &SetAdminGroupArgs {
+                    group: GroupSelector {
+                        name: Some("ops".to_owned()),
+                        group_id: None,
+                    },
+                }
+            )
+            .await
+            .is_err()
+        );
+
+        // mark by id
+        let other = Group::new("ops2").save(&pool).await.unwrap();
+        set_admin_group(
+            &pool,
+            &SetAdminGroupArgs {
+                group: GroupSelector {
+                    name: None,
+                    group_id: Some(other.id),
+                },
+            },
+        )
+        .await
+        .unwrap();
+        assert!(
+            Group::find_by_name(&pool, "ops2")
+                .await
+                .unwrap()
+                .unwrap()
+                .is_admin
+        );
+
+        // nonexistent group fails
+        assert!(
+            set_admin_group(
+                &pool,
+                &SetAdminGroupArgs {
+                    group: GroupSelector {
+                        name: Some("ghost".to_owned()),
+                        group_id: None,
+                    },
+                }
+            )
+            .await
+            .is_err()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_add_user_to_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        User::new(
+            "carol",
+            Some("pass"),
+            "Bar",
+            "Carol",
+            "carol@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let group = Group::new("team").save(&pool).await.unwrap();
+
+        // add by name
+        let name = add_user_to_group(
+            &pool,
+            &AddUserToGroupArgs {
+                username: "carol".to_owned(),
+                group: GroupSelector {
+                    name: Some("team".to_owned()),
+                    group_id: None,
+                },
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(name, "team");
+        assert_eq!(
+            group.member_usernames(&pool).await.unwrap(),
+            ["carol".to_owned()]
+        );
+
+        // adding the same user again (by id) fails
+        assert!(
+            add_user_to_group(
+                &pool,
+                &AddUserToGroupArgs {
+                    username: "carol".to_owned(),
+                    group: GroupSelector {
+                        name: None,
+                        group_id: Some(group.id),
+                    },
+                },
+            )
+            .await
+            .is_err()
+        );
+
+        // unknown user fails
+        assert!(
+            add_user_to_group(
+                &pool,
+                &AddUserToGroupArgs {
+                    username: "ghost".to_owned(),
+                    group: GroupSelector {
+                        name: Some("team".to_owned()),
+                        group_id: None,
+                    },
+                },
+            )
+            .await
+            .is_err()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_disable_ldap_integration(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        // seed enabled LDAP integration (save bypasses validation; refresh the in-memory cache
+        // the command reads from)
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = "https://defguard.example.com".to_owned();
+        settings.ldap_enabled = true;
+        settings.save(&pool).await.unwrap();
+        set_settings(Some(settings));
+
+        disable_ldap_integration(&pool).await.unwrap();
+        assert!(!Settings::get(&pool).await.unwrap().unwrap().ldap_enabled);
+
+        // already disabled -> error
+        assert!(disable_ldap_integration(&pool).await.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_disable_oidc_directory_sync(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        // no provider configured -> error
+        assert!(disable_oidc_directory_sync(&pool).await.is_err());
+
+        OpenIdProvider::new(
+            "Test".to_owned(),
+            "https://idp.example.com".to_owned(),
+            OpenIdProviderKind::Google,
+            "client_id".to_owned(),
+            "client_secret".to_owned(),
+            None,
+            None,
+            None,
+            None,
+            true,
+            60,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            None,
+            None,
+            Vec::new(),
+            None,
+            false,
+            false,
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        disable_oidc_directory_sync(&pool).await.unwrap();
+        assert!(
+            !OpenIdProvider::get_current(&pool)
+                .await
+                .unwrap()
+                .unwrap()
+                .directory_sync_enabled
+        );
+
+        // already disabled -> error
+        assert!(disable_oidc_directory_sync(&pool).await.is_err());
     }
 }

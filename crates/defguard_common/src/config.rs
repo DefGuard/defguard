@@ -219,6 +219,38 @@ pub enum Command {
     InitVpnLocation(InitVpnLocationArgs),
     #[command(about = "Output the gateway gRPC configuration payload for a VPN location by ID.")]
     GatewayConfig(GatewayConfigArgs),
+    #[command(
+        subcommand,
+        arg_required_else_help = true,
+        about = "Manage users, groups, and external identity provider integrations."
+    )]
+    Manage(ManageCommand),
+}
+
+#[derive(Clone, Debug, Subcommand)]
+pub enum ManageCommand {
+    #[command(about = "Create a new admin user account and add it to an admin group.")]
+    CreateAdmin(CreateAdminArgs),
+    #[command(about = "Change a user's password.")]
+    ChangePassword(ChangePasswordArgs),
+    #[command(about = "List all users.")]
+    ListUsers,
+    #[command(
+        about = "Mark an existing group as a Defguard admin group, granting its members admin privileges."
+    )]
+    SetAdminGroup(SetAdminGroupArgs),
+    #[command(about = "Create a new group.")]
+    CreateGroup(CreateGroupArgs),
+    #[command(about = "List all groups and their admin status.")]
+    ListGroups,
+    #[command(about = "Add a user to a group by username.")]
+    AddUserToGroup(AddUserToGroupArgs),
+    #[command(about = "Disable the LDAP integration.")]
+    DisableLdapIntegration,
+    #[command(
+        about = "Disable directory synchronization for the configured OIDC external identity provider."
+    )]
+    DisableOidcDirectorySync,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -247,6 +279,53 @@ pub struct InitVpnLocationArgs {
 pub struct GatewayConfigArgs {
     #[arg(long)]
     pub location_id: Id,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct CreateAdminArgs {
+    #[arg(long)]
+    pub username: String,
+    #[arg(long)]
+    pub password: SecretString,
+    #[command(flatten)]
+    pub group: Option<GroupSelector>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ChangePasswordArgs {
+    #[arg(long)]
+    pub username: String,
+    #[arg(long)]
+    pub password: SecretString,
+}
+
+#[derive(Args, Debug, Clone)]
+#[group(required = true, multiple = false)]
+pub struct GroupSelector {
+    #[arg(long)]
+    pub name: Option<String>,
+    #[arg(long)]
+    pub group_id: Option<Id>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct SetAdminGroupArgs {
+    #[command(flatten)]
+    pub group: GroupSelector,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct CreateGroupArgs {
+    #[arg(long)]
+    pub name: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct AddUserToGroupArgs {
+    #[arg(long)]
+    pub username: String,
+    #[command(flatten)]
+    pub group: GroupSelector,
 }
 
 impl DefGuardConfig {
