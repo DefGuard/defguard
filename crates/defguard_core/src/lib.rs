@@ -22,11 +22,15 @@ use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
-    config::{DefGuardConfig, GatewayConfigArgs, InitVpnLocationArgs, server_config},
+    config::{
+        AddUserToGroupArgs, ChangePasswordArgs, CreateAdminArgs, CreateGroupArgs, DefGuardConfig,
+        GatewayConfigArgs, GroupSelector, InitVpnLocationArgs, SetAdminGroupArgs, server_config,
+    },
     db::{
-        init_db,
+        Id, init_db,
         models::{
             Certificates, Device, DeviceType, Settings, User, WireguardNetwork,
+            group::{Group, Permission},
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
@@ -1227,6 +1231,171 @@ pub async fn gateway_config(
     config.private_key = "REDACTED".into();
 
     Ok(config)
+}
+
+pub async fn create_admin_user(pool: &PgPool, args: &CreateAdminArgs) -> Result<(), anyhow::Error> {
+    let admin_group = Group::find_by_permission(pool, Permission::IsAdmin)
+        .await?
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            anyhow!(
+                "No admin group found. Create a group using create-group command and mark it as an admin group using the set-admin-group command."
+            )
+        })?;
+
+    if User::find_by_username(pool, &args.username)
+        .await?
+        .is_some()
+    {
+        return Err(anyhow!(
+            "A user with username '{}' already exists.",
+            args.username
+        ));
+    }
+
+    let user = User::new(
+        args.username.clone(),
+        Some(args.password.expose_secret()),
+        "change-me".to_owned(),
+        "change-me".to_owned(),
+        format!("{}@change-me", args.username),
+        None,
+    )
+    .save(pool)
+    .await?;
+
+    user.add_to_group(pool, &admin_group).await?;
+
+    Ok(())
+}
+
+pub async fn change_user_password(
+    pool: &PgPool,
+    args: &ChangePasswordArgs,
+) -> Result<(), anyhow::Error> {
+    let mut user = User::find_by_username(pool, &args.username)
+        .await?
+        .ok_or_else(|| anyhow!("User '{}' not found.", args.username))?;
+    user.set_password(args.password.expose_secret());
+    user.save(pool).await?;
+
+    Ok(())
+}
+
+async fn group_not_found_error(pool: &PgPool, name: &str) -> Result<anyhow::Error, anyhow::Error> {
+    let available_groups = Group::all(pool)
+        .await?
+        .into_iter()
+        .map(|group| group.name)
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(anyhow!(
+        "Group '{name}' does not exist. Available groups: {available_groups}"
+    ))
+}
+
+async fn resolve_group(
+    pool: &PgPool,
+    selector: &GroupSelector,
+) -> Result<Group<Id>, anyhow::Error> {
+    if let Some(name) = &selector.name {
+        match Group::find_by_name(pool, name).await? {
+            Some(group) => Ok(group),
+            None => Err(group_not_found_error(pool, name).await?),
+        }
+    } else if let Some(id) = selector.group_id {
+        Group::find_by_id(pool, id)
+            .await?
+            .ok_or_else(|| anyhow!("Group with ID {id} does not exist."))
+    } else {
+        Err(anyhow!("You must provide either --name or --group-id."))
+    }
+}
+
+pub async fn set_admin_group(
+    pool: &PgPool,
+    args: &SetAdminGroupArgs,
+) -> Result<String, anyhow::Error> {
+    let group = resolve_group(pool, &args.group).await?;
+
+    if group.is_admin {
+        return Err(anyhow!(
+            "Group '{}' is already a Defguard admin group.",
+            group.name
+        ));
+    }
+
+    group
+        .set_permission(pool, Permission::IsAdmin, true)
+        .await?;
+
+    Ok(group.name)
+}
+
+pub async fn create_new_group(pool: &PgPool, args: &CreateGroupArgs) -> Result<(), anyhow::Error> {
+    if Group::find_by_name(pool, &args.name).await?.is_some() {
+        return Err(anyhow!("A group named '{}' already exists.", args.name));
+    }
+
+    Group::new(args.name.clone()).save(pool).await?;
+
+    Ok(())
+}
+
+pub async fn add_user_to_group(
+    pool: &PgPool,
+    args: &AddUserToGroupArgs,
+) -> Result<String, anyhow::Error> {
+    let user = User::find_by_username(pool, &args.username)
+        .await?
+        .ok_or_else(|| anyhow!("User '{}' not found.", args.username))?;
+
+    let group = resolve_group(pool, &args.group).await?;
+
+    if user.member_of(pool).await?.iter().any(|g| g.id == group.id) {
+        return Err(anyhow!(
+            "User '{}' is already a member of group '{}'.",
+            args.username,
+            group.name
+        ));
+    }
+
+    user.add_to_group(pool, &group).await?;
+
+    Ok(group.name)
+}
+
+pub async fn disable_ldap_integration(pool: &PgPool) -> Result<(), anyhow::Error> {
+    let mut settings = Settings::get_current_settings();
+
+    if !settings.ldap_enabled {
+        return Err(anyhow!("LDAP integration is already disabled."));
+    }
+
+    settings.ldap_enabled = false;
+    update_current_settings(pool, settings).await?;
+
+    Ok(())
+}
+
+pub async fn disable_oidc_directory_sync(pool: &PgPool) -> Result<(), anyhow::Error> {
+    use crate::enterprise::db::models::openid_provider::OpenIdProvider;
+
+    let mut provider = OpenIdProvider::get_current(pool)
+        .await?
+        .ok_or_else(|| anyhow!("No external identity provider is configured."))?;
+
+    if !provider.directory_sync_enabled {
+        return Err(anyhow!(
+            "OIDC directory synchronization is already disabled."
+        ));
+    }
+
+    provider.directory_sync_enabled = false;
+    provider.save(pool).await?;
+
+    Ok(())
 }
 
 pub fn is_valid_phone_number(number: &str) -> bool {
