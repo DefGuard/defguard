@@ -1,10 +1,17 @@
-use defguard_common::db::models::{
-    User,
-    settings::{Settings, update_current_settings},
+use defguard_common::db::{
+    Id,
+    models::{
+        User,
+        settings::{Settings, update_current_settings},
+    },
 };
 use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
 use defguard_proto::proxy::core_response;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+    query_as, query_scalar,
+};
 use tokio::time::timeout;
 
 use super::support::{
@@ -309,6 +316,232 @@ async fn test_password_reset_init_passwordless_user_silent_no_token(
         count.0, 0,
         "no password reset token should be created for passwordless user"
     );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Configure a valid public proxy URL so the reset-mail step in
+/// `request_password_reset` can build its enrollment link. The mail send itself
+/// is fire-and-forget and a no-op without SMTP, so this only needs to parse.
+async fn set_public_proxy_url(pool: &PgPool) {
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://proxy.example.com".to_owned();
+    update_current_settings(pool, settings)
+        .await
+        .expect("failed to set public_proxy_url");
+}
+
+/// Fetch the `id` of the single PASSWORD_RESET token for a user, asserting
+/// exactly one exists.
+async fn fetch_single_password_reset_token_id(pool: &PgPool, user_id: Id) -> String {
+    let ids: Vec<String> =
+        query_scalar("SELECT id FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'")
+            .bind(user_id)
+            .fetch_all(pool)
+            .await
+            .expect("failed to query password reset tokens");
+    assert_eq!(
+        ids.len(),
+        1,
+        "expected exactly one PASSWORD_RESET token, found {}",
+        ids.len()
+    );
+    ids.into_iter().next().unwrap()
+}
+
+/// Regression test for issue #3388: a passwordless user linked to an external
+/// OIDC provider whose IdP does NOT disable password management must be able to
+/// obtain a password reset. `PasswordResetInit` must create a PASSWORD_RESET
+/// token and emit a `PasswordResetRequested` event (the reset email is sent via
+/// the fire-and-forget mailer, which is not observable in tests).
+///
+/// Before the fix this user falls into the silent branch and no token is
+/// created, so this test fails (red).
+#[sqlx::test]
+async fn test_password_reset_init_oidc_user_creates_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_public_proxy_url(&context.pool).await;
+
+    // Passwordless user linked to an external OIDC provider. Password management
+    // is NOT disabled (the default), so they may hold a local password.
+    let mut user = create_user(&context.pool).await;
+    user.openid_sub = Some("oidc-sub-123".to_owned());
+    user.save(&context.pool)
+        .await
+        .expect("failed to save OIDC user");
+
+    let response = send_password_reset_init(&mut context, &user.email).await;
+
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!(
+            "expected Empty response for OIDC user, got: {:?}",
+            response.payload.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // A PASSWORD_RESET token must have been created so the user can set a password.
+    let count: (i64,) =
+        query_as("SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'")
+            .bind(user.id)
+            .fetch_one(&context.pool)
+            .await
+            .expect("failed to query token count");
+    assert_eq!(
+        count.0, 1,
+        "a password reset token must be created for a passwordless OIDC user"
+    );
+
+    // A BidiStreamEvent::PasswordReset(PasswordResetRequested) must have been emitted.
+    let event = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+        .await
+        .expect("timed out waiting for BidiStreamEvent")
+        .expect("bidi_events_rx closed");
+    match event.event {
+        BidiStreamEventType::PasswordReset(e) => match *e {
+            PasswordResetEvent::PasswordResetRequested => {}
+            other => panic!("expected PasswordResetRequested event, got: {other:?}"),
+        },
+        other => panic!("expected BidiStreamEventType::PasswordReset, got: {other:?}"),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Regression test for issue #3388: a passwordless user synced from LDAP whose
+/// IdP does NOT disable password management (the default) must be able to obtain
+/// a password reset. `PasswordResetInit` must create a PASSWORD_RESET token.
+///
+/// Before the fix this user falls into the silent branch and no token is
+/// created, so this test fails (red).
+#[sqlx::test]
+async fn test_password_reset_init_ldap_user_creates_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_public_proxy_url(&context.pool).await;
+
+    // Passwordless LDAP-sourced user. `ldap_disable_password_management` is left
+    // at its default (false), so they may hold a local password.
+    let mut user = create_user(&context.pool).await;
+    user.from_ldap = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save LDAP user");
+
+    let response = send_password_reset_init(&mut context, &user.email).await;
+
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!(
+            "expected Empty response for LDAP user, got: {:?}",
+            response.payload.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    let count: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
+    )
+    .bind(user.id)
+    .fetch_one(&context.pool)
+    .await
+    .expect("failed to query token count");
+    assert_eq!(
+        count.0, 1,
+        "a password reset token must be created for a passwordless LDAP user"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Regression test for issue #3388, full flow: a passwordless OIDC user must be
+/// able to complete a password reset end to end - init creates a token, start
+/// succeeds, and reset sets their first local password.
+///
+/// Before the fix, `start_password_reset` rejects the user with
+/// `PermissionDenied` because of its `!user.has_password()` guard, so this test
+/// fails (red) at the start step.
+#[sqlx::test]
+async fn test_password_reset_completes_for_oidc_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_public_proxy_url(&context.pool).await;
+
+    let mut user = create_user(&context.pool).await;
+    user.openid_sub = Some("oidc-sub-456".to_owned());
+    user.save(&context.pool)
+        .await
+        .expect("failed to save OIDC user");
+    assert!(
+        !user.has_password(),
+        "precondition: OIDC user starts without a local password"
+    );
+
+    // Init: must create a reset token and emit PasswordResetRequested.
+    let init_response = send_password_reset_init(&mut context, &user.email).await;
+    assert!(
+        matches!(
+            init_response.payload,
+            Some(core_response::Payload::Empty(()))
+        ),
+        "init must return Empty"
+    );
+    let token_id = fetch_single_password_reset_token_id(&context.pool, user.id).await;
+    // Drain the PasswordResetRequested event.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    // Start: must succeed even though the user has no password yet.
+    let start_response = send_password_reset_start(&mut context, &token_id).await;
+    assert!(
+        matches!(
+            start_response.payload,
+            Some(core_response::Payload::PasswordResetStart(_))
+        ),
+        "start must succeed for a passwordless OIDC user, got: {:?}",
+        start_response.payload.as_ref().map(std::mem::discriminant)
+    );
+    // Drain the PasswordResetStarted event.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    // Reset: sets the user's first local password.
+    const NEW_PASSWORD: &str = "NewPass2!";
+    let reset_response = send_password_reset(&mut context, &token_id, NEW_PASSWORD).await;
+    match &reset_response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!(
+            "expected Empty on successful password reset, got: {:?}",
+            reset_response.payload.as_ref().map(std::mem::discriminant)
+        ),
+    }
+
+    // The user must now have a local password set in the DB.
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        updated.has_password(),
+        "OIDC user must have a local password after completing the reset"
+    );
+
+    // A PasswordResetCompleted event must have been emitted.
+    let event = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+        .await
+        .expect("timed out waiting for BidiStreamEvent")
+        .expect("bidi_events_rx closed");
+    match event.event {
+        BidiStreamEventType::PasswordReset(e) => match *e {
+            PasswordResetEvent::PasswordResetCompleted => {}
+            other => panic!("expected PasswordResetCompleted event, got: {other:?}"),
+        },
+        other => panic!("expected BidiStreamEventType::PasswordReset, got: {other:?}"),
+    }
 
     context.finish().await.expect_server_finished().await;
 }
