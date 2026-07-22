@@ -1043,14 +1043,13 @@ impl EnrollmentServer {
                     error!("Unable to start email MFA setup; SMTP is not configured");
                     return Err(Status::internal("SMTP not configured".to_owned()));
                 }
-                if user.email_mfa_enabled {
-                    return Err(Status::invalid_argument(
-                        "Method already enabled".to_owned(),
-                    ));
-                }
                 user.new_email_secret(&self.pool).await.map_err(|_| {
                     error!("Failed to create email secret");
                     Status::internal("Failed to setup email mfa".to_owned())
+                })?;
+                user.clear_recovery_codes(&self.pool).await.map_err(|_| {
+                    error!("Failed to clear recovery codes");
+                    Status::internal("Failed to clear recovery codes".to_owned())
                 })?;
                 info!("Created email secret for {}", &user.username);
                 let mut transaction = self.pool.begin().await.map_err(|err| {
@@ -1077,14 +1076,13 @@ impl EnrollmentServer {
                 Ok(CodeMfaSetupStartResponse { totp_secret: None })
             }
             MfaMethod::Totp => {
-                if user.totp_enabled {
-                    return Err(Status::invalid_argument(
-                        "Method already enabled".to_owned(),
-                    ));
-                }
                 let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
                     error!("Failed to make new TOTP secret");
                     Status::internal("Failed to make new TOTP secret".to_owned())
+                })?;
+                user.clear_recovery_codes(&self.pool).await.map_err(|_| {
+                    error!("Failed to clear recovery codes");
+                    Status::internal("Failed to clear recovery codes".to_owned())
                 })?;
                 info!("New TOTP secret created for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
@@ -1108,11 +1106,6 @@ impl EnrollmentServer {
             return Err(Status::invalid_argument("Method not supported"));
         }
         let mut user = enrollment.fetch_user(&self.pool).await?;
-        if user.mfa_enabled {
-            return Err(Status::invalid_argument(
-                "Mfa already enabled on the account".to_owned(),
-            ));
-        }
         // available only for unenrolled users
         if user.is_enrolled() {
             return Err(Status::permission_denied("User is already enrolled"));
