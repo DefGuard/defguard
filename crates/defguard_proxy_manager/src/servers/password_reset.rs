@@ -142,8 +142,13 @@ impl PasswordResetServer {
             return Ok(());
         }
 
-        // Externally-managed users get a clear feedback email;
-        // other passwordless users (e.g. half-enrolled) stay silent.
+        // Handle passwordless users. There are three cases:
+        // - externally-managed (their IdP disables password management): send a
+        //   clear feedback email explaining they cannot set a local password;
+        // - linked to an external IdP that still allows local passwords
+        //   (OIDC or LDAP): allowed to set their first local password, so they
+        //   fall through to the normal reset flow below;
+        // - any other passwordless user (e.g. half-enrolled): stay silent.
         if !user.has_password() {
             let is_admin = user.is_admin(&self.pool).await.map_err(|err| {
                 error!("Failed to check if user is admin: {err}");
@@ -180,13 +185,21 @@ impl PasswordResetServer {
                 {
                     error!("Failed to send password reset disabled email: {err}");
                 }
+                return Ok(());
+            } else if user.openid_sub.is_some() || user.from_ldap {
+                // IdP-linked user allowed to hold a local password: let them set
+                // their first one through the normal reset flow below.
+                debug!(
+                    "Issuing password reset for passwordless IdP-linked user {} ({email})",
+                    user.username
+                );
             } else {
                 debug!(
                     "Password reset skipped for passwordless user {} ({email})",
                     user.username
                 );
+                return Ok(());
             }
-            return Ok(());
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
@@ -272,14 +285,15 @@ impl PasswordResetServer {
 
         let user = enrollment.fetch_user(&self.pool).await?;
 
-        if !user.has_password() || !user.is_active {
+        // A passwordless user may be setting their first local password (e.g. an
+        // OIDC/LDAP user), so only reject disabled users here. A token is only
+        // ever issued to users allowed to reset (see `request_password_reset`).
+        if !user.is_active {
             error!(
-                "Can't start password reset for a disabled or not enrolled user {}.",
+                "Can't start password reset for a disabled user {}.",
                 user.username
             );
-            return Err(Status::permission_denied(
-                "user disabled or not yet enrolled",
-            ));
+            return Err(Status::permission_denied("user disabled"));
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
