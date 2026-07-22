@@ -12,11 +12,13 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             polling_token::PollingToken,
             settings::{Settings, update_current_settings},
+            user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_session::VpnClientSession,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
     secret::SecretStringWrapper,
+    testing::smtp::configure_working_smtp,
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE, Token},
@@ -48,6 +50,7 @@ use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
+use totp_lite::{Sha1, totp_custom};
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
@@ -483,7 +486,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
 /// The code is valid immediately and can be passed directly to
 /// `ClientMfaFinishRequest::code`.
 pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> String {
-    defguard_common::testing::smtp::configure_working_smtp(pool).await;
+    configure_working_smtp(pool).await;
     user.new_email_secret(pool).await.expect("new_email_secret");
     user.enable_email_mfa(pool).await.expect("enable_email_mfa");
     // generate_email_mfa_code uses the in-memory secret; note that
@@ -507,8 +510,6 @@ pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
 /// Mirrors the logic in `User::verify_totp_code`.  Call this immediately before
 /// `send_mfa_finish` so the code is within the current 30-second window.
 pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
-    use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
-    use totp_lite::{Sha1, totp_custom};
     let secret = user
         .totp_secret
         .as_ref()
@@ -523,8 +524,6 @@ pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
 /// Generate a TOTP code from a **base32-encoded** secret string (as returned
 /// by `CodeMfaSetupStartResponse.totp_secret`).
 pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
-    use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
-    use totp_lite::{Sha1, totp_custom};
     let secret = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, base32_secret)
         .expect("invalid base32 TOTP secret from CodeMfaSetupStartResponse");
     let ts = SystemTime::now()

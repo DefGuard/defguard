@@ -25,8 +25,9 @@ use tokio::{
 use tracing::debug;
 
 use crate::db::models::settings::{
-    Settings, update_current_settings,
+    Settings,
     smtp::{SmtpAuthentication, SmtpEncryption},
+    update_current_settings,
 };
 
 /// Default time [`MockSmtpServer::wait_for`] and friends will poll before
@@ -145,12 +146,14 @@ impl MockSmtpServer {
                 sleep(Duration::from_millis(20)).await;
             }
         };
-        timeout(DEFAULT_MAIL_TIMEOUT, poll).await.unwrap_or_else(|_| {
-            panic!(
-                "timed out waiting for {n} mail(s); received {}",
-                self.message_count()
-            )
-        })
+        timeout(DEFAULT_MAIL_TIMEOUT, poll)
+            .await
+            .unwrap_or_else(|_| {
+                panic!(
+                    "timed out waiting for {n} mail(s); received {}",
+                    self.message_count()
+                )
+            })
     }
 
     /// Wait for the first captured message matching `predicate` and return it.

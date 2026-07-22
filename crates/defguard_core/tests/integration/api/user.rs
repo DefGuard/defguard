@@ -2957,7 +2957,9 @@ async fn test_reset_password_sends_email(_: PgPoolOptions, options: PgConnectOpt
 
     // The reset email (sent fire-and-forget) is delivered to the target user
     // and carries a tokenized reset link pointing at the configured proxy.
-    let mail = smtp.wait_for(|m| m.sent_to("h.potter@hogwart.edu.uk")).await;
+    let mail = smtp
+        .wait_for(|m| m.sent_to("h.potter@hogwart.edu.uk"))
+        .await;
     assert!(
         mail.body_contains("token"),
         "reset email should contain a reset token link"

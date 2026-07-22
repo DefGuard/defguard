@@ -502,9 +502,7 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // grab the next code-bearing email after the activation one
-    let (_, code_mail) = smtp
-        .wait_for_from(activation_idx + 1, has_mfa_code)
-        .await;
+    let (_, code_mail) = smtp.wait_for_from(activation_idx + 1, has_mfa_code).await;
     assert!(code_mail.sent_to("h.potter@hogwart.edu.uk"));
     let code = extract_email_code(&code_mail);
 
