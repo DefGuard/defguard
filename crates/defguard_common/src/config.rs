@@ -241,7 +241,7 @@ pub enum ManageCommand {
     SetAdminGroup(SetAdminGroupArgs),
     #[command(about = "Create a new group.")]
     CreateGroup(CreateGroupArgs),
-    #[command(about = "List all groups.")]
+    #[command(about = "List all groups and their admin status.")]
     ListGroups,
     #[command(about = "Add a user to a group by username.")]
     AddUserToGroup(AddUserToGroupArgs),

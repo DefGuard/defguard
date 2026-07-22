@@ -1808,7 +1808,7 @@ mod cli_command_tests {
         assert_eq!(name, "team");
         assert_eq!(
             group.member_usernames(&pool).await.unwrap(),
-            vec!["carol".to_owned()]
+            ["carol".to_owned()]
         );
 
         // adding the same user again (by id) fails

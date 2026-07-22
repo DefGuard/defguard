@@ -177,7 +177,7 @@ async fn main() -> Result<(), anyhow::Error> {
                     let name_header = "Group name";
                     let id_width = groups
                         .iter()
-                        .map(|group| group.id.to_string().len())
+                        .map(|group| group.id.ilog10() as usize + 1)
                         .max()
                         .unwrap_or(0)
                         .max(id_header.len());
