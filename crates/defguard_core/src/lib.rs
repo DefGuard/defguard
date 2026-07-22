@@ -88,6 +88,7 @@ use tracing::Level;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
@@ -1393,8 +1394,6 @@ pub async fn disable_ldap_integration(pool: &PgPool) -> Result<(), anyhow::Error
 }
 
 pub async fn disable_oidc_directory_sync(pool: &PgPool) -> Result<(), anyhow::Error> {
-    use crate::enterprise::db::models::openid_provider::OpenIdProvider;
-
     let mut provider = OpenIdProvider::get_current(pool)
         .await?
         .ok_or_else(|| anyhow!("No external identity provider is configured."))?;
@@ -1455,7 +1454,6 @@ mod cli_command_tests {
             GroupSelector, SetAdminGroupArgs,
         },
         db::{
-            Id,
             models::{
                 Settings, User,
                 group::{Group, Permission},
@@ -1465,10 +1463,7 @@ mod cli_command_tests {
         },
     };
     use secrecy::SecretString;
-    use sqlx::{
-        PgPool,
-        postgres::{PgConnectOptions, PgPoolOptions},
-    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::{
         add_user_to_group, change_user_password, create_admin_user, create_new_group,
