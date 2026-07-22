@@ -1,3 +1,9 @@
+## 📝 New contributors 
+
+- [ ] I have read, understand, and agree to the Contributor Agreement. By checking this box, I confirm I have the right to contribute this work and I grant Defguard sp. z o.o. the necessary rights to use my contribution as outlined in the full agreement.: https://github.com/DefGuard/defguard/blob/stable/2.x/CLA.md
+
+⚠︎ If the checkbox will not be confirmed - we can't include your contribution in our codebase.
+
 ## 📖 Description
 
 1. include a **summary of the changes and the related issue**, eg. _Closes #XYZ_
