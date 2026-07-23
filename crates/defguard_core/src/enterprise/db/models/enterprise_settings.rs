@@ -107,3 +107,85 @@ pub enum ClientTrafficPolicy {
     /// Clients are forced to route all traffic through the VPN.
     ForceAllTraffic,
 }
+
+/// Resolves group policies over the instance-level policy.
+///
+/// A configured group policy takes precedence over the instance policy. When a user belongs to
+/// multiple groups, disabling all traffic takes precedence over forcing all traffic. An explicit
+/// `None` group policy takes precedence over the instance policy when no restrictive group policy
+/// is present.
+#[must_use]
+pub fn resolve_client_traffic_policy(
+    instance_policy: ClientTrafficPolicy,
+    group_policies: impl IntoIterator<Item = ClientTrafficPolicy>,
+) -> ClientTrafficPolicy {
+    let mut has_force_all_traffic = false;
+    let mut has_none = false;
+
+    for policy in group_policies {
+        match policy {
+            ClientTrafficPolicy::DisableAllTraffic => {
+                return ClientTrafficPolicy::DisableAllTraffic;
+            }
+            ClientTrafficPolicy::ForceAllTraffic => has_force_all_traffic = true,
+            ClientTrafficPolicy::None => has_none = true,
+        }
+    }
+
+    if has_force_all_traffic {
+        ClientTrafficPolicy::ForceAllTraffic
+    } else if has_none {
+        ClientTrafficPolicy::None
+    } else {
+        instance_policy
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ClientTrafficPolicy, resolve_client_traffic_policy};
+
+    #[test]
+    fn instance_policy_is_used_without_group_overrides() {
+        assert_eq!(
+            resolve_client_traffic_policy(ClientTrafficPolicy::ForceAllTraffic, []),
+            ClientTrafficPolicy::ForceAllTraffic
+        );
+    }
+
+    #[test]
+    fn group_policy_overrides_instance_policy() {
+        assert_eq!(
+            resolve_client_traffic_policy(
+                ClientTrafficPolicy::DisableAllTraffic,
+                [ClientTrafficPolicy::ForceAllTraffic]
+            ),
+            ClientTrafficPolicy::ForceAllTraffic
+        );
+    }
+
+    #[test]
+    fn disable_all_traffic_wins_conflicting_group_policies() {
+        assert_eq!(
+            resolve_client_traffic_policy(
+                ClientTrafficPolicy::ForceAllTraffic,
+                [
+                    ClientTrafficPolicy::ForceAllTraffic,
+                    ClientTrafficPolicy::DisableAllTraffic,
+                ]
+            ),
+            ClientTrafficPolicy::DisableAllTraffic
+        );
+    }
+
+    #[test]
+    fn explicit_none_group_policy_overrides_instance_policy() {
+        assert_eq!(
+            resolve_client_traffic_policy(
+                ClientTrafficPolicy::ForceAllTraffic,
+                [ClientTrafficPolicy::None]
+            ),
+            ClientTrafficPolicy::None
+        );
+    }
+}

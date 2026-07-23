@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT gctp.group_id, gctp.client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\" FROM group_client_traffic_policy gctp JOIN group_user gu ON gu.group_id = gctp.group_id WHERE gu.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "group_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "client_traffic_policy: ClientTrafficPolicy",
+        "type_info": {
+          "Custom": {
+            "name": "client_traffic_policy",
+            "kind": {
+              "Enum": [
+                "none",
+                "disable_all_traffic",
+                "force_all_traffic"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c355c9c90181e0da78602ec73c4cbcc6a6226737625c37347d4d907703552d78"
+}

@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO group_client_traffic_policy (group_id, client_traffic_policy) VALUES ($1, $2) ON CONFLICT (group_id) DO UPDATE SET client_traffic_policy = EXCLUDED.client_traffic_policy RETURNING group_id, client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "group_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "client_traffic_policy: ClientTrafficPolicy",
+        "type_info": {
+          "Custom": {
+            "name": "client_traffic_policy",
+            "kind": {
+              "Enum": [
+                "none",
+                "disable_all_traffic",
+                "force_all_traffic"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "client_traffic_policy",
+            "kind": {
+              "Enum": [
+                "none",
+                "disable_all_traffic",
+                "force_all_traffic"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a7fe7af3323984a260dbc3fab701781eebf0ffb1687bc97d0f42e0a97f420d63"
+}
