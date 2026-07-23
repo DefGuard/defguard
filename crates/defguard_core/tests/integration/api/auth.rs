@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use chrono::DateTime;
 use defguard_common::{
@@ -19,6 +19,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query,
 };
+use tokio::time::sleep;
 use totp_lite::{Sha1, totp_custom};
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
@@ -529,7 +530,6 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-/*
 #[sqlx::test]
 async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -545,30 +545,25 @@ async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnect
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    // remove login confirmation email from queue
-    let _mail = mail_rx.try_recv().unwrap();
 
-    // add dummy SMTP settings
-    let mut settings = Settings::get_current_settings();
-    settings.smtp.server = Some("smtp_server".into());
-    settings.smtp.port = Some(587);
-    settings.smtp.sender = Some("smtp@sender.pl".into());
-    update_current_settings(&pool, settings).await.unwrap();
+    // point SMTP at the mock server
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
-    // initialize email MFA setup
+    // initialize email MFA setup - sends the activation email (awaited)
     let response = client.post("/api/v1/auth/email/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "Defguard: Multi-Factor Authentication activation"
-    );
-    let code = extract_email_code(mail.content());
 
-    // finish setup
-    let code = AuthCode::new(code);
-    let response = client.post("/api/v1/auth/email").json(&code).send().await;
+    let activation = smtp.wait_for(has_mfa_code).await;
+    assert!(activation.sent_to("h.potter@hogwart.edu.uk"));
+    let code = extract_email_code(&activation);
+
+    // finish setup with the emailed code
+    let response = client
+        .post("/api/v1/auth/email")
+        .json(&AuthCode::new(code))
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // enable MFA
@@ -580,11 +575,11 @@ async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnect
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // provide wrong code more than 5 times in a row
-    let code = AuthCode::new("0");
+    let wrong_code = AuthCode::new("0");
     for i in 0..10 {
         let response = client
             .post("/api/v1/auth/email/verify")
-            .json(&code)
+            .json(&wrong_code)
             .send()
             .await;
         if i >= 5 {
@@ -594,7 +589,6 @@ async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnect
         }
     }
 }
-*/
 
 #[sqlx::test]
 async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
@@ -855,12 +849,12 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey(
     assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
-/*
 #[sqlx::test]
 async fn test_mfa_method_totp_enabled_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let (client, state) = make_test_client(pool).await;
+    let pool = state.pool;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
     // login
@@ -873,40 +867,44 @@ async fn test_mfa_method_totp_enabled_mail(_: PgPoolOptions, options: PgConnectO
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    // point SMTP at the mock server (after login, so only the activation mail is captured)
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
+
     // new TOTP secret
     let response = client.post("/api/v1/auth/totp/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let auth_totp: AuthTotp = response.json().await;
 
-    // enable TOTP
+    // enable TOTP - sends the "MFA method activated" notification (fire-and-forget)
     let code = totp_code(&auth_totp);
     let response = client.post("/api/v1/auth/totp").json(&code).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    mail_rx.try_recv().unwrap();
-    let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    assert_eq!(
-        mail.subject(),
-        "MFA method TOTP has been activated on your account"
-    );
-    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
+    let mail = smtp
+        .wait_for(|m| m.body_contains("Multi-Factor Authentication TOTP has been activated"))
+        .await;
     assert!(
-        mail.content()
-            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+        mail.sent_to("h.potter@hogwart.edu.uk"),
+        "MFA activation notification should be addressed to the user"
     );
 }
-*/
 
 #[sqlx::test]
 async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (client, state) = make_test_client(pool).await;
+    let pool = state.pool;
+
+    // point SMTP at a mock server so new-device-login notifications are delivered
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
+
     let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
     let user_agent_header_android = "Mozilla/5.0 (Linux; Android 7.0; SM-G930VC Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/58.0.3029.83 Mobile Safari/537.36";
 
-    // login
+    // login from a new device - triggers a notification email
     let auth = Auth::new("hpotter", "pass123");
     let response = client
         .post("/api/v1/auth")
@@ -916,22 +914,23 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    // assert_eq!(
-    //     mail.subject(),
-    //     "Defguard: new device logged in to your account"
-    // );
-    // assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
-    // assert!(
-    //     mail.content()
-    //         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
-    // );
+    let mail = smtp
+        .wait_for(|m| m.sent_to("h.potter@hogwart.edu.uk"))
+        .await;
+    assert!(
+        mail.body_contains("Defguard: New device logged in to your account"),
+        "new-device notification should carry the expected subject"
+    );
+    assert!(
+        mail.body_contains("127.0.0.1"),
+        "new-device notification should include the client IP address"
+    );
+    assert_eq!(smtp.message_count(), 1);
 
     let response = client.post("/api/v1/auth/logout").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // login using the same device
-    let auth = Auth::new("hpotter", "pass123");
+    // login again from the SAME device - a known device must not re-notify
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_iphone)
@@ -940,8 +939,15 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // login using a different device
-    let auth = Auth::new("hpotter", "pass123");
+    // give any (erroneous) fire-and-forget mail a chance to arrive, then confirm none did
+    sleep(Duration::from_millis(300)).await;
+    assert_eq!(
+        smtp.message_count(),
+        1,
+        "logging in from a known device must not send a new-device notification"
+    );
+
+    // login from a different device - triggers another notification
     let response = client
         .post("/api/v1/auth")
         .header(USER_AGENT, user_agent_header_android)
@@ -950,22 +956,24 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // assert_eq!(
-    //     mail.subject(),
-    //     "Defguard: new device logged in to your account"
-    // );
-    // assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
-    // assert!(
-    //     mail.content()
-    //         .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView")
-    // );
+    let mails = smtp.wait_for_count(2).await;
+    assert!(
+        mails.iter().all(|m| m.sent_to("h.potter@hogwart.edu.uk")),
+        "both notifications should be addressed to the user"
+    );
 }
 
 #[sqlx::test]
 async fn test_login_ip_headers(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (client, state) = make_test_client(pool).await;
+    let pool = state.pool;
+
+    // point SMTP at a mock server so the new-device notification is delivered
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
+
     let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
     // Works with X-Forwarded-For header
@@ -979,12 +987,20 @@ async fn test_login_ip_headers(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    // assert_eq!(
-    //     mail.subject(),
-    //     "Defguard: new device logged in to your account"
-    // );
-    // assert!(mail.content().contains("IP Address:</span> 10.0.0.20"));
+    // the notification records the IP from X-Forwarded-For rather than the socket
+    // address; ClientIpAddr uses the *rightmost* (trusted-proxy) entry, which is
+    // not client-spoofable, so 10.1.1.10 is expected here, not 10.0.0.20
+    let mail = smtp
+        .wait_for(|m| m.sent_to("h.potter@hogwart.edu.uk"))
+        .await;
+    assert!(
+        mail.body_contains("Defguard: New device logged in to your account"),
+        "new-device notification should carry the expected subject"
+    );
+    assert!(
+        mail.body_contains("10.1.1.10"),
+        "notification should record the rightmost X-Forwarded-For IP address"
+    );
 }
 
 #[sqlx::test]
