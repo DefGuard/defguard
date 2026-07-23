@@ -45,6 +45,7 @@ pub const KEY_LENGTH: usize = 32;
 /// Compute the RFC 7638 JWK thumbprint for an RSA private key.
 ///
 /// Used as the key ID (`kid`) for OpenID Connect signing keys.
+#[must_use]
 pub fn rsa_jwk_thumbprint(key: &RsaPrivateKey) -> String {
     rsa_jwk_thumbprint_from_public(key.n(), key.e())
 }
