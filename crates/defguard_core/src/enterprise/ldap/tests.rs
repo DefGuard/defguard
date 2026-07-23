@@ -4165,7 +4165,8 @@ async fn test_sync_invite_skipped_when_no_admin_exists(
 }
 
 /// When both invite flags are on and a user logs in through LDAP for the first time (not yet
-/// in Defguard), an enrollment token must be created and `enrollment_pending` set to `true`.
+/// in Defguard), an enrollment token must be created, `enrollment_pending` set to `true`, and
+/// an invite email actually delivered to the user carrying the tokenized proxy link.
 #[sqlx::test]
 async fn test_ldap_login_sends_invite_when_flags_enabled(
     _: PgPoolOptions,
@@ -4180,6 +4181,10 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
     settings.ldap_remote_enrollment_send_invite = true;
     settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
+
+    // Point SMTP at a working mock so the invite email is actually delivered and captured.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     make_test_admin(&pool, "login_admin_invite").await;
 
@@ -4219,7 +4224,22 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
         "Token should belong to the logged-in user"
     );
 
-    // Second login: user now exists in Defguard - must NOT create a second token.
+    // The invite email (sent fire-and-forget) is delivered to the user and carries a
+    // tokenized enrollment link pointing at the configured proxy.
+    let mail = smtp
+        .wait_for(|m| m.sent_to("login_invite_user@example.com"))
+        .await;
+    assert!(
+        mail.body_contains(&tokens[0].id),
+        "invite email should contain the enrollment token"
+    );
+    assert!(
+        mail.body_contains("proxy.example.com"),
+        "invite link should point at the configured proxy URL"
+    );
+
+    // Second login: user now exists in Defguard - must NOT create a second token
+    // nor send a second invite email.
     let result =
         login_through_ldap_with_connection(&pool, &mut ldap_conn, "login_invite_user", PASSWORD)
             .await;
@@ -4234,10 +4254,17 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
         1,
         "Expected still exactly one enrollment token after second login, got {tokens:?}"
     );
+    assert_eq!(
+        smtp.message_count(),
+        1,
+        "Expected exactly one invite email after second login, got {:?}",
+        smtp.messages()
+    );
 }
 
 /// When both invite flags are on but the LDAP user already exists in Defguard (returning user),
-/// no additional enrollment token must be created.
+/// no additional enrollment token must be created and no invite email must be sent - even
+/// though a working SMTP server and both flags are configured.
 #[sqlx::test]
 async fn test_ldap_login_does_not_send_invite_for_existing_user(
     _: PgPoolOptions,
@@ -4252,6 +4279,11 @@ async fn test_ldap_login_does_not_send_invite_for_existing_user(
     settings.ldap_remote_enrollment_send_invite = true;
     settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
+
+    // Point SMTP at a working mock so the returning-user guard is the only reason no invite
+    // is sent, not a missing SMTP configuration.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     make_test_admin(&pool, "login_admin_existing").await;
 
@@ -4286,6 +4318,13 @@ async fn test_ldap_login_does_not_send_invite_for_existing_user(
     assert!(
         tokens.is_empty(),
         "Expected no enrollment token for a returning LDAP user, got {tokens:?}"
+    );
+
+    assert_eq!(
+        smtp.message_count(),
+        0,
+        "Expected no invite email for a returning LDAP user, got {:?}",
+        smtp.messages()
     );
 }
 
