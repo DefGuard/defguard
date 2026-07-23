@@ -1,0 +1,50 @@
+[
+  {
+    "id": "00u4s64d9MYvzKmLW0g7",
+    "status": "ACTIVE",
+    "created": "2022-01-15T10:30:00.000Z",
+    "activated": "2022-01-15T10:35:00.000Z",
+    "statusChanged": "2022-01-15T10:35:00.000Z",
+    "lastLogin": "2026-07-20T14:22:15.000Z",
+    "lastUpdated": "2026-07-20T14:22:15.000Z",
+    "passwordChanged": "2022-01-15T10:35:00.000Z",
+    "type": {
+      "id": "oty5lqjjma4vvnx0P0g7"
+    },
+    "profile": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "mobilePhone": null,
+      "primaryPhone": null,
+      "secondEmail": null,
+      "secondPhone": null,
+      "preferredLanguage": null,
+      "userSegment": null,
+      "department": null,
+      "costCenter": null,
+      "organization": null,
+      "manager": null,
+      "managerId": null,
+      "login": "jane.doe@example.com",
+      "email": "jane.doe@example.com"
+    },
+    "credentials": {
+      "password": {},
+      "provider": {
+        "type": "OKTA",
+        "name": "OKTA"
+      }
+    },
+    "_links": {
+      "self": {
+        "href": "https://trial-okta.okta.com/api/v1/users/00u4s64d9MYvzKmLW0g7"
+      },
+      "activate": {
+        "href": "https://trial-okta.okta.com/api/v1/users/00u4s64d9MYvzKmLW0g7/lifecycle/activate"
+      },
+      "deactivate": {
+        "href": "https://trial-okta.okta.com/api/v1/users/00u4s64d9MYvzKmLW0g7/lifecycle/deactivate"
+      }
+    }
+  }
+]
