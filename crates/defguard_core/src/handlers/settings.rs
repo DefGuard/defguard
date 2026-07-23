@@ -16,7 +16,7 @@ use defguard_common::{
 use sqlx::PgPool;
 use struct_patch::Patch;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResponseCode, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
@@ -24,7 +24,7 @@ use crate::{
         db::models::enterprise_settings::EnterpriseSettings,
         handlers::LicenseInfo,
         ldap::{LDAPConnection, sync::Authority},
-        license::update_cached_license,
+        license::{License, get_cached_license, update_cached_license},
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -179,7 +179,26 @@ pub async fn patch_settings(
     // clone for event
     let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;
+    let mut license_reactivated = false;
     if let Some(license_key) = &license {
+        if let Some(current_license) = get_cached_license().as_ref() {
+            let is_current_license_valid = !current_license.is_max_overdue();
+
+            if let Some(license) = license_key.as_deref()
+                && let Ok(new_license) = License::from_base64(license)
+                && !new_license.is_max_overdue()
+                && !is_current_license_valid
+            {
+                license_reactivated = true;
+                info!(
+                    "Admin {} replaced a previously invalid license with a valid one",
+                    session.user.username
+                );
+            }
+        } else {
+            info!("Couldn't obtain current license");
+        }
+
         update_cached_license(license_key.as_deref())?;
         debug!("Updated cached license after saving settings patch");
     }
@@ -207,7 +226,12 @@ pub async fn patch_settings(
         context,
         event: Box::new(ApiEventType::SettingsUpdatedPartial { before, after }),
     })?;
-    Ok(ApiResponse::default())
+
+    if license_reactivated {
+        Ok(ApiResponseCode::LicenseReactivated.into())
+    } else {
+        Ok(ApiResponse::default())
+    }
 }
 
 pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
