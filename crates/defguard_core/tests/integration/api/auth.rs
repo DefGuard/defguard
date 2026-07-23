@@ -406,22 +406,24 @@ async fn dg25_15_test_totp_brute_force(_: PgPoolOptions, options: PgConnectOptio
     }
 }
 
-/// Whether a captured email carries a 6-digit MFA code. The plain-text MIME
-/// part renders `{{ code }}` on its own line, so we look for a line that is
+/// Find the 6-digit MFA code in a captured email, if present. The plain-text
+/// MIME part renders `{{ code }}` on its own line, so we look for a line that is
 /// exactly six digits.
-fn has_mfa_code(mail: &CapturedMail) -> bool {
-    mail.body
-        .lines()
-        .map(str::trim)
-        .any(|line| line.len() == 6 && line.bytes().all(|b| b.is_ascii_digit()))
-}
-
-/// Extract the 6-digit MFA code from a captured email (see [`has_mfa_code`]).
-fn extract_email_code(mail: &CapturedMail) -> String {
+fn find_mfa_code(mail: &CapturedMail) -> Option<&str> {
     mail.body
         .lines()
         .map(str::trim)
         .find(|line| line.len() == 6 && line.bytes().all(|b| b.is_ascii_digit()))
+}
+
+/// Whether a captured email carries a 6-digit MFA code.
+fn has_mfa_code(mail: &CapturedMail) -> bool {
+    find_mfa_code(mail).is_some()
+}
+
+/// Extract the 6-digit MFA code from a captured email (see [`find_mfa_code`]).
+fn extract_email_code(mail: &CapturedMail) -> String {
+    find_mfa_code(mail)
         .expect("no 6-digit MFA code found in email body")
         .to_string()
 }
