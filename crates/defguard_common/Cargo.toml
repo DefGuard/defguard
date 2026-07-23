@@ -44,6 +44,12 @@ webauthn-rs.workspace = true
 x25519-dalek.workspace = true
 url = "2.5"
 
+[features]
+# Test-only helpers (e.g. the mock SMTP server) meant to be shared with other
+# crates' test suites. Enable via `[dev-dependencies]` so it never reaches
+# production builds.
+test-support = ["tokio/net", "tokio/io-util"]
+
 [dev-dependencies]
 matches.workspace = true
 

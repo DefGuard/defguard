@@ -15,6 +15,7 @@ use defguard_common::{
             vpn_session_stats::VpnSessionStats,
         },
     },
+    testing::smtp::MockSmtpServer,
     types::user_info::UserInfo,
 };
 use defguard_core::{
@@ -1439,6 +1440,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, state) = make_test_client(pool).await;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
+    // point SMTP at a mock server so device/login notifications are delivered
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&state.pool).await;
+
     let mut expected_events = Vec::new();
 
     // log in as admin
@@ -1451,13 +1456,6 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     expected_events.push(ApiEventType::UserLogin);
-
-    // first email received is regarding admin login
-    // assert_eq!(mail.to(), "admin@defguard");
-    // assert_eq!(
-    //     mail.subject(),
-    //     "Defguard: new device logged in to your account"
-    // );
 
     // create network
     make_network(&client, "network").await;
@@ -1482,13 +1480,6 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         device: get_db_device(&state.pool, 1).await,
     });
 
-    // send email regarding new device being added
-    // it does not contain session info
-    // assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    // assert_eq!(mail.subject(), "Defguard: new device added to your account");
-    // assert!(!mail.content().contains("IP Address:</span>"));
-    // assert!(!mail.content().contains("Device type:</span>"));
-
     // add device for themselves
     let device_data = AddDevice {
         name: "TestDevice2".into(),
@@ -1506,16 +1497,6 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         device: get_db_device(&state.pool, 2).await,
     });
 
-    // send email regarding new device being added
-    // it should contain session info
-    // assert_eq!(mail.to(), "admin@defguard");
-    // assert_eq!(mail.subject(), "Defguard: new device added to your account");
-    // assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
-    // assert!(
-    //     mail.content()
-    //         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
-    // );
-
     // log in as normal user
     let auth = Auth::new("hpotter", "pass123");
     let response = client
@@ -1529,18 +1510,6 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
-    // send email regarding user login
-    // assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    // assert_eq!(
-    //     mail.subject(),
-    //     "Defguard: new device logged in to your account"
-    // );
-    // assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
-    // assert!(
-    //     mail.content()
-    //         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
-    // );
 
     // a device with duplicate pubkey cannot be added
     let response = client
@@ -1577,14 +1546,27 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         device: get_db_device(&state.pool, 3).await,
     });
 
-    // send email regarding new device being added
-    // assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
-    // assert_eq!(mail.subject(), "Defguard: new device added to your account");
-    // assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
-    // assert!(
-    //     mail.content()
-    //         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
-    // );
+    // Verify the notifications delivered across the flow (all fire-and-forget,
+    // so assert the recipient/subject multiset rather than relying on order):
+    //  - admin login                 -> new-device-login  to admin
+    //  - admin adds device (hpotter)  -> new-device-added  to hpotter
+    //  - admin adds device (self)     -> new-device-added  to admin
+    //  - hpotter login                -> new-device-login  to hpotter
+    //  - hpotter adds device (self)   -> new-device-added  to hpotter
+    let mails = smtp.wait_for_count(5).await;
+    let login_subject = "Defguard: New device logged in to your account";
+    let added_subject = "Defguard: new device added to your account";
+    let count = |to: &str, subject: &str| {
+        mails
+            .iter()
+            .filter(|m| m.sent_to(to) && m.body_contains(subject))
+            .count()
+    };
+    assert_eq!(count("admin@defguard", login_subject), 1);
+    assert_eq!(count("admin@defguard", added_subject), 1);
+    assert_eq!(count("h.potter@hogwart.edu.uk", login_subject), 1);
+    assert_eq!(count("h.potter@hogwart.edu.uk", added_subject), 2);
+    assert_eq!(mails.len(), 5, "exactly five notifications expected");
 
     client.verify_api_events(&expected_events);
 }
@@ -2931,4 +2913,40 @@ async fn test_password_management_disabled_for_oidc_user(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn test_reset_password_sends_email(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    // Configure a proxy URL (needed to build the reset link) and point SMTP at
+    // an in-process mock server so the reset email is actually delivered.
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://proxy.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
+
+    // Admin triggers a password reset for another user.
+    client.login_user("admin", "pass123").await;
+    let response = client
+        .post("/api/v1/user/hpotter/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // The reset email (sent fire-and-forget) is delivered to the target user
+    // and carries a tokenized reset link pointing at the configured proxy.
+    let mail = smtp
+        .wait_for(|m| m.sent_to("h.potter@hogwart.edu.uk"))
+        .await;
+    assert!(
+        mail.body_contains("token"),
+        "reset email should contain a reset token link"
+    );
+    assert!(
+        mail.body_contains("proxy.example.com"),
+        "reset link should point at the configured proxy URL"
+    );
 }

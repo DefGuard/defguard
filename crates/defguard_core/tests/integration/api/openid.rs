@@ -1,13 +1,16 @@
 use std::str::FromStr;
 
 use axum::http::header::ToStrError;
-use defguard_common::db::{
-    Id,
-    models::{
-        OAuth2AuthorizedApp, Settings, User,
-        oauth2client::OAuth2Client,
-        settings::{OPENID_KEY_SIZE, update_current_settings},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            OAuth2AuthorizedApp, Settings, User,
+            oauth2client::OAuth2Client,
+            settings::{OPENID_KEY_SIZE, update_current_settings},
+        },
     },
+    testing::smtp::MockSmtpServer,
 };
 use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
 use openidconnect::{
@@ -1529,8 +1532,13 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
 async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (client, state) = make_test_client(pool).await;
+    let pool = state.pool;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    // point SMTP at a mock server so the OIDC new-login notification is delivered
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client
@@ -1587,16 +1595,19 @@ async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOpt
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
     assert_eq!(auth_response.state, "ABCDEF");
 
-    // assert_eq!(mail.to(), "admin@defguard");
-    // assert_eq!(
-    //     mail.subject(),
-    //     "New login to Test application with Defguard"
-    // );
-    // assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
-    // assert!(
-    //     mail.content()
-    //         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
-    // );
+    // authorizing the app for the first time sends a new-OIDC-login notification;
+    // match it by subject to distinguish it from the password-login new-device mail
+    let mail = smtp
+        .wait_for(|m| m.body_contains("New login to OIDC application"))
+        .await;
+    assert!(
+        mail.sent_to("admin@defguard"),
+        "OIDC login notification should be addressed to the user"
+    );
+    assert!(
+        mail.body_contains("Test"),
+        "OIDC login notification should name the authorized application"
+    );
 
     let response = client
         .post(format!(

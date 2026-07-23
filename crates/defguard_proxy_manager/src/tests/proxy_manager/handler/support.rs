@@ -12,11 +12,13 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             polling_token::PollingToken,
             settings::{Settings, update_current_settings},
+            user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_session::VpnClientSession,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
     secret::SecretStringWrapper,
+    testing::smtp::configure_working_smtp,
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE, Token},
@@ -46,13 +48,9 @@ use defguard_proto::{
 };
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
-use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    net::TcpListener,
-    sync::mpsc::UnboundedReceiver,
-    time::timeout,
-};
+use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
+use totp_lite::{Sha1, totp_custom};
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
@@ -512,8 +510,6 @@ pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
 /// Mirrors the logic in `User::verify_totp_code`.  Call this immediately before
 /// `send_mfa_finish` so the code is within the current 30-second window.
 pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
-    use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
-    use totp_lite::{Sha1, totp_custom};
     let secret = user
         .totp_secret
         .as_ref()
@@ -528,8 +524,6 @@ pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
 /// Generate a TOTP code from a **base32-encoded** secret string (as returned
 /// by `CodeMfaSetupStartResponse.totp_secret`).
 pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
-    use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
-    use totp_lite::{Sha1, totp_custom};
     let secret = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, base32_secret)
         .expect("invalid base32 TOTP secret from CodeMfaSetupStartResponse");
     let ts = SystemTime::now()
@@ -943,83 +937,6 @@ pub(crate) fn configure_smtp(settings: &mut Settings) {
     settings.smtp.server = Some("smtp.example.com".into());
     settings.smtp.port = Some(587);
     settings.smtp.sender = Some("noreply@example.com".into());
-}
-
-/// Spawn a minimal in-process SMTP server that accepts any message and replies
-/// with success codes, then point `pool`'s current settings at it.
-///
-/// MFA emails (`mfa_code_mail`/`mfa_activation_mail`) are actually sent
-/// (awaited) rather than fired-and-forgotten, so tests exercising the email
-/// MFA method need a real, reachable SMTP endpoint or the send fails with
-/// `SmtpNotConfigured`/`MailSendFailed`.
-pub(crate) async fn configure_working_smtp(pool: &PgPool) {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("failed to bind fake SMTP listener");
-    let addr = listener.local_addr().expect("failed to get local addr");
-
-    tokio::spawn(async move {
-        loop {
-            let Ok((stream, _)) = listener.accept().await else {
-                return;
-            };
-            tokio::spawn(async move {
-                let (reader, mut writer) = stream.into_split();
-                let mut reader = BufReader::new(reader);
-                let _ = writer.write_all(b"220 localhost ESMTP\r\n").await;
-                let mut line = String::new();
-                loop {
-                    line.clear();
-                    match reader.read_line(&mut line).await {
-                        Ok(0) => return,
-                        Ok(_) => {}
-                        Err(_) => return,
-                    }
-                    let upper = line.trim_end().to_ascii_uppercase();
-                    if upper.starts_with("EHLO") || upper.starts_with("HELO") {
-                        let _ = writer.write_all(b"250 localhost\r\n").await;
-                    } else if upper.starts_with("MAIL FROM")
-                        || upper.starts_with("RCPT TO")
-                        || upper.starts_with("RSET")
-                    {
-                        let _ = writer.write_all(b"250 OK\r\n").await;
-                    } else if upper.starts_with("DATA") {
-                        let _ = writer
-                            .write_all(b"354 End data with <CR><LF>.<CR><LF>\r\n")
-                            .await;
-                        loop {
-                            line.clear();
-                            match reader.read_line(&mut line).await {
-                                Ok(0) => return,
-                                Ok(_) => {}
-                                Err(_) => return,
-                            }
-                            if line == ".\r\n" || line == ".\n" {
-                                break;
-                            }
-                        }
-                        let _ = writer.write_all(b"250 OK message queued\r\n").await;
-                    } else if upper.starts_with("QUIT") {
-                        let _ = writer.write_all(b"221 Bye\r\n").await;
-                        return;
-                    } else {
-                        let _ = writer.write_all(b"250 OK\r\n").await;
-                    }
-                }
-            });
-        }
-    });
-
-    let mut settings = Settings::get_current_settings();
-    settings.smtp.server = Some(addr.ip().to_string());
-    settings.smtp.port = Some(i32::from(addr.port()));
-    settings.smtp.sender = Some("noreply@example.com".into());
-    settings.smtp.encryption = defguard_common::db::models::settings::smtp::SmtpEncryption::None;
-    settings.smtp.authentication =
-        defguard_common::db::models::settings::smtp::SmtpAuthentication::None;
-    update_current_settings(pool, settings)
-        .await
-        .expect("failed to persist fake SMTP settings");
 }
 
 /// Set minimal LDAP fields on a [`Settings`] so that `ldap_configured()` returns `true`.

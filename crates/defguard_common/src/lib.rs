@@ -14,6 +14,8 @@ pub mod hex;
 pub mod messages;
 pub mod random;
 pub mod secret;
+#[cfg(feature = "test-support")]
+pub mod testing;
 pub mod types;
 pub mod utils;
 
