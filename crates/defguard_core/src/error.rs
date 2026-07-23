@@ -227,7 +227,6 @@ impl From<SettingsValidationError> for WebError {
         match err {
             SettingsValidationError::CannotEnableGatewayNotifications
             | SettingsValidationError::CannotEnableLdapRemoteEnrollment
-            | SettingsValidationError::CannotEnableLdapRemoteEnrollmentInvite
             | SettingsValidationError::CannotEnableLdap
             | SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
         }

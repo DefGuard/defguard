@@ -3923,6 +3923,58 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
     );
 }
 
+/// Regression test for <https://github.com/DefGuard/defguard/issues/3394>.
+///
+/// When `ldap_remote_enrollment_send_invite` is left on but its parent
+/// `ldap_remote_enrollment_enabled` toggle is off, syncing new LDAP users must NOT create
+/// enrollment tokens. Everything else needed to send an invite (SMTP, LDAP, proxy URL and an
+/// admin) is configured, so the disabled parent toggle is the only reason no invite is sent.
+#[sqlx::test]
+async fn test_sync_invite_skipped_when_remote_enrollment_disabled(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = false;
+    settings.ldap_remote_enrollment_send_invite = true;
+    settings.public_proxy_url = PROXY_URL.into();
+    update_current_settings(&pool, settings).await.unwrap();
+
+    make_test_admin(&pool, "sync_admin_enrollmentoff").await;
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_user = make_test_user("sync_invite_enrollmentoff_user", None, None);
+    ldap_user.ldap_rdn = Some("sync_invite_enrollmentoff_user".into());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let saved = User::find_by_username(&pool, "sync_invite_enrollmentoff_user")
+        .await
+        .unwrap();
+    assert!(saved.is_some(), "User should have been synced to Defguard");
+
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert!(
+        tokens.is_empty(),
+        "Expected no enrollment token when remote enrollment is disabled, got {tokens:?}"
+    );
+}
+
 /// When both `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` are on,
 /// syncing a new LDAP user must create an enrollment token and set `enrollment_pending = true`.
 ///
