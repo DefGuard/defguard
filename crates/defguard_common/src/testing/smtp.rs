@@ -168,7 +168,8 @@ impl MockSmtpServer {
     where
         F: Fn(&CapturedMail) -> bool,
     {
-        self.wait_for_from(0, predicate).await.1
+        let (_, mail) = self.wait_for_from(0, predicate).await;
+        mail
     }
 
     /// Like [`wait_for`](Self::wait_for), but only considers messages at index

@@ -1,16 +1,19 @@
-use defguard_common::db::{
-    Id,
-    models::{
-        User,
-        settings::{Settings, update_current_settings},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            User,
+            settings::{Settings, update_current_settings},
+        },
     },
+    testing::smtp::MockSmtpServer,
 };
 use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
 use defguard_proto::proxy::core_response;
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
-    query_as, query_scalar,
+    query_scalar,
 };
 use tokio::time::timeout;
 
@@ -108,13 +111,13 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
 
     // Start the session (consumes the PasswordResetStarted event).
     let start_response = send_password_reset_start(&mut context, &token.id).await;
-    assert!(
-        matches!(
-            start_response.payload,
-            Some(core_response::Payload::PasswordResetStart(_))
+    match &start_response.payload {
+        Some(core_response::Payload::PasswordResetStart(_)) => {}
+        _ => panic!(
+            "expected PasswordResetStart response, got: {:?}",
+            start_response.payload.as_ref().map(std::mem::discriminant)
         ),
-        "start must succeed"
-    );
+    }
     let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Reset the password.
@@ -180,13 +183,13 @@ async fn test_password_reset_weak_password_returns_error(
 
     // Start the session.
     let start_response = send_password_reset_start(&mut context, &token.id).await;
-    assert!(
-        matches!(
-            start_response.payload,
-            Some(core_response::Payload::PasswordResetStart(_))
+    match &start_response.payload {
+        Some(core_response::Payload::PasswordResetStart(_)) => {}
+        _ => panic!(
+            "expected PasswordResetStart response, got: {:?}",
+            start_response.payload.as_ref().map(std::mem::discriminant)
         ),
-        "start must succeed"
-    );
+    }
     let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Submit a weak password.
@@ -239,7 +242,12 @@ async fn test_password_reset_init_disabled_user_no_token(
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    // Enable LDAP password management disabling in settings.
+    // Capture outgoing mail so we can assert the "disabled" notification is sent.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&context.pool).await;
+
+    // Enable LDAP password management disabling (preserving the SMTP config just
+    // written to settings).
     let mut settings = Settings::get_current_settings();
     settings.ldap_disable_password_management = true;
     update_current_settings(&context.pool, settings)
@@ -264,17 +272,18 @@ async fn test_password_reset_init_disabled_user_no_token(
         ),
     }
 
-    // No PASSWORD_RESET token must have been created.
-    let count: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
-    )
-    .bind(user.id)
-    .fetch_one(&context.pool)
-    .await
-    .expect("failed to query token count");
+    // No PASSWORD_RESET token must have been created ...
     assert_eq!(
-        count.0, 0,
+        count_password_reset_tokens(&context.pool, user.id).await,
+        0,
         "no password reset token should be created for disabled user"
+    );
+
+    // ... but the user must receive a "password reset disabled" notification.
+    let mail = smtp.wait_for(|m| m.sent_to(&user.email)).await;
+    assert!(
+        mail.body_contains("Password reset disabled"),
+        "externally-managed user must receive the password-reset-disabled email"
     );
 
     context.finish().await.expect_server_finished().await;
@@ -305,15 +314,9 @@ async fn test_password_reset_init_passwordless_user_silent_no_token(
     }
 
     // No PASSWORD_RESET token must have been created.
-    let count: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
-    )
-    .bind(user.id)
-    .fetch_one(&context.pool)
-    .await
-    .expect("failed to query token count");
     assert_eq!(
-        count.0, 0,
+        count_password_reset_tokens(&context.pool, user.id).await,
+        0,
         "no password reset token should be created for passwordless user"
     );
 
@@ -347,6 +350,15 @@ async fn fetch_single_password_reset_token_id(pool: &PgPool, user_id: Id) -> Str
         ids.len()
     );
     ids.into_iter().next().unwrap()
+}
+
+/// Count the PASSWORD_RESET tokens for a user.
+async fn count_password_reset_tokens(pool: &PgPool, user_id: Id) -> i64 {
+    query_scalar("SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'")
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+        .expect("failed to query password reset token count")
 }
 
 /// Regression test for issue #3388: a passwordless user linked to an external
@@ -385,14 +397,9 @@ async fn test_password_reset_init_oidc_user_creates_token(
     }
 
     // A PASSWORD_RESET token must have been created so the user can set a password.
-    let count: (i64,) =
-        query_as("SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'")
-            .bind(user.id)
-            .fetch_one(&context.pool)
-            .await
-            .expect("failed to query token count");
     assert_eq!(
-        count.0, 1,
+        count_password_reset_tokens(&context.pool, user.id).await,
+        1,
         "a password reset token must be created for a passwordless OIDC user"
     );
 
@@ -445,15 +452,9 @@ async fn test_password_reset_init_ldap_user_creates_token(
         ),
     }
 
-    let count: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
-    )
-    .bind(user.id)
-    .fetch_one(&context.pool)
-    .await
-    .expect("failed to query token count");
     assert_eq!(
-        count.0, 1,
+        count_password_reset_tokens(&context.pool, user.id).await,
+        1,
         "a password reset token must be created for a passwordless LDAP user"
     );
 
@@ -485,27 +486,26 @@ async fn test_password_reset_completes_for_oidc_user(_: PgPoolOptions, options: 
 
     // Init: must create a reset token and emit PasswordResetRequested.
     let init_response = send_password_reset_init(&mut context, &user.email).await;
-    assert!(
-        matches!(
-            init_response.payload,
-            Some(core_response::Payload::Empty(()))
+    match &init_response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!(
+            "expected Empty response on init, got: {:?}",
+            init_response.payload.as_ref().map(std::mem::discriminant)
         ),
-        "init must return Empty"
-    );
+    }
     let token_id = fetch_single_password_reset_token_id(&context.pool, user.id).await;
     // Drain the PasswordResetRequested event.
     let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Start: must succeed even though the user has no password yet.
     let start_response = send_password_reset_start(&mut context, &token_id).await;
-    assert!(
-        matches!(
-            start_response.payload,
-            Some(core_response::Payload::PasswordResetStart(_))
+    match &start_response.payload {
+        Some(core_response::Payload::PasswordResetStart(_)) => {}
+        _ => panic!(
+            "start must succeed for a passwordless OIDC user, got: {:?}",
+            start_response.payload.as_ref().map(std::mem::discriminant)
         ),
-        "start must succeed for a passwordless OIDC user, got: {:?}",
-        start_response.payload.as_ref().map(std::mem::discriminant)
-    );
+    }
     // Drain the PasswordResetStarted event.
     let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
