@@ -9,6 +9,7 @@ use defguard_common::{
         setup_pool,
     },
     secret::SecretStringWrapper,
+    testing::smtp::MockSmtpServer,
 };
 use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -3825,7 +3826,8 @@ async fn test_ldap_sync_allowed_all_conditions_false(_: PgPoolOptions, options: 
 }
 
 /// When both `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` are
-/// disabled (the default), syncing new LDAP users must NOT create any enrollment tokens.
+/// disabled (the default), syncing new LDAP users must NOT create any enrollment tokens and
+/// must NOT send any invite email - even though a working SMTP server is available.
 #[sqlx::test]
 async fn test_sync_does_not_send_invite_when_flags_disabled(
     _: PgPoolOptions,
@@ -3835,6 +3837,10 @@ async fn test_sync_does_not_send_invite_when_flags_disabled(
     let (wg_tx, _wg_rx) = wg_test_channel();
     let (ldap_tx, mut ldap_rx) = ldap_test_channel();
     let _ = initialize_current_settings(&pool).await;
+
+    // Working SMTP is available, so the disabled flags are the only reason no invite is sent.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     // Create an admin so find_admins() would have something to return - we want to prove
     // the early-return on the flag guard, not the no-admin guard.
@@ -3874,6 +3880,15 @@ async fn test_sync_does_not_send_invite_when_flags_disabled(
         tokens.is_empty(),
         "Expected no enrollment token when invite flags are disabled, got {tokens:?}"
     );
+
+    // No invite email should have been sent. The invite mail is spawned only after the
+    // token is created, so with no token no mail is ever dispatched to the mock server.
+    assert_eq!(
+        smtp.message_count(),
+        0,
+        "Expected no invite email when invite flags are disabled, got {:?}",
+        smtp.messages()
+    );
 }
 
 /// When only `ldap_remote_enrollment_enabled` is on but `ldap_remote_enrollment_send_invite`
@@ -3893,6 +3908,11 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
     settings.ldap_remote_enrollment_enabled = true;
     settings.ldap_remote_enrollment_send_invite = false;
     update_current_settings(&pool, settings).await.unwrap();
+
+    // Point SMTP at a working mock so the disabled send-invite flag is the only reason
+    // no invite is sent.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     make_test_admin(&pool, "sync_admin_sendoff").await;
 
@@ -3921,14 +3941,22 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
         tokens.is_empty(),
         "Expected no enrollment token when send_invite flag is disabled, got {tokens:?}"
     );
+
+    assert_eq!(
+        smtp.message_count(),
+        0,
+        "Expected no invite email when send_invite flag is disabled, got {:?}",
+        smtp.messages()
+    );
 }
 
 /// Regression test for <https://github.com/DefGuard/defguard/issues/3394>.
 ///
 /// When `ldap_remote_enrollment_send_invite` is left on but its parent
 /// `ldap_remote_enrollment_enabled` toggle is off, syncing new LDAP users must NOT create
-/// enrollment tokens. Everything else needed to send an invite (SMTP, LDAP, proxy URL and an
-/// admin) is configured, so the disabled parent toggle is the only reason no invite is sent.
+/// enrollment tokens and must NOT send an invite email. Everything else needed to send an
+/// invite (a working SMTP server, LDAP, proxy URL and an admin) is configured, so the disabled
+/// parent toggle is the only reason no invite is sent.
 #[sqlx::test]
 async fn test_sync_invite_skipped_when_remote_enrollment_disabled(
     _: PgPoolOptions,
@@ -3945,6 +3973,11 @@ async fn test_sync_invite_skipped_when_remote_enrollment_disabled(
     settings.ldap_remote_enrollment_send_invite = true;
     settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
+
+    // Point SMTP at a working mock so the disabled parent toggle is the only reason
+    // no invite is sent.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     make_test_admin(&pool, "sync_admin_enrollmentoff").await;
 
@@ -3973,14 +4006,18 @@ async fn test_sync_invite_skipped_when_remote_enrollment_disabled(
         tokens.is_empty(),
         "Expected no enrollment token when remote enrollment is disabled, got {tokens:?}"
     );
+
+    assert_eq!(
+        smtp.message_count(),
+        0,
+        "Expected no invite email when remote enrollment is disabled, got {:?}",
+        smtp.messages()
+    );
 }
 
 /// When both `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` are on,
-/// syncing a new LDAP user must create an enrollment token and set `enrollment_pending = true`.
-///
-/// SMTP is configured in settings but no real SMTP server is reachable, so `new_account_mail`
-/// will fail - but the token and flag are persisted before the mail attempt, so the DB side
-/// effects are still observable.
+/// syncing a new LDAP user must create an enrollment token, set `enrollment_pending = true`,
+/// and actually deliver an invite email to the user carrying the tokenized proxy link.
 #[sqlx::test]
 async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -3995,6 +4032,10 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
     // Provide a valid proxy URL so proxy_public_url() succeeds.
     settings.public_proxy_url = PROXY_URL.into();
     update_current_settings(&pool, settings).await.unwrap();
+
+    // Point SMTP at a working mock so the invite email is actually delivered and captured.
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
 
     make_test_admin(&pool, "sync_admin_invite").await;
 
@@ -4034,7 +4075,22 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         "Token should belong to the synced user"
     );
 
-    // Second sync: user already exists in Defguard - must NOT create a second token.
+    // The invite email (sent fire-and-forget) is delivered to the synced user and carries a
+    // tokenized enrollment link pointing at the configured proxy.
+    let mail = smtp
+        .wait_for(|m| m.sent_to("sync_invite_user@example.com"))
+        .await;
+    assert!(
+        mail.body_contains(&tokens[0].id),
+        "invite email should contain the enrollment token"
+    );
+    assert!(
+        mail.body_contains("proxy.example.com"),
+        "invite link should point at the configured proxy URL"
+    );
+
+    // Second sync: user already exists in Defguard - must NOT create a second token
+    // nor send a second invite email.
     ldap_conn
         .sync(&pool, false, &wg_tx, &ldap_tx)
         .await
@@ -4045,6 +4101,12 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         tokens.len(),
         1,
         "Expected still exactly one enrollment token after second sync, got {tokens:?}"
+    );
+    assert_eq!(
+        smtp.message_count(),
+        1,
+        "Expected exactly one invite email after second sync, got {:?}",
+        smtp.messages()
     );
 }
 
