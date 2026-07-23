@@ -340,8 +340,10 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
         "ldap_remote_enrollment_enabled must be persisted to DB after enabling"
     );
 
-    // enabling send_invite while remote enrollment is disabled must fail
-    // (use a fresh settings state: disable enrollment first)
+    // enabling send_invite while remote enrollment is disabled is allowed: the flag
+    // combination is no longer validated on submit (see issue #3394). The invite-sending
+    // guard requires BOTH flags, so a lingering send_invite has no effect while remote
+    // enrollment is off. Disable enrollment first to reach that state.
     let patch: SettingsPatch =
         serde_json::from_str(r#"{ "ldap_remote_enrollment_enabled": false }"#).unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
@@ -357,8 +359,17 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
     assert_eq!(
         response.status(),
-        StatusCode::BAD_REQUEST,
-        "enabling send_invite without remote enrollment enabled should return 400"
+        StatusCode::OK,
+        "enabling send_invite without remote enrollment enabled is allowed (validation relaxed, see #3394)"
+    );
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        from_db.ldap_remote_enrollment_send_invite,
+        "ldap_remote_enrollment_send_invite must be persisted even while remote enrollment is disabled"
+    );
+    assert!(
+        !from_db.ldap_remote_enrollment_enabled,
+        "remote enrollment must stay disabled - setting send_invite does not enable it"
     );
 
     // re-enable remote enrollment, then enabling send_invite must succeed
