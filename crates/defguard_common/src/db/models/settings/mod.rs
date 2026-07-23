@@ -63,10 +63,6 @@ pub enum SettingsValidationError {
     CannotEnableGatewayNotifications,
     #[error("Cannot enable remote enrollment for LDAP. LDAP and SMTP must both be configured")]
     CannotEnableLdapRemoteEnrollment,
-    #[error(
-        "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
-    )]
-    CannotEnableLdapRemoteEnrollmentInvite,
     #[error("Cannot enable LDAP. Required LDAP fields are not configured")]
     CannotEnableLdap,
     #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
@@ -545,12 +541,6 @@ impl Settings {
         if self.ldap_remote_enrollment_enabled && !self.ldap_configured() {
             warn!("Cannot enable remote enrollment for LDAP. LDAP is not configured.");
             return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
-        }
-        if self.ldap_remote_enrollment_send_invite && !self.ldap_remote_enrollment_enabled {
-            warn!(
-                "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
-            );
-            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollmentInvite);
         }
 
         Ok(())
@@ -1401,6 +1391,27 @@ mod test {
             settings.validate(),
             Err(SettingsValidationError::InvalidDefguardUrl(_))
         ));
+    }
+
+    /// Regression test for https://github.com/DefGuard/defguard/issues/3394
+    ///
+    /// Disabling LDAP remote enrollment while the dependent "send invite" option
+    /// is still set must not fail validation. The value is left untouched - the
+    /// email-sending path guards on both flags, so no invite is sent regardless.
+    #[test]
+    fn test_validate_accepts_send_invite_when_remote_enrollment_disabled() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            ldap_remote_enrollment_enabled: false,
+            ldap_remote_enrollment_send_invite: true,
+            ..Default::default()
+        };
+
+        assert!(
+            settings.validate().is_ok(),
+            "disabling remote enrollment must not fail validation when send invite is still set"
+        );
+        assert!(settings.ldap_remote_enrollment_send_invite);
     }
 
     #[test]
