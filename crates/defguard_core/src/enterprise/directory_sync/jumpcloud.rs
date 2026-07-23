@@ -127,6 +127,7 @@ struct GroupMemberThing {
 pub(crate) struct JumpCloudDirectorySync {
     api_key: String,
     api_host: &'static str,
+    base_url_override: Option<String>,
 }
 
 impl JumpCloudDirectorySync {
@@ -136,26 +137,53 @@ impl JumpCloudDirectorySync {
             "Initializing JumpCloud directory sync with API key length: {}",
             api_key.len()
         );
-        Self { api_key, api_host }
+        Self {
+            api_key,
+            api_host,
+            base_url_override: None,
+        }
+    }
+
+    /// Overrides the JumpCloud API base URL so tests can point it at a mock server.
+    #[cfg(test)]
+    fn with_base_url(mut self, base_url: &str) -> Self {
+        self.base_url_override = Some(base_url.into());
+        self
     }
 
     fn groups_url(&self) -> String {
-        format!("https://{}/api/v2/usergroups", self.api_host)
+        if let Some(override_url) = &self.base_url_override {
+            format!("{override_url}/api/v2/usergroups")
+        } else {
+            format!("https://{}/api/v2/usergroups", self.api_host)
+        }
     }
 
     fn all_users_url(&self) -> String {
-        format!("https://{}/api/systemusers", self.api_host)
+        if let Some(override_url) = &self.base_url_override {
+            format!("{override_url}/api/systemusers")
+        } else {
+            format!("https://{}/api/systemusers", self.api_host)
+        }
     }
 
     fn user_groups_url(&self, user_id: &str) -> String {
-        format!("https://{}/api/v2/users/{user_id}/memberof", self.api_host)
+        if let Some(override_url) = &self.base_url_override {
+            format!("{override_url}/api/v2/users/{user_id}/memberof")
+        } else {
+            format!("https://{}/api/v2/users/{user_id}/memberof", self.api_host)
+        }
     }
 
     fn user_group_members_url(&self, group_id: &str) -> String {
-        format!(
-            "https://{}/api/v2/usergroups/{group_id}/members",
-            self.api_host
-        )
+        if let Some(override_url) = &self.base_url_override {
+            format!("{override_url}/api/v2/usergroups/{group_id}/members")
+        } else {
+            format!(
+                "https://{}/api/v2/usergroups/{group_id}/members",
+                self.api_host
+            )
+        }
     }
 
     async fn query_group_members(
@@ -652,7 +680,40 @@ impl DirectorySync for JumpCloudDirectorySync {
 }
 
 #[cfg(test)]
+pub(crate) fn response_from_fixture(name: &str) -> wiremock::ResponseTemplate {
+    let body = match name {
+        "users_page1.json" => include_str!("fixtures/jumpcloud/users_page1.json"),
+        "users_page2.json" => include_str!("fixtures/jumpcloud/users_page2.json"),
+        "users_empty.json" => include_str!("fixtures/jumpcloud/users_empty.json"),
+        "groups_response.json" => include_str!("fixtures/jumpcloud/groups_response.json"),
+        "group_members_response.json" => {
+            include_str!("fixtures/jumpcloud/group_members_response.json")
+        }
+        "user_groups_response.json" => {
+            include_str!("fixtures/jumpcloud/user_groups_response.json")
+        }
+        other => panic!("unknown fixture: {other}"),
+    };
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
+}
+
+#[cfg(test)]
+pub(crate) fn dirsync_with_mock_server(
+    mock_server: &wiremock::MockServer,
+) -> JumpCloudDirectorySync {
+    JumpCloudDirectorySync::new("test_api_key".into(), "console.jumpcloud.com")
+        .with_base_url(&mock_server.uri())
+}
+
+#[cfg(test)]
 mod tests {
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path, query_param, query_param_is_missing},
+    };
+
     use super::*;
 
     #[test]
@@ -850,5 +911,141 @@ mod tests {
         assert_eq!(directory_groups[0].name, "Group 1");
         assert_eq!(directory_groups[1].id, "group2");
         assert_eq!(directory_groups[1].name, "Group 2");
+    }
+
+    #[tokio::test]
+    async fn test_get_all_users_paginates() {
+        let mock_server = MockServer::start().await;
+        let empty_response = ResponseTemplate::new(200)
+            .insert_header("content-type", "application/json")
+            .set_body_string(r#"{"results":[],"totalCount":0}"#);
+
+        Mock::given(method("GET"))
+            .and(path("/api/systemusers"))
+            .and(query_param_is_missing("skip"))
+            .respond_with(response_from_fixture("users_page1.json"))
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/systemusers"))
+            .and(query_param("skip", "100"))
+            .respond_with(response_from_fixture("users_page2.json"))
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/systemusers"))
+            .respond_with(empty_response)
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let users = dirsync.get_all_users().await.unwrap();
+
+        assert_eq!(users.len(), 2);
+        assert!(
+            users
+                .iter()
+                .any(|u| u.email == "jane.doe@example.com" && u.active)
+        );
+        assert!(
+            users
+                .iter()
+                .any(|u| u.email == "john.smith@example.com" && !u.active)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_groups() {
+        let mock_server = MockServer::start().await;
+        let empty_response = ResponseTemplate::new(200)
+            .insert_header("content-type", "application/json")
+            .set_body_string("[]");
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/usergroups"))
+            .and(query_param_is_missing("skip"))
+            .respond_with(response_from_fixture("groups_response.json"))
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/usergroups"))
+            .respond_with(empty_response)
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let groups = dirsync.get_groups().await.unwrap();
+
+        assert_eq!(groups.len(), 2);
+        assert!(groups.iter().any(|g| g.name == "Engineering"));
+        assert!(groups.iter().any(|g| g.name == "Sales"));
+    }
+
+    #[tokio::test]
+    async fn test_get_group_members() {
+        let mock_server = MockServer::start().await;
+        let empty_response = ResponseTemplate::new(200)
+            .insert_header("content-type", "application/json")
+            .set_body_string("[]");
+
+        Mock::given(method("GET"))
+            .and(path("/api/v2/usergroups/group1/members"))
+            .and(query_param_is_missing("skip"))
+            .respond_with(response_from_fixture("group_members_response.json"))
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v2/usergroups/group1/members"))
+            .respond_with(empty_response)
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let group = DirectoryGroup {
+            id: "group1".into(),
+            name: "Engineering".into(),
+        };
+
+        let all_users = vec![
+            DirectoryUser {
+                email: "jane.doe@example.com".into(),
+                active: true,
+                id: Some("user123".into()),
+                user_details: None,
+            },
+            DirectoryUser {
+                email: "john.smith@example.com".into(),
+                active: true,
+                id: Some("user456".into()),
+                user_details: None,
+            },
+        ];
+
+        let members = dirsync
+            .get_group_members(&group, Some(&all_users))
+            .await
+            .unwrap();
+
+        assert_eq!(members.len(), 2);
+        assert!(members.contains(&"jane.doe@example.com".to_string()));
+        assert!(members.contains(&"john.smith@example.com".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_test_connection() {
+        use wiremock::{
+            Mock, MockServer,
+            matchers::{method, path},
+        };
+
+        let mock_server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/systemusers"))
+            .respond_with(response_from_fixture("users_empty.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        dirsync.test_connection().await.unwrap();
     }
 }

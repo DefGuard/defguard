@@ -117,6 +117,8 @@ pub mod okta;
 pub mod testprovider;
 #[cfg(test)]
 pub mod tests;
+#[cfg(test)]
+pub mod tests_cross_provider;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryGroup {

@@ -491,46 +491,45 @@ impl DirectorySync for GoogleDirectorySync {
 }
 
 #[cfg(test)]
+const TEST_RSA_PRIVATE_KEY: &str = include_str!("fixtures/google/test_private_key.pem");
+
+#[cfg(test)]
+pub(crate) fn response_from_fixture(name: &str) -> wiremock::ResponseTemplate {
+    let body = match name {
+        "token_response.json" => include_str!("fixtures/google/token_response.json"),
+        "users_page1.json" => include_str!("fixtures/google/users_page1.json"),
+        "users_page2.json" => include_str!("fixtures/google/users_page2.json"),
+        "users_empty.json" => include_str!("fixtures/google/users_empty.json"),
+        "groups_response.json" => include_str!("fixtures/google/groups_response.json"),
+        "members_response.json" => include_str!("fixtures/google/members_response.json"),
+        other => panic!("unknown fixture: {other}"),
+    };
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
+}
+
+#[cfg(test)]
+pub(crate) fn dirsync_with_mock_server(mock_server: &wiremock::MockServer) -> GoogleDirectorySync {
+    let mut dirsync = GoogleDirectorySync::new("private_key", "client_email", "admin_email")
+        .with_urls(
+            &format!("{}/token", mock_server.uri()),
+            &format!("{}/groups", mock_server.uri()),
+            &format!("{}/users", mock_server.uri()),
+        );
+    dirsync.access_token = Some("test_token".into());
+    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync
+}
+
+#[cfg(test)]
 mod tests {
     use wiremock::{
-        Mock, MockServer, ResponseTemplate,
+        Mock, MockServer,
         matchers::{method, path, query_param, query_param_is_missing},
     };
 
     use super::*;
-
-    // Test-only key, unrelated to any real account; only needed for `build_token` to
-    // produce a syntactically valid JWT since Google's endpoints are mocked out.
-    const TEST_RSA_PRIVATE_KEY: &str = include_str!("fixtures/google/test_private_key.pem");
-
-    /// Loads a fixture from `fixtures/google/` (real Google Directory API response shapes)
-    /// and wraps it in a 200 JSON response.
-    fn response_from_fixture(name: &str) -> ResponseTemplate {
-        let body = match name {
-            "token_response.json" => include_str!("fixtures/google/token_response.json"),
-            "users_page1.json" => include_str!("fixtures/google/users_page1.json"),
-            "users_page2.json" => include_str!("fixtures/google/users_page2.json"),
-            "users_empty.json" => include_str!("fixtures/google/users_empty.json"),
-            "groups_response.json" => include_str!("fixtures/google/groups_response.json"),
-            "members_response.json" => include_str!("fixtures/google/members_response.json"),
-            other => panic!("unknown fixture: {other}"),
-        };
-        ResponseTemplate::new(200)
-            .insert_header("content-type", "application/json")
-            .set_body_string(body)
-    }
-
-    fn dirsync_with_mock_server(mock_server: &MockServer) -> GoogleDirectorySync {
-        let mut dirsync = GoogleDirectorySync::new("private_key", "client_email", "admin_email")
-            .with_urls(
-                &format!("{}/token", mock_server.uri()),
-                &format!("{}/groups", mock_server.uri()),
-                &format!("{}/users", mock_server.uri()),
-            );
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
-        dirsync
-    }
 
     #[tokio::test]
     async fn test_refresh_access_token() {

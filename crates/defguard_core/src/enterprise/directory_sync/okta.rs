@@ -466,8 +466,154 @@ impl DirectorySync for OktaDirectorySync {
 }
 
 #[cfg(test)]
+const TEST_JWK_PRIVATE_KEY: &str = include_str!("fixtures/okta/test_jwk_private_key.json");
+
+#[cfg(test)]
+pub(crate) fn response_from_fixture(name: &str) -> wiremock::ResponseTemplate {
+    let body = match name {
+        "token_response.json" => include_str!("fixtures/okta/token_response.json"),
+        "users_page1.json" => include_str!("fixtures/okta/users_page1.json"),
+        "users_page2.json" => include_str!("fixtures/okta/users_page2.json"),
+        "groups_response.json" => include_str!("fixtures/okta/groups_response.json"),
+        "group_members_response.json" => include_str!("fixtures/okta/group_members_response.json"),
+        other => panic!("unknown fixture: {other}"),
+    };
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
+}
+
+#[cfg(test)]
+pub(crate) fn dirsync_with_mock_server(mock_server: &wiremock::MockServer) -> OktaDirectorySync {
+    let mut dirsync =
+        OktaDirectorySync::new(TEST_JWK_PRIVATE_KEY, "test_client_id", &mock_server.uri());
+    dirsync.access_token = Some("test_token".into());
+    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync
+}
+
+#[cfg(test)]
 mod tests {
+    use wiremock::{
+        Mock, MockServer,
+        matchers::{method, path, query_param, query_param_is_missing},
+    };
+
     use super::*;
+
+    #[tokio::test]
+    async fn test_refresh_access_token() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from Okta OAuth 2.0 token endpoint.
+        Mock::given(method("POST"))
+            .and(path("/oauth2/v1/token"))
+            .respond_with(response_from_fixture("token_response.json"))
+            .mount(&mock_server)
+            .await;
+
+        let mut dirsync =
+            OktaDirectorySync::new(TEST_JWK_PRIVATE_KEY, "test_client_id", &mock_server.uri());
+
+        dirsync.refresh_access_token().await.unwrap();
+
+        assert_eq!(
+            dirsync.access_token.as_deref(),
+            Some(
+                "eyJhbGciOiJSUzI1NiIsImtpZCI6IlRlc3RAMjAyNCJ9.eyJpc3MiOiJodHRwczovL3RyaWFsLW9rdGEuY29tIiwiYXV0IjoiaW50ZXJuYWwiLCJhdWQiOiJodHRwczovL3RyaWFsLW9rdGEuY29tL2FwaS92MS91c2VycyIsInN1YiI6ImM0MDFuMjYwbnNvZkpiMDBk"
+            )
+        );
+        assert!(!dirsync.is_token_expired());
+    }
+
+    #[tokio::test]
+    async fn test_get_all_users_paginates() {
+        let mock_server = MockServer::start().await;
+        let server_uri = mock_server.uri();
+        // Real response shape from Okta users.list; Link header uses RFC 5988 format
+        // with `rel="next"` pointing to the next page URL.
+        let link_header =
+            format!("<{server_uri}/api/v1/users?limit=200&after=page1>; rel=\"next\"");
+        Mock::given(method("GET"))
+            .and(path("/api/v1/users"))
+            .and(query_param_is_missing("after"))
+            .respond_with(
+                response_from_fixture("users_page1.json").append_header("link", link_header),
+            )
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/api/v1/users"))
+            .and(query_param("after", "page1"))
+            .respond_with(response_from_fixture("users_page2.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let users = dirsync.get_all_users().await.unwrap();
+
+        assert_eq!(users.len(), 2);
+        assert!(
+            users
+                .iter()
+                .any(|u| u.email == "jane.doe@example.com" && u.active)
+        );
+        assert!(
+            users
+                .iter()
+                .any(|u| u.email == "john.smith@example.com" && !u.active)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_groups() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from Okta groups.list.
+        Mock::given(method("GET"))
+            .and(path("/api/v1/groups"))
+            .respond_with(response_from_fixture("groups_response.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let groups = dirsync.get_groups().await.unwrap();
+
+        assert_eq!(groups.len(), 2);
+        assert!(groups.iter().any(|g| g.name == "Engineering"));
+        assert!(groups.iter().any(|g| g.name == "Sales"));
+    }
+
+    #[tokio::test]
+    async fn test_get_group_members() {
+        let mock_server = MockServer::start().await;
+        // Real response shape from Okta groups/{groupId}/users.
+        Mock::given(method("GET"))
+            .and(path("/api/v1/groups/00gjitxyt9yJW2FKR0g7/users"))
+            .respond_with(response_from_fixture("group_members_response.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        let group = DirectoryGroup {
+            id: "00gjitxyt9yJW2FKR0g7".into(),
+            name: "Engineering".into(),
+        };
+        let members = dirsync.get_group_members(&group, None).await.unwrap();
+
+        assert_eq!(members, vec!["jane.doe@example.com".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn test_test_connection() {
+        let mock_server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/api/v1/users"))
+            .respond_with(response_from_fixture("users_page1.json"))
+            .mount(&mock_server)
+            .await;
+
+        let dirsync = dirsync_with_mock_server(&mock_server);
+        dirsync.test_connection().await.unwrap();
+    }
 
     #[tokio::test]
     async fn test_token() {
