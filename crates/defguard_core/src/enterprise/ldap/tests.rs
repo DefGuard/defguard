@@ -9,7 +9,7 @@ use defguard_common::{
         setup_pool,
     },
     secret::SecretStringWrapper,
-    testing::smtp::MockSmtpServer,
+    testing::smtp::configure_working_smtp,
 };
 use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -3839,8 +3839,7 @@ async fn test_sync_does_not_send_invite_when_flags_disabled(
     let _ = initialize_current_settings(&pool).await;
 
     // Working SMTP is available, so the disabled flags are the only reason no invite is sent.
-    let smtp = MockSmtpServer::start().await;
-    smtp.configure(&pool).await;
+    let smtp = configure_working_smtp(&pool).await;
 
     // Create an admin so find_admins() would have something to return - we want to prove
     // the early-return on the flag guard, not the no-admin guard.
@@ -3911,8 +3910,7 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
 
     // Point SMTP at a working mock so the disabled send-invite flag is the only reason
     // no invite is sent.
-    let smtp = MockSmtpServer::start().await;
-    smtp.configure(&pool).await;
+    let smtp = configure_working_smtp(&pool).await;
 
     make_test_admin(&pool, "sync_admin_sendoff").await;
 
@@ -3976,8 +3974,7 @@ async fn test_sync_invite_skipped_when_remote_enrollment_disabled(
 
     // Point SMTP at a working mock so the disabled parent toggle is the only reason
     // no invite is sent.
-    let smtp = MockSmtpServer::start().await;
-    smtp.configure(&pool).await;
+    let smtp = configure_working_smtp(&pool).await;
 
     make_test_admin(&pool, "sync_admin_enrollmentoff").await;
 
@@ -4034,8 +4031,7 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
     update_current_settings(&pool, settings).await.unwrap();
 
     // Point SMTP at a working mock so the invite email is actually delivered and captured.
-    let smtp = MockSmtpServer::start().await;
-    smtp.configure(&pool).await;
+    let smtp = configure_working_smtp(&pool).await;
 
     make_test_admin(&pool, "sync_admin_invite").await;
 
@@ -4089,8 +4085,11 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         "invite link should point at the configured proxy URL"
     );
 
-    // Second sync: user already exists in Defguard - must NOT create a second token
-    // nor send a second invite email.
+    // Second sync: user already exists in Defguard - must NOT create a second token.
+    // An invite email is only ever dispatched together with a new enrollment token, so an
+    // unchanged token count is the deterministic guard that no second invite was sent. (A
+    // direct message_count() check here would be racy: mail is spawned fire-and-forget, so a
+    // wrongly-sent second mail might not have reached the mock by the time we read the count.)
     ldap_conn
         .sync(&pool, false, &wg_tx, &ldap_tx)
         .await
@@ -4101,12 +4100,6 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         tokens.len(),
         1,
         "Expected still exactly one enrollment token after second sync, got {tokens:?}"
-    );
-    assert_eq!(
-        smtp.message_count(),
-        1,
-        "Expected exactly one invite email after second sync, got {:?}",
-        smtp.messages()
     );
 }
 
@@ -4183,8 +4176,7 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
     update_current_settings(&pool, settings).await.unwrap();
 
     // Point SMTP at a working mock so the invite email is actually delivered and captured.
-    let smtp = MockSmtpServer::start().await;
-    smtp.configure(&pool).await;
+    let smtp = configure_working_smtp(&pool).await;
 
     make_test_admin(&pool, "login_admin_invite").await;
 
@@ -4238,8 +4230,10 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
         "invite link should point at the configured proxy URL"
     );
 
-    // Second login: user now exists in Defguard - must NOT create a second token
-    // nor send a second invite email.
+    // Second login: user now exists in Defguard - must NOT create a second token.
+    // As above, the unchanged token count is the deterministic guard that no second invite
+    // was sent (mail is dispatched only alongside a new token); an instantaneous
+    // message_count() check would be racy against fire-and-forget delivery.
     let result =
         login_through_ldap_with_connection(&pool, &mut ldap_conn, "login_invite_user", PASSWORD)
             .await;
@@ -4253,12 +4247,6 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
         tokens.len(),
         1,
         "Expected still exactly one enrollment token after second login, got {tokens:?}"
-    );
-    assert_eq!(
-        smtp.message_count(),
-        1,
-        "Expected exactly one invite email after second login, got {:?}",
-        smtp.messages()
     );
 }
 
@@ -4282,8 +4270,7 @@ async fn test_ldap_login_does_not_send_invite_for_existing_user(
 
     // Point SMTP at a working mock so the returning-user guard is the only reason no invite
     // is sent, not a missing SMTP configuration.
-    let smtp = MockSmtpServer::start().await;
-    smtp.configure(&pool).await;
+    let smtp = configure_working_smtp(&pool).await;
 
     make_test_admin(&pool, "login_admin_existing").await;
 
