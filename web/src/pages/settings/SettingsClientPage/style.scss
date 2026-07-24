@@ -23,6 +23,21 @@
       font: var(--t-body-sm-400);
     }
 
+    .group-policy-row {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-sm);
+    }
+
+    .group-policy-title {
+      font: var(--t-body-primary-500);
+    }
+
+    .group-policy-content {
+      color: var(--fg-neutral);
+      font: var(--t-body-sm-400);
+    }
+
     .select-multiple-edit {
       align-self: flex-start;
       display: inline-flex;
