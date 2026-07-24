@@ -6,8 +6,8 @@ import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import {
-  ApiResponseCode,
   type ApiError,
+  ApiResponseCode,
   type LicenseCheckResponse,
 } from '../../../../../../../shared/api/types';
 import { CopyButton } from '../../../../../../../shared/components/CopyButton/CopyButton';
