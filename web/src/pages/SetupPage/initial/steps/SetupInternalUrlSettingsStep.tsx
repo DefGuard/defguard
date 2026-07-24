@@ -191,11 +191,6 @@ export const SetupInternalUrlSettingsStep = () => {
       <SizedBox height={ThemeSpacing.Xl3} />
       <Divider />
       <Controls>
-        <Button
-          text={m.initial_setup_controls_back()}
-          variant="outlined"
-          onClick={() => setActiveStep(SetupPageStep.EdgeAdoption)}
-        />
         <div className="right">
           <Button
             text={m.initial_setup_controls_continue()}
