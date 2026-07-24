@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ClientTrafficPolicy } from '../../../shared/api/types';
+import {
+  ClientTrafficPolicy,
+  type GroupClientTrafficPolicies,
+} from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
 import {
   ContextualHelpKey,
@@ -83,6 +86,8 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+type GroupPolicy = keyof GroupClientTrafficPolicies;
+
 const emptyGroupClientTrafficPolicies = {
   none: [],
   disable_all_traffic: [],
@@ -101,6 +106,20 @@ type GroupPolicyRowProps = {
 const getSelectedGroupsCounterText = (count: number) => {
   if (count === 1) return m.location_access_selected_group_count_one({ count });
   return m.location_access_selected_group_count_other({ count });
+};
+
+const getAvailableGroupOptions = (
+  options: SelectionOption<number>[],
+  policy: GroupPolicy,
+  policies: GroupClientTrafficPolicies,
+) => {
+  const assignedToOtherPolicy = new Set(
+    Object.entries(policies)
+      .filter(([key]) => key !== policy)
+      .flatMap(([, groupIds]) => groupIds),
+  );
+
+  return options.filter((option) => !assignedToOtherPolicy.has(option.id));
 };
 
 const GroupPolicyRow = ({
@@ -291,7 +310,7 @@ const Content = () => {
                         none,
                       })
                     }
-                    options={groupOptions}
+                    options={getAvailableGroupOptions(groupOptions, 'none', policies)}
                     selected={policies.none}
                   />
                   <GroupPolicyRow
@@ -304,7 +323,11 @@ const Content = () => {
                         disable_all_traffic,
                       })
                     }
-                    options={groupOptions}
+                    options={getAvailableGroupOptions(
+                      groupOptions,
+                      'disable_all_traffic',
+                      policies,
+                    )}
                     selected={policies.disable_all_traffic}
                   />
                   <GroupPolicyRow
@@ -317,7 +340,11 @@ const Content = () => {
                         force_all_traffic,
                       })
                     }
-                    options={groupOptions}
+                    options={getAvailableGroupOptions(
+                      groupOptions,
+                      'force_all_traffic',
+                      policies,
+                    )}
                     selected={policies.force_all_traffic}
                   />
                 </>
