@@ -143,6 +143,13 @@ pub(crate) async fn set_default_branding(
     }
 }
 
+fn is_license_reactivation(current_license: Option<&License>, new_license: &License) -> bool {
+    match current_license {
+        Some(current_license) => current_license.is_max_overdue() && !new_license.is_max_overdue(),
+        None => false,
+    }
+}
+
 pub async fn patch_settings(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -181,15 +188,12 @@ pub async fn patch_settings(
     update_current_settings(&appstate.pool, settings).await?;
     let mut license_reactivated = false;
     if let Some(license_key) = &license {
-        if let Some(current_license) = get_cached_license().as_ref() {
-            let is_current_license_valid = !current_license.is_max_overdue();
-
-            if let Some(license) = license_key.as_deref()
-                && let Ok(new_license) = License::from_base64(license)
-                && !new_license.is_max_overdue()
-                && !is_current_license_valid
-            {
-                license_reactivated = true;
+        if let Some(new_key) = license_key.as_deref()
+            && let Ok(new_license) = License::from_base64(new_key)
+        {
+            license_reactivated =
+                is_license_reactivation(get_cached_license().as_ref(), &new_license);
+            if license_reactivated {
                 info!(
                     "Admin {} replaced a previously invalid license with a valid one",
                     session.user.username
@@ -299,5 +303,79 @@ pub(crate) async fn ldap_dry_run(
             debug!("LDAP dry run failed: {err}");
             Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{TimeDelta, Utc};
+
+    use super::is_license_reactivation;
+    use crate::enterprise::license::{License, LicenseTier, SupportType};
+
+    fn license(subscription: bool, valid_until_days: i64) -> License {
+        License::new(
+            "test-customer".into(),
+            subscription,
+            Some(Utc::now() + TimeDelta::days(valid_until_days)),
+            None,
+            None,
+            LicenseTier::Business,
+            SupportType::Basic,
+            Vec::new(),
+        )
+    }
+
+    #[test]
+    fn reactivation_past_grace_subscription_replaced_by_valid() {
+        assert!(is_license_reactivation(
+            Some(&license(true, -20)),
+            &license(true, 365)
+        ));
+    }
+
+    #[test]
+    fn reactivation_expired_non_subscription_replaced_by_valid() {
+        assert!(is_license_reactivation(
+            Some(&license(false, -1)),
+            &license(true, 365)
+        ));
+    }
+
+    #[test]
+    fn reactivation_when_new_subscription_still_within_grace() {
+        assert!(is_license_reactivation(
+            Some(&license(true, -20)),
+            &license(true, -5)
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_when_current_subscription_within_grace() {
+        assert!(!is_license_reactivation(
+            Some(&license(true, -5)),
+            &license(true, 365)
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_when_current_still_valid() {
+        assert!(!is_license_reactivation(
+            Some(&license(true, 365)),
+            &license(true, 365)
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_when_new_license_also_unusable() {
+        assert!(!is_license_reactivation(
+            Some(&license(true, -20)),
+            &license(true, -20)
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_without_current_license() {
+        assert!(!is_license_reactivation(None, &license(true, 365)));
     }
 }
