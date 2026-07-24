@@ -1,5 +1,11 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "modal_license_reactivated_eyebrow": "Welcome back to your plan",
+  "modal_license_reactivated_title": "Your license has been reactivated",
+  "modal_license_reactivated_lead": "All paid features are available again.",
+  "modal_license_reactivated_body": "All Business/Enterprise features have been restored, and your previous configuration has been automatically recovered. Everything has been returned to the way it was before your license expired.",
+  "modal_license_reactivated_note": "You can review your configuration if you wish, but no further action is required.",
+  "modal_license_reactivated_submit": "Got it",
   "modal_change_password_title": "Change password",
   "modal_change_password_submit": "Change password",
   "modal_delete_authorized_app_title": "Delete authorized app",

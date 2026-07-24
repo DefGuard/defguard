@@ -2,6 +2,7 @@ import businessImage from './assets/business.png';
 import enterpriseImage from './assets/enterprise.png';
 import expiredImage from './assets/expired.png';
 import limitImage from './assets/limit.png';
+import reactivatedImage from './assets/reactivated.png';
 import type { LicenseModalSideImageVariantValue } from './types';
 
 export const LicenseModalSideImage = ({
@@ -59,6 +60,19 @@ export const LicenseModalSideImage = ({
           style={{
             left: 10,
             top: -10,
+          }}
+        />
+      );
+    case 'reactivated':
+      return (
+        <img
+          src={reactivatedImage}
+          id="license-side-reactivated"
+          width={348}
+          height={371}
+          style={{
+            left: -97,
+            top: 13,
           }}
         />
       );
