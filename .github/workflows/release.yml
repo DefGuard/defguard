@@ -104,13 +104,28 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
+          cache: true
           package_json_file: web/package.json
+          run_install: false
 
       - name: Build frontend
         working-directory: web
         run: |
           pnpm install --ignore-scripts --frozen-lockfile
           pnpm build
+
+      - name: Build source code archive
+        run: tar --exclude='.github' --exclude-vcs --exclude-vcs-ignores --xform='s|^\./|defguard-${{ env.VERSION }}/|' --xz -cf ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz .
+
+      - name: Upload source code archive
+        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz
+          asset_content_type: application/x-xz
+          overwrite: true
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
