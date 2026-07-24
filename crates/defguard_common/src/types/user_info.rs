@@ -710,7 +710,7 @@ mod test {
         .await
         .unwrap();
 
-        let groups: Vec<String> = vec![];
+        let groups = Vec::new();
         let result = has_non_posture_location_access(&pool, &groups)
             .await
             .unwrap();
@@ -758,7 +758,7 @@ mod test {
         .await
         .unwrap();
 
-        let groups: Vec<String> = vec![];
+        let groups = Vec::new();
         let result = has_non_posture_location_access(&pool, &groups)
             .await
             .unwrap();
