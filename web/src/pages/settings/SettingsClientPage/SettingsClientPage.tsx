@@ -12,8 +12,9 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Icon, type IconKindValue } from '../../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getEnterpriseSettingsQueryOptions,
@@ -77,15 +78,19 @@ type FormFields = z.infer<typeof formSchema>;
 type GroupPolicyRowProps = {
   content: string;
   title: string;
+  icon: IconKindValue;
 };
 
-const GroupPolicyRow = ({ content, title }: GroupPolicyRowProps) => (
+const GroupPolicyRow = ({ content, title, icon }: GroupPolicyRowProps) => (
   <div className="group-policy-row">
-    <p className="group-policy-title">{title}</p>
-    <p className="group-policy-content">{content}</p>
-    <button className="select-multiple-edit" type="button">
-      {m.settings_client_traffic_policy_edit_groups()}
-    </button>
+    <Icon icon={icon} size={20} staticColor={ThemeVariable.FgMuted} />
+    <div className="group-policy-row-content">
+      <p className="group-policy-title">{title}</p>
+      <p className="group-policy-content">{content}</p>
+      <button className="select-multiple-edit" type="button">
+        {m.settings_client_traffic_policy_edit_groups()}
+      </button>
+    </div>
   </div>
 );
 
@@ -219,25 +224,28 @@ const Content = () => {
                 />
               )}
             </form.AppField>
-            <Divider spacing={ThemeSpacing.Xl} />
-            <div className="group-policy-section">
-              <h4>{m.settings_client_traffic_policy_group_title()}</h4>
-              <p className="group-policy-description">
-                {m.settings_client_traffic_policy_group_description()}
-              </p>
-              <GroupPolicyRow
-                content={m.settings_client_traffic_policy_group_none_content()}
-                title={m.settings_client_traffic_policy_group_none_title()}
-              />
-              <GroupPolicyRow
-                content={m.settings_client_traffic_policy_group_disable_all_content()}
-                title={m.settings_client_traffic_policy_group_disable_all_title()}
-              />
-              <GroupPolicyRow
-                content={m.settings_client_traffic_policy_group_force_all_content()}
-                title={m.settings_client_traffic_policy_group_force_all_title()}
-              />
-            </div>
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="groups">
+            <h3>{m.settings_client_traffic_policy_group_title()}</h3>
+            <p className="group-policy-description">
+              {m.settings_client_traffic_policy_group_description()}
+            </p>
+            <GroupPolicyRow
+              content={m.settings_client_traffic_policy_group_none_content()}
+              title={m.settings_client_traffic_policy_group_none_title()}
+              icon="online"
+            />
+            <GroupPolicyRow
+              content={m.settings_client_traffic_policy_group_disable_all_content()}
+              title={m.settings_client_traffic_policy_group_disable_all_title()}
+              icon="online"
+            />
+            <GroupPolicyRow
+              content={m.settings_client_traffic_policy_group_force_all_content()}
+              title={m.settings_client_traffic_policy_group_force_all_title()}
+              icon="gateway"
+            />
           </MarkedSection>
           <form.Subscribe
             selector={(s) => ({
