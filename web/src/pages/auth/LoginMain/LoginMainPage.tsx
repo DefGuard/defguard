@@ -17,7 +17,6 @@ import { type OpenIdAuthInfo, WebErrorCode } from '../../../shared/api/types';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { OIDCButton } from '../../../shared/defguard-ui/components/SSOButton/OIDCButton';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../shared/defguard-ui/utils/zod';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -42,10 +41,13 @@ export const LoginMainPage = () => {
   const attemptsTimeoutRef = useRef<number | null>(null);
   const { authError } = useSearch({ from: '/auth/login' });
   const navigate = useNavigate({ from: '/auth/login' });
+  const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isPresent(authError)) return;
-    Snackbar.error(isWebErrorCode(authError) ? getApiErrorMessage(authError) : authError);
+    setAuthErrorMessage(
+      isWebErrorCode(authError) ? getApiErrorMessage(authError) : authError,
+    );
     void navigate({ search: {}, replace: true });
   }, [authError, navigate]);
 
@@ -113,6 +115,12 @@ export const LoginMainPage = () => {
       <h1>{m.login_main_title()}</h1>
       <h2>{m.login_main_subtitle()}</h2>
       <SizedBox height={ThemeSize.Xl3} />
+      {isPresent(authErrorMessage) && (
+        <>
+          <InfoBanner variant="warning" text={authErrorMessage} icon="info-outlined" />
+          <SizedBox height={ThemeSpacing.Xl2} />
+        </>
+      )}
       {tooManyAttempts && (
         <>
           <InfoBanner
