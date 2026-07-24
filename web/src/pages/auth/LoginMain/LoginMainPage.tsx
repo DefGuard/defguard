@@ -8,16 +8,22 @@ import { useAppForm } from '../../../shared/form';
 import './style.scss';
 import { revalidateLogic } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../shared/api/api';
-import type { OpenIdAuthInfo } from '../../../shared/api/types';
+import { getApiErrorMessage } from '../../../shared/api/apiErrorMessages';
+import { type OpenIdAuthInfo, WebErrorCode } from '../../../shared/api/types';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { OIDCButton } from '../../../shared/defguard-ui/components/SSOButton/OIDCButton';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../shared/defguard-ui/utils/zod';
 import { useAuth } from '../../../shared/hooks/useAuth';
+
+const isWebErrorCode = (value: string): value is WebErrorCode =>
+  (Object.values(WebErrorCode) as string[]).includes(value);
 
 const formSchema = z.object({
   username: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
@@ -34,6 +40,16 @@ const defaults: FormFields = {
 export const LoginMainPage = () => {
   const [tooManyAttempts, setTooManyAttempts] = useState(false);
   const attemptsTimeoutRef = useRef<number | null>(null);
+  const { authError } = useSearch({ from: '/auth/login' });
+  const navigate = useNavigate({ from: '/auth/login' });
+
+  useEffect(() => {
+    if (!isPresent(authError)) return;
+    Snackbar.error(
+      isWebErrorCode(authError) ? getApiErrorMessage(authError) : authError,
+    );
+    void navigate({ search: {}, replace: true });
+  }, [authError, navigate]);
 
   const { data: openIdAuthInfo } = useQuery({
     queryFn: api.openid.authInfo,
