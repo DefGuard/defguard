@@ -24,7 +24,10 @@ use crate::{
         db::models::enterprise_settings::EnterpriseSettings,
         handlers::LicenseInfo,
         ldap::{LDAPConnection, sync::Authority},
-        license::{License, get_cached_license, update_cached_license},
+        license::{
+            License, LicenseTier, get_cached_license, update_cached_license, validate_license,
+        },
+        limits::{Counts, get_counts},
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -143,11 +146,19 @@ pub(crate) async fn set_default_branding(
     }
 }
 
-fn is_license_reactivation(current_license: Option<&License>, new_license: &License) -> bool {
-    match current_license {
-        Some(current_license) => current_license.is_max_overdue() && !new_license.is_max_overdue(),
-        None => false,
-    }
+fn is_license_reactivation(
+    current_license: Option<&License>,
+    new_license: &License,
+    counts: &Counts,
+) -> bool {
+    let Some(current_license) = current_license else {
+        return false;
+    };
+    let current_license_invalid =
+        validate_license(Some(current_license), counts, LicenseTier::Business).is_err();
+    let new_license_valid =
+        validate_license(Some(new_license), counts, LicenseTier::Business).is_ok();
+    current_license_invalid && new_license_valid
 }
 
 pub async fn patch_settings(
@@ -191,8 +202,9 @@ pub async fn patch_settings(
         if let Some(new_key) = license_key.as_deref()
             && let Ok(new_license) = License::from_base64(new_key)
         {
+            let counts = get_counts();
             license_reactivated =
-                is_license_reactivation(get_cached_license().as_ref(), &new_license);
+                is_license_reactivation(get_cached_license().as_ref(), &new_license, &counts);
             if license_reactivated {
                 info!(
                     "Admin {} replaced a previously invalid license with a valid one",
@@ -311,7 +323,10 @@ mod tests {
     use chrono::{TimeDelta, Utc};
 
     use super::is_license_reactivation;
-    use crate::enterprise::license::{License, LicenseTier, SupportType};
+    use crate::enterprise::{
+        license::{License, LicenseTier, SupportType},
+        limits::Counts,
+    };
 
     fn license(subscription: bool, valid_until_days: i64) -> License {
         License::new(
@@ -330,7 +345,8 @@ mod tests {
     fn reactivation_past_grace_subscription_replaced_by_valid() {
         assert!(is_license_reactivation(
             Some(&license(true, -20)),
-            &license(true, 365)
+            &license(true, 365),
+            &Counts::default()
         ));
     }
 
@@ -338,7 +354,8 @@ mod tests {
     fn reactivation_expired_non_subscription_replaced_by_valid() {
         assert!(is_license_reactivation(
             Some(&license(false, -1)),
-            &license(true, 365)
+            &license(true, 365),
+            &Counts::default()
         ));
     }
 
@@ -346,7 +363,8 @@ mod tests {
     fn reactivation_when_new_subscription_still_within_grace() {
         assert!(is_license_reactivation(
             Some(&license(true, -20)),
-            &license(true, -5)
+            &license(true, -5),
+            &Counts::default()
         ));
     }
 
@@ -354,7 +372,8 @@ mod tests {
     fn no_reactivation_when_current_subscription_within_grace() {
         assert!(!is_license_reactivation(
             Some(&license(true, -5)),
-            &license(true, 365)
+            &license(true, 365),
+            &Counts::default()
         ));
     }
 
@@ -362,7 +381,8 @@ mod tests {
     fn no_reactivation_when_current_still_valid() {
         assert!(!is_license_reactivation(
             Some(&license(true, 365)),
-            &license(true, 365)
+            &license(true, 365),
+            &Counts::default()
         ));
     }
 
@@ -370,12 +390,17 @@ mod tests {
     fn no_reactivation_when_new_license_also_unusable() {
         assert!(!is_license_reactivation(
             Some(&license(true, -20)),
-            &license(true, -20)
+            &license(true, -20),
+            &Counts::default()
         ));
     }
 
     #[test]
     fn no_reactivation_without_current_license() {
-        assert!(!is_license_reactivation(None, &license(true, 365)));
+        assert!(!is_license_reactivation(
+            None,
+            &license(true, 365),
+            &Counts::default()
+        ));
     }
 }
