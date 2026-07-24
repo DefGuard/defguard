@@ -45,9 +45,7 @@ export const LoginMainPage = () => {
 
   useEffect(() => {
     if (!isPresent(authError)) return;
-    Snackbar.error(
-      isWebErrorCode(authError) ? getApiErrorMessage(authError) : authError,
-    );
+    Snackbar.error(isWebErrorCode(authError) ? getApiErrorMessage(authError) : authError);
     void navigate({ search: {}, replace: true });
   }, [authError, navigate]);
 

@@ -8,7 +8,10 @@ import { useAuth } from '../../shared/hooks/useAuth';
 
 const getAuthErrorFromException = (e: unknown): WebErrorCode | undefined => {
   const code = (e as AxiosError<ApiError>).response?.data?.code;
-  if (code === WebErrorCode.UserGroupsNotSynced || code === WebErrorCode.LicenseLimitReached) {
+  if (
+    code === WebErrorCode.UserGroupsNotSynced ||
+    code === WebErrorCode.LicenseLimitReached
+  ) {
     return code;
   }
   return undefined;
