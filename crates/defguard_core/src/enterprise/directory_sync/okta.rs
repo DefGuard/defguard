@@ -466,89 +466,32 @@ impl DirectorySync for OktaDirectorySync {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+const TEST_JWK_PRIVATE_KEY: &str = include_str!("fixtures/okta/test_jwk_private_key.json");
 
-    #[tokio::test]
-    async fn test_token() {
-        let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
-
-        // no token
-        assert!(dirsync.is_token_expired());
-
-        // expired token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
-        assert!(dirsync.is_token_expired());
-
-        // valid token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
-        assert!(!dirsync.is_token_expired());
-    }
-
-    #[tokio::test]
-    async fn test_header() {
-        let link_header =
-            "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\""
-                .to_owned();
-        let next_link = extract_next_link(Some(&link_header)).unwrap();
-        assert_eq!(
-            next_link,
-            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_owned())
-        );
-
-        let next_link = extract_next_link(None).unwrap();
-        assert_eq!(next_link, None);
-
-        let link_header = "invalid".to_owned();
-        let next_link = extract_next_link(Some(&link_header));
-        assert!(next_link.is_err());
-
-        let link_header = "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\", <https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"prev\"".to_owned();
-        let next_link = extract_next_link(Some(&link_header)).unwrap();
-        assert_eq!(
-            next_link,
-            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_owned())
-        );
-    }
-
-    #[tokio::test]
-    async fn test_group_parse() {
-        let group = Group {
-            id: "test_id".to_owned(),
-            profile: GroupProfile {
-                name: "test_name".to_owned(),
-            },
-        };
-        let dir_group: DirectoryGroup = group.into();
-        assert_eq!(dir_group.id, "test_id");
-        assert_eq!(dir_group.name, "test_name");
-    }
-
-    #[tokio::test]
-    async fn test_user_parse() {
-        let user = User {
-            status: "ACTIVE".to_owned(),
-            profile: UserProfile {
-                email: "test_email".to_owned(),
-            },
-        };
-
-        let dir_user: DirectoryUser = user.into();
-        assert_eq!(dir_user.email, "test_email");
-        assert!(dir_user.active);
-
-        let user = User {
-            status: "INACTIVE".to_owned(),
-            profile: UserProfile {
-                email: "test_email".to_owned(),
-            },
-        };
-
-        let dir_user: DirectoryUser = user.into();
-        assert_eq!(dir_user.email, "test_email");
-        assert!(!dir_user.active);
-    }
+#[cfg(test)]
+pub(crate) fn response_from_fixture(name: &str) -> wiremock::ResponseTemplate {
+    let body = match name {
+        "token_response.json" => include_str!("fixtures/okta/token_response.json"),
+        "users_page1.json" => include_str!("fixtures/okta/users_page1.json"),
+        "users_page2.json" => include_str!("fixtures/okta/users_page2.json"),
+        "groups_response.json" => include_str!("fixtures/okta/groups_response.json"),
+        "group_members_response.json" => include_str!("fixtures/okta/group_members_response.json"),
+        other => panic!("unknown fixture: {other}"),
+    };
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
 }
+
+#[cfg(test)]
+pub(crate) fn dirsync_with_mock_server(mock_server: &wiremock::MockServer) -> OktaDirectorySync {
+    let mut dirsync =
+        OktaDirectorySync::new(TEST_JWK_PRIVATE_KEY, "test_client_id", &mock_server.uri());
+    dirsync.access_token = Some("test_token".into());
+    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync
+}
+
+#[cfg(test)]
+#[path = "provider_tests/okta.rs"]
+mod tests;

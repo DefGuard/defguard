@@ -1,0 +1,70 @@
+[
+  {
+    "id": "00gjitxyt9yJW2FKR0g7",
+    "created": "2022-01-10T08:00:00.000Z",
+    "lastUpdated": "2026-07-15T12:30:00.000Z",
+    "lastMembershipUpdated": "2026-07-15T12:30:00.000Z",
+    "objectClass": [
+      "okta:user_group"
+    ],
+    "type": "OKTA_GROUP",
+    "profile": {
+      "name": "Engineering",
+      "description": "Engineering team"
+    },
+    "_links": {
+      "logo": [
+        {
+          "name": "medium",
+          "href": "https://trial-okta.okta.com/img/logos/groups/okta-medium.png",
+          "type": "image/png"
+        },
+        {
+          "name": "large",
+          "href": "https://trial-okta.okta.com/img/logos/groups/okta-large.png",
+          "type": "image/png"
+        }
+      ],
+      "users": {
+        "href": "https://trial-okta.okta.com/api/v1/groups/00gjitxyt9yJW2FKR0g7/users"
+      },
+      "apps": {
+        "href": "https://trial-okta.okta.com/api/v1/groups/00gjitxyt9yJW2FKR0g7/apps"
+      }
+    }
+  },
+  {
+    "id": "00gk5zz0j3fKYZ7VJ0g8",
+    "created": "2022-02-05T07:00:00.000Z",
+    "lastUpdated": "2026-07-14T11:20:00.000Z",
+    "lastMembershipUpdated": "2026-07-14T11:20:00.000Z",
+    "objectClass": [
+      "okta:user_group"
+    ],
+    "type": "OKTA_GROUP",
+    "profile": {
+      "name": "Sales",
+      "description": "Sales team"
+    },
+    "_links": {
+      "logo": [
+        {
+          "name": "medium",
+          "href": "https://trial-okta.okta.com/img/logos/groups/okta-medium.png",
+          "type": "image/png"
+        },
+        {
+          "name": "large",
+          "href": "https://trial-okta.okta.com/img/logos/groups/okta-large.png",
+          "type": "image/png"
+        }
+      ],
+      "users": {
+        "href": "https://trial-okta.okta.com/api/v1/groups/00gk5zz0j3fKYZ7VJ0g8/users"
+      },
+      "apps": {
+        "href": "https://trial-okta.okta.com/api/v1/groups/00gk5zz0j3fKYZ7VJ0g8/apps"
+      }
+    }
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#groups",
+  "value": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "displayName": "Engineering",
+      "groupTypes": ["Unified"],
+      "mailEnabled": true,
+      "securityEnabled": false,
+      "description": "Engineering team",
+      "mail": "engineering@example.com"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Sales",
+      "groupTypes": ["Unified"],
+      "mailEnabled": true,
+      "securityEnabled": false,
+      "description": "Sales team",
+      "mail": "sales@example.com"
+    }
+  ]
+}

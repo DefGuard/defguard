@@ -9,6 +9,7 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { joinCsv, toCsvArray } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -23,6 +24,7 @@ import type { EditProviderFormProps } from '../types';
 const basicSchema = z
   .object({
     directory_sync_enabled: z.boolean(),
+    directory_sync_user_groups: z.string().trim().nullable(),
   })
   .extend(baseExternalProviderConfigSchema.shape);
 
@@ -85,6 +87,9 @@ export const EditOktaProviderForm = ({
       directory_sync_target: provider.directory_sync_target,
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
+      directory_sync_user_groups: joinCsv(
+        toCsvArray(provider.directory_sync_user_groups),
+      ),
     };
   }, [provider]);
 
@@ -103,11 +108,18 @@ export const EditOktaProviderForm = ({
       onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
-      if ('okta_private_jwk' in value && value.okta_private_jwk.trim().length === 0) {
-        await onSubmit(omit(value, ['okta_private_jwk']));
+      const normalized = {
+        ...value,
+        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
+      };
+      if (
+        'okta_private_jwk' in normalized &&
+        normalized.okta_private_jwk.trim().length === 0
+      ) {
+        await onSubmit(omit(normalized, ['okta_private_jwk']));
         return;
       }
-      await onSubmit(value);
+      await onSubmit(normalized);
     },
   });
 
@@ -267,6 +279,15 @@ export const EditOktaProviderForm = ({
                       label={m.settings_openid_provider_label_okta_directory_sync_client_private_key()}
                       type="password"
                       helper={m.settings_openid_provider_helper_okta_directory_sync_client_private_key()}
+                    />
+                  )}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="directory_sync_user_groups">
+                  {(field) => (
+                    <field.FormInput
+                      label={m.settings_openid_provider_label_sync_users_from_groups()}
+                      helper={m.settings_openid_provider_helper_sync_users_from_groups()}
                     />
                   )}
                 </form.AppField>

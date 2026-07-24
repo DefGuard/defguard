@@ -11,6 +11,7 @@ import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snac
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { joinCsv, toCsvArray } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -92,6 +93,9 @@ export const EditGoogleProviderForm = ({
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
       google_service_account_file: keyFile,
+      directory_sync_user_groups: joinCsv(
+        toCsvArray(provider.directory_sync_user_groups),
+      ),
     };
   }, [provider]);
 
@@ -114,6 +118,7 @@ export const EditGoogleProviderForm = ({
           ...omit(inner, ['google_service_account_file']),
           google_service_account_email: file.client_email,
           google_service_account_key: file.private_key,
+          directory_sync_user_groups: inner.directory_sync_user_groups ?? '',
         });
       } else {
         await onSubmit(omit(value, ['google_service_account_file']));
@@ -263,6 +268,15 @@ export const EditGoogleProviderForm = ({
                 <SizedBox height={ThemeSpacing.Xl} />
                 <form.AppField name="google_service_account_file">
                   {(field) => <field.FormUploadField />}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="directory_sync_user_groups">
+                  {(field) => (
+                    <field.FormInput
+                      label={m.settings_openid_provider_label_sync_users_from_groups()}
+                      helper={m.settings_openid_provider_helper_sync_users_from_groups()}
+                    />
+                  )}
                 </form.AppField>
               </Fold>
             )}

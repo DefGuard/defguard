@@ -15,6 +15,10 @@ pub(crate) struct MicrosoftDirectorySync {
     client_secret: String,
     url: String,
     group_filter: Vec<String>,
+    #[cfg(test)]
+    access_token_url_override: Option<String>,
+    #[cfg(test)]
+    graph_base_url_override: Option<String>,
 }
 
 const ACCESS_TOKEN_URL: &str = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
@@ -174,7 +178,7 @@ struct IdResponse {
 }
 
 impl MicrosoftDirectorySync {
-    pub(crate) const fn new(
+    pub(crate) fn new(
         client_id: String,
         client_secret: String,
         url: String,
@@ -187,7 +191,19 @@ impl MicrosoftDirectorySync {
             url,
             token_expiry: None,
             group_filter: match_groups,
+            #[cfg(test)]
+            access_token_url_override: None,
+            #[cfg(test)]
+            graph_base_url_override: None,
         }
+    }
+
+    /// Overrides the Microsoft API URLs so tests can point them at a mock server.
+    #[cfg(test)]
+    fn with_urls(mut self, access_token_url: &str, graph_base_url: &str) -> Self {
+        self.access_token_url_override = Some(access_token_url.into());
+        self.graph_base_url_override = Some(graph_base_url.into());
+        self
     }
 
     fn extract_tenant(&self) -> Result<String, DirectorySyncError> {
@@ -233,8 +249,22 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        let url = {
+            #[cfg(test)]
+            {
+                if let Some(base) = &self.graph_base_url_override {
+                    format!("{base}/users")
+                } else {
+                    ALL_USERS_URL.to_owned()
+                }
+            }
+            #[cfg(not(test))]
+            {
+                ALL_USERS_URL.to_owned()
+            }
+        };
         let response = make_get_request(
-            ALL_USERS_URL,
+            &url,
             access_token,
             Some(&[("$top", "1"), ("$select", USER_QUERY_FIELDS)]),
         )
@@ -246,8 +276,20 @@ impl MicrosoftDirectorySync {
 
     async fn query_access_token(&self) -> Result<TokenResponse, DirectorySyncError> {
         debug!("Querying Microsoft directory sync access token.");
-        let tenant_id = self.extract_tenant()?;
-        let token_url = ACCESS_TOKEN_URL.replace("{tenant_id}", &tenant_id);
+        let token_url = {
+            #[cfg(test)]
+            if let Some(override_url) = &self.access_token_url_override {
+                override_url.clone()
+            } else {
+                let tenant_id = self.extract_tenant()?;
+                ACCESS_TOKEN_URL.replace("{tenant_id}", &tenant_id)
+            }
+            #[cfg(not(test))]
+            {
+                let tenant_id = self.extract_tenant()?;
+                ACCESS_TOKEN_URL.replace("{tenant_id}", &tenant_id)
+            }
+        };
         let client = reqwest::Client::new();
         let response = client
             .post(&token_url)
@@ -275,7 +317,20 @@ impl MicrosoftDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = GroupsResponse::default();
-        let mut url = GROUPS_URL.to_owned();
+        let mut url = {
+            #[cfg(test)]
+            {
+                if let Some(base) = &self.graph_base_url_override {
+                    format!("{base}/groups")
+                } else {
+                    GROUPS_URL.to_owned()
+                }
+            }
+            #[cfg(not(test))]
+            {
+                GROUPS_URL.to_owned()
+            }
+        };
 
         if self.group_filter.is_empty() {
             debug!("No group filter defined, all groups will be synced.");
@@ -353,9 +408,20 @@ impl MicrosoftDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
 
         // Get the user ID from their email address first
-        let user_search = USER_SEARCH_URL
-            .replace("{email}", user_email)
-            .replace("{query_fields}", USER_QUERY_FIELDS);
+        let user_search = {
+            #[cfg(test)]
+            if let Some(base) = &self.graph_base_url_override {
+                format!("{base}/users?$select=id&$filter=mail eq '{user_email}'")
+            } else {
+                USER_SEARCH_URL
+                    .replace("{email}", user_email)
+                    .replace("{query_fields}", USER_QUERY_FIELDS)
+            }
+            #[cfg(not(test))]
+            USER_SEARCH_URL
+                .replace("{email}", user_email)
+                .replace("{query_fields}", USER_QUERY_FIELDS)
+        };
         let response = make_get_request(&user_search, access_token, None).await?;
         let response: IdResponse =
             parse_response(response, "Failed to query user from Microsoft API.").await?;
@@ -370,9 +436,22 @@ impl MicrosoftDirectorySync {
             debug!(
                 "User with email {user_email} not found in Microsoft API, trying fallback search of additional email addresses",
             );
-            let user_search = USER_SEARCH_URL_FALLBACK
-                .replace("{email}", user_email)
-                .replace("{query_fields}", USER_QUERY_FIELDS);
+            let user_search = {
+                #[cfg(test)]
+                if let Some(base) = &self.graph_base_url_override {
+                    format!(
+                        "{base}/users?$select=id&$filter=(otherMails/any(p:p eq '{user_email}'))"
+                    )
+                } else {
+                    USER_SEARCH_URL_FALLBACK
+                        .replace("{email}", user_email)
+                        .replace("{query_fields}", USER_QUERY_FIELDS)
+                }
+                #[cfg(not(test))]
+                USER_SEARCH_URL_FALLBACK
+                    .replace("{email}", user_email)
+                    .replace("{query_fields}", USER_QUERY_FIELDS)
+            };
             let response = make_get_request(&user_search, access_token, None).await?;
             let response: IdResponse =
                 parse_response(response, "Failed to query user from Microsoft API.").await?;
@@ -387,7 +466,20 @@ impl MicrosoftDirectorySync {
             }
         };
 
-        let mut url = USER_GROUPS.replace("{user_id}", &user_id);
+        let mut url = {
+            #[cfg(test)]
+            {
+                if let Some(base) = &self.graph_base_url_override {
+                    format!("{base}/users/{user_id}/memberOf")
+                } else {
+                    USER_GROUPS.replace("{user_id}", &user_id)
+                }
+            }
+            #[cfg(not(test))]
+            {
+                USER_GROUPS.replace("{user_id}", &user_id)
+            }
+        };
         let mut combined_response = GroupsResponse::default();
         let mut query = Some([("$top", MAX_RESULTS)].as_slice());
 
@@ -450,7 +542,20 @@ impl MicrosoftDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = GroupMembersResponse::default();
-        let mut url = GROUP_MEMBERS.replace("{group_id}", &group.id);
+        let mut url = {
+            #[cfg(test)]
+            {
+                if let Some(base) = &self.graph_base_url_override {
+                    format!("{}/groups/{}/members", base, group.id)
+                } else {
+                    GROUP_MEMBERS.replace("{group_id}", &group.id)
+                }
+            }
+            #[cfg(not(test))]
+            {
+                GROUP_MEMBERS.replace("{group_id}", &group.id)
+            }
+        };
         let mut query = Some([("$top", MAX_RESULTS), ("$select", USER_QUERY_FIELDS)].as_slice());
 
         for _ in 0..MAX_REQUESTS {
@@ -488,7 +593,20 @@ impl MicrosoftDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = UsersResponse::default();
-        let mut url = ALL_USERS_URL.to_owned();
+        let mut url = {
+            #[cfg(test)]
+            {
+                if let Some(base) = &self.graph_base_url_override {
+                    format!("{base}/users")
+                } else {
+                    ALL_USERS_URL.to_owned()
+                }
+            }
+            #[cfg(not(test))]
+            {
+                ALL_USERS_URL.to_owned()
+            }
+        };
         let mut query = Some([("$top", MAX_RESULTS), ("$select", USER_QUERY_FIELDS)].as_slice());
 
         for _ in 0..MAX_REQUESTS {
@@ -572,160 +690,55 @@ impl DirectorySync for MicrosoftDirectorySync {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_extract_tenant() {
-        let provider = MicrosoftDirectorySync::new(
-            "client_id".to_owned(),
-            "client_secret".to_owned(),
-            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_owned(),
-            Vec::new(),
-        );
-        let tenant = provider.extract_tenant().unwrap();
-        assert_eq!(tenant, "tenant-id-123");
-    }
-
-    #[tokio::test]
-    async fn test_token() {
-        let mut dirsync = MicrosoftDirectorySync::new(
-            "id".to_owned(),
-            "secret".to_owned(),
-            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_owned(),
-            Vec::new(),
-        );
-
-        // no token
-        assert!(dirsync.is_token_expired());
-
-        // expired token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
-        assert!(dirsync.is_token_expired());
-
-        // valid token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
-        assert!(!dirsync.is_token_expired());
-    }
-
-    #[tokio::test]
-    async fn test_groups_parse() {
-        let groups_response = GroupsResponse {
-            next_page: None,
-            value: vec![
-                GroupDetails {
-                    display_name: Some("Group 1".to_owned()),
-                    id: "1".to_owned(),
-                },
-                GroupDetails {
-                    display_name: Some("Group 2".to_owned()),
-                    id: "2".to_owned(),
-                },
-            ],
-        };
-
-        let groups: Vec<DirectoryGroup> = groups_response.into();
-
-        assert_eq!(groups.len(), 2);
-        assert_eq!(groups[0].name, "Group 1");
-        assert_eq!(groups[0].id, "1");
-        assert_eq!(groups[1].name, "Group 2");
-        assert_eq!(groups[1].id, "2");
-    }
-
-    #[tokio::test]
-    async fn test_members_parse() {
-        let members_response = GroupMembersResponse {
-            next_page: None,
-            value: vec![
-                User {
-                    display_name: "User 1".to_owned(),
-                    mail: Some("email@email.com".to_owned()),
-                    account_enabled: true,
-                    other_mails: Vec::new(),
-                    id: "user1-id".into(),
-                    given_name: Some("User".into()),
-                    surname: Some("One".into()),
-                    mobile_phone: Some("555555555".into()),
-                    business_phones: Vec::new(),
-                },
-                User {
-                    display_name: "User 2".to_owned(),
-                    mail: None,
-                    account_enabled: true,
-                    other_mails: vec!["email2@email.com".to_owned()],
-                    id: "user2-id".into(),
-                    given_name: Some("User".into()),
-                    surname: Some("Two".into()),
-                    mobile_phone: None,
-                    business_phones: Vec::new(),
-                },
-                User {
-                    display_name: "User 3".to_owned(),
-                    mail: None,
-                    account_enabled: true,
-                    other_mails: Vec::new(),
-                    id: "user3-id".into(),
-                    given_name: Some("User".into()),
-                    surname: Some("Three".into()),
-                    mobile_phone: None,
-                    business_phones: Vec::new(),
-                },
-            ],
-        };
-
-        let members: Vec<String> = members_response.into();
-        assert_eq!(members.len(), 2);
-        assert_eq!(members[0], "email@email.com".to_owned());
-        assert_eq!(members[1], "email2@email.com".to_owned());
-    }
-
-    #[tokio::test]
-    async fn test_users_parse() {
-        let users_response = UsersResponse {
-            next_page: None,
-            value: vec![
-                User {
-                    display_name: "User 1".to_owned(),
-                    mail: Some("email@email.com".to_owned()),
-                    account_enabled: true,
-                    other_mails: Vec::new(),
-                    id: "user1-id".into(),
-                    given_name: Some("User".into()),
-                    surname: None,
-                    mobile_phone: None,
-                    business_phones: Vec::new(),
-                },
-                User {
-                    display_name: "User 2".to_owned(),
-                    mail: None,
-                    account_enabled: true,
-                    other_mails: vec!["email2@email.com".to_owned()],
-                    id: "user2-id".into(),
-                    given_name: None,
-                    surname: None,
-                    mobile_phone: Some("555555555".into()),
-                    business_phones: Vec::new(),
-                },
-                User {
-                    display_name: "User 3".to_owned(),
-                    mail: None,
-                    account_enabled: true,
-                    other_mails: Vec::new(),
-                    id: "user3-id".into(),
-                    given_name: Some("User".into()),
-                    surname: Some("Three".into()),
-                    mobile_phone: Some("555555555".into()),
-                    business_phones: Vec::new(),
-                },
-            ],
-        };
-
-        let users: Vec<DirectoryUser> = users_response.into();
-        assert_eq!(users.len(), 2);
-        assert_eq!(users[0].email, "email@email.com".to_owned());
-        assert_eq!(users[1].email, "email2@email.com".to_owned());
-    }
+pub(crate) fn response_from_fixture(name: &str) -> wiremock::ResponseTemplate {
+    let body = match name {
+        "token_response.json" => include_str!("fixtures/microsoft/token_response.json"),
+        "users_page1.json" => include_str!("fixtures/microsoft/users_page1.json"),
+        "users_page2.json" => include_str!("fixtures/microsoft/users_page2.json"),
+        "users_empty.json" => include_str!("fixtures/microsoft/users_empty.json"),
+        "groups_response.json" => include_str!("fixtures/microsoft/groups_response.json"),
+        "members_response.json" => include_str!("fixtures/microsoft/members_response.json"),
+        "user_search_response.json" => include_str!("fixtures/microsoft/user_search_response.json"),
+        "user_groups_response.json" => include_str!("fixtures/microsoft/user_groups_response.json"),
+        other => panic!("unknown fixture: {other}"),
+    };
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
 }
+
+// Ports are ephemeral per MockServer, so pagination links can't be baked into the fixture.
+#[cfg(test)]
+pub(crate) fn response_from_fixture_with_mock_uri(
+    name: &str,
+    mock_server_uri: &str,
+) -> wiremock::ResponseTemplate {
+    let mut body = match name {
+        "users_page1.json" => include_str!("fixtures/microsoft/users_page1.json").to_string(),
+        other => panic!("fixture {other} doesn't support mock URI replacement"),
+    };
+    body = body.replace("MOCK_SERVER_URI", mock_server_uri);
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
+}
+
+#[cfg(test)]
+pub(crate) fn dirsync_with_mock_server(
+    mock_server: &wiremock::MockServer,
+) -> MicrosoftDirectorySync {
+    let mut dirsync = MicrosoftDirectorySync::new(
+        "client_id".into(),
+        "client_secret".into(),
+        "https://login.microsoftonline.com/tenant-123/v2.0".into(),
+        Vec::new(),
+    )
+    .with_urls(&format!("{}/token", mock_server.uri()), &mock_server.uri());
+    dirsync.access_token = Some("test_token".into());
+    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync
+}
+
+#[cfg(test)]
+#[path = "provider_tests/microsoft.rs"]
+mod tests;

@@ -1,0 +1,14 @@
+[
+  {
+    "to": {
+      "id": "user123",
+      "type": "user"
+    }
+  },
+  {
+    "to": {
+      "id": "user456",
+      "type": "user"
+    }
+  }
+]

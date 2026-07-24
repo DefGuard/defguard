@@ -1,0 +1,28 @@
+{
+  "kind": "admin#directory#groups",
+  "etag": "\"O2K9aXtIm5oBnlpiYgtHF0O9rBs/AbCdEfGroups\"",
+  "groups": [
+    {
+      "kind": "admin#directory#group",
+      "id": "01302m9251m2vt3",
+      "etag": "\"XyZ333\"",
+      "email": "engineering@example.com",
+      "name": "Engineering",
+      "description": "Engineering team distribution list",
+      "adminCreated": true,
+      "directMembersCount": "12",
+      "aliases": ["eng@example.com"],
+      "nonEditableAliases": ["engineering@example.com.test-google-a.com"]
+    },
+    {
+      "kind": "admin#directory#group",
+      "id": "01302m9251m2vt4",
+      "etag": "\"XyZ444\"",
+      "email": "sales@example.com",
+      "name": "Sales",
+      "description": "Sales team distribution list",
+      "adminCreated": true,
+      "directMembersCount": "5"
+    }
+  ]
+}

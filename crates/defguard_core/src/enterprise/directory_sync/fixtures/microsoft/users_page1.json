@@ -1,0 +1,19 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users",
+  "@odata.nextLink": "MOCK_SERVER_URI/users?$top=200&$skiptoken=firstpage",
+  "value": [
+    {
+      "id": "87654321-1234-5678-1234-567812345678",
+      "displayName": "Jane Doe",
+      "mail": "jane.doe@example.com",
+      "accountEnabled": true,
+      "otherMails": [],
+      "givenName": "Jane",
+      "surname": "Doe",
+      "mobilePhone": "+1-555-123-4567",
+      "businessPhones": ["+1-555-987-6543"],
+      "userPrincipalName": "jane.doe@example.com",
+      "jobTitle": "Senior Engineer"
+    }
+  ]
+}

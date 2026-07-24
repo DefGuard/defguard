@@ -117,6 +117,8 @@ pub mod okta;
 pub mod testprovider;
 #[cfg(test)]
 pub mod tests;
+#[cfg(test)]
+pub mod tests_cross_provider;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryGroup {
@@ -716,7 +718,7 @@ async fn sync_all_users_state(
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
     all_users: &[DirectoryUser],
-    prefetch_allowed_emails: Option<HashSet<String>>,
+    allowed_emails: Option<HashSet<String>>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
     let mut transaction = pool.begin().await?;
@@ -730,7 +732,7 @@ async fn sync_all_users_state(
     let prefetch_users = settings.prefetch_users;
 
     let is_allowed_user = |user: &DirectoryUser| -> bool {
-        prefetch_allowed_emails
+        allowed_emails
             .as_ref()
             .is_none_or(|allowed| allowed.contains(&user.email))
     };
@@ -1157,7 +1159,6 @@ pub(crate) async fn do_directory_sync(
     let provider = provider.ok_or(DirectorySyncError::NotConfigured)?;
 
     let sync_target = provider.directory_sync_target;
-    let prefetch_users = provider.prefetch_users;
     let provider_name = provider.name.clone();
     let user_groups_filter = provider
         .directory_sync_user_groups
@@ -1181,18 +1182,18 @@ pub(crate) async fn do_directory_sync(
             ) {
                 let users = dir_sync.get_all_users().await?;
 
-                // If prefetch is enabled and a user group filter is configured, build a set
-                // of emails of users who are members of those groups. Only those users will
-                // be imported by the prefetch. When the filter is empty we pass None and
-                // import everyone.
-                let prefetch_allowed_emails = if prefetch_users && !user_groups_filter.is_empty() {
+                // If a user group filter is configured, build a set of emails of users who are
+                // members of those groups. Only those users are considered for syncing (state
+                // updates and, when supported by the provider, prefetch/import of new users).
+                // When the filter is empty we pass None and consider everyone.
+                let allowed_emails = if !user_groups_filter.is_empty() {
                     let groups = dir_sync.get_groups().await?;
                     // get_groups() may itself be limited by the membership sync group filter (directory_sync_group_match),
                     // so groups configured here must also be included there if that filter is in use.
                     for group_name in &user_groups_filter {
                         if !groups.iter().any(|group| &group.name == group_name) {
                             warn!(
-                                "Group '{group_name}' configured for user prefetch was not found among the directory groups, its members won't be imported.
+                                "Group '{group_name}' configured for user sync was not found among the directory groups, its members won't be synced.
                                 Make sure the group name is correct and that it's also included in the membership sync group filter, if one is defined."
                             );
                         }
@@ -1205,7 +1206,7 @@ pub(crate) async fn do_directory_sync(
                         match dir_sync.get_group_members(group, Some(&users)).await {
                             Ok(members) => {
                                 debug!(
-                                    "Adding {} members of group '{}' to the prefetch",
+                                    "Adding {} members of group '{}' to the set of users allowed to sync",
                                     members.len(),
                                     group.name
                                 );
@@ -1213,7 +1214,7 @@ pub(crate) async fn do_directory_sync(
                             }
                             Err(err) => {
                                 error!(
-                                    "Failed to get members of group '{}' for the prefetch filter: {err}",
+                                    "Failed to get members of group '{}' for the user sync filter: {err}",
                                     group.name
                                 );
                             }
@@ -1230,7 +1231,7 @@ pub(crate) async fn do_directory_sync(
                     ldap_tx,
                     dirsync_tx,
                     &users,
-                    prefetch_allowed_emails,
+                    allowed_emails,
                 )
                 .await?;
                 all_users = Some(users);

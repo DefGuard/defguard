@@ -1,0 +1,22 @@
+[
+  {
+    "id": "group1",
+    "compiledAttributes": {
+      "ldapGroups": [
+        {
+          "name": "Engineering"
+        }
+      ]
+    }
+  },
+  {
+    "id": "group2",
+    "compiledAttributes": {
+      "ldapGroups": [
+        {
+          "name": "Sales"
+        }
+      ]
+    }
+  }
+]

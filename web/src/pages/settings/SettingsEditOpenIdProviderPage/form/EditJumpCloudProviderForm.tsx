@@ -10,6 +10,7 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { joinCsv, toCsvArray } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -25,6 +26,7 @@ import type { EditProviderFormProps } from '../types';
 const basicSchema = z
   .object({
     directory_sync_enabled: z.boolean(),
+    directory_sync_user_groups: z.string().trim().nullable(),
     jumpcloud_region: z.enum(['us', 'eu', 'in']),
   })
   .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
@@ -71,6 +73,9 @@ export const EditJumpCloudProviderForm = ({
       directory_sync_enabled: provider.directory_sync_enabled,
       jumpcloud_api_key: provider.jumpcloud_api_key ?? '',
       jumpcloud_region: detectJumpcloudRegion(provider.base_url),
+      directory_sync_user_groups: joinCsv(
+        toCsvArray(provider.directory_sync_user_groups),
+      ),
     };
   }, [provider]);
 
@@ -84,6 +89,7 @@ export const EditJumpCloudProviderForm = ({
     onSubmit: async ({ value }) => {
       await onSubmit({
         ...value,
+        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
         base_url: jumpcloudBaseUrls[value.jumpcloud_region],
       });
     },

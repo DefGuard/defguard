@@ -1111,4 +1111,48 @@ mod test {
         // No events
         assert!(gateway_rx.try_recv().is_err());
     }
+
+    // directory_sync_user_groups must be honored for every provider and
+    // regardless of the prefetch setting.
+    #[sqlx::test]
+    async fn test_users_group_filter_applies_without_prefetch(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+
+        // prefetch disabled, restrict sync to a group that has no members in the directory
+        let mut provider = make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Disable,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::Users,
+            false,
+        )
+        .await;
+        provider.directory_sync_user_groups = Some(vec!["nonexistent-group".to_owned()]);
+        provider.save(&pool).await.unwrap();
+
+        // users already present in Defguard, matching directory users which are normally active
+        make_test_user_and_device("testuser", &pool).await;
+        make_test_user_and_device("testuser2", &pool).await;
+
+        let testuser = get_test_user(&pool, "testuser").await.unwrap();
+        let testuser2 = get_test_user(&pool, "testuser2").await.unwrap();
+        assert!(testuser.is_active);
+        assert!(testuser2.is_active);
+
+        do_test_directory_sync(&pool, &gateway_tx).await;
+
+        // both users were excluded from the group filter, so they are treated as no longer
+        // present in the directory and get disabled, even though prefetch was never enabled
+        let testuser = get_test_user(&pool, "testuser").await.unwrap();
+        let testuser2 = get_test_user(&pool, "testuser2").await.unwrap();
+        assert!(!testuser.is_active);
+        assert!(!testuser2.is_active);
+    }
 }
