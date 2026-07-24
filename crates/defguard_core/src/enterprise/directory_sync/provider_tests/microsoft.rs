@@ -97,7 +97,7 @@ async fn test_get_group_members() {
     };
     let members = dirsync.get_group_members(&group, None).await.unwrap();
 
-    assert_eq!(members, vec!["jane.doe@example.com".to_string()]);
+    assert_eq!(members, ["jane.doe@example.com".to_string()]);
 }
 
 #[tokio::test]
