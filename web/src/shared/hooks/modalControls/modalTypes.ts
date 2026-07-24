@@ -30,6 +30,7 @@ import type {
 
 export const ModalName = {
   LicenseExpired: 'licenseExpired',
+  LicenseReactivated: 'licenseReactivated',
   LicenseLimitConflict: 'licenseLimitConflict',
   UpgradeBusiness: 'upgradeBusiness',
   UpgradeEnterprise: 'upgradeEnterprise',
@@ -201,6 +202,9 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.LicenseExpired),
     data: z.custom<OpenLicenseExpiredModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.LicenseReactivated),
   }),
   z.object({
     name: z.literal(ModalName.AddNewDevice),

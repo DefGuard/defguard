@@ -425,6 +425,12 @@ export interface ApiError {
   code?: WebErrorCode;
 }
 
+export const ApiResponseCode = {
+  LicenseReactivated: 'license_reactivated',
+} as const;
+
+export type ApiResponseCode = (typeof ApiResponseCode)[keyof typeof ApiResponseCode];
+
 export interface AppInfoExceededLimits {
   user: boolean;
   wireguard_network: boolean;

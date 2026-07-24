@@ -162,6 +162,23 @@ impl ApiResponse {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApiResponseCode {
+    LicenseReactivated,
+}
+
+impl From<ApiResponseCode> for ApiResponse {
+    fn from(code: ApiResponseCode) -> Self {
+        match code {
+            ApiResponseCode::LicenseReactivated => Self::new(
+                json!({"code": ApiResponseCode::LicenseReactivated}),
+                StatusCode::OK,
+            ),
+        }
+    }
+}
+
 impl From<WebError> for ApiResponse {
     fn from(web_error: WebError) -> Self {
         match web_error {

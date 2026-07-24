@@ -16,7 +16,7 @@ use defguard_common::{
 use sqlx::PgPool;
 use struct_patch::Patch;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResponseCode, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
@@ -24,7 +24,10 @@ use crate::{
         db::models::enterprise_settings::EnterpriseSettings,
         handlers::LicenseInfo,
         ldap::{LDAPConnection, sync::Authority},
-        license::update_cached_license,
+        license::{
+            License, LicenseTier, get_cached_license, update_cached_license, validate_license,
+        },
+        limits::{Counts, get_counts},
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -143,6 +146,21 @@ pub(crate) async fn set_default_branding(
     }
 }
 
+fn is_license_reactivation(
+    current_license: Option<&License>,
+    new_license: &License,
+    counts: &Counts,
+) -> bool {
+    let Some(current_license) = current_license else {
+        return false;
+    };
+    let current_license_invalid =
+        validate_license(Some(current_license), counts, LicenseTier::Business).is_err();
+    let new_license_valid =
+        validate_license(Some(new_license), counts, LicenseTier::Business).is_ok();
+    current_license_invalid && new_license_valid
+}
+
 pub async fn patch_settings(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -179,7 +197,24 @@ pub async fn patch_settings(
     // clone for event
     let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;
+    let mut license_reactivated = false;
     if let Some(license_key) = &license {
+        if let Some(new_key) = license_key.as_deref()
+            && let Ok(new_license) = License::from_base64(new_key)
+        {
+            let counts = get_counts();
+            license_reactivated =
+                is_license_reactivation(get_cached_license().as_ref(), &new_license, &counts);
+            if license_reactivated {
+                info!(
+                    "Admin {} replaced a previously invalid license with a valid one",
+                    session.user.username
+                );
+            }
+        } else {
+            info!("Couldn't obtain current license");
+        }
+
         update_cached_license(license_key.as_deref())?;
         debug!("Updated cached license after saving settings patch");
     }
@@ -207,7 +242,12 @@ pub async fn patch_settings(
         context,
         event: Box::new(ApiEventType::SettingsUpdatedPartial { before, after }),
     })?;
-    Ok(ApiResponse::default())
+
+    if license_reactivated {
+        Ok(ApiResponseCode::LicenseReactivated.into())
+    } else {
+        Ok(ApiResponse::default())
+    }
 }
 
 pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
@@ -275,5 +315,92 @@ pub(crate) async fn ldap_dry_run(
             debug!("LDAP dry run failed: {err}");
             Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{TimeDelta, Utc};
+
+    use super::is_license_reactivation;
+    use crate::enterprise::{
+        license::{License, LicenseTier, SupportType},
+        limits::Counts,
+    };
+
+    fn license(subscription: bool, valid_until_days: i64) -> License {
+        License::new(
+            "test-customer".into(),
+            subscription,
+            Some(Utc::now() + TimeDelta::days(valid_until_days)),
+            None,
+            None,
+            LicenseTier::Business,
+            SupportType::Basic,
+            Vec::new(),
+        )
+    }
+
+    #[test]
+    fn reactivation_past_grace_subscription_replaced_by_valid() {
+        assert!(is_license_reactivation(
+            Some(&license(true, -20)),
+            &license(true, 365),
+            &Counts::default()
+        ));
+    }
+
+    #[test]
+    fn reactivation_expired_non_subscription_replaced_by_valid() {
+        assert!(is_license_reactivation(
+            Some(&license(false, -1)),
+            &license(true, 365),
+            &Counts::default()
+        ));
+    }
+
+    #[test]
+    fn reactivation_when_new_subscription_still_within_grace() {
+        assert!(is_license_reactivation(
+            Some(&license(true, -20)),
+            &license(true, -5),
+            &Counts::default()
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_when_current_subscription_within_grace() {
+        assert!(!is_license_reactivation(
+            Some(&license(true, -5)),
+            &license(true, 365),
+            &Counts::default()
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_when_current_still_valid() {
+        assert!(!is_license_reactivation(
+            Some(&license(true, 365)),
+            &license(true, 365),
+            &Counts::default()
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_when_new_license_also_unusable() {
+        assert!(!is_license_reactivation(
+            Some(&license(true, -20)),
+            &license(true, -20),
+            &Counts::default()
+        ));
+    }
+
+    #[test]
+    fn no_reactivation_without_current_license() {
+        assert!(!is_license_reactivation(
+            None,
+            &license(true, 365),
+            &Counts::default()
+        ));
     }
 }

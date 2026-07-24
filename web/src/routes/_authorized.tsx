@@ -4,6 +4,7 @@ import { AppUpdateModal } from '../shared/components/modals/AppUpdateModal/AppUp
 import { ConfirmActionModal } from '../shared/components/modals/ConfirmActionModal/ConfirmActionModal';
 import { LicenseExpiredModal } from '../shared/components/modals/license/LicenseExpiredModal/LicenseExpiredModal';
 import { LicenseLimitConflictModal } from '../shared/components/modals/license/LicenseLimitConflictModal/LicenseLimitConflictModal';
+import { LicenseReactivatedModal } from '../shared/components/modals/license/LicenseReactivatedModal/LicenseReactivatedModal';
 import { LimitReachedModal } from '../shared/components/modals/license/LimitReachedModal/LimitReachedModal';
 import { UpgradeBusinessModal } from '../shared/components/modals/license/UpgradeBusinessModal/UpgradeBusinessModal';
 import { UpgradeEnterpriseModal } from '../shared/components/modals/license/UpgradeEnterpriseModal/UpgradeEnterpriseModal';
@@ -62,6 +63,7 @@ function RouteComponent() {
         <UpgradeBusinessModal />
         <UpgradeEnterpriseModal />
         <LicenseExpiredModal />
+        <LicenseReactivatedModal />
         <DisplayListModal />
         <SelectionModal />
         <ConfirmActionModal />
