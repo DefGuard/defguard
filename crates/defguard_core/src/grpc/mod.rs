@@ -161,6 +161,7 @@ pub struct InstanceInfo {
     client_traffic_policy: ClientTrafficPolicy,
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
+    disable_tunnels: bool,
 }
 
 impl InstanceInfo {
@@ -185,6 +186,7 @@ impl InstanceInfo {
             client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_business_license_active(),
             openid_display_name,
+            disable_tunnels: enterprise_settings.disable_tunnels,
         })
     }
 }
@@ -204,6 +206,7 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
             client_traffic_policy: Some(instance.client_traffic_policy as i32),
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
+            disable_tunnels: Some(instance.disable_tunnels),
         }
     }
 }
