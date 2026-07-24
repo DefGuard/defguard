@@ -7,5 +7,33 @@
     h3 {
       font: var(--t-body-primary-600);
     }
+
+    h4 {
+      font: var(--t-body-primary-600);
+    }
+
+    .group-policy-section {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-md);
+    }
+
+    .group-policy-description {
+      color: var(--fg-muted);
+      font: var(--t-body-sm-400);
+    }
+
+    .select-multiple-edit {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: 0;
+      border: 0;
+      background-color: transparent;
+      color: var(--fg-action);
+      font: var(--t-body-sm-500);
+      cursor: pointer;
+    }
   }
 }

@@ -12,6 +12,8 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
+import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
@@ -20,7 +22,7 @@ import {
   getLicenseInfoQueryOptions,
 } from '../../../shared/query';
 import './style.scss';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
@@ -74,11 +76,39 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+type GroupPolicyRowProps = {
+  content: string;
+  enabled: boolean;
+  onToggle: () => void;
+  title: string;
+};
+
+const GroupPolicyRow = ({ content, enabled, onToggle, title }: GroupPolicyRowProps) => (
+  <InteractiveBlock
+    content={content}
+    onClick={onToggle}
+    title={title}
+    value={enabled}
+    variant="toggle"
+  >
+    <Fold open={enabled}>
+      <button className="select-multiple-edit" type="button">
+        {m.settings_client_traffic_policy_select_groups()}
+      </button>
+    </Fold>
+  </InteractiveBlock>
+);
+
 const Content = () => {
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getEnterpriseSettingsQueryOptions);
 
   const noLicense = !isPresent(licenseInfo);
+  const [groupPolicyState, setGroupPolicyState] = useState({
+    allowChoice: false,
+    disableAllTraffic: false,
+    forceAllTraffic: false,
+  });
 
   const { mutateAsync: patchSettings } = useMutation({
     mutationFn: api.settings.patchEnterpriseSettings,
@@ -204,6 +234,46 @@ const Content = () => {
                 />
               )}
             </form.AppField>
+            <Divider spacing={ThemeSpacing.Xl} />
+            <div className="group-policy-section">
+              <h4>{m.settings_client_traffic_policy_group_title()}</h4>
+              <p className="group-policy-description">
+                {m.settings_client_traffic_policy_group_description()}
+              </p>
+              <GroupPolicyRow
+                content={m.settings_client_traffic_policy_group_none_content()}
+                enabled={groupPolicyState.allowChoice}
+                onToggle={() =>
+                  setGroupPolicyState((state) => ({
+                    ...state,
+                    allowChoice: !state.allowChoice,
+                  }))
+                }
+                title={m.settings_client_traffic_policy_group_none_title()}
+              />
+              <GroupPolicyRow
+                content={m.settings_client_traffic_policy_group_disable_all_content()}
+                enabled={groupPolicyState.disableAllTraffic}
+                onToggle={() =>
+                  setGroupPolicyState((state) => ({
+                    ...state,
+                    disableAllTraffic: !state.disableAllTraffic,
+                  }))
+                }
+                title={m.settings_client_traffic_policy_group_disable_all_title()}
+              />
+              <GroupPolicyRow
+                content={m.settings_client_traffic_policy_group_force_all_content()}
+                enabled={groupPolicyState.forceAllTraffic}
+                onToggle={() =>
+                  setGroupPolicyState((state) => ({
+                    ...state,
+                    forceAllTraffic: !state.forceAllTraffic,
+                  }))
+                }
+                title={m.settings_client_traffic_policy_group_force_all_title()}
+              />
+            </div>
           </MarkedSection>
           <form.Subscribe
             selector={(s) => ({
