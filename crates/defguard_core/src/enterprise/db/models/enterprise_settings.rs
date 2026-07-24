@@ -1,4 +1,4 @@
-use defguard_common::db::models::Settings;
+use defguard_common::db::{Id, models::Settings};
 use sqlx::{PgExecutor, Type, query, query_as};
 use struct_patch::Patch;
 
@@ -17,6 +17,33 @@ pub struct EnterpriseSettings {
     pub display_download_step: bool,
     /// If true, the password reset option is displayed on the Edge home page.
     pub display_password_reset: bool,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct GroupClientTrafficPolicies {
+    pub none: Vec<Id>,
+    pub disable_all_traffic: Vec<Id>,
+    pub force_all_traffic: Vec<Id>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct EnterpriseSettingsInfo {
+    #[serde(flatten)]
+    pub settings: EnterpriseSettings,
+    pub group_client_traffic_policies: GroupClientTrafficPolicies,
+}
+
+impl EnterpriseSettingsInfo {
+    #[must_use]
+    pub fn new(
+        settings: EnterpriseSettings,
+        group_client_traffic_policies: GroupClientTrafficPolicies,
+    ) -> Self {
+        Self {
+            settings,
+            group_client_traffic_policies,
+        }
+    }
 }
 
 // We want to be conscious of what the defaults are here

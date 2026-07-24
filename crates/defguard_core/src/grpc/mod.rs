@@ -167,6 +167,7 @@ pub struct InstanceInfo {
 }
 
 #[derive(Debug, thiserror::Error)]
+/// Errors that can occur while building client instance information.
 pub enum InstanceInfoBuildError {
     #[error("failed to load enterprise settings: {0}")]
     Database(#[from] sqlx::Error),
@@ -175,6 +176,7 @@ pub enum InstanceInfoBuildError {
 }
 
 impl InstanceInfo {
+    /// Builds client instance information with the effective user traffic policy.
     pub async fn build(
         pool: &PgPool,
         settings: &Settings,
