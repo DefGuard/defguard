@@ -69,6 +69,7 @@ export const SettingsClientPage = () => {
 const formSchema = z.object({
   admin_device_management: z.boolean(),
   only_client_activation: z.boolean(),
+  disable_tunnels: z.boolean(),
   client_traffic_policy: z.enum(ClientTrafficPolicy),
 });
 
@@ -97,12 +98,14 @@ const Content = () => {
     return {
       admin_device_management: settings.admin_device_management,
       only_client_activation: settings.only_client_activation,
+      disable_tunnels: settings.disable_tunnels,
       client_traffic_policy: settings.client_traffic_policy,
     };
   }, [
     settings.admin_device_management,
     settings.client_traffic_policy,
     settings.only_client_activation,
+    settings.disable_tunnels,
   ]);
 
   const form = useAppForm({
@@ -159,6 +162,16 @@ const Content = () => {
                   variant="toggle"
                   title={m.settings_client_wireguard_configuration_title()}
                   content={m.settings_client_wireguard_configuration_content()}
+                />
+              )}
+            </form.AppField>
+            <form.AppField name="disable_tunnels">
+              {(field) => (
+                <field.FormInteractiveBlock
+                  disabled={noLicense}
+                  variant="toggle"
+                  title={m.settings_client_disable_tunnels_title()}
+                  content={m.settings_client_disable_tunnels_content()}
                 />
               )}
             </form.AppField>

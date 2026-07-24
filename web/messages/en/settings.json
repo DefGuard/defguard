@@ -317,6 +317,8 @@
   "settings_client_device_management_content": "When this option is on, only Admins can manage devices in user profiles.",
   "settings_client_wireguard_configuration_title": "WireGuard configuration for users",
   "settings_client_wireguard_configuration_content": "When this option is on, users can't view or download manual WireGuard configurations. Only Defguard desktop client setup will be available.",
+  "settings_client_disable_tunnels_title": "Disable WireGuard tunnels in client",
+  "settings_client_disable_tunnels_content": "When this option is on, users can't access or create manual WireGuard tunnels in the client. Existing tunnels are hidden across all configured instances.",
   "settings_client_section_traffic_policy_title": "Client traffic policy",
   "settings_client_traffic_policy_description_title": "Client traffic rules",
   "settings_client_traffic_policy_description": "Specify the conditions that determine how traffic should behave in the application.",

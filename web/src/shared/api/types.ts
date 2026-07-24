@@ -956,6 +956,7 @@ export interface SettingsEnterprise {
   only_client_activation: boolean;
   display_download_step: boolean;
   display_password_reset: boolean;
+  disable_tunnels: boolean;
 }
 
 export type ApiDevicePostureOsRule =
