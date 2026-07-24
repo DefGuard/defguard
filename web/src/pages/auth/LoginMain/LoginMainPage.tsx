@@ -43,6 +43,8 @@ export const LoginMainPage = () => {
   const navigate = useNavigate({ from: '/auth/login' });
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
+  // authError arrives via URL search param (redirect from external IdP after OpenID/Entra failure);
+  // consume it into local state then strip from URL so refresh/back-nav doesn't re-show stale error.
   useEffect(() => {
     if (!isPresent(authError)) return;
     setAuthErrorMessage(
