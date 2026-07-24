@@ -35,7 +35,10 @@ export const AddDeviceModalStartStep = () => {
 
   if (!user) return null;
 
-  const showManualSetup = user.has_non_mfa_location_access && !hideManualConfiguration;
+  const showManualSetup =
+    user.has_non_mfa_location_access &&
+    user.has_non_posture_location_access &&
+    !hideManualConfiguration;
 
   return (
     <div id="add-device-start-step">
