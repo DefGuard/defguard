@@ -8,6 +8,8 @@ import {
 } from '../../../shared/components/ContextualHelp';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
+import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
+import { SelectMultiple } from '../../../shared/components/SelectMultiple/SelectMultiple';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
@@ -18,6 +20,7 @@ import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getEnterpriseSettingsQueryOptions,
+  getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
 } from '../../../shared/query';
 import './style.scss';
@@ -71,25 +74,58 @@ const formSchema = z.object({
   admin_device_management: z.boolean(),
   only_client_activation: z.boolean(),
   client_traffic_policy: z.enum(ClientTrafficPolicy),
+  group_client_traffic_policies: z.object({
+    none: z.array(z.number()),
+    disable_all_traffic: z.array(z.number()),
+    force_all_traffic: z.array(z.number()),
+  }),
 });
 
 type FormFields = z.infer<typeof formSchema>;
+
+const emptyGroupClientTrafficPolicies = {
+  none: [],
+  disable_all_traffic: [],
+  force_all_traffic: [],
+};
 
 type GroupPolicyRowProps = {
   content: string;
   title: string;
   icon: IconKindValue;
+  options: SelectionOption<number>[];
+  selected: number[];
+  onSelectionChange: (value: number[]) => void;
 };
 
-const GroupPolicyRow = ({ content, title, icon }: GroupPolicyRowProps) => (
+const getSelectedGroupsCounterText = (count: number) => {
+  if (count === 1) return m.location_access_selected_group_count_one({ count });
+  return m.location_access_selected_group_count_other({ count });
+};
+
+const GroupPolicyRow = ({
+  content,
+  title,
+  icon,
+  onSelectionChange,
+  options,
+  selected,
+}: GroupPolicyRowProps) => (
   <div className="group-policy-row">
     <Icon icon={icon} size={20} staticColor={ThemeVariable.FgMuted} />
     <div className="group-policy-row-content">
       <p className="group-policy-title">{title}</p>
       <p className="group-policy-content">{content}</p>
-      <button className="select-multiple-edit" type="button">
-        {m.settings_client_traffic_policy_edit_groups()}
-      </button>
+      <SelectMultiple
+        counterText={getSelectedGroupsCounterText}
+        editText={m.settings_client_traffic_policy_edit_groups()}
+        modalTitle={m.settings_client_traffic_policy_edit_groups()}
+        onSelectionChange={onSelectionChange}
+        onToggleChange={() => {}}
+        options={options}
+        selected={new Set(selected)}
+        toggleValue={false}
+      />
     </div>
   </div>
 );
@@ -97,6 +133,7 @@ const GroupPolicyRow = ({ content, title, icon }: GroupPolicyRowProps) => (
 const Content = () => {
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getEnterpriseSettingsQueryOptions);
+  const { data: groups } = useSuspenseQuery(getGroupsInfoQueryOptions);
 
   const noLicense = !isPresent(licenseInfo);
 
@@ -118,12 +155,20 @@ const Content = () => {
       admin_device_management: settings.admin_device_management,
       only_client_activation: settings.only_client_activation,
       client_traffic_policy: settings.client_traffic_policy,
+      group_client_traffic_policies:
+        settings.group_client_traffic_policies ?? emptyGroupClientTrafficPolicies,
     };
   }, [
     settings.admin_device_management,
     settings.client_traffic_policy,
+    settings.group_client_traffic_policies,
     settings.only_client_activation,
   ]);
+
+  const groupOptions = groups.map<SelectionOption<number>>((group) => ({
+    id: group.id,
+    label: group.name,
+  }));
 
   const form = useAppForm({
     defaultValues,
@@ -231,21 +276,53 @@ const Content = () => {
             <p className="group-policy-description">
               {m.settings_client_traffic_policy_group_description()}
             </p>
-            <GroupPolicyRow
-              content={m.settings_client_traffic_policy_group_none_content()}
-              title={m.settings_client_traffic_policy_group_none_title()}
-              icon="online"
-            />
-            <GroupPolicyRow
-              content={m.settings_client_traffic_policy_group_disable_all_content()}
-              title={m.settings_client_traffic_policy_group_disable_all_title()}
-              icon="online"
-            />
-            <GroupPolicyRow
-              content={m.settings_client_traffic_policy_group_force_all_content()}
-              title={m.settings_client_traffic_policy_group_force_all_title()}
-              icon="gateway"
-            />
+            <form.Subscribe
+              selector={(state) => state.values.group_client_traffic_policies}
+            >
+              {(policies) => (
+                <>
+                  <GroupPolicyRow
+                    content={m.settings_client_traffic_policy_group_none_content()}
+                    title={m.settings_client_traffic_policy_group_none_title()}
+                    icon="online"
+                    onSelectionChange={(none) =>
+                      form.setFieldValue('group_client_traffic_policies', {
+                        ...policies,
+                        none,
+                      })
+                    }
+                    options={groupOptions}
+                    selected={policies.none}
+                  />
+                  <GroupPolicyRow
+                    content={m.settings_client_traffic_policy_group_disable_all_content()}
+                    title={m.settings_client_traffic_policy_group_disable_all_title()}
+                    icon="online"
+                    onSelectionChange={(disable_all_traffic) =>
+                      form.setFieldValue('group_client_traffic_policies', {
+                        ...policies,
+                        disable_all_traffic,
+                      })
+                    }
+                    options={groupOptions}
+                    selected={policies.disable_all_traffic}
+                  />
+                  <GroupPolicyRow
+                    content={m.settings_client_traffic_policy_group_force_all_content()}
+                    title={m.settings_client_traffic_policy_group_force_all_title()}
+                    icon="gateway"
+                    onSelectionChange={(force_all_traffic) =>
+                      form.setFieldValue('group_client_traffic_policies', {
+                        ...policies,
+                        force_all_traffic,
+                      })
+                    }
+                    options={groupOptions}
+                    selected={policies.force_all_traffic}
+                  />
+                </>
+              )}
+            </form.Subscribe>
           </MarkedSection>
           <form.Subscribe
             selector={(s) => ({
