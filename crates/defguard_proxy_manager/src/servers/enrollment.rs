@@ -217,16 +217,12 @@ impl EnrollmentServer {
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
             let smtp_configured = settings.smtp_configured();
-            let instance_info = InstanceInfo::new(
-                settings,
-                &user.username,
-                &enterprise_settings,
-                openid_provider,
-            )
-            .map_err(|err| {
-                error!("Failed to create instance info: {err}");
-                Status::internal("unexpected error")
-            })?;
+            let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
+                .await
+                .map_err(|err| {
+                    error!("Failed to create instance info: {err}");
+                    Status::internal("unexpected error")
+                })?;
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -954,16 +950,12 @@ impl EnrollmentServer {
                 Status::internal(format!("unexpected error: {err}"))
             })?;
 
-        let instance_info = InstanceInfo::new(
-            settings,
-            &user.username,
-            &enterprise_settings,
-            openid_provider,
-        )
-        .map_err(|err| {
-            error!("Failed to create instance info: {err}");
-            Status::internal("unexpected error")
-        })?;
+        let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
+            .await
+            .map_err(|err| {
+                error!("Failed to create instance info: {err}");
+                Status::internal("unexpected error")
+            })?;
 
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),

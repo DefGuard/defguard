@@ -24,9 +24,7 @@ use tonic::Status;
 use super::InstanceInfo;
 use crate::{
     device_access::build_device_config,
-    enterprise::db::models::{
-        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
-    },
+    enterprise::db::models::openid_provider::OpenIdProvider,
     grpc::{client_version::ClientFeature, should_prevent_service_location_usage},
 };
 
@@ -45,11 +43,6 @@ pub async fn build_device_config_response(
 
     let networks = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
-        Status::internal(format!("unexpected error: {err}"))
-    })?;
-
-    let enterprise_settings = EnterpriseSettings::get(pool).await.map_err(|err| {
-        error!("Failed to get enterprise settings: {err}");
         Status::internal(format!("unexpected error: {err}"))
     })?;
 
@@ -231,16 +224,12 @@ pub async fn build_device_config_response(
         user.username, user.id, device.name, device.id
     );
 
-    let instance_info = InstanceInfo::new(
-        settings,
-        &user.username,
-        &enterprise_settings,
-        openid_provider,
-    )
-    .map_err(|err| {
-        error!("Failed to build instance info: {err}");
-        Status::internal(format!("unexpected error: {err}"))
-    })?;
+    let instance_info = InstanceInfo::build(pool, &settings, &user, openid_provider)
+        .await
+        .map_err(|err| {
+            error!("Failed to build instance info: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
 
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
