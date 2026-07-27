@@ -321,7 +321,7 @@ const Content = () => {
                   <GroupPolicyRow
                     canEdit={canUseTrafficPolicies}
                     content={m.settings_client_traffic_policy_group_none_content()}
-                    title={m.settings_client_traffic_policy_group_none_title()}
+                    title={m.groups_traffic_policy_none()}
                     icon="online"
                     onSelectionChange={(none) =>
                       form.setFieldValue('group_client_traffic_policies', {
@@ -339,7 +339,7 @@ const Content = () => {
                     canEdit={canUseTrafficPolicies}
                     content={m.settings_client_traffic_policy_group_disable_all_content()}
                     title={m.settings_client_traffic_policy_group_disable_all_title()}
-                    icon="online"
+                    icon="globe-denied"
                     onSelectionChange={(disable_all_traffic) =>
                       form.setFieldValue('group_client_traffic_policies', {
                         ...policies,
