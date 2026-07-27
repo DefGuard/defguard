@@ -10,3 +10,7 @@
   flex-flow: column;
   row-gap: var(--spacing-2xl);
 }
+
+#date-input-test .date-input {
+  max-width: 347px;
+}
