@@ -256,7 +256,7 @@ export const ActivityLogTable = ({
         />
         <DateInput
           placeholder={m.activity_log_date_range_placeholder()}
-          testId='date-input'
+          testId="date-input"
           labels={{
             start: m.activity_log_date_range_start(),
             end: m.activity_log_date_range_end(),
