@@ -1246,7 +1246,7 @@ pub async fn create_admin_user(pool: &PgPool, args: &CreateAdminArgs) -> Result<
                 )
             })?,
         Some(selector) => {
-            let group = resolve_group(pool, selector.name.as_deref(), selector.group_id).await?;
+            let group = resolve_group(pool, selector.group_name.as_deref(), selector.group_id).await?;
             if !group.is_admin {
                 return Err(anyhow!(
                     "Group '{}' is not a Defguard admin group.",
@@ -1292,6 +1292,7 @@ pub async fn change_user_password(
         .ok_or_else(|| anyhow!("User '{}' not found.", args.username))?;
     user.set_password(args.password.expose_secret());
     user.save(pool).await?;
+    user.logout_all_sessions(pool).await?;
 
     Ok(())
 }
@@ -1323,7 +1324,9 @@ async fn resolve_group(
             .await?
             .ok_or_else(|| anyhow!("Group with ID {id} does not exist."))
     } else {
-        Err(anyhow!("You must provide either --name or --group-id."))
+        Err(anyhow!(
+            "You must provide either --group-name or --group-id."
+        ))
     }
 }
 
@@ -1331,7 +1334,7 @@ pub async fn set_admin_group(
     pool: &PgPool,
     args: &SetAdminGroupArgs,
 ) -> Result<String, anyhow::Error> {
-    let group = resolve_group(pool, args.group.name.as_deref(), args.group.group_id).await?;
+    let group = resolve_group(pool, args.group.group_name.as_deref(), args.group.group_id).await?;
 
     if group.is_admin {
         return Err(anyhow!(
@@ -1365,7 +1368,7 @@ pub async fn add_user_to_group(
         .await?
         .ok_or_else(|| anyhow!("User '{}' not found.", args.username))?;
 
-    let group = resolve_group(pool, args.group.name.as_deref(), args.group.group_id).await?;
+    let group = resolve_group(pool, args.group.group_name.as_deref(), args.group.group_id).await?;
 
     if user.member_of(pool).await?.iter().any(|g| g.id == group.id) {
         return Err(anyhow!(
@@ -1536,7 +1539,7 @@ mod cli_command_tests {
                 username: "byname".to_owned(),
                 password: SecretString::from("pass123".to_owned()),
                 group: Some(GroupSelector {
-                    name: Some("admins".to_owned()),
+                    group_name: Some("admins".to_owned()),
                     group_id: None,
                 }),
             },
@@ -1562,7 +1565,7 @@ mod cli_command_tests {
                 username: "byid".to_owned(),
                 password: SecretString::from("pass123".to_owned()),
                 group: Some(GroupSelector {
-                    name: None,
+                    group_name: None,
                     group_id: Some(admin_group.id),
                 }),
             },
@@ -1596,7 +1599,7 @@ mod cli_command_tests {
                 username: "cliadmin".to_owned(),
                 password: SecretString::from("pass123".to_owned()),
                 group: Some(GroupSelector {
-                    name: Some("plain".to_owned()),
+                    group_name: Some("plain".to_owned()),
                     group_id: None,
                 }),
             },
@@ -1627,7 +1630,7 @@ mod cli_command_tests {
                     username: "cliadmin".to_owned(),
                     password: SecretString::from("pass123".to_owned()),
                     group: Some(GroupSelector {
-                        name: Some("ghost".to_owned()),
+                        group_name: Some("ghost".to_owned()),
                         group_id: None,
                     }),
                 },
@@ -1708,7 +1711,7 @@ mod cli_command_tests {
             &pool,
             &SetAdminGroupArgs {
                 group: GroupSelector {
-                    name: Some("ops".to_owned()),
+                    group_name: Some("ops".to_owned()),
                     group_id: None,
                 },
             },
@@ -1730,7 +1733,7 @@ mod cli_command_tests {
                 &pool,
                 &SetAdminGroupArgs {
                     group: GroupSelector {
-                        name: Some("ops".to_owned()),
+                        group_name: Some("ops".to_owned()),
                         group_id: None,
                     },
                 }
@@ -1745,7 +1748,7 @@ mod cli_command_tests {
             &pool,
             &SetAdminGroupArgs {
                 group: GroupSelector {
-                    name: None,
+                    group_name: None,
                     group_id: Some(other.id),
                 },
             },
@@ -1766,7 +1769,7 @@ mod cli_command_tests {
                 &pool,
                 &SetAdminGroupArgs {
                     group: GroupSelector {
-                        name: Some("ghost".to_owned()),
+                        group_name: Some("ghost".to_owned()),
                         group_id: None,
                     },
                 }
@@ -1798,7 +1801,7 @@ mod cli_command_tests {
             &AddUserToGroupArgs {
                 username: "carol".to_owned(),
                 group: GroupSelector {
-                    name: Some("team".to_owned()),
+                    group_name: Some("team".to_owned()),
                     group_id: None,
                 },
             },
@@ -1818,7 +1821,7 @@ mod cli_command_tests {
                 &AddUserToGroupArgs {
                     username: "carol".to_owned(),
                     group: GroupSelector {
-                        name: None,
+                        group_name: None,
                         group_id: Some(group.id),
                     },
                 },
@@ -1834,7 +1837,7 @@ mod cli_command_tests {
                 &AddUserToGroupArgs {
                     username: "ghost".to_owned(),
                     group: GroupSelector {
-                        name: Some("team".to_owned()),
+                        group_name: Some("team".to_owned()),
                         group_id: None,
                     },
                 },
