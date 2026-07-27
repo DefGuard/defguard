@@ -50,7 +50,7 @@ const breadcrumbs = [
 ];
 
 export const SettingsClientPage = () => {
-  const { data: license, isFetched } = useQuery(getLicenseInfoQueryOptions);
+  const { data: license } = useQuery(getLicenseInfoQueryOptions);
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
@@ -61,7 +61,11 @@ export const SettingsClientPage = () => {
           icon="user"
           title={m.settings_client_title()}
           subtitle={m.settings_client_subtitle()}
-          badgeProps={!isPresent(license) && isFetched ? businessBadgeProps : undefined}
+          badgeProps={
+            license !== undefined && !canUseBusinessFeature(license).result
+              ? businessBadgeProps
+              : undefined
+          }
         />
         <Suspense fallback={<Skeleton height={480} />}>
           <Content />
