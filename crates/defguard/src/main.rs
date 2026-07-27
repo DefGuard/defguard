@@ -204,8 +204,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 ManageCommand::DisableLdapIntegration => {
                     disable_ldap_integration(&pool).await?;
                     println!(
-                        "LDAP integration disabled. Restart Defguard for the change to take \
-                        effect on a running server."
+                        "LDAP integration disabled. Make sure your Defguard instance is offline \
+                        when running this command for the change to persist."
                     );
                 }
                 ManageCommand::DisableOidcDirectorySync => {

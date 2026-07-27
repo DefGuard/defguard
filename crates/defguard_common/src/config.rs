@@ -236,6 +236,7 @@ pub enum ManageCommand {
     #[command(about = "List all users.")]
     ListUsers,
     #[command(
+        arg_required_else_help = true,
         about = "Mark an existing group as a Defguard admin group, granting its members admin privileges."
     )]
     SetAdminGroup(SetAdminGroupArgs),
@@ -300,10 +301,10 @@ pub struct ChangePasswordArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-#[group(required = true, multiple = false)]
+#[group(required = false, multiple = false)]
 pub struct GroupSelector {
     #[arg(long)]
-    pub name: Option<String>,
+    pub group_name: Option<String>,
     #[arg(long)]
     pub group_id: Option<Id>,
 }
