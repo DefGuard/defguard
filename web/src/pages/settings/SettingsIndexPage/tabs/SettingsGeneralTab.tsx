@@ -11,6 +11,7 @@ import { SectionSelect } from '../../../../shared/defguard-ui/components/Section
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { getLicenseInfoQueryOptions } from '../../../../shared/query';
+import { canUseBusinessFeature } from '../../../../shared/utils/license';
 
 export const SettingsGeneralTab = () => {
   const navigate = useNavigate();
@@ -34,7 +35,11 @@ export const SettingsGeneralTab = () => {
         image="behavior"
         title={m.settings_breadcrumb_client_behavior()}
         content={m.settings_general_section_client_behavior_content()}
-        badgeProps={licenseInfo === null ? businessBadgeProps : undefined}
+        badgeProps={
+          licenseInfo !== undefined && !canUseBusinessFeature(licenseInfo).result
+            ? businessBadgeProps
+            : undefined
+        }
         onClick={() => {
           navigate({ to: '/settings/client' });
         }}

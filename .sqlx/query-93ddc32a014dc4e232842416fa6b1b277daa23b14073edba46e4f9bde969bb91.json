@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM group_client_traffic_policy",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "93ddc32a014dc4e232842416fa6b1b277daa23b14073edba46e4f9bde969bb91"
+}

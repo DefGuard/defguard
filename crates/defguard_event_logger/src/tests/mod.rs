@@ -23,7 +23,7 @@ use defguard_core::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
         device_posture::{DevicePosture, DevicePostureSnapshot},
-        enterprise_settings::EnterpriseSettings,
+        enterprise_settings::EnterpriseSettingsInfo,
         openid_provider::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
         },
@@ -852,8 +852,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "EnterpriseSettingsUpdated",
             message: api_message(ApiEventType::EnterpriseSettingsUpdated {
-                before: EnterpriseSettings::default(),
-                after: EnterpriseSettings::default(),
+                before: EnterpriseSettingsInfo::default(),
+                after: EnterpriseSettingsInfo::default(),
             }),
             event_type: EventType::EnterpriseSettingsUpdated,
             module: ActivityLogModule::Defguard,

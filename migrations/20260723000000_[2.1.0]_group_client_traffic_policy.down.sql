@@ -1,0 +1,1 @@
+DROP TABLE group_client_traffic_policy;

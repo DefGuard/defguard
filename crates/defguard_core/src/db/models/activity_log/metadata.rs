@@ -18,7 +18,7 @@ use crate::{
     enterprise::db::models::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
-        enterprise_settings::EnterpriseSettings,
+        enterprise_settings::EnterpriseSettingsInfo,
         openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
         snat::UserSnatBinding,
     },
@@ -357,8 +357,8 @@ pub struct SettingsUpdateMetadata {
 
 #[derive(Serialize)]
 pub struct EnterpriseSettingsUpdateMetadata {
-    pub before: EnterpriseSettings,
-    pub after: EnterpriseSettings,
+    pub before: EnterpriseSettingsInfo,
+    pub after: EnterpriseSettingsInfo,
 }
 
 #[derive(Serialize)]

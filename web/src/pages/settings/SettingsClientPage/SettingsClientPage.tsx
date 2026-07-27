@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ClientTrafficPolicy } from '../../../shared/api/types';
+import {
+  ClientTrafficPolicy,
+  type GroupClientTrafficPolicies,
+} from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
 import {
   ContextualHelpKey,
@@ -8,15 +11,19 @@ import {
 } from '../../../shared/components/ContextualHelp';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
+import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
+import { SelectMultiple } from '../../../shared/components/SelectMultiple/SelectMultiple';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Icon, type IconKindValue } from '../../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getEnterpriseSettingsQueryOptions,
+  getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
 } from '../../../shared/query';
 import './style.scss';
@@ -31,9 +38,7 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
-import { canUseBusinessFeature } from '../../../shared/utils/license';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 
 const breadcrumbs = [
   <Link to="/settings" search={{ tab: 'general' }} key={0}>
@@ -45,7 +50,7 @@ const breadcrumbs = [
 ];
 
 export const SettingsClientPage = () => {
-  const { data: license, isFetched } = useQuery(getLicenseInfoQueryOptions);
+  const { data: license } = useQuery(getLicenseInfoQueryOptions);
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
@@ -56,7 +61,11 @@ export const SettingsClientPage = () => {
           icon="user"
           title={m.settings_client_title()}
           subtitle={m.settings_client_subtitle()}
-          badgeProps={!isPresent(license) && isFetched ? businessBadgeProps : undefined}
+          badgeProps={
+            license !== undefined && !canUseBusinessFeature(license).result
+              ? businessBadgeProps
+              : undefined
+          }
         />
         <Suspense fallback={<Skeleton height={480} />}>
           <Content />
@@ -70,15 +79,102 @@ const formSchema = z.object({
   admin_device_management: z.boolean(),
   only_client_activation: z.boolean(),
   client_traffic_policy: z.enum(ClientTrafficPolicy),
+  group_client_traffic_policies: z.object({
+    none: z.array(z.number()),
+    disable_all_traffic: z.array(z.number()),
+    force_all_traffic: z.array(z.number()),
+  }),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
+type GroupPolicy = keyof GroupClientTrafficPolicies;
+
+const emptyGroupClientTrafficPolicies = {
+  none: [],
+  disable_all_traffic: [],
+  force_all_traffic: [],
+};
+
+type GroupPolicyRowProps = {
+  canEdit: boolean;
+  content: string;
+  title: string;
+  icon: IconKindValue;
+  options: SelectionOption<number>[];
+  selected: number[];
+  onSelectionChange: (value: number[]) => void;
+  onEditUnavailable: () => void;
+};
+
+const getSelectedGroupsCounterText = (count: number) => {
+  if (count === 1) return m.location_access_selected_group_count_one({ count });
+  return m.location_access_selected_group_count_other({ count });
+};
+
+const getAvailableGroupOptions = (
+  options: SelectionOption<number>[],
+  policy: GroupPolicy,
+  policies: GroupClientTrafficPolicies,
+) => {
+  const assignedToOtherPolicy = new Set(
+    Object.entries(policies)
+      .filter(([key]) => key !== policy)
+      .flatMap(([, groupIds]) => groupIds),
+  );
+
+  return options.filter((option) => !assignedToOtherPolicy.has(option.id));
+};
+
+const GroupPolicyRow = ({
+  content,
+  title,
+  icon,
+  canEdit,
+  onSelectionChange,
+  options,
+  selected,
+  onEditUnavailable,
+}: GroupPolicyRowProps) => (
+  <div className="group-policy-row">
+    <Icon icon={icon} size={20} staticColor={ThemeVariable.FgMuted} />
+    <div className="group-policy-row-content">
+      <p className="group-policy-title">{title}</p>
+      <p className="group-policy-content">{content}</p>
+      {canEdit ? (
+        <SelectMultiple
+          counterText={getSelectedGroupsCounterText}
+          editText={m.settings_client_traffic_policy_edit_groups()}
+          modalTitle={m.settings_client_traffic_policy_edit_groups()}
+          onSelectionChange={onSelectionChange}
+          onToggleChange={() => {}}
+          options={options}
+          selected={new Set(selected)}
+          toggleValue={false}
+        />
+      ) : (
+        <button
+          className="select-multiple-edit"
+          type="button"
+          onClick={onEditUnavailable}
+        >
+          {m.settings_client_traffic_policy_edit_groups()}
+        </button>
+      )}
+    </div>
+  </div>
+);
+
 const Content = () => {
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getEnterpriseSettingsQueryOptions);
+  const { data: groups } = useSuspenseQuery(getGroupsInfoQueryOptions);
 
   const noLicense = !isPresent(licenseInfo);
+  const canUseTrafficPolicies = canUseBusinessFeature(licenseInfo).result;
+  const groupClientTrafficPolicies = canUseTrafficPolicies
+    ? (settings.group_client_traffic_policies ?? emptyGroupClientTrafficPolicies)
+    : emptyGroupClientTrafficPolicies;
 
   const { mutateAsync: patchSettings } = useMutation({
     mutationFn: api.settings.patchEnterpriseSettings,
@@ -97,13 +193,23 @@ const Content = () => {
     return {
       admin_device_management: settings.admin_device_management,
       only_client_activation: settings.only_client_activation,
-      client_traffic_policy: settings.client_traffic_policy,
+      client_traffic_policy: canUseTrafficPolicies
+        ? settings.client_traffic_policy
+        : ClientTrafficPolicy.None,
+      group_client_traffic_policies: groupClientTrafficPolicies,
     };
   }, [
     settings.admin_device_management,
     settings.client_traffic_policy,
     settings.only_client_activation,
+    canUseTrafficPolicies,
+    groupClientTrafficPolicies,
   ]);
+
+  const groupOptions = groups.map<SelectionOption<number>>((group) => ({
+    id: group.id,
+    label: group.name,
+  }));
 
   const form = useAppForm({
     defaultValues,
@@ -113,17 +219,13 @@ const Content = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      if (!licenseInfo) return;
-      // only expire error is possible here
-      const { result } = canUseBusinessFeature(licenseInfo);
-      if (result) {
-        await patchSettings(value);
-        form.reset(value);
-      } else {
-        openModal(ModalName.LicenseExpired, {
-          licenseTier: licenseInfo?.tier,
-        });
+      const licenseCheck = canUseBusinessFeature(licenseInfo);
+      if (!licenseCheck.result) {
+        licenseActionCheck(licenseCheck, () => {});
+        return;
       }
+      await patchSettings(value);
+      form.reset(value);
     },
   });
 
@@ -174,7 +276,7 @@ const Content = () => {
             <form.AppField name="client_traffic_policy">
               {(field) => (
                 <field.FormInteractiveBlock
-                  disabled={noLicense}
+                  disabled={!canUseTrafficPolicies}
                   value={ClientTrafficPolicy.None}
                   variant="radio"
                   title={m.settings_client_traffic_policy_none_title()}
@@ -185,7 +287,7 @@ const Content = () => {
             <form.AppField name="client_traffic_policy">
               {(field) => (
                 <field.FormInteractiveBlock
-                  disabled={noLicense}
+                  disabled={!canUseTrafficPolicies}
                   value={ClientTrafficPolicy.DisableAllTraffic}
                   variant="radio"
                   title={m.settings_client_traffic_policy_disable_all_title()}
@@ -196,7 +298,7 @@ const Content = () => {
             <form.AppField name="client_traffic_policy">
               {(field) => (
                 <field.FormInteractiveBlock
-                  disabled={noLicense}
+                  disabled={!canUseTrafficPolicies}
                   value={ClientTrafficPolicy.ForceAllTraffic}
                   variant="radio"
                   title={m.settings_client_traffic_policy_force_all_title()}
@@ -204,6 +306,80 @@ const Content = () => {
                 />
               )}
             </form.AppField>
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="groups">
+            <h3>{m.settings_client_traffic_policy_group_title()}</h3>
+            <p className="group-policy-description">
+              {m.settings_client_traffic_policy_group_description()}
+            </p>
+            <form.Subscribe
+              selector={(state) => state.values.group_client_traffic_policies}
+            >
+              {(policies) => (
+                <>
+                  <GroupPolicyRow
+                    canEdit={canUseTrafficPolicies}
+                    content={m.settings_client_traffic_policy_group_none_content()}
+                    title={m.groups_traffic_policy_none()}
+                    icon="online"
+                    onSelectionChange={(none) =>
+                      form.setFieldValue('group_client_traffic_policies', {
+                        ...policies,
+                        none,
+                      })
+                    }
+                    options={getAvailableGroupOptions(groupOptions, 'none', policies)}
+                    selected={policies.none}
+                    onEditUnavailable={() =>
+                      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {})
+                    }
+                  />
+                  <GroupPolicyRow
+                    canEdit={canUseTrafficPolicies}
+                    content={m.settings_client_traffic_policy_group_disable_all_content()}
+                    title={m.settings_client_traffic_policy_group_disable_all_title()}
+                    icon="globe-denied"
+                    onSelectionChange={(disable_all_traffic) =>
+                      form.setFieldValue('group_client_traffic_policies', {
+                        ...policies,
+                        disable_all_traffic,
+                      })
+                    }
+                    options={getAvailableGroupOptions(
+                      groupOptions,
+                      'disable_all_traffic',
+                      policies,
+                    )}
+                    selected={policies.disable_all_traffic}
+                    onEditUnavailable={() =>
+                      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {})
+                    }
+                  />
+                  <GroupPolicyRow
+                    canEdit={canUseTrafficPolicies}
+                    content={m.settings_client_traffic_policy_group_force_all_content()}
+                    title={m.settings_client_traffic_policy_group_force_all_title()}
+                    icon="gateway"
+                    onSelectionChange={(force_all_traffic) =>
+                      form.setFieldValue('group_client_traffic_policies', {
+                        ...policies,
+                        force_all_traffic,
+                      })
+                    }
+                    options={getAvailableGroupOptions(
+                      groupOptions,
+                      'force_all_traffic',
+                      policies,
+                    )}
+                    selected={policies.force_all_traffic}
+                    onEditUnavailable={() =>
+                      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {})
+                    }
+                  />
+                </>
+              )}
+            </form.Subscribe>
           </MarkedSection>
           <form.Subscribe
             selector={(s) => ({
