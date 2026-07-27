@@ -791,6 +791,21 @@ async fn test_group_client_traffic_policies_are_saved_and_validated(
             .is_empty()
     );
 
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let settings: EnterpriseSettingsInfo = response.json().await;
+    assert_eq!(
+        settings.group_client_traffic_policies.none,
+        vec![allow_choice.id]
+    );
+    assert_eq!(
+        settings.group_client_traffic_policies.disable_all_traffic,
+        vec![disable.id]
+    );
+    set_cached_license(license);
+
     let response = client
         .patch("/api/v1/settings_enterprise")
         .json(&json!({"display_download_step": false}))

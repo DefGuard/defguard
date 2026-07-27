@@ -320,7 +320,7 @@
   "settings_client_section_traffic_policy_title": "Client traffic policy",
   "settings_client_traffic_policy_description_title": "Client traffic rules",
   "settings_client_traffic_policy_description": "Specify the conditions that determine how traffic should behave in the application.",
-  "settings_client_traffic_policy_none_title": "None",
+  "settings_client_traffic_policy_none_title": "No limitation",
   "settings_client_traffic_policy_none_content": "When this option is enabled, users will be able to select all routing options.",
   "settings_client_traffic_policy_disable_all_title": "Disable all traffic",
   "settings_client_traffic_policy_disable_all_content": "When this option is enabled, users will not be able to route all traffic through the VPN.",

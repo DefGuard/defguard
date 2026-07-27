@@ -38,9 +38,7 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
-import { canUseBusinessFeature } from '../../../shared/utils/license';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 
 const breadcrumbs = [
   <Link to="/settings" search={{ tab: 'general' }} key={0}>
@@ -95,12 +93,14 @@ const emptyGroupClientTrafficPolicies = {
 };
 
 type GroupPolicyRowProps = {
+  canEdit: boolean;
   content: string;
   title: string;
   icon: IconKindValue;
   options: SelectionOption<number>[];
   selected: number[];
   onSelectionChange: (value: number[]) => void;
+  onEditUnavailable: () => void;
 };
 
 const getSelectedGroupsCounterText = (count: number) => {
@@ -126,25 +126,37 @@ const GroupPolicyRow = ({
   content,
   title,
   icon,
+  canEdit,
   onSelectionChange,
   options,
   selected,
+  onEditUnavailable,
 }: GroupPolicyRowProps) => (
   <div className="group-policy-row">
     <Icon icon={icon} size={20} staticColor={ThemeVariable.FgMuted} />
     <div className="group-policy-row-content">
       <p className="group-policy-title">{title}</p>
       <p className="group-policy-content">{content}</p>
-      <SelectMultiple
-        counterText={getSelectedGroupsCounterText}
-        editText={m.settings_client_traffic_policy_edit_groups()}
-        modalTitle={m.settings_client_traffic_policy_edit_groups()}
-        onSelectionChange={onSelectionChange}
-        onToggleChange={() => {}}
-        options={options}
-        selected={new Set(selected)}
-        toggleValue={false}
-      />
+      {canEdit ? (
+        <SelectMultiple
+          counterText={getSelectedGroupsCounterText}
+          editText={m.settings_client_traffic_policy_edit_groups()}
+          modalTitle={m.settings_client_traffic_policy_edit_groups()}
+          onSelectionChange={onSelectionChange}
+          onToggleChange={() => {}}
+          options={options}
+          selected={new Set(selected)}
+          toggleValue={false}
+        />
+      ) : (
+        <button
+          className="select-multiple-edit"
+          type="button"
+          onClick={onEditUnavailable}
+        >
+          {m.settings_client_traffic_policy_edit_groups()}
+        </button>
+      )}
     </div>
   </div>
 );
@@ -155,6 +167,10 @@ const Content = () => {
   const { data: groups } = useSuspenseQuery(getGroupsInfoQueryOptions);
 
   const noLicense = !isPresent(licenseInfo);
+  const canUseTrafficPolicies = canUseBusinessFeature(licenseInfo).result;
+  const groupClientTrafficPolicies = canUseTrafficPolicies
+    ? (settings.group_client_traffic_policies ?? emptyGroupClientTrafficPolicies)
+    : emptyGroupClientTrafficPolicies;
 
   const { mutateAsync: patchSettings } = useMutation({
     mutationFn: api.settings.patchEnterpriseSettings,
@@ -173,15 +189,17 @@ const Content = () => {
     return {
       admin_device_management: settings.admin_device_management,
       only_client_activation: settings.only_client_activation,
-      client_traffic_policy: settings.client_traffic_policy,
-      group_client_traffic_policies:
-        settings.group_client_traffic_policies ?? emptyGroupClientTrafficPolicies,
+      client_traffic_policy: canUseTrafficPolicies
+        ? settings.client_traffic_policy
+        : ClientTrafficPolicy.None,
+      group_client_traffic_policies: groupClientTrafficPolicies,
     };
   }, [
     settings.admin_device_management,
     settings.client_traffic_policy,
-    settings.group_client_traffic_policies,
     settings.only_client_activation,
+    canUseTrafficPolicies,
+    groupClientTrafficPolicies,
   ]);
 
   const groupOptions = groups.map<SelectionOption<number>>((group) => ({
@@ -197,17 +215,13 @@ const Content = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      if (!licenseInfo) return;
-      // only expire error is possible here
-      const { result } = canUseBusinessFeature(licenseInfo);
-      if (result) {
-        await patchSettings(value);
-        form.reset(value);
-      } else {
-        openModal(ModalName.LicenseExpired, {
-          licenseTier: licenseInfo?.tier,
-        });
+      const licenseCheck = canUseBusinessFeature(licenseInfo);
+      if (!licenseCheck.result) {
+        licenseActionCheck(licenseCheck, () => {});
+        return;
       }
+      await patchSettings(value);
+      form.reset(value);
     },
   });
 
@@ -258,7 +272,7 @@ const Content = () => {
             <form.AppField name="client_traffic_policy">
               {(field) => (
                 <field.FormInteractiveBlock
-                  disabled={noLicense}
+                  disabled={!canUseTrafficPolicies}
                   value={ClientTrafficPolicy.None}
                   variant="radio"
                   title={m.settings_client_traffic_policy_none_title()}
@@ -269,7 +283,7 @@ const Content = () => {
             <form.AppField name="client_traffic_policy">
               {(field) => (
                 <field.FormInteractiveBlock
-                  disabled={noLicense}
+                  disabled={!canUseTrafficPolicies}
                   value={ClientTrafficPolicy.DisableAllTraffic}
                   variant="radio"
                   title={m.settings_client_traffic_policy_disable_all_title()}
@@ -280,7 +294,7 @@ const Content = () => {
             <form.AppField name="client_traffic_policy">
               {(field) => (
                 <field.FormInteractiveBlock
-                  disabled={noLicense}
+                  disabled={!canUseTrafficPolicies}
                   value={ClientTrafficPolicy.ForceAllTraffic}
                   variant="radio"
                   title={m.settings_client_traffic_policy_force_all_title()}
@@ -301,6 +315,7 @@ const Content = () => {
               {(policies) => (
                 <>
                   <GroupPolicyRow
+                    canEdit={canUseTrafficPolicies}
                     content={m.settings_client_traffic_policy_group_none_content()}
                     title={m.settings_client_traffic_policy_group_none_title()}
                     icon="online"
@@ -312,8 +327,12 @@ const Content = () => {
                     }
                     options={getAvailableGroupOptions(groupOptions, 'none', policies)}
                     selected={policies.none}
+                    onEditUnavailable={() =>
+                      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {})
+                    }
                   />
                   <GroupPolicyRow
+                    canEdit={canUseTrafficPolicies}
                     content={m.settings_client_traffic_policy_group_disable_all_content()}
                     title={m.settings_client_traffic_policy_group_disable_all_title()}
                     icon="online"
@@ -329,8 +348,12 @@ const Content = () => {
                       policies,
                     )}
                     selected={policies.disable_all_traffic}
+                    onEditUnavailable={() =>
+                      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {})
+                    }
                   />
                   <GroupPolicyRow
+                    canEdit={canUseTrafficPolicies}
                     content={m.settings_client_traffic_policy_group_force_all_content()}
                     title={m.settings_client_traffic_policy_group_force_all_title()}
                     icon="gateway"
@@ -346,6 +369,9 @@ const Content = () => {
                       policies,
                     )}
                     selected={policies.force_all_traffic}
+                    onEditUnavailable={() =>
+                      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {})
+                    }
                   />
                 </>
               )}

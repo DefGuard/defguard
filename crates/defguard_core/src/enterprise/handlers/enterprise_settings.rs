@@ -9,15 +9,12 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{
-        db::models::{
-            enterprise_settings::{
-                ClientTrafficPolicy, EnterpriseSettings, EnterpriseSettingsInfo,
-                EnterpriseSettingsPatch, GroupClientTrafficPolicies,
-            },
-            group_client_traffic_policy::GroupClientTrafficPolicy,
+    enterprise::db::models::{
+        enterprise_settings::{
+            ClientTrafficPolicy, EnterpriseSettings, EnterpriseSettingsInfo,
+            EnterpriseSettingsPatch, GroupClientTrafficPolicies,
         },
-        is_business_license_active,
+        group_client_traffic_policy::GroupClientTrafficPolicy,
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -88,11 +85,8 @@ async fn settings_info(
     pool: &PgPool,
     settings: EnterpriseSettings,
 ) -> Result<EnterpriseSettingsInfo, sqlx::Error> {
-    let group_policies = if is_business_license_active() {
-        GroupClientTrafficPolicy::grouped(GroupClientTrafficPolicy::all(pool).await?)
-    } else {
-        GroupClientTrafficPolicies::default()
-    };
+    let group_policies =
+        GroupClientTrafficPolicy::grouped(GroupClientTrafficPolicy::all(pool).await?);
     Ok(EnterpriseSettingsInfo::new(settings, group_policies))
 }
 
