@@ -488,6 +488,12 @@ pub enum GatewayConnectionEvent {
     },
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProxyConnectionEvent {
+    Connected { proxy_id: Id, proxy_name: String },
+    Disconnected { proxy_id: Id, proxy_name: String },
+}
+
 #[derive(Debug, PartialEq, EnumCount)]
 #[allow(clippy::large_enum_variant)]
 pub enum LdapSyncEventType {

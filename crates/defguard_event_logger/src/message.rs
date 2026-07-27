@@ -8,7 +8,7 @@ use defguard_common::db::{
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
     BidiStreamEventType, DesktopClientMfaEvent, DirectorySyncEvent, DirectorySyncEventType,
-    GatewayConnectionEvent, GrpcRequestContext, LdapSyncEventType,
+    GatewayConnectionEvent, GrpcRequestContext, LdapSyncEventType, ProxyConnectionEvent,
 };
 use defguard_session_manager::events::{
     SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType,
@@ -35,6 +35,7 @@ pub enum Event {
         event: LdapSyncEventType,
     },
     GatewayConnection(GatewayConnectionEvent),
+    ProxyConnection(ProxyConnectionEvent),
     OidcDirectorySync {
         /// Name of the directory provider the change came from (e.g. `Google`,
         /// `Microsoft`, `Okta`, `JumpCloud`). Included in the resulting activity
@@ -132,6 +133,14 @@ impl EventLoggerMessage {
         Self {
             context: EventContext::system_gateway(),
             event: Event::GatewayConnection(event),
+        }
+    }
+
+    #[must_use]
+    pub fn from_proxy_connection_event(event: ProxyConnectionEvent) -> Self {
+        Self {
+            context: EventContext::system_proxy(),
+            event: Event::ProxyConnection(event),
         }
     }
 
@@ -249,6 +258,18 @@ impl EventContext {
             timestamp: chrono::Utc::now().naive_utc(),
             user_id: None,
             username: "system:gateway".to_owned(),
+            location: None,
+            ip: None,
+            device: "system".to_owned(),
+        }
+    }
+
+    #[must_use]
+    pub fn system_proxy() -> Self {
+        Self {
+            timestamp: chrono::Utc::now().naive_utc(),
+            user_id: None,
+            username: "system:proxy".to_owned(),
             location: None,
             ip: None,
             device: "system".to_owned(),

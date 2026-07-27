@@ -134,6 +134,8 @@ pub enum EventType {
     GatewayDeleted,
     GatewayConnected,
     GatewayDisconnected,
+    ProxyConnected,
+    ProxyDisconnected,
     // Device posture management
     DevicePostureCreated,
     DevicePostureUpdated,

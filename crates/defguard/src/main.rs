@@ -293,6 +293,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (ldap_tx, ldap_rx) = unbounded_channel();
     let (dirsync_tx, dirsync_rx) = unbounded_channel();
     let (gateway_connection_event_tx, gateway_connection_event_rx) = unbounded_channel();
+    let (proxy_connection_event_tx, proxy_connection_event_rx) = unbounded_channel();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -340,7 +341,8 @@ async fn main() -> Result<(), anyhow::Error> {
             ldap_tx.clone(),
             dirsync_tx.clone(),
             api_event_tx.clone(),
-        ),
+        )
+        .with_connection_events(proxy_connection_event_tx),
         Arc::clone(&incompatible_components),
         proxy_control_rx,
         proxy_secret_key,
@@ -402,6 +404,7 @@ async fn main() -> Result<(), anyhow::Error> {
             ldap_rx,
             dirsync_rx,
             gateway_connection_event_rx,
+            proxy_connection_event_rx,
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_tx.clone()
         ) => bail!("Activity log event logger returned early: {res:?}"),

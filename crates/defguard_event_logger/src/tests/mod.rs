@@ -33,7 +33,7 @@ use defguard_core::{
         ApiEventType, BidiRequestContext, BidiStreamEvent, BidiStreamEventType,
         DesktopClientMfaEvent, DirectorySyncEvent, DirectorySyncEventType,
         EnrollmentEvent as CoreEnrollmentEvent, GatewayConnectionEvent, LdapSyncEventType,
-        PasswordResetEvent,
+        PasswordResetEvent, ProxyConnectionEvent,
     },
 };
 use defguard_session_manager::events::SessionManagerEventType;
@@ -1742,6 +1742,42 @@ fn test_gateway_connection_events_map_to_system_activity_events() {
         let message = EventLoggerMessage::from_gateway_connection_event(event);
         assert_eq!(message.context.user_id, None);
         assert_eq!(message.context.username, "system:gateway");
+
+        let result = map_to_activity_log_event(message);
+        assert_eq!(result.event, expected_type);
+        assert_eq!(result.module, ActivityLogModule::Defguard);
+        assert!(
+            result
+                .description
+                .as_deref()
+                .is_some_and(|value| value.contains(description))
+        );
+    }
+}
+
+#[test]
+fn test_proxy_connection_events_map_to_system_activity_events() {
+    for (event, expected_type, description) in [
+        (
+            ProxyConnectionEvent::Connected {
+                proxy_id: 7,
+                proxy_name: "proxy-a".to_owned(),
+            },
+            EventType::ProxyConnected,
+            "connected",
+        ),
+        (
+            ProxyConnectionEvent::Disconnected {
+                proxy_id: 7,
+                proxy_name: "proxy-a".to_owned(),
+            },
+            EventType::ProxyDisconnected,
+            "disconnected",
+        ),
+    ] {
+        let message = EventLoggerMessage::from_proxy_connection_event(event);
+        assert_eq!(message.context.user_id, None);
+        assert_eq!(message.context.username, "system:proxy");
 
         let result = map_to_activity_log_event(message);
         assert_eq!(result.event, expected_type);
