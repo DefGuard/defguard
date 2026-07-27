@@ -1,0 +1,29 @@
+{
+  "kind": "admin#directory#users",
+  "etag": "\"O2K9aXtIm5oBnlpiYgtHF0O9rBs/AbCdEf456\"",
+  "users": [
+    {
+      "kind": "admin#directory#user",
+      "id": "108234567890123456790",
+      "etag": "\"O2K9aXtIm5oBnlpiYgtHF0O9rBs/XyZ222\"",
+      "primaryEmail": "john.smith@example.com",
+      "name": {
+        "givenName": "John",
+        "familyName": "Smith",
+        "fullName": "John Smith"
+      },
+      "isAdmin": false,
+      "isDelegatedAdmin": false,
+      "creationTime": "2020-11-19T08:44:02.000Z",
+      "agreedToTerms": true,
+      "suspended": true,
+      "archived": false,
+      "changePasswordAtNextLogin": false,
+      "ipWhitelisted": false,
+      "emails": [{ "address": "john.smith@example.com", "primary": true }],
+      "customerId": "C01abc234",
+      "orgUnitPath": "/Suspended Users",
+      "isMailboxSetup": true
+    }
+  ]
+}

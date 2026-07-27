@@ -1,0 +1,22 @@
+{
+  "kind": "admin#directory#members",
+  "etag": "\"O2K9aXtIm5oBnlpiYgtHF0O9rBs/AbCdEfMembers\"",
+  "members": [
+    {
+      "kind": "admin#directory#member",
+      "etag": "\"XyZ555\"",
+      "id": "111987654321098765432",
+      "email": "jane.doe@example.com",
+      "role": "MEMBER",
+      "type": "USER",
+      "status": "ACTIVE"
+    },
+    {
+      "kind": "admin#directory#member",
+      "etag": "\"XyZ666\"",
+      "email": "external.contact@partner.com",
+      "role": "MEMBER",
+      "type": "EXTERNAL"
+    }
+  ]
+}

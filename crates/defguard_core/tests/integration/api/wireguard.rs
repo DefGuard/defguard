@@ -34,7 +34,8 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-    authenticate_admin, exceed_enterprise_limits, make_network, make_test_client, setup_pool,
+    authenticate_admin, exceed_enterprise_limits, fetch_user_details, make_network,
+    make_test_client, setup_pool,
 };
 
 const INVALID_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 119;
@@ -1449,6 +1450,66 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
         StatusCode::NOT_FOUND,
         "non-admin user should not access another user's device config"
     );
+}
+
+/// Regression test: an admin manually adding a device for a disabled user used to
+/// silently succeed with an empty config list, since the device was never actually
+/// allowed to join any network. Disabled users' devices are also stripped from every
+/// network on the next sync anyway (see `process_device_access_changes`), so letting
+/// an admin add one would only work until that sync runs.
+#[sqlx::test]
+async fn test_add_device_for_disabled_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // Network open to all users, so the only thing blocking the device is `is_active`.
+    client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+
+    // Disable hpotter.
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    user_details.user.is_active = false;
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Admin tries to add a device for the disabled user manually. Should be rejected
+    // outright, not silently created with no usable config.
+    let device_payload = json!({
+        "name": "disabled-user-device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
 /// MFA locations (internal/external) must be excluded from the user device config endpoint.

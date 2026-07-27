@@ -1,0 +1,8 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users",
+  "value": [
+    {
+      "id": "87654321-1234-5678-1234-567812345678"
+    }
+  ]
+}

@@ -30,6 +30,7 @@ export const googleProviderSyncSchema = baseExternalProviderSyncSchema.extend({
     .file(m.form_error_required())
     .mime('application/json', m.form_error_file_format())
     .nullable(),
+  directory_sync_user_groups: z.string().trim().nullable(),
 });
 
 export const microsoftProviderSyncSchema = baseExternalProviderSyncSchema.extend({
@@ -47,6 +48,7 @@ export const oktaProviderSyncSchema = baseExternalProviderSyncSchema.extend({
     .string(m.form_error_required())
     .trim()
     .min(1, m.form_error_required()),
+  directory_sync_user_groups: z.string().trim().nullable(),
 });
 
 export const jumpcloudProviderSyncSchema = baseExternalProviderSyncSchema.extend({
@@ -54,6 +56,7 @@ export const jumpcloudProviderSyncSchema = baseExternalProviderSyncSchema.extend
     .string(m.form_error_required())
     .trim()
     .min(1, m.form_error_required()),
+  directory_sync_user_groups: z.string().trim().nullable(),
 });
 
 const fileSchema = z.object({

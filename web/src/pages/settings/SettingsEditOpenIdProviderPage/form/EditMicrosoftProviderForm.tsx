@@ -9,7 +9,7 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import { joinCsv } from '../../../../shared/utils/csv';
+import { joinCsv, toCsvArray } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -82,18 +82,10 @@ export const EditMicrosoftProviderForm = ({
       directory_sync_enabled: provider.directory_sync_enabled,
       prefetch_users: provider.prefetch_users ?? false,
       directory_sync_group_match: joinCsv(
-        Array.isArray(provider.directory_sync_group_match)
-          ? provider.directory_sync_group_match
-          : provider.directory_sync_group_match
-            ? [provider.directory_sync_group_match]
-            : null,
+        toCsvArray(provider.directory_sync_group_match),
       ),
       directory_sync_user_groups: joinCsv(
-        Array.isArray(provider.directory_sync_user_groups)
-          ? provider.directory_sync_user_groups
-          : provider.directory_sync_user_groups
-            ? [provider.directory_sync_user_groups]
-            : null,
+        toCsvArray(provider.directory_sync_user_groups),
       ),
       microsoftTenantId: tenantId,
     };

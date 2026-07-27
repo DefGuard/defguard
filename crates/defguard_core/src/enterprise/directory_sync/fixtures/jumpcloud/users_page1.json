@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "id": "user123",
+      "email": "jane.doe@example.com",
+      "firstname": "Jane",
+      "lastname": "Doe",
+      "activated": true,
+      "account_locked": false,
+      "state": "ACTIVATED",
+      "created": "2021-03-04T14:02:11.000Z"
+    }
+  ],
+  "totalCount": 2
+}

@@ -194,6 +194,45 @@ async fn test_activate_user_happy_path(_: PgPoolOptions, options: PgConnectOptio
     context.finish().await.expect_server_finished().await;
 }
 
+/// Activating without a phone number in the request must not clear an
+/// existing phone number set on the user before enrollment.
+#[sqlx::test]
+async fn test_activate_user_without_phone_keeps_existing_phone(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mut user = create_user(&context.pool).await;
+    user.phone = Some("123123123".to_owned());
+    user.save(&context.pool)
+        .await
+        .expect("failed to save user phone number");
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!("expected Empty response"),
+    }
+
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert_eq!(
+        updated.phone,
+        Some("123123123".to_owned()),
+        "existing phone number must be preserved when activation request omits it"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
 /// A weak password (too short, missing required character classes) must be
 /// rejected with `InvalidArgument`.
 #[sqlx::test]

@@ -309,6 +309,7 @@ export interface User {
   authorized_apps?: OAuth2AuthorizedApps[];
   devices: Device[];
   has_non_mfa_location_access: boolean;
+  has_non_posture_location_access: boolean;
 }
 
 export interface LoginRequest {
@@ -424,6 +425,12 @@ export interface ApiError {
   message?: string;
   code?: WebErrorCode;
 }
+
+export const ApiResponseCode = {
+  LicenseReactivated: 'license_reactivated',
+} as const;
+
+export type ApiResponseCode = (typeof ApiResponseCode)[keyof typeof ApiResponseCode];
 
 export interface AppInfoExceededLimits {
   user: boolean;

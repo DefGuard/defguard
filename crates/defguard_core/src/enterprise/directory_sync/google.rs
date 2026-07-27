@@ -56,6 +56,9 @@ pub(crate) struct GoogleDirectorySync {
     access_token: Option<String>,
     token_expiry: Option<DateTime<Utc>>,
     admin_email: String,
+    access_token_url: String,
+    groups_url: String,
+    all_users_url: String,
 }
 
 /// Google Directory API responses
@@ -143,7 +146,19 @@ impl GoogleDirectorySync {
             access_token: None,
             token_expiry: None,
             admin_email: admin_email.into(),
+            access_token_url: ACCESS_TOKEN_URL.into(),
+            groups_url: GROUPS_URL.into(),
+            all_users_url: ALL_USERS_URL.into(),
         }
+    }
+
+    /// Overrides the Google API URLs so tests can point them at a mock server.
+    #[cfg(test)]
+    fn with_urls(mut self, access_token_url: &str, groups_url: &str, all_users_url: &str) -> Self {
+        self.access_token_url = access_token_url.into();
+        self.groups_url = groups_url.into();
+        self.all_users_url = all_users_url.into();
+        self
     }
 
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
@@ -166,7 +181,7 @@ impl GoogleDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let response = make_get_request(
-            ALL_USERS_URL,
+            &self.all_users_url,
             access_token,
             Some(&[
                 ("customer", "my_customer"),
@@ -196,7 +211,7 @@ impl GoogleDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
-                GROUPS_URL,
+                &self.groups_url,
                 access_token,
                 Some(
                     &query
@@ -248,7 +263,7 @@ impl GoogleDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
-                GROUPS_URL,
+                &self.groups_url,
                 access_token,
                 Some(
                     &query
@@ -295,10 +310,7 @@ impl GoogleDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
 
-        let url = format!(
-            "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
-            group.id
-        );
+        let url = format!("{}/{}/members", self.groups_url, group.id);
         let mut combined_response = GroupMembersResponse::default();
         let mut query = HashMap::from([
             ("includeDerivedMembership".to_owned(), "true".to_owned()),
@@ -356,7 +368,7 @@ impl GoogleDirectorySync {
         let token = self.build_token()?;
         let client = reqwest::Client::new();
         let response = client
-            .post(ACCESS_TOKEN_URL)
+            .post(&self.access_token_url)
             .query(&[("grant_type", GRANT_TYPE), ("assertion", &token)])
             .header(reqwest::header::CONTENT_LENGTH, 0)
             .timeout(REQUEST_TIMEOUT)
@@ -382,7 +394,7 @@ impl GoogleDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
-                ALL_USERS_URL,
+                &self.all_users_url,
                 access_token,
                 Some(
                     &query
@@ -479,84 +491,37 @@ impl DirectorySync for GoogleDirectorySync {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+const TEST_RSA_PRIVATE_KEY: &str = include_str!("fixtures/google/test_private_key.pem");
 
-    #[tokio::test]
-    async fn test_token() {
-        let mut dirsync = GoogleDirectorySync::new("private_key", "client_email", "admin_email");
-
-        // no token
-        assert!(dirsync.is_token_expired());
-
-        // expired token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
-        assert!(dirsync.is_token_expired());
-
-        // valid token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
-        assert!(!dirsync.is_token_expired());
-    }
-
-    #[tokio::test]
-    async fn test_group_members_parse() {
-        let response = GroupMembersResponse {
-            members: Some(vec![
-                GroupMember {
-                    email: "email@email.com".into(),
-                    status: Some("active".into()),
-                },
-                GroupMember {
-                    email: "email2@email.com".into(),
-                    status: Some("active".into()),
-                },
-                GroupMember {
-                    email: "email3@email.com".into(),
-                    status: Some("suspended".into()),
-                },
-                GroupMember {
-                    email: "email4@email.com".into(),
-                    status: None,
-                },
-            ]),
-            page_token: None,
-        };
-
-        let members: Vec<String> = response.into();
-        assert_eq!(members.len(), 3);
-        assert!(members.contains(&"email@email.com".into()));
-        assert!(members.contains(&"email2@email.com".into()));
-        assert!(members.contains(&"email3@email.com".into()));
-    }
-
-    #[tokio::test]
-    async fn test_all_users_parse() {
-        let response = UsersResponse {
-            users: vec![
-                User {
-                    primary_email: "email@email.com".into(),
-                    suspended: false,
-                },
-                User {
-                    primary_email: "email2@email.com".into(),
-                    suspended: true,
-                },
-                User {
-                    primary_email: "email3@email.com".into(),
-                    suspended: false,
-                },
-            ],
-            page_token: None,
-        };
-
-        let users: Vec<DirectoryUser> = response.into();
-        assert_eq!(users.len(), 3);
-        let disabled_user = users
-            .iter()
-            .find(|u| u.email == "email2@email.com")
-            .unwrap();
-        assert!(!disabled_user.active);
-    }
+#[cfg(test)]
+pub(crate) fn response_from_fixture(name: &str) -> wiremock::ResponseTemplate {
+    let body = match name {
+        "token_response.json" => include_str!("fixtures/google/token_response.json"),
+        "users_page1.json" => include_str!("fixtures/google/users_page1.json"),
+        "users_page2.json" => include_str!("fixtures/google/users_page2.json"),
+        "users_empty.json" => include_str!("fixtures/google/users_empty.json"),
+        "groups_response.json" => include_str!("fixtures/google/groups_response.json"),
+        "members_response.json" => include_str!("fixtures/google/members_response.json"),
+        other => panic!("unknown fixture: {other}"),
+    };
+    wiremock::ResponseTemplate::new(200)
+        .insert_header("content-type", "application/json")
+        .set_body_string(body)
 }
+
+#[cfg(test)]
+pub(crate) fn dirsync_with_mock_server(mock_server: &wiremock::MockServer) -> GoogleDirectorySync {
+    let mut dirsync = GoogleDirectorySync::new("private_key", "client_email", "admin_email")
+        .with_urls(
+            &format!("{}/token", mock_server.uri()),
+            &format!("{}/groups", mock_server.uri()),
+            &format!("{}/users", mock_server.uri()),
+        );
+    dirsync.access_token = Some("test_token".into());
+    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync
+}
+
+#[cfg(test)]
+#[path = "provider_tests/google.rs"]
+mod tests;

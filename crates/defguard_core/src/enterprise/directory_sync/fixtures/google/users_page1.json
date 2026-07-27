@@ -1,0 +1,32 @@
+{
+  "kind": "admin#directory#users",
+  "etag": "\"O2K9aXtIm5oBnlpiYgtHF0O9rBs/AbCdEf123\"",
+  "users": [
+    {
+      "kind": "admin#directory#user",
+      "id": "108234567890123456789",
+      "etag": "\"O2K9aXtIm5oBnlpiYgtHF0O9rBs/XyZ111\"",
+      "primaryEmail": "jane.doe@example.com",
+      "name": {
+        "givenName": "Jane",
+        "familyName": "Doe",
+        "fullName": "Jane Doe"
+      },
+      "isAdmin": false,
+      "isDelegatedAdmin": false,
+      "lastLoginTime": "2026-07-18T09:12:33.000Z",
+      "creationTime": "2021-03-04T14:02:11.000Z",
+      "agreedToTerms": true,
+      "suspended": false,
+      "archived": false,
+      "changePasswordAtNextLogin": false,
+      "ipWhitelisted": false,
+      "emails": [{ "address": "jane.doe@example.com", "primary": true }],
+      "nonEditableAliases": ["jane.doe@example.com.test-google-a.com"],
+      "customerId": "C01abc234",
+      "orgUnitPath": "/Engineering",
+      "isMailboxSetup": true
+    }
+  ],
+  "nextPageToken": "EAIaBhACGgtGkAAfirstpage"
+}

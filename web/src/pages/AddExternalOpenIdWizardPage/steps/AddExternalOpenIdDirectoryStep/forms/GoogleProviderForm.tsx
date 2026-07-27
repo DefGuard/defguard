@@ -11,6 +11,7 @@ import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
+import { joinCsv } from '../../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -42,6 +43,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
         storeValues.google_service_account_key,
         storeValues.google_service_account_email,
       ),
+      directory_sync_user_groups: joinCsv(storeValues.directory_sync_user_groups),
     }),
     [storeValues],
   );
@@ -62,6 +64,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
           ...value,
           google_service_account_email: fileData?.client_email ?? '',
           google_service_account_key: fileData?.private_key ?? '',
+          directory_sync_user_groups: value.directory_sync_user_groups ?? '',
         });
       } else {
         formApi.setErrorMap({
@@ -173,6 +176,15 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="google_service_account_file">
             {(field) => <field.FormUploadField />}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="directory_sync_user_groups">
+            {(field) => (
+              <field.FormInput
+                label={m.settings_openid_provider_label_sync_users_from_groups()}
+                helper={m.settings_openid_provider_helper_sync_users_from_groups()}
+              />
+            )}
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls

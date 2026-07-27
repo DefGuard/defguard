@@ -1,0 +1,18 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users",
+  "value": [
+    {
+      "id": "12345678-1234-5678-1234-567812345679",
+      "displayName": "John Smith",
+      "mail": null,
+      "accountEnabled": false,
+      "otherMails": ["john.smith@example.com"],
+      "givenName": "John",
+      "surname": "Smith",
+      "mobilePhone": null,
+      "businessPhones": [],
+      "userPrincipalName": "john.smith@example.com",
+      "jobTitle": "Manager"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "access_token": "EwAoA8l6BAAR...",
+  "token_type": "Bearer",
+  "expires_in": 3599,
+  "ext_expires_in": 3599,
+  "scope": "https://graph.microsoft.com/.default"
+}

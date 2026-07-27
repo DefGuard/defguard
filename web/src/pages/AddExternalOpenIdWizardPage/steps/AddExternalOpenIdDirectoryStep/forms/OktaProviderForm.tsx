@@ -8,6 +8,7 @@ import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
+import { joinCsv } from '../../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -36,6 +37,7 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
       directory_sync_user_behavior: providerState.directory_sync_user_behavior,
       okta_dirsync_client_id: providerState.okta_dirsync_client_id ?? '',
       okta_private_jwk: providerState.okta_private_jwk ?? '',
+      directory_sync_user_groups: joinCsv(providerState.directory_sync_user_groups),
     }),
     [providerState],
   );
@@ -48,7 +50,10 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
       onChange: oktaProviderSyncSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      await onSubmit({
+        ...value,
+        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
+      });
     },
   });
 
@@ -131,14 +136,31 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
               )}
             </form.AppField>
           </EvenSplit>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="directory_sync_user_groups">
+            {(field) => (
+              <field.FormInput
+                label={m.settings_openid_provider_label_sync_users_from_groups()}
+                helper={m.settings_openid_provider_helper_sync_users_from_groups()}
+              />
+            )}
+          </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls
           loading={isPending}
           onBack={() => {
-            back(form.state.values);
+            back({
+              ...form.state.values,
+              directory_sync_user_groups:
+                form.state.values.directory_sync_user_groups ?? '',
+            });
           }}
           onNext={() => {
-            mutate(form.state.values);
+            mutate({
+              ...form.state.values,
+              directory_sync_user_groups:
+                form.state.values.directory_sync_user_groups ?? '',
+            });
           }}
         />
       </form.AppForm>

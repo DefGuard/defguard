@@ -1,0 +1,12 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects",
+  "value": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "displayName": "Engineering",
+      "groupTypes": ["Unified"],
+      "mailEnabled": true,
+      "securityEnabled": false
+    }
+  ]
+}

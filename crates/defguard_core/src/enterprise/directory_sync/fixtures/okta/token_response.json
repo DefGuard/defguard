@@ -1,0 +1,5 @@
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IlRlc3RAMjAyNCJ9.eyJpc3MiOiJodHRwczovL3RyaWFsLW9rdGEuY29tIiwiYXV0IjoiaW50ZXJuYWwiLCJhdWQiOiJodHRwczovL3RyaWFsLW9rdGEuY29tL2FwaS92MS91c2VycyIsInN1YiI6ImM0MDFuMjYwbnNvZkpiMDBk","token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "okta.users.read okta.groups.read"
+}

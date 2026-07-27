@@ -5,9 +5,10 @@ import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
-import type {
-  ApiError,
-  LicenseCheckResponse,
+import {
+  type ApiError,
+  ApiResponseCode,
+  type LicenseCheckResponse,
 } from '../../../../../../../shared/api/types';
 import { CopyButton } from '../../../../../../../shared/components/CopyButton/CopyButton';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
@@ -121,8 +122,11 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
 
   const { mutateAsync: patchSettings } = useMutation({
     mutationFn: api.settings.patchSettings,
-    onSuccess: () => {
+    onSuccess: (response) => {
       closeModal(modalNameValue);
+      if (response.data?.code === ApiResponseCode.LicenseReactivated) {
+        openModal(ModalName.LicenseReactivated);
+      }
     },
     meta: {
       invalidate: [['settings'], ['enterprise_info']],

@@ -475,7 +475,9 @@ impl EnrollmentServer {
 
         // update user
         info!("Update user details and set a new password.");
-        user.phone = request.phone_number;
+        if request.phone_number.is_some() {
+            user.phone = request.phone_number;
+        }
         if let Some(password) = &request.password {
             user.set_password(password);
         }

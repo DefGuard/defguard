@@ -3,6 +3,7 @@ export const LicenseModalSideImageVariant = {
   Limit: 'limit',
   Business: 'business',
   Enterprise: 'enterprise',
+  Reactivated: 'reactivated',
 } as const;
 
 export type LicenseModalSideImageVariantValue =
