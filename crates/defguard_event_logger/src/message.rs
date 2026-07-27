@@ -269,7 +269,7 @@ impl EventContext {
         Self {
             timestamp: chrono::Utc::now().naive_utc(),
             user_id: None,
-            username: "system:proxy".to_owned(),
+            username: "system:edge".to_owned(),
             location: None,
             ip: None,
             device: "system".to_owned(),

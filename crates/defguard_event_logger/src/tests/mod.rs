@@ -1728,7 +1728,7 @@ fn test_gateway_connection_events_map_to_system_activity_events() {
                 gateway_name: "edge-a".to_owned(),
             },
             EventType::GatewayConnected,
-            "connected",
+            "Gateway edge-a connected",
         ),
         (
             GatewayConnectionEvent::Disconnected {
@@ -1736,7 +1736,7 @@ fn test_gateway_connection_events_map_to_system_activity_events() {
                 gateway_name: "edge-a".to_owned(),
             },
             EventType::GatewayDisconnected,
-            "disconnected",
+            "Gateway edge-a disconnected",
         ),
     ] {
         let message = EventLoggerMessage::from_gateway_connection_event(event);
@@ -1746,12 +1746,7 @@ fn test_gateway_connection_events_map_to_system_activity_events() {
         let result = map_to_activity_log_event(message);
         assert_eq!(result.event, expected_type);
         assert_eq!(result.module, ActivityLogModule::Defguard);
-        assert!(
-            result
-                .description
-                .as_deref()
-                .is_some_and(|value| value.contains(description))
-        );
+        assert_eq!(result.description.as_deref(), Some(description));
     }
 }
 
@@ -1764,7 +1759,7 @@ fn test_proxy_connection_events_map_to_system_activity_events() {
                 proxy_name: "proxy-a".to_owned(),
             },
             EventType::ProxyConnected,
-            "connected",
+            "Proxy proxy-a connected",
         ),
         (
             ProxyConnectionEvent::Disconnected {
@@ -1772,22 +1767,17 @@ fn test_proxy_connection_events_map_to_system_activity_events() {
                 proxy_name: "proxy-a".to_owned(),
             },
             EventType::ProxyDisconnected,
-            "disconnected",
+            "Proxy proxy-a disconnected",
         ),
     ] {
         let message = EventLoggerMessage::from_proxy_connection_event(event);
         assert_eq!(message.context.user_id, None);
-        assert_eq!(message.context.username, "system:proxy");
+        assert_eq!(message.context.username, "system:edge");
 
         let result = map_to_activity_log_event(message);
         assert_eq!(result.event, expected_type);
         assert_eq!(result.module, ActivityLogModule::Defguard);
-        assert!(
-            result
-                .description
-                .as_deref()
-                .is_some_and(|value| value.contains(description))
-        );
+        assert_eq!(result.description.as_deref(), Some(description));
     }
 }
 
