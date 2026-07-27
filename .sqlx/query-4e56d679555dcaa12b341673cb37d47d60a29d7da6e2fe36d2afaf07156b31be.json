@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM \"user\" u JOIN group_user gu ON gu.user_id = u.id JOIN \"group\" g ON gu.group_id = g.id WHERE u.id = $1 AND u.is_active AND g.\"name\" IN (SELECT * FROM UNNEST($2::text[])))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4e56d679555dcaa12b341673cb37d47d60a29d7da6e2fe36d2afaf07156b31be"
+}
