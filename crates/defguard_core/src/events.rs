@@ -476,6 +476,18 @@ pub enum DesktopClientMfaEvent {
     },
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum GatewayConnectionEvent {
+    Connected {
+        gateway_id: Id,
+        gateway_name: String,
+    },
+    Disconnected {
+        gateway_id: Id,
+        gateway_name: String,
+    },
+}
+
 #[derive(Debug, PartialEq, EnumCount)]
 #[allow(clippy::large_enum_variant)]
 pub enum LdapSyncEventType {

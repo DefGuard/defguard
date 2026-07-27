@@ -84,6 +84,8 @@
   "activity_event_proxy_deleted": "Edge component deleted",
   "activity_event_gateway_modified": "Gateway modified",
   "activity_event_gateway_deleted": "Gateway deleted",
+  "activity_event_gateway_connected": "Gateway connected",
+  "activity_event_gateway_disconnected": "Gateway disconnected",
   "activity_event_device_posture_created": "Posture check created",
   "activity_event_device_posture_updated": "Posture check updated",
   "activity_event_device_posture_deleted": "Posture check deleted",

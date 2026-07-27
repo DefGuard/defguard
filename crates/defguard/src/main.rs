@@ -292,6 +292,7 @@ async fn main() -> Result<(), anyhow::Error> {
         unbounded_channel::<SessionManagerEvent>();
     let (ldap_tx, ldap_rx) = unbounded_channel();
     let (dirsync_tx, dirsync_rx) = unbounded_channel();
+    let (gateway_connection_event_tx, gateway_connection_event_rx) = unbounded_channel();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -347,7 +348,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut gateway_manager = GatewayManager::new(
         pool.clone(),
-        GatewayTxSet::new(gateway_tx.clone(), peer_stats_tx),
+        GatewayTxSet::new(gateway_tx.clone(), peer_stats_tx)
+            .with_connection_events(gateway_connection_event_tx),
     );
 
     debug!("Resetting proxy connection state on startup");
@@ -399,6 +401,7 @@ async fn main() -> Result<(), anyhow::Error> {
             session_manager_event_rx,
             ldap_rx,
             dirsync_rx,
+            gateway_connection_event_rx,
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_tx.clone()
         ) => bail!("Activity log event logger returned early: {res:?}"),

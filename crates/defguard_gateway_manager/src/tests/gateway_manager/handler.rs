@@ -5,6 +5,7 @@ use defguard_common::{
     db::models::device::{DeviceInfo, WireguardNetworkDevice},
     gateway_event::GatewayCommand,
 };
+use defguard_core::events::GatewayConnectionEvent;
 use defguard_proto::gateway::{UpdateType, core_response};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;
