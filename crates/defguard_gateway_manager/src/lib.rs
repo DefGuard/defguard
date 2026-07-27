@@ -14,13 +14,18 @@ use defguard_common::{
     gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
+use defguard_core::events::GatewayConnectionEvent;
 use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
 #[cfg(test)]
 use tokio::sync::Notify;
 use tokio::{
-    sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedSender, unbounded_channel},
+        watch::Receiver,
+    },
     task::{AbortHandle, JoinHandle, JoinSet},
     time::sleep,
 };
@@ -313,6 +318,7 @@ impl GatewayManager {
                         gateway,
                         self.pool.clone(),
                         self.tx.events.clone(),
+                        self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
                         socket_path,
@@ -322,6 +328,7 @@ impl GatewayManager {
                         gateway,
                         self.pool.clone(),
                         self.tx.events.clone(),
+                        self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
                     )?
@@ -336,6 +343,7 @@ impl GatewayManager {
             gateway,
             self.pool.clone(),
             self.tx.events.clone(),
+            self.tx.connection_events.clone(),
             self.tx.peer_stats.clone(),
             certs_rx,
         )
@@ -658,14 +666,29 @@ mod unit_tests {
 pub struct GatewayTxSet {
     events: Sender<GatewayCommand>,
     peer_stats: UnboundedSender<PeerStatsUpdate>,
+    connection_events: UnboundedSender<GatewayConnectionEvent>,
 }
 
 impl GatewayTxSet {
     #[must_use]
-    pub const fn new(
+    pub fn new(
         events: Sender<GatewayCommand>,
         peer_stats: UnboundedSender<PeerStatsUpdate>,
     ) -> Self {
-        Self { events, peer_stats }
+        let (connection_events, _receiver) = unbounded_channel();
+        Self {
+            events,
+            peer_stats,
+            connection_events,
+        }
+    }
+
+    #[must_use]
+    pub fn with_connection_events(
+        mut self,
+        connection_events: UnboundedSender<GatewayConnectionEvent>,
+    ) -> Self {
+        self.connection_events = connection_events;
+        self
     }
 }

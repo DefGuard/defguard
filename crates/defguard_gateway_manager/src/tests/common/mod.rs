@@ -22,6 +22,7 @@ use defguard_common::{
     gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
+use defguard_core::events::GatewayConnectionEvent;
 use defguard_proto::gateway::{CoreRequest, CoreResponse, PeerStats, core_request, gateway_server};
 use prost_types::Timestamp;
 use sqlx::{PgPool, postgres::PgConnectOptions};
@@ -476,6 +477,7 @@ pub(crate) struct HandlerTestContext {
     pub(crate) network: WireguardNetwork<Id>,
     pub(crate) gateway: Gateway<Id>,
     pub(crate) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
+    pub(crate) connection_events_rx: UnboundedReceiver<GatewayConnectionEvent>,
     events_tx: Option<broadcast::Sender<GatewayCommand>>,
     pub(crate) mock_gateway: Option<MockGatewayHarness>,
     handler_task: Option<JoinHandle<anyhow::Result<()>>>,
@@ -498,12 +500,14 @@ impl HandlerTestContext {
         let network = create_network(&pool).await;
         let gateway = create_gateway(&pool, network.id).await;
         let (peer_stats_tx, peer_stats_rx) = mpsc::unbounded_channel();
+        let (connection_events_tx, connection_events_rx) = mpsc::unbounded_channel();
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let mut mock_gateway = MockGatewayHarness::start().await;
         let mut handler = GatewayHandler::new_with_test_socket(
             gateway.clone(),
             pool.clone(),
             events_tx.clone(),
+            connection_events_tx,
             peer_stats_tx,
             certs_rx,
             mock_gateway.socket_path(),
@@ -518,6 +522,7 @@ impl HandlerTestContext {
             network,
             gateway,
             peer_stats_rx,
+            connection_events_rx,
             events_tx: Some(events_tx),
             mock_gateway: Some(mock_gateway),
             handler_task: Some(handler_task),
@@ -528,6 +533,13 @@ impl HandlerTestContext {
         self.events_tx
             .as_ref()
             .expect("events sender already taken from context")
+    }
+
+    pub(crate) fn take_connection_events_rx(
+        &mut self,
+    ) -> UnboundedReceiver<GatewayConnectionEvent> {
+        let (_, receiver) = mpsc::unbounded_channel();
+        std::mem::replace(&mut self.connection_events_rx, receiver)
     }
 
     pub(crate) fn mock_gateway(&self) -> &MockGatewayHarness {

@@ -27,7 +27,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::{ApiEvent, BidiStreamEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, ProxyConnectionEvent};
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
     proxy_server,
@@ -401,6 +401,7 @@ pub(crate) struct HandlerTestContext {
     pub(crate) gateway_tx: broadcast::Sender<GatewayCommand>,
     pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
     pub(crate) event_rx: UnboundedReceiver<ApiEvent>,
+    pub(crate) connection_events_rx: UnboundedReceiver<ProxyConnectionEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
     /// Keep-alive handle: holds the sender so the handler's shutdown receiver
@@ -429,13 +430,15 @@ impl HandlerTestContext {
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
         let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
         let (event_tx, event_rx) = mpsc::unbounded_channel();
+        let (connection_events_tx, connection_events_rx) = mpsc::unbounded_channel();
         let tx_set = ProxyTxSet::new(
             gateway_tx.clone(),
             bidi_events_tx,
             ldap_tx,
             dirsync_tx,
             event_tx,
-        );
+        )
+        .with_connection_events(connection_events_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -480,6 +483,7 @@ impl HandlerTestContext {
             gateway_tx,
             bidi_events_rx,
             event_rx,
+            connection_events_rx,
             mock_proxy: Some(mock_proxy),
             handler_task: Some(handler_task),
             _shutdown_tx: Some(shutdown_tx),
@@ -522,6 +526,11 @@ impl HandlerTestContext {
         result.expect("proxy handler returned an unexpected error");
         self.handler_task.take();
         mock_proxy
+    }
+
+    pub(crate) fn take_connection_events_rx(&mut self) -> UnboundedReceiver<ProxyConnectionEvent> {
+        let (_, receiver) = mpsc::unbounded_channel();
+        std::mem::replace(&mut self.connection_events_rx, receiver)
     }
 
     pub(crate) async fn finish_after_error(mut self) -> MockProxyHarness {
