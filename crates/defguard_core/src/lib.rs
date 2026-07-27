@@ -88,12 +88,12 @@ use tracing::Level;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
+        db::models::openid_provider::OpenIdProvider,
         firewall::try_get_location_firewall_config,
         handlers::{
             acl::{
