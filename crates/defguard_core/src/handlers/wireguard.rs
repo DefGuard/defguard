@@ -851,8 +851,10 @@ pub(crate) async fn add_device(
         return Err(WebError::Forbidden("Manual device management is disabled"));
     }
 
-    // Let admins manage devices for disabled users
-    if !user.is_active && !session.is_admin {
+    // Disabled users' devices never get network access (see
+    // `is_device_allowed_in_network`), and get stripped on the next sync even if
+    // briefly assigned.
+    if !user.is_active {
         warn!(
             "User {} tried to add a device for a disabled user {username}",
             session.user.username
