@@ -10,13 +10,14 @@ import {
   useFloating,
   useInteractions,
 } from '@floating-ui/react';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { type HTMLProps, useMemo, useState } from 'react';
 import { useGatewayWizardStore } from '../../../pages/GatewaySetupPage/useGatewayWizardStore';
 import { m } from '../../../paraglide/messages';
 import api from '../../api/api';
-import type { GatewayInfo } from '../../api/types';
+import { type GatewayInfo, LicenseFeature } from '../../api/types';
 import { Badge } from '../../defguard-ui/components/Badge/Badge';
 import type { BadgeVariantValue } from '../../defguard-ui/components/Badge/types';
 import { Button } from '../../defguard-ui/components/Button/Button';
@@ -29,6 +30,8 @@ import { Snackbar } from '../../defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../defguard-ui/types';
 import { openModal } from '../../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../hooks/modalControls/modalTypes';
+import { getLicenseInfoQueryOptions } from '../../query';
+import { canUseEnterpriseFeature, licenseActionCheck } from '../../utils/license';
 import './style.scss';
 
 type Status = 'all' | 'none' | 'some';
@@ -134,6 +137,7 @@ export const GatewaysStatusBadge = ({ data, showDetails = false }: Props) => {
           <FloatingMenu
             ref={refs.setFloating}
             status={data}
+            onClose={() => setOpen(false)}
             style={{ ...floatingStyles }}
             {...getFloatingProps()}
           />
@@ -145,13 +149,15 @@ export const GatewaysStatusBadge = ({ data, showDetails = false }: Props) => {
 
 const FloatingMenu = ({
   status,
+  onClose,
   className,
   ...rest
-}: { status: GatewayInfo[] } & HTMLProps<HTMLDivElement>) => {
+}: { status: GatewayInfo[]; onClose: () => void } & HTMLProps<HTMLDivElement>) => {
   const locationId = status[0].location_id as number;
   const connected = useMemo(() => status.filter((gw) => gw.connected), [status]);
   const disconnected = useMemo(() => status.filter((gw) => !gw.connected), [status]);
   const navigate = useNavigate();
+  const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
 
   return (
     <div className={clsx('gateways-status-floating', className)} {...rest}>
@@ -230,8 +236,14 @@ const FloatingMenu = ({
         variant="outlined"
         text={m.gateway_add_more()}
         onClick={() => {
-          useGatewayWizardStore.getState().start({ network_id: locationId });
-          navigate({ to: '/setup-gateway', replace: true });
+          onClose();
+          licenseActionCheck(
+            canUseEnterpriseFeature(license, LicenseFeature.ComponentHa),
+            () => {
+              useGatewayWizardStore.getState().start({ network_id: locationId });
+              navigate({ to: '/setup-gateway', replace: true });
+            },
+          );
         }}
       />
     </div>
