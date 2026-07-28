@@ -182,7 +182,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
             {(field) => (
               <field.FormInput
                 label={m.settings_openid_provider_label_sync_users_from_groups()}
-                helper={m.settings_openid_provider_helper_sync_users_from_groups()}
+                helper={m.settings_openid_provider_helper_sync_users_from_groups_google()}
               />
             )}
           </form.AppField>
