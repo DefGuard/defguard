@@ -74,12 +74,17 @@ export const DryRunTable = ({ data }: { data: LdapDryRunUser[] }) => {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return data;
-    return data.filter(
-      (user) =>
-        user.username.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query),
-    );
+    const filteredData = query
+      ? data.filter(
+          (user) =>
+            user.username.toLowerCase().includes(query) ||
+            user.email.toLowerCase().includes(query),
+        )
+      : data;
+    return [...filteredData].sort((a, b) => {
+      if (a.action === b.action) return 0;
+      return a.action === 'remove' ? -1 : 1;
+    });
   }, [data, search]);
 
   const table = useReactTable({

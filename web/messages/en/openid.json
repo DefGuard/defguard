@@ -52,6 +52,7 @@
   "settings_openid_provider_disable_password_management_content": "When enabled, users sourced from this provider without a local password cannot change or reset their password through Defguard.",
   "settings_openid_provider_label_sync_users_from_groups": "Synchronize users only from specified groups",
   "settings_openid_provider_helper_sync_users_from_groups": "Only people who belong to these groups will have account created in Defguard. Leave it empty to allow all users. If you also set \"Sync only matching memberships\" above, list the same groups there too, otherwise their members won't be recognized. Separate group names with commas.",
+  "settings_openid_provider_helper_sync_users_from_groups_google": "Only people who belong to these groups will have account created in Defguard. Leave it empty to allow all users. Separate group names with commas.",
   "settings_openid_provider_label_okta_directory_sync_client_id": "Directory sync client ID",
   "settings_openid_provider_helper_okta_directory_sync_client_id": "",
   "settings_openid_provider_label_okta_directory_sync_client_private_key": "Directory sync client private key",
