@@ -309,6 +309,7 @@ export interface User {
   authorized_apps?: OAuth2AuthorizedApps[];
   devices: Device[];
   has_non_mfa_location_access: boolean;
+  has_non_posture_location_access: boolean;
 }
 
 export interface LoginRequest {
@@ -950,6 +951,12 @@ export const ClientTrafficPolicy = {
 export type ClientTrafficPolicyValue =
   (typeof ClientTrafficPolicy)[keyof typeof ClientTrafficPolicy];
 
+export interface GroupClientTrafficPolicies {
+  none: number[];
+  disable_all_traffic: number[];
+  force_all_traffic: number[];
+}
+
 export interface SettingsEnterprise {
   admin_device_management: boolean;
   client_traffic_policy: ClientTrafficPolicyValue;
@@ -957,6 +964,7 @@ export interface SettingsEnterprise {
   display_download_step: boolean;
   display_password_reset: boolean;
   disable_tunnels: boolean;
+  group_client_traffic_policies: GroupClientTrafficPolicies;
 }
 
 export type ApiDevicePostureOsRule =

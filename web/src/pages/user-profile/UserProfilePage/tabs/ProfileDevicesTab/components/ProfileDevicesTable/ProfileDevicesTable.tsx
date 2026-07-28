@@ -109,7 +109,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       variant: 'primary',
       testId: 'add-device',
       iconLeft: 'add-device',
-      disabled: !info.network_present || !canModifyDevices,
+      disabled: !info.network_present || !canModifyDevices || !user.is_active,
       onClick: () => {
         useAddUserDeviceModal.getState().open({
           devices,

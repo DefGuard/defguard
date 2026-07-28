@@ -16,6 +16,7 @@ use defguard_common::{
     device_config_gen::create_wireguard_config,
 };
 use sqlx::PgConnection;
+use tracing::warn;
 
 use crate::enterprise::allowed_ips::get_effective_allowed_ips;
 
@@ -104,7 +105,13 @@ pub async fn join_device_to_all_networks(
             .await
         {
             Ok(d) => d,
-            Err(WireguardNetworkError::DeviceNotAllowed(_)) => continue,
+            Err(WireguardNetworkError::DeviceNotAllowed(_)) => {
+                warn!(
+                    "Device {device} not allowed in network {network}, skipping config \
+                    generation for this network"
+                );
+                continue;
+            }
             Err(WireguardNetworkError::DeviceError(DeviceError::NetworkFull(_))) => {
                 return Err(DeviceError::NetworkFull(network.name.clone()));
             }

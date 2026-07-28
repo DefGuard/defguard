@@ -27,6 +27,7 @@ use defguard_common::{
 };
 use defguard_core::{
     enterprise::firewall::try_get_location_firewall_config,
+    events::GatewayConnectionEvent,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     location_management::allowed_peers::get_location_allowed_peers,
 };
@@ -89,6 +90,7 @@ pub(crate) struct GatewayHandler {
     message_id: AtomicU64,
     pool: PgPool,
     events_tx: Sender<GatewayCommand>,
+    connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     updates_handler_handle: Option<JoinHandle<()>>,
@@ -103,6 +105,7 @@ impl GatewayHandler {
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayCommand>,
+        connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Self, GatewayError> {
@@ -119,6 +122,7 @@ impl GatewayHandler {
             message_id: AtomicU64::new(0),
             pool,
             events_tx,
+            connection_events_tx,
             peer_stats_tx,
             certs_rx,
             updates_handler_handle: None,
@@ -339,30 +343,50 @@ impl GatewayHandler {
         });
     }
 
-    async fn mark_disconnected(&mut self) {
+    async fn mark_disconnected(&mut self) -> bool {
         if let Err(err) = self.gateway.touch_disconnected(&self.pool).await {
             error!(
                 "Failed to update disconnection time for {} in the database: {err}",
                 self.gateway
             );
+            return false;
         }
+        true
     }
 
     async fn handle_disconnection_error(&mut self) {
+        let was_connected = self.gateway.is_connected();
         if self.gateway.is_connected() {
             self.send_disconnect_notification().await;
         }
 
-        self.mark_disconnected().await;
+        if was_connected && self.mark_disconnected().await {
+            let _ = self
+                .connection_events_tx
+                .send(GatewayConnectionEvent::Disconnected {
+                    gateway_id: self.gateway.id,
+                    gateway_name: self.gateway.name.clone(),
+                });
+        }
     }
 
     async fn mark_connected_and_maybe_notify(&mut self, network_name: &str) {
+        let was_connected = self.gateway.is_connected();
         if let Err(err) = self.gateway.touch_connected(&self.pool).await {
             error!(
                 "Failed to update connection time for {} in the database: {err}",
                 self.gateway
             );
             return;
+        }
+
+        if !was_connected {
+            let _ = self
+                .connection_events_tx
+                .send(GatewayConnectionEvent::Connected {
+                    gateway_id: self.gateway.id,
+                    gateway_name: self.gateway.name.clone(),
+                });
         }
 
         self.send_reconnect_notification(network_name.to_owned());
@@ -573,11 +597,19 @@ impl GatewayHandler {
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayCommand>,
+        connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
         socket_path: PathBuf,
     ) -> Result<Self, GatewayError> {
-        let mut handler = Self::new(gateway, pool, events_tx, peer_stats_tx, certs_rx)?;
+        let mut handler = Self::new(
+            gateway,
+            pool,
+            events_tx,
+            connection_events_tx,
+            peer_stats_tx,
+            certs_rx,
+        )?;
         handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
         Ok(handler)
     }
@@ -1474,10 +1506,18 @@ mod tests {
             .await
             .unwrap();
         let (events_tx, _events_rx) = broadcast::channel::<GatewayCommand>(1);
+        let (connection_events_tx, _connection_events_rx) = unbounded_channel();
         let (peer_stats_tx, _peer_stats_rx) = unbounded_channel();
         let (_certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::<Id, String>::new()));
-        let handler =
-            GatewayHandler::new(gateway, pool.clone(), events_tx, peer_stats_tx, certs_rx).unwrap();
+        let handler = GatewayHandler::new(
+            gateway,
+            pool.clone(),
+            events_tx,
+            connection_events_tx,
+            peer_stats_tx,
+            certs_rx,
+        )
+        .unwrap();
         let (tx, mut rx) = unbounded_channel();
 
         handler.send_configuration(&tx).await.unwrap();

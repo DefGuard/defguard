@@ -39,6 +39,7 @@ pub struct UserInfo {
     pub password_management_disabled: bool,
     pub devices: Vec<UserDevice>,
     pub has_non_mfa_location_access: bool,
+    pub has_non_posture_location_access: bool,
 }
 
 /// Check whether any network with MFA disabled is accessible to a user
@@ -48,6 +49,32 @@ async fn has_non_mfa_location_access(pool: &PgPool, groups: &[String]) -> sqlx::
         "SELECT EXISTS( \
             SELECT 1 FROM wireguard_network wn \
             WHERE wn.location_mfa_mode = 'disabled' \
+            AND ( \
+                wn.allow_all_groups \
+                OR EXISTS( \
+                    SELECT 1 FROM wireguard_network_allowed_group wnag \
+                    JOIN \"group\" g ON g.id = wnag.group_id \
+                    WHERE wnag.network_id = wn.id \
+                    AND g.name = ANY($1) \
+                ) \
+            ) \
+        )",
+        groups,
+    )
+    .fetch_one(pool)
+    .await
+    .map(|v| v.unwrap_or(false))
+}
+
+/// Check whether any network without posture checks assigned is accessible to a
+/// user based on their group names.
+async fn has_non_posture_location_access(pool: &PgPool, groups: &[String]) -> sqlx::Result<bool> {
+    query_scalar!(
+        "SELECT EXISTS( \
+            SELECT 1 FROM wireguard_network wn \
+            WHERE NOT EXISTS( \
+                SELECT 1 FROM device_posture_location dpl WHERE dpl.location_id = wn.id \
+            ) \
             AND ( \
                 wn.allow_all_groups \
                 OR EXISTS( \
@@ -87,6 +114,8 @@ impl UserInfo {
         );
 
         let has_non_mfa_location_access = has_non_mfa_location_access(pool, &groups).await?;
+        let has_non_posture_location_access =
+            has_non_posture_location_access(pool, &groups).await?;
 
         Ok(Self {
             id: user.id,
@@ -109,6 +138,7 @@ impl UserInfo {
             password_management_disabled,
             devices,
             has_non_mfa_location_access,
+            has_non_posture_location_access,
         })
     }
 
@@ -654,6 +684,164 @@ mod test {
 
         let groups = vec!["ops".to_owned()];
         let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
+        assert!(result);
+    }
+
+    #[sqlx::test]
+    async fn test_no_posture_location_returns_true(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        WireguardNetwork::new(
+            "no-posture-net".to_owned(),
+            50057,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.7.1.0/24").unwrap()],
+            true, // allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.7.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let groups = Vec::new();
+        let result = has_non_posture_location_access(&pool, &groups)
+            .await
+            .unwrap();
+        assert!(result);
+    }
+
+    /// A location with posture checks assigned should not grant access, even
+    /// when it is otherwise accessible to the user.
+    #[sqlx::test]
+    async fn test_posture_location_returns_false(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::new(
+            "posture-net".to_owned(),
+            50058,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.8.1.0/24").unwrap()],
+            true, // allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.8.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let posture_id: i64 = query_scalar!(
+            "INSERT INTO device_posture (name) VALUES ($1) RETURNING id",
+            "test-posture"
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        sqlx::query!(
+            "INSERT INTO device_posture_location (posture_id, location_id) VALUES ($1, $2)",
+            posture_id,
+            network.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let groups = Vec::new();
+        let result = has_non_posture_location_access(&pool, &groups)
+            .await
+            .unwrap();
+        assert!(!result);
+    }
+
+    /// Two networks accessible: one with posture checks, one without = true.
+    #[sqlx::test]
+    async fn test_mixed_posture_networks_when_one_has_no_posture(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let group = Group::new("qa").save(&pool).await.unwrap();
+
+        // Location without posture checks, restricted to the qa group.
+        let no_posture_net = WireguardNetwork::new(
+            "qa-net".to_owned(),
+            50059,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.9.1.0/24").unwrap()],
+            false,
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.9.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Location with posture checks, accessible to everyone.
+        let posture_net = WireguardNetwork::new(
+            "posture-net-2".to_owned(),
+            50060,
+            String::new(),
+            None,
+            [IpNetwork::from_str("10.10.1.0/24").unwrap()],
+            true, // allow_all_groups
+            false,
+            false,
+            false,
+            LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::from_str("10.10.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let posture_id: i64 = query_scalar!(
+            "INSERT INTO device_posture (name) VALUES ($1) RETURNING id",
+            "test-posture-2"
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        sqlx::query!(
+            "INSERT INTO device_posture_location (posture_id, location_id) VALUES ($1, $2)",
+            posture_id,
+            posture_net.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        no_posture_net
+            .set_allowed_groups(&mut transaction, from_ref(&group.name))
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let groups = vec!["qa".to_owned()];
+        let result = has_non_posture_location_access(&pool, &groups)
+            .await
+            .unwrap();
         assert!(result);
     }
 }

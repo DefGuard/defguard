@@ -31,7 +31,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     error::WebError,
-    events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType},
+    events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent},
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
@@ -121,6 +121,7 @@ pub(super) struct ProxyHandler {
     /// Shared map used to register this handler's active stream sender so the manager
     /// can push messages to a specific proxy.
     handler_tx_map: HandlerTxMap,
+    connection_events_tx: UnboundedSender<ProxyConnectionEvent>,
     #[cfg(test)]
     test_transport: ProxyTestTransport,
     #[cfg(test)]
@@ -152,6 +153,7 @@ impl ProxyHandler {
             proxy_cookie_key,
             client: None,
             handler_tx_map,
+            connection_events_tx: tx.connection_events.clone(),
             #[cfg(test)]
             test_transport: ProxyTestTransport::default(),
             #[cfg(test)]
@@ -187,9 +189,18 @@ impl ProxyHandler {
 
     async fn mark_connected(&self, version: &Version) -> Result<(), ProxyError> {
         if let Some(mut proxy) = Proxy::find_by_id(&self.pool, self.proxy_id).await? {
+            let was_connected = proxy.is_connected();
             proxy
                 .mark_connected(&self.pool, version.to_string())
                 .await?;
+            if !was_connected {
+                let _ = self
+                    .connection_events_tx
+                    .send(ProxyConnectionEvent::Connected {
+                        proxy_id: proxy.id,
+                        proxy_name: proxy.name,
+                    });
+            }
         } else {
             warn!("Couldn't find Proxy by ID for URL: {}", self.url);
         }
@@ -212,6 +223,12 @@ impl ProxyHandler {
 
         if should_mark {
             proxy.mark_disconnected(&self.pool).await?;
+            let _ = self
+                .connection_events_tx
+                .send(ProxyConnectionEvent::Disconnected {
+                    proxy_id: proxy.id,
+                    proxy_name: proxy.name,
+                });
         }
 
         Ok(())
@@ -356,7 +373,6 @@ impl ProxyHandler {
             // Check proxy version and continue if it's not supported.
             let (version, info) = get_tracing_variables(&maybe_info);
             let proxy_is_supported = is_proxy_version_supported(Some(&version));
-            self.mark_connected(&version).await?;
 
             let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
@@ -382,6 +398,7 @@ impl ProxyHandler {
                 }
                 continue;
             }
+            self.mark_connected(&version).await?;
             IncompatibleComponents::remove_proxy(&incompatible_components);
 
             info!("Connected to proxy at {}", self.url);
@@ -1177,7 +1194,6 @@ impl ProxyHandler {
 
         let (version, info) = get_tracing_variables(&maybe_info);
         let proxy_is_supported = is_proxy_version_supported(Some(&version));
-        self.mark_connected(&version).await?;
 
         let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
@@ -1193,6 +1209,7 @@ impl ProxyHandler {
             self.mark_disconnected().await?;
             return Ok(());
         }
+        self.mark_connected(&version).await?;
         IncompatibleComponents::remove_proxy(&incompatible_components);
 
         info!("Connected to proxy at {} (test)", self.url);

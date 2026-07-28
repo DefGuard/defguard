@@ -17,7 +17,7 @@ use crate::{
         activity_log_stream::ActivityLogStream,
         api_tokens::ApiToken,
         device_posture::{DevicePosture, DevicePostureSnapshot},
-        enterprise_settings::EnterpriseSettings,
+        enterprise_settings::EnterpriseSettingsInfo,
         openid_provider::OpenIdProvider,
         snat::UserSnatBinding,
     },
@@ -251,8 +251,8 @@ pub enum ApiEventType {
     },
     SettingsDefaultBrandingRestored,
     EnterpriseSettingsUpdated {
-        before: EnterpriseSettings,
-        after: EnterpriseSettings,
+        before: EnterpriseSettingsInfo,
+        after: EnterpriseSettingsInfo,
     },
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
@@ -474,6 +474,24 @@ pub enum DesktopClientMfaEvent {
         location: WireguardNetwork<Id>,
         is_mfa_session: bool,
     },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum GatewayConnectionEvent {
+    Connected {
+        gateway_id: Id,
+        gateway_name: String,
+    },
+    Disconnected {
+        gateway_id: Id,
+        gateway_name: String,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProxyConnectionEvent {
+    Connected { proxy_id: Id, proxy_name: String },
+    Disconnected { proxy_id: Id, proxy_name: String },
 }
 
 #[derive(Debug, PartialEq, EnumCount)]

@@ -7,5 +7,45 @@
     h3 {
       font: var(--t-body-primary-600);
     }
+
+    .group-policy-description {
+      color: var(--fg-muted);
+      font: var(--t-body-sm-400);
+    }
+
+    .group-policy-row {
+      display: flex;
+      align-items: flex-start;
+      column-gap: var(--spacing-md);
+    }
+
+    .group-policy-row-content {
+      display: flex;
+      flex: 1;
+      flex-flow: column;
+      row-gap: var(--spacing-sm);
+    }
+
+    .group-policy-title {
+      font: var(--t-body-primary-500);
+    }
+
+    .group-policy-content {
+      color: var(--fg-neutral);
+      font: var(--t-body-sm-400);
+    }
+
+    .select-multiple-edit {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: 0;
+      border: 0;
+      background-color: transparent;
+      color: var(--fg-action);
+      font: var(--t-body-sm-500);
+      cursor: pointer;
+    }
   }
 }

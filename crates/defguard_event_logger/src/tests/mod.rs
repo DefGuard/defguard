@@ -23,7 +23,7 @@ use defguard_core::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
         device_posture::{DevicePosture, DevicePostureSnapshot},
-        enterprise_settings::EnterpriseSettings,
+        enterprise_settings::EnterpriseSettingsInfo,
         openid_provider::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
         },
@@ -32,7 +32,8 @@ use defguard_core::{
     events::{
         ApiEventType, BidiRequestContext, BidiStreamEvent, BidiStreamEventType,
         DesktopClientMfaEvent, DirectorySyncEvent, DirectorySyncEventType,
-        EnrollmentEvent as CoreEnrollmentEvent, LdapSyncEventType, PasswordResetEvent,
+        EnrollmentEvent as CoreEnrollmentEvent, GatewayConnectionEvent, LdapSyncEventType,
+        PasswordResetEvent, ProxyConnectionEvent,
     },
 };
 use defguard_session_manager::events::SessionManagerEventType;
@@ -852,8 +853,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "EnterpriseSettingsUpdated",
             message: api_message(ApiEventType::EnterpriseSettingsUpdated {
-                before: EnterpriseSettings::default(),
-                after: EnterpriseSettings::default(),
+                before: EnterpriseSettingsInfo::default(),
+                after: EnterpriseSettingsInfo::default(),
             }),
             event_type: EventType::EnterpriseSettingsUpdated,
             module: ActivityLogModule::Defguard,
@@ -1715,6 +1716,68 @@ fn test_ldap_sync_events_use_system_context() {
             assert!(!uses_ad, "default settings should report plain LDAP");
         }
         _ => panic!("expected an LDAP sync event"),
+    }
+}
+
+#[test]
+fn test_gateway_connection_events_map_to_system_activity_events() {
+    for (event, expected_type, description) in [
+        (
+            GatewayConnectionEvent::Connected {
+                gateway_id: 7,
+                gateway_name: "edge-a".to_owned(),
+            },
+            EventType::GatewayConnected,
+            "Gateway edge-a connected",
+        ),
+        (
+            GatewayConnectionEvent::Disconnected {
+                gateway_id: 7,
+                gateway_name: "edge-a".to_owned(),
+            },
+            EventType::GatewayDisconnected,
+            "Gateway edge-a disconnected",
+        ),
+    ] {
+        let message = EventLoggerMessage::from_gateway_connection_event(event);
+        assert_eq!(message.context.user_id, None);
+        assert_eq!(message.context.username, "system:gateway");
+
+        let result = map_to_activity_log_event(message);
+        assert_eq!(result.event, expected_type);
+        assert_eq!(result.module, ActivityLogModule::Defguard);
+        assert_eq!(result.description.as_deref(), Some(description));
+    }
+}
+
+#[test]
+fn test_proxy_connection_events_map_to_system_activity_events() {
+    for (event, expected_type, description) in [
+        (
+            ProxyConnectionEvent::Connected {
+                proxy_id: 7,
+                proxy_name: "proxy-a".to_owned(),
+            },
+            EventType::ProxyConnected,
+            "Proxy proxy-a connected",
+        ),
+        (
+            ProxyConnectionEvent::Disconnected {
+                proxy_id: 7,
+                proxy_name: "proxy-a".to_owned(),
+            },
+            EventType::ProxyDisconnected,
+            "Proxy proxy-a disconnected",
+        ),
+    ] {
+        let message = EventLoggerMessage::from_proxy_connection_event(event);
+        assert_eq!(message.context.user_id, None);
+        assert_eq!(message.context.username, "system:edge");
+
+        let result = map_to_activity_log_event(message);
+        assert_eq!(result.event, expected_type);
+        assert_eq!(result.module, ActivityLogModule::Defguard);
+        assert_eq!(result.description.as_deref(), Some(description));
     }
 }
 

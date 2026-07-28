@@ -10,7 +10,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, WireguardNetwork, wireguard::ServiceLocationMode},
+        models::{Settings, User, WireguardNetwork, wireguard::ServiceLocationMode},
     },
     types::UrlParseError,
 };
@@ -24,7 +24,10 @@ use crate::{
     enterprise::{
         LicenseFeature,
         db::models::{
-            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            enterprise_settings::{
+                ClientTrafficPolicy, EnterpriseSettings, resolve_client_traffic_policy,
+            },
+            group_client_traffic_policy::GroupClientTrafficPolicy,
             openid_provider::OpenIdProvider,
         },
         has_enterprise_access, is_business_license_active,
@@ -164,13 +167,33 @@ pub struct InstanceInfo {
     disable_tunnels: bool,
 }
 
+#[derive(Debug, thiserror::Error)]
+/// Errors that can occur while building client instance information.
+pub enum InstanceInfoBuildError {
+    #[error("failed to load enterprise settings: {0}")]
+    Database(#[from] sqlx::Error),
+    #[error("failed to parse instance URL: {0}")]
+    UrlParse(#[from] UrlParseError),
+}
+
 impl InstanceInfo {
-    pub fn new<S: Into<String>>(
-        settings: Settings,
-        username: S,
-        enterprise_settings: &EnterpriseSettings,
+    /// Builds client instance information with the effective user traffic policy.
+    pub async fn build(
+        pool: &PgPool,
+        settings: &Settings,
+        user: &User<Id>,
         openid_provider: Option<OpenIdProvider<Id>>,
-    ) -> Result<Self, UrlParseError> {
+    ) -> Result<Self, InstanceInfoBuildError> {
+        let enterprise_settings = EnterpriseSettings::get(pool).await?;
+        let client_traffic_policy = if is_business_license_active() {
+            let group_policies = GroupClientTrafficPolicy::find_by_user_id(pool, user.id)
+                .await?
+                .into_iter()
+                .map(|policy| policy.client_traffic_policy);
+            resolve_client_traffic_policy(enterprise_settings.client_traffic_policy, group_policies)
+        } else {
+            enterprise_settings.client_traffic_policy
+        };
         let openid_display_name = openid_provider
             .as_ref()
             .map(|provider| provider.display_name.clone())
@@ -179,11 +202,11 @@ impl InstanceInfo {
         let proxy_url = settings.proxy_public_url()?;
         Ok(Self {
             id: settings.uuid,
-            name: settings.instance_name,
+            name: settings.instance_name.clone(),
             url,
             proxy_url,
-            username: username.into(),
-            client_traffic_policy: enterprise_settings.client_traffic_policy,
+            username: user.username.clone(),
+            client_traffic_policy,
             enterprise_enabled: is_business_license_active(),
             openid_display_name,
             disable_tunnels: enterprise_settings.disable_tunnels,

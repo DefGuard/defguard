@@ -13,7 +13,9 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    events::{ApiEvent, BidiStreamEvent, DirectorySyncEvent, LdapSyncEventType},
+    events::{
+        ApiEvent, BidiStreamEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent,
+    },
     grpc::proxy::client_mfa::ClientLoginSession,
     version::IncompatibleComponents,
 };
@@ -26,7 +28,7 @@ use tokio::{
     sync::{
         Mutex,
         broadcast::Sender,
-        mpsc::{Receiver, UnboundedSender},
+        mpsc::{Receiver, UnboundedSender, unbounded_channel},
         oneshot, watch,
     },
     task::JoinSet,
@@ -428,6 +430,7 @@ pub struct ProxyTxSet {
     pub(crate) ldap: UnboundedSender<LdapSyncEventType>,
     pub(crate) dirsync: UnboundedSender<DirectorySyncEvent>,
     pub(crate) event_tx: UnboundedSender<ApiEvent>,
+    pub(crate) connection_events: UnboundedSender<ProxyConnectionEvent>,
 }
 
 impl ProxyTxSet {
@@ -439,12 +442,23 @@ impl ProxyTxSet {
         dirsync: UnboundedSender<DirectorySyncEvent>,
         event_tx: UnboundedSender<ApiEvent>,
     ) -> Self {
+        let (connection_events, _receiver) = unbounded_channel();
         Self {
             wireguard,
             bidi_events,
             ldap,
             dirsync,
             event_tx,
+            connection_events,
         }
+    }
+
+    #[must_use]
+    pub fn with_connection_events(
+        mut self,
+        connection_events: UnboundedSender<ProxyConnectionEvent>,
+    ) -> Self {
+        self.connection_events = connection_events;
+        self
     }
 }

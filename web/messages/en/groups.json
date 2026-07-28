@@ -7,6 +7,10 @@
   "groups_col_name": "Group name",
   "groups_col_users_count": "Added users",
   "groups_col_type": "Type",
+  "groups_col_traffic_policy": "Traffic policy",
+  "groups_traffic_policy_none": "No limitations",
+  "groups_traffic_policy_disable_all": "Disable all traffic",
+  "groups_traffic_policy_force_all": "Force all traffic",
   "groups_col_locations": "Used in locations",
   "groups_type_admin": "Admin",
   "groups_type_user": "User"

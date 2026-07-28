@@ -7,7 +7,12 @@ import {
 import { useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
-import type { GroupInfo, NetworkLocation, User } from '../../../../shared/api/types';
+import type {
+  GroupClientTrafficPolicies,
+  GroupInfo,
+  NetworkLocation,
+  User,
+} from '../../../../shared/api/types';
 import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import type { MenuItemProps } from '../../../../shared/defguard-ui/components/Menu/types';
@@ -23,6 +28,7 @@ import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 
 type Props = {
   groups: GroupInfo[];
+  groupClientTrafficPolicies: GroupClientTrafficPolicies;
   locations: NetworkLocation[];
   users: User[];
 };
@@ -31,7 +37,12 @@ type RowData = GroupInfo;
 
 const columnHelper = createColumnHelper<RowData>();
 
-export const GroupsTable = ({ groups, locations, users }: Props) => {
+export const GroupsTable = ({
+  groups,
+  groupClientTrafficPolicies,
+  locations,
+  users,
+}: Props) => {
   const [search, setSearch] = useState('');
   const reservedNames = useMemo(() => groups.map((g) => g.name), [groups]);
 
@@ -81,6 +92,27 @@ export const GroupsTable = ({ groups, locations, users }: Props) => {
             )}
           </TableCell>
         ),
+      }),
+      columnHelper.display({
+        id: 'traffic_policy',
+        minSize: 200,
+        header: m.groups_col_traffic_policy(),
+        cell: (info) => {
+          const groupId = info.row.original.id;
+          let policy = '-';
+          if (groupClientTrafficPolicies.none.includes(groupId)) {
+            policy = m.groups_traffic_policy_none();
+          } else if (groupClientTrafficPolicies.disable_all_traffic.includes(groupId)) {
+            policy = m.groups_traffic_policy_disable_all();
+          } else if (groupClientTrafficPolicies.force_all_traffic.includes(groupId)) {
+            policy = m.groups_traffic_policy_force_all();
+          }
+          return (
+            <TableCell>
+              <span>{policy}</span>
+            </TableCell>
+          );
+        },
       }),
       columnHelper.accessor('vpn_locations', {
         minSize: 350,
@@ -157,7 +189,7 @@ export const GroupsTable = ({ groups, locations, users }: Props) => {
         },
       }),
     ],
-    [locations, reservedNames, users],
+    [groupClientTrafficPolicies, locations, reservedNames, users],
   );
 
   const table = useReactTable({

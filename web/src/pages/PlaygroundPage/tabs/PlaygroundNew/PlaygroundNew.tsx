@@ -1,4 +1,6 @@
 import './style.scss';
+import dayjs from 'dayjs';
+import { useState } from 'react';
 import { Fragment } from 'react/jsx-runtime';
 import { m } from '../../../../paraglide/messages';
 import { Card } from '../../../../shared/components/Card/Card';
@@ -7,6 +9,8 @@ import { SystemSelector } from '../../../../shared/components/SystemSelector/Sys
 import { PolicyOsVariant } from '../../../../shared/components/SystemSelector/types';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { DateInput } from '../../../../shared/defguard-ui/components/DateInput/DateInput';
+import type { DateRange } from '../../../../shared/defguard-ui/components/DateInput/types';
 import { Helper } from '../../../../shared/defguard-ui/components/Helper/Helper';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon';
 import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
@@ -16,11 +20,19 @@ import { TooltipContent } from '../../../../shared/defguard-ui/providers/tooltip
 import { TooltipProvider } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { PlaygroundPolicyInfoListTest } from './components/PlaygroundPolicyInfoListTest/PlaygroundPolicyInfoListTest';
 import { PlaygroundPolicyInfoListTestItem } from './components/PlaygroundPolicyInfoListTest/PlaygroundPolicyInfoListTestItem';
 import { PlaygroundTestDrawer } from './components/PlaygroundTestDrawer';
 
+const rangeFormat = 'DD/MM/YYYY HH:mm';
+
+const formatRange = (range: DateRange): string =>
+  `${dayjs(range.start).format(rangeFormat)} - ${dayjs(range.end).format(rangeFormat)}`;
+
 export const PlaygroundNew = () => {
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
+
   return (
     <div id="tab-new" className="tab">
       <PlaygroundTestDrawer />
@@ -103,6 +115,25 @@ export const PlaygroundNew = () => {
             </Helper>
           }
         />
+      </Card>
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <Card id="date-input-test">
+        <p>Date input</p>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <DateInput
+          placeholder="Select date range"
+          labels={{
+            start: 'Start',
+            end: 'End',
+            reset: 'Reset',
+            cancel: 'Cancel',
+            apply: 'Apply',
+          }}
+          value={dateRange}
+          onChange={setDateRange}
+        />
+        <SizedBox height={ThemeSpacing.Xl} />
+        <p>{isPresent(dateRange) ? formatRange(dateRange) : 'No range selected'}</p>
       </Card>
       <SizedBox height={ThemeSpacing.Xl3} />
     </div>

@@ -9,6 +9,7 @@ import type {
 import api from '../../shared/api/api';
 import type { ActivityLogSortKey } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
+import type { DateRange } from '../../shared/defguard-ui/components/DateInput/types';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
@@ -32,6 +33,7 @@ const mapColumnFiltersToApiParams = (
 
 export const ActivityLogPage = () => {
   const [search, setSearch] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [sortingState, setSortingState] = useState<SortingState>([
     { id: 'timestamp', desc: true },
   ]);
@@ -60,12 +62,14 @@ export const ActivityLogPage = () => {
   const activeSorting = sortingState[0];
 
   const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['activity-log', { search, sortingState, columnFilters }],
+    queryKey: ['activity-log', { search, dateRange, sortingState, columnFilters }],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.getActivityLog({
         page: pageParam,
         search: search.length > 0 ? search : undefined,
+        from: dateRange?.start.toISOString(),
+        until: dateRange?.end.toISOString(),
         sort_by: activeSorting?.id as ActivityLogSortKey,
         sort_order: activeSorting ? (activeSorting.desc ? 'desc' : 'asc') : undefined,
         event: eventFilter,
@@ -110,6 +114,8 @@ export const ActivityLogPage = () => {
             columnFilters={columnFilters}
             onColumnFiltersChange={setColumnFilters}
             locationFilterOptions={locationFilterOptions}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
           />
         )}
       </TablePageLayout>
