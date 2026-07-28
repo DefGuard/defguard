@@ -158,6 +158,15 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="directory_sync_user_groups">
+            {(field) => (
+              <field.FormInput
+                label={m.settings_openid_provider_label_sync_users_from_groups()}
+                helper={m.settings_openid_provider_helper_sync_users_from_groups_google()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="admin_email">
             {(field) => (
               <field.FormInput
@@ -176,15 +185,6 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="google_service_account_file">
             {(field) => <field.FormUploadField />}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="directory_sync_user_groups">
-            {(field) => (
-              <field.FormInput
-                label={m.settings_openid_provider_label_sync_users_from_groups()}
-                helper={m.settings_openid_provider_helper_sync_users_from_groups_google()}
-              />
-            )}
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls
