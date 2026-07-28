@@ -28,7 +28,8 @@ use defguard_core::{
     },
     events::{
         ApiEvent, ApiEventType, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
-        DirectorySyncEvent, DirectorySyncEventType, LdapSyncEventType, PasswordResetEvent,
+        DirectorySyncEvent, DirectorySyncEventType, GatewayConnectionEvent, LdapSyncEventType,
+        PasswordResetEvent, ProxyConnectionEvent,
     },
 };
 use defguard_session_manager::events::{SessionManagerEvent, SessionManagerEventType};
@@ -54,6 +55,8 @@ pub async fn run_event_logger(
     session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
     ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
     directory_sync_event_rx: UnboundedReceiver<DirectorySyncEvent>,
+    gateway_connection_event_rx: UnboundedReceiver<GatewayConnectionEvent>,
+    proxy_connection_event_rx: UnboundedReceiver<ProxyConnectionEvent>,
     activity_log_stream_reload_notify: Arc<Notify>,
     activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
@@ -68,6 +71,8 @@ pub async fn run_event_logger(
         session_manager_event_rx,
         ldap_sync_event_rx,
         directory_sync_event_rx,
+        gateway_connection_event_rx,
+        proxy_connection_event_rx,
         activity_log_stream_reload_notify,
         event_logger_tx,
     ));
@@ -97,12 +102,15 @@ pub async fn run_event_logger(
 /// an `EventLoggerMessage`, and forwards it to the batch processing loop.
 /// When any source channel closes, the task exits and the forwarding channel
 /// is dropped, causing the batch loop to shut down gracefully.
+#[allow(clippy::too_many_arguments)]
 async fn translate_and_forward(
     mut api_event_rx: UnboundedReceiver<ApiEvent>,
     mut bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     mut session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
     mut ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
     mut directory_sync_event_rx: UnboundedReceiver<DirectorySyncEvent>,
+    mut gateway_connection_event_rx: UnboundedReceiver<GatewayConnectionEvent>,
+    mut proxy_connection_event_rx: UnboundedReceiver<ProxyConnectionEvent>,
     reload_notify: Arc<Notify>,
     event_logger_tx: tokio::sync::mpsc::UnboundedSender<EventLoggerMessage>,
 ) {
@@ -126,6 +134,14 @@ async fn translate_and_forward(
             },
             event = directory_sync_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_directory_sync_event(e) } else {
                 error!("OIDC directory sync event channel closed");
+                break;
+            },
+            event = gateway_connection_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_gateway_connection_event(e) } else {
+                error!("Gateway connection event channel closed");
+                break;
+            },
+            event = proxy_connection_event_rx.recv() => if let Some(e) = event { EventLoggerMessage::from_proxy_connection_event(e) } else {
+                error!("Proxy connection event channel closed");
                 break;
             },
         };
@@ -968,6 +984,68 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ),
             };
             (module, event_type, description, metadata)
+        }
+        Event::GatewayConnection(event) => {
+            let (event_type, description) = match &event {
+                GatewayConnectionEvent::Connected { gateway_name, .. } => (
+                    EventType::GatewayConnected,
+                    format!("Gateway {gateway_name} connected"),
+                ),
+                GatewayConnectionEvent::Disconnected { gateway_name, .. } => (
+                    EventType::GatewayDisconnected,
+                    format!("Gateway {gateway_name} disconnected"),
+                ),
+            };
+            let metadata = match event {
+                GatewayConnectionEvent::Connected {
+                    gateway_id,
+                    gateway_name,
+                }
+                | GatewayConnectionEvent::Disconnected {
+                    gateway_id,
+                    gateway_name,
+                } => Some(serde_json::json!({
+                    "gateway_id": gateway_id,
+                    "gateway_name": gateway_name,
+                })),
+            };
+            (
+                ActivityLogModule::Defguard,
+                event_type,
+                Some(description),
+                metadata,
+            )
+        }
+        Event::ProxyConnection(event) => {
+            let (event_type, description) = match &event {
+                ProxyConnectionEvent::Connected { proxy_name, .. } => (
+                    EventType::ProxyConnected,
+                    format!("Proxy {proxy_name} connected"),
+                ),
+                ProxyConnectionEvent::Disconnected { proxy_name, .. } => (
+                    EventType::ProxyDisconnected,
+                    format!("Proxy {proxy_name} disconnected"),
+                ),
+            };
+            let metadata = match event {
+                ProxyConnectionEvent::Connected {
+                    proxy_id,
+                    proxy_name,
+                }
+                | ProxyConnectionEvent::Disconnected {
+                    proxy_id,
+                    proxy_name,
+                } => Some(serde_json::json!({
+                    "proxy_id": proxy_id,
+                    "proxy_name": proxy_name,
+                })),
+            };
+            (
+                ActivityLogModule::Defguard,
+                event_type,
+                Some(description),
+                metadata,
+            )
         }
         Event::OidcDirectorySync { provider, event } => {
             let module = ActivityLogModule::OidcDirectorySync;

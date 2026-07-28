@@ -1,3 +1,4 @@
+use defguard_core::events::ProxyConnectionEvent;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::support::complete_proxy_handshake;
@@ -15,6 +16,7 @@ async fn test_proxy_marked_connected_after_handshake(_: PgPoolOptions, options: 
     );
 
     complete_proxy_handshake(&mut context).await;
+    let mut connection_events_rx = context.take_connection_events_rx();
 
     let proxy_after = context.reload_proxy().await;
     assert!(
@@ -24,6 +26,13 @@ async fn test_proxy_marked_connected_after_handshake(_: PgPoolOptions, options: 
     assert!(
         proxy_after.connected_at.is_some(),
         "connected_at should be set"
+    );
+    assert_eq!(
+        connection_events_rx.recv().await,
+        Some(ProxyConnectionEvent::Connected {
+            proxy_id: context.proxy.id,
+            proxy_name: context.proxy.name.clone(),
+        })
     );
 
     context.finish().await.expect_server_finished().await;
@@ -39,6 +48,8 @@ async fn test_proxy_marked_disconnected_when_stream_closes(
     complete_proxy_handshake(&mut context).await;
 
     let proxy_id = context.proxy.id;
+    let proxy_name = context.proxy.name.clone();
+    let mut connection_events_rx = context.take_connection_events_rx();
     let pool = context.pool.clone();
     let mock_proxy = context.finish().await;
 
@@ -50,6 +61,20 @@ async fn test_proxy_marked_disconnected_when_stream_closes(
     assert!(
         proxy_after.disconnected_at.is_some(),
         "disconnected_at should be set after stream close"
+    );
+    assert_eq!(
+        connection_events_rx.recv().await,
+        Some(ProxyConnectionEvent::Connected {
+            proxy_id,
+            proxy_name: proxy_name.clone(),
+        })
+    );
+    assert_eq!(
+        connection_events_rx.recv().await,
+        Some(ProxyConnectionEvent::Disconnected {
+            proxy_id,
+            proxy_name,
+        })
     );
 
     mock_proxy.expect_server_finished().await;

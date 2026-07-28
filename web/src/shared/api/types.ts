@@ -951,12 +951,19 @@ export const ClientTrafficPolicy = {
 export type ClientTrafficPolicyValue =
   (typeof ClientTrafficPolicy)[keyof typeof ClientTrafficPolicy];
 
+export interface GroupClientTrafficPolicies {
+  none: number[];
+  disable_all_traffic: number[];
+  force_all_traffic: number[];
+}
+
 export interface SettingsEnterprise {
   admin_device_management: boolean;
   client_traffic_policy: ClientTrafficPolicyValue;
   only_client_activation: boolean;
   display_download_step: boolean;
   display_password_reset: boolean;
+  group_client_traffic_policies: GroupClientTrafficPolicies;
 }
 
 export type ApiDevicePostureOsRule =
