@@ -17,6 +17,8 @@ import {
 } from '../../shared/api/activity-log-types';
 import type { ActivityLogEvent } from '../../shared/api/types';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import { DateInput } from '../../shared/defguard-ui/components/DateInput/DateInput';
+import type { DateRange } from '../../shared/defguard-ui/components/DateInput/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -71,6 +73,8 @@ interface Props {
   columnFilters: ColumnFiltersState;
   onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   locationFilterOptions: SelectionOption<string>[];
+  dateRange: DateRange | null;
+  onDateRangeChange: (value: DateRange | null) => void;
 }
 
 export const ActivityLogTable = ({
@@ -85,6 +89,8 @@ export const ActivityLogTable = ({
   columnFilters,
   onColumnFiltersChange,
   locationFilterOptions,
+  dateRange,
+  onDateRangeChange,
 }: Props) => {
   const tableFilterMessages = useMemo(
     () => ({
@@ -247,6 +253,19 @@ export const ActivityLogTable = ({
           placeholder={m.controls_search()}
           initialValue={search}
           onChange={onSearchChange}
+        />
+        <DateInput
+          placeholder={m.activity_log_date_range_placeholder()}
+          testId="date-input"
+          labels={{
+            start: m.activity_log_date_range_start(),
+            end: m.activity_log_date_range_end(),
+            reset: m.controls_reset(),
+            cancel: m.controls_cancel(),
+            apply: m.controls_apply(),
+          }}
+          value={dateRange}
+          onChange={onDateRangeChange}
         />
       </TableTop>
       <TableBody

@@ -3,6 +3,7 @@ import { FormSelectMultiple } from './components/FormSelectMultiple/FormSelectMu
 import { FormUploadField } from './components/FormUploadField/FormUploadField';
 import { FormCheckbox } from './defguard-ui/components/form/FormCheckbox/FormCheckbox';
 import { FormCheckboxGroup } from './defguard-ui/components/form/FormCheckboxGroup/FormCheckboxGroup';
+import { FormDateInput } from './defguard-ui/components/form/FormDateInput/FormDateInput';
 import { FormInput } from './defguard-ui/components/form/FormInput/FormInput';
 import { FormInteractiveBlock } from './defguard-ui/components/form/FormInteractiveBlock/FormInteractiveBlock';
 import { FormRadio } from './defguard-ui/components/form/FormRadio/FormRadio';
@@ -30,6 +31,7 @@ export const { useAppForm, withFieldGroup, withForm } = createFormHook({
     FormInteractiveBlock,
     FormUploadField,
     FormCheckboxGroup,
+    FormDateInput,
   },
   formComponents: {
     FormSubmitButton,

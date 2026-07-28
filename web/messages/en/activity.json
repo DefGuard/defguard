@@ -129,5 +129,8 @@
   "activity_log_col_module": "Module",
   "activity_log_col_description": "Description",
   "activity_log_missing_ip": "No IP recorded",
-  "activity_log_missing_location": "No location recorded"
+  "activity_log_missing_location": "No location recorded",
+  "activity_log_date_range_placeholder": "Select range",
+  "activity_log_date_range_start": "Start",
+  "activity_log_date_range_end": "End"
 }
