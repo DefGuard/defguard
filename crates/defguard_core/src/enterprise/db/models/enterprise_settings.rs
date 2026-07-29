@@ -13,6 +13,8 @@ pub struct EnterpriseSettings {
     pub client_traffic_policy: ClientTrafficPolicy,
     /// If true, manual WireGuard setup is disabled
     pub only_client_activation: bool,
+    /// If true, bare WireGuard tunnels are disabled in the desktop client and CLI.
+    pub disable_tunnels: bool,
     /// If true, the client download page is shown during enrollment.
     pub display_download_step: bool,
     /// If true, the password reset option is displayed on the Edge home page.
@@ -54,6 +56,7 @@ impl Default for EnterpriseSettings {
             admin_device_management: false,
             client_traffic_policy: ClientTrafficPolicy::default(),
             only_client_activation: false,
+            disable_tunnels: false,
             display_download_step: true,
             display_password_reset: true,
         }
@@ -75,6 +78,7 @@ impl EnterpriseSettings {
                 "SELECT admin_device_management, \
 				client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\", \
 				only_client_activation, \
+				disable_tunnels, \
 				display_download_step, \
 				display_password_reset \
                 FROM \"enterprisesettings\" WHERE id = 1",
@@ -105,12 +109,14 @@ impl EnterpriseSettings {
             admin_device_management = $1, \
 			client_traffic_policy = $2, \
             only_client_activation = $3, \
-            display_download_step = $4, \
-            display_password_reset = $5 \
+            disable_tunnels = $4, \
+            display_download_step = $5, \
+            display_password_reset = $6 \
             WHERE id = 1",
             self.admin_device_management,
             self.client_traffic_policy as ClientTrafficPolicy,
             self.only_client_activation,
+            self.disable_tunnels,
             self.display_download_step,
             self.display_password_reset,
         )

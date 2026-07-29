@@ -42,6 +42,7 @@ async fn test_only_enterprise_can_modify_enterpise_settings(
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        disable_tunnels: false,
         display_download_step: true,
         display_password_reset: true,
     };
@@ -110,6 +111,7 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
         admin_device_management: true,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        disable_tunnels: false,
         display_download_step: true,
         display_password_reset: true,
     };
@@ -226,6 +228,7 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        disable_tunnels: false,
         display_download_step: true,
         display_password_reset: true,
     };
@@ -334,6 +337,7 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
+        disable_tunnels: false,
         display_download_step: true,
         display_password_reset: true,
     };
@@ -460,6 +464,7 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
+        disable_tunnels: false,
         display_download_step: true,
         display_password_reset: true,
     };
@@ -512,6 +517,7 @@ async fn test_display_flags_round_trip(_: PgPoolOptions, options: PgConnectOptio
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        disable_tunnels: false,
         display_download_step: false,
         display_password_reset: false,
     };
@@ -540,6 +546,7 @@ async fn test_display_flags_round_trip(_: PgPoolOptions, options: PgConnectOptio
         admin_device_management: false,
         client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
+        disable_tunnels: false,
         display_download_step: true,
         display_password_reset: true,
     };
@@ -562,6 +569,63 @@ async fn test_display_flags_round_trip(_: PgPoolOptions, options: PgConnectOptio
         body.settings.display_password_reset,
         "display_password_reset should be true"
     );
+}
+
+#[sqlx::test]
+async fn test_disable_tunnels_round_trip(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // admin login
+    let (client, _) = make_test_client(pool).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // Set disable_tunnels to true
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
+        only_client_activation: false,
+        disable_tunnels: true,
+        display_download_step: true,
+        display_password_reset: true,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back and verify
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: EnterpriseSettings = response.json().await;
+    assert!(body.disable_tunnels, "disable_tunnels should be true");
+
+    // Set back to false
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
+        only_client_activation: false,
+        disable_tunnels: false,
+        display_download_step: true,
+        display_password_reset: true,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back and verify
+    let response = client.get("/api/v1/settings_enterprise").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: EnterpriseSettings = response.json().await;
+    assert!(!body.disable_tunnels, "disable_tunnels should be false");
 }
 
 #[sqlx::test]

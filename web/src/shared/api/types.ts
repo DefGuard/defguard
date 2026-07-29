@@ -963,6 +963,7 @@ export interface SettingsEnterprise {
   only_client_activation: boolean;
   display_download_step: boolean;
   display_password_reset: boolean;
+  disable_tunnels: boolean;
   group_client_traffic_policies: GroupClientTrafficPolicies;
 }
 
