@@ -291,6 +291,20 @@ const MessageTemplatesSuggestion = () => {
               </li>
             ))}
           </ul>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <Divider />
+          <SizedBox height={ThemeSpacing.Lg} />
+          <p className="sidebar-text">
+            {m.settings_enrollment_template_help_markdown_tables()}{' '}
+            <a
+              href="https://github.github.com/gfm/#table"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {m.settings_enrollment_template_help_markdown_tables_link()}
+            </a>
+            .
+          </p>
         </>
       }
     />

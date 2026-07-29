@@ -15,6 +15,17 @@
     }
   }
 
+  .sidebar-text {
+    color: var(--fg-faded);
+    font: var(--t-body-sm-400);
+    line-height: 20px;
+
+    a {
+      color: var(--fg-faded);
+      font: var(--t-body-sm-600);
+    }
+  }
+
   .sidebar-token,
   .sidebar-token-medium {
     color: var(--fg-faded);
