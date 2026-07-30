@@ -234,12 +234,16 @@ async fn test_get_all_users_paginates() {
     assert!(
         users
             .iter()
-            .any(|u| u.email == "jane.doe@example.com" && u.active)
+            .any(|u| u.email == "jane.doe@example.com"
+                && u.active
+                && u.id.as_deref() == Some("user123"))
     );
     assert!(
         users
             .iter()
-            .any(|u| u.email == "john.smith@example.com" && !u.active)
+            .any(|u| u.email == "john.smith@example.com"
+                && !u.active
+                && u.id.as_deref() == Some("user456"))
     );
 }
 

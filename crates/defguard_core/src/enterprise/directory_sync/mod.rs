@@ -816,6 +816,21 @@ async fn sync_all_users_state(
                 )
                 .await?;
                 if existing_identity.is_none() {
+                    let claimed_by = UserDirectoryIdentity::find_user_by_provider_external_id(
+                        &mut *transaction,
+                        provider_id,
+                        directory_id,
+                    )
+                    .await?;
+                    if claimed_by.is_some_and(|user_id| user_id != existing_user.id) {
+                        warn!(
+                            "Directory id {directory_id} matches Defguard user {} by email, but \
+                            is already mapped to a different Defguard user. Skipping identity \
+                            backfill.",
+                            existing_user.username
+                        );
+                        continue;
+                    }
                     UserDirectoryIdentity::upsert(
                         &mut *transaction,
                         existing_user.id,

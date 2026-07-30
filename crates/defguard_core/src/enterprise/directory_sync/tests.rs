@@ -1227,6 +1227,102 @@ mod test {
         assert_eq!(defguard_users[0].id, _user.id);
     }
 
+    // Regression test: if a directory user's new email already belongs to a different Defguard
+    // user, updating in place would hit the email UNIQUE constraint. Directory sync should skip
+    // that user instead of aborting the whole sync.
+    #[sqlx::test]
+    async fn test_users_prefetch_email_changed_to_existing_user_email(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+
+        let directory_user = DirectoryUser {
+            email: "alice@email.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user],
+            None,
+        )
+        .await
+        .unwrap();
+
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        let alice_id = defguard_users[0].id;
+
+        // a different Defguard user already occupies the email alice is about to change to,
+        // e.g. someone who was invited manually
+        let _bob = User::new("bob", None, "Smith", "Bob", "bob@newteam.com", None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        // alice changes her email (matched by directory id) to bob's email
+        let directory_user_new_email = DirectoryUser {
+            email: "bob@newteam.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user_new_email],
+            None,
+        )
+        .await
+        .unwrap();
+
+        // sync succeeded as a whole; alice was skipped and left unchanged instead of the
+        // email update failing on the unique constraint
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 2);
+        let alice = defguard_users.iter().find(|u| u.id == alice_id).unwrap();
+        assert_eq!(alice.email, "alice@email.com");
+        let bob = defguard_users
+            .iter()
+            .find(|u| u.username == "bob")
+            .unwrap();
+        assert_eq!(bob.email, "bob@newteam.com");
+    }
+
     #[sqlx::test]
     async fn test_user_in_directory_groups(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
