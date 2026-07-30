@@ -1,0 +1,132 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"settings\" SET openid_enabled = $1, wireguard_enabled = $2, webhooks_enabled = $3, worker_enabled = $4, challenge_template = $5, instance_name = $6, main_logo_url = $7, nav_logo_url = $8, smtp_server = $9, smtp_port = $10, smtp_encryption = $11, smtp_user = $12, smtp_password = $13, smtp_sender = $14, smtp_authentication = $15, smtp_oauth_issuer_url = $16, smtp_oauth_client_id = $17, smtp_oauth_client_secret = $18, smtp_oauth_refresh_token = $19, enrollment_vpn_step_optional = $20, enrollment_welcome_message = $21, enrollment_welcome_email = $22, enrollment_welcome_email_subject = $23, enrollment_use_welcome_message_as_email = $24, enrollment_send_welcome_email = $25, enrollment_display_welcome_message = $26, uuid = $27, ldap_url = $28, ldap_bind_username = $29, ldap_bind_password  = $30, ldap_group_search_base = $31, ldap_user_search_base = $32, ldap_user_obj_class = $33, ldap_group_obj_class = $34, ldap_username_attr = $35, ldap_groupname_attr = $36, ldap_group_member_attr = $37, ldap_member_attr = $38, ldap_use_starttls = $39, ldap_tls_verify_cert = $40, openid_create_account = $41, license = $42, gateway_disconnect_notifications_enabled = $43, gateway_disconnect_notifications_inactivity_threshold = $44, gateway_disconnect_notifications_reconnect_notification_enabled = $45, ldap_sync_status = $46, ldap_enabled = $47, ldap_sync_enabled = $48, ldap_is_authoritative = $49, ldap_sync_interval = $50, ldap_user_auxiliary_obj_classes = $51, ldap_uses_ad = $52, ldap_user_rdn_attr = $53, ldap_sync_groups = $54, ldap_remote_enrollment_enabled = $55, ldap_remote_enrollment_send_invite = $56, openid_username_handling = $57, defguard_url = $58, default_admin_group_name = $59, authentication_period_days = $60, mfa_code_timeout_seconds = $61, public_proxy_url = $62, default_admin_id = $63, secret_key = $64, openid_signing_key_der = $65, enable_stats_purge = $66, stats_purge_frequency_hours = $67, stats_purge_threshold_days = $68, enrollment_token_timeout_hours = $69, password_reset_token_timeout_hours = $70, enrollment_session_timeout_minutes = $71, password_reset_session_timeout_minutes = $72, ldap_sync_account_status = $73, ldap_disable_password_management = $74, smtp_oauth_tenant_id = $75, smtp_tls_verify_cert = $76 WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        {
+          "Custom": {
+            "name": "smtp_encryption",
+            "kind": {
+              "Enum": [
+                "none",
+                "starttls",
+                "implicittls"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "smtp_authentication",
+            "kind": {
+              "Enum": [
+                "none",
+                "login",
+                "xoauth2"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        {
+          "Custom": {
+            "name": "ldap_sync_status",
+            "kind": {
+              "Enum": [
+                "insync",
+                "outofsync"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int4",
+        "TextArray",
+        "Bool",
+        "Text",
+        "TextArray",
+        "Bool",
+        "Bool",
+        {
+          "Custom": {
+            "name": "openid_username_handling",
+            "kind": {
+              "Enum": [
+                "remove_forbidden",
+                "replace_forbidden",
+                "prune_email_domain"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Text",
+        "Int8",
+        "Text",
+        "Bytea",
+        "Bool",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Bool",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3e465851dfa15717c0546a2e2fbbd332de9e8014d6cb1df0ba17fdf6d3a44ef4"
+}

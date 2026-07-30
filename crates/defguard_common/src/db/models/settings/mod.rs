@@ -183,6 +183,7 @@ pub struct Settings {
     pub enrollment_welcome_email_subject: Option<String>,
     pub enrollment_use_welcome_message_as_email: bool,
     pub enrollment_send_welcome_email: bool,
+    pub enrollment_display_welcome_message: bool,
     // Instance UUID needed for desktop client
     #[serde(skip)]
     pub uuid: Uuid,
@@ -279,6 +280,10 @@ impl fmt::Debug for Settings {
             .field(
                 "enrollment_send_welcome_email",
                 &self.enrollment_send_welcome_email,
+            )
+            .field(
+                "enrollment_display_welcome_message",
+                &self.enrollment_display_welcome_message,
             )
             .field("uuid", &self.uuid)
             .field("ldap_url", &self.ldap_url)
@@ -487,6 +492,7 @@ impl Settings {
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, \
+            enrollment_display_welcome_message, \
             uuid, ldap_url, ldap_bind_username, ldap_bind_password, \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
@@ -577,56 +583,57 @@ impl Settings {
             enrollment_welcome_email_subject = $23, \
             enrollment_use_welcome_message_as_email = $24, \
             enrollment_send_welcome_email = $25, \
-            uuid = $26, \
-            ldap_url = $27, \
-            ldap_bind_username = $28, \
-            ldap_bind_password  = $29, \
-            ldap_group_search_base = $30, \
-            ldap_user_search_base = $31, \
-            ldap_user_obj_class = $32, \
-            ldap_group_obj_class = $33, \
-            ldap_username_attr = $34, \
-            ldap_groupname_attr = $35, \
-            ldap_group_member_attr = $36, \
-            ldap_member_attr = $37, \
-            ldap_use_starttls = $38, \
-            ldap_tls_verify_cert = $39, \
-            openid_create_account = $40, \
-            license = $41, \
-            gateway_disconnect_notifications_enabled = $42, \
-            gateway_disconnect_notifications_inactivity_threshold = $43, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $44, \
-            ldap_sync_status = $45, \
-            ldap_enabled = $46, \
-            ldap_sync_enabled = $47, \
-            ldap_is_authoritative = $48, \
-            ldap_sync_interval = $49, \
-            ldap_user_auxiliary_obj_classes = $50, \
-            ldap_uses_ad = $51, \
-            ldap_user_rdn_attr = $52, \
-            ldap_sync_groups = $53, \
-            ldap_remote_enrollment_enabled = $54, \
-            ldap_remote_enrollment_send_invite = $55, \
-            openid_username_handling = $56, \
-            defguard_url = $57, \
-            default_admin_group_name = $58, \
-            authentication_period_days = $59, \
-            mfa_code_timeout_seconds = $60, \
-            public_proxy_url = $61, \
-            default_admin_id = $62, \
-            secret_key = $63, \
-            openid_signing_key_der = $64, \
-            enable_stats_purge = $65, \
-            stats_purge_frequency_hours = $66, \
-            stats_purge_threshold_days = $67, \
-            enrollment_token_timeout_hours = $68, \
-            password_reset_token_timeout_hours = $69, \
-            enrollment_session_timeout_minutes = $70, \
-            password_reset_session_timeout_minutes = $71, \
-            ldap_sync_account_status = $72, \
-            ldap_disable_password_management = $73, \
-            smtp_oauth_tenant_id = $74, \
-            smtp_tls_verify_cert = $75 \
+            enrollment_display_welcome_message = $26, \
+            uuid = $27, \
+            ldap_url = $28, \
+            ldap_bind_username = $29, \
+            ldap_bind_password  = $30, \
+            ldap_group_search_base = $31, \
+            ldap_user_search_base = $32, \
+            ldap_user_obj_class = $33, \
+            ldap_group_obj_class = $34, \
+            ldap_username_attr = $35, \
+            ldap_groupname_attr = $36, \
+            ldap_group_member_attr = $37, \
+            ldap_member_attr = $38, \
+            ldap_use_starttls = $39, \
+            ldap_tls_verify_cert = $40, \
+            openid_create_account = $41, \
+            license = $42, \
+            gateway_disconnect_notifications_enabled = $43, \
+            gateway_disconnect_notifications_inactivity_threshold = $44, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $45, \
+            ldap_sync_status = $46, \
+            ldap_enabled = $47, \
+            ldap_sync_enabled = $48, \
+            ldap_is_authoritative = $49, \
+            ldap_sync_interval = $50, \
+            ldap_user_auxiliary_obj_classes = $51, \
+            ldap_uses_ad = $52, \
+            ldap_user_rdn_attr = $53, \
+            ldap_sync_groups = $54, \
+            ldap_remote_enrollment_enabled = $55, \
+            ldap_remote_enrollment_send_invite = $56, \
+            openid_username_handling = $57, \
+            defguard_url = $58, \
+            default_admin_group_name = $59, \
+            authentication_period_days = $60, \
+            mfa_code_timeout_seconds = $61, \
+            public_proxy_url = $62, \
+            default_admin_id = $63, \
+            secret_key = $64, \
+            openid_signing_key_der = $65, \
+            enable_stats_purge = $66, \
+            stats_purge_frequency_hours = $67, \
+            stats_purge_threshold_days = $68, \
+            enrollment_token_timeout_hours = $69, \
+            password_reset_token_timeout_hours = $70, \
+            enrollment_session_timeout_minutes = $71, \
+            password_reset_session_timeout_minutes = $72, \
+            ldap_sync_account_status = $73, \
+            ldap_disable_password_management = $74, \
+            smtp_oauth_tenant_id = $75, \
+            smtp_tls_verify_cert = $76 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -653,6 +660,7 @@ impl Settings {
             self.enrollment_welcome_email_subject,
             self.enrollment_use_welcome_message_as_email,
             self.enrollment_send_welcome_email,
+            self.enrollment_display_welcome_message,
             self.uuid,
             self.ldap_url,
             self.ldap_bind_username,
