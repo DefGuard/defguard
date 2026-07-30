@@ -1,0 +1,1 @@
+ALTER TABLE settings DROP COLUMN enrollment_display_welcome_message;
