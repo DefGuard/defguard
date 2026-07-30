@@ -270,13 +270,22 @@ impl EnrollmentServer {
                 admin_device_management: enterprise_settings.admin_device_management,
                 mfa_required: instance_has_internal_mfa,
             };
+            let settings = Settings::get_current_settings();
+            let final_page_content = if settings.enrollment_display_welcome_message {
+                enrollment
+                    .get_welcome_page_content(&mut transaction)
+                    .await?
+            } else {
+                debug!(
+                    "Skipping enrollment welcome page content because it is disabled in settings"
+                );
+                String::new()
+            };
             let response = defguard_proto::client_types::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),
-                final_page_content: enrollment
-                    .get_welcome_page_content(&mut transaction)
-                    .await?,
+                final_page_content,
                 instance: Some(instance_info.into()),
                 settings: Some(enrollment_settings),
             };
