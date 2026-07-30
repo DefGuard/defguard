@@ -1241,6 +1241,7 @@ mod test {
         setup_pool,
     };
     use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
+    use defguard_proto::{client_types::EnrollmentStartRequest, proxy::DeviceInfo};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
@@ -1291,5 +1292,73 @@ mod test {
             .await;
 
         assert!(result.is_ok());
+    }
+
+    #[sqlx::test]
+    async fn test_display_welcome_message_if_disabled_returns_empty(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "test_user_disabled_display",
+            None,
+            "Test",
+            "User",
+            "user-disabled-display@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let token = Token::new(
+            user.id,
+            None,
+            Some(user.email.clone()),
+            3600,
+            Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
+        );
+        token.save(&pool).await.unwrap();
+
+        Settings::initialize_runtime_defaults(&pool).await.unwrap();
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        assert!(
+            settings
+                .enrollment_welcome_message
+                .as_deref()
+                .is_some_and(|msg| !msg.is_empty()),
+            "welcome message template must be non-empty for this test to be meaningful"
+        );
+        settings.enrollment_display_welcome_message = false;
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let (gateway_tx, _gateway_rx) = broadcast::channel(1);
+        let (bidi_event_tx, _bidi_events_rx) = unbounded_channel();
+        let (ldap_tx, _ldap_rx) = unbounded_channel();
+        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx);
+
+        let request = EnrollmentStartRequest {
+            token: token.id.clone(),
+        };
+        let device_info = DeviceInfo {
+            ip_address: "127.0.0.1".to_owned(),
+            user_agent: None,
+            version: None,
+            platform: None,
+        };
+        let response = server
+            .start_enrollment(request, Some(device_info))
+            .await
+            .expect("start_enrollment should succeed");
+
+        assert!(
+            response.final_page_content.is_empty(),
+            "final_page_content should be empty when display is disabled, got: {}",
+            response.final_page_content
+        );
     }
 }
