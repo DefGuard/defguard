@@ -77,7 +77,8 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): MessageTemplatesFormFields => ({
-      enrollment_display_welcome_message: true,
+      enrollment_display_welcome_message:
+        settings.enrollment_display_welcome_message ?? true,
       enrollment_welcome_message: settings.enrollment_welcome_message ?? '',
       enrollment_send_welcome_email: settings.enrollment_send_welcome_email ?? true,
       enrollment_welcome_email_subject: settings.enrollment_welcome_email_subject ?? '',
@@ -96,9 +97,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
       onChange: messageTemplatesFormSchema,
     },
     onSubmit: async ({ value }) => {
-      const { enrollment_display_welcome_message: _displayWelcomeMessage, ...payload } =
-        value;
-      await mutateAsync(payload);
+      await mutateAsync(value);
       form.reset(value);
     },
   });
@@ -123,27 +122,33 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
               <form.AppForm>
                 <div>
                   <form.AppField name="enrollment_display_welcome_message">
-                    {(field) => (
-                      <field.FormInteractiveBlock
-                        variant="empty"
-                        title={m.settings_enrollment_template_display_message_title()}
-                        content={m.settings_enrollment_template_display_message_description()}
-                      >
-                        <SizedBox height={ThemeSpacing.Xl2} />
-                        <form.AppField name="enrollment_welcome_message">
-                          {(field) => (
-                            <field.FormTextarea
-                              required
-                              label={m.settings_enrollment_template_message_label()}
-                              minHeight={383}
-                              maxHeight={383}
-                              helper={m.settings_enrollment_template_helper_welcome_message()}
-                            />
-                          )}
-                        </form.AppField>
-                        <Divider spacing={ThemeSpacing.Xl2} />
-                      </field.FormInteractiveBlock>
-                    )}
+                    {(field) => {
+                      const displayWelcomeMessage = Boolean(field.state.value);
+
+                      return (
+                        <field.FormInteractiveBlock
+                          variant="toggle"
+                          title={m.settings_enrollment_template_display_message_title()}
+                          content={m.settings_enrollment_template_display_message_description()}
+                        >
+                          <Fold open={displayWelcomeMessage}>
+                            <SizedBox height={ThemeSpacing.Xl2} />
+                            <form.AppField name="enrollment_welcome_message">
+                              {(field) => (
+                                <field.FormTextarea
+                                  required
+                                  label={m.settings_enrollment_template_message_label()}
+                                  minHeight={383}
+                                  maxHeight={383}
+                                  helper={m.settings_enrollment_template_helper_welcome_message()}
+                                />
+                              )}
+                            </form.AppField>
+                            <Divider spacing={ThemeSpacing.Xl2} />
+                          </Fold>
+                        </field.FormInteractiveBlock>
+                      );
+                    }}
                   </form.AppField>
                 </div>
                 <div>
