@@ -1,5 +1,5 @@
 use defguard_common::db::{Id, NoId};
-use sqlx::{FromRow, PgExecutor, query, query_as};
+use sqlx::{FromRow, PgExecutor, query, query_as, query_scalar};
 
 #[derive(Clone, Debug, PartialEq, FromRow)]
 pub struct UserDirectoryIdentity<I = NoId> {
@@ -19,15 +19,13 @@ impl UserDirectoryIdentity<Id> {
     where
         E: PgExecutor<'e>,
     {
-        use sqlx::Row;
-        let row = query(
+        query_scalar!(
             "SELECT user_id FROM user_directory_identity WHERE provider_id = $1 AND external_id = $2",
+            provider_id,
+            external_id
         )
-        .bind(provider_id)
-        .bind(external_id)
         .fetch_optional(executor)
-        .await?;
-        Ok(row.map(|r| r.get::<i64, _>("user_id")))
+        .await
     }
 
     /// Get the directory identity for a user and provider if it exists.
@@ -84,11 +82,13 @@ impl UserDirectoryIdentity<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query("DELETE FROM user_directory_identity WHERE user_id = $1 AND provider_id = $2")
-            .bind(user_id)
-            .bind(provider_id)
-            .execute(executor)
-            .await?;
+        query!(
+            "DELETE FROM user_directory_identity WHERE user_id = $1 AND provider_id = $2",
+            user_id,
+            provider_id
+        )
+        .execute(executor)
+        .await?;
         Ok(())
     }
 }
