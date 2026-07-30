@@ -14,7 +14,9 @@ chrono = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 defguard_common = { workspace = true }
 defguard_core = { workspace = true }
+defguard_event_logger = { workspace = true }
 rand = { workspace = true }
+serde_json = { workspace = true }
 sqlx = { workspace = true, features = [
     "postgres",
     "runtime-tokio-native-tls",

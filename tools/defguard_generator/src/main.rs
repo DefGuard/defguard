@@ -47,6 +47,9 @@ enum Commands {
         /// insert stats records in batches of specified size
         #[arg(long, default_value_t = 1000)]
         stats_batch_size: u16,
+        /// number of activity log events to generate (defaults to 20 when omitted)
+        #[arg(long)]
+        activity_log_events: Option<usize>,
     },
     /// Generates ACL rules
     AclRules {
@@ -89,6 +92,7 @@ async fn main() -> Result<()> {
             sessions_per_device,
             no_truncate,
             stats_batch_size,
+            activity_log_events,
         } => {
             let config = VpnSessionGeneratorConfig {
                 location_id,
@@ -97,6 +101,7 @@ async fn main() -> Result<()> {
                 sessions_per_device,
                 no_truncate,
                 stats_batch_size,
+                activity_log_events,
             };
 
             generate_vpn_session_stats(pool, config).await?;
