@@ -166,14 +166,17 @@ async fn test_all_users_parse() {
     let response = UsersResponse {
         users: vec![
             User {
+                id: "1".into(),
                 primary_email: "email@email.com".into(),
                 suspended: false,
             },
             User {
+                id: "2".into(),
                 primary_email: "email2@email.com".into(),
                 suspended: true,
             },
             User {
+                id: "3".into(),
                 primary_email: "email3@email.com".into(),
                 suspended: false,
             },
@@ -188,4 +191,5 @@ async fn test_all_users_parse() {
         .find(|u| u.email == "email2@email.com")
         .unwrap();
     assert!(!disabled_user.active);
+    assert_eq!(disabled_user.id, Some("2".to_owned()));
 }

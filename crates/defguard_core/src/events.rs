@@ -519,6 +519,7 @@ pub enum LdapSyncEventType {
 pub enum DirectorySyncEventType {
     UserCreated { user: User<Id> },
     UserDeleted { user: User<Id> },
+    UserModified { before: User<Id>, after: User<Id> },
     UserEnabled { user: User<Id> },
     UserDisabled { user: User<Id> },
     GroupCreated { group: Group<Id> },

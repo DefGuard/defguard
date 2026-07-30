@@ -176,6 +176,7 @@ async fn test_group_parse() {
 #[tokio::test]
 async fn test_user_parse() {
     let user = User {
+        id: "test_id".to_owned(),
         status: "ACTIVE".to_owned(),
         profile: UserProfile {
             email: "test_email".to_owned(),
@@ -184,9 +185,11 @@ async fn test_user_parse() {
 
     let dir_user: DirectoryUser = user.into();
     assert_eq!(dir_user.email, "test_email");
+    assert_eq!(dir_user.id, Some("test_id".to_owned()));
     assert!(dir_user.active);
 
     let user = User {
+        id: "test_id".to_owned(),
         status: "INACTIVE".to_owned(),
         profile: UserProfile {
             email: "test_email".to_owned(),

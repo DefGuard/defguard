@@ -164,6 +164,7 @@ pub enum EventType {
     // OIDC directory sync events
     OidcDirectorySyncUserCreated,
     OidcDirectorySyncUserDeleted,
+    OidcDirectorySyncUserModified,
     OidcDirectorySyncUserEnabled,
     OidcDirectorySyncUserDisabled,
     OidcDirectorySyncGroupCreated,

@@ -15,7 +15,10 @@ use thiserror::Error;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use super::{
-    db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
+    db::models::{
+        openid_provider::{DirectorySyncTarget, OpenIdProvider},
+        user_directory_identity::UserDirectoryIdentity,
+    },
     ldap::utils::ldap_update_users_state,
 };
 #[cfg(not(test))]
@@ -796,6 +799,34 @@ async fn sync_all_users_state(
             .filter(|user| is_allowed_user(user))
             .collect();
 
+        // Backfill the directory identity for users who already exist in Defguard but don't have
+        // an identity mapping stored yet, e.g. they were created before prefetch was enabled,
+        // imported some other way, or have only ever logged in via SSO.
+        let directory_ids_by_email: HashMap<&str, &str> = all_users
+            .iter()
+            .filter_map(|u| u.id.as_deref().map(|id| (u.email.as_str(), id)))
+            .collect();
+        for existing_user in &existing_users {
+            if let Some(&directory_id) = directory_ids_by_email.get(existing_user.email.as_str()) {
+                let provider_id = settings.id;
+                let existing_identity = UserDirectoryIdentity::find_by_user_and_provider(
+                    &mut *transaction,
+                    existing_user.id,
+                    provider_id,
+                )
+                .await?;
+                if existing_identity.is_none() {
+                    UserDirectoryIdentity::upsert(
+                        &mut *transaction,
+                        existing_user.id,
+                        provider_id,
+                        directory_id,
+                    )
+                    .await?;
+                }
+            }
+        }
+
         let core_settings = Settings::get_current_settings();
 
         // create missing users
@@ -808,6 +839,59 @@ async fn sync_all_users_state(
                     );
                 }
                 Some(details) => {
+                    // The directory ID uniquely identifies a user regardless of their email
+                    // address. If it matches an existing Defguard user, the user's email was
+                    // changed in the directory rather than the user being new. Update the
+                    // existing user instead of trying to create a duplicate.
+                    if let Some(directory_id) = &directory_user.id
+                        && let Some(user_id) =
+                            UserDirectoryIdentity::find_user_by_provider_external_id(
+                                &mut *transaction,
+                                settings.id,
+                                directory_id,
+                            )
+                            .await?
+                        && let Some(mut existing_user) =
+                            User::find_by_ids(&mut *transaction, &[user_id])
+                                .await?
+                                .pop()
+                    {
+                        // Another Defguard user may already occupy the new email address (e.g. a
+                        // manually created account). Skip this user.
+                        if let Some(conflicting_user) =
+                            User::find_by_email(&mut *transaction, &directory_user.email).await?
+                            && conflicting_user.id != existing_user.id
+                        {
+                            error!(
+                                "Cannot change email of user {} from {} to {} because that email \
+                                is already used by another Defguard user ({}). Skipping.",
+                                existing_user.username,
+                                existing_user.email,
+                                directory_user.email,
+                                conflicting_user.username
+                            );
+                            continue;
+                        }
+
+                        info!(
+                            "User {} changed email in the directory from {} to {}, updating in \
+                            Defguard",
+                            existing_user.username, existing_user.email, directory_user.email
+                        );
+                        let before = existing_user.clone();
+                        existing_user.email = directory_user.email.clone();
+                        existing_user.first_name = details.first_name.clone();
+                        existing_user.last_name = details.last_name.clone();
+                        existing_user.phone = details.phone_number.clone();
+                        existing_user.save(&mut *transaction).await?;
+                        dirsync_events.push(DirectorySyncEventType::UserModified {
+                            before,
+                            after: existing_user.clone(),
+                        });
+                        modified_users.push(existing_user);
+                        continue;
+                    }
+
                     debug!(
                         "User {directory_user:?} exists in directory but not in Defguard. Creating \
                         new Defguard user.",
@@ -836,7 +920,7 @@ async fn sync_all_users_state(
                         )));
                     }
 
-                    let mut user = User::new(
+                    let user = User::new(
                         username,
                         None,
                         details.last_name.clone(),
@@ -844,7 +928,6 @@ async fn sync_all_users_state(
                         directory_user.email.clone(),
                         details.phone_number.clone(),
                     );
-                    user.openid_sub.clone_from(&directory_user.id);
                     if let Some(limit) = user_limit.filter(|limit| user_count >= *limit) {
                         error!(
                             "Skipping directory sync import of user {} (email: {}) because \
@@ -858,6 +941,15 @@ async fn sync_all_users_state(
                         continue;
                     }
                     let new_user = user.save(&mut *transaction).await?;
+                    if let Some(directory_id) = &directory_user.id {
+                        UserDirectoryIdentity::upsert(
+                            &mut *transaction,
+                            new_user.id,
+                            settings.id,
+                            directory_id,
+                        )
+                        .await?;
+                    }
                     user_count += 1;
                     dirsync_events.push(DirectorySyncEventType::UserCreated {
                         user: new_user.clone(),
