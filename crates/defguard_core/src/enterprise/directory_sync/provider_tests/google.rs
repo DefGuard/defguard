@@ -49,20 +49,12 @@ async fn test_get_all_users_paginates() {
     let users = dirsync.get_all_users().await.unwrap();
 
     assert_eq!(users.len(), 2);
-    assert!(
-        users
-            .iter()
-            .any(|u| u.email == "jane.doe@example.com"
-                && u.active
-                && u.id.as_deref() == Some("108234567890123456789"))
-    );
-    assert!(
-        users
-            .iter()
-            .any(|u| u.email == "john.smith@example.com"
-                && !u.active
-                && u.id.as_deref() == Some("108234567890123456790"))
-    );
+    assert!(users.iter().any(|u| u.email == "jane.doe@example.com"
+        && u.active
+        && u.id.as_deref() == Some("108234567890123456789")));
+    assert!(users.iter().any(|u| u.email == "john.smith@example.com"
+        && !u.active
+        && u.id.as_deref() == Some("108234567890123456790")));
 }
 
 #[tokio::test]

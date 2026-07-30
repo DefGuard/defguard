@@ -1316,10 +1316,7 @@ mod test {
         assert_eq!(defguard_users.len(), 2);
         let alice = defguard_users.iter().find(|u| u.id == alice_id).unwrap();
         assert_eq!(alice.email, "alice@email.com");
-        let bob = defguard_users
-            .iter()
-            .find(|u| u.username == "bob")
-            .unwrap();
+        let bob = defguard_users.iter().find(|u| u.username == "bob").unwrap();
         assert_eq!(bob.email, "bob@newteam.com");
     }
 
