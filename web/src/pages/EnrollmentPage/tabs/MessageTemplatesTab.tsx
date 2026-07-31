@@ -1,5 +1,6 @@
+import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
@@ -102,6 +103,17 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
     },
   });
 
+  const displayWelcomeMessage = useStore(
+    form.store,
+    (s) => s.values.enrollment_display_welcome_message,
+  );
+
+  useEffect(() => {
+    if (!displayWelcomeMessage) {
+      form.setFieldValue('enrollment_use_welcome_message_as_email', false);
+    }
+  }, [displayWelcomeMessage, form]);
+
   return (
     <SettingsLayout suggestion={<MessageTemplatesSuggestion />}>
       <div data-testid="enrollment-tab-message-templates">
@@ -183,6 +195,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                     <>
                                       <field.FormCheckbox
                                         text={m.settings_enrollment_template_same_as_message()}
+                                        disabled={!displayWelcomeMessage}
                                       />
                                       <SizedBox height={ThemeSpacing.Xl} />
                                       <Fold
