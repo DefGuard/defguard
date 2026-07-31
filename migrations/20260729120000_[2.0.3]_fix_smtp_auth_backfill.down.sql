@@ -1,0 +1,3 @@
+-- No-op: this migration repairs data and cannot be safely reversed. Rows that
+-- were originally unauthenticated are indistinguishable from repaired ones, so
+-- there is nothing to restore.
