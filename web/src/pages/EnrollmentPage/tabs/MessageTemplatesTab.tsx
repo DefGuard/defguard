@@ -1,5 +1,6 @@
+import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
@@ -77,7 +78,8 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): MessageTemplatesFormFields => ({
-      enrollment_display_welcome_message: true,
+      enrollment_display_welcome_message:
+        settings.enrollment_display_welcome_message ?? true,
       enrollment_welcome_message: settings.enrollment_welcome_message ?? '',
       enrollment_send_welcome_email: settings.enrollment_send_welcome_email ?? true,
       enrollment_welcome_email_subject: settings.enrollment_welcome_email_subject ?? '',
@@ -96,12 +98,21 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
       onChange: messageTemplatesFormSchema,
     },
     onSubmit: async ({ value }) => {
-      const { enrollment_display_welcome_message: _displayWelcomeMessage, ...payload } =
-        value;
-      await mutateAsync(payload);
+      await mutateAsync(value);
       form.reset(value);
     },
   });
+
+  const displayWelcomeMessage = useStore(
+    form.store,
+    (s) => s.values.enrollment_display_welcome_message,
+  );
+
+  useEffect(() => {
+    if (!displayWelcomeMessage) {
+      form.setFieldValue('enrollment_use_welcome_message_as_email', false);
+    }
+  }, [displayWelcomeMessage, form]);
 
   return (
     <SettingsLayout suggestion={<MessageTemplatesSuggestion />}>
@@ -125,22 +136,24 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                   <form.AppField name="enrollment_display_welcome_message">
                     {(field) => (
                       <field.FormInteractiveBlock
-                        variant="empty"
+                        variant="toggle"
                         title={m.settings_enrollment_template_display_message_title()}
                         content={m.settings_enrollment_template_display_message_description()}
                       >
-                        <SizedBox height={ThemeSpacing.Xl2} />
-                        <form.AppField name="enrollment_welcome_message">
-                          {(field) => (
-                            <field.FormTextarea
-                              required
-                              label={m.settings_enrollment_template_message_label()}
-                              minHeight={383}
-                              maxHeight={383}
-                              helper={m.settings_enrollment_template_helper_welcome_message()}
-                            />
-                          )}
-                        </form.AppField>
+                        <Fold open={displayWelcomeMessage}>
+                          <SizedBox height={ThemeSpacing.Xl2} />
+                          <form.AppField name="enrollment_welcome_message">
+                            {(field) => (
+                              <field.FormTextarea
+                                required
+                                label={m.settings_enrollment_template_message_label()}
+                                minHeight={383}
+                                maxHeight={383}
+                                helper={m.settings_enrollment_template_helper_welcome_message()}
+                              />
+                            )}
+                          </form.AppField>
+                        </Fold>
                         <Divider spacing={ThemeSpacing.Xl2} />
                       </field.FormInteractiveBlock>
                     )}
@@ -178,6 +191,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                     <>
                                       <field.FormCheckbox
                                         text={m.settings_enrollment_template_same_as_message()}
+                                        disabled={!displayWelcomeMessage}
                                       />
                                       <SizedBox height={ThemeSpacing.Xl} />
                                       <Fold

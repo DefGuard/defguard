@@ -1164,6 +1164,7 @@ export interface SettingsEnrollment {
   enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
   enrollment_send_welcome_email: boolean;
+  enrollment_display_welcome_message: boolean;
 }
 
 export interface SettingsModules {
