@@ -53,16 +53,12 @@ async fn test_get_all_users_paginates() {
     let users = dirsync.get_all_users().await.unwrap();
 
     assert_eq!(users.len(), 2);
-    assert!(
-        users
-            .iter()
-            .any(|u| u.email == "jane.doe@example.com" && u.active)
-    );
-    assert!(
-        users
-            .iter()
-            .any(|u| u.email == "john.smith@example.com" && !u.active)
-    );
+    assert!(users.iter().any(|u| u.email == "jane.doe@example.com"
+        && u.active
+        && u.id.as_deref() == Some("00u4s64d9MYvzKmLW0g7")));
+    assert!(users.iter().any(|u| u.email == "john.smith@example.com"
+        && !u.active
+        && u.id.as_deref() == Some("00u5s74e0NZvzKmMX1h8")));
 }
 
 #[tokio::test]
@@ -176,6 +172,7 @@ async fn test_group_parse() {
 #[tokio::test]
 async fn test_user_parse() {
     let user = User {
+        id: "test_id".to_owned(),
         status: "ACTIVE".to_owned(),
         profile: UserProfile {
             email: "test_email".to_owned(),
@@ -184,9 +181,11 @@ async fn test_user_parse() {
 
     let dir_user: DirectoryUser = user.into();
     assert_eq!(dir_user.email, "test_email");
+    assert_eq!(dir_user.id, Some("test_id".to_owned()));
     assert!(dir_user.active);
 
     let user = User {
+        id: "test_id".to_owned(),
         status: "INACTIVE".to_owned(),
         profile: UserProfile {
             email: "test_email".to_owned(),

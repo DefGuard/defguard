@@ -86,6 +86,7 @@ struct UserProfile {
 
 #[derive(Debug, Deserialize)]
 struct User {
+    id: String,
     status: String,
     profile: UserProfile,
 }
@@ -95,7 +96,7 @@ impl From<User> for DirectoryUser {
         Self {
             email: val.profile.email,
             active: ACTIVE_STATUS.contains(&val.status.as_str()),
-            id: None,
+            id: Some(val.id),
             // TODO: currently not supported for Okta
             user_details: None,
         }

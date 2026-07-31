@@ -21,7 +21,10 @@ mod test {
     use crate::{
         device_access::join_device_to_all_networks,
         enterprise::{
-            db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind},
+            db::models::{
+                openid_provider::{DirectorySyncTarget, OpenIdProvider, OpenIdProviderKind},
+                user_directory_identity::UserDirectoryIdentity,
+            },
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{get_counts, update_counts},
         },
@@ -1029,6 +1032,292 @@ mod test {
 
         // No events
         assert!(gateway_rx.try_recv().is_err());
+    }
+
+    // Regression test for a bug where changing a user's email address in the directory (e.g.
+    // Entra ID) caused directory sync to try to create a new Defguard user for them.
+    #[sqlx::test]
+    async fn test_users_prefetch_email_changed_in_directory(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+
+        // enable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+
+        let directory_user = DirectoryUser {
+            email: "alice@email.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user],
+            None,
+        )
+        .await
+        .unwrap();
+
+        // user was imported with a username derived from their original email
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        assert_eq!(defguard_users[0].username, "alice");
+        assert_eq!(defguard_users[0].email, "alice@email.com");
+        let original_user_id = defguard_users[0].id;
+
+        // the same directory user (matched by directory id) changes their email in the
+        // directory, e.g. via a name change in Entra ID
+        let directory_user_new_email = DirectoryUser {
+            email: "alice@newteam.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user_new_email],
+            None,
+        )
+        .await
+        .unwrap();
+
+        // the existing user was updated in place instead of a duplicate being created
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        assert_eq!(defguard_users[0].username, "alice");
+        assert_eq!(defguard_users[0].email, "alice@newteam.com");
+        assert_eq!(defguard_users[0].id, original_user_id);
+    }
+
+    // Regression test for the case where a user was never created through directory sync's
+    // prefetch (e.g. they were invited manually, or existed before prefetch was enabled) and so
+    // has no directory identity mapping stored. Directory sync should backfill it the first time
+    // it matches such a user by email, so that a later email change in the directory can still be
+    // matched by directory ID.
+    #[sqlx::test]
+    async fn test_users_prefetch_backfills_directory_identity_for_preexisting_user(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+
+        // enable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+
+        // user already exists in Defguard, created some other way (e.g. manual invite)
+        let _user = User::new("alice", None, "Doe", "Alice", "alice@email.com", None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let directory_user = DirectoryUser {
+            email: "alice@email.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user],
+            None,
+        )
+        .await
+        .unwrap();
+
+        // no duplicate was created, and the directory ID was backfilled into the mapping table
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        let provider = OpenIdProvider::get_current(&pool).await.unwrap().unwrap();
+        let identity = UserDirectoryIdentity::find_by_user_and_provider(
+            &pool,
+            defguard_users[0].id,
+            provider.id,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            identity.map(|i| i.external_id),
+            Some("entra-alice-id".to_string())
+        );
+
+        // the user changes their email in the directory
+        let directory_user_new_email = DirectoryUser {
+            email: "alice@newteam.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user_new_email],
+            None,
+        )
+        .await
+        .unwrap();
+
+        // the existing user was updated in place instead of a duplicate being created
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        assert_eq!(defguard_users[0].username, "alice");
+        assert_eq!(defguard_users[0].email, "alice@newteam.com");
+        assert_eq!(defguard_users[0].id, _user.id);
+    }
+
+    // Regression test: if a directory user's new email already belongs to a different Defguard
+    // user, updating in place would hit the email UNIQUE constraint. Directory sync should skip
+    // that user instead of aborting the whole sync.
+    #[sqlx::test]
+    async fn test_users_prefetch_email_changed_to_existing_user_email(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+
+        let directory_user = DirectoryUser {
+            email: "alice@email.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user],
+            None,
+        )
+        .await
+        .unwrap();
+
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 1);
+        let alice_id = defguard_users[0].id;
+
+        // a different Defguard user already occupies the email alice is about to change to,
+        // e.g. someone who was invited manually
+        let _bob = User::new("bob", None, "Smith", "Bob", "bob@newteam.com", None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        // alice changes her email (matched by directory id) to bob's email
+        let directory_user_new_email = DirectoryUser {
+            email: "bob@newteam.com".into(),
+            active: true,
+            id: Some("entra-alice-id".into()),
+            user_details: Some(DirectoryUserDetails {
+                last_name: "Doe".into(),
+                first_name: "Alice".into(),
+                phone_number: None,
+            }),
+        };
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user_new_email],
+            None,
+        )
+        .await
+        .unwrap();
+
+        // sync succeeded as a whole; alice was skipped and left unchanged instead of the
+        // email update failing on the unique constraint
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 2);
+        let alice = defguard_users.iter().find(|u| u.id == alice_id).unwrap();
+        assert_eq!(alice.email, "alice@email.com");
+        let bob = defguard_users.iter().find(|u| u.username == "bob").unwrap();
+        assert_eq!(bob.email, "bob@newteam.com");
     }
 
     #[sqlx::test]

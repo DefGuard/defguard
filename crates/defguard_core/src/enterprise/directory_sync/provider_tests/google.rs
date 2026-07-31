@@ -49,16 +49,12 @@ async fn test_get_all_users_paginates() {
     let users = dirsync.get_all_users().await.unwrap();
 
     assert_eq!(users.len(), 2);
-    assert!(
-        users
-            .iter()
-            .any(|u| u.email == "jane.doe@example.com" && u.active)
-    );
-    assert!(
-        users
-            .iter()
-            .any(|u| u.email == "john.smith@example.com" && !u.active)
-    );
+    assert!(users.iter().any(|u| u.email == "jane.doe@example.com"
+        && u.active
+        && u.id.as_deref() == Some("108234567890123456789")));
+    assert!(users.iter().any(|u| u.email == "john.smith@example.com"
+        && !u.active
+        && u.id.as_deref() == Some("108234567890123456790")));
 }
 
 #[tokio::test]
@@ -166,14 +162,17 @@ async fn test_all_users_parse() {
     let response = UsersResponse {
         users: vec![
             User {
+                id: "1".into(),
                 primary_email: "email@email.com".into(),
                 suspended: false,
             },
             User {
+                id: "2".into(),
                 primary_email: "email2@email.com".into(),
                 suspended: true,
             },
             User {
+                id: "3".into(),
                 primary_email: "email3@email.com".into(),
                 suspended: false,
             },
@@ -188,4 +187,5 @@ async fn test_all_users_parse() {
         .find(|u| u.email == "email2@email.com")
         .unwrap();
     assert!(!disabled_user.active);
+    assert_eq!(disabled_user.id, Some("2".to_owned()));
 }

@@ -1056,6 +1056,9 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 DirectorySyncEventType::UserDeleted { user } => {
                     Some(format!("{provider} directory sync deleted user {user}"))
                 }
+                DirectorySyncEventType::UserModified { after, .. } => {
+                    Some(format!("{provider} directory sync modified user {after}"))
+                }
                 DirectorySyncEventType::UserEnabled { user } => {
                     Some(format!("{provider} directory sync enabled user {user}"))
                 }
@@ -1089,6 +1092,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     serde_json::to_value(OidcDirectorySyncUserMetadata {
                         provider,
                         user: user.into(),
+                    })
+                    .ok(),
+                ),
+                DirectorySyncEventType::UserModified { before, after } => (
+                    EventType::OidcDirectorySyncUserModified,
+                    serde_json::to_value(UserModifiedMetadata {
+                        before: before.into(),
+                        after: after.into(),
                     })
                     .ok(),
                 ),

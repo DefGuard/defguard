@@ -16,7 +16,14 @@ use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
 use sqlx::{PgConnection, PgPool, QueryBuilder, query};
 use tracing::{debug, info};
 
-use crate::{user_devices::prepare_user_devices, users::prepare_users};
+use crate::{
+    activity_log::{
+        ActivityLogGeneratorConfig, DEFAULT_NUM_EVENTS, DEFAULT_TIME_SPAN_MINUTES,
+        generate_activity_log,
+    },
+    user_devices::prepare_user_devices,
+    users::prepare_users,
+};
 
 const STATS_COLLECTION_INTERVAL: Duration = Duration::seconds(30);
 const HANDSHAKE_INTERVAL: Duration = Duration::minutes(2);
@@ -29,6 +36,7 @@ pub struct VpnSessionGeneratorConfig {
     pub sessions_per_device: u8,
     pub no_truncate: bool,
     pub stats_batch_size: u16,
+    pub activity_log_events: Option<usize>,
 }
 
 pub async fn generate_vpn_session_stats(
@@ -58,6 +66,16 @@ pub async fn generate_vpn_session_stats(
     for location in locations {
         generate_stats_for_location(&pool, &config, location).await?;
     }
+
+    generate_activity_log(
+        &pool,
+        ActivityLogGeneratorConfig {
+            num_events: config.activity_log_events.unwrap_or(DEFAULT_NUM_EVENTS),
+            time_span_minutes: DEFAULT_TIME_SPAN_MINUTES,
+            num_users: config.num_users,
+        },
+    )
+    .await?;
 
     Ok(())
 }
