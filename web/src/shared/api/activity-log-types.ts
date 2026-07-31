@@ -151,6 +151,7 @@ export const ActivityLogEventType = {
 
   OidcDirectorySyncUserCreated: 'oidc_directory_sync_user_created',
   OidcDirectorySyncUserDeleted: 'oidc_directory_sync_user_deleted',
+  OidcDirectorySyncUserModified: 'oidc_directory_sync_user_modified',
   OidcDirectorySyncUserEnabled: 'oidc_directory_sync_user_enabled',
   OidcDirectorySyncUserDisabled: 'oidc_directory_sync_user_disabled',
   OidcDirectorySyncGroupCreated: 'oidc_directory_sync_group_created',

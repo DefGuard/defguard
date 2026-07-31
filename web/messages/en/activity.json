@@ -113,6 +113,7 @@
   "activity_event_ldap_sync_outbound_group_member_removed": "Defguard removed LDAP group member",
   "activity_event_oidc_directory_sync_user_created": "Directory sync created user",
   "activity_event_oidc_directory_sync_user_deleted": "Directory sync deleted user",
+  "activity_event_oidc_directory_sync_user_modified": "Directory sync modified user",
   "activity_event_oidc_directory_sync_user_enabled": "Directory sync enabled user",
   "activity_event_oidc_directory_sync_user_disabled": "Directory sync disabled user",
   "activity_event_oidc_directory_sync_group_created": "Directory sync created group",

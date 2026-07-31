@@ -1605,6 +1605,16 @@ fn directory_sync_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("deleted user"),
         },
         EventTestCase {
+            name: "OidcDirectorySyncUserModified",
+            message: dirsync_msg(DirectorySyncEventType::UserModified {
+                before: user.clone(),
+                after: user.clone(),
+            }),
+            event_type: EventType::OidcDirectorySyncUserModified,
+            module: ActivityLogModule::OidcDirectorySync,
+            description_contains: Some("modified user"),
+        },
+        EventTestCase {
             name: "OidcDirectorySyncUserEnabled",
             message: dirsync_msg(DirectorySyncEventType::UserEnabled { user: user.clone() }),
             event_type: EventType::OidcDirectorySyncUserEnabled,

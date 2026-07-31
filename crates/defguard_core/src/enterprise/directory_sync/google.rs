@@ -98,6 +98,7 @@ impl From<GroupMembersResponse> for Vec<String> {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct User {
+    id: String,
     #[serde(rename = "primaryEmail")]
     primary_email: String,
     suspended: bool,
@@ -108,7 +109,7 @@ impl From<User> for DirectoryUser {
         Self {
             email: val.primary_email,
             active: !val.suspended,
-            id: None,
+            id: Some(val.id),
             // TODO: currently not supported for Google
             user_details: None,
         }
