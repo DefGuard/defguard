@@ -153,8 +153,8 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                               />
                             )}
                           </form.AppField>
-                          <Divider spacing={ThemeSpacing.Xl2} />
                         </Fold>
+                        <Divider spacing={ThemeSpacing.Xl2} />
                       </field.FormInteractiveBlock>
                     )}
                   </form.AppField>
