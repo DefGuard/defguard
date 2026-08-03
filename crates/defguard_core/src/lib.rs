@@ -251,6 +251,14 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 mod openapi;
 
 /// Simple health-check.
+#[utoipa::path(
+    get,
+    path = "/api/v1/health",
+    tag = "system",
+    responses(
+        (status = 200, description = "Core is running.", body = String),
+    )
+)]
 pub async fn health_check() -> &'static str {
     "alive"
 }
@@ -259,6 +267,10 @@ pub async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
+/// Serves this OpenAPI specification, same as `/api-docs/openapi.json`.
+///
+/// Not listed in the specification itself, because the handler name collides with the
+/// `openapi` module holding `ApiDoc`.
 async fn openapi() -> Json<utoipa::openapi::OpenApi> {
     Json(openapi::ApiDoc::openapi())
 }
