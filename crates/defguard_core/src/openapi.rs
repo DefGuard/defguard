@@ -30,7 +30,7 @@ use super::{
         user::{self, UserDetails},
         webhooks, wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
-        worker, yubikey,
+        yubikey,
     },
 };
 
@@ -194,12 +194,6 @@ Responses that are not documented per operation:
         webhooks::get_webhook,
         webhooks::change_enabled,
         webhooks::change_webhook,
-        // worker
-        worker::list_workers,
-        worker::create_job,
-        worker::create_worker_token,
-        worker::remove_worker,
-        worker::job_status,
         // settings
         settings::get_settings,
         settings::patch_settings,
@@ -311,7 +305,6 @@ Responses that are not documented per operation:
         (name = "SSH key", description = "SSH and GPG authentication keys of users"),
         (name = "API token", description = "API tokens used for `Authorization: Bearer` authentication"),
         (name = "webhook", description = "Webhooks triggered by user and provisioning events"),
-        (name = "worker", description = "YubiKey provisioning workers and jobs"),
         (name = "settings", description = "Instance and enterprise settings"),
         (name = "LDAP", description = "LDAP connection tests and sync dry runs"),
         (name = "activity log", description = "Activity log events and activity log streams"),
