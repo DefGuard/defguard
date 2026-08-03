@@ -22,15 +22,10 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
 /// List all SNAT bindings for a WireGuard location
-///
-/// # Returns
-/// - `Vec<UserSnatBinding<Id>>` object
-///
-/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/snat",
@@ -40,10 +35,10 @@ use crate::{
     ),
     responses(
         (status = 200, description = "List of SNAT bindings", body = [UserSnatBinding]),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - location does not exist"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - Admin role required", body = ApiErrorResponse),
+        (status = 404, description = "Not found - location does not exist", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -83,11 +78,6 @@ pub struct NewUserSnatBinding {
 /// Create a new SNAT binding for a user in a WireGuard location
 ///
 /// Create snat binding basing on `NewUserSnatBinding` object.
-///
-/// # Returns
-/// - `UserSnatBinding<Id>` object
-///
-/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/network/{location_id}/snat",
@@ -98,12 +88,12 @@ pub struct NewUserSnatBinding {
     request_body = NewUserSnatBinding,
     responses(
         (status = 201, description = "SNAT binding created successfully", body = UserSnatBinding),
-        (status = 400, description = "Bad request - Invalid input data"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - location or user does not exist"),
-        (status = 409, description = "Conflict - Binding already exists"),
-        (status = 500, description = "Internal server error")
+        (status = 400, description = "Bad request - Invalid input data", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - Admin role required", body = ApiErrorResponse),
+        (status = 404, description = "Not found - location or user does not exist", body = ApiErrorResponse),
+        (status = 409, description = "Conflict - Binding already exists", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -178,11 +168,6 @@ pub struct EditUserSnatBinding {
 /// Modify an existing SNAT binding for a user in a WireGuard location
 ///
 /// Modify an **existing** SNAT binding basing on `EditUserSnatBinding` object.
-///
-/// # Returns
-/// - `UserSnatBinding` object
-///
-/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
@@ -194,11 +179,11 @@ pub struct EditUserSnatBinding {
     request_body = EditUserSnatBinding,
     responses(
         (status = 200, description = "SNAT binding updated successfully", body = UserSnatBinding),
-        (status = 400, description = "Bad request - Invalid input data"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - SNAT binding does not exist"),
-        (status = 500, description = "Internal server error")
+        (status = 400, description = "Bad request - Invalid input data", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - Admin role required", body = ApiErrorResponse),
+        (status = 404, description = "Not found - SNAT binding does not exist", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -270,11 +255,6 @@ pub async fn modify_snat_binding(
 /// Delete an existing SNAT binding for a user in a WireGuard location
 ///
 /// Delete an existing SNAT binding basing on `location_id` and `user_id`.
-///
-/// # Returns
-/// - empty JSON
-///
-/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
@@ -285,10 +265,10 @@ pub async fn modify_snat_binding(
     ),
     responses(
         (status = 200, description = "SNAT binding deleted successfully"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - SNAT binding does not exist"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - Admin role required", body = ApiErrorResponse),
+        (status = 404, description = "Not found - SNAT binding does not exist", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),

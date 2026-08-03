@@ -48,7 +48,8 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
-        ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+        ApiErrorResponse, ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME,
+        SIGN_IN_COOKIE_NAME,
         auth::create_session,
         cookie_domain,
         mail::send_user_import_blocked_email,
@@ -557,6 +558,19 @@ pub async fn user_from_claims(
     Ok(user)
 }
 
+/// Start login through the external OpenID provider.
+///
+/// Returns the provider authorization URL the user should be redirected to.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/auth_info",
+    tag = "OpenID",
+    responses(
+        (status = 200, description = "Authorization URL of the external provider.", body = Object),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to build the authorization URL.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn get_auth_info(
     _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
@@ -634,6 +648,22 @@ pub struct AuthenticationResponse {
     state: CsrfToken,
 }
 
+/// Finish login through the external OpenID provider.
+///
+/// Exchanges the authorization code for tokens and creates a defguard session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/openid/callback",
+    tag = "OpenID",
+    request_body = Object,
+    responses(
+        (status = 200, description = "User authenticated.", body = Object),
+        (status = 400, description = "Invalid callback payload.", body = ApiErrorResponse, example = json!({"msg": "Invalid state"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to finish external login.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,

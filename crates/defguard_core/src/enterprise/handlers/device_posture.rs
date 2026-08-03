@@ -30,7 +30,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
     handlers::{
-        ApiResponse, ApiResult,
+        ApiErrorResponse, ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
     location_management::allowed_peers::get_location_allowed_peers,
@@ -645,15 +645,15 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
 
 #[utoipa::path(
     post,
-    path = "/api/v1/posture",
+    path = "/api/v1/device-posture",
     tag = "DevicePosture",
     request_body = EditDevicePosture,
     responses(
         (status = 201, description = "Posture check created successfully", body = ApiDevicePosture),
-        (status = 400, description = "Bad request - invalid field value"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
-        (status = 500, description = "Internal server error")
+        (status = 400, description = "Bad request - invalid field value", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - enterprise license required", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -727,7 +727,7 @@ pub async fn create_device_posture(
     tag = "DevicePosture",
     responses(
         (status = 200, description = "Valid device posture OS and client versions", body = DevicePostureVersionMetadata),
-        (status = 401, description = "Unauthorized"),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
     ),
     security(
         ("cookie" = []),
@@ -757,12 +757,12 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
     tag = "DevicePosture",
     params(
         ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page (default: 10)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
     ),
     responses(
-        (status = 200, description = "Paginated list of device posture check policies", body = [ApiDevicePosture]),
-        (status = 401, description = "Unauthorized"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "Paginated list of device posture check policies", body = PaginatedApiResponse<ApiDevicePosture>),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -835,9 +835,9 @@ pub async fn list_device_postures(
     ),
     responses(
         (status = 200, description = "Device posture check policy", body = ApiDevicePosture),
-        (status = 401, description = "Unauthorized"),
-        (status = 404, description = "Not found"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 404, description = "Not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -879,11 +879,11 @@ pub async fn get_device_posture(
     request_body = EditDevicePosture,
     responses(
         (status = 200, description = "Device posture check policy updated successfully", body = ApiDevicePosture),
-        (status = 400, description = "Bad request - invalid field value"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
-        (status = 404, description = "Not found"),
-        (status = 500, description = "Internal server error")
+        (status = 400, description = "Bad request - invalid field value", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - enterprise license required", body = ApiErrorResponse),
+        (status = 404, description = "Not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -972,10 +972,10 @@ pub async fn update_device_posture(
     ),
     responses(
         (status = 200, description = "Device posture check policy deleted successfully"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
-        (status = 404, description = "Not found"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - enterprise license required", body = ApiErrorResponse),
+        (status = 404, description = "Not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -1035,10 +1035,10 @@ pub async fn delete_device_posture(
     ),
     responses(
         (status = 201, description = "Duplicate created successfully", body = ApiDevicePosture),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
-        (status = 404, description = "Not found"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - enterprise license required", body = ApiErrorResponse),
+        (status = 404, description = "Not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -1135,10 +1135,10 @@ pub struct AssignLocationsData {
     request_body = AssignPosturesData,
     responses(
         (status = 200, description = "Postures assigned successfully", body = [Id]),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
-        (status = 404, description = "Location not found"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - enterprise license required", body = ApiErrorResponse),
+        (status = 404, description = "Location not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
@@ -1204,10 +1204,10 @@ pub async fn set_postures_for_location(
     request_body = AssignLocationsData,
     responses(
         (status = 200, description = "Locations assigned successfully", body = [Id]),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - enterprise license required"),
-        (status = 404, description = "Posture check not found"),
-        (status = 500, description = "Internal server error")
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden - enterprise license required", body = ApiErrorResponse),
+        (status = 404, description = "Posture check not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse)
     ),
     security(
         ("cookie" = []),
