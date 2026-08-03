@@ -248,7 +248,7 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("Failed to parse phone number regex")
 });
 
-mod openapi;
+pub mod openapi;
 
 /// Simple health-check.
 #[utoipa::path(

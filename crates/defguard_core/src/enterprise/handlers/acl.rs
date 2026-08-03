@@ -517,7 +517,7 @@ pub(crate) async fn delete_acl_rule(
     Ok(ApiResponse::default())
 }
 
-/// Apply ACL alias.
+/// Apply ACL rules.
 #[utoipa::path(
     put,
     path = "/api/v1/acl/rule/apply",

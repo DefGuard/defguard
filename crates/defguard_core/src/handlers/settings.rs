@@ -368,8 +368,9 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
     }
 }
 
-/// Tests the LDAP connection using the provided (not yet saved) settings.
-/// Test the LDAP connection using the provided (not yet saved) settings.
+/// Test the LDAP connection.
+///
+/// Uses the settings from the request body, which do not have to be saved yet.
 #[utoipa::path(
     post,
     path = "/api/v1/ldap/test",
@@ -405,12 +406,10 @@ pub(crate) async fn test_submitted_ldap_settings(
     }
 }
 
-/// Previews the user changes a full LDAP sync would make using the provided (not yet saved)
-/// settings. This is strictly read-only: nothing is imported, removed or persisted.
-/// Preview the user changes a full LDAP sync would make.
+/// Preview the changes a full LDAP sync would make.
 ///
-/// Uses the provided (not yet saved) settings. This is strictly read-only: nothing is
-/// imported, removed or persisted.
+/// Uses the settings from the request body, which do not have to be saved yet. Read-only:
+/// nothing is imported, removed or persisted.
 #[utoipa::path(
     post,
     path = "/api/v1/ldap/dry_run",

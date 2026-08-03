@@ -412,7 +412,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         .push(sorting.sort_order.to_string());
 }
 
-/// Get user
+/// Get user.
 ///
 /// Return a user based on provided username parameter.
 #[utoipa::path(
@@ -470,9 +470,7 @@ pub(crate) async fn get_user(
     Ok(ApiResponse::json(user_details, StatusCode::OK))
 }
 
-/// Add user
-///
-/// Add a new user based on `AddUserData` object.
+/// Add a user.
 #[utoipa::path(
     post,
     path = "/api/v1/user",
@@ -609,7 +607,7 @@ pub(crate) async fn add_user(
     Ok(ApiResponse::json(&user_info, StatusCode::CREATED))
 }
 
-/// Trigger enrollment process manually
+/// Trigger enrollment process manually.
 ///
 /// Allows admin to start new enrollment for user that is provided as a parameter in endpoint.
 ///
@@ -728,7 +726,7 @@ pub(crate) async fn start_enrollment(
     ))
 }
 
-/// Start remote desktop configuration
+/// Start remote desktop configuration.
 ///
 /// Allows admin to start new remote desktop configuration for user that is provided as a parameter in endpoint.
 ///
@@ -831,7 +829,7 @@ pub(crate) async fn start_remote_desktop_configuration(
     ))
 }
 
-/// Verify if the user is available
+/// Verify if the user is available.
 ///
 /// Check if user is available by provided `Username` object.
 /// Username is unique so database returns only single user or nothing.
@@ -871,13 +869,10 @@ pub(crate) async fn username_available(
     Ok(ApiResponse::with_status(status))
 }
 
-/// Modify user
+/// Modify a user.
 ///
-/// Update user's data basing on `UserInfo` object, it can also remove/add authorized apps and groups assigned to user.
-///
-/// Endpoint is able to disable a user, but **admin cannot disable himself**.
-///
-/// Disabling a user can be done by setting `is_active` to `false`.
+/// Can also add or remove the user's groups and authorized apps. Set `is_active` to
+/// `false` to disable the user. An admin cannot disable their own account.
 #[utoipa::path(
     put,
     path = "/api/v1/user/{username}",
@@ -1113,7 +1108,7 @@ pub(crate) async fn modify_user(
     Ok(ApiResponse::default())
 }
 
-/// Delete user
+/// Delete user.
 ///
 /// Deletes user, however, **you can't delete yourself as an administrator**.
 #[utoipa::path(
@@ -1193,11 +1188,9 @@ async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sq
     Ok(user.password_management_disabled(is_admin, &settings, oidc_disabled))
 }
 
-/// Change your own password
+/// Change your own password.
 ///
-/// Changes your own password basing on `PasswordChangeSelf` object.
-///
-/// It can return error if password is not strong enough.
+/// Fails when the new password is not strong enough.
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
@@ -1260,13 +1253,10 @@ pub(crate) async fn change_self_password(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-/// Change user password
+/// Change another user's password.
 ///
-/// Change user password basing on `PasswordChange` object, it can return error if password is not strong enough.
-///
-/// This endpoint doesn't allow you to **change your own** password.
-///
-/// If you want to change your own password please go to: `/api/v1/user/change_password`.
+/// Fails when the new password is not strong enough. Cannot be used to change your own
+/// password, use `PUT /api/v1/user/change_password` for that.
 #[utoipa::path(
     put,
     path = "/api/v1/user/{username}/password",
@@ -1350,7 +1340,7 @@ pub(crate) async fn change_password(
     }
 }
 
-/// Reset user password
+/// Reset user password.
 ///
 /// Reset user password, it will send a new enrollment token to the user's email.
 ///
@@ -1445,7 +1435,7 @@ pub(crate) async fn reset_password(
     }
 }
 
-/// Delete security key
+/// Delete security key.
 ///
 /// Delete WebAuthn security key that allows users to authenticate.
 #[utoipa::path(
@@ -1508,7 +1498,7 @@ pub(crate) async fn delete_security_key(
     }
 }
 
-/// Returns your data
+/// Get the currently authenticated user.
 ///
 /// Endpoint returns the data associated with the current session user
 #[utoipa::path(
@@ -1621,7 +1611,7 @@ pub(crate) async fn delete_authorized_app(
     }
 }
 
-/// Bulk disable users
+/// Bulk disable users.
 ///
 /// Disables every user listed in `BulkUserOperationRequest`. Admin only.
 /// The session user cannot disable themselves; the request is rejected
@@ -1721,7 +1711,7 @@ pub(crate) async fn bulk_disable_users(
     Ok(ApiResponse::default())
 }
 
-/// Bulk enable users
+/// Bulk enable users.
 ///
 /// Enables every user listed in `BulkUserOperationRequest`. Admin only.
 /// The request is rejected with 400 if any of the supplied ids does not exist.
@@ -1833,7 +1823,7 @@ pub(crate) async fn bulk_enable_users(
     Ok(ApiResponse::default())
 }
 
-/// Bulk delete users
+/// Bulk delete users.
 ///
 /// Deletes every user listed in `BulkUserOperationRequest`. Admin only.
 /// The session user cannot delete themselves; the request is rejected
@@ -1932,7 +1922,7 @@ pub(crate) async fn bulk_delete_users(
     Ok(ApiResponse::default())
 }
 
-/// Bulk start enrollment
+/// Bulk start enrollment.
 ///
 /// Starts the self-enrollment process for every user listed in
 /// `BulkStartEnrollmentRequest`. Admin only.

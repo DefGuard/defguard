@@ -173,9 +173,7 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-/// Create new network
-///
-/// Create new network based on `WireguardNetworkData` object.
+/// Create a new network.
 #[utoipa::path(
     post,
     path = "/api/v1/network",
@@ -308,9 +306,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
-/// Modify network
-///
-/// Modify existing network basing on `WireguardNetworkData` object.
+/// Modify a network.
 #[utoipa::path(
     put,
     path = "/api/v1/network/{network_id}",
@@ -427,7 +423,7 @@ pub(crate) async fn modify_network(
     Ok(ApiResponse::json(network, StatusCode::OK))
 }
 
-/// Delete network
+/// Delete network.
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{network_id}",
@@ -483,7 +479,7 @@ pub(crate) async fn delete_network(
     Ok(ApiResponse::default())
 }
 
-/// List of all networks
+/// List all networks.
 ///
 /// Retrieve list of all networks
 #[utoipa::path(
@@ -528,7 +524,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
     Ok(ApiResponse::json(network_info, StatusCode::OK))
 }
 
-/// Number of all networks
+/// Count all networks.
 ///
 /// Retrieve count of all networks.
 #[utoipa::path(
@@ -557,7 +553,7 @@ pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) 
     ))
 }
 
-/// Details of network
+/// Get network details.
 ///
 /// Retrieve details about network with `network_id`.
 #[utoipa::path(
@@ -611,7 +607,7 @@ pub(crate) async fn network_details(
     Ok(response)
 }
 
-/// Returns state of gateways in a given network
+/// Get gateway state for a location.
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/gateways",
@@ -645,7 +641,7 @@ pub(crate) async fn gateway_status(
     Ok(ApiResponse::json(gateways, StatusCode::OK))
 }
 
-/// Returns state of gateways for all networks
+/// Get gateway state for all locations.
 ///
 /// Returns current state of gateways as `HashMap<Id, Vec<GatewayInfo>>` where key is ID of
 /// `WireguardNetwork`.
@@ -831,7 +827,7 @@ pub(crate) struct AddDeviceResult {
     device: Device<Id>,
 }
 
-/// Add device
+/// Add device.
 ///
 /// Add a new device for a user by sending `AddDevice` object.
 ///
@@ -1048,7 +1044,7 @@ pub(crate) async fn add_device(
     Ok(ApiResponse::json(result, StatusCode::CREATED))
 }
 
-/// Modify device
+/// Modify device.
 ///
 /// Update a device for a user by sending `ModifyDevice` object.
 ///
@@ -1179,7 +1175,7 @@ pub(crate) async fn modify_device(
     Ok(ApiResponse::json(device, StatusCode::OK))
 }
 
-/// Get device
+/// Get device.
 ///
 /// Retrieve information about device based on their `device_id`
 #[utoipa::path(
@@ -1219,7 +1215,7 @@ pub(crate) async fn get_device(
     Ok(ApiResponse::json(device, StatusCode::OK))
 }
 
-/// Delete device
+/// Delete device.
 ///
 /// Delete user device and trigger new update in gateway server.
 ///
@@ -1331,7 +1327,7 @@ pub(crate) async fn delete_device(
     Ok(ApiResponse::default())
 }
 
-/// List all devices
+/// List all devices.
 ///
 /// Retrieves all devices
 #[utoipa::path(
@@ -1364,7 +1360,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
     Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
-/// List user devices
+/// List user devices.
 ///
 /// Retrieve all devices that belong to specific `username`.
 ///
@@ -1414,7 +1410,6 @@ pub(crate) async fn list_user_devices(
     Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
-/// GET "/network/{network_id}/device/{device_id}/config"
 /// Download the WireGuard configuration of a device in a location.
 #[utoipa::path(
     get,
@@ -1480,10 +1475,9 @@ pub(crate) async fn download_config(
     }
 }
 
-/// For a given user device, retrieve WireGuard configurations for all allowed locations.
+/// Get the WireGuard configuration of a user device.
 ///
-/// GET /device/{device_id}/config
-/// Get the WireGuard configuration of a device in every location it belongs to.
+/// Returns one configuration per location the device is allowed to connect to.
 #[utoipa::path(
     get,
     path = "/api/v1/device/{device_id}/config",

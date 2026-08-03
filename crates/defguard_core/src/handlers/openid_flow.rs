@@ -468,12 +468,11 @@ fn login_redirect(
     Ok(redirect_to("/auth/login", private_cookies.add(cookie)))
 }
 
-/// Authorization Endpoint
-/// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 /// OAuth2 authorization endpoint.
 ///
 /// Redirects to the login or consent page when the user is not authenticated or has not
-/// yet approved the client. See [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749#section-3.1).
+/// yet approved the client. Implements the
+/// [OpenID Connect authorization endpoint](https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint).
 #[utoipa::path(
     get,
     path = "/api/v1/oauth/authorize",
@@ -673,10 +672,10 @@ async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims,
     })
 }
 
-/// Login Authorization Endpoint redirect with authorization code
 /// OAuth2 authorization endpoint for an authenticated user.
 ///
-/// Called by the consent screen once the user allows or denies the request.
+/// Called by the consent screen once the user allows or denies the request. On approval it
+/// redirects back to the client with an authorization code.
 #[utoipa::path(
     post,
     path = "/api/v1/oauth/authorize",
@@ -953,14 +952,12 @@ impl TokenRequest {
     }
 }
 
-/// Token Endpoint
-/// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
-/// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
 /// OAuth2 token endpoint.
 ///
 /// Accepts `application/x-www-form-urlencoded` and supports the `authorization_code` and
 /// `refresh_token` grants. The client authenticates with HTTP Basic auth or with
-/// `client_id`/`client_secret` in the form body.
+/// `client_id`/`client_secret` in the form body. Implements the
+/// [OpenID Connect token endpoint](https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint).
 #[utoipa::path(
     post,
     path = "/api/v1/oauth/token",
@@ -1133,10 +1130,10 @@ pub async fn token(
     Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST))
 }
 
-/// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
 /// OpenID Connect UserInfo endpoint.
 ///
-/// Requires an access token in the `Authorization: Bearer <token>` header.
+/// Requires an access token in the `Authorization: Bearer <token>` header. Implements the
+/// [OpenID Connect UserInfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo).
 #[utoipa::path(
     get,
     path = "/api/v1/oauth/userinfo",

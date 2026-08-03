@@ -84,7 +84,7 @@ pub struct SshKeysRequestParams {
     group: Option<String>,
 }
 
-/// Fetch public SSH keys for user
+/// Fetch public SSH keys for user.
 ///
 /// Meant to be used with `AuthorizedKeysCommand` config option in `sshd`.
 /// Should always return a response to partially mitigate user enumeration.

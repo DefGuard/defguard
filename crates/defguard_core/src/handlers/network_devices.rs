@@ -126,10 +126,9 @@ pub(crate) struct DeviceWireGuardConfig {
     pub(crate) location_mfa_mode: LocationMfaMode,
 }
 
-/// For a given device, retrieve all WireGuard configuations for all networks.
-///
-/// GET /device/network/{device_id}/config
 /// Get the WireGuard configuration of a network device.
+///
+/// Returns one configuration per location the device belongs to.
 #[utoipa::path(
     get,
     path = "/api/v1/device/network/{device_id}/config",
@@ -250,7 +249,6 @@ pub(crate) async fn get_network_device(
     )))
 }
 
-/// GET /api/v1/device/network
 /// List network devices.
 #[utoipa::path(
     get,

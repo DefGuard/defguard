@@ -52,7 +52,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
     Ok(aggregation)
 }
 
-/// Returns statistics for all locations
+/// Get traffic statistics for all locations.
 #[utoipa::path(
     get,
     path = "/api/v1/network/stats",
@@ -84,7 +84,7 @@ pub(crate) async fn locations_overview_stats(
     Ok(ApiResponse::json(all_networks_stats, StatusCode::OK))
 }
 
-/// Returns statistics for requested location
+/// Get traffic statistics for a location.
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/stats",
@@ -127,7 +127,7 @@ pub(crate) async fn location_stats(
     Ok(ApiResponse::json(stats, StatusCode::OK))
 }
 
-/// Returns paginated list of connected users for a given location
+/// List connected users in a location.
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users",
@@ -188,7 +188,7 @@ pub(crate) async fn location_connected_users(
     ))
 }
 
-/// Returns paginated list of connected network devices for a given location
+/// List connected network devices in a location.
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_network_devices",
@@ -255,7 +255,7 @@ pub(crate) struct ConnectedUserDevicesPath {
     user_id: Id,
 }
 
-/// Returns list of connected devices for a specific user at a given location
+/// List a user's connected devices in a location.
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users/{user_id}/devices",

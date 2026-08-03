@@ -98,7 +98,6 @@ where
     }
 }
 
-/// Gets full information about enterprise status.
 /// Get information about the enterprise license and enabled features.
 #[utoipa::path(
     get,

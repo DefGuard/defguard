@@ -734,11 +734,7 @@ pub async fn create_device_posture(
         ("api_token" = [])
     )
 )]
-/// Return the backend-owned catalog of selectable posture-check versions.
-///
-/// # Errors
-///
-/// Returns an error when the requester is unauthorized or lacks the required license.
+/// List the posture check versions available to choose from.
 pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo) -> ApiResult {
     debug!(
         "User {} fetching device posture version metadata",
@@ -868,7 +864,7 @@ pub async fn get_device_posture(
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
-/// Update an existing device posture check policy
+/// Update an existing device posture check policy.
 #[utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}",
@@ -962,7 +958,7 @@ pub async fn update_device_posture(
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
-/// Delete a device posture check policy
+/// Delete a device posture check policy.
 #[utoipa::path(
     delete,
     path = "/api/v1/device-posture/{id}",
@@ -1023,7 +1019,7 @@ pub async fn delete_device_posture(
     Ok(ApiResponse::default())
 }
 
-/// Duplicate a device posture check policy
+/// Duplicate a device posture check policy.
 ///
 /// Creates a copy of the specified policy with the name `"{original} (copy)"`.
 #[utoipa::path(
@@ -1124,7 +1120,9 @@ pub struct AssignLocationsData {
     pub locations: Vec<Id>,
 }
 
-/// Assign posture checks to a VPN location (replaces existing assignment)
+/// Assign posture checks to a location.
+///
+/// Replaces the current assignment.
 #[utoipa::path(
     put,
     path = "/api/v1/network/{id}/postures",
@@ -1193,7 +1191,9 @@ pub async fn set_postures_for_location(
     Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
-/// Assign VPN locations to a posture check (replaces existing assignment)
+/// Assign locations to a posture check.
+///
+/// Replaces the current assignment.
 #[utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}/locations",

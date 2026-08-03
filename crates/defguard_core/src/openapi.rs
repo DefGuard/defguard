@@ -412,6 +412,7 @@ struct SecurityAddon;
 
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        openapi.info.license = None;
         if let Some(components) = openapi.components.as_mut() {
             // session cookie auth
             components.add_security_scheme(

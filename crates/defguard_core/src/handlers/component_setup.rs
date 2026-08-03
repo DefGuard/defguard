@@ -229,10 +229,10 @@ impl SetupFlow {
     }
 }
 
-/// This is the endpoint responsible for the whole edge proxy TLS setup flow.
-/// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
-// This is a get request, since HTML's EventSource only supports GET
 /// Stream the progress of edge (proxy) TLS setup.
+///
+/// Drives the whole TLS setup flow and reports its progress as Server-Sent Events.
+// This is a get request, since HTML's EventSource only supports GET
 #[utoipa::path(
     get,
     path = "/api/v1/proxy/setup/stream",
@@ -1019,10 +1019,10 @@ async fn perform_gateway_adoption(
     Ok(saved)
 }
 
-/// This is the endpoint responsible for the whole gateway TLS setup flow.
-/// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
-// This is a get request, since HTML's EventSource only supports GET
 /// Stream the progress of gateway TLS setup.
+///
+/// Drives the whole TLS setup flow and reports its progress as Server-Sent Events.
+// This is a get request, since HTML's EventSource only supports GET
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/gateways/setup",
@@ -1146,7 +1146,6 @@ pub struct GatewayAdoptRequest {
     pub grpc_port: u16,
 }
 
-/// Programmatic gateway adoption endpoint.
 /// Adopt a gateway in a location.
 ///
 /// Registers the gateway, issues its client certificate and returns the created gateway.
@@ -1225,7 +1224,9 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     Event::default().data(body)
 }
 
-/// Streams Let's Encrypt certificate issuance progress as Server-Sent Events.
+/// Stream the progress of Let's Encrypt certificate issuance.
+///
+/// Reports progress as Server-Sent Events.
 ///
 /// Delegates the ACME HTTP-01 process to the proxy component via the `TriggerAcme`
 /// RPC on the permanent `Proxy` gRPC service.  Reads proxy address and ACME

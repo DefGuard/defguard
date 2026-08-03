@@ -38,9 +38,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
     users: Vec<Id>,
 }
 
-/// Bulk assign users to groups
-///
-/// Assign many users to many groups at once basing on `BulkAssignToGroupsRequest` object.
+/// Assign many users to many groups at once.
 #[utoipa::path(
     post,
     path = "/api/v1/groups-assign",
@@ -133,7 +131,7 @@ pub(crate) async fn bulk_assign_to_groups(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-/// Retrieve all groups info
+/// List groups with their details.
 ///
 /// For each group, the endpoint retrieves a `GroupInfo` object.
 #[utoipa::path(
@@ -231,7 +229,7 @@ pub(crate) async fn list_groups(
     Ok(PaginatedApiResponse::new(groups, pagination, count as u32))
 }
 
-/// Retrieve group by ID
+/// Get a group.
 ///
 /// Retrieves a `GroupInfo` object for the group with the given ID.
 #[utoipa::path(
@@ -285,11 +283,9 @@ pub(crate) async fn get_group(
     }
 }
 
-/// Create group
+/// Create a group.
 ///
-/// Create group based on `EditGroupInfo` object.
-///
-/// You can also choose whether group should grant admin privileges by changing `is_admin` parameter.
+/// Set `is_admin` to grant admin privileges to the group's members.
 #[utoipa::path(
     post,
     path = "/api/v1/group",
@@ -374,11 +370,10 @@ pub(crate) async fn create_group(
     Ok(ApiResponse::json(group_info, StatusCode::CREATED))
 }
 
-/// Modify group
+/// Modify a group.
 ///
-/// Rename group and change members basing on `EditGroupInfo` object.
-///
-///  You can also change `is_admin` parameter if you want to grant admin privileges to group members.
+/// Renames the group and replaces its members. Set `is_admin` to grant admin privileges
+/// to the group's members.
 #[utoipa::path(
     put,
     path = "/api/v1/group/{id}",
@@ -613,7 +608,7 @@ pub(crate) async fn delete_group(
     }
 }
 
-/// Add a group member
+/// Add a group member.
 ///
 /// Find a group by `id` and add `username` as a member.
 #[utoipa::path(

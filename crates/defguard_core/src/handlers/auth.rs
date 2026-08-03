@@ -354,7 +354,7 @@ pub async fn logout(
     Ok((cookies, private_cookies, ApiResponse::default()))
 }
 
-/// Enable MFA
+/// Enable MFA.
 #[utoipa::path(
     put,
     path = "/api/v1/auth/mfa",
@@ -394,7 +394,7 @@ pub async fn mfa_enable(
     }
 }
 
-/// Disable own MFA
+/// Disable own MFA.
 #[utoipa::path(
     delete,
     path = "/api/v1/auth/mfa",
@@ -425,7 +425,7 @@ pub async fn mfa_disable(
     Ok(ApiResponse::default())
 }
 
-/// Disable specific user's MFA
+/// Disable specific user's MFA.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/mfa",
@@ -462,7 +462,7 @@ pub async fn disable_user_mfa(
     Ok(ApiResponse::default())
 }
 
-/// Initialize WebAuthn registration
+/// Initialize WebAuthn registration.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/webauthn/init",
@@ -510,7 +510,7 @@ pub async fn webauthn_init(
     }
 }
 
-/// Finish WebAuthn registration
+/// Finish WebAuthn registration.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/webauthn/finish",
@@ -598,7 +598,7 @@ pub async fn webauthn_finish(
     Ok(ApiResponse::json(recovery_codes, StatusCode::OK))
 }
 
-/// Start WebAuthn authentication
+/// Start WebAuthn authentication.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/webauthn/start",
@@ -632,7 +632,7 @@ pub async fn webauthn_start(
     }
 }
 
-/// Finish WebAuthn authentication
+/// Finish WebAuthn authentication.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/webauthn",
@@ -754,7 +754,7 @@ pub async fn webauthn_end(
     Err(WebError::Http(StatusCode::BAD_REQUEST))
 }
 
-/// Generate new TOTP secret
+/// Generate new TOTP secret.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/totp/init",
@@ -778,7 +778,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
     Ok(ApiResponse::json(AuthTotp::new(secret), StatusCode::OK))
 }
 
-/// Enable TOTP
+/// Enable TOTP.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/totp",
@@ -832,7 +832,7 @@ pub async fn totp_enable(
     }
 }
 
-/// Disable TOTP
+/// Disable TOTP.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/totp",
@@ -870,7 +870,7 @@ pub async fn totp_disable(
     Ok(ApiResponse::default())
 }
 
-/// Validate one-time passcode
+/// Validate one-time passcode.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/totp/verify",
@@ -981,7 +981,7 @@ pub async fn totp_code(
     }
 }
 
-/// Initialize email MFA setup
+/// Initialize email MFA setup.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/email/init",
@@ -1029,7 +1029,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     Ok(ApiResponse::default())
 }
 
-/// Enable email MFA
+/// Enable email MFA.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/email",
@@ -1082,7 +1082,7 @@ pub async fn email_mfa_enable(
     }
 }
 
-/// Disable email MFA
+/// Disable email MFA.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/email",
@@ -1120,7 +1120,7 @@ pub async fn email_mfa_disable(
     Ok(ApiResponse::default())
 }
 
-/// Send email code to user
+/// Send email code to user.
 #[utoipa::path(
     get,
     path = "/api/v1/auth/email",
@@ -1164,7 +1164,7 @@ pub async fn request_email_mfa_code(
     }
 }
 
-/// Validate email MFA code
+/// Validate email MFA code.
 #[utoipa::path(
     post,
     path = "/api/v1/auth/email/verify",

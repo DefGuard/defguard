@@ -98,7 +98,6 @@ pub(crate) async fn add_openid_client(
     Ok(ApiResponse::json(client, StatusCode::CREATED))
 }
 
-/// GET: /api/v1/oauth
 /// List OAuth2/OpenID client applications.
 #[utoipa::path(
     get,
