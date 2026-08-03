@@ -54,12 +54,14 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 use tracing::Instrument;
+use utoipa::ToSchema;
 
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
     cert_settings::ensure_https,
     enterprise::{LicenseFeature, has_enterprise_access},
     error::WebError,
+    handlers::ApiErrorResponse,
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -230,6 +232,26 @@ impl SetupFlow {
 /// This is the endpoint responsible for the whole edge proxy TLS setup flow.
 /// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
 // This is a get request, since HTML's EventSource only supports GET
+/// Stream the progress of edge (proxy) TLS setup.
+#[utoipa::path(
+    get,
+    path = "/api/v1/proxy/setup/stream",
+    tag = "proxy",
+    params(
+        ("common_name" = String, Query, description = "Common name for the edge certificate"),
+        ("ip_or_domain" = String, Query, description = "Address the edge is reachable at"),
+        ("grpc_port" = u16, Query, description = "gRPC port of the edge"),
+    ),
+    responses(
+        (status = 200, description = "Server-sent event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream"),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn setup_proxy_tls_stream(
     _admin: AdminOrSetupRole,
     Query(request): Query<ProxySetupRequest>,
@@ -1000,6 +1022,27 @@ async fn perform_gateway_adoption(
 /// This is the endpoint responsible for the whole gateway TLS setup flow.
 /// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
 // This is a get request, since HTML's EventSource only supports GET
+/// Stream the progress of gateway TLS setup.
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{network_id}/gateways/setup",
+    tag = "gateway",
+    params(
+        ("network_id" = Id, Path, description = "ID of network"),
+        ("common_name" = String, Query, description = "Common name for the gateway certificate"),
+        ("ip_or_domain" = String, Query, description = "Address the gateway is reachable at"),
+        ("grpc_port" = u16, Query, description = "gRPC port of the gateway"),
+    ),
+    responses(
+        (status = 200, description = "Server-sent event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream"),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn setup_gateway_tls_stream(
     _admin: AdminOrSetupRole,
     session: SessionInfo,
@@ -1096,7 +1139,7 @@ pub async fn setup_gateway_tls_stream(
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct GatewayAdoptRequest {
     pub name: String,
     pub ip_or_domain: String,
@@ -1104,6 +1147,31 @@ pub struct GatewayAdoptRequest {
 }
 
 /// Programmatic gateway adoption endpoint.
+/// Adopt a gateway in a location.
+///
+/// Registers the gateway, issues its client certificate and returns the created gateway.
+/// Use `GET /api/v1/network/{network_id}/gateways/setup` to follow the setup progress.
+#[utoipa::path(
+    post,
+    path = "/api/v1/network/{network_id}/gateways/adopt",
+    tag = "gateway",
+    request_body = GatewayAdoptRequest,
+    params(
+        ("network_id" = Id, Path, description = "ID of network"),
+    ),
+    responses(
+        (status = 201, description = "Gateway adopted.", body = Gateway),
+        (status = 400, description = "Invalid request, or the gateway is unreachable or too old.", body = ApiErrorResponse, example = json!({"msg": "Gateway version is not supported"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to adopt the gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn adopt_gateway(
     _admin: AdminOrSetupRole,
     session: SessionInfo,
@@ -1166,6 +1234,21 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
 /// On success, saves the certificate to the database and (when called post initial wizard)
 /// broadcasts `HttpsCerts` to the proxy via `proxy_control_tx`.
 // GET: EventSource only supports GET
+/// Stream the progress of ACME certificate issuance on the edge.
+#[utoipa::path(
+    get,
+    path = "/api/v1/proxy/acme/stream",
+    tag = "proxy",
+    responses(
+        (status = 200, description = "Server-sent event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream"),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn stream_proxy_acme(
     _admin: AdminOrSetupRole,
     Extension(pool): Extension<PgPool>,

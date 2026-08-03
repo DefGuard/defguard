@@ -15,7 +15,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
 #[derive(Serialize, ToSchema)]
@@ -93,11 +93,12 @@ pub struct GatewayUpdateData {
 #[utoipa::path(
     get,
     path = "/api/v1/gateway",
+    tag = "gateway",
     responses(
         (status = 200, description = "Gateway list", body = [GatewayInfo]),
-        (status = 401, description = "Unauthorized to get gateway list.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to get gateway list.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable to get gateway list.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to get gateway list.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get gateway list.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to get gateway list.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -119,12 +120,16 @@ pub async fn gateway_list(
 #[utoipa::path(
     get,
     path = "/api/v1/gateway/{gateway_id}",
+    tag = "gateway",
+    params(
+        ("gateway_id" = Id, Path, description = "ID of gateway"),
+    ),
     responses(
         (status = 200, description = "Gateway details", body = GatewayInfo),
-        (status = 401, description = "Unauthorized to get gateway details.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to get gateway details.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Gateway not found", body = ApiResponse, example = json!({"msg": "gateway not found"})),
-        (status = 500, description = "Unable to get gateway details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to get gateway details.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get gateway details.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Gateway not found", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
+        (status = 500, description = "Unable to get gateway details.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -157,13 +162,17 @@ pub(crate) async fn gateway_details(
 #[utoipa::path(
     put,
     path = "/api/v1/gateway/{gateway_id}",
+    tag = "gateway",
+    params(
+        ("gateway_id" = Id, Path, description = "ID of gateway"),
+    ),
     request_body = GatewayUpdateData,
     responses(
         (status = 200, description = "Successfully modified gateway.", body = GatewayInfo),
-        (status = 401, description = "Unauthorized to modify gateway.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to modify a gateway.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Gateway not found", body = ApiResponse, example = json!({"msg": "gateway not found"})),
-        (status = 500, description = "Unable to modify gateway.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to modify gateway.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to modify a gateway.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Gateway not found", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
+        (status = 500, description = "Unable to modify gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -222,12 +231,16 @@ pub(crate) async fn update_gateway(
 #[utoipa::path(
     delete,
     path = "/api/v1/gateway/{gateway_id}",
+    tag = "gateway",
+    params(
+        ("gateway_id" = Id, Path, description = "ID of gateway"),
+    ),
     responses(
-        (status = 200, description = "Successfully deleted gateway.", body = ApiResponse),
-        (status = 401, description = "Unauthorized to delete gateway.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission delete a gateway.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Gateway not found", body = ApiResponse, example = json!({"msg": "gateway not found"})),
-        (status = 500, description = "Unable to delete gateway.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Successfully deleted gateway.", body = Object),
+        (status = 401, description = "Unauthorized to delete gateway.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission delete a gateway.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Gateway not found", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
+        (status = 500, description = "Unable to delete gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),

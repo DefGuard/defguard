@@ -9,8 +9,9 @@ use defguard_common::{
     db::models::User,
 };
 use serde_json::json;
+use utoipa::ToSchema;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -18,7 +19,7 @@ use crate::{
     grpc::WorkerState,
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct JobData {
     pub username: String,
     pub worker: String,
@@ -34,6 +35,23 @@ struct JobResponseError {
     message: String,
 }
 
+/// Create a YubiKey provisioning job.
+#[utoipa::path(
+    post,
+    path = "/api/v1/worker/job",
+    tag = "worker",
+    request_body = JobData,
+    responses(
+        (status = 201, description = "Job created, returns the job ID.", body = Object, example = json!({"id": 1})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to create job.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn create_job(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -78,6 +96,22 @@ pub async fn create_job(
     }
 }
 
+/// Create a token used by a provisioning worker to register itself.
+#[utoipa::path(
+    get,
+    path = "/api/v1/worker/token",
+    tag = "worker",
+    responses(
+        (status = 200, description = "Worker token.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to create worker token.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> ApiResult {
     let username = session.user.username;
     let token = Claims::new(
@@ -94,6 +128,22 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
     ))
 }
 
+/// List registered provisioning workers.
+#[utoipa::path(
+    get,
+    path = "/api/v1/worker/",
+    tag = "worker",
+    responses(
+        (status = 200, description = "List of registered workers.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to list workers.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn list_workers(
     _admin: AdminRole,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
@@ -105,6 +155,26 @@ pub async fn list_workers(
     Ok(ApiResponse::json(workers, StatusCode::OK))
 }
 
+/// Remove a provisioning worker.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/worker/{id}",
+    tag = "worker",
+    params(
+        ("id" = String, Path, description = "ID of worker"),
+    ),
+    responses(
+        (status = 200, description = "Worker removed.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Worker not found.", body = ApiErrorResponse, example = json!({"msg": "worker not found"})),
+        (status = 500, description = "Unable to remove worker.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn remove_worker(
     _admin: AdminRole,
     session: SessionInfo,
@@ -124,6 +194,25 @@ pub async fn remove_worker(
     }
 }
 
+/// Get the status of a YubiKey provisioning job.
+#[utoipa::path(
+    get,
+    path = "/api/v1/worker/{id}",
+    tag = "worker",
+    params(
+        ("id" = i32, Path, description = "ID of job"),
+    ),
+    responses(
+        (status = 200, description = "Job status.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Job not found.", body = ApiErrorResponse, example = json!({"msg": "job not found"})),
+        (status = 500, description = "Unable to get job status.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn job_status(
     session: SessionInfo,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,

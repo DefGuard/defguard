@@ -5,7 +5,7 @@ use axum::{
 use serde::Deserialize;
 use sqlx::PgPool;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{appstate::AppState, auth::AdminRole, error::WebError};
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -44,16 +44,17 @@ async fn username_exists(pool: &PgPool, username: &str) -> Result<bool, sqlx::Er
 #[utoipa::path(
     get,
     path = "/api/v1/reserved",
+    tag = "system",
     params(
         ("resource" = CheckResource, Query, description = "The resource type to check: `email` or `username`"),
         ("value" = String, Query, description = "The value to check for availability"),
     ),
     responses(
-        (status = 200, description = "The value is available.", body = ApiResponse, example = json!({"available": true})),
-        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 409, description = "The value is already taken.", body = ApiResponse, example = json!({"msg": "admin is already taken"})),
-        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"})),
+        (status = 200, description = "The value is available.", body = Object, example = json!({"available": true})),
+        (status = 401, description = "Unauthorized.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Forbidden.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 409, description = "The value is already taken.", body = ApiErrorResponse, example = json!({"msg": "admin is already taken"})),
+        (status = 500, description = "Internal server error.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),

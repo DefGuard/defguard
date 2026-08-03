@@ -15,7 +15,7 @@ use crate::{
         apply_external_url_settings, apply_internal_url_settings,
     },
     error::WebError,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
 fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
@@ -55,13 +55,14 @@ fn reload_core_web_server(appstate: &AppState) {
 #[utoipa::path(
     post,
     path = "/api/v1/core/cert/internal_url_settings",
+    tag = "certificates",
     request_body = InternalUrlSettingsConfig,
     responses(
-        (status = 201, description = "Internal URL certificate settings applied.", body = ApiResponse),
-        (status = 400, description = "Invalid request.", body = ApiResponse),
-        (status = 401, description = "Unauthorized.", body = ApiResponse),
-        (status = 403, description = "Forbidden.", body = ApiResponse),
-        (status = 500, description = "Internal server error.", body = ApiResponse)
+        (status = 201, description = "Internal URL certificate settings applied.", body = Object),
+        (status = 400, description = "Invalid request.", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
@@ -93,13 +94,14 @@ pub(crate) async fn set_internal_url_settings(
 #[utoipa::path(
     post,
     path = "/api/v1/proxy/cert/external_url_settings",
+    tag = "certificates",
     request_body = ExternalUrlSettingsConfig,
     responses(
-        (status = 201, description = "External URL certificate settings applied.", body = ApiResponse),
-        (status = 400, description = "Invalid request.", body = ApiResponse),
-        (status = 401, description = "Unauthorized.", body = ApiResponse),
-        (status = 403, description = "Forbidden.", body = ApiResponse),
-        (status = 500, description = "Internal server error.", body = ApiResponse)
+        (status = 201, description = "External URL certificate settings applied.", body = Object),
+        (status = 400, description = "Invalid request.", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
@@ -147,12 +149,13 @@ pub(crate) async fn set_external_url_settings(
 #[utoipa::path(
     get,
     path = "/api/v1/core/cert/ca",
+    tag = "certificates",
     responses(
-        (status = 200, description = "CA cert data", body = ApiResponse),
-        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiResponse),
-        (status = 401, description = "Unauthorized.", body = ApiResponse),
-        (status = 403, description = "Forbidden.", body = ApiResponse),
-        (status = 500, description = "Internal server error.", body = ApiResponse)
+        (status = 200, description = "CA cert data", body = Object),
+        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
@@ -195,12 +198,13 @@ pub(crate) async fn get_ca(
 #[utoipa::path(
     get,
     path = "/api/v1/core/cert/certs",
+    tag = "certificates",
     responses(
-        (status = 200, description = "Core & edge cert data", body = ApiResponse),
-        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiResponse),
-        (status = 401, description = "Unauthorized.", body = ApiResponse),
-        (status = 403, description = "Forbidden.", body = ApiResponse),
-        (status = 500, description = "Internal server error.", body = ApiResponse)
+        (status = 200, description = "Core & edge cert data", body = Object),
+        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
     ),
     security(("cookie" = []), ("api_token" = []))
 )]

@@ -15,7 +15,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -27,11 +27,12 @@ pub struct ProxyUpdateData {
 #[utoipa::path(
     get,
     path = "/api/v1/proxy",
+    tag = "proxy",
     responses(
         (status = 200, description = "Edge list", body = [ProxyInfo]),
-        (status = 401, description = "Unauthorized to get edge list.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to get edge list.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable to get edge list.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to get edge list.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get edge list.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to get edge list.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -54,12 +55,16 @@ pub async fn proxy_list(
 #[utoipa::path(
     get,
     path = "/api/v1/proxy/{proxy_id}",
+    tag = "proxy",
+    params(
+        ("proxy_id" = Id, Path, description = "ID of edge"),
+    ),
     responses(
         (status = 200, description = "Edge details", body = Proxy),
-        (status = 401, description = "Unauthorized to get edge details.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to get edge details.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "network not found"})),
-        (status = 500, description = "Unable to get edge details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to get edge details.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get edge details.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Edge not found", body = ApiErrorResponse, example = json!({"msg": "edge not found"})),
+        (status = 500, description = "Unable to get edge details.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -92,13 +97,17 @@ pub(crate) async fn proxy_details(
 #[utoipa::path(
     put,
     path = "/api/v1/proxy/{proxy_id}",
+    tag = "proxy",
+    params(
+        ("proxy_id" = Id, Path, description = "ID of edge"),
+    ),
     request_body = Proxy,
     responses(
         (status = 200, description = "Successfully modified edge.", body = ProxyUpdateData),
-        (status = 401, description = "Unauthorized to modify edge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to modify an edge.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "proxy not found"})),
-        (status = 500, description = "Unable to modify edge.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to modify edge.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to modify an edge.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Edge not found", body = ApiErrorResponse, example = json!({"msg": "proxy not found"})),
+        (status = 500, description = "Unable to modify edge.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -168,13 +177,17 @@ pub(crate) async fn update_proxy(
 #[utoipa::path(
     delete,
     path = "/api/v1/proxy/{proxy_id}",
+    tag = "proxy",
+    params(
+        ("proxy_id" = Id, Path, description = "ID of edge"),
+    ),
     request_body = Proxy,
     responses(
-        (status = 200, description = "Successfully deleted edge.", body = ApiResponse),
-        (status = 401, description = "Unauthorized to delete edge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission delete an edge.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "proxy not found"})),
-        (status = 500, description = "Unable to delete edge.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Successfully deleted edge.", body = Object),
+        (status = 401, description = "Unauthorized to delete edge.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission delete an edge.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Edge not found", body = ApiErrorResponse, example = json!({"msg": "proxy not found"})),
+        (status = 500, description = "Unable to delete edge.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
