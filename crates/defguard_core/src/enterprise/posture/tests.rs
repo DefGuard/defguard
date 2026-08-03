@@ -122,6 +122,8 @@ fn make_request(location_id: Id, data: Option<DevicePostureData>) -> DevicePostu
         location_id,
         pubkey: "testpubkey".to_owned(),
         device_posture_data: data,
+        // `validate_posture` does not authenticate; the token is checked by the caller.
+        token: None,
     }
 }
 
