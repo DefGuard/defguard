@@ -7,7 +7,10 @@ use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
-use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
+use super::{
+    ApiErrorResponse,
+    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+};
 use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
 
 #[derive(Debug, Deserialize, Default)]
@@ -120,9 +123,32 @@ pub struct ApiActivityLogEvent {
 /// - event_type
 /// - username
 /// - search
-///
-/// # Returns
-/// Returns a paginated list of `ApiActivityLogEvent` objects or `WebError` if error occurs.
+#[utoipa::path(
+    get,
+    path = "/api/v1/activity_log",
+    tag = "activity log",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp"),
+        ("until" = Option<String>, Query, description = "End of the reported period as an RFC 3339 timestamp"),
+        ("username" = Option<String>, Query, description = "Filter by username (admins only)"),
+        ("event" = Option<String>, Query, description = "Filter by event type"),
+        ("module" = Option<String>, Query, description = "Filter by module"),
+        ("search" = Option<String>, Query, description = "Free-text search"),
+        ("sort_by" = Option<String>, Query, description = "Sort key"),
+        ("sort_order" = Option<String>, Query, description = "Sort direction: asc or desc"),
+    ),
+    responses(
+        (status = 200, description = "Paginated list of activity log events.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to list activity log events.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn get_activity_log_events(
     session_info: SessionInfo,
     State(appstate): State<AppState>,

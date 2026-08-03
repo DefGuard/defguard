@@ -1,7 +1,7 @@
 use axum::{Json, http::StatusCode};
 use utoipa::ToSchema;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{
     enterprise::{
         license::License,
@@ -25,13 +25,15 @@ pub struct CheckResult {
 #[utoipa::path(
     post,
     path = "/api/v1/license/check",
+    tag = "license",
     request_body = CheckParams,
     responses(
         (
             status = 200,
             description = "Decoded license limits.",
-            // TODO: uncomment when LicenseLimits and Counts implement ToSchema.
-            // body = CheckResult,
+            // TODO: replace with `body = CheckResult` when LicenseLimits and Counts implement
+            // ToSchema.
+            body = Object,
             example = json!({
                 "users": 100,
                 "devices": 250,
@@ -39,8 +41,9 @@ pub struct CheckResult {
                 "network_devices": 50
             })
         ),
-        (status = 400, description = "Invalid license key.", body = ApiResponse, example = json!({"msg": "License signature doesn't match its content"})),
-        (status = 404, description = "License not found.", body = ApiResponse, example = json!({"msg": "License not found"}))
+        (status = 400, description = "Invalid license key.", body = ApiErrorResponse, example = json!({"msg": "License signature doesn't match its content"})),
+        (status = 404, description = "License not found.", body = ApiErrorResponse, example = json!({"msg": "License not found"})),
+        (status = 500, description = "Unable to check the license.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub(crate) async fn license_check(Json(params): Json<CheckParams>) -> ApiResult {

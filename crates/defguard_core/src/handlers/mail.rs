@@ -9,8 +9,9 @@ use sqlx::query_scalar;
 use tera::Context;
 use thiserror::Error;
 use tokio::fs::read_to_string;
+use utoipa::ToSchema;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{
     PgPool,
     appstate::AppState,
@@ -23,11 +24,29 @@ use crate::{
     support::dump_config,
 };
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, ToSchema)]
 pub struct TestMail {
     pub to: String,
 }
 
+/// Send a test email to verify the SMTP configuration.
+#[utoipa::path(
+    post,
+    path = "/api/v1/mail/test",
+    tag = "support",
+    request_body = TestMail,
+    responses(
+        (status = 200, description = "Test email sent.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to send test email.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 503, description = "SMTP is not configured.", body = ApiErrorResponse, example = json!({"msg": "SMTP is not configured", "code": "smtp_not_configured"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn test_mail(
     _admin: AdminRole,
     session: SessionInfo,
@@ -75,6 +94,23 @@ async fn read_logs() -> String {
     }
 }
 
+/// Email the support data bundle to the defguard support address.
+#[utoipa::path(
+    post,
+    path = "/api/v1/mail/support",
+    tag = "support",
+    responses(
+        (status = 200, description = "Support data sent.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to send support data.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 503, description = "SMTP is not configured.", body = ApiErrorResponse, example = json!({"msg": "SMTP is not configured", "code": "smtp_not_configured"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn send_support_data(
     _admin: AdminRole,
     session: SessionInfo,

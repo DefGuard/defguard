@@ -1,6 +1,6 @@
 use axum::{extract::State, http::StatusCode};
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
@@ -9,6 +9,24 @@ use crate::{
     support::dump_config,
 };
 
+/// Get instance configuration for support purposes.
+///
+/// Secrets are stripped from the returned configuration.
+#[utoipa::path(
+    get,
+    path = "/api/v1/support/configuration",
+    tag = "support",
+    responses(
+        (status = 200, description = "Instance configuration dump.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to get configuration.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn configuration(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -32,6 +50,22 @@ pub(crate) async fn configuration(
     })
 }
 
+/// Get recent instance logs for support purposes.
+#[utoipa::path(
+    get,
+    path = "/api/v1/support/logs",
+    tag = "support",
+    responses(
+        (status = 200, description = "Instance logs as plain text.", body = String),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to get logs.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = server_config().log_file {

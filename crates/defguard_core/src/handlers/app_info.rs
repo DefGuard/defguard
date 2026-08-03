@@ -4,7 +4,7 @@ use defguard_common::{
     db::models::{Settings, WireguardNetwork},
 };
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -29,6 +29,21 @@ pub struct AppInfo {
     external_openid_enabled: bool,
 }
 
+/// Get information about this defguard instance.
+#[utoipa::path(
+    get,
+    path = "/api/v1/info",
+    tag = "system",
+    responses(
+        (status = 200, description = "Instance information: enabled modules, version, license state.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to get instance information.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn get_app_info(State(appstate): State<AppState>, _session: SessionInfo) -> ApiResult {
     // both `await`s are executed upfront to avoid holding license `RwLock` across an await point
     let networks = WireguardNetwork::all(&appstate.pool).await?;
