@@ -10,8 +10,9 @@ use defguard_common::{
     random::gen_alphanumeric,
 };
 use serde_json::json;
+use utoipa::ToSchema;
 
-use super::{ApiResponse, ApiResult, webhooks::ChangeStateData};
+use super::{ApiErrorResponse, ApiResponse, ApiResult, webhooks::ChangeStateData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -19,7 +20,7 @@ use crate::{
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct NewOpenIDClient {
     pub name: String,
     pub redirect_uri: Vec<String>,
@@ -43,6 +44,24 @@ impl From<NewOpenIDClient> for OAuth2Client<NoId> {
     }
 }
 
+/// Create an OAuth2/OpenID client application.
+#[utoipa::path(
+    post,
+    path = "/api/v1/oauth/",
+    tag = "OAuth2",
+    request_body = NewOpenIDClient,
+    responses(
+        (status = 201, description = "Client created.", body = Object),
+        (status = 400, description = "Invalid client data.", body = ApiErrorResponse, example = json!({"msg": "Invalid redirect URI"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to create client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn add_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -80,6 +99,26 @@ pub(crate) async fn add_openid_client(
 }
 
 /// GET: /api/v1/oauth
+/// List OAuth2/OpenID client applications.
+#[utoipa::path(
+    get,
+    path = "/api/v1/oauth/",
+    tag = "OAuth2",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+    ),
+    responses(
+        (status = 200, description = "Paginated list of clients.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to list clients.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn list_openid_clients(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -102,6 +141,27 @@ pub(crate) async fn list_openid_clients(
     Ok(PaginatedApiResponse::new(clients, pagination, count as u32))
 }
 
+/// Get an OAuth2/OpenID client application.
+///
+/// Non-admin users receive a reduced representation without the client secret.
+#[utoipa::path(
+    get,
+    path = "/api/v1/oauth/{client_id}",
+    tag = "OAuth2",
+    params(
+        ("client_id" = String, Path, description = "OAuth2 client ID"),
+    ),
+    responses(
+        (status = 200, description = "Client details.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to get client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn get_openid_client(
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
@@ -122,6 +182,27 @@ pub(crate) async fn get_openid_client(
     }
 }
 
+/// Update an OAuth2/OpenID client application.
+#[utoipa::path(
+    put,
+    path = "/api/v1/oauth/{client_id}",
+    tag = "OAuth2",
+    request_body = NewOpenIDClient,
+    params(
+        ("client_id" = String, Path, description = "OAuth2 client ID"),
+    ),
+    responses(
+        (status = 200, description = "Client updated.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to update client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn change_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -176,6 +257,27 @@ pub(crate) async fn change_openid_client(
     Ok(ApiResponse::with_status(status))
 }
 
+/// Enable or disable an OAuth2/OpenID client application.
+#[utoipa::path(
+    post,
+    path = "/api/v1/oauth/{client_id}",
+    tag = "OAuth2",
+    request_body = ChangeStateData,
+    params(
+        ("client_id" = String, Path, description = "OAuth2 client ID"),
+    ),
+    responses(
+        (status = 200, description = "Client state changed.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to change client state.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn change_openid_client_state(
     _admin: AdminRole,
     session: SessionInfo,
@@ -210,6 +312,26 @@ pub(crate) async fn change_openid_client_state(
     Ok(ApiResponse::with_status(status))
 }
 
+/// Delete an OAuth2/OpenID client application.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/oauth/{client_id}",
+    tag = "OAuth2",
+    params(
+        ("client_id" = String, Path, description = "OAuth2 client ID"),
+    ),
+    responses(
+        (status = 200, description = "Client deleted.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to delete client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn delete_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
