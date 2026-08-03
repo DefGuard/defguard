@@ -4,10 +4,11 @@ use chrono::{NaiveDateTime, Timelike, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as, query_scalar};
+use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Deserialize, Model, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Gateway<I = NoId> {
     pub id: I,
     pub location_id: Id,

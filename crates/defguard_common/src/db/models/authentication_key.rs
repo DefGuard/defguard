@@ -3,10 +3,11 @@ use std::fmt;
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query_as};
+use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Debug, Deserialize, Serialize, Type, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, Type, PartialEq)]
 #[sqlx(type_name = "authentication_key_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum AuthenticationKeyType {

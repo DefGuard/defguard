@@ -4,6 +4,7 @@ use defguard_common::{
 };
 use model_derive::Model;
 use sqlx::{FromRow, PgPool, query_as};
+use utoipa::ToSchema;
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -48,7 +49,7 @@ impl AppEvent {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
 pub struct WebHook<I = NoId> {
     pub id: I,
     pub url: String,

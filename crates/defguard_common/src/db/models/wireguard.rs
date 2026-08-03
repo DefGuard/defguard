@@ -41,11 +41,12 @@ pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: use u32 once sqlx supports
 const DEFAULT_FWMARK: i64 = 0; // Zero means: don't use firewall mark.
 
 // Used in process of importing network from WireGuard config.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
     pub wireguard_pubkey: String,
+    #[schema(value_type = Vec<String>)]
     pub wireguard_ips: Vec<IpAddr>,
 }
 
@@ -1550,7 +1551,7 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToSchema)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,
@@ -1606,7 +1607,7 @@ pub struct WireguardNetworkStats {
     pub transfer_series: Vec<WireguardStatsRow>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LocationConnectedUserStats {
     user_id: Id,
     first_name: String,
@@ -1615,6 +1616,7 @@ pub struct LocationConnectedUserStats {
     connected_devices_count: u16,
     // oldest active session data
     public_ip: String,
+    #[schema(value_type = Vec<String>)]
     vpn_ips: Vec<IpAddr>,
     connected_at: NaiveDateTime,
     // agregated traffic stats
@@ -1623,12 +1625,13 @@ pub struct LocationConnectedUserStats {
     stats: Vec<WireguardStatsRow>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LocationConnectedNetworkDevice {
     device_id: Id,
     device_name: String,
     // active session data
     public_ip: String,
+    #[schema(value_type = Vec<String>)]
     vpn_ips: Vec<IpAddr>,
     connected_at: NaiveDateTime,
     // agregated traffic stats

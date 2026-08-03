@@ -3,6 +3,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use ipnetwork::IpNetwork;
 use serde::Serialize;
 use url::Url;
+use utoipa::ToSchema;
 
 /// Strip any `http://` or `https://` scheme prefix a user may have accidentally
 /// included in a hostname/IP field that expects a bare host, not a URL.
@@ -68,7 +69,7 @@ pub fn parse_network_address_list(ips: &str) -> Vec<IpNetwork> {
         .collect()
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, ToSchema)]
 pub struct SplitIp {
     network_part: String,
     modifiable_part: String,
