@@ -62,7 +62,7 @@ pub mod wireguard;
 pub mod worker;
 pub(crate) mod yubikey;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum WebErrorCode {
     NetworkFull,
@@ -77,6 +77,15 @@ pub enum WebErrorCode {
     CertParseError,
     SmtpNotConfigured,
     MailSendFailed,
+}
+
+/// Body returned with every error response.
+#[derive(ToSchema)]
+pub struct ApiErrorResponse {
+    /// Human-readable error message.
+    pub msg: String,
+    /// Machine-readable error code, returned only for selected errors.
+    pub code: Option<WebErrorCode>,
 }
 
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -131,10 +140,9 @@ pub(crate) fn cookie_domain() -> Option<String> {
     })
 }
 
-#[derive(Default, ToSchema)]
+#[derive(Default)]
 pub struct ApiResponse {
     json: Value,
-    #[schema(value_type = u16)]
     status: StatusCode,
 }
 
@@ -450,7 +458,7 @@ impl Auth {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AuthTotp {
     pub secret: String,
 }
@@ -464,7 +472,7 @@ impl AuthTotp {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AuthCode {
     code: String,
 }
@@ -557,18 +565,19 @@ pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WebAuthnRegistration {
     pub name: String,
+    #[schema(value_type = Object)]
     pub rpkc: RegisterPublicKeyCredential,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct RecoveryCode {
     code: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RecoveryCodes {
     codes: Option<Vec<String>>,
 }
@@ -580,7 +589,7 @@ impl RecoveryCodes {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WebHookData {
     pub url: String,
     pub description: String,
@@ -610,7 +619,7 @@ impl From<WebHookData> for WebHook {
 
 /// Return type needed for knowing if a user came from OpenID flow.
 /// If so, fill in the optional URL field to redirect him later.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct AuthResponse {
     pub user: UserInfo,
     pub url: Option<String>,
