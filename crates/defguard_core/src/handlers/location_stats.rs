@@ -19,7 +19,7 @@ use crate::{
     auth::AdminRole,
     error::WebError,
     handlers::{
-        ApiResponse, ApiResult,
+        ApiErrorResponse, ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
 };
@@ -53,9 +53,24 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
 }
 
 /// Returns statistics for all locations
-///
-/// # Returns
-/// Returns an `WireguardNetworkStats` based on stats from all locations in requested time period
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/stats",
+    tag = "location stats",
+    params(
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
+    ),
+    responses(
+        (status = 200, description = "Aggregated statistics for all locations.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to get location statistics.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn locations_overview_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -70,9 +85,26 @@ pub(crate) async fn locations_overview_stats(
 }
 
 /// Returns statistics for requested location
-///
-/// # Returns
-/// Returns an `WireguardNetworkStats` based on requested location and time period
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{network_id}/stats",
+    tag = "location stats",
+    params(
+        ("network_id" = Id, Path, description = "ID of network"),
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
+    ),
+    responses(
+        (status = 200, description = "Statistics of the location.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to get location statistics.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn location_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -96,10 +128,28 @@ pub(crate) async fn location_stats(
 }
 
 /// Returns paginated list of connected users for a given location
-///
-/// # Returns
-/// Returns a paginated list of `LocationConnectedUser` objects for requested location and time
-/// period.
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{location_id}/stats/connected_users",
+    tag = "location stats",
+    params(
+        ("location_id" = Id, Path, description = "ID of location"),
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
+        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+    ),
+    responses(
+        (status = 200, description = "Paginated list of connected users.", body = PaginatedApiResponse<LocationConnectedUserStats>),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to get connected users.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn location_connected_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -139,10 +189,28 @@ pub(crate) async fn location_connected_users(
 }
 
 /// Returns paginated list of connected network devices for a given location
-///
-/// # Returns
-/// Returns a paginated list of `LocationConnectedNetworkDevice` objects for requested location and
-/// time period.
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{location_id}/stats/connected_network_devices",
+    tag = "location stats",
+    params(
+        ("location_id" = Id, Path, description = "ID of location"),
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
+        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+    ),
+    responses(
+        (status = 200, description = "Paginated list of connected network devices.", body = PaginatedApiResponse<LocationConnectedNetworkDevice>),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to get connected network devices.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn location_connected_network_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -188,10 +256,27 @@ pub(crate) struct ConnectedUserDevicesPath {
 }
 
 /// Returns list of connected devices for a specific user at a given location
-///
-/// # Returns
-/// Returns a list of `LocationConnectedUserDevice` objects for requested user, location and time
-/// period.
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{location_id}/stats/connected_users/{user_id}/devices",
+    tag = "location stats",
+    params(
+        ("location_id" = Id, Path, description = "ID of location"),
+        ("user_id" = Id, Path, description = "ID of user"),
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
+    ),
+    responses(
+        (status = 200, description = "Connected devices of the user.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Network or user not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
+        (status = 500, description = "Unable to get connected user devices.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn location_connected_user_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,
