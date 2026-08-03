@@ -396,7 +396,7 @@ pub(crate) async fn get_acl_rule(
     tag = "ACL",
     request_body = EditAclRule,
     responses(
-        (status = OK, description = "ACL rule"),
+        (status = CREATED, description = "ACL rule", body = ApiAclRule),
         (status = 400, description = "Cannot use a modified alias in an ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Cannot use modified alias in ACL rule [1]"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

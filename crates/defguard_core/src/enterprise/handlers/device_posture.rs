@@ -646,7 +646,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
 #[utoipa::path(
     post,
     path = "/api/v1/device-posture",
-    tag = "DevicePosture",
+    tag = "device posture",
     request_body = EditDevicePosture,
     responses(
         (status = 201, description = "Posture check created successfully", body = ApiDevicePosture),
@@ -724,7 +724,7 @@ pub async fn create_device_posture(
 #[utoipa::path(
     get,
     path = "/api/v1/device-posture/versions",
-    tag = "DevicePosture",
+    tag = "device posture",
     responses(
         (status = 200, description = "Valid device posture OS and client versions", body = DevicePostureVersionMetadata),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
@@ -750,7 +750,7 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
 #[utoipa::path(
     get,
     path = "/api/v1/device-posture",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
@@ -825,7 +825,7 @@ pub async fn list_device_postures(
 #[utoipa::path(
     get,
     path = "/api/v1/device-posture/{id}",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("id" = Id, Path, description = "Device posture check policy ID")
     ),
@@ -868,7 +868,7 @@ pub async fn get_device_posture(
 #[utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("id" = Id, Path, description = "Device posture check policy ID")
     ),
@@ -962,7 +962,7 @@ pub async fn update_device_posture(
 #[utoipa::path(
     delete,
     path = "/api/v1/device-posture/{id}",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("id" = Id, Path, description = "Device posture check policy ID")
     ),
@@ -1025,7 +1025,7 @@ pub async fn delete_device_posture(
 #[utoipa::path(
     post,
     path = "/api/v1/device-posture/{id}/duplicate",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("id" = Id, Path, description = "Device posture check policy ID to duplicate")
     ),
@@ -1126,7 +1126,7 @@ pub struct AssignLocationsData {
 #[utoipa::path(
     put,
     path = "/api/v1/network/{id}/postures",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("id" = Id, Path, description = "VPN location ID")
     ),
@@ -1197,7 +1197,7 @@ pub async fn set_postures_for_location(
 #[utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}/locations",
-    tag = "DevicePosture",
+    tag = "device posture",
     params(
         ("id" = Id, Path, description = "Device posture check policy ID")
     ),

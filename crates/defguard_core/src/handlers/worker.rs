@@ -102,7 +102,7 @@ pub async fn create_job(
     path = "/api/v1/worker/token",
     tag = "worker",
     responses(
-        (status = 200, description = "Worker token.", body = Object),
+        (status = 201, description = "Worker token.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to create worker token.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),

@@ -297,91 +297,17 @@ Responses that are not documented per operation:
     ),
     tags(
         (name = "system", description = "Health check, instance info and other utility endpoints"),
-        (name = "auth", description = "
-### Endpoints for authenticating users
-Available actions:
-- authenticate with username/email and password
-- complete the second authentication factor (TOTP, email, WebAuthn, recovery code)
-- configure own MFA methods
-- terminate the current session
-        "),
-        (name = "user", description = "
-### Endpoints for managing users
-Available actions:
-- list all users
-- disable/enable user
-- CRUD mechanism for handling users
-- operations on security key, YubiKey and authorized app
-- change user password
-- disable another user's MFA methods
-- start remote desktop configuration
-- trigger enrollment process
-- bulk disable/enable/delete users and bulk enrollment
-        "),
-        (name = "group", description = "
-### Endpoints for managing groups
-Available actions:
-- list all groups
-- CRUD mechanism for handling groups
-- add or delete a group member
-- remove group
-- bulk assign users to groups
-        "),
-        (name = "device", description = "
-### Endpoints for managing user devices
-
-Available actions:
-- list all devices or user devices
-- CRUD mechanism for handling devices
-- download the WireGuard configuration of a device
-        "),
-        (name = "network device", description = "
-### Endpoints for managing network devices, as opposed to user devices
-
-Available actions:
-- list, create, modify and delete network devices
-- suggest and validate IP addresses in a location
-- start CLI setup of a network device
-        "),
-        (name = "static IP", description = "
-### Endpoints for managing static IP assignments of user devices
-
-Available actions:
-- list IP addresses assigned to user devices
-- assign and validate static IP addresses
-        "),
-        (name = "network", description = "
-### Endpoints that allow to control your networks.
-
-Available actions:
-- list all wireguard networks
-- CRUD mechanism for handling networks
-- import a network from a WireGuard configuration file
-        "),
+        (name = "auth", description = "User authentication, second authentication factor and session management"),
+        (name = "user", description = "User accounts, their MFA methods, enrollment and bulk operations"),
+        (name = "group", description = "User groups and their members"),
+        (name = "device", description = "User devices and their WireGuard configuration"),
+        (name = "network device", description = "Network devices, as opposed to user devices, and their IP addresses"),
+        (name = "static IP", description = "Static IP addresses assigned to user devices"),
+        (name = "network", description = "WireGuard networks, including import from a WireGuard configuration file"),
         (name = "location stats", description = "Traffic statistics and active connections per location"),
-        (name = "gateway", description = "
-### Endpoints that allow you to control gateways registered in your locations.
-
-Available actions:
-- list all gateways and their connection status
-- read, modify or delete a single gateway
-- adopt a new gateway and follow its setup progress
-        "),
-        (name = "proxy", description = "
-### Endpoints that allow you to control edge (proxy) instances.
-
-Available actions:
-- list all edges
-- read, modify or delete a single edge
-- follow the TLS and ACME setup progress
-        "),
-        (name = "certificates", description = "
-### Endpoints for managing internal and external URL certificates.
-
-Available actions:
-- read certificate authority and certificate details
-- apply internal (core) and external (edge) URL certificate settings
-        "),
+        (name = "gateway", description = "Gateways registered in your locations, their connection status and setup"),
+        (name = "proxy", description = "Edge (proxy) instances, their TLS and ACME setup"),
+        (name = "certificates", description = "Internal (core) and external (edge) URL certificates"),
         (name = "SSH key", description = "SSH and GPG authentication keys of users"),
         (name = "API token", description = "API tokens used for `Authorization: Bearer` authentication"),
         (name = "webhook", description = "Webhooks triggered by user and provisioning events"),
@@ -390,16 +316,8 @@ Available actions:
         (name = "LDAP", description = "LDAP connection tests and sync dry runs"),
         (name = "activity log", description = "Activity log events and activity log streams"),
         (name = "ACL", description = "Access Control Lists (ACL)"),
-        (name = "DevicePosture", description = "Device posture check policies"),
-        (name = "SNAT", description = "
-### Endpoints that allow you to control user SNAT bindings for your locations.
-
-Available actions:
-- list all SNAT bindings
-- create new SNAT binding
-- modify SNAT binding
-- delete SNAT binding
-        "),
+        (name = "device posture", description = "Device posture check policies"),
+        (name = "SNAT", description = "User SNAT bindings in your locations"),
         (name = "OpenID", description = "External OpenID providers used for logging in to defguard"),
         (name = "OAuth2", description = "defguard acting as an OAuth2 / OpenID Connect provider for other applications"),
         (name = "support", description = "Diagnostics, logs and support data"),

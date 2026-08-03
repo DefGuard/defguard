@@ -658,6 +658,7 @@ pub struct AuthenticationResponse {
     request_body = Object,
     responses(
         (status = 200, description = "User authenticated.", body = Object),
+        (status = 201, description = "User authenticated, but an additional authentication factor is required.", body = Object),
         (status = 400, description = "Invalid callback payload.", body = ApiErrorResponse, example = json!({"msg": "Invalid state"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
