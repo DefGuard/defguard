@@ -371,11 +371,11 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const postureChecksSectionState = useMemo(
     () =>
       getPostureChecksSectionState({
-        assignedPostureChecksCount: location.posture_checks.length,
+        assignedPostureChecksCount: location.posture_checks?.length ?? 0,
         canUseEnterprise: canUseDevicePosture,
         postureChecksCount: postureChecks.length,
       }),
-    [canUseDevicePosture, location.posture_checks.length, postureChecks.length],
+    [canUseDevicePosture, location.posture_checks?.length, postureChecks.length],
   );
   const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
 
@@ -396,7 +396,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       postureChecks.map((postureCheck) => [postureCheck.id, postureCheck.name]),
     );
 
-    return location.posture_checks.map((id) => ({
+    return location.posture_checks?.map((id) => ({
       id,
       label: labelsById.get(id) ?? String(id),
     }));
@@ -985,7 +985,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       options={postureCheckOptions}
                       selected={
                         new Set(
-                          assignedPostureChecks.map((postureCheck) => postureCheck.id),
+                          assignedPostureChecks?.map((postureCheck) => postureCheck.id),
                         )
                       }
                       modalTitle={m.location_posture_checks_select()}
