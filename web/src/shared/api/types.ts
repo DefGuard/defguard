@@ -814,7 +814,7 @@ export interface NetworkLocation {
   location_mfa_mode: LocationMfaModeValue;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
-  posture_checks: number[];
+  posture_checks?: number[];
 }
 
 export interface EditNetworkLocation
