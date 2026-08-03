@@ -40,7 +40,6 @@ use super::{
     info(
         title = "defguard Core API",
         version = CARGO_VERSION,
-        license(name = "Dual: AGPL-3.0 / defguard Enterprise License", url = "https://github.com/DefGuard/defguard/blob/main/LICENSE.md"),
         description = "
 REST API of defguard Core.
 
