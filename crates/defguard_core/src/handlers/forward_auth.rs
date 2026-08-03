@@ -7,7 +7,7 @@ use axum_extra::extract::cookie::CookieJar;
 use defguard_common::db::models::{Session, SessionState, Settings, user::User};
 use reqwest::Url;
 
-use super::SESSION_COOKIE_NAME;
+use super::{ApiErrorResponse, SESSION_COOKIE_NAME};
 use crate::{appstate::AppState, error::WebError};
 
 // Header names
@@ -61,6 +61,21 @@ where
     }
 }
 
+/// Authorize a request forwarded by a reverse proxy.
+///
+/// Meant to be used as a forward-auth endpoint (e.g. Traefik `forwardAuth`). The original
+/// request URL is read from the `X-Forwarded-*` headers.
+#[utoipa::path(
+    get,
+    path = "/api/v1/forward_auth",
+    tag = "system",
+    responses(
+        (status = 200, description = "Request is authorized."),
+        (status = 302, description = "User is not authenticated, redirect to the login page."),
+        (status = 401, description = "Request cannot be authorized.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to authorize the request.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn forward_auth(
     State(appstate): State<AppState>,
     cookies: CookieJar,

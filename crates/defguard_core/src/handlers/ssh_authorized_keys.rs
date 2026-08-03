@@ -9,8 +9,9 @@ use defguard_common::db::{
 };
 use sqlx::{PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
+use utoipa::ToSchema;
 
-use super::{ApiResponse, ApiResult, user_for_admin_or_self};
+use super::{ApiErrorResponse, ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -89,6 +90,24 @@ pub struct SshKeysRequestParams {
 /// Should always return a response to partially mitigate user enumeration.
 /// Optional query params `username` and `group` are used for filtering users.
 /// If no params are specified an empty response is returned.
+/// Get SSH authorized keys in the `authorized_keys` file format.
+///
+/// Intended to be used as an `AuthorizedKeysCommand` on SSH servers. Either `username`
+/// or `group` has to be provided.
+#[utoipa::path(
+    get,
+    path = "/api/v1/ssh_authorized_keys",
+    tag = "SSH key",
+    params(
+        ("username" = Option<String>, Query, description = "Return keys of this user"),
+        ("group" = Option<String>, Query, description = "Return keys of all members of this group"),
+    ),
+    responses(
+        (status = 200, description = "Authorized keys, one per line.", body = String),
+        (status = 400, description = "Neither username nor group was provided.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
+        (status = 500, description = "Unable to get authorized keys.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn get_authorized_keys(
     params: Query<SshKeysRequestParams>,
     State(appstate): State<AppState>,
@@ -146,13 +165,35 @@ pub async fn get_authorized_keys(
     Ok(ssh_keys.join("\n"))
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct AddAuthenticationKeyData {
     key: String,
     name: String,
     key_type: AuthenticationKeyType,
 }
 
+/// Add an SSH or GPG authentication key to a user.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/{username}/auth_key",
+    tag = "SSH key",
+    request_body = AddAuthenticationKeyData,
+    params(
+        ("username" = String, Path, description = "Name of a user"),
+    ),
+    responses(
+        (status = 201, description = "Authentication key added.", body = Object),
+        (status = 400, description = "Invalid key.", body = ApiErrorResponse, example = json!({"msg": "Invalid key"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
+        (status = 500, description = "Unable to add authentication key.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn add_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -219,6 +260,26 @@ pub async fn add_authentication_key(
 }
 
 // GET on user, returns AuthenticationKeyInfo vector in JSON
+/// List SSH and GPG authentication keys of a user.
+#[utoipa::path(
+    get,
+    path = "/api/v1/user/{username}/auth_key",
+    tag = "SSH key",
+    params(
+        ("username" = String, Path, description = "Name of a user"),
+    ),
+    responses(
+        (status = 200, description = "Authentication keys of the user.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
+        (status = 500, description = "Unable to list authentication keys.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn fetch_authentication_keys(
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -230,6 +291,27 @@ pub async fn fetch_authentication_keys(
     Ok(ApiResponse::json(keys_info, StatusCode::OK))
 }
 
+/// Delete an authentication key of a user.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/{username}/auth_key/{key_id}",
+    tag = "SSH key",
+    params(
+        ("username" = String, Path, description = "Name of a user"),
+        ("key_id" = i64, Path, description = "ID of authentication key"),
+    ),
+    responses(
+        (status = 200, description = "Authentication key deleted.", body = Object, example = json!({})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User or key not found.", body = ApiErrorResponse, example = json!({"msg": "key not found"})),
+        (status = 500, description = "Unable to delete authentication key.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn delete_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -258,11 +340,34 @@ pub async fn delete_authentication_key(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, ToSchema)]
 pub struct RenameRequest {
     name: String,
 }
 
+/// Rename an authentication key of a user.
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/{username}/auth_key/{key_id}/rename",
+    tag = "SSH key",
+    request_body = RenameRequest,
+    params(
+        ("username" = String, Path, description = "Name of a user"),
+        ("key_id" = i64, Path, description = "ID of authentication key"),
+    ),
+    responses(
+        (status = 200, description = "Authentication key renamed.", body = Object, example = json!({})),
+        (status = 400, description = "Invalid name.", body = ApiErrorResponse, example = json!({"msg": "Invalid name"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User or key not found.", body = ApiErrorResponse, example = json!({"msg": "key not found"})),
+        (status = 500, description = "Unable to rename authentication key.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn rename_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
