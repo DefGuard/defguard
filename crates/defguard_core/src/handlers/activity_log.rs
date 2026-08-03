@@ -7,6 +7,8 @@ use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
+use utoipa::ToSchema;
+
 use super::{
     ApiErrorResponse,
     pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
@@ -98,13 +100,14 @@ impl fmt::Display for SortOrder {
 }
 
 /// Activity log event with additional info as returned by the API
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, ToSchema)]
 pub struct ApiActivityLogEvent {
     pub id: Id,
     pub timestamp: NaiveDateTime,
     pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
+    #[schema(value_type = Option<String>)]
     pub ip: Option<IpNetwork>,
     pub event: String,
     pub module: ActivityLogModule,
@@ -112,17 +115,10 @@ pub struct ApiActivityLogEvent {
     pub description: Option<String>,
 }
 
-// TODO: add utoipa API schema
 /// List activity log events.
 ///
-/// Retrieves a paginated list of activity log events filtered by following query parameters:
-/// TODO: add explanations
-/// - from
-/// - until
-/// - module
-/// - event_type
-/// - username
-/// - search
+/// Supports filtering by time range, module, event type and username, plus a free-text search
+/// over event descriptions.
 #[utoipa::path(
     get,
     path = "/api/v1/activity_log",
@@ -140,7 +136,7 @@ pub struct ApiActivityLogEvent {
         ("sort_order" = Option<String>, Query, description = "Sort direction: asc or desc"),
     ),
     responses(
-        (status = 200, description = "Paginated list of activity log events.", body = Object),
+        (status = 200, description = "Paginated list of activity log events.", body = PaginatedApiResponse<ApiActivityLogEvent>),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to list activity log events.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
