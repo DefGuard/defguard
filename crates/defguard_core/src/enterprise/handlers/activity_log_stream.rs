@@ -111,10 +111,10 @@ pub async fn create_activity_log_stream(
     tag = "activity log",
     request_body = ActivityLogStreamModificationRequest,
     params(
-        ("id" = Id, Path, description = "ID of activity log stream"),
+        ("id" = i64, Path, description = "ID of activity log stream"),
     ),
     responses(
-        (status = 200, description = "Activity log stream updated.", body = Object, example = json!({})),
+        (status = 200, description = "Activity log stream updated."),
         (status = 400, description = "Invalid stream configuration.", body = ApiErrorResponse, example = json!({"msg": "Invalid stream config"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -170,10 +170,10 @@ pub async fn modify_activity_log_stream(
     path = "/api/v1/activity_log_stream/{id}",
     tag = "activity log",
     params(
-        ("id" = Id, Path, description = "ID of activity log stream"),
+        ("id" = i64, Path, description = "ID of activity log stream"),
     ),
     responses(
-        (status = 200, description = "Activity log stream deleted.", body = Object, example = json!({})),
+        (status = 200, description = "Activity log stream deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Activity log stream not found.", body = ApiErrorResponse, example = json!({"msg": "stream not found"})),

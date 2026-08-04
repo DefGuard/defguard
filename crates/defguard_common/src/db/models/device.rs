@@ -74,6 +74,7 @@ impl From<DeviceType> for String {
 
 #[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
 pub struct Device<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub name: String,
     pub wireguard_pubkey: String,

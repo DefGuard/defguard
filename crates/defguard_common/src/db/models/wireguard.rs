@@ -103,6 +103,7 @@ pub enum ServiceLocationMode {
 #[derive(Clone, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub name: String,
     #[model(ref)]

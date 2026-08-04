@@ -44,16 +44,18 @@ use super::{
 REST API of defguard Core.
 
 Authentication is done either with the session cookie obtained from `POST /api/v1/auth`,
-or with an API token passed as `Authorization: Bearer <token>`.
+or with an API token passed as `Authorization: Bearer <token>`. 
 
-Errors are returned as a JSON object with a human-readable `msg` field and, for selected
-errors, a machine-readable `code` field.
+API tokens are created by an admin with `POST /api/v1/user/{username}/api_token` and their value is returned only once, in the response to that request.
+
+Errors are returned as a JSON object with a `msg` field and, for some of them, a `code` field.
 
 Responses that are not documented per operation:
 - `408` when the request exceeds the server request timeout,
+
 - `413` when the request body exceeds the server body size limit,
-- `429` when the per-IP rate limit is exceeded.
-        ",
+
+- `429` when the per-IP rate limit is exceeded.",
     ),
     paths(
         // system
@@ -286,7 +288,8 @@ Responses that are not documented per operation:
             ApiErrorResponse, WebErrorCode, Auth, UserInfo, UserDetails, UserDevice, Username,
             StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult,
             Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo,
-            license::CheckParams
+            license::CheckParams,
+            user::SortKey, user::SortOrder, reserved::CheckResource
         ),
     ),
     tags(

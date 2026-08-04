@@ -10,6 +10,7 @@ use crate::db::{Id, NoId};
 
 #[derive(Clone, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Gateway<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub location_id: Id,
     pub name: String,

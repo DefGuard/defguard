@@ -51,6 +51,7 @@ impl AppEvent {
 
 #[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
 pub struct WebHook<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub url: String,
     pub description: String,

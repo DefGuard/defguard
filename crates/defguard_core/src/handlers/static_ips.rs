@@ -66,7 +66,7 @@ pub async fn get_all_user_device_ips(
     tag = "static IP",
     params(
         ("username" = String, Path, description = "Name of a user"),
-        ("device_id" = Id, Path, description = "ID of device"),
+        ("device_id" = i64, Path, description = "ID of device"),
     ),
     responses(
         (status = 200, description = "IP addresses of the device, grouped by location.", body = Object),

@@ -90,7 +90,7 @@ pub(crate) async fn locations_overview_stats(
     path = "/api/v1/network/{network_id}/stats",
     tag = "location stats",
     params(
-        ("network_id" = Id, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of network"),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
@@ -133,7 +133,7 @@ pub(crate) async fn location_stats(
     path = "/api/v1/network/{location_id}/stats/connected_users",
     tag = "location stats",
     params(
-        ("location_id" = Id, Path, description = "ID of location"),
+        ("location_id" = i64, Path, description = "ID of location"),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
         ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
@@ -194,7 +194,7 @@ pub(crate) async fn location_connected_users(
     path = "/api/v1/network/{location_id}/stats/connected_network_devices",
     tag = "location stats",
     params(
-        ("location_id" = Id, Path, description = "ID of location"),
+        ("location_id" = i64, Path, description = "ID of location"),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
         ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
         ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
@@ -261,8 +261,8 @@ pub(crate) struct ConnectedUserDevicesPath {
     path = "/api/v1/network/{location_id}/stats/connected_users/{user_id}/devices",
     tag = "location stats",
     params(
-        ("location_id" = Id, Path, description = "ID of location"),
-        ("user_id" = Id, Path, description = "ID of user"),
+        ("location_id" = i64, Path, description = "ID of location"),
+        ("user_id" = i64, Path, description = "ID of user"),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(

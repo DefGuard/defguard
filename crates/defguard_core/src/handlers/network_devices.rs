@@ -134,7 +134,7 @@ pub(crate) struct DeviceWireGuardConfig {
     path = "/api/v1/device/network/{device_id}/config",
     tag = "network device",
     params(
-        ("device_id" = Id, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of network device"),
     ),
     responses(
         (status = 200, description = "Network device configuration.", body = Object),
@@ -207,7 +207,7 @@ pub(crate) async fn network_device_configs(
     path = "/api/v1/device/network/{device_id}",
     tag = "network device",
     params(
-        ("device_id" = Id, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of network device"),
     ),
     responses(
         (status = 200, description = "Network device details.", body = NetworkDeviceInfo),
@@ -353,7 +353,7 @@ impl IpAvailabilityCheckResult {
     tag = "network device",
     request_body = IpAvailabilityCheck,
     params(
-        ("network_id" = Id, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of network"),
     ),
     responses(
         (status = 200, description = "Availability of the requested IP addresses.", body = Object),
@@ -455,7 +455,7 @@ pub(crate) async fn check_ip_availability(
     path = "/api/v1/device/network/ip/{network_id}",
     tag = "network device",
     params(
-        ("network_id" = Id, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of network"),
     ),
     responses(
         (status = 200, description = "Suggested IP addresses.", body = Object),
@@ -551,7 +551,7 @@ impl From<NetworkAddressError> for WebError {
     tag = "network device",
     request_body = StartNetworkDeviceSetup,
     responses(
-        (status = 201, description = "Setup started, returns the enrollment token and URL.", body = Object),
+        (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object),
         (status = 400, description = "Invalid IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Invalid IP address"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -673,10 +673,10 @@ pub(crate) async fn start_network_device_setup(
     path = "/api/v1/device/network/start_cli/{device_id}",
     tag = "network device",
     params(
-        ("device_id" = Id, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of network device"),
     ),
     responses(
-        (status = 201, description = "Setup started, returns the enrollment token and URL.", body = Object),
+        (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network device not found.", body = ApiErrorResponse, example = json!({"msg": "device not found"})),
@@ -758,7 +758,7 @@ pub(crate) async fn start_network_device_setup_for_device(
     post,
     path = "/api/v1/device/network",
     tag = "network device",
-    request_body = AddNetworkDevice,
+    request_body(content = AddNetworkDevice, description = "The new network device.", example = json!({"name": "office-printer", "location_id": 1, "assigned_ips": ["10.0.0.50"], "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=", "description": "Printer on the second floor"})),
     responses(
         (status = 201, description = "Network device created.", body = Object),
         (status = 400, description = "Invalid public key or IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Public key invalid"})),
@@ -907,7 +907,7 @@ pub struct ModifyNetworkDevice {
     tag = "network device",
     request_body = ModifyNetworkDevice,
     params(
-        ("device_id" = Id, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of network device"),
     ),
     responses(
         (status = 200, description = "Network device updated.", body = Object),
