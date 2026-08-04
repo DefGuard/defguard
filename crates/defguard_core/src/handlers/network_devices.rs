@@ -357,9 +357,9 @@ impl IpAvailabilityCheckResult {
     ),
     responses(
         (status = 200, description = "Availability of the requested IP addresses.", body = Object),
+        (status = 400, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Failed to check IP availability, location not found"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
         (status = 500, description = "Unable to check IP availability.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
@@ -459,9 +459,9 @@ pub(crate) async fn check_ip_availability(
     ),
     responses(
         (status = 200, description = "Suggested IP addresses.", body = Object),
+        (status = 400, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Failed to find available IP, network not found"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
         (status = 500, description = "Unable to find available IP addresses.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
@@ -677,9 +677,9 @@ pub(crate) async fn start_network_device_setup(
     ),
     responses(
         (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object),
+        (status = 400, description = "Device not found, or it is not a network device.", body = ApiErrorResponse, example = json!({"msg": "Failed to start network device setup for device with ID 1, device not found"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Network device not found.", body = ApiErrorResponse, example = json!({"msg": "device not found"})),
         (status = 500, description = "Unable to start network device setup.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(

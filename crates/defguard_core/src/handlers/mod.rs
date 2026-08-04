@@ -76,7 +76,7 @@ pub(crate) mod yubikey;
 /// - `cert_parse_error`: the certificate could not be parsed.
 /// - `smtp_not_configured`: SMTP settings are empty.
 /// - `mail_send_failed`: the message could not be sent.
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WebErrorCode {
     NetworkFull,
@@ -98,7 +98,8 @@ pub enum WebErrorCode {
 pub struct ApiErrorResponse {
     /// Human-readable error message.
     pub msg: String,
-    /// Machine-readable error code, returned for selected errors.
+    /// Machine-readable error code, returned for selected errors and listed in the introduction.
+    #[schema(value_type = Option<String>)]
     pub code: Option<WebErrorCode>,
 }
 

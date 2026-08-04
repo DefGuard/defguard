@@ -246,6 +246,7 @@ pub(crate) async fn list_groups(
             }
         )),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Group not found.", body = ApiErrorResponse, example = json!({"msg": "Group <id> not found"})),
         (status = 500, description = "Unable to get group.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -380,6 +381,7 @@ pub(crate) async fn create_group(
     request_body = EditGroupInfo,
     responses(
         (status = 200, description = "Group updated."),
+        (status = 400, description = "Cannot remove admin permissions from the last admin group.", body = ApiErrorResponse, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or group not found.", body = ApiErrorResponse, example = json!({"msg": "Group <id> not found"})),

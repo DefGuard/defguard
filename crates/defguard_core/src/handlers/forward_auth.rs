@@ -72,7 +72,6 @@ where
     responses(
         (status = 200, description = "Request is authorized."),
         (status = 302, description = "User is not authenticated, redirect to the login page."),
-        (status = 401, description = "Request cannot be authorized.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to authorize request.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]

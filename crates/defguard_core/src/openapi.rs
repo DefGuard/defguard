@@ -21,8 +21,8 @@ use super::{
     },
     handlers::{
         ApiErrorResponse, Auth, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, WebErrorCode, activity_log,
-        app_info, auth, component_setup, core_certs, forward_auth, gateway,
+        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, activity_log, app_info, auth,
+        component_setup, core_certs, forward_auth, gateway,
         group::{self, BulkAssignToGroupsRequest},
         license, location_stats, mail, network_devices, openid_clients, openid_flow, proxy,
         reserved, resource_display, session_info, settings, ssh_authorized_keys, static_ips,
@@ -48,7 +48,31 @@ or with an API token passed as `Authorization: Bearer <token>`.
 
 API tokens are created by an admin with `POST /api/v1/user/{username}/api_token` and their value is returned only once, in the response to that request.
 
-Errors are returned as a JSON object with a `msg` field and, for some of them, a `code` field.
+Errors are returned as a JSON object with a `msg` field and, for some of them, a machine-readable `code` field. The possible codes are:
+
+- `network_full`: the location has no free IP address left for another device,
+
+- `user_groups_not_synced`: the groups of an externally authenticated user are not synced yet,
+
+- `license_limit_reached`: the user limit of the license has been reached,
+
+- `cert_missing_cert_pem`: `cert_pem` is missing,
+
+- `cert_missing_key_pem`: `key_pem` is missing,
+
+- `cert_invalid_cert_or_key`: the certificate or the private key is not valid PEM,
+
+- `cert_invalid_validity_period`: the validity period of the certificate cannot be used,
+
+- `cert_expired`: the certificate has expired,
+
+- `cert_not_yet_valid`: the certificate is not valid yet,
+
+- `cert_parse_error`: the certificate could not be parsed,
+
+- `smtp_not_configured`: SMTP settings are empty,
+
+- `mail_send_failed`: the message could not be sent.
 
 Responses that are not documented per operation:
 - `408` when the request exceeds the server request timeout,
@@ -285,7 +309,7 @@ Responses that are not documented per operation:
     ),
     components(
         schemas(
-            ApiErrorResponse, WebErrorCode, Auth, UserInfo, UserDetails, UserDevice, Username,
+            ApiErrorResponse, Auth, UserInfo, UserDetails, UserDevice, Username,
             StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult,
             Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo,
             license::CheckParams,

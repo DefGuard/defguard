@@ -36,7 +36,7 @@ use crate::{
     responses(
         (status = 200, description = "All SNAT bindings in the location.", body = [UserSnatBinding]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Location 1 not found"})),
         (status = 500, description = "Unable to list SNAT bindings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -88,7 +88,7 @@ pub struct NewUserSnatBinding {
         (status = 201, description = "SNAT binding created.", body = UserSnatBinding),
         (status = 400, description = "Invalid request data.", body = ApiErrorResponse, example = json!({"msg": "Invalid request data"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Location or user not found.", body = ApiErrorResponse, example = json!({"msg": "Location 1 not found"})),
         (status = 409, description = "A SNAT binding for this user in this location already exists.", body = ApiErrorResponse, example = json!({"msg": "Binding already exists"})),
         (status = 500, description = "Unable to create SNAT binding.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -177,7 +177,7 @@ pub struct EditUserSnatBinding {
         (status = 200, description = "SNAT binding updated.", body = UserSnatBinding),
         (status = 400, description = "Invalid request data.", body = ApiErrorResponse, example = json!({"msg": "Invalid request data"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Location, user or SNAT binding not found.", body = ApiErrorResponse, example = json!({"msg": "Binding not found"})),
         (status = 500, description = "Unable to update SNAT binding.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -260,7 +260,7 @@ pub async fn modify_snat_binding(
     responses(
         (status = 200, description = "SNAT binding deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Location, user or SNAT binding not found.", body = ApiErrorResponse, example = json!({"msg": "Binding not found"})),
         (status = 500, description = "Unable to delete SNAT binding.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),

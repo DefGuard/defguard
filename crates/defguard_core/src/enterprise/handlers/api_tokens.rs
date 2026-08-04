@@ -171,7 +171,8 @@ pub async fn fetch_api_tokens(
         (status = 200, description = "API token deleted.", body = Object, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "User or token not found.", body = ApiErrorResponse, example = json!({"msg": "token not found"})),
+        (status = 400, description = "Token not found.", body = ApiErrorResponse, example = json!({"msg": "Key not found"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to delete API token.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(

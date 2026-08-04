@@ -181,6 +181,7 @@ pub struct ImportedNetworkData {
     request_body(content = WireguardNetworkData, description = "`address` is a comma-separated list of network addresses.", example = json!({"name": "office", "address": "10.0.0.1/24", "endpoint": "vpn.example.com", "port": 50051, "allowed_ips": "0.0.0.0/0", "dns": "1.1.1.1", "mtu": 1420, "fwmark": 0, "allow_all_groups": true, "allowed_groups": [], "keepalive_interval": 25, "peer_disconnect_threshold": 180, "acl_enabled": false, "acl_default_allow": false, "allowed_ips_from_acl": false, "location_mfa_mode": "disabled", "service_location_mode": "disabled"})),
     responses(
         (status = 201, description = "Network created.", body = WireguardNetwork),
+        (status = 400, description = "Invalid location settings.", body = ApiErrorResponse, example = json!({"msg": "At least one group must be specified when allow_all_groups is disabled"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to create network.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -317,6 +318,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
     request_body = WireguardNetworkData,
     responses(
         (status = 200, description = "Network updated.", body = WireguardNetwork),
+        (status = 400, description = "Invalid location settings.", body = ApiErrorResponse, example = json!({"msg": "Enterprise license required."})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
@@ -862,6 +864,7 @@ pub(crate) struct AddDeviceResult {
         (status = 400, description = "No networks are configured, or a device with this public key already exists.", body = ApiErrorResponse, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to add device.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -1053,6 +1056,7 @@ pub(crate) async fn add_device(
         )),
         (status = 400, description = "No networks are configured, or the public key belongs to a location.", body = ApiErrorResponse, example = json!({"msg": "device's pubkey must be different from server's pubkey"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device not found.", body = ApiErrorResponse, example = json!({"msg": "device id <id> not found"})),
         (status = 500, description = "Unable to update device.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -1175,9 +1179,9 @@ pub(crate) async fn modify_device(
                 "created": "2024-07-10T10:25:43.231Z"
             }
         )),
-        (status = 400, description = "No networks are configured, or the public key belongs to a location.", body = ApiErrorResponse, example = json!({"msg": "device's pubkey must be different from server's pubkey"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 404, description = "Device not found.", body = ApiErrorResponse, example = json!({"msg": "device id <id> not found"}))
+        (status = 404, description = "Device not found.", body = ApiErrorResponse, example = json!({"msg": "device id <id> not found"})),
+        (status = 500, description = "Unable to get device.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -1321,6 +1325,7 @@ pub(crate) async fn delete_device(
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to list devices.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -1355,6 +1360,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "Admin access required"})),
+        (status = 500, description = "Unable to list user devices.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),

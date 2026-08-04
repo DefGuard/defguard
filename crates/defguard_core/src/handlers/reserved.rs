@@ -55,7 +55,7 @@ async fn username_exists(pool: &PgPool, username: &str) -> Result<bool, sqlx::Er
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 409, description = "The value is already taken.", body = ApiErrorResponse, example = json!({"msg": "admin is already taken"})),
-        (status = 500, description = "Internal server error.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to check the value.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),

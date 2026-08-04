@@ -298,7 +298,8 @@ pub async fn fetch_authentication_keys(
         (status = 200, description = "Authentication key deleted.", body = Object, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "User or key not found.", body = ApiErrorResponse, example = json!({"msg": "key not found"})),
+        (status = 400, description = "Key not found.", body = ApiErrorResponse, example = json!({"msg": "Key not found"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to delete authentication key.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
@@ -351,7 +352,7 @@ pub struct RenameRequest {
     ),
     responses(
         (status = 200, description = "Authentication key renamed.", body = Object, example = json!({})),
-        (status = 400, description = "Invalid name.", body = ApiErrorResponse, example = json!({"msg": "Invalid name"})),
+        (status = 400, description = "The key belongs to a YubiKey.", body = ApiErrorResponse, example = json!({"msg": "Rename yubikey instead."})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or key not found.", body = ApiErrorResponse, example = json!({"msg": "key not found"})),

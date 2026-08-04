@@ -192,6 +192,7 @@ pub(crate) async fn get_openid_client(
     ),
     responses(
         (status = 200, description = "OAuth2 client updated.", body = Object, example = json!({})),
+        (status = 400, description = "Invalid client name.", body = ApiErrorResponse, example = json!({"msg": "invalid name"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "OAuth2 client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),

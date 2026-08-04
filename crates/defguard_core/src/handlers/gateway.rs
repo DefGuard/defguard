@@ -172,6 +172,7 @@ pub(crate) async fn gateway_details(
     request_body = GatewayUpdateData,
     responses(
         (status = 200, description = "Gateway updated.", body = GatewayInfo),
+        (status = 400, description = "Malformed request body.", body = ApiErrorResponse, example = json!({"msg": "Failed to parse request data"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Gateway not found.", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),

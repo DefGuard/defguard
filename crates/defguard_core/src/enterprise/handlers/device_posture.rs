@@ -653,7 +653,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
         (status = 201, description = "Device posture check policy created.", body = ApiDevicePosture),
         (status = 400, description = "Invalid request data.", body = ApiErrorResponse, example = json!({"msg": "Unknown desktop client version '1.0'. Valid values: 2.1"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to create device posture check policy.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -729,6 +729,7 @@ pub async fn create_device_posture(
     responses(
         (status = 200, description = "Operating system and client versions that posture checks can require.", body = DevicePostureVersionMetadata),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
     ),
     security(
         ("cookie" = []),
@@ -760,6 +761,7 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
     responses(
         (status = 200, description = "Paginated list of device posture check policies.", body = PaginatedApiResponse<ApiDevicePosture>),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list device posture check policies.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -835,6 +837,7 @@ pub async fn list_device_postures(
     responses(
         (status = 200, description = "Device posture check policy details.", body = ApiDevicePosture),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device posture check policy not found.", body = ApiErrorResponse, example = json!({"msg": "Device posture check 1 not found"})),
         (status = 500, description = "Unable to get device posture check policy.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -880,7 +883,7 @@ pub async fn get_device_posture(
         (status = 200, description = "Device posture check policy updated.", body = ApiDevicePosture),
         (status = 400, description = "Invalid request data.", body = ApiErrorResponse, example = json!({"msg": "Unknown desktop client version '1.0'. Valid values: 2.1"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device posture check policy not found.", body = ApiErrorResponse, example = json!({"msg": "Device posture check 1 not found"})),
         (status = 500, description = "Unable to update device posture check policy.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -972,7 +975,7 @@ pub async fn update_device_posture(
     responses(
         (status = 200, description = "Device posture check policy deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device posture check policy not found.", body = ApiErrorResponse, example = json!({"msg": "Device posture check 1 not found"})),
         (status = 500, description = "Unable to delete device posture check policy.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -1035,7 +1038,7 @@ pub async fn delete_device_posture(
     responses(
         (status = 201, description = "Device posture check policy duplicated.", body = ApiDevicePosture),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device posture check policy not found.", body = ApiErrorResponse, example = json!({"msg": "Device posture check 1 not found"})),
         (status = 500, description = "Unable to duplicate device posture check policy.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -1138,7 +1141,7 @@ pub struct AssignLocationsData {
         (status = 200, description = "Device posture check policies assigned to the location.", body = [Id]),
         (status = 400, description = "Posture checks cannot be assigned to a service location.", body = ApiErrorResponse, example = json!({"msg": "Posture checks cannot be assigned to service locations"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Location 1 not found"})),
         (status = 500, description = "Unable to assign device posture check policies to the location.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -1210,7 +1213,7 @@ pub async fn set_postures_for_location(
         (status = 200, description = "Locations assigned to the device posture check policy.", body = [Id]),
         (status = 400, description = "Posture checks cannot be assigned to a service location.", body = ApiErrorResponse, example = json!({"msg": "Posture checks cannot be assigned to service locations"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device posture check policy not found.", body = ApiErrorResponse, example = json!({"msg": "Device posture check 1 not found"})),
         (status = 500, description = "Unable to assign locations to the device posture check policy.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),

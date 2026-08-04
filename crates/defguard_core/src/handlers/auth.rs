@@ -326,7 +326,9 @@ pub async fn authenticate(
                 ("Set-Cookie" = String, description = "Expired `defguard_session` cookie."),
             ),
         ),
+        (status = 400, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "User 1 does not exist"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to remove the session.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -665,6 +667,7 @@ pub async fn webauthn_start(
     request_body = Object,
     responses(
         (status = 200, description = "Security key verified, user is fully authenticated.", body = AuthResponse),
+        (status = 400, description = "Invalid security key assertion.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to finish WebAuthn authentication.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
@@ -909,7 +912,8 @@ pub async fn totp_disable(
     request_body = AuthCode,
     responses(
         (status = 200, description = "TOTP code verified, user is fully authenticated.", body = AuthResponse),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Invalid TOTP code"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "Invalid user"})),
         (status = 429, description = "Too many failed login attempts for this user.", body = ApiErrorResponse, example = json!({"msg": "Too many login attempts"})),
         (status = 500, description = "Unable to verify TOTP code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
@@ -1164,7 +1168,8 @@ pub async fn email_mfa_disable(
     tag = "auth",
     responses(
         (status = 200, description = "Email code sent."),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Email MFA not enabled"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "Invalid user"})),
         (status = 500, description = "Unable to send email MFA code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
         (status = 503, description = "SMTP is not configured.", body = ApiErrorResponse, example = json!({"msg": "SMTP is not configured", "code": "smtp_not_configured"})),
     ),
@@ -1211,7 +1216,8 @@ pub async fn request_email_mfa_code(
     request_body = AuthCode,
     responses(
         (status = 200, description = "Email MFA code verified, user is fully authenticated.", body = AuthResponse),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Invalid email MFA code"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "Invalid user"})),
         (status = 429, description = "Too many failed login attempts for this user.", body = ApiErrorResponse, example = json!({"msg": "Too many login attempts"})),
         (status = 500, description = "Unable to verify email MFA code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),

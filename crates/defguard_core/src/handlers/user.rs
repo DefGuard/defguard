@@ -449,6 +449,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         )),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to get user.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -735,6 +736,7 @@ pub(crate) async fn start_enrollment(
         (status = 201, description = "Enrollment token and URL.", body = Object, example = json!({"enrollment_token": "5nT2xK9wQpR7vL1yZbH3cD8fG5aQeJmU", "enrollment_url": "https://vpn.example.com/enrollment"})),
         (status = 400, description = "Invalid enrollment request.", body = ApiErrorResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to start remote desktop configuration.", body = ApiErrorResponse, example = json!({"msg": "unexpected error"}))
     ),
@@ -868,6 +870,8 @@ pub(crate) async fn username_available(
         (status = 200, description = "User updated."),
         (status = 400, description = "Invalid user data.", body = ApiErrorResponse, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to update user.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -1183,6 +1187,7 @@ async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sq
         (status = 200, description = "Password changed.", body = Object, example = json!({})),
         (status = 400, description = "Passwords do not match, or the new password does not satisfy the requirements.", body = ApiErrorResponse, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Password management is disabled for this user.", body = ApiErrorResponse, example = json!({"msg": "Password management is disabled for this user"})),
         (status = 500, description = "Unable to change your password.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
