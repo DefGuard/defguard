@@ -1163,12 +1163,6 @@ pub async fn set_postures_for_location(
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
 
-    if location.is_service_location() && !data.postures.is_empty() {
-        return Err(WebError::BadRequest(
-            "Posture checks cannot be assigned to service locations".to_owned(),
-        ));
-    }
-
     let mut tx = appstate.pool.begin().await?;
     let old_postures = DevicePostureLocation::find_by_location(&mut *tx, location_id).await?;
     let result =
@@ -1233,16 +1227,6 @@ pub async fn set_locations_for_posture(
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!("Device posture check {posture_id} not found"))
         })?;
-
-    for location_id in &data.locations {
-        if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, *location_id).await?
-            && location.is_service_location()
-        {
-            return Err(WebError::BadRequest(
-                "Posture checks cannot be assigned to service locations".to_owned(),
-            ));
-        }
-    }
 
     let mut tx = appstate.pool.begin().await?;
     let old_locations = DevicePostureLocation::find_by_posture(&mut *tx, posture_id).await?;

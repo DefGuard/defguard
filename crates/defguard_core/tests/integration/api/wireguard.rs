@@ -34,8 +34,8 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-    authenticate_admin, exceed_enterprise_limits, fetch_user_details, make_network,
-    make_test_client, setup_pool,
+    authenticate_admin, client::TestClient, exceed_enterprise_limits, fetch_user_details,
+    make_network, make_test_client, setup_pool,
 };
 
 const INVALID_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 119;
@@ -346,6 +346,390 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
     assert!(networks.iter().all(|network| {
         network["name"].as_str() != Some("network-without-enterprise-postures")
     }));
+}
+
+/// Build a location payload with overridable name, address and mode fields.
+/// `posture_checks` is intentionally absent — add it explicitly where it matters.
+fn location_payload(
+    name: &str,
+    address: &str,
+    location_mfa_mode: &str,
+    service_location_mode: &str,
+) -> serde_json::Value {
+    json!({
+        "name": name,
+        "address": address,
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
+        "allowed_groups": ["admin"],
+        "allow_all_groups": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "allowed_ips_from_acl": false,
+        "location_mfa_mode": location_mfa_mode,
+        "service_location_mode": service_location_mode
+    })
+}
+
+/// Create a posture check and return its ID.
+async fn make_posture_check(client: &TestClient, name: &str) -> i64 {
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&json!({
+            "name": name,
+            "description": null,
+            "min_desktop_client_version": null,
+            "min_mobile_client_version": null,
+            "allow_prerelease_client": false,
+            "os_rules": []
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let posture: serde_json::Value = response.json().await;
+    posture["id"].as_i64().unwrap()
+}
+
+/// Fetch the posture checks assigned to a location.
+async fn fetch_location_postures(client: &TestClient, location_id: i64) -> Vec<i64> {
+    let response = client
+        .get(format!("/api/v1/network/{location_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network: serde_json::Value = response.json().await;
+    serde_json::from_value(network["posture_checks"].clone()).unwrap()
+}
+
+#[sqlx::test]
+async fn test_create_network_rejects_service_location_with_mfa(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    for service_location_mode in ["prelogon", "alwayson"] {
+        let response = client
+            .post("/api/v1/network")
+            .json(&location_payload(
+                "mfa-service-location",
+                "10.1.1.1/24",
+                "internal",
+                service_location_mode,
+            ))
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::BAD_REQUEST,
+            "MFA + service location mode {service_location_mode} must be rejected"
+        );
+    }
+
+    // MFA without service location mode is fine
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "mfa-only",
+            "10.1.1.1/24",
+            "internal",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // service location mode without MFA is fine
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "service-location-only",
+            "10.2.2.1/24",
+            "disabled",
+            "prelogon",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn test_modify_network_rejects_service_location_with_mfa(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "location",
+            "10.1.1.1/24",
+            "disabled",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+
+    for service_location_mode in ["prelogon", "alwayson"] {
+        let response = client
+            .put(format!("/api/v1/network/{}", location.id))
+            .json(&location_payload(
+                "location",
+                "10.1.1.1/24",
+                "internal",
+                service_location_mode,
+            ))
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::BAD_REQUEST,
+            "MFA + service location mode {service_location_mode} must be rejected"
+        );
+    }
+
+    // the rejected combination was not persisted in any form
+    let response = client
+        .get(format!("/api/v1/network/{}", location.id))
+        .send()
+        .await;
+    let fetched: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(fetched.location_mfa_mode, LocationMfaMode::Disabled);
+    assert_eq!(fetched.service_location_mode, ServiceLocationMode::Disabled);
+
+    // enabling service location mode alone is accepted and persisted
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "location",
+            "10.1.1.1/24",
+            "disabled",
+            "prelogon",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let modified: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(
+        modified.service_location_mode,
+        ServiceLocationMode::PreLogon
+    );
+}
+
+#[sqlx::test]
+async fn test_modify_network_with_posture_checks_assigns_postures(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let posture_1 = make_posture_check(&client, "Posture 1").await;
+    let posture_2 = make_posture_check(&client, "Posture 2").await;
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "location",
+            "10.1.1.1/24",
+            "disabled",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+    assert!(
+        fetch_location_postures(&client, location.id)
+            .await
+            .is_empty()
+    );
+
+    // assign both postures through the location payload
+    let mut payload = location_payload("location", "10.1.1.1/24", "disabled", "disabled");
+    payload["posture_checks"] = json!([posture_1, posture_2]);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let assigned = fetch_location_postures(&client, location.id).await;
+    assert_eq!(assigned.len(), 2);
+    assert!(assigned.contains(&posture_1));
+    assert!(assigned.contains(&posture_2));
+
+    // an explicit list replaces the previous assignment
+    payload["posture_checks"] = json!([posture_2]);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![posture_2]
+    );
+
+    // an explicit empty list clears the assignment
+    payload["posture_checks"] = json!([]);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        fetch_location_postures(&client, location.id)
+            .await
+            .is_empty()
+    );
+}
+
+#[sqlx::test]
+async fn test_modify_network_without_posture_checks_keeps_assignments(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let posture = make_posture_check(&client, "Posture").await;
+
+    let mut payload = location_payload("location", "10.1.1.1/24", "disabled", "disabled");
+    payload["posture_checks"] = json!([posture]);
+    let response = client.post("/api/v1/network").json(&payload).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![posture]
+    );
+
+    // a payload with the field omitted must leave the assignment alone
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "renamed-location",
+            "10.1.1.1/24",
+            "disabled",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let modified: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(modified.name, "renamed-location");
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![posture]
+    );
+
+    // an explicit `null` behaves the same way
+    let mut payload = location_payload("location", "10.1.1.1/24", "disabled", "disabled");
+    payload["posture_checks"] = json!(null);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![posture]
+    );
+}
+
+#[sqlx::test]
+async fn test_posture_checks_allowed_on_service_locations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let posture = make_posture_check(&client, "Posture").await;
+
+    // create path: a service location may carry posture checks
+    let mut payload = location_payload("service-location", "10.1.1.1/24", "disabled", "prelogon");
+    payload["posture_checks"] = json!([posture]);
+    let response = client.post("/api/v1/network").json(&payload).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let service_location: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(
+        service_location.service_location_mode,
+        ServiceLocationMode::PreLogon
+    );
+    assert_eq!(
+        fetch_location_postures(&client, service_location.id).await,
+        vec![posture]
+    );
+
+    // modify path: turning a posture-carrying regular location into a service
+    // location keeps its posture checks
+    let mut payload = location_payload("regular-location", "10.2.2.1/24", "disabled", "disabled");
+    payload["posture_checks"] = json!([posture]);
+    let response = client.post("/api/v1/network").json(&payload).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "regular-location",
+            "10.2.2.1/24",
+            "disabled",
+            "alwayson",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let modified: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(
+        modified.service_location_mode,
+        ServiceLocationMode::AlwaysOn
+    );
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![posture]
+    );
+
+    // modify path: posture checks can be assigned to an existing service location
+    let mut payload = location_payload("service-location", "10.1.1.1/24", "disabled", "prelogon");
+    payload["posture_checks"] = json!([posture]);
+    let response = client
+        .put(format!("/api/v1/network/{}", service_location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        fetch_location_postures(&client, service_location.id).await,
+        vec![posture]
+    );
 }
 
 #[sqlx::test]
