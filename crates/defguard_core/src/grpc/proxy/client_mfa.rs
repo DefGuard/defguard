@@ -223,15 +223,14 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
         if has_postures {
-            let posture_request = DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: request.pubkey.clone(),
-                device_posture_data: request.posture_data.clone(),
-                // Only used to reach `validate_posture`, which ignores the token. This request is
-                // never dispatched, and the MFA flow authenticates the caller by its own means.
-                token: None,
-            };
-            let posture_result = match validate_posture(&self.pool, &posture_request).await {
+            let posture_result = match validate_posture(
+                &self.pool,
+                location.id,
+                &request.pubkey,
+                request.posture_data.as_ref(),
+            )
+            .await
+            {
                 Ok(result) => result,
                 Err(PostureCheckError::NoActiveEnterpriseLicense) => {
                     debug!("No active license - skipping posture check for location {location}");
@@ -974,8 +973,16 @@ impl ClientMfaServer {
             })?;
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
 
-        // Evaluate posture.
-        let posture_result = match validate_posture(&self.pool, &request).await {
+        // Evaluate posture. `location.id` rather than `request.location_id`: the location was
+        // already looked up and validated above, so this passes the trusted value.
+        let posture_result = match validate_posture(
+            &self.pool,
+            location.id,
+            &device.wireguard_pubkey,
+            request.device_posture_data.as_ref(),
+        )
+        .await
+        {
             Ok(result) => result,
             Err(PostureCheckError::NoActiveEnterpriseLicense) => {
                 debug!("No active license - skipping posture check for location {location}");
