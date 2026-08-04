@@ -1,7 +1,7 @@
 use defguard_common::db::Id;
 use defguard_proto::enterprise::posture::{
-    BoolCheck, DevicePostureCheckRequest, DevicePostureData, Int32Check, StringCheck,
-    UnavailableReason, bool_check::Result as BoolResult, int32_check::Result as Int32Result,
+    BoolCheck, DevicePostureData, Int32Check, StringCheck, UnavailableReason,
+    bool_check::Result as BoolResult, int32_check::Result as Int32Result,
     string_check::Result as StringResult,
 };
 use sqlx::PgPool;
@@ -230,37 +230,27 @@ fn client_version_requirement<'a>(
 /// Returns [`PostureResult::Fail`] with accumulated [`FailureReason`]s otherwise.
 pub(crate) async fn validate_posture(
     pool: &PgPool,
-    request: &DevicePostureCheckRequest,
+    location_id: Id,
+    pubkey: &str,
+    posture_data: Option<&DevicePostureData>,
 ) -> Result<PostureResult, PostureCheckError> {
-    debug!(
-        "Performing posture check for device {}: {:?}",
-        request.pubkey, request.device_posture_data
-    );
+    debug!("Performing posture check for device {pubkey}: {posture_data:?}");
 
     // If location has no assigned postures - pass immediately (no license required).
-    let posture_ids = DevicePostureLocation::find_by_location(pool, request.location_id).await?;
+    let posture_ids = DevicePostureLocation::find_by_location(pool, location_id).await?;
     if posture_ids.is_empty() {
-        debug!(
-            "No posture policies assigned to location {} — passing device {}",
-            request.location_id, request.pubkey
-        );
+        debug!("No posture policies assigned to location {location_id} — passing device {pubkey}");
         return Ok(PostureResult::Pass);
     }
 
     // Policies exist - enforce the enterprise license.
     if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
-        warn!(
-            "No active enterprise license - posture check aborted for device {}",
-            request.pubkey
-        );
+        warn!("No active enterprise license - posture check aborted for device {pubkey}");
         return Err(PostureCheckError::NoActiveEnterpriseLicense);
     }
 
-    let Some(data) = request.device_posture_data.as_ref() else {
-        info!(
-            "Missing posture data - posture check failed for device {}",
-            request.pubkey
-        );
+    let Some(data) = posture_data else {
+        info!("Missing posture data - posture check failed for device {pubkey}");
         return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
     };
 
@@ -322,7 +312,7 @@ pub(crate) async fn validate_posture(
     }
 
     if all_failures.is_empty() {
-        info!("Posture check passed for device {}", request.pubkey);
+        info!("Posture check passed for device {pubkey}");
         Ok(PostureResult::Pass)
     } else {
         Ok(PostureResult::Fail(all_failures))

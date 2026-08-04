@@ -12,6 +12,7 @@ use defguard_common::{
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
+            polling_token::PollingToken,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
         },
@@ -222,12 +223,14 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
         if has_postures {
-            let posture_request = DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: request.pubkey.clone(),
-                device_posture_data: request.posture_data.clone(),
-            };
-            let posture_result = match validate_posture(&self.pool, &posture_request).await {
+            let posture_result = match validate_posture(
+                &self.pool,
+                location.id,
+                &request.pubkey,
+                request.posture_data.as_ref(),
+            )
+            .await
+            {
                 Ok(result) => result,
                 Err(PostureCheckError::NoActiveEnterpriseLicense) => {
                     debug!("No active license - skipping posture check for location {location}");
@@ -877,6 +880,30 @@ impl ClientMfaServer {
             request.pubkey, request.location_id
         );
 
+        // Authenticate the caller before touching anything else.
+        // Validated first so that an unauthenticated caller cannot use the error codes below to
+        // probe which locations exist or which public keys are enrolled.
+        let Some(token) = request.token.as_deref().filter(|token| !token.is_empty()) else {
+            error!(
+                "Posture check: missing polling token for pubkey {}",
+                request.pubkey
+            );
+            return Err(Status::unauthenticated("missing token"));
+        };
+        let polling_token = PollingToken::find(&self.pool, token)
+            .await
+            .map_err(|err| {
+                error!("Posture check: failed to look up polling token: {err}");
+                Status::internal("unexpected error")
+            })?
+            .ok_or_else(|| {
+                error!(
+                    "Posture check: unknown polling token for claimed pubkey {}",
+                    request.pubkey
+                );
+                Status::unauthenticated("invalid token")
+            })?;
+
         // Look up location, device, and user.
         let Ok(Some(location)) =
             WireguardNetwork::find_by_id(&self.pool, request.location_id).await
@@ -899,6 +926,16 @@ impl ClientMfaServer {
             );
             return Err(Status::invalid_argument("device not found"));
         };
+
+        // Make sure caller owns the device.
+        if polling_token.device_id != device.id {
+            error!(
+                "Posture check: polling token belongs to device {} but request claims pubkey {} \
+                (device {})",
+                polling_token.device_id, request.pubkey, device.id
+            );
+            return Err(Status::unauthenticated("token does not match device"));
+        }
 
         if !location.has_postures(&self.pool).await.map_err(|err| {
             error!("Posture check: failed to fetch postures for location {location}: {err}");
@@ -936,8 +973,16 @@ impl ClientMfaServer {
             })?;
         Self::validate_location_access(&self.pool, &location, &user_info).await?;
 
-        // Evaluate posture.
-        let posture_result = match validate_posture(&self.pool, &request).await {
+        // Evaluate posture. `location.id` rather than `request.location_id`: the location was
+        // already looked up and validated above, so this passes the trusted value.
+        let posture_result = match validate_posture(
+            &self.pool,
+            location.id,
+            &device.wireguard_pubkey,
+            request.device_posture_data.as_ref(),
+        )
+        .await
+        {
             Ok(result) => result,
             Err(PostureCheckError::NoActiveEnterpriseLicense) => {
                 debug!("No active license - skipping posture check for location {location}");
@@ -1165,6 +1210,7 @@ mod tests {
         models::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
+            polling_token::PollingToken,
             settings::initialize_current_settings,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -1213,6 +1259,7 @@ mod tests {
         let user = create_user(&pool).await;
         let device = create_device(&pool, user.id).await;
         attach_device_to_location(&pool, location.id, device.id).await;
+        let token = create_polling_token(&pool, device.id).await;
         let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
 
         let outcome = server
@@ -1220,6 +1267,7 @@ mod tests {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
+                token: Some(token.clone()),
             })
             .await
             .expect("posture check should pass");
@@ -1289,6 +1337,7 @@ mod tests {
             .save(&pool)
             .await
             .expect("failed to create previous posture session");
+        let token = create_polling_token(&pool, device.id).await;
         let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
 
         server
@@ -1296,6 +1345,7 @@ mod tests {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
+                token: Some(token.clone()),
             })
             .await
             .expect("replacement posture check should pass");
@@ -1350,6 +1400,165 @@ mod tests {
         assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
     }
 
+    /// A caller with no token must be refused. Without this, knowing a device's public key is
+    /// enough to mint a preshared key for it.
+    #[sqlx::test]
+    async fn test_posture_check_requires_a_token(_: PgPoolOptions, options: PgConnectOptions) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let (mut server, _, mut gateway_rx) = make_server(pool.clone());
+
+        for token in [None, Some(String::new())] {
+            let err = server
+                .handle_posture_check(DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: Some(passing_linux_posture_data()),
+                    token,
+                })
+                .await;
+            let err = match err {
+                Ok(_) => panic!("posture check without a token must be refused"),
+                Err(err) => err,
+            };
+            assert_eq!(err.code(), Code::Unauthenticated);
+        }
+
+        // No session may be created and the gateway must not be touched.
+        assert!(
+            VpnClientSession::get_all_active_device_sessions_in_location(
+                &pool,
+                location.id,
+                device.id
+            )
+            .await
+            .expect("failed to query sessions")
+            .is_empty()
+        );
+        assert!(gateway_rx.try_recv().is_err());
+    }
+
+    /// An unknown token must be refused, so tokens cannot be guessed or replayed after rotation.
+    #[sqlx::test]
+    async fn test_posture_check_rejects_unknown_token(_: PgPoolOptions, options: PgConnectOptions) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let (mut server, _, _) = make_server(pool);
+
+        let err = server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                device_posture_data: Some(passing_linux_posture_data()),
+                token: Some("not-a-real-token".to_owned()),
+            })
+            .await;
+        let err = match err {
+            Ok(_) => panic!("posture check with an unknown token must be refused"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.code(), Code::Unauthenticated);
+    }
+
+    /// Regression test for the session-hijack denial of service: holding a valid token for *one*
+    /// device must not allow authorizing — and thereby superseding the live session of — another.
+    #[sqlx::test]
+    async fn test_posture_check_rejects_token_belonging_to_another_device(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+
+        let victim = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, victim.id).await;
+
+        // The attacker is a legitimately enrolled device with a token of its own.
+        let attacker = Device::new(
+            "attacker-device".to_owned(),
+            "attacker-pubkey".to_owned(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .expect("failed to create attacker device");
+        let attacker_token = create_polling_token(&pool, attacker.id).await;
+
+        // The victim holds a live session.
+        let mut victim_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            victim.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        victim_session.preshared_key = Some("victim-psk".to_owned());
+        victim_session.state = VpnClientSessionState::Connected;
+        let victim_session = victim_session
+            .save(&pool)
+            .await
+            .expect("failed to create victim session");
+
+        let (mut server, _, mut gateway_rx) = make_server(pool.clone());
+
+        // Attacker presents its own valid token but claims the victim's public key.
+        let err = server
+            .handle_posture_check(DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: victim.wireguard_pubkey.clone(),
+                device_posture_data: Some(passing_linux_posture_data()),
+                token: Some(attacker_token),
+            })
+            .await;
+        let err = match err {
+            Ok(_) => panic!("a token from another device must not authorize this one"),
+            Err(err) => err,
+        };
+        assert_eq!(err.code(), Code::Unauthenticated);
+
+        // The victim's session must survive untouched, and the gateway must see nothing.
+        let victim_session = VpnClientSession::find_by_id(&pool, victim_session.id)
+            .await
+            .expect("failed to reload victim session")
+            .expect("victim session should still exist");
+        assert_eq!(victim_session.state, VpnClientSessionState::Connected);
+        assert_eq!(
+            victim_session.preshared_key.as_deref(),
+            Some("victim-psk"),
+            "the victim's preshared key must not have been rotated"
+        );
+        assert!(
+            gateway_rx.try_recv().is_err(),
+            "no peer delete or re-create may be sent to the gateway"
+        );
+    }
+
     #[sqlx::test]
     async fn test_posture_check_rejects_mfa_enabled_location(
         _: PgPoolOptions,
@@ -1357,6 +1566,10 @@ mod tests {
     ) {
         let pool = setup_pool(options).await;
         let location = create_mfa_location(&pool).await;
+        // A valid token is needed to get past authentication and reach the check under test.
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        let token = create_polling_token(&pool, device.id).await;
         let (mut server, _, _) = make_server(pool);
 
         let err = match server
@@ -1364,6 +1577,7 @@ mod tests {
                 location_id: location.id,
                 pubkey: "irrelevant".to_owned(),
                 device_posture_data: None,
+                token: Some(token),
             })
             .await
         {
@@ -1384,6 +1598,7 @@ mod tests {
         let user = create_user(&pool).await;
         let device = create_device(&pool, user.id).await;
         attach_device_to_location(&pool, location.id, device.id).await;
+        let token = create_polling_token(&pool, device.id).await;
         let (mut server, _, _) = make_server(pool);
 
         let err = match server
@@ -1391,6 +1606,7 @@ mod tests {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey,
                 device_posture_data: None,
+                token: Some(token),
             })
             .await
         {
@@ -1587,6 +1803,16 @@ mod tests {
         .save(pool)
         .await
         .expect("failed to create device")
+    }
+
+    /// Issues a polling token for a device, as enrollment does. Posture checks require one to
+    /// authenticate the caller.
+    async fn create_polling_token(pool: &PgPool, device_id: Id) -> String {
+        PollingToken::new(device_id)
+            .save(pool)
+            .await
+            .expect("failed to create polling token")
+            .token
     }
 
     #[sqlx::test]
