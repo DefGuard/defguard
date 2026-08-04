@@ -1048,7 +1048,12 @@ impl ProxyHandler {
                             None
                         }
                         Some(core_request::Payload::DevicePostureCheck(request)) => {
-                            match self.services.client_mfa.handle_posture_check(request).await {
+                            match self
+                                .services
+                                .client_mfa
+                                .handle_posture_check(request, received.device_info)
+                                .await
+                            {
                                 Ok(PostureCheckOutcome::Approved { preshared_key }) => {
                                     Some(core_response::Payload::DevicePostureCheck(
                                         DevicePostureCheckResponse { preshared_key },
