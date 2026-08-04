@@ -134,7 +134,7 @@ pub(crate) struct DeviceWireGuardConfig {
     path = "/api/v1/device/network/{device_id}/config",
     tag = "network device",
     params(
-        ("device_id" = i64, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
         (status = 200, description = "Network device configuration.", body = Object),
@@ -201,13 +201,13 @@ pub(crate) async fn network_device_configs(
     Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
-/// Get network device details.
+/// Get a network device.
 #[utoipa::path(
     get,
     path = "/api/v1/device/network/{device_id}",
     tag = "network device",
     params(
-        ("device_id" = i64, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
         (status = 200, description = "Network device details.", body = NetworkDeviceInfo),
@@ -255,8 +255,8 @@ pub(crate) async fn get_network_device(
     path = "/api/v1/device/network",
     tag = "network device",
     params(
-        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+        ("page" = Option<u32>, Query, description = "Page number. Defaults to 1."),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page, from 1 to 100. Defaults to 50."),
     ),
     responses(
         (status = 200, description = "Paginated list of network devices.", body = PaginatedApiResponse<NetworkDeviceInfo>),
@@ -353,7 +353,7 @@ impl IpAvailabilityCheckResult {
     tag = "network device",
     request_body = IpAvailabilityCheck,
     params(
-        ("network_id" = i64, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of the network."),
     ),
     responses(
         (status = 200, description = "Availability of the requested IP addresses.", body = Object),
@@ -455,7 +455,7 @@ pub(crate) async fn check_ip_availability(
     path = "/api/v1/device/network/ip/{network_id}",
     tag = "network device",
     params(
-        ("network_id" = i64, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of the network."),
     ),
     responses(
         (status = 200, description = "Suggested IP addresses.", body = Object),
@@ -673,7 +673,7 @@ pub(crate) async fn start_network_device_setup(
     path = "/api/v1/device/network/start_cli/{device_id}",
     tag = "network device",
     params(
-        ("device_id" = i64, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
         (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object),
@@ -751,20 +751,20 @@ pub(crate) async fn start_network_device_setup_for_device(
     ))
 }
 
-/// Add a network device.
+/// Create a network device.
 ///
 /// The device is created with the provided WireGuard public key.
 #[utoipa::path(
     post,
     path = "/api/v1/device/network",
     tag = "network device",
-    request_body(content = AddNetworkDevice, description = "The new network device.", example = json!({"name": "office-printer", "location_id": 1, "assigned_ips": ["10.0.0.50"], "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=", "description": "Printer on the second floor"})),
+    request_body(content = AddNetworkDevice, example = json!({"name": "office-printer", "location_id": 1, "assigned_ips": ["10.0.0.50"], "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=", "description": "Printer on the second floor"})),
     responses(
         (status = 201, description = "Network device created.", body = Object),
         (status = 400, description = "Invalid public key or IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Public key invalid"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 500, description = "Unable to add network device.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to create network device.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -907,7 +907,7 @@ pub struct ModifyNetworkDevice {
     tag = "network device",
     request_body = ModifyNetworkDevice,
     params(
-        ("device_id" = i64, Path, description = "ID of network device"),
+        ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
         (status = 200, description = "Network device updated.", body = Object),

@@ -21,7 +21,7 @@ pub struct CheckResult {
     counts: Counts,
 }
 
-/// Validate a license key and return its limits.
+/// Check a license key and return its limits.
 #[utoipa::path(
     post,
     path = "/api/v1/license/check",
@@ -43,7 +43,7 @@ pub struct CheckResult {
         ),
         (status = 400, description = "Invalid license key.", body = ApiErrorResponse, example = json!({"msg": "License signature doesn't match its content"})),
         (status = 404, description = "License not found.", body = ApiErrorResponse, example = json!({"msg": "License not found"})),
-        (status = 500, description = "Unable to check the license.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
+        (status = 500, description = "Unable to check license.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
 pub(crate) async fn license_check(Json(params): Json<CheckParams>) -> ApiResult {

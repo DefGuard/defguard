@@ -250,7 +250,7 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 pub mod openapi;
 
-/// Simple health-check.
+/// Check instance health.
 #[utoipa::path(
     get,
     path = "/api/v1/health",

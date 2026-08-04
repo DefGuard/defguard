@@ -41,18 +41,19 @@ async fn username_exists(pool: &PgPool, username: &str) -> Result<bool, sqlx::Er
     Ok(exists)
 }
 
+/// Check whether an email address or username is already taken.
 #[utoipa::path(
     get,
     path = "/api/v1/reserved",
     tag = "system",
     params(
-        ("resource" = CheckResource, Query, description = "The resource type to check: `email` or `username`"),
-        ("value" = String, Query, description = "The value to check for availability"),
+        ("resource" = CheckResource, Query, description = "Type of the checked value: `email` or `username`."),
+        ("value" = String, Query, description = "Value to check."),
     ),
     responses(
-        (status = 200, description = "The value is available.", body = Object, example = json!({"available": true})),
-        (status = 401, description = "Unauthorized.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Forbidden.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 200, description = "Availability of the value.", body = Object, example = json!({"available": true})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 409, description = "The value is already taken.", body = ApiErrorResponse, example = json!({"msg": "admin is already taken"})),
         (status = 500, description = "Internal server error.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),

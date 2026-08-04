@@ -15,8 +15,8 @@ use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
     path = "/api/v1/user/{username}/yubikey/{key_id}",
     tag = "user",
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("key_id" = i64, Path, description = "ID of YubiKey"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("key_id" = i64, Path, description = "ID of the YubiKey."),
     ),
     responses(
         (status = 200, description = "YubiKey deleted.", body = Object, example = json!({})),
@@ -65,8 +65,8 @@ pub(crate) struct RenameRequest {
     tag = "user",
     request_body = RenameRequest,
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("key_id" = i64, Path, description = "ID of YubiKey"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("key_id" = i64, Path, description = "ID of the YubiKey."),
     ),
     responses(
         (status = 200, description = "YubiKey renamed.", body = Object, example = json!({})),

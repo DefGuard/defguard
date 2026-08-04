@@ -238,9 +238,9 @@ impl SetupFlow {
     path = "/api/v1/proxy/setup/stream",
     tag = "proxy",
     params(
-        ("common_name" = String, Query, description = "Common name for the edge certificate"),
-        ("ip_or_domain" = String, Query, description = "Address the edge is reachable at"),
-        ("grpc_port" = u16, Query, description = "gRPC port of the edge"),
+        ("common_name" = String, Query, description = "Common name for the edge certificate."),
+        ("ip_or_domain" = String, Query, description = "Address the edge instance is reachable at."),
+        ("grpc_port" = u16, Query, description = "gRPC port of the edge instance."),
     ),
     responses(
         (status = 200, description = "Server-sent event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream"),
@@ -1028,10 +1028,10 @@ async fn perform_gateway_adoption(
     path = "/api/v1/network/{network_id}/gateways/setup",
     tag = "gateway",
     params(
-        ("network_id" = Id, Path, description = "ID of network"),
-        ("common_name" = String, Query, description = "Common name for the gateway certificate"),
-        ("ip_or_domain" = String, Query, description = "Address the gateway is reachable at"),
-        ("grpc_port" = u16, Query, description = "gRPC port of the gateway"),
+        ("network_id" = i64, Path, description = "ID of the network."),
+        ("common_name" = String, Query, description = "Common name for the gateway certificate."),
+        ("ip_or_domain" = String, Query, description = "Address the gateway is reachable at."),
+        ("grpc_port" = u16, Query, description = "gRPC port of the gateway."),
     ),
     responses(
         (status = 200, description = "Server-sent event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream"),
@@ -1156,7 +1156,7 @@ pub struct GatewayAdoptRequest {
     tag = "gateway",
     request_body = GatewayAdoptRequest,
     params(
-        ("network_id" = Id, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of the network."),
     ),
     responses(
         (status = 201, description = "Gateway adopted.", body = Gateway),
@@ -1164,7 +1164,7 @@ pub struct GatewayAdoptRequest {
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
-        (status = 500, description = "Unable to adopt the gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to adopt gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -1224,18 +1224,11 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     Event::default().data(body)
 }
 
-/// Stream the progress of Let's Encrypt certificate issuance.
+/// Stream the progress of Let's Encrypt certificate issuance on the edge.
 ///
-/// Reports progress as Server-Sent Events.
-///
-/// Delegates the ACME HTTP-01 process to the proxy component via the `TriggerAcme`
-/// RPC on the permanent `Proxy` gRPC service.  Reads proxy address and ACME
-/// domain/credentials from the database - no query parameters needed.
-///
-/// On success, saves the certificate to the database and (when called post initial wizard)
-/// broadcasts `HttpsCerts` to the proxy via `proxy_control_tx`.
+/// Reports progress as Server-Sent Events. The domain and credentials are taken from the
+/// settings, so no parameters are needed.
 // GET: EventSource only supports GET
-/// Stream the progress of ACME certificate issuance on the edge.
 #[utoipa::path(
     get,
     path = "/api/v1/proxy/acme/stream",

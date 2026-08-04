@@ -63,7 +63,7 @@ where
 
 /// Authorize a request forwarded by a reverse proxy.
 ///
-/// Meant to be used as a forward-auth endpoint (e.g. Traefik `forwardAuth`). The original
+/// Meant to be used as a forward-auth endpoint, for example Traefik `forwardAuth`. The original
 /// request URL is read from the `X-Forwarded-*` headers.
 #[utoipa::path(
     get,
@@ -73,7 +73,7 @@ where
         (status = 200, description = "Request is authorized."),
         (status = 302, description = "User is not authenticated, redirect to the login page."),
         (status = 401, description = "Request cannot be authorized.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 500, description = "Unable to authorize the request.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to authorize request.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
 pub async fn forward_auth(

@@ -52,21 +52,18 @@ pub struct AddProviderData {
     pub username_handling: OpenIdUsernameHandling,
 }
 
-/// Add OpenID provider.
+/// Create an OpenID provider.
 #[utoipa::path(
     post,
     path = "/api/v1/openid/provider",
     tag = "OpenID",
     request_body = AddProviderData,
-    params(
-        ("data" = AddProviderData, Path, description = "OpenID provider data",)
-    ),
     responses(
-        (status = CREATED, description = "Add OpenID provider"),
+        (status = 201, description = "OpenID provider created.", body = Object, example = json!({})),
         (status = 400, description = "Invalid provider configuration.", body = ApiErrorResponse, example = json!({"msg": "Failed to parse Google service account key"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 500, description = "Unable to add OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to create OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -219,20 +216,20 @@ pub(crate) async fn add_openid_provider(
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
-/// Get OpenID provider by name.
+/// Get an OpenID provider.
 #[utoipa::path(
     get,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
     responses(
-        (status = OK, description = "Get OpenID provider"),
+        (status = 200, description = "OpenID provider details.", body = Object, example = json!({"provider": {"name": "google", "base_url": "https://accounts.google.com", "client_id": "client-id"}, "settings": {"create_account": false, "username_handling": "remove_forbidden"}})),
+        (status = 204, description = "No OpenID provider with this name."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "OpenID provider not found.", body = ApiErrorResponse, example = json!({"msg": "Provider not found"})),
         (status = 500, description = "Unable to get OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     params(
-        ("name" = String, Path, description = "The name of a provider",)
+        ("name" = String, Path, description = "Name of the OpenID provider.",)
     ),
     security(
         ("cookie" = []),
@@ -264,20 +261,20 @@ pub(crate) async fn get_openid_provider(
     }
 }
 
-/// Delete OpenID provider.
+/// Delete an OpenID provider.
 #[utoipa::path(
     delete,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
     responses(
-        (status = OK, description = "Delete OpenID provider"),
+        (status = 200, description = "OpenID provider deleted.", body = Object, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "OpenID provider not found.", body = ApiErrorResponse, example = json!({"msg": "Provider not found"})),
         (status = 500, description = "Unable to delete OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     params(
-        ("name" = String, Path, description = "The name of a provider",)
+        ("name" = String, Path, description = "Name of the OpenID provider.",)
     ),
     security(
         ("cookie" = []),
@@ -333,22 +330,22 @@ pub(crate) async fn delete_openid_provider(
     }
 }
 
-/// Modify OpenID provider.
+/// Update an OpenID provider.
 #[utoipa::path(
     put,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
     request_body = AddProviderData,
     responses(
-        (status = OK, description = "Modify OpenID provider"),
+        (status = 200, description = "OpenID provider updated.", body = Object, example = json!({})),
         (status = 400, description = "Invalid provider configuration.", body = ApiErrorResponse, example = json!({"msg": "Failed to parse Google service account key"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "OpenID provider not found.", body = ApiErrorResponse, example = json!({"msg": "Provider not found"})),
-        (status = 500, description = "Unable to modify OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to update OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     params(
-        ("name" = String, Path, description = "The name of a provider",)
+        ("name" = String, Path, description = "Name of the OpenID provider.",)
     ),
     security(
         ("cookie" = []),
@@ -482,13 +479,13 @@ pub(crate) async fn modify_openid_provider(
     }
 }
 
-/// List all OpenID providers.
+/// List OpenID providers.
 #[utoipa::path(
     get,
     path = "/api/v1/openid/provider",
     tag = "OpenID",
     responses(
-        (status = OK, description = "List of OpenID providers"),
+        (status = 200, description = "All OpenID providers."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list OpenID providers.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -506,20 +503,17 @@ pub(crate) async fn list_openid_providers(
     Ok(ApiResponse::json(providers, StatusCode::OK))
 }
 
-/// Get current OpenID provider.
+/// Get the current OpenID provider.
 #[utoipa::path(
     get,
     path = "/api/v1/openid/provider/current",
     tag = "OpenID",
     responses(
-        (status = OK, description = "Get current OpenID provider"),
+        (status = 200, description = "Current OpenID provider details.", body = Object, example = json!({"provider": {"name": "google", "base_url": "https://accounts.google.com", "client_id": "client-id"}, "settings": {"create_account": false, "username_handling": "remove_forbidden"}})),
+        (status = 204, description = "No OpenID provider is configured."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "OpenID provider not found.", body = ApiErrorResponse, example = json!({"msg": "Provider not found"})),
         (status = 500, description = "Unable to get OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
-    ),
-    params(
-        ("name" = String, Path, description = "The name of a provider",)
     ),
     security(
         ("cookie" = []),

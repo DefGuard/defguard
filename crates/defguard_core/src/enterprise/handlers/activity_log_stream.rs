@@ -17,13 +17,13 @@ use crate::{
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
-/// List configured activity log streams.
+/// List activity log streams.
 #[utoipa::path(
     get,
     path = "/api/v1/activity_log_stream/",
     tag = "activity log",
     responses(
-        (status = 200, description = "Configured activity log streams.", body = Object),
+        (status = 200, description = "All activity log streams.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list activity log streams.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -111,7 +111,7 @@ pub async fn create_activity_log_stream(
     tag = "activity log",
     request_body = ActivityLogStreamModificationRequest,
     params(
-        ("id" = i64, Path, description = "ID of activity log stream"),
+        ("id" = i64, Path, description = "ID of the activity log stream."),
     ),
     responses(
         (status = 200, description = "Activity log stream updated."),
@@ -170,7 +170,7 @@ pub async fn modify_activity_log_stream(
     path = "/api/v1/activity_log_stream/{id}",
     tag = "activity log",
     params(
-        ("id" = i64, Path, description = "ID of activity log stream"),
+        ("id" = i64, Path, description = "ID of the activity log stream."),
     ),
     responses(
         (status = 200, description = "Activity log stream deleted."),

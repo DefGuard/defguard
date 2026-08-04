@@ -10,16 +10,16 @@ pub struct ResourceDisplay {
     pub display: String,
 }
 
-/// List locations reduced to ID and name, for use in pickers.
+/// List networks reduced to their ID and name.
 #[utoipa::path(
     get,
     path = "/api/v1/network/display",
     tag = "network",
     responses(
-        (status = 200, description = "Locations with their IDs and names.", body = Object),
+        (status = 200, description = "All networks, reduced to their ID and name.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 500, description = "Unable to list locations.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to list networks.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),

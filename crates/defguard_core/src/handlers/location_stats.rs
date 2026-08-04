@@ -61,7 +61,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
-        (status = 200, description = "Aggregated statistics for all locations.", body = Object),
+        (status = 200, description = "Traffic statistics of all locations.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get location statistics.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -90,11 +90,11 @@ pub(crate) async fn locations_overview_stats(
     path = "/api/v1/network/{network_id}/stats",
     tag = "location stats",
     params(
-        ("network_id" = i64, Path, description = "ID of network"),
+        ("network_id" = i64, Path, description = "ID of the network."),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
-        (status = 200, description = "Statistics of the location.", body = Object),
+        (status = 200, description = "Traffic statistics of the location.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
@@ -133,10 +133,10 @@ pub(crate) async fn location_stats(
     path = "/api/v1/network/{location_id}/stats/connected_users",
     tag = "location stats",
     params(
-        ("location_id" = i64, Path, description = "ID of location"),
+        ("location_id" = i64, Path, description = "ID of the location."),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
-        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+        ("page" = Option<u32>, Query, description = "Page number. Defaults to 1."),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page, from 1 to 100. Defaults to 50."),
     ),
     responses(
         (status = 200, description = "Paginated list of connected users.", body = PaginatedApiResponse<LocationConnectedUserStats>),
@@ -194,10 +194,10 @@ pub(crate) async fn location_connected_users(
     path = "/api/v1/network/{location_id}/stats/connected_network_devices",
     tag = "location stats",
     params(
-        ("location_id" = i64, Path, description = "ID of location"),
+        ("location_id" = i64, Path, description = "ID of the location."),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
-        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+        ("page" = Option<u32>, Query, description = "Page number. Defaults to 1."),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page, from 1 to 100. Defaults to 50."),
     ),
     responses(
         (status = 200, description = "Paginated list of connected network devices.", body = PaginatedApiResponse<LocationConnectedNetworkDevice>),
@@ -255,18 +255,18 @@ pub(crate) struct ConnectedUserDevicesPath {
     user_id: Id,
 }
 
-/// List a user's connected devices in a location.
+/// List the connected devices of a user in a location.
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users/{user_id}/devices",
     tag = "location stats",
     params(
-        ("location_id" = i64, Path, description = "ID of location"),
-        ("user_id" = i64, Path, description = "ID of user"),
+        ("location_id" = i64, Path, description = "ID of the location."),
+        ("user_id" = i64, Path, description = "ID of the user."),
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
-        (status = 200, description = "Connected devices of the user.", body = Object),
+        (status = 200, description = "All connected devices of the user.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network or user not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),

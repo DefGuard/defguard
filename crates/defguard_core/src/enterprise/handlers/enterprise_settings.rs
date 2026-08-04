@@ -92,7 +92,7 @@ async fn settings_info(
 
 /// Get enterprise settings.
 ///
-/// Available to every authenticated user, because the web UI needs it to render.
+/// Available to every authenticated user.
 #[utoipa::path(
     get,
     path = "/api/v1/settings_enterprise",
@@ -133,7 +133,7 @@ pub async fn get_enterprise_settings(
     tag = "settings",
     request_body = Object,
     responses(
-        (status = 200, description = "Enterprise settings updated.", body = Object, example = json!({})),
+        (status = 200, description = "Enterprise settings updated."),
         (status = 400, description = "Invalid settings.", body = ApiErrorResponse, example = json!({"msg": "Invalid settings"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

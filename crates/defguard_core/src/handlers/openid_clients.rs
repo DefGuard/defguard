@@ -51,11 +51,11 @@ impl From<NewOpenIDClient> for OAuth2Client<NoId> {
     tag = "OAuth2",
     request_body = NewOpenIDClient,
     responses(
-        (status = 201, description = "Client created.", body = Object),
-        (status = 400, description = "Invalid client data.", body = ApiErrorResponse, example = json!({"msg": "Invalid redirect URI"})),
+        (status = 201, description = "OAuth2 client created.", body = Object),
+        (status = 400, description = "Invalid OAuth2 client data.", body = ApiErrorResponse, example = json!({"msg": "Invalid redirect URI"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 500, description = "Unable to create client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to create OAuth2 client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -104,14 +104,14 @@ pub(crate) async fn add_openid_client(
     path = "/api/v1/oauth/",
     tag = "OAuth2",
     params(
-        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
+        ("page" = Option<u32>, Query, description = "Page number. Defaults to 1."),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page, from 1 to 100. Defaults to 50."),
     ),
     responses(
-        (status = 200, description = "Paginated list of clients.", body = Object),
+        (status = 200, description = "Paginated list of OAuth2 clients.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 500, description = "Unable to list clients.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 500, description = "Unable to list OAuth2 clients.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -148,13 +148,13 @@ pub(crate) async fn list_openid_clients(
     path = "/api/v1/oauth/{client_id}",
     tag = "OAuth2",
     params(
-        ("client_id" = String, Path, description = "OAuth2 client ID"),
+        ("client_id" = String, Path, description = "ID of the OAuth2 client."),
     ),
     responses(
-        (status = 200, description = "Client details.", body = Object),
+        (status = 200, description = "OAuth2 client details.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
-        (status = 500, description = "Unable to get client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 404, description = "OAuth2 client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to get OAuth2 client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -188,14 +188,14 @@ pub(crate) async fn get_openid_client(
     tag = "OAuth2",
     request_body = NewOpenIDClient,
     params(
-        ("client_id" = String, Path, description = "OAuth2 client ID"),
+        ("client_id" = String, Path, description = "ID of the OAuth2 client."),
     ),
     responses(
-        (status = 200, description = "Client updated.", body = Object, example = json!({})),
+        (status = 200, description = "OAuth2 client updated.", body = Object, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
-        (status = 500, description = "Unable to update client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 404, description = "OAuth2 client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to update OAuth2 client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -263,14 +263,14 @@ pub(crate) async fn change_openid_client(
     tag = "OAuth2",
     request_body = ChangeStateData,
     params(
-        ("client_id" = String, Path, description = "OAuth2 client ID"),
+        ("client_id" = String, Path, description = "ID of the OAuth2 client."),
     ),
     responses(
-        (status = 200, description = "Client state changed.", body = Object, example = json!({})),
+        (status = 200, description = "OAuth2 client state changed.", body = Object, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
-        (status = 500, description = "Unable to change client state.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 404, description = "OAuth2 client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to change OAuth2 client state.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),
@@ -317,14 +317,14 @@ pub(crate) async fn change_openid_client_state(
     path = "/api/v1/oauth/{client_id}",
     tag = "OAuth2",
     params(
-        ("client_id" = String, Path, description = "OAuth2 client ID"),
+        ("client_id" = String, Path, description = "ID of the OAuth2 client."),
     ),
     responses(
-        (status = 200, description = "Client deleted.", body = Object, example = json!({})),
+        (status = 200, description = "OAuth2 client deleted.", body = Object, example = json!({})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
-        (status = 500, description = "Unable to delete client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 404, description = "OAuth2 client not found.", body = ApiErrorResponse, example = json!({"msg": "client not found"})),
+        (status = 500, description = "Unable to delete OAuth2 client.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
         ("cookie" = []),

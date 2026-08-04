@@ -99,7 +99,7 @@ impl fmt::Display for SortOrder {
     }
 }
 
-/// Activity log event with additional info as returned by the API
+/// Activity log event as returned by the API.
 #[derive(Serialize, FromRow, ToSchema)]
 pub struct ApiActivityLogEvent {
     pub id: Id,
@@ -124,16 +124,16 @@ pub struct ApiActivityLogEvent {
     path = "/api/v1/activity_log",
     tag = "activity log",
     params(
-        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
-        ("per_page" = Option<u32>, Query, description = "Items per page, 1-100 (default: 50)"),
-        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp"),
-        ("until" = Option<String>, Query, description = "End of the reported period as an RFC 3339 timestamp"),
-        ("username" = Option<String>, Query, description = "Filter by username (admins only)"),
-        ("event" = Option<String>, Query, description = "Filter by event type"),
-        ("module" = Option<String>, Query, description = "Filter by module"),
-        ("search" = Option<String>, Query, description = "Free-text search"),
-        ("sort_by" = Option<String>, Query, description = "Sort key"),
-        ("sort_order" = Option<String>, Query, description = "Sort direction: asc or desc"),
+        ("page" = Option<u32>, Query, description = "Page number. Defaults to 1."),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page, from 1 to 100. Defaults to 50."),
+        ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp."),
+        ("until" = Option<String>, Query, description = "End of the reported period as an RFC 3339 timestamp."),
+        ("username" = Option<String>, Query, description = "Filter by username. Admins only."),
+        ("event" = Option<String>, Query, description = "Filter by event type."),
+        ("module" = Option<String>, Query, description = "Filter by module."),
+        ("search" = Option<String>, Query, description = "Free-text search across username, location, module, event type, device, and description."),
+        ("sort_by" = Option<String>, Query, description = "Sort key: `timestamp`, `username`, `location`, `ip`, `event`, `module`, or `device`. Defaults to `timestamp`."),
+        ("sort_order" = Option<String>, Query, description = "Sort direction: `asc` or `desc`. Defaults to `desc`."),
     ),
     responses(
         (status = 200, description = "Paginated list of activity log events.", body = PaginatedApiResponse<ApiActivityLogEvent>),

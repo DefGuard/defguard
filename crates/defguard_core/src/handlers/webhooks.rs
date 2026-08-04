@@ -13,7 +13,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
-/// Create a new webhook.
+/// Create a webhook.
 #[utoipa::path(
     post,
     path = "/api/v1/webhook",
@@ -57,13 +57,13 @@ pub async fn add_webhook(
 }
 
 // TODO: paginate
-/// List all webhooks.
+/// List webhooks.
 #[utoipa::path(
     get,
     path = "/api/v1/webhook",
     tag = "webhook",
     responses(
-        (status = 200, description = "List of all webhooks.", body = [WebHook]),
+        (status = 200, description = "All webhooks.", body = [WebHook]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list webhooks.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -79,13 +79,13 @@ pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) 
     Ok(ApiResponse::json(webhooks, StatusCode::OK))
 }
 
-/// Get webhook details.
+/// Get a webhook.
 #[utoipa::path(
     get,
     path = "/api/v1/webhook/{id}",
     tag = "webhook",
     params(
-        ("id" = Id, Path, description = "ID of webhook"),
+        ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
         (status = 200, description = "Webhook details.", body = WebHook),
@@ -117,7 +117,7 @@ pub async fn get_webhook(
     tag = "webhook",
     request_body = WebHookData,
     params(
-        ("id" = Id, Path, description = "ID of webhook"),
+        ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
         (status = 200, description = "Webhook updated.", body = Object, example = json!({})),
@@ -175,7 +175,7 @@ pub async fn change_webhook(
     path = "/api/v1/webhook/{id}",
     tag = "webhook",
     params(
-        ("id" = Id, Path, description = "ID of webhook"),
+        ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
         (status = 200, description = "Webhook deleted.", body = Object, example = json!({})),
@@ -224,7 +224,7 @@ pub struct ChangeStateData {
     tag = "webhook",
     request_body = ChangeStateData,
     params(
-        ("id" = Id, Path, description = "ID of webhook"),
+        ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
         (status = 200, description = "Webhook state changed.", body = Object, example = json!({})),

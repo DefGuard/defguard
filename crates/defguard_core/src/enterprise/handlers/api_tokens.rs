@@ -32,12 +32,12 @@ pub struct AddApiTokenData {
     post,
     path = "/api/v1/user/{username}/api_token",
     tag = "API token",
-    request_body = AddApiTokenData,
+    request_body(content = AddApiTokenData, example = json!({"name": "ci-pipeline"})),
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 201, description = "API token created, returns the token value.", body = Object),
+        (status = 201, description = "API token created. Its value is returned only here.", body = Object, example = json!({"token": "dg-4vJqXk9wR2mNpL7sT1yZbH3cD8fG5aQe"})),
         (status = 400, description = "Invalid token name.", body = ApiErrorResponse, example = json!({"msg": "Invalid name"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -127,10 +127,10 @@ pub async fn add_api_token(
     path = "/api/v1/user/{username}/api_token",
     tag = "API token",
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "API tokens of the user.", body = Object),
+        (status = 200, description = "All API tokens of the user.", body = Vec<ApiTokenInfo>),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
@@ -164,8 +164,8 @@ pub async fn fetch_api_tokens(
     path = "/api/v1/user/{username}/api_token/{token_id}",
     tag = "API token",
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("token_id" = i64, Path, description = "ID of API token"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("token_id" = i64, Path, description = "ID of the API token."),
     ),
     responses(
         (status = 200, description = "API token deleted.", body = Object, example = json!({})),
@@ -227,8 +227,8 @@ pub struct RenameRequest {
     tag = "API token",
     request_body = RenameRequest,
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("token_id" = i64, Path, description = "ID of API token"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("token_id" = i64, Path, description = "ID of the API token."),
     ),
     responses(
         (status = 200, description = "API token renamed.", body = Object, example = json!({})),

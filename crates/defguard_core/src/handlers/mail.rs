@@ -94,7 +94,7 @@ async fn read_logs() -> String {
     }
 }
 
-/// Email the support data bundle to the defguard support address.
+/// Send the support data bundle to the defguard support address.
 #[utoipa::path(
     post,
     path = "/api/v1/mail/support",

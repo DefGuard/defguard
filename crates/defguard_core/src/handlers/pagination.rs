@@ -152,7 +152,7 @@ impl fmt::Display for PaginationParams {
     }
 }
 
-/// Metadata about the pagination included in response
+/// Pagination metadata included in the response.
 #[derive(Serialize, ToSchema)]
 struct PaginationMeta {
     /// Number of the returned page, starting from 1.

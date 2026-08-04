@@ -48,7 +48,7 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
     path = "/api/v1/outdated",
     tag = "system",
     responses(
-        (status = 200, description = "Incompatible components.", body = Object),
+        (status = 200, description = "All incompatible components.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list outdated components.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),

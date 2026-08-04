@@ -52,6 +52,7 @@ fn reload_core_web_server(appstate: &AppState) {
     }
 }
 
+/// Set up the certificate for the internal (core) URL.
 #[utoipa::path(
     post,
     path = "/api/v1/core/cert/internal_url_settings",
@@ -59,10 +60,10 @@ fn reload_core_web_server(appstate: &AppState) {
     request_body = InternalUrlSettingsConfig,
     responses(
         (status = 201, description = "Internal URL certificate settings applied.", body = Object),
-        (status = 400, description = "Invalid request.", body = ApiErrorResponse),
-        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
-        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
-        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
+        (status = 400, description = "Invalid certificate settings.", body = ApiErrorResponse, example = json!({"msg": "cert_pem is required for own_cert", "code": "cert_missing_cert_pem"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to apply internal URL certificate settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
@@ -91,6 +92,7 @@ pub(crate) async fn set_internal_url_settings(
     ))
 }
 
+/// Set up the certificate for the external (edge) URL.
 #[utoipa::path(
     post,
     path = "/api/v1/proxy/cert/external_url_settings",
@@ -98,10 +100,10 @@ pub(crate) async fn set_internal_url_settings(
     request_body = ExternalUrlSettingsConfig,
     responses(
         (status = 201, description = "External URL certificate settings applied.", body = Object),
-        (status = 400, description = "Invalid request.", body = ApiErrorResponse),
-        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
-        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
-        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
+        (status = 400, description = "Invalid certificate settings.", body = ApiErrorResponse, example = json!({"msg": "cert_pem is required for own_cert", "code": "cert_missing_cert_pem"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to apply external URL certificate settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
@@ -146,16 +148,17 @@ pub(crate) async fn set_external_url_settings(
     ))
 }
 
+/// Get the certificate of the internal certificate authority.
 #[utoipa::path(
     get,
     path = "/api/v1/core/cert/ca",
     tag = "certificates",
     responses(
-        (status = 200, description = "CA cert data", body = Object),
-        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiErrorResponse),
-        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
-        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
-        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
+        (status = 200, description = "CA certificate in PEM format.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "The internal CA is not configured.", body = ApiErrorResponse, example = json!({"msg": "CA certificate not found"})),
+        (status = 500, description = "Unable to get CA certificate.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
@@ -195,16 +198,16 @@ pub(crate) async fn get_ca(
     }
 }
 
+/// Get the certificates currently used by core and edge.
 #[utoipa::path(
     get,
     path = "/api/v1/core/cert/certs",
     tag = "certificates",
     responses(
-        (status = 200, description = "Core & edge cert data", body = Object),
-        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiErrorResponse),
-        (status = 401, description = "Unauthorized.", body = ApiErrorResponse),
-        (status = 403, description = "Forbidden.", body = ApiErrorResponse),
-        (status = 500, description = "Internal server error.", body = ApiErrorResponse)
+        (status = 200, description = "Certificates used by core and edge.", body = Object),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to get certificates.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
 )]

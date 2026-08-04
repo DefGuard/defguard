@@ -84,23 +84,17 @@ pub struct SshKeysRequestParams {
     group: Option<String>,
 }
 
-/// Fetch public SSH keys for user.
-///
-/// Meant to be used with `AuthorizedKeysCommand` config option in `sshd`.
-/// Should always return a response to partially mitigate user enumeration.
-/// Optional query params `username` and `group` are used for filtering users.
-/// If no params are specified an empty response is returned.
 /// Get SSH authorized keys in the `authorized_keys` file format.
 ///
-/// Intended to be used as an `AuthorizedKeysCommand` on SSH servers. Either `username`
-/// or `group` has to be provided.
+/// Meant to be used as an `AuthorizedKeysCommand` in `sshd`. Filter the users with the
+/// `username` or `group` query parameter.
 #[utoipa::path(
     get,
     path = "/api/v1/ssh_authorized_keys",
     tag = "SSH key",
     params(
-        ("username" = Option<String>, Query, description = "Return keys of this user"),
-        ("group" = Option<String>, Query, description = "Return keys of all members of this group"),
+        ("username" = Option<String>, Query, description = "Return the keys of this user."),
+        ("group" = Option<String>, Query, description = "Return the keys of all members of this group."),
     ),
     responses(
         (status = 200, description = "Authorized keys, one per line.", body = String),
@@ -179,7 +173,7 @@ pub struct AddAuthenticationKeyData {
     tag = "SSH key",
     request_body = AddAuthenticationKeyData,
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
         (status = 201, description = "Authentication key added.", body = Object),
@@ -266,10 +260,10 @@ pub async fn add_authentication_key(
     path = "/api/v1/user/{username}/auth_key",
     tag = "SSH key",
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "Authentication keys of the user.", body = Object),
+        (status = 200, description = "All authentication keys of the user.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
@@ -297,8 +291,8 @@ pub async fn fetch_authentication_keys(
     path = "/api/v1/user/{username}/auth_key/{key_id}",
     tag = "SSH key",
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("key_id" = i64, Path, description = "ID of authentication key"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("key_id" = i64, Path, description = "ID of the authentication key."),
     ),
     responses(
         (status = 200, description = "Authentication key deleted.", body = Object, example = json!({})),
@@ -352,8 +346,8 @@ pub struct RenameRequest {
     tag = "SSH key",
     request_body = RenameRequest,
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("key_id" = i64, Path, description = "ID of authentication key"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("key_id" = i64, Path, description = "ID of the authentication key."),
     ),
     responses(
         (status = 200, description = "Authentication key renamed.", body = Object, example = json!({})),

@@ -62,6 +62,20 @@ pub mod wireguard;
 pub mod worker;
 pub(crate) mod yubikey;
 
+/// Machine-readable error code.
+///
+/// - `network_full`: the location has no free IP address left for another device.
+/// - `user_groups_not_synced`: the groups of an externally authenticated user are not synced yet.
+/// - `license_limit_reached`: the user limit of the license has been reached.
+/// - `cert_missing_cert_pem`: `cert_pem` is missing.
+/// - `cert_missing_key_pem`: `key_pem` is missing.
+/// - `cert_invalid_cert_or_key`: the certificate or the private key is not valid PEM.
+/// - `cert_invalid_validity_period`: the validity period of the certificate cannot be used.
+/// - `cert_expired`: the certificate has expired.
+/// - `cert_not_yet_valid`: the certificate is not valid yet.
+/// - `cert_parse_error`: the certificate could not be parsed.
+/// - `smtp_not_configured`: SMTP settings are empty.
+/// - `mail_send_failed`: the message could not be sent.
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum WebErrorCode {
@@ -79,12 +93,12 @@ pub enum WebErrorCode {
     MailSendFailed,
 }
 
-/// Body returned with every error response.
+/// Body returned with error responses.
 #[derive(ToSchema)]
 pub struct ApiErrorResponse {
     /// Human-readable error message.
     pub msg: String,
-    /// Machine-readable error code, returned only for selected errors.
+    /// Machine-readable error code, returned for selected errors.
     pub code: Option<WebErrorCode>,
 }
 

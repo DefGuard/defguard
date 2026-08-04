@@ -99,7 +99,7 @@ pub enum ServiceLocationMode {
     AlwaysOn,
 }
 
-/// Stores configuration required to setup a WireGuard network
+/// Stores the configuration required to set up a WireGuard network.
 #[derive(Clone, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {

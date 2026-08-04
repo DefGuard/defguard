@@ -42,7 +42,7 @@ static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
     path = "/api/v1/settings",
     tag = "settings",
     responses(
-        (status = 200, description = "Instance settings. An empty object is returned when settings are missing.", body = Object),
+        (status = 200, description = "Instance settings.", body = Settings),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -74,9 +74,9 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
     put,
     path = "/api/v1/settings",
     tag = "settings",
-    request_body = Object,
+    request_body = Settings,
     responses(
-        (status = 200, description = "Settings updated.", body = Object, example = json!({})),
+        (status = 200, description = "Settings updated."),
         (status = 400, description = "Invalid settings.", body = ApiErrorResponse, example = json!({"msg": "Invalid settings"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -137,7 +137,7 @@ pub(crate) async fn update_settings(
 
 /// Get settings required to render the web UI.
 ///
-/// This endpoint is public, it returns only non-sensitive settings.
+/// Public endpoint. Returns only non-sensitive settings.
 #[utoipa::path(
     get,
     path = "/api/v1/settings_essentials",
@@ -168,10 +168,10 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
     path = "/api/v1/settings/{id}",
     tag = "settings",
     params(
-        ("id" = Id, Path, description = "Unused, kept for backwards compatibility"),
+        ("id" = i64, Path, description = "Not used."),
     ),
     responses(
-        (status = 200, description = "Branding settings restored to defaults. Returns the updated settings.", body = Object),
+        (status = 200, description = "Branding settings restored to defaults.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to restore default branding settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -230,14 +230,14 @@ fn is_license_reactivation(
 
 /// Update selected instance settings.
 ///
-/// Only the fields present in the request body are modified.
+/// Only the fields present in the request body are modified. Sending `null` clears a field.
 #[utoipa::path(
     patch,
     path = "/api/v1/settings",
     tag = "settings",
     request_body = Object,
     responses(
-        (status = 200, description = "Settings updated. Returns a `license_reactivated` code when an invalid license has been replaced with a valid one.", body = Object, example = json!({"code": "license_reactivated"})),
+        (status = 200, description = "Settings updated. The body carries a `license_reactivated` code when an invalid license has been replaced with a valid one.", body = Object, example = json!({"code": "license_reactivated"})),
         (status = 400, description = "Invalid settings.", body = ApiErrorResponse, example = json!({"msg": "Invalid settings"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

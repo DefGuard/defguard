@@ -14,7 +14,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, settings::OpenIdUsernameHandling, user::User},
+        models::{MFAInfo, Settings, settings::OpenIdUsernameHandling, user::User},
     },
 };
 use openidconnect::{
@@ -566,9 +566,10 @@ pub async fn user_from_claims(
     path = "/api/v1/openid/auth_info",
     tag = "OpenID",
     responses(
-        (status = 200, description = "Authorization URL of the external provider.", body = Object),
-        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 500, description = "Unable to build the authorization URL.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 200, description = "Authorization URL of the external provider.", body = Object, example = json!({"url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=..."})),
+        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "No external OpenID provider is configured.", body = ApiErrorResponse, example = json!({"msg": "OpenID provider not set"})),
+        (status = 500, description = "Unable to build authorization URL.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
 pub async fn get_auth_info(
@@ -657,11 +658,19 @@ pub struct AuthenticationResponse {
     tag = "OpenID",
     request_body = Object,
     responses(
-        (status = 200, description = "User authenticated.", body = Object),
-        (status = 201, description = "User authenticated, but an additional authentication factor is required.", body = Object),
+        (status = 200, description = "User authenticated.", body = AuthResponse,
+            headers(
+                ("Set-Cookie" = String, description = "`defguard_session` cookie."),
+            ),
+        ),
+        (status = 201, description = "A second authentication factor is required. Verify one of the listed methods with the matching `/api/v1/auth/{method}` endpoint.", body = MFAInfo,
+            headers(
+                ("Set-Cookie" = String, description = "`defguard_session` cookie of a not fully authenticated session."),
+            ),
+        ),
         (status = 400, description = "Invalid callback payload.", body = ApiErrorResponse, example = json!({"msg": "Invalid state"})),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 401, description = "CSRF token mismatch or missing nonce cookie.", body = ApiErrorResponse, example = json!({"msg": "State mismatch"})),
+        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to finish external login.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]

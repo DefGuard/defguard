@@ -32,10 +32,10 @@ pub struct DeviceLocationIpsResponse {
     path = "/api/v1/device/user/{username}/ip",
     tag = "static IP",
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "IP addresses of the user devices, grouped by location.", body = Object),
+        (status = 200, description = "IP addresses of all devices of the user, grouped by location.", body = Object),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
@@ -59,14 +59,14 @@ pub async fn get_all_user_device_ips(
     ))
 }
 
-/// List the IP addresses of a single user device, grouped by location.
+/// List the IP addresses of a user device, grouped by location.
 #[utoipa::path(
     get,
     path = "/api/v1/device/user/{username}/ip/{device_id}",
     tag = "static IP",
     params(
-        ("username" = String, Path, description = "Name of a user"),
-        ("device_id" = i64, Path, description = "ID of device"),
+        ("username" = String, Path, description = "Name of the user."),
+        ("device_id" = i64, Path, description = "ID of the device."),
     ),
     responses(
         (status = 200, description = "IP addresses of the device, grouped by location.", body = Object),
@@ -108,7 +108,7 @@ pub struct StaticIpAssignment {
     tag = "static IP",
     request_body = Vec<StaticIpAssignment>,
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
         (status = 200, description = "IP addresses assigned.", body = Object, example = json!({})),
@@ -160,7 +160,7 @@ pub struct ValidateIpAssignmentRequest {
     tag = "static IP",
     request_body = ValidateIpAssignmentRequest,
     params(
-        ("username" = String, Path, description = "Name of a user"),
+        ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
         (status = 200, description = "Validation result.", body = Object),

@@ -90,15 +90,16 @@ pub struct GatewayUpdateData {
     pub enabled: bool,
 }
 
+/// List gateways in all locations.
 #[utoipa::path(
     get,
     path = "/api/v1/gateway",
     tag = "gateway",
     responses(
-        (status = 200, description = "Gateway list", body = [GatewayInfo]),
-        (status = 401, description = "Unauthorized to get gateway list.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to get gateway list.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable to get gateway list.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "All gateways.", body = [GatewayInfo]),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to list gateways.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -117,19 +118,20 @@ pub async fn gateway_list(
     Ok(ApiResponse::json(gateways, StatusCode::OK))
 }
 
+/// Get a gateway.
 #[utoipa::path(
     get,
     path = "/api/v1/gateway/{gateway_id}",
     tag = "gateway",
     params(
-        ("gateway_id" = Id, Path, description = "ID of gateway"),
+        ("gateway_id" = i64, Path, description = "ID of the gateway."),
     ),
     responses(
-        (status = 200, description = "Gateway details", body = GatewayInfo),
-        (status = 401, description = "Unauthorized to get gateway details.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to get gateway details.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Gateway not found", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
-        (status = 500, description = "Unable to get gateway details.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Gateway details.", body = Gateway),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Gateway not found."),
+        (status = 500, description = "Unable to get gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -159,20 +161,21 @@ pub(crate) async fn gateway_details(
     Ok(response)
 }
 
+/// Rename a gateway, or enable or disable it.
 #[utoipa::path(
     put,
     path = "/api/v1/gateway/{gateway_id}",
     tag = "gateway",
     params(
-        ("gateway_id" = Id, Path, description = "ID of gateway"),
+        ("gateway_id" = i64, Path, description = "ID of the gateway."),
     ),
     request_body = GatewayUpdateData,
     responses(
-        (status = 200, description = "Successfully modified gateway.", body = GatewayInfo),
-        (status = 401, description = "Unauthorized to modify gateway.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to modify a gateway.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Gateway not found", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
-        (status = 500, description = "Unable to modify gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
+        (status = 200, description = "Gateway updated.", body = GatewayInfo),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Gateway not found.", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
+        (status = 500, description = "Unable to update gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -228,18 +231,19 @@ pub(crate) async fn update_gateway(
     Ok(ApiResponse::json(gateway, StatusCode::OK))
 }
 
+/// Delete a gateway.
 #[utoipa::path(
     delete,
     path = "/api/v1/gateway/{gateway_id}",
     tag = "gateway",
     params(
-        ("gateway_id" = Id, Path, description = "ID of gateway"),
+        ("gateway_id" = i64, Path, description = "ID of the gateway."),
     ),
     responses(
-        (status = 200, description = "Successfully deleted gateway.", body = Object),
-        (status = 401, description = "Unauthorized to delete gateway.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission delete a gateway.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Gateway not found", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
+        (status = 200, description = "Gateway deleted."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Gateway not found.", body = ApiErrorResponse, example = json!({"msg": "gateway not found"})),
         (status = 500, description = "Unable to delete gateway.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
