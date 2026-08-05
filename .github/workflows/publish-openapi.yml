@@ -21,6 +21,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
+      RUSTUP_TOOLCHAIN: "stable"
       GITBOOK_SPEC: defguard-2-1
       GITBOOK_ORGANIZATION: Z3mGSAbEj9iLdZ7cNFlL
 
