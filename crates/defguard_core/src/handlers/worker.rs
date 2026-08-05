@@ -34,6 +34,7 @@ struct JobResponseError {
     message: String,
 }
 
+/// Create a YubiKey provisioning job.
 pub async fn create_job(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -78,6 +79,7 @@ pub async fn create_job(
     }
 }
 
+/// Create a token used by a provisioning worker to register itself.
 pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> ApiResult {
     let username = session.user.username;
     let token = Claims::new(
@@ -94,6 +96,7 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
     ))
 }
 
+/// List registered provisioning workers.
 pub async fn list_workers(
     _admin: AdminRole,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
@@ -105,6 +108,7 @@ pub async fn list_workers(
     Ok(ApiResponse::json(workers, StatusCode::OK))
 }
 
+/// Remove a provisioning worker.
 pub async fn remove_worker(
     _admin: AdminRole,
     session: SessionInfo,
@@ -124,6 +128,7 @@ pub async fn remove_worker(
     }
 }
 
+/// Get the status of a YubiKey provisioning job.
 pub async fn job_status(
     session: SessionInfo,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,

@@ -4,6 +4,7 @@ use axum::{
 };
 use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
+use utoipa::ToSchema;
 
 use super::LicenseInfo;
 use crate::{
@@ -13,9 +14,27 @@ use crate::{
         ActivityLogStream, ActivityLogStreamConfig, ActivityLogStreamType,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
+/// List activity log streams
+#[utoipa::path(
+    get,
+    path = "/api/v1/activity_log_stream/",
+    tag = "activity log",
+    responses(
+        (status = 200, description = "All activity log streams.", body = [Object], example = json!([
+            {"id": 1, "name": "vector", "stream_type": "vector_http", "config": {"url": "https://vector.example.com"}}
+        ])),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to list activity log streams.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn get_activity_log_stream(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -34,13 +53,31 @@ pub async fn get_activity_log_stream(
     Ok(ApiResponse::json(streams, StatusCode::OK))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ActivityLogStreamModificationRequest {
     pub name: String,
     pub stream_type: ActivityLogStreamType,
     pub stream_config: serde_json::Value,
 }
 
+/// Create an activity log stream
+#[utoipa::path(
+    post,
+    path = "/api/v1/activity_log_stream/",
+    tag = "activity log",
+    request_body = ActivityLogStreamModificationRequest,
+    responses(
+        (status = 201, description = "Activity log stream created."),
+        (status = 400, description = "Invalid stream configuration.", body = ApiErrorResponse, example = json!({"msg": "Invalid stream config"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to create activity log stream.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn create_activity_log_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -69,6 +106,28 @@ pub async fn create_activity_log_stream(
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
+/// Update an activity log stream
+#[utoipa::path(
+    put,
+    path = "/api/v1/activity_log_stream/{id}",
+    tag = "activity log",
+    request_body = ActivityLogStreamModificationRequest,
+    params(
+        ("id" = i64, Path, description = "ID of the activity log stream."),
+    ),
+    responses(
+        (status = 200, description = "Activity log stream updated."),
+        (status = 400, description = "Invalid stream configuration.", body = ApiErrorResponse, example = json!({"msg": "Invalid stream config"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Activity log stream not found.", body = ApiErrorResponse, example = json!({"msg": "stream not found"})),
+        (status = 500, description = "Unable to update activity log stream.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn modify_activity_log_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -107,6 +166,26 @@ pub async fn modify_activity_log_stream(
     )))
 }
 
+/// Delete an activity log stream
+#[utoipa::path(
+    delete,
+    path = "/api/v1/activity_log_stream/{id}",
+    tag = "activity log",
+    params(
+        ("id" = i64, Path, description = "ID of the activity log stream."),
+    ),
+    responses(
+        (status = 200, description = "Activity log stream deleted."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Activity log stream not found.", body = ApiErrorResponse, example = json!({"msg": "stream not found"})),
+        (status = 500, description = "Unable to delete activity log stream.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn delete_activity_log_stream(
     _license: LicenseInfo,
     _admin: AdminRole,

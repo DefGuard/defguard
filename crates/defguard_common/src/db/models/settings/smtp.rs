@@ -3,11 +3,12 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgExecutor, Type, query};
 use struct_patch::Patch;
+use utoipa::ToSchema;
 
 use super::deserialize_optional_field;
 use crate::secret::SecretStringWrapper;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "smtp_authentication", rename_all = "lowercase")]
 pub enum SmtpAuthentication {
     #[default]
@@ -16,7 +17,7 @@ pub enum SmtpAuthentication {
     XOAuth2,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
 pub enum SmtpEncryption {
     #[default]
@@ -25,7 +26,7 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
-#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize, ToSchema)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct SmtpSettings {
     #[serde(rename = "smtp_server")]
@@ -55,6 +56,7 @@ pub struct SmtpSettings {
         deserialize_with = "deserialize_optional_field",
         default
     )))]
+    #[schema(value_type = Option<String>)]
     pub password: Option<SecretStringWrapper>,
     #[serde(rename = "smtp_sender")]
     #[sqlx(rename = "smtp_sender")]
@@ -77,6 +79,7 @@ pub struct SmtpSettings {
     #[serde(rename = "smtp_oauth_client_secret")]
     #[sqlx(rename = "smtp_oauth_client_secret")]
     #[patch(attribute(serde(rename = "smtp_oauth_client_secret")))]
+    #[schema(value_type = Option<String>)]
     pub oauth_client_secret: Option<SecretStringWrapper>,
     #[serde(rename = "smtp_oauth_refresh_token")]
     #[sqlx(rename = "smtp_oauth_refresh_token")]

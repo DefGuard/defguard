@@ -15,9 +15,8 @@ use super::{
         handlers::{acl, openid_providers},
         snat::handlers as snat,
     },
-    error::WebError,
     handlers::{
-        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        ApiErrorResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, auth,
         group::{self, BulkAssignToGroupsRequest},
         license,
@@ -113,9 +112,9 @@ use super::{
     ),
     components(
         schemas(
-            ApiResponse, UserInfo, UserDetails, UserDevice, Username,
+            ApiErrorResponse, UserInfo, UserDetails, UserDevice, Username,
             StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult,
-            Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError,
+            Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo,
             license::CheckParams
         ),
     ),

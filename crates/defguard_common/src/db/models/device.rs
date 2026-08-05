@@ -76,6 +76,7 @@ impl From<DeviceType> for String {
 
 #[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
 pub struct Device<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub name: String,
     pub wireguard_pubkey: String,
@@ -84,11 +85,9 @@ pub struct Device<I = NoId> {
     #[model(enum)]
     pub device_type: DeviceType,
     pub description: Option<String>,
-    /// Whether the device should be considered as setup and ready to use
-    /// or does it require some additional steps to be taken. Not configured devices
-    /// won't be sent to the gateway. It is assumed that an unconfigured device is already
-    /// added to all networks it should be in, but it's not ready to be used yet due to
-    /// e.g. public key not properly set up yet.
+    /// Whether the device is ready to use. Unconfigured devices are not sent to the gateway.
+    /// Such a device is already added to all its networks, but is still missing something,
+    /// for example its public key.
     pub configured: bool,
 }
 
