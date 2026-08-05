@@ -5,7 +5,7 @@ on:
     types:
       - closed
     branches:
-      - release/2.0
+      - stable/2.x
 
 permissions:
   contents: read
