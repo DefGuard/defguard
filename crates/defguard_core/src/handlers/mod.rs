@@ -98,7 +98,7 @@ pub enum WebErrorCode {
 pub struct ApiErrorResponse {
     /// Human-readable error message.
     pub msg: String,
-    /// Machine-readable error code, returned for selected errors and listed in the introduction.
+    /// Machine-readable error code, returned for selected errors.
     #[schema(value_type = Option<String>)]
     pub code: Option<WebErrorCode>,
 }

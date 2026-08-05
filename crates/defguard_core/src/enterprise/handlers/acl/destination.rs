@@ -216,7 +216,7 @@ impl From<AclAliasInfo> for ApiAclDestination {
     }
 }
 
-/// List ACL destinations.
+/// List ACL destinations
 #[utoipa::path(
     get,
     path = "/api/v1/acl/destination",
@@ -252,7 +252,7 @@ pub(crate) async fn list_acl_destinations(
     Ok(ApiResponse::json(api_aliases, StatusCode::OK))
 }
 
-/// Count ACL destinations by state.
+/// Count ACL destinations by state
 #[utoipa::path(
     get,
     path = "/api/v1/acl/destination/count",
@@ -286,7 +286,7 @@ pub(crate) async fn count_acl_destinations(
     Ok(ApiResponse::json(counts, StatusCode::OK))
 }
 
-/// Get an ACL destination.
+/// Get an ACL destination
 #[utoipa::path(
     get,
     path = "/api/v1/acl/destination/{id}",
@@ -338,7 +338,7 @@ pub(crate) async fn get_acl_destination(
     Ok(ApiResponse::new(alias, status))
 }
 
-/// Create an ACL destination.
+/// Create an ACL destination
 #[utoipa::path(
     post,
     path = "/api/v1/acl/destination",
@@ -382,7 +382,7 @@ pub(crate) async fn create_acl_destination(
     Ok(ApiResponse::json(alias, StatusCode::CREATED))
 }
 
-/// Update an ACL destination.
+/// Update an ACL destination
 #[utoipa::path(
     put,
     path = "/api/v1/acl/destination/{id}",
@@ -429,7 +429,7 @@ pub(crate) async fn update_acl_destination(
     Ok(ApiResponse::json(alias, StatusCode::OK))
 }
 
-/// Delete an ACL destination.
+/// Delete an ACL destination
 #[utoipa::path(
     delete,
     path = "/api/v1/acl/destination/{id}",
@@ -474,7 +474,7 @@ pub(crate) async fn delete_acl_destination(
     Ok(ApiResponse::default())
 }
 
-/// Apply ACL destinations.
+/// Apply ACL destinations
 #[utoipa::path(
     put,
     path = "/api/v1/acl/destination/apply",

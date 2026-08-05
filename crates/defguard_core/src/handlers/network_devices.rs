@@ -126,7 +126,7 @@ pub(crate) struct DeviceWireGuardConfig {
     pub(crate) location_mfa_mode: LocationMfaMode,
 }
 
-/// Get the WireGuard configuration of a network device.
+/// Get the WireGuard configuration of a network device
 ///
 /// Returns one configuration per location the device belongs to.
 #[utoipa::path(
@@ -137,7 +137,9 @@ pub(crate) struct DeviceWireGuardConfig {
         ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
-        (status = 200, description = "Network device configuration.", body = Object),
+        (status = 200, description = "Network device configuration for each location of the device.", body = [Object], example = json!([
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "location_mfa_mode": "disabled"}
+        ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network device not found.", body = ApiErrorResponse, example = json!({"msg": "device not found"})),
@@ -201,7 +203,7 @@ pub(crate) async fn network_device_configs(
     Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
-/// Get a network device.
+/// Get a network device
 #[utoipa::path(
     get,
     path = "/api/v1/device/network/{device_id}",
@@ -249,7 +251,7 @@ pub(crate) async fn get_network_device(
     )))
 }
 
-/// List network devices.
+/// List network devices
 #[utoipa::path(
     get,
     path = "/api/v1/device/network",
@@ -346,7 +348,7 @@ impl IpAvailabilityCheckResult {
     }
 }
 
-/// Check whether the given IP addresses are free in a location.
+/// Check whether the given IP addresses are free in a location
 #[utoipa::path(
     post,
     path = "/api/v1/device/network/ip/{network_id}",
@@ -356,7 +358,7 @@ impl IpAvailabilityCheckResult {
         ("network_id" = i64, Path, description = "ID of the network."),
     ),
     responses(
-        (status = 200, description = "Availability of the requested IP addresses.", body = Object),
+        (status = 200, description = "Availability of the requested IP addresses.", body = [Object], example = json!([{"available": true, "valid": true}])),
         (status = 400, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Failed to check IP availability, location not found"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -449,7 +451,7 @@ pub(crate) async fn check_ip_availability(
     Ok(ApiResponse::json(validation_results, StatusCode::OK))
 }
 
-/// Suggest free IP addresses in a location.
+/// Suggest free IP addresses in a location
 #[utoipa::path(
     get,
     path = "/api/v1/device/network/ip/{network_id}",
@@ -458,7 +460,9 @@ pub(crate) async fn check_ip_availability(
         ("network_id" = i64, Path, description = "ID of the network."),
     ),
     responses(
-        (status = 200, description = "Suggested IP addresses.", body = Object),
+        (status = 200, description = "Suggested IP addresses.", body = [Object], example = json!([
+            {"network_part": "10.0.0.", "modifiable_part": "15", "network_prefix": "/24", "ip": "10.0.0.15"}
+        ])),
         (status = 400, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Failed to find available IP, network not found"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -542,7 +546,7 @@ impl From<NetworkAddressError> for WebError {
 }
 
 // Setup a network device to be later configured by a CLI client
-/// Start CLI setup for a new network device.
+/// Start CLI setup for a new network device
 ///
 /// Returns an enrollment token the `defguard-cli` client uses to configure itself.
 #[utoipa::path(
@@ -551,7 +555,10 @@ impl From<NetworkAddressError> for WebError {
     tag = "network device",
     request_body = StartNetworkDeviceSetup,
     responses(
-        (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object),
+        (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object, example = json!({
+            "enrollment_token": "yZbTsF0m9Xq7cVwPnR2Ld1Ku",
+            "enrollment_url": "https://vpn.example.com/"
+        })),
         (status = 400, description = "Invalid IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Invalid IP address"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -667,7 +674,7 @@ pub(crate) async fn start_network_device_setup(
 }
 
 // Make a new CLI configuration token for an already added network device
-/// Start CLI setup for an existing network device.
+/// Start CLI setup for an existing network device
 #[utoipa::path(
     post,
     path = "/api/v1/device/network/start_cli/{device_id}",
@@ -676,7 +683,10 @@ pub(crate) async fn start_network_device_setup(
         ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
-        (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object),
+        (status = 201, description = "Setup started. Returns the enrollment token and URL.", body = Object, example = json!({
+            "enrollment_token": "yZbTsF0m9Xq7cVwPnR2Ld1Ku",
+            "enrollment_url": "https://vpn.example.com/"
+        })),
         (status = 400, description = "Device not found, or it is not a network device.", body = ApiErrorResponse, example = json!({"msg": "Failed to start network device setup for device with ID 1, device not found"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -751,7 +761,7 @@ pub(crate) async fn start_network_device_setup_for_device(
     ))
 }
 
-/// Create a network device.
+/// Create a network device
 ///
 /// The device is created with the provided WireGuard public key.
 #[utoipa::path(
@@ -760,7 +770,34 @@ pub(crate) async fn start_network_device_setup_for_device(
     tag = "network device",
     request_body(content = AddNetworkDevice, example = json!({"name": "office-printer", "location_id": 1, "assigned_ips": ["10.0.0.50"], "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=", "description": "Printer on the second floor"})),
     responses(
-        (status = 201, description = "Network device created.", body = Object),
+        (status = 201, description = "Network device created.", body = Object, example = json!({
+            "config": {
+                "network_id": 1,
+                "network_name": "office",
+                "config": "[Interface]\n...",
+                "address": ["10.0.0.15"],
+                "endpoint": "vpn.example.com:50051",
+                "allowed_ips": ["10.0.0.0/24"],
+                "pubkey": "Zm9vYmFyMDEyMzQ1Njc4OWFiY2RlZmdoaWprbG1ub3A=",
+                "dns": "10.0.0.1",
+                "keepalive_interval": 25,
+                "location_mfa_mode": "disabled",
+                "service_location_mode": "disabled",
+                "posture_check_required": false
+            },
+            "device": {
+                "id": 5,
+                "name": "printer",
+                "assigned_ips": ["10.0.0.15"],
+                "description": null,
+                "added_by": "admin",
+                "added_date": "2026-08-04T10:15:00",
+                "location": {"id": 1, "name": "office"},
+                "wireguard_pubkey": "5ItSw7SLkVLXPFvNxLdEQaSMOFhLxD7YsTTAlR8CbCA=",
+                "configured": true,
+                "split_ips": [{"network_part": "10.0.0.", "modifiable_part": "15", "network_prefix": "/24", "ip": "10.0.0.15"}]
+            }
+        })),
         (status = 400, description = "Invalid public key or IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Public key invalid"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -900,7 +937,7 @@ pub struct ModifyNetworkDevice {
     assigned_ips: Vec<IpAddr>,
 }
 
-/// Update a network device.
+/// Update a network device
 #[utoipa::path(
     put,
     path = "/api/v1/device/network/{device_id}",
@@ -910,7 +947,7 @@ pub struct ModifyNetworkDevice {
         ("device_id" = i64, Path, description = "ID of the network device."),
     ),
     responses(
-        (status = 200, description = "Network device updated.", body = Object),
+        (status = 200, description = "Network device updated.", body = NetworkDeviceInfo),
         (status = 400, description = "Invalid IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Invalid IP address"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

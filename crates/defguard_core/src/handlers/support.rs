@@ -9,7 +9,7 @@ use crate::{
     support::dump_config,
 };
 
-/// Get instance configuration for support purposes.
+/// Get instance configuration for support purposes
 ///
 /// Secrets are stripped from the returned configuration.
 #[utoipa::path(
@@ -17,8 +17,8 @@ use crate::{
     path = "/api/v1/support/configuration",
     tag = "support",
     responses(
-        (status = 200, description = "Instance configuration.", body = Object),
-        (status = 400, description = "Unable to dump the configuration.", body = ApiErrorResponse, example = json!({"err": "database error"})),
+        (status = 200, description = "Instance configuration, with the `settings`, `networks`, `devices`, `users`, `config`, `proxies`, `gateways` and `version` sections.", body = Object),
+        (status = 400, description = "Unable to dump the configuration.", body = Object, example = json!({"err": "database error"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get configuration.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -51,13 +51,13 @@ pub(crate) async fn configuration(
     })
 }
 
-/// Get recent instance logs for support purposes.
+/// Get recent instance logs for support purposes
 #[utoipa::path(
     get,
     path = "/api/v1/support/logs",
     tag = "support",
     responses(
-        (status = 200, description = "Instance logs as plain text.", body = String),
+        (status = 200, description = "Instance logs as plain text.", body = String, example = json!("2026-08-05T09:12:44.001Z  INFO defguard_core: Starting defguard Core 2.1.0\n2026-08-05T09:12:44.512Z  INFO defguard_core::grpc: gRPC server listening on 0.0.0.0:50055")),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get logs.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),

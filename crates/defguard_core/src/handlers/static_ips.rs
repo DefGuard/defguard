@@ -26,7 +26,7 @@ pub struct DeviceLocationIpsResponse {
     pub locations: Vec<DeviceLocationIp>,
 }
 
-/// List the IP addresses of all devices of a user, grouped by location.
+/// List the IP addresses of all devices of a user, grouped by location
 #[utoipa::path(
     get,
     path = "/api/v1/device/user/{username}/ip",
@@ -35,7 +35,13 @@ pub struct DeviceLocationIpsResponse {
         ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "IP addresses of all devices of the user, grouped by location.", body = Object),
+        (status = 200, description = "IP addresses of all devices of the user, grouped by location.", body = Object, example = json!({
+            "locations": [{
+                "location_id": 1,
+                "location_name": "office",
+                "devices": [{"device_id": 5, "device_name": "laptop", "wireguard_ips": [{"network_part": "10.0.0.", "modifiable_part": "15", "network_prefix": "/24", "ip": "10.0.0.15"}]}]
+            }]
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
@@ -59,7 +65,7 @@ pub async fn get_all_user_device_ips(
     ))
 }
 
-/// List the IP addresses of a user device, grouped by location.
+/// List the IP addresses of a user device, grouped by location
 #[utoipa::path(
     get,
     path = "/api/v1/device/user/{username}/ip/{device_id}",
@@ -69,7 +75,9 @@ pub async fn get_all_user_device_ips(
         ("device_id" = i64, Path, description = "ID of the device."),
     ),
     responses(
-        (status = 200, description = "IP addresses of the device, grouped by location.", body = Object),
+        (status = 200, description = "IP addresses of the device, grouped by location.", body = Object, example = json!({
+            "locations": [{"location_id": 1, "location_name": "office", "wireguard_ips": [{"network_part": "10.0.0.", "modifiable_part": "15", "network_prefix": "/24", "ip": "10.0.0.15"}]}]
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or device not found.", body = ApiErrorResponse, example = json!({"msg": "device not found"})),
@@ -101,7 +109,7 @@ pub struct StaticIpAssignment {
     pub ips: Vec<IpAddr>,
 }
 
-/// Assign static IP addresses to user devices.
+/// Assign static IP addresses to user devices
 #[utoipa::path(
     post,
     path = "/api/v1/device/user/{username}/ip",
@@ -111,7 +119,7 @@ pub struct StaticIpAssignment {
         ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "IP addresses assigned.", body = Object, example = json!({})),
+        (status = 200, description = "IP addresses assigned.", body = Object, example = json!({"message": "Static IPs assigned successfully"})),
         (status = 400, description = "Invalid IP assignment.", body = ApiErrorResponse, example = json!({"msg": "IP address is already in use"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -153,7 +161,7 @@ pub struct ValidateIpAssignmentRequest {
     pub location: Id,
 }
 
-/// Check whether a single static IP assignment would be valid.
+/// Check whether a single static IP assignment would be valid
 #[utoipa::path(
     post,
     path = "/api/v1/device/user/{username}/ip/validate",
@@ -163,7 +171,7 @@ pub struct ValidateIpAssignmentRequest {
         ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "Validation result.", body = Object),
+        (status = 200, description = "Validation result.", body = Object, example = json!({"message": "IP assignment is valid"})),
         (status = 400, description = "Invalid IP assignment.", body = ApiErrorResponse, example = json!({"msg": "IP address is already in use"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

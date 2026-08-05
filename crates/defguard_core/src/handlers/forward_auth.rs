@@ -61,7 +61,7 @@ where
     }
 }
 
-/// Authorize a request forwarded by a reverse proxy.
+/// Authorize a request forwarded by a reverse proxy
 ///
 /// Meant to be used as a forward-auth endpoint, for example Traefik `forwardAuth`. The original
 /// request URL is read from the `X-Forwarded-*` headers.

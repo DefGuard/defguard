@@ -232,7 +232,7 @@ pub struct UserFilterParams {
     pub search: Option<String>,
 }
 
-/// List users.
+/// List users
 #[utoipa::path(
     get,
     path = "/api/v1/user",
@@ -252,23 +252,28 @@ pub struct UserFilterParams {
             "data": [
                 {
                     "authorized_apps": [],
-                    "email": "mail@mail",
+                    "devices": [],
+                    "email": "jane@example.com",
                     "email_mfa_enabled": false,
                     "enrolled": true,
-                    "first_name": "first_name",
+                    "first_name": "Jane",
                     "groups": [
                       "admin"
                     ],
+                    "has_non_mfa_location_access": false,
+                    "has_non_posture_location_access": false,
                     "id": 1,
                     "is_active": true,
                     "is_admin": true,
-                    "last_name": "last_name",
+                    "last_name": "Doe",
                     "ldap_pass_requires_change": false,
                     "mfa_enabled": false,
                     "mfa_method": "None",
+                    "name": "Jane Doe",
+                    "password_management_disabled": false,
                     "phone": null,
                     "totp_enabled": false,
-                    "username": "admin"
+                    "username": "jane"
                 }
             ],
             "pagination": {
@@ -413,7 +418,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         .push(sorting.sort_order.to_string());
 }
 
-/// Get a user.
+/// Get a user
 #[utoipa::path(
     get,
     path = "/api/v1/user/{username}",
@@ -425,25 +430,29 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         (status = 200, description = "User details.", body = UserDetails, example = json!(
             {
               "biometric_enabled_devices": [],
-              "devices": [],
               "security_keys": [],
               "user": {
                 "authorized_apps": [],
-                "email": "mail@defguard.net",
+                "devices": [],
+                "email": "jdoe@example.com",
                 "email_mfa_enabled": false,
                 "enrolled": true,
-                "first_name": "first_name",
+                "first_name": "John",
                 "groups": [],
+                "has_non_mfa_location_access": false,
+                "has_non_posture_location_access": false,
                 "id": 2,
                 "is_active": true,
                 "is_admin": false,
-                "last_name": "last_name",
+                "last_name": "Doe",
                 "ldap_pass_requires_change": false,
                 "mfa_enabled": false,
                 "mfa_method": "None",
-                "phone": "000000000",
+                "name": "John Doe",
+                "password_management_disabled": false,
+                "phone": "+48123456789",
                 "totp_enabled": false,
-                "username": "username"
+                "username": "jdoe"
               }
             }
         )),
@@ -470,7 +479,7 @@ pub(crate) async fn get_user(
     Ok(ApiResponse::json(user_details, StatusCode::OK))
 }
 
-/// Create a user.
+/// Create a user
 #[utoipa::path(
     post,
     path = "/api/v1/user",
@@ -480,24 +489,29 @@ pub(crate) async fn get_user(
         (status = 201, description = "User created.", body = UserInfo, example = json!(
            {
               "authorized_apps": [],
-              "email": "mail@mail",
+              "devices": [],
+              "email": "jdoe@example.com",
               "email_mfa_enabled": false,
               "enrolled": true,
-              "first_name": "first_name",
+              "first_name": "John",
               "groups": [],
+              "has_non_mfa_location_access": false,
+              "has_non_posture_location_access": false,
               "id": 3,
               "is_active": true,
               "is_admin": false,
-              "last_name": "last_name",
+              "last_name": "Doe",
               "ldap_pass_requires_change": false,
               "mfa_enabled": false,
               "mfa_method": "None",
-              "phone": "000000000",
+              "name": "John Doe",
+              "password_management_disabled": false,
+              "phone": "+48123456789",
               "totp_enabled": false,
-              "username": "new_user"
+              "username": "jdoe"
             }
         )),
-        (status = 400, description = "Invalid user data.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "Invalid user data."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to create user.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -607,7 +621,7 @@ pub(crate) async fn add_user(
     Ok(ApiResponse::json(&user_info, StatusCode::CREATED))
 }
 
-/// Start enrollment for a user.
+/// Start enrollment for a user
 ///
 /// Returns an enrollment token, valid for 24 hours, and the URL the user opens to finish
 /// enrollment in a browser or in the desktop client. The user can also be notified by email.
@@ -719,7 +733,7 @@ pub(crate) async fn start_enrollment(
     ))
 }
 
-/// Start remote desktop configuration.
+/// Start remote desktop configuration
 ///
 /// Creates or updates the desktop client configuration of the user. Returns an enrollment
 /// token, valid for 24 hours, and the URL the user opens to finish the setup. The user can
@@ -817,15 +831,15 @@ pub(crate) async fn start_remote_desktop_configuration(
     ))
 }
 
-/// Check whether a username is available.
+/// Check whether a username is available
 #[utoipa::path(
     post,
     path = "/api/v1/user/available",
     tag = "user",
     request_body = Username,
     responses(
-        (status = 200, description = "Username is available.", body = Object, example = json!({})),
-        (status = 400, description = "Username is invalid or already taken.", body = ApiErrorResponse, example = json!({})),
+        (status = 200, description = "Username is available."),
+        (status = 400, description = "Username is invalid or already taken."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse,  example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to check username.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -854,7 +868,7 @@ pub(crate) async fn username_available(
     Ok(ApiResponse::with_status(status))
 }
 
-/// Update a user.
+/// Update a user
 ///
 /// Can also add or remove the user's groups and authorized apps. Set `is_active` to
 /// `false` to disable the user. An admin cannot disable their own account.
@@ -868,7 +882,7 @@ pub(crate) async fn username_available(
     request_body = UserInfo,
     responses(
         (status = 200, description = "User updated."),
-        (status = 400, description = "Invalid user data.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "Invalid user data."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
@@ -1095,7 +1109,7 @@ pub(crate) async fn modify_user(
     Ok(ApiResponse::default())
 }
 
-/// Delete a user.
+/// Delete a user
 ///
 /// You cannot delete your own account.
 #[utoipa::path(
@@ -1107,7 +1121,7 @@ pub(crate) async fn modify_user(
     ),
     responses(
         (status = 200, description = "User deleted."),
-        (status = 400, description = "You cannot delete your own account.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "You cannot delete your own account."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "User <username> not found"})),
@@ -1175,7 +1189,7 @@ async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sq
     Ok(user.password_management_disabled(is_admin, &settings, oidc_disabled))
 }
 
-/// Change your own password.
+/// Change your own password
 ///
 /// Fails when the new password is not strong enough.
 #[utoipa::path(
@@ -1184,8 +1198,8 @@ async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sq
     tag = "user",
     request_body = PasswordChangeSelf,
     responses(
-        (status = 200, description = "Password changed.", body = Object, example = json!({})),
-        (status = 400, description = "Passwords do not match, or the new password does not satisfy the requirements.", body = ApiErrorResponse, example = json!({})),
+        (status = 200, description = "Password changed."),
+        (status = 400, description = "Passwords do not match, or the new password does not satisfy the requirements."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Password management is disabled for this user.", body = ApiErrorResponse, example = json!({"msg": "Password management is disabled for this user"})),
         (status = 500, description = "Unable to change your password.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -1241,7 +1255,7 @@ pub(crate) async fn change_self_password(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-/// Change the password of a user.
+/// Change the password of a user
 ///
 /// Fails when the new password is not strong enough. Cannot be used to change your own
 /// password, use `PUT /api/v1/user/change_password` for that.
@@ -1254,11 +1268,11 @@ pub(crate) async fn change_self_password(
     ),
     request_body = PasswordChange,
     responses(
-        (status = 200, description = "Password changed.", body = Object, example = json!({})),
-        (status = 400, description = "Password does not satisfy the requirements, or the request targets your own account.", body = ApiErrorResponse, example = json!({})),
+        (status = 200, description = "Password changed."),
+        (status = 400, description = "Password does not satisfy the requirements, or the request targets your own account."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({})),
+        (status = 404, description = "User not found."),
         (status = 500, description = "Unable to change user password.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -1328,7 +1342,7 @@ pub(crate) async fn change_password(
     }
 }
 
-/// Send a password reset email to a user.
+/// Send a password reset email to a user
 ///
 /// Sends a new enrollment token to the user's email. You cannot reset your own password
 /// this way.
@@ -1341,10 +1355,10 @@ pub(crate) async fn change_password(
     ),
     responses(
         (status = 200, description = "Password reset email sent."),
-        (status = 400, description = "This endpoint does not reset your own password.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "This endpoint does not reset your own password."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({})),
+        (status = 404, description = "User not found."),
         (status = 500, description = "Unable to send password reset email.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -1422,7 +1436,7 @@ pub(crate) async fn reset_password(
     }
 }
 
-/// Delete a security key of a user.
+/// Delete a security key of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/security_key/{id}",
@@ -1435,8 +1449,8 @@ pub(crate) async fn reset_password(
         (status = 200, description = "Security key deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Authorized OAuth2 application not found.", body = ApiErrorResponse, example = json!({"msg": "security key not found"})),
-        (status = 500, description = "Unable to delete authorized OAuth2 application.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
+        (status = 404, description = "Security key not found.", body = ApiErrorResponse, example = json!({"msg": "wrong security key"})),
+        (status = 500, description = "Unable to delete security key.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -1483,7 +1497,7 @@ pub(crate) async fn delete_security_key(
     }
 }
 
-/// Get the currently authenticated user.
+/// Get the currently authenticated user
 #[utoipa::path(
     get,
     path = "/api/v1/me",
@@ -1492,23 +1506,28 @@ pub(crate) async fn delete_security_key(
         (status = 200, description = "Your own account details.", body = UserInfo, example = json!(
             {
                   "authorized_apps": [],
-                  "email": "mail@mail",
+                  "devices": [],
+                  "email": "jane@example.com",
                   "email_mfa_enabled": false,
                   "enrolled": true,
-                  "first_name": "first_name",
+                  "first_name": "Jane",
                   "groups": [
                     "admin"
                   ],
+                  "has_non_mfa_location_access": false,
+                  "has_non_posture_location_access": false,
                   "id": 1,
                   "is_active": true,
                   "is_admin": true,
-                  "last_name": "last_name",
+                  "last_name": "Doe",
                   "ldap_pass_requires_change": false,
                   "mfa_enabled": false,
                   "mfa_method": "None",
-                  "phone": "000000000",
+                  "name": "Jane Doe",
+                  "password_management_disabled": false,
+                  "phone": "+48123456789",
                   "totp_enabled": false,
-                  "username": "username"
+                  "username": "jane"
                 }
         )),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -1531,7 +1550,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
     Ok(ApiResponse::json(user_info, StatusCode::OK))
 }
 
-/// Delete an authorized OAuth2 application of a user.
+/// Delete an authorized OAuth2 application of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/oauth_app/{oauth2client_id}",
@@ -1592,14 +1611,14 @@ pub(crate) async fn delete_authorized_app(
     }
 }
 
-/// Bulk disable users.
+/// Bulk disable users
 ///
 /// The request is rejected when any of the given IDs does not exist or is your own.
 #[utoipa::path(
     post,
     path = "/api/v1/user/bulk-disable",
     tag = "user",
-    request_body = BulkUserOperationRequest,
+    request_body(content = BulkUserOperationRequest, example = json!({"users": [1, 4, 6, 23, 35]})),
     responses(
         (status = 200, description = "Users disabled."),
         (status = 400, description = "The list contains unknown user IDs or your own account.", body = ApiErrorResponse, example = json!({"msg": "Request contained users that don't exist in db."})),
@@ -1689,14 +1708,14 @@ pub(crate) async fn bulk_disable_users(
     Ok(ApiResponse::default())
 }
 
-/// Bulk enable users.
+/// Bulk enable users
 ///
 /// The request is rejected when any of the given IDs does not exist.
 #[utoipa::path(
     post,
     path = "/api/v1/user/bulk-enable",
     tag = "user",
-    request_body = BulkUserOperationRequest,
+    request_body(content = BulkUserOperationRequest, example = json!({"users": [1, 4, 6, 23, 35]})),
     responses(
         (status = 200, description = "Users enabled."),
         (status = 400, description = "The list contains unknown user IDs.", body = ApiErrorResponse, example = json!({"msg": "Request contained users that don't exist in db."})),
@@ -1800,14 +1819,14 @@ pub(crate) async fn bulk_enable_users(
     Ok(ApiResponse::default())
 }
 
-/// Bulk delete users.
+/// Bulk delete users
 ///
 /// The request is rejected when any of the given IDs does not exist or is your own.
 #[utoipa::path(
     post,
     path = "/api/v1/user/bulk-delete",
     tag = "user",
-    request_body = BulkUserOperationRequest,
+    request_body(content = BulkUserOperationRequest, example = json!({"users": [1, 4, 6, 23, 35]})),
     responses(
         (status = 200, description = "Users deleted."),
         (status = 400, description = "The list contains unknown user IDs or your own account.", body = ApiErrorResponse, example = json!({"msg": "Request contained users that don't exist in db."})),
@@ -1896,7 +1915,7 @@ pub(crate) async fn bulk_delete_users(
     Ok(ApiResponse::default())
 }
 
-/// Bulk start user enrollment.
+/// Bulk start user enrollment
 ///
 /// Disabled users are skipped and counted in the `skipped` response field. Already
 /// enrolled users are enrolled again. The request is rejected when any of the given IDs
@@ -1905,7 +1924,7 @@ pub(crate) async fn bulk_delete_users(
     post,
     path = "/api/v1/user/bulk-start-enrollment",
     tag = "user",
-    request_body = BulkStartEnrollmentRequest,
+    request_body(content = BulkStartEnrollmentRequest, example = json!({"users": [1, 4, 6, 23, 35], "send_enrollment_notification": true, "token_expiration_time": "24h"})),
     responses(
         (status = 200, description = "Enrollment started.", body = Object, example = json!({"started": 3, "skipped": 1})),
         (status = 400, description = "The list contains unknown user IDs or your own account.", body = ApiErrorResponse, example = json!({"msg": "Request contained users that don't exist in db."})),

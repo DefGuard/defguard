@@ -199,7 +199,7 @@ impl From<AclAliasInfo> for ApiAclAlias {
     }
 }
 
-/// List ACL aliases.
+/// List ACL aliases
 #[utoipa::path(
     get,
     path = "/api/v1/acl/alias",
@@ -235,7 +235,7 @@ pub(crate) async fn list_acl_aliases(
     Ok(ApiResponse::json(api_aliases, StatusCode::OK))
 }
 
-/// Count ACL aliases by state.
+/// Count ACL aliases by state
 #[utoipa::path(
     get,
     path = "/api/v1/acl/alias/count",
@@ -269,7 +269,7 @@ pub(crate) async fn count_acl_aliases(
     Ok(ApiResponse::json(counts, StatusCode::OK))
 }
 
-/// Get an ACL alias.
+/// Get an ACL alias
 #[utoipa::path(
     get,
     path = "/api/v1/acl/alias/{id}",
@@ -315,7 +315,7 @@ pub(crate) async fn get_acl_alias(
     Ok(ApiResponse::new(alias, status))
 }
 
-/// Create an ACL alias.
+/// Create an ACL alias
 #[utoipa::path(
     post,
     path = "/api/v1/acl/alias",
@@ -356,7 +356,7 @@ pub(crate) async fn create_acl_alias(
     Ok(ApiResponse::json(alias, StatusCode::CREATED))
 }
 
-/// Update an ACL alias.
+/// Update an ACL alias
 #[utoipa::path(
     put,
     path = "/api/v1/acl/alias/{id}",
@@ -399,7 +399,7 @@ pub(crate) async fn update_acl_alias(
     Ok(ApiResponse::json(alias, StatusCode::OK))
 }
 
-/// Delete an ACL alias.
+/// Delete an ACL alias
 #[utoipa::path(
     delete,
     path = "/api/v1/acl/alias/{id}",
@@ -438,7 +438,7 @@ pub(crate) async fn delete_acl_alias(
     Ok(ApiResponse::default())
 }
 
-/// Apply ACL aliases.
+/// Apply ACL aliases
 #[utoipa::path(
     put,
     path = "/api/v1/acl/alias/apply",

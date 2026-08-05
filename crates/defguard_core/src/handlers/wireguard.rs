@@ -173,7 +173,7 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-/// Create a network.
+/// Create a network
 #[utoipa::path(
     post,
     path = "/api/v1/network",
@@ -307,7 +307,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
-/// Update a network.
+/// Update a network
 #[utoipa::path(
     put,
     path = "/api/v1/network/{network_id}",
@@ -425,7 +425,7 @@ pub(crate) async fn modify_network(
     Ok(ApiResponse::json(network, StatusCode::OK))
 }
 
-/// Delete a network.
+/// Delete a network
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{network_id}",
@@ -481,7 +481,7 @@ pub(crate) async fn delete_network(
     Ok(ApiResponse::default())
 }
 
-/// List networks.
+/// List networks
 #[utoipa::path(
     get,
     path = "/api/v1/network",
@@ -524,7 +524,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
     Ok(ApiResponse::json(network_info, StatusCode::OK))
 }
 
-/// Count networks.
+/// Count networks
 #[utoipa::path(
     get,
     path = "/api/v1/network/count",
@@ -551,7 +551,7 @@ pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) 
     ))
 }
 
-/// Get a network.
+/// Get a network
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}",
@@ -603,7 +603,7 @@ pub(crate) async fn network_details(
     Ok(response)
 }
 
-/// Get the state of gateways in a location.
+/// Get the state of gateways in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/gateways",
@@ -637,15 +637,15 @@ pub(crate) async fn gateway_status(
     Ok(ApiResponse::json(gateways, StatusCode::OK))
 }
 
-/// Get the state of gateways in all locations.
+/// Get the state of gateways in all locations
 ///
-/// The response maps a location ID to the gateways of that location.
+/// Each entry carries the ID of the location the gateway belongs to.
 #[utoipa::path(
     get,
     path = "/api/v1/network/gateways",
     tag = "gateway",
     responses(
-        (status = 200, description = "Gateway status in all locations.", body = Object),
+        (status = 200, description = "Gateway status in all locations.", body = [GatewayInfo]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get gateway status.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -666,7 +666,7 @@ pub(crate) async fn all_gateways_status(
     Ok(ApiResponse::json(gateways, StatusCode::OK))
 }
 
-/// Import a network from a WireGuard configuration file.
+/// Import a network from a WireGuard configuration file
 ///
 /// Devices found in the configuration are returned unmapped; use
 /// `POST /api/v1/network/{network_id}/devices` to assign them to users.
@@ -746,7 +746,7 @@ pub(crate) async fn import_network(
 }
 
 // This is used exclusively for the wizard to map imported devices to users.
-/// Assign imported devices to users.
+/// Assign imported devices to users
 ///
 /// Used to finish the network import started with `POST /api/v1/network/import`.
 #[utoipa::path(
@@ -758,7 +758,7 @@ pub(crate) async fn import_network(
         ("network_id" = i64, Path, description = "ID of the network."),
     ),
     responses(
-        (status = 201, description = "Devices assigned to users.", body = Object, example = json!({})),
+        (status = 201, description = "Devices assigned to users."),
         (status = 204, description = "Empty device list, nothing was assigned."),
         (status = 400, description = "Invalid device data.", body = ApiErrorResponse, example = json!({"msg": "Public key invalid"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -822,7 +822,7 @@ pub(crate) struct AddDeviceResult {
     device: Device<Id>,
 }
 
-/// Add a device for a user.
+/// Add a device for a user
 ///
 /// The device is added to every location. `wireguard_pubkey` has to be unique. Devices of
 /// disabled users can only be added by an admin.
@@ -853,15 +853,18 @@ pub(crate) struct AddDeviceResult {
                     }
                 ],
                 "device": {
-                    "id": 0,
-                    "name": "name",
-                    "wireguard_pubkey": "wireguard_pubkey",
-                    "user_id": 0,
-                    "created": "2024-07-10T10:25:43.231Z"
+                    "id": 1,
+                    "name": "work laptop",
+                    "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",
+                    "user_id": 1,
+                    "created": "2024-07-10T10:25:43.231",
+                    "device_type": "user",
+                    "description": null,
+                    "configured": true
                 }
             }
         )),
-        (status = 400, description = "No networks are configured, or a device with this public key already exists.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "No networks are configured, or a device with this public key already exists.", body = ApiErrorResponse, example = json!({"msg": "Failed to add device <name>, identical pubkey (<pubkey>) already exists"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user <username> not found"})),
@@ -1033,7 +1036,7 @@ pub(crate) async fn add_device(
     Ok(ApiResponse::json(result, StatusCode::CREATED))
 }
 
-/// Update a device.
+/// Update a device
 ///
 /// `wireguard_pubkey` has to be different from the public key of the location.
 #[utoipa::path(
@@ -1047,11 +1050,14 @@ pub(crate) async fn add_device(
     responses(
         (status = 200, description = "Device updated.", body = Device, example = json!(
             {
-                "id": 0,
-                "name": "name",
-                "wireguard_pubkey": "wireguard_pubkey",
-                "user_id": 0,
-                "created": "2024-07-10T10:25:43.231Z"
+                "id": 1,
+                "name": "work laptop",
+                "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",
+                "user_id": 1,
+                "created": "2024-07-10T10:25:43.231",
+                "device_type": "user",
+                "description": null,
+                "configured": true
             }
         )),
         (status = 400, description = "No networks are configured, or the public key belongs to a location.", body = ApiErrorResponse, example = json!({"msg": "device's pubkey must be different from server's pubkey"})),
@@ -1161,7 +1167,7 @@ pub(crate) async fn modify_device(
     Ok(ApiResponse::json(device, StatusCode::OK))
 }
 
-/// Get a device.
+/// Get a device
 #[utoipa::path(
     get,
     path = "/api/v1/device/{device_id}",
@@ -1172,11 +1178,14 @@ pub(crate) async fn modify_device(
     responses(
         (status = 200, description = "Device details.", body = Device, example = json!(
             {
-                "id": 0,
-                "name": "name",
-                "wireguard_pubkey": "wireguard_pubkey",
-                "user_id": 0,
-                "created": "2024-07-10T10:25:43.231Z"
+                "id": 1,
+                "name": "work laptop",
+                "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",
+                "user_id": 1,
+                "created": "2024-07-10T10:25:43.231",
+                "device_type": "user",
+                "description": null,
+                "configured": true
             }
         )),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -1199,7 +1208,7 @@ pub(crate) async fn get_device(
     Ok(ApiResponse::json(device, StatusCode::OK))
 }
 
-/// Delete a device.
+/// Delete a device
 ///
 /// The device is removed from every location and the gateways are updated.
 #[utoipa::path(
@@ -1308,7 +1317,7 @@ pub(crate) async fn delete_device(
     Ok(ApiResponse::default())
 }
 
-/// List devices.
+/// List devices
 #[utoipa::path(
     get,
     path = "/api/v1/device",
@@ -1316,11 +1325,14 @@ pub(crate) async fn delete_device(
     responses(
         (status = 200, description = "All devices.", body = [Device], example = json!([
             {
-                "id": 0,
-                "name": "name",
-                "wireguard_pubkey": "wireguard_pubkey",
-                "user_id": 0,
-                "created": "2024-07-10T10:25:43.231Z"
+                "id": 1,
+                "name": "work laptop",
+                "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",
+                "user_id": 1,
+                "created": "2024-07-10T10:25:43.231",
+                "device_type": "user",
+                "description": null,
+                "configured": true
             }
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -1340,7 +1352,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
     Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
-/// List the devices of a user.
+/// List the devices of a user
 #[utoipa::path(
     get,
     path = "/api/v1/device/user/{username}",
@@ -1351,11 +1363,14 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
     responses(
         (status = 200, description = "All devices of the user.", body = [Device], example = json!([
             {
-                "id": 0,
-                "name": "name",
-                "wireguard_pubkey": "wireguard_pubkey",
-                "user_id": 0,
-                "created": "2024-07-10T10:25:43.231Z"
+                "id": 1,
+                "name": "work laptop",
+                "wireguard_pubkey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=",
+                "user_id": 1,
+                "created": "2024-07-10T10:25:43.231",
+                "device_type": "user",
+                "description": null,
+                "configured": true
             }
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -1387,7 +1402,7 @@ pub(crate) async fn list_user_devices(
     Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
-/// Get the WireGuard configuration of a device in a location.
+/// Get the WireGuard configuration of a device in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/device/{device_id}/config",
@@ -1397,7 +1412,7 @@ pub(crate) async fn list_user_devices(
         ("device_id" = i64, Path, description = "ID of the device."),
     ),
     responses(
-        (status = 200, description = "WireGuard configuration of the device.", body = String),
+        (status = 200, description = "WireGuard configuration of the device.", body = String, example = json!("[Interface]\nPrivateKey = YOUR_PRIVATE_KEY\nAddress = 10.0.0.12\nDNS = 1.1.1.1\n\n[Peer]\nPublicKey = xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=\nAllowedIPs = 10.0.0.0/24\nEndpoint = vpn.example.com:50051\nPersistentKeepalive = 25")),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network or device not found.", body = ApiErrorResponse, example = json!({"msg": "device not found"})),
@@ -1452,7 +1467,7 @@ pub(crate) async fn download_config(
     }
 }
 
-/// Get the WireGuard configuration of a user device.
+/// Get the WireGuard configuration of a user device
 ///
 /// Returns one configuration per location the device is allowed to connect to.
 #[utoipa::path(
@@ -1463,7 +1478,9 @@ pub(crate) async fn download_config(
         ("device_id" = i64, Path, description = "ID of the device."),
     ),
     responses(
-        (status = 200, description = "Device configuration for each location.", body = Object),
+        (status = 200, description = "Device configuration for each location.", body = [Object], example = json!([
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "location_mfa_mode": "disabled"}
+        ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Device not found.", body = ApiErrorResponse, example = json!({"msg": "device not found"})),

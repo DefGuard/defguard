@@ -90,7 +90,7 @@ pub struct GatewayUpdateData {
     pub enabled: bool,
 }
 
-/// List gateways in all locations.
+/// List gateways in all locations
 #[utoipa::path(
     get,
     path = "/api/v1/gateway",
@@ -118,7 +118,7 @@ pub async fn gateway_list(
     Ok(ApiResponse::json(gateways, StatusCode::OK))
 }
 
-/// Get a gateway.
+/// Get a gateway
 #[utoipa::path(
     get,
     path = "/api/v1/gateway/{gateway_id}",
@@ -161,7 +161,7 @@ pub(crate) async fn gateway_details(
     Ok(response)
 }
 
-/// Rename a gateway, or enable or disable it.
+/// Rename a gateway, or enable or disable it
 #[utoipa::path(
     put,
     path = "/api/v1/gateway/{gateway_id}",
@@ -232,7 +232,7 @@ pub(crate) async fn update_gateway(
     Ok(ApiResponse::json(gateway, StatusCode::OK))
 }
 
-/// Delete a gateway.
+/// Delete a gateway
 #[utoipa::path(
     delete,
     path = "/api/v1/gateway/{gateway_id}",

@@ -90,7 +90,7 @@ async fn settings_info(
     Ok(EnterpriseSettingsInfo::new(settings, group_policies))
 }
 
-/// Get enterprise settings.
+/// Get enterprise settings
 ///
 /// Available to every authenticated user.
 #[utoipa::path(
@@ -98,7 +98,15 @@ async fn settings_info(
     path = "/api/v1/settings_enterprise",
     tag = "settings",
     responses(
-        (status = 200, description = "Enterprise settings.", body = Object),
+        (status = 200, description = "Enterprise settings.", body = Object, example = json!({
+            "admin_device_management": false,
+            "client_traffic_policy": "none",
+            "only_client_activation": false,
+            "disable_tunnels": false,
+            "display_download_step": true,
+            "display_password_reset": true,
+            "group_client_traffic_policies": {"none": [], "disable_all_traffic": [2], "force_all_traffic": []}
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to get enterprise settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
@@ -126,7 +134,7 @@ pub async fn get_enterprise_settings(
     ))
 }
 
-/// Update selected enterprise settings.
+/// Update selected enterprise settings
 #[utoipa::path(
     patch,
     path = "/api/v1/settings_enterprise",

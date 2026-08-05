@@ -24,7 +24,7 @@ pub struct ProxyUpdateData {
     pub enabled: bool,
 }
 
-/// List edge instances.
+/// List edge instances
 #[utoipa::path(
     get,
     path = "/api/v1/proxy",
@@ -53,7 +53,7 @@ pub async fn proxy_list(
     Ok(ApiResponse::json(proxies, StatusCode::OK))
 }
 
-/// Get an edge instance.
+/// Get an edge instance
 #[utoipa::path(
     get,
     path = "/api/v1/proxy/{proxy_id}",
@@ -96,7 +96,7 @@ pub(crate) async fn proxy_details(
     Ok(response)
 }
 
-/// Rename an edge instance, or enable or disable it.
+/// Rename an edge instance, or enable or disable it
 #[utoipa::path(
     put,
     path = "/api/v1/proxy/{proxy_id}",
@@ -177,7 +177,7 @@ pub(crate) async fn update_proxy(
     Ok(ApiResponse::json(proxy, StatusCode::OK))
 }
 
-/// Delete an edge instance.
+/// Delete an edge instance
 #[utoipa::path(
     delete,
     path = "/api/v1/proxy/{proxy_id}",

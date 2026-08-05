@@ -643,7 +643,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
     Ok(())
 }
 
-/// Create a device posture check policy.
+/// Create a device posture check policy
 #[utoipa::path(
     post,
     path = "/api/v1/device-posture",
@@ -722,6 +722,7 @@ pub async fn create_device_posture(
     Ok(ApiResponse::json(response, StatusCode::CREATED))
 }
 
+/// List available posture check versions
 #[utoipa::path(
     get,
     path = "/api/v1/device-posture/versions",
@@ -736,7 +737,6 @@ pub async fn create_device_posture(
         ("api_token" = [])
     )
 )]
-/// List available posture check versions.
 pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo) -> ApiResult {
     debug!(
         "User {} fetching device posture version metadata",
@@ -749,7 +749,7 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
     ))
 }
 
-/// List device posture check policies.
+/// List device posture check policies
 #[utoipa::path(
     get,
     path = "/api/v1/device-posture",
@@ -826,7 +826,7 @@ pub async fn list_device_postures(
     ))
 }
 
-/// Get a device posture check policy.
+/// Get a device posture check policy
 #[utoipa::path(
     get,
     path = "/api/v1/device-posture/{id}",
@@ -870,7 +870,7 @@ pub async fn get_device_posture(
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
-/// Update a device posture check policy.
+/// Update a device posture check policy
 #[utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}",
@@ -964,7 +964,7 @@ pub async fn update_device_posture(
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
-/// Delete a device posture check policy.
+/// Delete a device posture check policy
 #[utoipa::path(
     delete,
     path = "/api/v1/device-posture/{id}",
@@ -1025,7 +1025,7 @@ pub async fn delete_device_posture(
     Ok(ApiResponse::default())
 }
 
-/// Duplicate a device posture check policy.
+/// Duplicate a device posture check policy
 ///
 /// Creates a copy of the specified policy with the name `"{original} (copy)"`.
 #[utoipa::path(
@@ -1126,7 +1126,7 @@ pub struct AssignLocationsData {
     pub locations: Vec<Id>,
 }
 
-/// Assign device posture check policies to a location.
+/// Assign device posture check policies to a location
 ///
 /// Replaces the current assignment.
 #[utoipa::path(
@@ -1198,7 +1198,7 @@ pub async fn set_postures_for_location(
     Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
-/// Assign locations to a device posture check policy.
+/// Assign locations to a device posture check policy
 ///
 /// Replaces the current assignment.
 #[utoipa::path(

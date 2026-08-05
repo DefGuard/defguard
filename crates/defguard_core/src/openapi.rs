@@ -30,7 +30,6 @@ use super::{
         user::{self, UserDetails},
         webhooks, wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
-        yubikey,
     },
 };
 
@@ -44,42 +43,11 @@ use super::{
 REST API of defguard Core.
 
 Authentication is done either with the session cookie obtained from `POST /api/v1/auth`,
-or with an API token passed as `Authorization: Bearer <token>`. 
+or with an API token passed as `Authorization: Bearer <token>`.
 
 API tokens are created by an admin with `POST /api/v1/user/{username}/api_token` and their value is returned only once, in the response to that request.
 
-Errors are returned as a JSON object with a `msg` field and, for some of them, a machine-readable `code` field. The possible codes are:
-
-- `network_full`: the location has no free IP address left for another device,
-
-- `user_groups_not_synced`: the groups of an externally authenticated user are not synced yet,
-
-- `license_limit_reached`: the user limit of the license has been reached,
-
-- `cert_missing_cert_pem`: `cert_pem` is missing,
-
-- `cert_missing_key_pem`: `key_pem` is missing,
-
-- `cert_invalid_cert_or_key`: the certificate or the private key is not valid PEM,
-
-- `cert_invalid_validity_period`: the validity period of the certificate cannot be used,
-
-- `cert_expired`: the certificate has expired,
-
-- `cert_not_yet_valid`: the certificate is not valid yet,
-
-- `cert_parse_error`: the certificate could not be parsed,
-
-- `smtp_not_configured`: SMTP settings are empty,
-
-- `mail_send_failed`: the message could not be sent.
-
-Responses that are not documented per operation:
-- `408` when the request exceeds the server request timeout,
-
-- `413` when the request body exceeds the server body size limit,
-
-- `429` when the per-IP rate limit is exceeded.",
+Errors are returned as a JSON object with a `msg` field and, for some of them, a machine-readable `code` field.",
     ),
     paths(
         // system
@@ -129,8 +97,6 @@ Responses that are not documented per operation:
         user::start_remote_desktop_configuration,
         user::start_enrollment,
         auth::totp_disable,
-        yubikey::delete_yubikey,
-        yubikey::rename_yubikey,
         // group
         group::list_groups,
         group::create_group,

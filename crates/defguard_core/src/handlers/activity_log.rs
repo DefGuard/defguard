@@ -115,7 +115,7 @@ pub struct ApiActivityLogEvent {
     pub description: Option<String>,
 }
 
-/// List activity log events.
+/// List activity log events
 ///
 /// Supports filtering by time range, module, event type and username, plus a free-text search
 /// over event descriptions.

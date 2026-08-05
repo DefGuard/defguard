@@ -1,0 +1,44 @@
+name: Publish OpenAPI spec to GitBook
+
+on:
+  push:
+    branches:
+      - release/2.1
+      - update-swagger
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish-openapi:
+    runs-on: self-hosted
+
+    env:
+      CARGO_TERM_COLOR: always
+      SQLX_OFFLINE: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          submodules: recursive
+
+      - name: Generate openapi.json
+        run: cargo run --locked -p defguard_core --example openapi
+
+      - name: Install GitBook CLI
+        run: npm install -g @gitbook/cli
+
+      - name: Publish spec to GitBook
+        env:
+          GITBOOK_TOKEN: ${{ secrets.GITBOOK_TOKEN }}
+        run: |
+          gitbook openapi publish \
+            --spec defguard-2-1 \
+            --organization Z3mGSAbEj9iLdZ7cNFlL \
+            openapi.json

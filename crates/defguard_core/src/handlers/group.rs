@@ -38,12 +38,12 @@ pub(crate) struct BulkAssignToGroupsRequest {
     users: Vec<Id>,
 }
 
-/// Assign multiple users to multiple groups.
+/// Assign multiple users to multiple groups
 #[utoipa::path(
     post,
     path = "/api/v1/groups-assign",
     tag = "group",
-    request_body = BulkAssignToGroupsRequest,
+    request_body(content = BulkAssignToGroupsRequest, example = json!({"groups": ["admin", "developers"], "users": [1, 4, 6, 23, 35]})),
     responses(
         (status = 200, description = "Users assigned to the groups."),
         (status = 400, description = "The request contains unknown users or groups.", body = ApiErrorResponse, example = json!({"msg": "Request contained users that doesn't exists in db."})),
@@ -131,7 +131,7 @@ pub(crate) async fn bulk_assign_to_groups(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-/// List groups with their details.
+/// List groups with their details
 #[utoipa::path(
     get,
     path = "/api/v1/group-info",
@@ -178,7 +178,7 @@ pub(crate) async fn list_groups_info(
     Ok(ApiResponse::json(q_result, StatusCode::OK))
 }
 
-/// List group names.
+/// List group names
 ///
 /// Returns group names only. Use `GET /api/v1/group-info` for full details, including
 /// members and locations.
@@ -227,7 +227,7 @@ pub(crate) async fn list_groups(
     Ok(PaginatedApiResponse::new(groups, pagination, count as u32))
 }
 
-/// Get a group.
+/// Get a group
 #[utoipa::path(
     get,
     path = "/api/v1/group/{id}",
@@ -280,7 +280,7 @@ pub(crate) async fn get_group(
     }
 }
 
-/// Create a group.
+/// Create a group
 ///
 /// Set `is_admin` to grant admin privileges to the group's members.
 #[utoipa::path(
@@ -367,7 +367,7 @@ pub(crate) async fn create_group(
     Ok(ApiResponse::json(group_info, StatusCode::CREATED))
 }
 
-/// Update a group.
+/// Update a group
 ///
 /// Renames the group and replaces its members. Set `is_admin` to grant admin privileges
 /// to the group's members.
@@ -381,7 +381,7 @@ pub(crate) async fn create_group(
     request_body = EditGroupInfo,
     responses(
         (status = 200, description = "Group updated."),
-        (status = 400, description = "Cannot remove admin permissions from the last admin group.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "Cannot remove admin permissions from the last admin group."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or group not found.", body = ApiErrorResponse, example = json!({"msg": "Group <id> not found"})),
@@ -529,7 +529,7 @@ pub(crate) async fn modify_group(
     Ok(ApiResponse::default())
 }
 
-/// Delete a group.
+/// Delete a group
 ///
 /// Removes the group and the group memberships of its members.
 #[utoipa::path(
@@ -541,7 +541,7 @@ pub(crate) async fn modify_group(
     ),
     responses(
         (status = 200, description = "Group deleted."),
-        (status = 400, description = "The admin group cannot be deleted.", body = ApiErrorResponse, example = json!({})),
+        (status = 400, description = "The admin group cannot be deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Group not found.", body = ApiErrorResponse, example = json!({"msg": "Failed to find group <id>"})),
@@ -606,7 +606,7 @@ pub(crate) async fn delete_group(
     }
 }
 
-/// Add a member to a group.
+/// Add a member to a group
 #[utoipa::path(
     post,
     path = "/api/v1/group/{id}",
@@ -674,7 +674,7 @@ pub(crate) async fn add_group_member(
     }
 }
 
-/// Remove a member from a group.
+/// Remove a member from a group
 #[utoipa::path(
     delete,
     path = "/api/v1/group/{id}/user/{username}",
@@ -684,7 +684,7 @@ pub(crate) async fn add_group_member(
         ("username" = String, description = "Name of the user.")
     ),
     responses(
-        (status = 200, description = "Member removed from the group.", body = Object, example = json!({})),
+        (status = 200, description = "Member removed from the group."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or group not found.", body = ApiErrorResponse, example = json!({"msg": "Group <id> not found"})),

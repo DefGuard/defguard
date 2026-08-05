@@ -124,7 +124,7 @@ pub async fn create_session(
     }
 }
 
-/// Authenticate a user.
+/// Authenticate a user
 #[utoipa::path(
     post,
     path = "/api/v1/auth",
@@ -315,7 +315,7 @@ pub async fn authenticate(
     }
 }
 
-/// Log out and clear the session cookie.
+/// Log out and clear the session cookie
 #[utoipa::path(
     post,
     path = "/api/v1/auth/logout",
@@ -368,7 +368,7 @@ pub async fn logout(
     Ok((cookies, private_cookies, ApiResponse::default()))
 }
 
-/// Enable MFA.
+/// Enable MFA
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -410,7 +410,7 @@ pub async fn mfa_enable(
     }
 }
 
-/// Disable MFA.
+/// Disable MFA
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -443,7 +443,7 @@ pub async fn mfa_disable(
     Ok(ApiResponse::default())
 }
 
-/// Disable MFA of a user.
+/// Disable MFA of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/mfa",
@@ -480,7 +480,7 @@ pub async fn disable_user_mfa(
     Ok(ApiResponse::default())
 }
 
-/// Start WebAuthn registration.
+/// Start WebAuthn registration
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -488,7 +488,14 @@ pub async fn disable_user_mfa(
     path = "/api/v1/auth/webauthn/init",
     tag = "auth",
     responses(
-        (status = 200, description = "WebAuthn registration challenge.", body = Object),
+        (status = 200, description = "WebAuthn registration challenge.", body = Object, example = json!({
+            "publicKey": {
+                "rp": {"name": "defguard", "id": "vpn.example.com"},
+                "user": {"id": "TDNkX2FkbWlu", "name": "admin", "displayName": "admin"},
+                "challenge": "y5EiUNc9wZ0mGvJ0mQdKZg",
+                "pubKeyCredParams": [{"type": "public-key", "alg": -7}]
+            }
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to start WebAuthn registration.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
@@ -530,7 +537,7 @@ pub async fn webauthn_init(
     }
 }
 
-/// Finish WebAuthn registration.
+/// Finish WebAuthn registration
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -620,7 +627,7 @@ pub async fn webauthn_finish(
     Ok(ApiResponse::json(recovery_codes, StatusCode::OK))
 }
 
-/// Start WebAuthn authentication.
+/// Start WebAuthn authentication
 ///
 /// Returns the challenge for the session started by `POST /api/v1/auth`. Send the answer to
 /// `POST /api/v1/auth/webauthn`.
@@ -629,7 +636,14 @@ pub async fn webauthn_finish(
     path = "/api/v1/auth/webauthn/start",
     tag = "auth",
     responses(
-        (status = 200, description = "WebAuthn authentication challenge.", body = Object),
+        (status = 200, description = "WebAuthn authentication challenge.", body = Object, example = json!({
+            "publicKey": {
+                "challenge": "y5EiUNc9wZ0mGvJ0mQdKZg",
+                "rpId": "vpn.example.com",
+                "allowCredentials": [{"type": "public-key", "id": "AbCdEf0123456789"}],
+                "userVerification": "preferred"
+            }
+        })),
         (status = 400, description = "No security key is registered for this user.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to start WebAuthn authentication.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -657,7 +671,7 @@ pub async fn webauthn_start(
     }
 }
 
-/// Finish WebAuthn authentication.
+/// Finish WebAuthn authentication
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
 #[utoipa::path(
@@ -782,7 +796,7 @@ pub async fn webauthn_end(
     Err(WebError::Http(StatusCode::BAD_REQUEST))
 }
 
-/// Generate a new TOTP secret.
+/// Generate a new TOTP secret
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -808,7 +822,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
     Ok(ApiResponse::json(AuthTotp::new(secret), StatusCode::OK))
 }
 
-/// Enable TOTP.
+/// Enable TOTP
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -864,7 +878,7 @@ pub async fn totp_enable(
     }
 }
 
-/// Disable TOTP of a user.
+/// Disable TOTP of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/totp",
@@ -902,7 +916,7 @@ pub async fn totp_disable(
     Ok(ApiResponse::default())
 }
 
-/// Verify a TOTP code.
+/// Verify a TOTP code
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
 #[utoipa::path(
@@ -1016,7 +1030,7 @@ pub async fn totp_code(
     }
 }
 
-/// Start email MFA setup.
+/// Start email MFA setup
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -1066,7 +1080,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     Ok(ApiResponse::default())
 }
 
-/// Enable email MFA.
+/// Enable email MFA
 ///
 /// Applies to the user of the current session.
 #[utoipa::path(
@@ -1121,7 +1135,7 @@ pub async fn email_mfa_enable(
     }
 }
 
-/// Disable email MFA of a user.
+/// Disable email MFA of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/email",
@@ -1159,7 +1173,7 @@ pub async fn email_mfa_disable(
     Ok(ApiResponse::default())
 }
 
-/// Send an email MFA code.
+/// Send an email MFA code
 ///
 /// Sends the code to the user of the session started by `POST /api/v1/auth`.
 #[utoipa::path(
@@ -1206,7 +1220,7 @@ pub async fn request_email_mfa_code(
     }
 }
 
-/// Verify an email MFA code.
+/// Verify an email MFA code
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
 #[utoipa::path(
@@ -1321,7 +1335,7 @@ pub async fn email_mfa_code(
     }
 }
 
-/// Authenticate with a recovery code.
+/// Authenticate with a recovery code
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
 #[utoipa::path(

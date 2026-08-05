@@ -13,15 +13,15 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
-/// Create a webhook.
+/// Create a webhook
 #[utoipa::path(
     post,
     path = "/api/v1/webhook",
     tag = "webhook",
     request_body = WebHookData,
     responses(
-        (status = 201, description = "Webhook created.", body = Object, example = json!({})),
-        (status = 400, description = "Unable to save the webhook.", body = Object, example = json!({})),
+        (status = 201, description = "Webhook created."),
+        (status = 400, description = "Unable to save the webhook."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to create webhook.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -57,7 +57,7 @@ pub async fn add_webhook(
 }
 
 // TODO: paginate
-/// List webhooks.
+/// List webhooks
 #[utoipa::path(
     get,
     path = "/api/v1/webhook",
@@ -79,7 +79,7 @@ pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) 
     Ok(ApiResponse::json(webhooks, StatusCode::OK))
 }
 
-/// Get a webhook.
+/// Get a webhook
 #[utoipa::path(
     get,
     path = "/api/v1/webhook/{id}",
@@ -91,7 +91,7 @@ pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) 
         (status = 200, description = "Webhook details.", body = WebHook),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Webhook not found.", body = Object, example = json!({})),
+        (status = 404, description = "Webhook not found."),
         (status = 500, description = "Unable to get webhook.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
@@ -110,7 +110,7 @@ pub async fn get_webhook(
     }
 }
 
-/// Update a webhook.
+/// Update a webhook
 #[utoipa::path(
     put,
     path = "/api/v1/webhook/{id}",
@@ -120,10 +120,10 @@ pub async fn get_webhook(
         ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
-        (status = 200, description = "Webhook updated.", body = Object, example = json!({})),
+        (status = 200, description = "Webhook updated."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Webhook not found.", body = Object, example = json!({})),
+        (status = 404, description = "Webhook not found."),
         (status = 500, description = "Unable to update webhook.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
@@ -169,7 +169,7 @@ pub async fn change_webhook(
     Ok(ApiResponse::with_status(status))
 }
 
-/// Delete a webhook.
+/// Delete a webhook
 #[utoipa::path(
     delete,
     path = "/api/v1/webhook/{id}",
@@ -178,10 +178,10 @@ pub async fn change_webhook(
         ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
-        (status = 200, description = "Webhook deleted.", body = Object, example = json!({})),
+        (status = 200, description = "Webhook deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Webhook not found.", body = Object, example = json!({})),
+        (status = 404, description = "Webhook not found."),
         (status = 500, description = "Unable to delete webhook.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(
@@ -217,7 +217,7 @@ pub struct ChangeStateData {
     pub enabled: bool,
 }
 
-/// Enable or disable a webhook.
+/// Enable or disable a webhook
 #[utoipa::path(
     post,
     path = "/api/v1/webhook/{id}",
@@ -227,10 +227,10 @@ pub struct ChangeStateData {
         ("id" = i64, Path, description = "ID of the webhook."),
     ),
     responses(
-        (status = 200, description = "Webhook state changed.", body = Object, example = json!({})),
+        (status = 200, description = "Webhook state changed."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Webhook not found.", body = Object, example = json!({})),
+        (status = 404, description = "Webhook not found."),
         (status = 500, description = "Unable to change webhook state.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     security(

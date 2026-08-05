@@ -25,7 +25,7 @@ pub struct AddApiTokenData {
     pub name: String,
 }
 
-/// Create an API token for a user.
+/// Create an API token for a user
 ///
 /// The token value is returned only in this response and cannot be retrieved later.
 #[utoipa::path(
@@ -119,7 +119,7 @@ pub async fn add_api_token(
 }
 
 // GET on user, returns ApiTokenInfo vector in JSON
-/// List API tokens of a user.
+/// List API tokens of a user
 ///
 /// Token values are never returned, only their metadata.
 #[utoipa::path(
@@ -158,7 +158,7 @@ pub async fn fetch_api_tokens(
     Ok(ApiResponse::json(tokens_info, StatusCode::OK))
 }
 
-/// Delete an API token of a user.
+/// Delete an API token of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/api_token/{token_id}",
@@ -168,7 +168,7 @@ pub async fn fetch_api_tokens(
         ("token_id" = i64, Path, description = "ID of the API token."),
     ),
     responses(
-        (status = 200, description = "API token deleted.", body = Object, example = json!({})),
+        (status = 200, description = "API token deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 400, description = "Token not found.", body = ApiErrorResponse, example = json!({"msg": "Key not found"})),
@@ -221,7 +221,7 @@ pub struct RenameRequest {
     pub name: String,
 }
 
-/// Rename an API token of a user.
+/// Rename an API token of a user
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/api_token/{token_id}/rename",
@@ -232,7 +232,7 @@ pub struct RenameRequest {
         ("token_id" = i64, Path, description = "ID of the API token."),
     ),
     responses(
-        (status = 200, description = "API token renamed.", body = Object, example = json!({})),
+        (status = 200, description = "API token renamed."),
         (status = 400, description = "Invalid name.", body = ApiErrorResponse, example = json!({"msg": "Invalid name"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

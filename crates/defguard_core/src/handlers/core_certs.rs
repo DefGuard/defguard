@@ -52,14 +52,16 @@ fn reload_core_web_server(appstate: &AppState) {
     }
 }
 
-/// Set up the certificate for the internal (core) URL.
+/// Set up the certificate for the internal (core) URL
 #[utoipa::path(
     post,
     path = "/api/v1/core/cert/internal_url_settings",
     tag = "certificates",
     request_body = InternalUrlSettingsConfig,
     responses(
-        (status = 201, description = "Internal URL certificate settings applied.", body = Object),
+        (status = 201, description = "Internal URL certificate settings applied.", body = Object, example = json!({
+            "cert_info": {"common_name": "vpn.example.com", "valid_for_days": 365, "not_before": "2026-08-04T10:00:00", "not_after": "2027-08-04T10:00:00"}
+        })),
         (status = 400, description = "Invalid certificate settings.", body = ApiErrorResponse, example = json!({"msg": "cert_pem is required for own_cert", "code": "cert_missing_cert_pem"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -92,14 +94,16 @@ pub(crate) async fn set_internal_url_settings(
     ))
 }
 
-/// Set up the certificate for the external (edge) URL.
+/// Set up the certificate for the external (edge) URL
 #[utoipa::path(
     post,
     path = "/api/v1/proxy/cert/external_url_settings",
     tag = "certificates",
     request_body = ExternalUrlSettingsConfig,
     responses(
-        (status = 201, description = "External URL certificate settings applied.", body = Object),
+        (status = 201, description = "External URL certificate settings applied.", body = Object, example = json!({
+            "cert_info": {"common_name": "vpn.example.com", "valid_for_days": 90, "not_before": "2026-08-04T10:00:00", "not_after": "2026-11-02T10:00:00"}
+        })),
         (status = 400, description = "Invalid certificate settings.", body = ApiErrorResponse, example = json!({"msg": "cert_pem is required for own_cert", "code": "cert_missing_cert_pem"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -148,13 +152,21 @@ pub(crate) async fn set_external_url_settings(
     ))
 }
 
-/// Get the certificate of the internal certificate authority.
+/// Get the certificate of the internal certificate authority
 #[utoipa::path(
     get,
     path = "/api/v1/core/cert/ca",
     tag = "certificates",
     responses(
-        (status = 200, description = "CA certificate in PEM format.", body = Object),
+        (status = 200, description = "CA certificate in PEM format.", body = Object, example = json!({
+            "ca_cert_pem": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n",
+            "subject_common_name": "defguard CA",
+            "not_before": "2026-08-04T10:00:00",
+            "not_after": "2036-08-01T10:00:00",
+            "valid_for_days": 3650,
+            "ca_expiry": "2036-08-01T10:00:00",
+            "subject_email": null
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "The internal CA is not configured.", body = ApiErrorResponse, example = json!({"msg": "CA certificate not found"})),
@@ -198,13 +210,20 @@ pub(crate) async fn get_ca(
     }
 }
 
-/// Get the certificates currently used by core and edge.
+/// Get the certificates currently used by core and edge
 #[utoipa::path(
     get,
     path = "/api/v1/core/cert/certs",
     tag = "certificates",
     responses(
-        (status = 200, description = "Certificates used by core and edge.", body = Object),
+        (status = 200, description = "Certificates used by core and edge.", body = Object, example = json!({
+            "core_http_cert_source": "SelfSigned",
+            "core_http_cert_expiry": "2027-08-04T10:00:00",
+            "core_http_cert_domain": "vpn.example.com",
+            "proxy_http_cert_source": "LetsEncrypt",
+            "proxy_http_cert_expiry": "2026-11-02T10:00:00",
+            "proxy_http_cert_domain": "vpn.example.com"
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get certificates.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))

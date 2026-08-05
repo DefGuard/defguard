@@ -52,14 +52,14 @@ pub struct AddProviderData {
     pub username_handling: OpenIdUsernameHandling,
 }
 
-/// Create an OpenID provider.
+/// Create an OpenID provider
 #[utoipa::path(
     post,
     path = "/api/v1/openid/provider",
     tag = "OpenID",
     request_body = AddProviderData,
     responses(
-        (status = 201, description = "OpenID provider created.", body = Object, example = json!({})),
+        (status = 201, description = "OpenID provider created."),
         (status = 400, description = "Invalid provider configuration.", body = ApiErrorResponse, example = json!({"msg": "Failed to parse Google service account key"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -216,7 +216,7 @@ pub(crate) async fn add_openid_provider(
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
-/// Get an OpenID provider.
+/// Get an OpenID provider
 #[utoipa::path(
     get,
     path = "/api/v1/openid/provider/{name}",
@@ -261,16 +261,16 @@ pub(crate) async fn get_openid_provider(
     }
 }
 
-/// Delete an OpenID provider.
+/// Delete an OpenID provider
 #[utoipa::path(
     delete,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
     responses(
-        (status = 200, description = "OpenID provider deleted.", body = Object, example = json!({})),
+        (status = 200, description = "OpenID provider deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "OpenID provider not found.", body = ApiErrorResponse, example = json!({"msg": "Provider not found"})),
+        (status = 404, description = "OpenID provider not found."),
         (status = 500, description = "Unable to delete OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     params(
@@ -330,18 +330,18 @@ pub(crate) async fn delete_openid_provider(
     }
 }
 
-/// Update an OpenID provider.
+/// Update an OpenID provider
 #[utoipa::path(
     put,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
     request_body = AddProviderData,
     responses(
-        (status = 200, description = "OpenID provider updated.", body = Object, example = json!({})),
+        (status = 200, description = "OpenID provider updated."),
         (status = 400, description = "Invalid provider configuration.", body = ApiErrorResponse, example = json!({"msg": "Failed to parse Google service account key"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "OpenID provider not found.", body = ApiErrorResponse, example = json!({"msg": "Provider not found"})),
+        (status = 404, description = "OpenID provider not found."),
         (status = 500, description = "Unable to update OpenID provider.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
     params(
@@ -479,13 +479,13 @@ pub(crate) async fn modify_openid_provider(
     }
 }
 
-/// List OpenID providers.
+/// List OpenID providers
 #[utoipa::path(
     get,
     path = "/api/v1/openid/provider",
     tag = "OpenID",
     responses(
-        (status = 200, description = "All OpenID providers."),
+        (status = 200, description = "All OpenID providers.", body = [Object], example = json!([{"id": 1, "name": "google", "base_url": "https://accounts.google.com", "client_id": "client-id"}])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list OpenID providers.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -503,7 +503,7 @@ pub(crate) async fn list_openid_providers(
     Ok(ApiResponse::json(providers, StatusCode::OK))
 }
 
-/// Get the current OpenID provider.
+/// Get the current OpenID provider
 #[utoipa::path(
     get,
     path = "/api/v1/openid/provider/current",
@@ -544,14 +544,13 @@ pub(crate) async fn get_current_openid_provider(
     }
 }
 
-/// Test the directory sync connection of the current OpenID provider.
+/// Test the directory sync connection of the current OpenID provider
 #[utoipa::path(
     get,
     path = "/api/v1/test_directory_sync",
     tag = "OpenID",
     responses(
-        (status = 200, description = "Directory sync connection established.", body = Object, example = json!({})),
-        (status = 400, description = "Unable to connect to the directory.", body = ApiErrorResponse, example = json!({"msg": "Failed to connect"})),
+        (status = 200, description = "Result of the connection test.", body = Object, example = json!({"message": "Connection successful", "success": true})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to test directory sync connection.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),

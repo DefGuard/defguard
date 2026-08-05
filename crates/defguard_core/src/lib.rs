@@ -250,13 +250,13 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 pub mod openapi;
 
-/// Check instance health.
+/// Check instance health
 #[utoipa::path(
     get,
     path = "/api/v1/health",
     tag = "system",
     responses(
-        (status = 200, description = "Core is running.", body = String),
+        (status = 200, description = "Core is running.", body = String, example = json!("alive")),
     )
 )]
 pub async fn health_check() -> &'static str {

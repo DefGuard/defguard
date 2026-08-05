@@ -84,7 +84,7 @@ pub struct SshKeysRequestParams {
     group: Option<String>,
 }
 
-/// Get SSH authorized keys in the `authorized_keys` file format.
+/// Get SSH authorized keys in the `authorized_keys` file format
 ///
 /// Meant to be used as an `AuthorizedKeysCommand` in `sshd`. Filter the users with the
 /// `username` or `group` query parameter.
@@ -97,7 +97,7 @@ pub struct SshKeysRequestParams {
         ("group" = Option<String>, Query, description = "Return the keys of all members of this group."),
     ),
     responses(
-        (status = 200, description = "Authorized keys, one per line.", body = String),
+        (status = 200, description = "Authorized keys, one per line.", body = String, example = json!("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ7Gd0DdLZQwQEwXQyLcVQ0hVBHnJcnGRfPtVJHqO1zQ jdoe@example.com")),
         (status = 400, description = "Neither username nor group was provided.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
         (status = 500, description = "Unable to get authorized keys.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
@@ -166,7 +166,7 @@ pub struct AddAuthenticationKeyData {
     key_type: AuthenticationKeyType,
 }
 
-/// Add an SSH or GPG authentication key to a user.
+/// Add an SSH or GPG authentication key to a user
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/auth_key",
@@ -176,7 +176,7 @@ pub struct AddAuthenticationKeyData {
         ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 201, description = "Authentication key added.", body = Object),
+        (status = 201, description = "Authentication key added."),
         (status = 400, description = "Invalid key.", body = ApiErrorResponse, example = json!({"msg": "Invalid key"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -254,7 +254,7 @@ pub async fn add_authentication_key(
 }
 
 // GET on user, returns AuthenticationKeyInfo vector in JSON
-/// List SSH and GPG authentication keys of a user.
+/// List SSH and GPG authentication keys of a user
 #[utoipa::path(
     get,
     path = "/api/v1/user/{username}/auth_key",
@@ -263,7 +263,16 @@ pub async fn add_authentication_key(
         ("username" = String, Path, description = "Name of the user."),
     ),
     responses(
-        (status = 200, description = "All authentication keys of the user.", body = Object),
+        (status = 200, description = "All authentication keys of the user.", body = [Object], example = json!([{
+            "id": 1,
+            "name": "laptop",
+            "key_type": "ssh",
+            "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...",
+            "user_id": 1,
+            "yubikey_serial": null,
+            "yubikey_id": null,
+            "yubikey_name": null
+        }])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
@@ -285,7 +294,7 @@ pub async fn fetch_authentication_keys(
     Ok(ApiResponse::json(keys_info, StatusCode::OK))
 }
 
-/// Delete an authentication key of a user.
+/// Delete an authentication key of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/auth_key/{key_id}",
@@ -295,7 +304,7 @@ pub async fn fetch_authentication_keys(
         ("key_id" = i64, Path, description = "ID of the authentication key."),
     ),
     responses(
-        (status = 200, description = "Authentication key deleted.", body = Object, example = json!({})),
+        (status = 200, description = "Authentication key deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 400, description = "Key not found.", body = ApiErrorResponse, example = json!({"msg": "Key not found"})),
@@ -340,7 +349,7 @@ pub struct RenameRequest {
     name: String,
 }
 
-/// Rename an authentication key of a user.
+/// Rename an authentication key of a user
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/auth_key/{key_id}/rename",
@@ -351,7 +360,7 @@ pub struct RenameRequest {
         ("key_id" = i64, Path, description = "ID of the authentication key."),
     ),
     responses(
-        (status = 200, description = "Authentication key renamed.", body = Object, example = json!({})),
+        (status = 200, description = "Authentication key renamed."),
         (status = 400, description = "The key belongs to a YubiKey.", body = ApiErrorResponse, example = json!({"msg": "Rename yubikey instead."})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),

@@ -13,15 +13,20 @@ struct SessionInfoResponse {
     username: Option<String>,
 }
 
-/// Get information about the current session.
+/// Get information about the current session
 ///
-/// Always returns 200; the payload tells whether a valid session is present.
+/// The payload tells whether a valid session is present.
 #[utoipa::path(
     get,
     path = "/api/v1/session-info",
     tag = "system",
     responses(
-        (status = 200, description = "Session information.", body = Object),
+        (status = 200, description = "Session information.", body = Object, example = json!({
+            "authorized": true,
+            "is_admin": true,
+            "active_wizard": null,
+            "username": "admin"
+        })),
         (status = 500, description = "Unable to get session information.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]

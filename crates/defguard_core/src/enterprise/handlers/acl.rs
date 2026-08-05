@@ -251,7 +251,7 @@ pub struct AclStateCount {
     pub pending: i64,
 }
 
-/// List ACL rules.
+/// List ACL rules
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule",
@@ -308,7 +308,7 @@ pub(crate) async fn list_acl_rules(
     ))
 }
 
-/// Count ACL rules by state.
+/// Count ACL rules by state
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule/count",
@@ -342,7 +342,7 @@ pub(crate) async fn count_acl_rules(
     Ok(ApiResponse::json(counts, StatusCode::OK))
 }
 
-/// Get an ACL rule.
+/// Get an ACL rule
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule/{id}",
@@ -388,7 +388,7 @@ pub(crate) async fn get_acl_rule(
     Ok(ApiResponse::new(rule, status))
 }
 
-/// Create an ACL rule.
+/// Create an ACL rule
 #[utoipa::path(
     post,
     path = "/api/v1/acl/rule",
@@ -432,7 +432,7 @@ pub(crate) async fn create_acl_rule(
     Ok(ApiResponse::json(rule, StatusCode::CREATED))
 }
 
-/// Update an ACL rule.
+/// Update an ACL rule
 #[utoipa::path(
     put,
     path = "/api/v1/acl/rule/{id}",
@@ -478,7 +478,7 @@ pub(crate) async fn update_acl_rule(
     Ok(ApiResponse::json(rule, StatusCode::OK))
 }
 
-/// Delete an ACL rule.
+/// Delete an ACL rule
 #[utoipa::path(
     delete,
     path = "/api/v1/acl/rule/{id}",
@@ -516,7 +516,7 @@ pub(crate) async fn delete_acl_rule(
     Ok(ApiResponse::default())
 }
 
-/// Apply ACL rules.
+/// Apply ACL rules
 #[utoipa::path(
     put,
     path = "/api/v1/acl/rule/apply",

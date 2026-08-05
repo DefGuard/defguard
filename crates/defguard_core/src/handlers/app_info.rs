@@ -29,13 +29,19 @@ pub struct AppInfo {
     external_openid_enabled: bool,
 }
 
-/// Get information about this defguard instance.
+/// Get information about this defguard instance
 #[utoipa::path(
     get,
     path = "/api/v1/info",
     tag = "system",
     responses(
-        (status = 200, description = "Instance information: enabled modules, version, license state.", body = Object),
+        (status = 200, description = "Instance information: enabled modules, version, license state.", body = Object, example = json!({
+            "version": "2.1.0",
+            "network_present": true,
+            "smtp_enabled": true,
+            "ldap_info": {"enabled": false, "ad": false},
+            "external_openid_enabled": false
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to get instance information.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),

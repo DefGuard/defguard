@@ -93,13 +93,15 @@ impl From<UserClaims> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-/// Get the JSON Web Key Set used to verify ID token signatures.
+/// Get the JSON Web Key Set used to verify ID token signatures
 #[utoipa::path(
     get,
     path = "/api/v1/oauth/discovery/keys",
     tag = "OAuth2",
     responses(
-        (status = 200, description = "JSON Web Key Set.", body = Object),
+        (status = 200, description = "JSON Web Key Set.", body = Object, example = json!({
+            "keys": [{"kty": "RSA", "use": "sig", "alg": "RS256", "kid": "defguard", "n": "0vx7ago...", "e": "AQAB"}]
+        })),
         (status = 500, description = "Unable to build key set.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
@@ -468,7 +470,7 @@ fn login_redirect(
     Ok(redirect_to("/auth/login", private_cookies.add(cookie)))
 }
 
-/// Start the OAuth2 authorization flow.
+/// Start the OAuth2 authorization flow
 ///
 /// Redirects to the login or consent page when the user is not authenticated or has not
 /// yet approved the client. Implements the
@@ -672,7 +674,7 @@ async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims,
     })
 }
 
-/// Finish the OAuth2 authorization flow after user consent.
+/// Finish the OAuth2 authorization flow after user consent
 ///
 /// Called by the consent screen once the user allows or denies the request. On approval it
 /// redirects back to the client with an authorization code.
@@ -952,7 +954,7 @@ impl TokenRequest {
     }
 }
 
-/// Exchange an authorization code or a refresh token for tokens.
+/// Exchange an authorization code or a refresh token for tokens
 ///
 /// Accepts `application/x-www-form-urlencoded` and supports the `authorization_code` and
 /// `refresh_token` grants. The client authenticates with HTTP Basic auth or with
@@ -968,9 +970,14 @@ impl TokenRequest {
         description = "`grant_type`, `code` or `refresh_token`, `redirect_uri`, `code_verifier`, and optionally `client_id`/`client_secret`."
     ),
     responses(
-        (status = 200, description = "Access token, and an ID token when the `openid` scope was requested.", body = Object),
-        (status = 400, description = "Invalid grant or invalid request.", body = ApiErrorResponse, example = json!({"error": "invalid_grant"})),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 200, description = "Access token, and an ID token when the `openid` scope was requested.", body = Object, example = json!({
+            "access_token": "hR4pV9mK2sT7dQ1xL0nB",
+            "token_type": "bearer",
+            "refresh_token": "gY6wC3jN8bF5rZ2tM7vK",
+            "id_token": "eyJhbGciOiJSUzI1NiJ9..."
+        })),
+        (status = 400, description = "Invalid grant or invalid request.", body = Object, example = json!({"error": "invalid_grant"})),
+        (status = 401, description = "Invalid client credentials.", body = ApiErrorResponse, example = json!({"msg": "Invalid credentials"})),
         (status = 500, description = "Unable to issue token.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
@@ -1130,7 +1137,7 @@ pub async fn token(
     Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST))
 }
 
-/// Get the claims of the authenticated user.
+/// Get the claims of the authenticated user
 ///
 /// Requires an access token in the `Authorization: Bearer <token>` header. Implements the
 /// [OpenID Connect UserInfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo).
@@ -1139,8 +1146,15 @@ pub async fn token(
     path = "/api/v1/oauth/userinfo",
     tag = "OAuth2",
     responses(
-        (status = 200, description = "Claims of the authenticated user.", body = Object),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 200, description = "Claims of the authenticated user.", body = Object, example = json!({
+            "sub": "admin",
+            "name": "Jane Doe",
+            "given_name": "Jane",
+            "family_name": "Doe",
+            "email": "jane@example.com",
+            "email_verified": true
+        })),
+        (status = 401, description = "Access token is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Invalid token"})),
         (status = 500, description = "Unable to get user claims.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
@@ -1192,7 +1206,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
 }
 
 // Must be served under /.well-known/openid-configuration
-/// Get the OpenID Connect discovery document.
+/// Get the OpenID Connect discovery document
 ///
 /// See [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html).
 #[utoipa::path(
@@ -1200,7 +1214,17 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
     path = "/.well-known/openid-configuration",
     tag = "OAuth2",
     responses(
-        (status = 200, description = "Discovery document of this OpenID provider.", body = Object),
+        (status = 200, description = "Discovery document of this OpenID provider.", body = Object, example = json!({
+            "issuer": "https://vpn.example.com/",
+            "authorization_endpoint": "https://vpn.example.com/api/v1/oauth/authorize",
+            "token_endpoint": "https://vpn.example.com/api/v1/oauth/token",
+            "userinfo_endpoint": "https://vpn.example.com/api/v1/oauth/userinfo",
+            "jwks_uri": "https://vpn.example.com/api/v1/oauth/discovery/keys",
+            "response_types_supported": ["code"],
+            "subject_types_supported": ["public"],
+            "id_token_signing_alg_values_supported": ["HS256", "RS256"],
+            "scopes_supported": ["openid", "profile", "email", "phone", "groups"]
+        })),
         (status = 500, description = "Unable to build discovery document.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]

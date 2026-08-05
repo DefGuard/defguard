@@ -558,7 +558,7 @@ pub async fn user_from_claims(
     Ok(user)
 }
 
-/// Start login through the external OpenID provider.
+/// Start login through the external OpenID provider
 ///
 /// Returns the provider authorization URL the user should be redirected to.
 #[utoipa::path(
@@ -649,7 +649,7 @@ pub struct AuthenticationResponse {
     state: CsrfToken,
 }
 
-/// Finish login through the external OpenID provider.
+/// Finish login through the external OpenID provider
 ///
 /// Exchanges the authorization code for tokens and creates a defguard session.
 #[utoipa::path(

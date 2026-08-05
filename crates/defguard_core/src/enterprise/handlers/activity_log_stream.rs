@@ -17,13 +17,15 @@ use crate::{
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
-/// List activity log streams.
+/// List activity log streams
 #[utoipa::path(
     get,
     path = "/api/v1/activity_log_stream/",
     tag = "activity log",
     responses(
-        (status = 200, description = "All activity log streams.", body = Object),
+        (status = 200, description = "All activity log streams.", body = [Object], example = json!([
+            {"id": 1, "name": "vector", "stream_type": "vector_http", "config": {"url": "https://vector.example.com"}}
+        ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to list activity log streams.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -58,14 +60,14 @@ pub struct ActivityLogStreamModificationRequest {
     pub stream_config: serde_json::Value,
 }
 
-/// Create an activity log stream.
+/// Create an activity log stream
 #[utoipa::path(
     post,
     path = "/api/v1/activity_log_stream/",
     tag = "activity log",
     request_body = ActivityLogStreamModificationRequest,
     responses(
-        (status = 201, description = "Activity log stream created.", body = Object),
+        (status = 201, description = "Activity log stream created."),
         (status = 400, description = "Invalid stream configuration.", body = ApiErrorResponse, example = json!({"msg": "Invalid stream config"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -104,7 +106,7 @@ pub async fn create_activity_log_stream(
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
-/// Update an activity log stream.
+/// Update an activity log stream
 #[utoipa::path(
     put,
     path = "/api/v1/activity_log_stream/{id}",
@@ -164,7 +166,7 @@ pub async fn modify_activity_log_stream(
     )))
 }
 
-/// Delete an activity log stream.
+/// Delete an activity log stream
 #[utoipa::path(
     delete,
     path = "/api/v1/activity_log_stream/{id}",

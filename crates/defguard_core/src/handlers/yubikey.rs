@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use super::{ApiErrorResponse, ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
 
-/// Delete a YubiKey of a user.
+/// Delete a YubiKey of a user
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/yubikey/{key_id}",
@@ -19,7 +19,7 @@ use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
         ("key_id" = i64, Path, description = "ID of the YubiKey."),
     ),
     responses(
-        (status = 200, description = "YubiKey deleted.", body = Object, example = json!({})),
+        (status = 200, description = "YubiKey deleted."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or YubiKey not found.", body = ApiErrorResponse, example = json!({"msg": "YubiKey not found"})),
@@ -58,7 +58,7 @@ pub(crate) struct RenameRequest {
     name: String,
 }
 
-/// Rename a YubiKey of a user.
+/// Rename a YubiKey of a user
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/yubikey/{key_id}/rename",
@@ -69,7 +69,7 @@ pub(crate) struct RenameRequest {
         ("key_id" = i64, Path, description = "ID of the YubiKey."),
     ),
     responses(
-        (status = 200, description = "YubiKey renamed.", body = Object, example = json!({})),
+        (status = 200, description = "YubiKey renamed.", body = Object, example = json!({"id": 1, "name": "work key", "serial": "12345678", "user_id": 1})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "User or YubiKey not found.", body = ApiErrorResponse, example = json!({"msg": "YubiKey not found"})),

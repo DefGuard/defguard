@@ -41,7 +41,7 @@ async fn username_exists(pool: &PgPool, username: &str) -> Result<bool, sqlx::Er
     Ok(exists)
 }
 
-/// Check whether an email address or username is already taken.
+/// Check whether an email address or username is already taken
 #[utoipa::path(
     get,
     path = "/api/v1/reserved",

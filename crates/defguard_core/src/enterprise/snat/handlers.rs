@@ -25,7 +25,7 @@ use crate::{
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
-/// List SNAT bindings in a location.
+/// List SNAT bindings in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/snat",
@@ -75,7 +75,7 @@ pub struct NewUserSnatBinding {
     pub public_ip: IpAddr,
 }
 
-/// Create a SNAT binding for a user in a location.
+/// Create a SNAT binding for a user in a location
 #[utoipa::path(
     post,
     path = "/api/v1/network/{location_id}/snat",
@@ -163,7 +163,7 @@ pub struct EditUserSnatBinding {
     pub public_ip: IpAddr,
 }
 
-/// Update a SNAT binding.
+/// Update a SNAT binding
 #[utoipa::path(
     put,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
@@ -248,7 +248,7 @@ pub async fn modify_snat_binding(
     Ok(ApiResponse::json(snat_binding, StatusCode::OK))
 }
 
-/// Delete a SNAT binding.
+/// Delete a SNAT binding
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{location_id}/snat/{user_id}",

@@ -21,7 +21,7 @@ pub struct CheckResult {
     counts: Counts,
 }
 
-/// Check a license key and return its limits.
+/// Check a license key and return its limits
 #[utoipa::path(
     post,
     path = "/api/v1/license/check",

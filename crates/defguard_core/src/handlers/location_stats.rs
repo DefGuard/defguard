@@ -52,7 +52,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
     Ok(aggregation)
 }
 
-/// Get traffic statistics for all locations.
+/// Get traffic statistics for all locations
 #[utoipa::path(
     get,
     path = "/api/v1/network/stats",
@@ -61,7 +61,17 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
-        (status = 200, description = "Traffic statistics of all locations.", body = Object),
+        (status = 200, description = "Traffic statistics of all locations.", body = Object, example = json!({
+            "current_active_users": 3,
+            "current_active_user_devices": 4,
+            "current_active_network_devices": 1,
+            "active_users": 12,
+            "active_user_devices": 18,
+            "active_network_devices": 2,
+            "upload": 1048576,
+            "download": 4194304,
+            "transfer_series": [{"collected_at": "2026-08-04T10:00:00", "upload": 1024, "download": 4096}]
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get location statistics.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -84,7 +94,7 @@ pub(crate) async fn locations_overview_stats(
     Ok(ApiResponse::json(all_networks_stats, StatusCode::OK))
 }
 
-/// Get traffic statistics for a location.
+/// Get traffic statistics for a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/stats",
@@ -94,7 +104,17 @@ pub(crate) async fn locations_overview_stats(
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
-        (status = 200, description = "Traffic statistics of the location.", body = Object),
+        (status = 200, description = "Traffic statistics of the location.", body = Object, example = json!({
+            "current_active_users": 3,
+            "current_active_user_devices": 4,
+            "current_active_network_devices": 1,
+            "active_users": 12,
+            "active_user_devices": 18,
+            "active_network_devices": 2,
+            "upload": 1048576,
+            "download": 4194304,
+            "transfer_series": [{"collected_at": "2026-08-04T10:00:00", "upload": 1024, "download": 4096}]
+        })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network not found.", body = ApiErrorResponse, example = json!({"msg": "network not found"})),
@@ -127,7 +147,7 @@ pub(crate) async fn location_stats(
     Ok(ApiResponse::json(stats, StatusCode::OK))
 }
 
-/// List connected users in a location.
+/// List connected users in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users",
@@ -188,7 +208,7 @@ pub(crate) async fn location_connected_users(
     ))
 }
 
-/// List connected network devices in a location.
+/// List connected network devices in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_network_devices",
@@ -255,7 +275,7 @@ pub(crate) struct ConnectedUserDevicesPath {
     user_id: Id,
 }
 
-/// List the connected devices of a user in a location.
+/// List the connected devices of a user in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users/{user_id}/devices",
@@ -266,7 +286,16 @@ pub(crate) struct ConnectedUserDevicesPath {
         ("from" = Option<String>, Query, description = "Start of the reported period as an RFC 3339 timestamp. Defaults to 1 hour ago."),
     ),
     responses(
-        (status = 200, description = "All connected devices of the user.", body = Object),
+        (status = 200, description = "All connected devices of the user.", body = [Object], example = json!([{
+            "device_id": 5,
+            "device_name": "laptop",
+            "public_ip": "203.0.113.10",
+            "vpn_ips": ["10.0.0.15"],
+            "connected_at": "2026-08-04T10:00:00",
+            "total_upload": 1048576,
+            "total_download": 4194304,
+            "stats": [{"collected_at": "2026-08-04T10:00:00", "upload": 1024, "download": 4096}]
+        }])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Network or user not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),

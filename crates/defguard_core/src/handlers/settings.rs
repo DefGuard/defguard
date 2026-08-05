@@ -36,7 +36,7 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
-/// Get instance settings.
+/// Get instance settings
 #[utoipa::path(
     get,
     path = "/api/v1/settings",
@@ -67,7 +67,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
     Ok(ApiResponse::default())
 }
 
-/// Replace instance settings.
+/// Replace instance settings
 ///
 /// The whole settings object has to be sent. Use `PATCH` to update selected fields only.
 #[utoipa::path(
@@ -135,7 +135,7 @@ pub(crate) async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-/// Get settings required to render the web UI.
+/// Get settings required to render the web UI
 ///
 /// Public endpoint. Returns only non-sensitive settings.
 #[utoipa::path(
@@ -143,7 +143,15 @@ pub(crate) async fn update_settings(
     path = "/api/v1/settings_essentials",
     tag = "settings",
     responses(
-        (status = 200, description = "Essential settings.", body = Object),
+        (status = 200, description = "Essential settings.", body = Object, example = json!({
+            "instance_name": "defguard",
+            "main_logo_url": "/svg/logo-defguard-white.svg",
+            "nav_logo_url": "/svg/defguard-nav-logo.svg",
+            "wireguard_enabled": true,
+            "webhooks_enabled": true,
+            "worker_enabled": false,
+            "openid_enabled": true
+        })),
         (status = 500, description = "Unable to get essential settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
@@ -162,7 +170,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
     Ok(ApiResponse::json(settings, StatusCode::OK))
 }
 
-/// Restore default branding settings.
+/// Restore default branding settings
 #[utoipa::path(
     put,
     path = "/api/v1/settings/{id}",
@@ -171,7 +179,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
         ("id" = i64, Path, description = "Not used."),
     ),
     responses(
-        (status = 200, description = "Branding settings restored to defaults.", body = Object),
+        (status = 200, description = "Instance settings, with the branding fields restored to defaults.", body = Settings),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to restore default branding settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -228,7 +236,7 @@ fn is_license_reactivation(
     current_license_invalid && new_license_valid
 }
 
-/// Update selected instance settings.
+/// Update selected instance settings
 ///
 /// Only the fields present in the request body are modified. Sending `null` clears a field.
 #[utoipa::path(
@@ -337,14 +345,14 @@ pub async fn patch_settings(
     }
 }
 
-/// Test the LDAP connection using the currently saved settings.
+/// Test the LDAP connection using the currently saved settings
 #[utoipa::path(
     get,
     path = "/api/v1/ldap/test",
     tag = "LDAP",
     responses(
-        (status = 200, description = "LDAP connection established.", body = Object, example = json!({})),
-        (status = 400, description = "Unable to connect to LDAP.", body = Object, example = json!({})),
+        (status = 200, description = "LDAP connection established."),
+        (status = 400, description = "Unable to connect to LDAP."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to test LDAP connection.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -368,7 +376,7 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
     }
 }
 
-/// Test the LDAP connection.
+/// Test the LDAP connection
 ///
 /// Uses the settings from the request body, which do not have to be saved yet.
 #[utoipa::path(
@@ -377,8 +385,8 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
     tag = "LDAP",
     request_body = Object,
     responses(
-        (status = 200, description = "LDAP connection established.", body = Object, example = json!({})),
-        (status = 400, description = "Unable to connect to LDAP.", body = Object, example = json!({})),
+        (status = 200, description = "LDAP connection established."),
+        (status = 400, description = "Unable to connect to LDAP."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to test LDAP connection.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -406,7 +414,7 @@ pub(crate) async fn test_submitted_ldap_settings(
     }
 }
 
-/// Preview the changes a full LDAP sync would make.
+/// Preview the changes a full LDAP sync would make
 ///
 /// Uses the settings from the request body, which do not have to be saved yet. Read-only:
 /// nothing is imported, removed or persisted.
@@ -416,8 +424,11 @@ pub(crate) async fn test_submitted_ldap_settings(
     tag = "LDAP",
     request_body = Object,
     responses(
-        (status = 200, description = "Dry run result.", body = Object),
-        (status = 400, description = "Unable to connect to LDAP or to perform the dry run.", body = Object, example = json!({})),
+        (status = 200, description = "Dry run result.", body = Object, example = json!({
+            "defguard": [{"username": "jane", "email": "jane@example.com", "first_name": "Jane", "last_name": "Doe", "action": "add"}],
+            "ldap": [{"username": "john", "email": "john@example.com", "first_name": "John", "last_name": "Doe", "action": "remove"}]
+        })),
+        (status = 400, description = "Unable to connect to LDAP or to perform the dry run."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to perform LDAP dry run.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
