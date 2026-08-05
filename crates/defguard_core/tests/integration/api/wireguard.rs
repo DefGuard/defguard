@@ -462,6 +462,63 @@ async fn test_create_network_rejects_service_location_with_mfa(
     assert_eq!(response.status(), StatusCode::CREATED);
 }
 
+/// A zero keepalive stops `last_handshake` from ever advancing on an idle tunnel, which would make
+/// the posture health check re-authorize forever (D6/R7). The web forms block it, but an API caller
+/// bypasses them entirely, so core has to reject it too.
+#[sqlx::test]
+async fn test_network_rejects_zero_keepalive_interval(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let mut payload = location_payload("zero-keepalive", "10.1.1.1/24", "disabled", "disabled");
+    payload["keepalive_interval"] = json!(0);
+    let response = client.post("/api/v1/network").json(&payload).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "keepalive_interval 0 must be rejected on create"
+    );
+
+    // A valid location, so the same rule can be checked on the modify path.
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "good-keepalive",
+            "10.2.2.1/24",
+            "disabled",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created: serde_json::Value = response.json().await;
+    let location_id = created["id"].as_i64().unwrap();
+
+    let mut payload = location_payload("good-keepalive", "10.2.2.1/24", "disabled", "disabled");
+    payload["keepalive_interval"] = json!(0);
+    let response = client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "keepalive_interval 0 must be rejected on modify"
+    );
+
+    // 1 is the floor, not a rejected edge.
+    payload["keepalive_interval"] = json!(1);
+    let response = client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
 #[sqlx::test]
 async fn test_modify_network_rejects_service_location_with_mfa(
     _: PgPoolOptions,

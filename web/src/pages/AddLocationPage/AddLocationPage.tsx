@@ -91,7 +91,6 @@ export const AddLocationPage = () => {
         id: AddLocationPageStep.PostureCheck,
         order: 6,
         label: m.add_location_step_posture_check_label(),
-        hidden: locationType === 'service',
         description: m.add_location_step_posture_check_description(),
       },
       firewall: {

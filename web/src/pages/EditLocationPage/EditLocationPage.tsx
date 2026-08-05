@@ -154,6 +154,8 @@ const formSchema = z
     peer_disconnect_threshold: z.number().nullable(),
     keepalive_interval: z
       .number(m.form_error_required())
+      // Keepalive is mandatory to prevent idle service locations from disconnecting
+      .min(1, m.form_error_keepalive_min())
       .max(65535, m.form_error_port_max()),
     mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
     fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
@@ -812,13 +814,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                         text={m.location_service_mode_mfa_warning()}
                       />
                     )}
-                    {postureChecksSectionState.hasAssignedPostureChecks && (
-                      <InfoBanner
-                        variant="warning"
-                        icon="info-outlined"
-                        text={m.location_service_mode_postures_warning()}
-                      />
-                    )}
                     <EditPageFormSection
                       label={m.location_edit_section_location_type()}
                       labelContent={serviceLocationLabelContent}
@@ -826,31 +821,19 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
                         text={m.location_service_mode_regular()}
-                        disabled={
-                          mfaEnabled ||
-                          serviceLocationLocked ||
-                          postureChecksSectionState.hasAssignedPostureChecks
-                        }
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Prelogon}
                         text={m.location_service_mode_prelogon()}
-                        disabled={
-                          mfaEnabled ||
-                          serviceLocationLocked ||
-                          postureChecksSectionState.hasAssignedPostureChecks
-                        }
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Alwayson}
                         text={m.location_service_mode_always_on()}
-                        disabled={
-                          mfaEnabled ||
-                          serviceLocationLocked ||
-                          postureChecksSectionState.hasAssignedPostureChecks
-                        }
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                     </EditPageFormSection>
                   </>
@@ -945,18 +928,14 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </>
           )}
         </form.Subscribe>
-        <form.Subscribe
-          selector={(s) =>
-            s.values.service_location_mode !== LocationServiceMode.Disabled
-          }
-        >
-          {(isServiceLocation) => (
+        <form.Subscribe selector={(s) => s.values.service_location_mode}>
+          {(serviceLocationMode) => (
             <>
-              {isServiceLocation && (
+              {serviceLocationMode === LocationServiceMode.Prelogon && (
                 <InfoBanner
                   icon="info-outlined"
-                  variant="warning"
-                  text={m.location_posture_service_location_warning()}
+                  variant="info"
+                  text={m.location_posture_prelogon_windows_only()}
                 />
               )}
               <EditPageFormSection
@@ -993,7 +972,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       editIcon={IconKind.Edit}
                       toggleValue={false}
                       counterText={() => ''}
-                      disabled={isServiceLocation}
                       onSelectionChange={(values) => {
                         setLocationPostures({
                           postures: values.filter(
@@ -1020,7 +998,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                     loading={isUpdatingLocationPostures}
                     text={m.posture_checks_wizard_title()}
                     onClick={openPostureChecksSelection}
-                    disabled={isServiceLocation}
                   />
                 )}
                 {postureChecksSectionState.showLockedButton && (

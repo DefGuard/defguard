@@ -153,6 +153,18 @@ impl WireguardNetworkData {
         ))
     }
 
+    /// Rejects a zero (or negative) keepalive interval to prevent idle service locations
+    /// from disconnecting.
+    pub(crate) fn validate_keepalive_interval(&self) -> Result<(), WebError> {
+        if self.keepalive_interval >= 1 {
+            return Ok(());
+        }
+
+        Err(WebError::BadRequest(
+            "keepalive_interval must be at least 1".into(),
+        ))
+    }
+
     pub(crate) fn validate_allowed_groups(&self) -> Result<(), WebError> {
         if self.allow_all_groups || !self.allowed_groups.is_empty() {
             return Ok(());
@@ -248,6 +260,7 @@ pub(crate) async fn create_network(
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
     data.validate_service_location_mfa()?;
+    data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
 
     let allowed_ips = data.parse_allowed_ips();
@@ -378,6 +391,7 @@ pub(crate) async fn modify_network(
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
     data.validate_service_location_mfa()?;
+    data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
 
     let network = find_network(network_id, &appstate.pool).await?;
