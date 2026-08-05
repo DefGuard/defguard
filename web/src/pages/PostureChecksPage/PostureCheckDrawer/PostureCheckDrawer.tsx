@@ -30,7 +30,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
   const { data: postureCheck } = useSuspenseQuery(getDevicePostureQueryOptions(row.id));
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
 
-  const { mutate: assignLocations } = useMutation({
+  const { mutate: assignLocations, mutateAsync: assignLocationsAsync } = useMutation({
     mutationFn: (locationIds: number[]) =>
       api.devicePosture.setLocationsForDevicePosture(row.id, locationIds),
     meta: {
@@ -75,6 +75,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     locationOptions,
     navigate,
     assignLocations,
+    assignLocationsAsync,
     onAfterEdit: onClose,
     onAfterDelete: onClose,
     duplicatePosture: () => duplicatePosture(row.id),

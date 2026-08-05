@@ -7,6 +7,7 @@ import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/ty
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { openPostureAssignmentWarning } from '../../shared/utils/postureWarning';
 import { getDeletePostureCheckModalData, type PostureCheckRow } from './postureChecks';
 
 type LocationOption = SelectionOption<number>;
@@ -16,6 +17,7 @@ type BuildPostureCheckMenuArgs = {
   locationOptions: LocationOption[];
   navigate: ReturnType<typeof useNavigate>;
   assignLocations: (locationIds: number[]) => void;
+  assignLocationsAsync: (locationIds: number[]) => Promise<unknown>;
   duplicatePosture: () => void;
   onAfterEdit?: () => void;
   onAfterDelete?: () => void;
@@ -26,6 +28,7 @@ export const buildPostureCheckMenuItems = ({
   locationOptions,
   navigate,
   assignLocations,
+  assignLocationsAsync,
   duplicatePosture,
   onAfterEdit,
   onAfterDelete,
@@ -58,7 +61,27 @@ export const buildPostureCheckMenuItems = ({
             options: locationOptions,
             selected: new Set(row.locations),
             onSubmit: (selected) => {
-              assignLocations(selected as number[]);
+              const newLocationIds = selected as number[];
+              const currentIds = row.locations;
+
+              const addedIds = newLocationIds.filter((id) => !currentIds.includes(id));
+              const removedIds = currentIds.filter((id) => !newLocationIds.includes(id));
+
+              if (addedIds.length === 0 && removedIds.length === 0) return;
+
+              const nameById = new Map(locationOptions.map((loc) => [loc.id, loc.label]));
+              const addedNames = addedIds.map((id) => nameById.get(id) ?? String(id));
+              const removedNames = removedIds.map((id) => nameById.get(id) ?? String(id));
+
+              openPostureAssignmentWarning({
+                kind: 'postures',
+                added: addedNames,
+                removed: removedNames,
+                actionPromise: () => assignLocationsAsync(newLocationIds),
+                onError: () => {
+                  Snackbar.error(m.modal_assign_posture_check_locations_error());
+                },
+              });
             },
           });
         },
