@@ -3,9 +3,7 @@ name: Publish OpenAPI spec to GitBook
 on:
   push:
     branches:
-      - release/2.1
       - update-swagger
-  workflow_dispatch:
 
 permissions:
   contents: read
