@@ -253,8 +253,6 @@ pub struct UserFilterParams {
                     "groups": [
                       "admin"
                     ],
-                    "has_non_mfa_location_access": false,
-                    "has_non_posture_location_access": false,
                     "id": 1,
                     "is_active": true,
                     "is_admin": true,
@@ -263,7 +261,6 @@ pub struct UserFilterParams {
                     "mfa_enabled": false,
                     "mfa_method": "None",
                     "name": "Jane Doe",
-                    "password_management_disabled": false,
                     "phone": null,
                     "totp_enabled": false,
                     "username": "jane"
@@ -428,8 +425,6 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
                 "enrolled": true,
                 "first_name": "John",
                 "groups": [],
-                "has_non_mfa_location_access": false,
-                "has_non_posture_location_access": false,
                 "id": 2,
                 "is_active": true,
                 "is_admin": false,
@@ -438,7 +433,6 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
                 "mfa_enabled": false,
                 "mfa_method": "None",
                 "name": "John Doe",
-                "password_management_disabled": false,
                 "phone": "+48123456789",
                 "totp_enabled": false,
                 "username": "jdoe"
@@ -481,8 +475,6 @@ pub(crate) async fn get_user(
               "enrolled": true,
               "first_name": "John",
               "groups": [],
-              "has_non_mfa_location_access": false,
-              "has_non_posture_location_access": false,
               "id": 3,
               "is_active": true,
               "is_admin": false,
@@ -491,7 +483,6 @@ pub(crate) async fn get_user(
               "mfa_enabled": false,
               "mfa_method": "None",
               "name": "John Doe",
-              "password_management_disabled": false,
               "phone": "+48123456789",
               "totp_enabled": false,
               "username": "jdoe"
@@ -1391,8 +1382,6 @@ pub(crate) async fn delete_security_key(
                   "groups": [
                     "admin"
                   ],
-                  "has_non_mfa_location_access": false,
-                  "has_non_posture_location_access": false,
                   "id": 1,
                   "is_active": true,
                   "is_admin": true,
@@ -1401,7 +1390,6 @@ pub(crate) async fn delete_security_key(
                   "mfa_enabled": false,
                   "mfa_method": "None",
                   "name": "Jane Doe",
-                  "password_management_disabled": false,
                   "phone": "+48123456789",
                   "totp_enabled": false,
                   "username": "jane"
