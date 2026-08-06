@@ -60,9 +60,12 @@ export const buildPostureCheckMenuItems = ({
             selected: new Set(row.locations),
             onSubmit: (selected) => {
               const next = selected as number[];
-              confirmLocationSelectionChange(row.locations, next, locationOptions, () =>
-                assignLocations(next),
-              );
+              confirmLocationSelectionChange({
+                current: row.locations,
+                next,
+                options: locationOptions,
+                actionPromise: () => assignLocations(next),
+              });
             },
           });
         },

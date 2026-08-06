@@ -37,32 +37,44 @@ const locOptions: Option[] = [
   { id: 3, label: 'Zurich' },
 ];
 
+const noop = async () => {};
+
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 describe('confirmPostureSelectionChange', () => {
   it('returns false and opens nothing when the id sets are identical', () => {
-    const result = confirmPostureSelectionChange(
-      [1, 2],
-      [1, 2],
-      locOptions,
-      async () => {},
-    );
+    const result = confirmPostureSelectionChange({
+      current: [1, 2],
+      next: [1, 2],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     expect(result).toBe(false);
     expect(openModal).not.toHaveBeenCalled();
   });
 
   it('returns false and opens nothing when both sets are empty', () => {
-    const result = confirmPostureSelectionChange([], [], locOptions, async () => {});
+    const result = confirmPostureSelectionChange({
+      current: [],
+      next: [],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     expect(result).toBe(false);
     expect(openModal).not.toHaveBeenCalled();
   });
 
   it('opens a modal with the Added group when items were added', () => {
-    confirmPostureSelectionChange([1], [1, 2, 3], locOptions, async () => {});
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [1, 2, 3],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     expect(openModal).toHaveBeenCalledOnce();
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
@@ -76,7 +88,12 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('opens a modal with the Removed group when items were removed', () => {
-    confirmPostureSelectionChange([1, 2, 3], [1], locOptions, async () => {});
+    confirmPostureSelectionChange({
+      current: [1, 2, 3],
+      next: [1],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     expect(openModal).toHaveBeenCalledOnce();
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
@@ -88,7 +105,12 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('opens a modal with both Added and Removed groups when items changed', () => {
-    confirmPostureSelectionChange([1], [2, 3], locOptions, async () => {});
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2, 3],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     expect(openModal).toHaveBeenCalledOnce();
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
@@ -98,35 +120,67 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('includes the location-warning body message', () => {
-    confirmPostureSelectionChange([1], [2], locOptions, async () => {});
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
     expect(contentMd).toContain('for this location.');
+  });
+
+  it('accepts Sets as well as arrays', () => {
+    const result = confirmPostureSelectionChange({
+      current: new Set([1, 2]),
+      next: new Set([2, 3]),
+      options: locOptions,
+      actionPromise: noop,
+    });
+
+    expect(result).toBe(true);
+    const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
+    expect(contentMd).toContain('**Added:**');
+    expect(contentMd).toContain('- Zurich');
+    expect(contentMd).toContain('**Removed:**');
+    expect(contentMd).toContain('- Berlin');
   });
 });
 
 describe('confirmLocationSelectionChange', () => {
   it('returns false when no diff and no deferredEnforcement', () => {
-    const result = confirmLocationSelectionChange(
-      [1, 2],
-      [1, 2],
-      locOptions,
-      async () => {},
-    );
+    const result = confirmLocationSelectionChange({
+      current: [1, 2],
+      next: [1, 2],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     expect(result).toBe(false);
     expect(openModal).not.toHaveBeenCalled();
   });
 
   it('includes the postures-warning body message', () => {
-    confirmLocationSelectionChange([1], [2], locOptions, async () => {});
+    confirmLocationSelectionChange({
+      current: [1],
+      next: [2],
+      options: locOptions,
+      actionPromise: noop,
+    });
 
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
     expect(contentMd).toContain('for the affected locations.');
   });
 
   it('opens rules-only body when deferredEnforcement is true and no location diff', () => {
-    confirmLocationSelectionChange([1, 2], [1, 2], locOptions, async () => {}, true);
+    confirmLocationSelectionChange({
+      current: [1, 2],
+      next: [1, 2],
+      options: locOptions,
+      actionPromise: noop,
+      deferredEnforcement: true,
+    });
 
     expect(openModal).toHaveBeenCalledOnce();
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
@@ -136,7 +190,13 @@ describe('confirmLocationSelectionChange', () => {
   });
 
   it('appends rules paragraph after locations diff when deferredEnforcement is true and diff exists', () => {
-    confirmLocationSelectionChange([1], [2], locOptions, async () => {}, true);
+    confirmLocationSelectionChange({
+      current: [1],
+      next: [2],
+      options: locOptions,
+      actionPromise: noop,
+      deferredEnforcement: true,
+    });
 
     expect(openModal).toHaveBeenCalledOnce();
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
@@ -149,13 +209,13 @@ describe('confirmLocationSelectionChange', () => {
   });
 
   it('returns false when deferredEnforcement is false (the falsy default)', () => {
-    const result = confirmLocationSelectionChange(
-      [1],
-      [1],
-      locOptions,
-      async () => {},
-      false,
-    );
+    const result = confirmLocationSelectionChange({
+      current: [1],
+      next: [1],
+      options: locOptions,
+      actionPromise: noop,
+      deferredEnforcement: false,
+    });
 
     expect(result).toBe(false);
   });
@@ -170,7 +230,12 @@ describe('markdown escaping', () => {
       { id: 4, label: 'back`tick' },
     ];
 
-    confirmPostureSelectionChange([1], [2, 3, 4], spikyOptions, async () => {});
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2, 3, 4],
+      options: spikyOptions,
+      actionPromise: noop,
+    });
 
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
     // Asterisks escaped
@@ -190,7 +255,12 @@ describe('markdown escaping', () => {
       { id: 2, label: 'os_version_check' },
     ];
 
-    confirmPostureSelectionChange([1], [2], underscoreOptions, async () => {});
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2],
+      options: underscoreOptions,
+      actionPromise: noop,
+    });
 
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
     expect(contentMd).not.toMatch(/(?<!\\)_os_version_check/);
@@ -199,12 +269,12 @@ describe('markdown escaping', () => {
 
 describe('unknown id fallback', () => {
   it('uses String(id) when an id has no matching option', () => {
-    confirmPostureSelectionChange(
-      [],
-      [1, 99],
-      [{ id: 1, label: 'Known' }],
-      async () => {},
-    );
+    confirmPostureSelectionChange({
+      current: [],
+      next: [1, 99],
+      options: [{ id: 1, label: 'Known' }],
+      actionPromise: noop,
+    });
 
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
     expect(contentMd).toContain('- 99');
@@ -215,7 +285,12 @@ describe('unknown id fallback', () => {
 describe('modal structure', () => {
   it('opens ConfirmAction with the shared title, critical variant, and actionPromise', () => {
     const actionPromise = async () => 'saved';
-    confirmPostureSelectionChange([1], [2], locOptions, actionPromise);
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2],
+      options: locOptions,
+      actionPromise,
+    });
 
     const modalData = vi.mocked(openModal).mock.calls[0][1];
     expect(openModal).toHaveBeenCalledWith(

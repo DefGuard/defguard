@@ -483,13 +483,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     });
 
   const handlePostureSelection = (values: (string | number)[]) => {
-    const next = values.filter((v): v is number => typeof v === 'number');
-    confirmPostureSelectionChange(
-      location.posture_checks ?? [],
+    const next = values.filter((value): value is number => typeof value === 'number');
+    confirmPostureSelectionChange({
+      current: location.posture_checks ?? [],
       next,
-      postureCheckOptions,
-      () => setLocationPosturesAsync({ postures: next }),
-    );
+      options: postureCheckOptions,
+      actionPromise: () => setLocationPosturesAsync({ postures: next }),
+    });
   };
 
   const openPostureChecksSelection = () => {

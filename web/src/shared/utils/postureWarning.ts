@@ -7,11 +7,14 @@ type Option = { readonly id: number; readonly label: string };
 /** Escape markdown control characters so admin-supplied labels render as literal text. */
 const escapeMarkdown = (s: string) => s.replace(/[\\`*_{}[\]()#+\-.!>|~]/g, '\\$&');
 
-type ConfirmSelectionChangeArgs = {
+type SelectionChangeArgs = {
   current: Iterable<number>;
   next: Iterable<number>;
   options: readonly Option[];
   actionPromise: () => Promise<unknown>;
+};
+
+type ConfirmSelectionChangeArgs = SelectionChangeArgs & {
   deferredEnforcement?: boolean;
   bodyMessage: (args: { changes: string }) => string;
 };
@@ -94,17 +97,9 @@ const confirmSelectionChange = ({
  * Ids are posture-check ids; the body warns about active sessions for
  * this location.
  */
-export const confirmPostureSelectionChange = (
-  current: Iterable<number>,
-  next: Iterable<number>,
-  options: readonly Option[],
-  actionPromise: () => Promise<unknown>,
-): boolean =>
+export const confirmPostureSelectionChange = (args: SelectionChangeArgs): boolean =>
   confirmSelectionChange({
-    current,
-    next,
-    options,
-    actionPromise,
+    ...args,
     bodyMessage: m.modal_posture_assignment_warning_body_location,
   });
 
@@ -114,17 +109,9 @@ export const confirmPostureSelectionChange = (
  * to the warning body.
  */
 export const confirmLocationSelectionChange = (
-  current: Iterable<number>,
-  next: Iterable<number>,
-  options: readonly Option[],
-  actionPromise: () => Promise<unknown>,
-  deferredEnforcement?: boolean,
+  args: SelectionChangeArgs & { deferredEnforcement?: boolean },
 ): boolean =>
   confirmSelectionChange({
-    current,
-    next,
-    options,
-    actionPromise,
-    deferredEnforcement,
+    ...args,
     bodyMessage: m.modal_posture_assignment_warning_body_postures,
   });

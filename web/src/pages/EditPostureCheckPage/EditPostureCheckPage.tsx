@@ -135,18 +135,16 @@ const EditPostureCheckForm = ({
 
   const handleSubmit = () => {
     if (rulesChanged || locationsChanged) {
-      const deferred = rulesChanged && defaults.locations.size > 0;
-      if (
-        confirmLocationSelectionChange(
-          [...defaults.locations],
-          [...values.locations],
-          locationOptions,
-          () => saveMutation.mutateAsync(values),
-          deferred,
-        )
-      ) {
-        return;
-      }
+      const modalOpened = confirmLocationSelectionChange({
+        current: defaults.locations,
+        next: values.locations,
+        options: locationOptions,
+        actionPromise: () => saveMutation.mutateAsync(values),
+        // A posture assigned to no locations after this save enforces nothing
+        // anywhere, so the deferred-enforcement claim would be misleading.
+        deferredEnforcement: rulesChanged && values.locations.size > 0,
+      });
+      if (modalOpened) return;
     }
     saveMutation.mutate(values);
   };
