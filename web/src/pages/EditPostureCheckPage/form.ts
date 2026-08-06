@@ -139,5 +139,28 @@ export const normalizeEditPostureCheckFormValues = (
   values: EditPostureCheckFormValues,
 ) => ({
   ...values,
+  configuredOperatingSystems: [...values.configuredOperatingSystems].sort(),
   locations: Array.from(values.locations).sort((left, right) => left - right),
+  operatingSystemState: Object.fromEntries(
+    Object.entries(values.operatingSystemState).map(([os, state]) => [
+      os,
+      { ...state, conditions: [...state.conditions].sort() },
+    ]),
+  ),
+});
+
+/** Projection of enforcement-related fields for `rulesChanged` comparison. */
+export const normalizeEditPostureCheckEnforcementFields = (
+  v: EditPostureCheckFormValues,
+) => ({
+  allowPrereleaseClient: v.allowPrereleaseClient,
+  configuredOperatingSystems: [...v.configuredOperatingSystems].sort(),
+  minimumDesktopClientVersion: v.minimumDesktopClientVersion,
+  minimumMobileClientVersion: v.minimumMobileClientVersion,
+  operatingSystemState: Object.fromEntries(
+    Object.entries(v.operatingSystemState).map(([os, state]) => [
+      os,
+      { ...state, conditions: [...state.conditions].sort() },
+    ]),
+  ),
 });

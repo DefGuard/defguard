@@ -45,6 +45,7 @@ import {
 import {
   type EditPostureCheckFormValues,
   getInitialEditPostureCheckFormValues,
+  normalizeEditPostureCheckEnforcementFields,
   normalizeEditPostureCheckFormValues,
 } from './form';
 
@@ -117,25 +118,12 @@ const EditPostureCheckForm = ({
     [defaults, values],
   );
 
-  const rulesChanged = useMemo(() => {
-    const normalize = (v: EditPostureCheckFormValues) =>
-      JSON.stringify({
-        configuredOperatingSystems: [...v.configuredOperatingSystems].sort(),
-        operatingSystemState: Object.fromEntries(
-          Object.entries(v.operatingSystemState).map(([os, state]) => [
-            os,
-            {
-              ...state,
-              conditions: [...state.conditions].sort(),
-            },
-          ]),
-        ),
-        minimumDesktopClientVersion: v.minimumDesktopClientVersion,
-        minimumMobileClientVersion: v.minimumMobileClientVersion,
-        allowPrereleaseClient: v.allowPrereleaseClient,
-      });
-    return normalize(values) !== normalize(defaults);
-  }, [values, defaults]);
+  const rulesChanged = useMemo(
+    () =>
+      JSON.stringify(normalizeEditPostureCheckEnforcementFields(values)) !==
+      JSON.stringify(normalizeEditPostureCheckEnforcementFields(defaults)),
+    [defaults, values],
+  );
 
   const locationsChanged = useMemo(() => {
     if (values.locations.size !== defaults.locations.size) return true;
