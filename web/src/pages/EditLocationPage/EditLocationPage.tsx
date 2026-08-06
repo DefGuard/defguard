@@ -43,7 +43,7 @@ import {
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
 import { smallestNetworkCapacity } from '../../shared/utils/network';
-import { confirmPostureSelectionChange } from '../../shared/utils/postureWarning';
+import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
 import { getPostureChecksSectionState } from './postureChecksSection';
@@ -392,14 +392,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     [postureChecks],
   );
 
-  const assignedPostureChecks = useMemo(() => {
-    const labelByOption = new Map(postureCheckOptions.map((o) => [o.id, o.label]));
-    return location.posture_checks?.map((id) => ({
-      id,
-      label: labelByOption.get(id) ?? String(id),
-    }));
-  }, [location.posture_checks, postureCheckOptions]);
-
   const serviceLocationLabelContent = useMemo(() => {
     if (!serviceLocationLocked) return undefined;
     return (
@@ -484,7 +476,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
 
   const handlePostureSelection = (values: (string | number)[]) => {
     const next = values.filter((value): value is number => typeof value === 'number');
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: location.posture_checks ?? [],
       next,
       options: postureCheckOptions,
@@ -987,11 +979,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   <div className="posture-checks-assigned-state">
                     <SelectMultiple
                       options={postureCheckOptions}
-                      selected={
-                        new Set(
-                          assignedPostureChecks?.map((postureCheck) => postureCheck.id),
-                        )
-                      }
+                      selected={new Set(location.posture_checks)}
                       modalTitle={m.location_posture_checks_select()}
                       editText={m.location_posture_checks_edit()}
                       editIcon={IconKind.Edit}

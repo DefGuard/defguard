@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openModal } from '../src/shared/hooks/modalControls/modalsSubjects';
 
 vi.mock('../src/shared/hooks/modalControls/modalsSubjects', () => ({
@@ -25,8 +25,8 @@ vi.mock('../src/paraglide/messages', () => ({
 }));
 
 import {
-  confirmLocationSelectionChange,
-  confirmPostureSelectionChange,
+  confirmLocationPostureChange,
+  confirmPostureLocationChange,
 } from '../src/shared/utils/postureWarning';
 
 type Option = { readonly id: number; readonly label: string };
@@ -43,9 +43,9 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('confirmPostureSelectionChange', () => {
+describe('confirmLocationPostureChange', () => {
   it('returns false and opens nothing when the id sets are identical', () => {
-    const result = confirmPostureSelectionChange({
+    const result = confirmLocationPostureChange({
       current: [1, 2],
       next: [1, 2],
       options: locOptions,
@@ -57,7 +57,7 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('returns false and opens nothing when both sets are empty', () => {
-    const result = confirmPostureSelectionChange({
+    const result = confirmLocationPostureChange({
       current: [],
       next: [],
       options: locOptions,
@@ -69,7 +69,7 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('opens a modal with the Added group when items were added', () => {
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [1],
       next: [1, 2, 3],
       options: locOptions,
@@ -88,7 +88,7 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('opens a modal with the Removed group when items were removed', () => {
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [1, 2, 3],
       next: [1],
       options: locOptions,
@@ -105,7 +105,7 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('opens a modal with both Added and Removed groups when items changed', () => {
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [1],
       next: [2, 3],
       options: locOptions,
@@ -120,7 +120,7 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('includes the location-warning body message', () => {
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [1],
       next: [2],
       options: locOptions,
@@ -132,7 +132,7 @@ describe('confirmPostureSelectionChange', () => {
   });
 
   it('accepts Sets as well as arrays', () => {
-    const result = confirmPostureSelectionChange({
+    const result = confirmLocationPostureChange({
       current: new Set([1, 2]),
       next: new Set([2, 3]),
       options: locOptions,
@@ -148,9 +148,9 @@ describe('confirmPostureSelectionChange', () => {
   });
 });
 
-describe('confirmLocationSelectionChange', () => {
+describe('confirmPostureLocationChange', () => {
   it('returns false when no diff and no deferredEnforcement', () => {
-    const result = confirmLocationSelectionChange({
+    const result = confirmPostureLocationChange({
       current: [1, 2],
       next: [1, 2],
       options: locOptions,
@@ -162,7 +162,7 @@ describe('confirmLocationSelectionChange', () => {
   });
 
   it('includes the postures-warning body message', () => {
-    confirmLocationSelectionChange({
+    confirmPostureLocationChange({
       current: [1],
       next: [2],
       options: locOptions,
@@ -174,7 +174,7 @@ describe('confirmLocationSelectionChange', () => {
   });
 
   it('opens rules-only body when deferredEnforcement is true and no location diff', () => {
-    confirmLocationSelectionChange({
+    confirmPostureLocationChange({
       current: [1, 2],
       next: [1, 2],
       options: locOptions,
@@ -190,7 +190,7 @@ describe('confirmLocationSelectionChange', () => {
   });
 
   it('appends rules paragraph after locations diff when deferredEnforcement is true and diff exists', () => {
-    confirmLocationSelectionChange({
+    confirmPostureLocationChange({
       current: [1],
       next: [2],
       options: locOptions,
@@ -209,7 +209,7 @@ describe('confirmLocationSelectionChange', () => {
   });
 
   it('returns false when deferredEnforcement is false (the falsy default)', () => {
-    const result = confirmLocationSelectionChange({
+    const result = confirmPostureLocationChange({
       current: [1],
       next: [1],
       options: locOptions,
@@ -229,7 +229,7 @@ describe('labels are passed through verbatim', () => {
       { id: 3, label: '[link](url)' },
     ];
 
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [1],
       next: [2, 3],
       options: spikyOptions,
@@ -244,7 +244,7 @@ describe('labels are passed through verbatim', () => {
 
 describe('unknown id fallback', () => {
   it('uses String(id) when an id has no matching option', () => {
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [],
       next: [1, 99],
       options: [{ id: 1, label: 'Known' }],
@@ -260,7 +260,7 @@ describe('unknown id fallback', () => {
 describe('modal structure', () => {
   it('opens ConfirmAction with the shared title, critical variant, and actionPromise', () => {
     const actionPromise = async () => 'saved';
-    confirmPostureSelectionChange({
+    confirmLocationPostureChange({
       current: [1],
       next: [2],
       options: locOptions,

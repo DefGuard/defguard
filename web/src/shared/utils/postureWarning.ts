@@ -91,22 +91,30 @@ const confirmSelectionChange = ({
 };
 
 /**
- * Warn when the set of assigned posture checks on a location changes.
- * Ids are posture-check ids; the body warns about active sessions for
- * this location.
+ * Warn before changing which posture checks apply to a location. `current` and
+ * `next` hold posture-check ids; the body warns about active sessions on this
+ * location.
+ *
+ * Returns `true` when a modal was opened, which is not the same as the admin
+ * agreeing: the modal is fired and forgotten, and `actionPromise` runs only if
+ * they confirm. A `false` return means there was nothing to warn about, so the
+ * caller should proceed with its own save.
  */
-export const confirmPostureSelectionChange = (args: SelectionChangeArgs): boolean =>
+export const confirmLocationPostureChange = (args: SelectionChangeArgs): boolean =>
   confirmSelectionChange({
     ...args,
     bodyMessage: m.modal_posture_assignment_warning_body_location,
   });
 
 /**
- * Warn when the set of assigned locations on a posture check changes.
- * When `deferredEnforcement` is true, appends the rules-deferred paragraph
- * to the warning body.
+ * Warn before changing which locations a posture check applies to. `current` and
+ * `next` hold location ids. When `deferredEnforcement` is true, appends the
+ * rules-deferred paragraph to the warning body.
+ *
+ * Returns `true` when a modal was opened; see
+ * {@link confirmLocationPostureChange} for what that does and does not mean.
  */
-export const confirmLocationSelectionChange = (
+export const confirmPostureLocationChange = (
   args: SelectionChangeArgs & { deferredEnforcement?: boolean },
 ): boolean =>
   confirmSelectionChange({

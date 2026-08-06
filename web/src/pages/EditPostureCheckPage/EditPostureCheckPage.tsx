@@ -35,7 +35,7 @@ import {
   getDevicePostureVersionMetadataQueryOptions,
   getLocationsQueryOptions,
 } from '../../shared/query';
-import { confirmLocationSelectionChange } from '../../shared/utils/postureWarning';
+import { confirmPostureLocationChange } from '../../shared/utils/postureWarning';
 import { buildAddPostureCheckRequest } from '../AddPostureCheckWizardPage/payload';
 import { getDeletePostureCheckModalData } from '../PostureChecksPage/postureChecks';
 import {
@@ -129,7 +129,7 @@ const EditPostureCheckForm = ({
     // The helper diffs the location sets itself and returns false when there is
     // nothing to confirm, which covers the submit that changed only the name or
     // description.
-    const modalOpened = confirmLocationSelectionChange({
+    const modalOpened = confirmPostureLocationChange({
       current: defaults.locations,
       next: values.locations,
       options: locationOptions,
