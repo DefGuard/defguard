@@ -43,7 +43,7 @@ import {
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
 import { smallestNetworkCapacity } from '../../shared/utils/network';
-import { openPostureAssignmentWarning } from '../../shared/utils/postureWarning';
+import { confirmPostureSelectionChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
 import { getPostureChecksSectionState } from './postureChecksSection';
@@ -393,15 +393,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   );
 
   const assignedPostureChecks = useMemo(() => {
-    const labelsById = new Map(
-      postureChecks.map((postureCheck) => [postureCheck.id, postureCheck.name]),
-    );
-
+    const labelByOption = new Map(postureCheckOptions.map((o) => [o.id, o.label]));
     return location.posture_checks?.map((id) => ({
       id,
-      label: labelsById.get(id) ?? String(id),
+      label: labelByOption.get(id) ?? String(id),
     }));
-  }, [location.posture_checks, postureChecks]);
+  }, [location.posture_checks, postureCheckOptions]);
 
   const serviceLocationLabelContent = useMemo(() => {
     if (!serviceLocationLocked) return undefined;
@@ -485,6 +482,16 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       },
     });
 
+  const handlePostureSelection = (values: (string | number)[]) => {
+    const next = values.filter((v): v is number => typeof v === 'number');
+    confirmPostureSelectionChange(
+      location.posture_checks ?? [],
+      next,
+      postureCheckOptions,
+      () => setLocationPosturesAsync({ postures: next }),
+    );
+  };
+
   const openPostureChecksSelection = () => {
     useSelectionModal.setState({
       isOpen: true,
@@ -500,31 +507,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       searchPlaceholder: m.controls_search(),
       selected: new Set(location.posture_checks),
       visibleItemsLimit: 4,
-      onSubmit: (values) => {
-        const newPostureIds = values.filter(
-          (value): value is number => typeof value === 'number',
-        );
-        const currentIds = location.posture_checks ?? [];
-
-        const addedIds = newPostureIds.filter((id) => !currentIds.includes(id));
-        const removedIds = currentIds.filter((id) => !newPostureIds.includes(id));
-
-        if (addedIds.length === 0 && removedIds.length === 0) return;
-
-        const nameById = new Map(postureChecks.map((p) => [p.id, p.name]));
-        const addedNames = addedIds.map((id) => nameById.get(id) ?? String(id));
-        const removedNames = removedIds.map((id) => nameById.get(id) ?? String(id));
-
-        openPostureAssignmentWarning({
-          kind: 'location',
-          added: addedNames,
-          removed: removedNames,
-          actionPromise: () => setLocationPosturesAsync({ postures: newPostureIds }),
-          onError: () => {
-            Snackbar.error(m.location_posture_checks_update_failed());
-          },
-        });
-      },
+      onSubmit: handlePostureSelection,
     });
   };
 
@@ -1015,42 +998,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       toggleValue={false}
                       counterText={() => ''}
                       disabled={isServiceLocation}
-                      onSelectionChange={(values) => {
-                        const newPostureIds = values.filter(
-                          (value): value is number => typeof value === 'number',
-                        );
-                        const currentIds = location.posture_checks ?? [];
-
-                        const addedIds = newPostureIds.filter(
-                          (id) => !currentIds.includes(id),
-                        );
-                        const removedIds = currentIds.filter(
-                          (id) => !newPostureIds.includes(id),
-                        );
-
-                        if (addedIds.length === 0 && removedIds.length === 0) return;
-
-                        const nameById = new Map(
-                          postureChecks.map((p) => [p.id, p.name]),
-                        );
-                        const addedNames = addedIds.map(
-                          (id) => nameById.get(id) ?? String(id),
-                        );
-                        const removedNames = removedIds.map(
-                          (id) => nameById.get(id) ?? String(id),
-                        );
-
-                        openPostureAssignmentWarning({
-                          kind: 'location',
-                          added: addedNames,
-                          removed: removedNames,
-                          actionPromise: () =>
-                            setLocationPosturesAsync({ postures: newPostureIds }),
-                          onError: () => {
-                            Snackbar.error(m.location_posture_checks_update_failed());
-                          },
-                        });
-                      }}
+                      onSelectionChange={handlePostureSelection}
                       onToggleChange={() => {}}
                       selectionCustomItemRender={renderPostureCheckSelectionItem}
                       selectionModalProps={{
