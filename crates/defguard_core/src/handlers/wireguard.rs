@@ -423,26 +423,6 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
-    // assign posture checks
-    // NOTE: this must happen before the allowed peers list is computed, since the peer list
-    // depends on whether the location has any posture checks assigned
-    if let Some(ref posture_checks) = data.posture_checks {
-        debug!("Assigning posture checks {posture_checks:?} to {network}");
-        if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) && !posture_checks.is_empty()
-        {
-            error!(
-                "Cannot assign posture checks to location {network}: Enterprise license required."
-            );
-            return Ok(WebError::Forbidden(
-                "Cannot assign posture checks to location: Enterprise license required.",
-            )
-            .into());
-        }
-        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
-            .await?;
-        info!("Assigned posture checks {posture_checks:?} to location {network}");
-    }
-
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;

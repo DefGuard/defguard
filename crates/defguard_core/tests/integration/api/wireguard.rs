@@ -663,80 +663,6 @@ async fn test_modify_network_rejects_service_location_with_mfa(
 }
 
 #[sqlx::test]
-async fn test_modify_network_with_posture_checks_assigns_postures(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let pool = setup_pool(options).await;
-    let (mut client, _client_state) = make_test_client(pool).await;
-    authenticate_admin(&mut client).await;
-    set_enterprise_license();
-
-    let posture_1 = make_posture_check(&client, "Posture 1").await;
-    let posture_2 = make_posture_check(&client, "Posture 2").await;
-
-    let response = client
-        .post("/api/v1/network")
-        .json(&location_payload(
-            "location",
-            "10.1.1.1/24",
-            "disabled",
-            "disabled",
-        ))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let location: WireguardNetwork<Id> = response.json().await;
-    assert!(
-        fetch_location_postures(&client, location.id)
-            .await
-            .is_empty()
-    );
-
-    // assign both postures through the location payload
-    let mut payload = location_payload("location", "10.1.1.1/24", "disabled", "disabled");
-    payload["posture_checks"] = json!([posture_1, posture_2]);
-    let response = client
-        .put(format!("/api/v1/network/{}", location.id))
-        .json(&payload)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let assigned = fetch_location_postures(&client, location.id).await;
-    assert_eq!(assigned.len(), 2);
-    assert!(assigned.contains(&posture_1));
-    assert!(assigned.contains(&posture_2));
-
-    // an explicit list replaces the previous assignment
-    payload["posture_checks"] = json!([posture_2]);
-    let response = client
-        .put(format!("/api/v1/network/{}", location.id))
-        .json(&payload)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(
-        fetch_location_postures(&client, location.id).await,
-        vec![posture_2]
-    );
-
-    // an explicit empty list clears the assignment
-    payload["posture_checks"] = json!([]);
-    let response = client
-        .put(format!("/api/v1/network/{}", location.id))
-        .json(&payload)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert!(
-        fetch_location_postures(&client, location.id)
-            .await
-            .is_empty()
-    );
-}
-
-#[sqlx::test]
 async fn test_modify_network_without_posture_checks_keeps_assignments(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -848,17 +774,36 @@ async fn test_posture_checks_allowed_on_service_locations(
         vec![posture]
     );
 
-    // modify path: posture checks can be assigned to an existing service location
-    let mut payload = location_payload("service-location", "10.1.1.1/24", "disabled", "prelogon");
-    payload["posture_checks"] = json!([posture]);
+    // dedicated assignment path: posture checks can be assigned to an existing service location
     let response = client
-        .put(format!("/api/v1/network/{}", service_location.id))
-        .json(&payload)
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "service-location-without-postures",
+            "10.3.3.1/24",
+            "disabled",
+            "alwayson",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let service_location_without_postures: WireguardNetwork<Id> = response.json().await;
+    assert!(
+        fetch_location_postures(&client, service_location_without_postures.id)
+            .await
+            .is_empty()
+    );
+
+    let response = client
+        .put(format!(
+            "/api/v1/network/{}/postures",
+            service_location_without_postures.id
+        ))
+        .json(&json!({ "postures": [posture] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
-        fetch_location_postures(&client, service_location.id).await,
+        fetch_location_postures(&client, service_location_without_postures.id).await,
         vec![posture]
     );
 }
