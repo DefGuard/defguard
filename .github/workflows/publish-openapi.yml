@@ -1,11 +1,9 @@
 name: Publish OpenAPI spec to GitBook
 
 on:
-  pull_request:
-    types:
-      - closed
+  push:
     branches:
-      - release/2.1
+      - 'release/2.1'
 
 permissions:
   contents: read
@@ -16,8 +14,6 @@ concurrency:
 
 jobs:
   publish-openapi:
-    if: github.event.pull_request.merged == true
-
     runs-on:
       - self-hosted
       - Linux
