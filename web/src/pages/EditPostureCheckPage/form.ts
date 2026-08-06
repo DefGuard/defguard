@@ -135,32 +135,47 @@ export const getInitialEditPostureCheckFormValues = (
   };
 };
 
+const sortOperatingSystemState = (
+  operatingSystemState: EditPostureCheckFormValues['operatingSystemState'],
+) =>
+  Object.fromEntries(
+    Object.entries(operatingSystemState).map(([os, state]) => [
+      os,
+      { ...state, conditions: [...state.conditions].sort() },
+    ]),
+  );
+
 export const normalizeEditPostureCheckFormValues = (
   values: EditPostureCheckFormValues,
 ) => ({
   ...values,
   configuredOperatingSystems: [...values.configuredOperatingSystems].sort(),
   locations: Array.from(values.locations).sort((left, right) => left - right),
-  operatingSystemState: Object.fromEntries(
-    Object.entries(values.operatingSystemState).map(([os, state]) => [
-      os,
-      { ...state, conditions: [...state.conditions].sort() },
-    ]),
-  ),
+  operatingSystemState: sortOperatingSystemState(values.operatingSystemState),
 });
 
-/** Projection of enforcement-related fields for `rulesChanged` comparison. */
+/**
+ * Projection of enforcement-related fields for `rulesChanged` comparison:
+ * everything except `name`, `description` and `locations`. Derived from
+ * `normalizeEditPostureCheckFormValues` so both comparisons share one sort
+ * policy.
+ */
 export const normalizeEditPostureCheckEnforcementFields = (
-  v: EditPostureCheckFormValues,
-) => ({
-  allowPrereleaseClient: v.allowPrereleaseClient,
-  configuredOperatingSystems: [...v.configuredOperatingSystems].sort(),
-  minimumDesktopClientVersion: v.minimumDesktopClientVersion,
-  minimumMobileClientVersion: v.minimumMobileClientVersion,
-  operatingSystemState: Object.fromEntries(
-    Object.entries(v.operatingSystemState).map(([os, state]) => [
-      os,
-      { ...state, conditions: [...state.conditions].sort() },
-    ]),
-  ),
-});
+  values: EditPostureCheckFormValues,
+) => {
+  const {
+    allowPrereleaseClient,
+    configuredOperatingSystems,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
+    operatingSystemState,
+  } = normalizeEditPostureCheckFormValues(values);
+
+  return {
+    allowPrereleaseClient,
+    configuredOperatingSystems,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
+    operatingSystemState,
+  };
+};
