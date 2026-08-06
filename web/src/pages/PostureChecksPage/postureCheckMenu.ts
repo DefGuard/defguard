@@ -16,7 +16,6 @@ type BuildPostureCheckMenuArgs = {
   row: PostureCheckRow;
   locationOptions: LocationOption[];
   navigate: ReturnType<typeof useNavigate>;
-  assignLocations: (locationIds: number[]) => void;
   assignLocationsAsync: (locationIds: number[]) => Promise<unknown>;
   duplicatePosture: () => void;
   onAfterEdit?: () => void;
@@ -27,7 +26,6 @@ export const buildPostureCheckMenuItems = ({
   row,
   locationOptions,
   navigate,
-  assignLocations,
   assignLocationsAsync,
   duplicatePosture,
   onAfterEdit,

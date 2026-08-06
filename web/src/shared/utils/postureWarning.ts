@@ -1,8 +1,8 @@
 import type { QueryKey } from '@tanstack/react-query';
-import type { WebErrorCode } from '../../api/types';
-import { openModal } from '../../hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../hooks/modalControls/modalTypes';
 import { m } from '../../paraglide/messages';
+import type { WebErrorCode } from '../api/types';
+import { openModal } from '../hooks/modalControls/modalsSubjects';
+import { ModalName } from '../hooks/modalControls/modalTypes';
 
 type PostureWarningKind = 'location' | 'postures';
 

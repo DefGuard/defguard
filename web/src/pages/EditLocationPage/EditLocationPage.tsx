@@ -473,20 +473,17 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const {
-    mutate: setLocationPostures,
-    mutateAsync: setLocationPosturesAsync,
-    isPending: isUpdatingLocationPostures,
-  } = useMutation({
-    mutationFn: (data: { postures: number[] }) =>
-      api.devicePosture.setLocationPostures(location.id, data),
-    meta: {
-      invalidate: [['device-posture'], ['network'], ['activity-log']],
-    },
-    onError: () => {
-      Snackbar.error(m.location_posture_checks_update_failed());
-    },
-  });
+  const { mutateAsync: setLocationPosturesAsync, isPending: isUpdatingLocationPostures } =
+    useMutation({
+      mutationFn: (data: { postures: number[] }) =>
+        api.devicePosture.setLocationPostures(location.id, data),
+      meta: {
+        invalidate: [['device-posture'], ['network'], ['activity-log']],
+      },
+      onError: () => {
+        Snackbar.error(m.location_posture_checks_update_failed());
+      },
+    });
 
   const openPostureChecksSelection = () => {
     useSelectionModal.setState({
