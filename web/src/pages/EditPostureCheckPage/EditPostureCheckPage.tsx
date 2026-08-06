@@ -35,7 +35,7 @@ import {
   getDevicePostureVersionMetadataQueryOptions,
   getLocationsQueryOptions,
 } from '../../shared/query';
-import { openPostureAssignmentWarning } from '../../shared/utils/postureWarning';
+import { confirmLocationSelectionChange } from '../../shared/utils/postureWarning';
 import { buildAddPostureCheckRequest } from '../AddPostureCheckWizardPage/payload';
 import { getDeletePostureCheckModalData } from '../PostureChecksPage/postureChecks';
 import {
@@ -146,71 +146,21 @@ const EditPostureCheckForm = ({
   }, [values.locations, defaults.locations]);
 
   const handleSubmit = () => {
-    if (defaults.locations.size === 0 && !locationsChanged) {
-      void saveMutation.mutateAsync(values);
-      return;
-    }
-
     if (rulesChanged || locationsChanged) {
-      const locationAddedIds: number[] = [];
-      const locationRemovedIds: number[] = [];
-
-      if (locationsChanged) {
-        for (const id of values.locations) {
-          if (!defaults.locations.has(id)) locationAddedIds.push(id);
-        }
-        for (const id of defaults.locations) {
-          if (!values.locations.has(id)) locationRemovedIds.push(id);
-        }
-      }
-
-      const nameById = new Map(locationOptions.map((loc) => [loc.id, loc.label]));
-      const addedNames = locationAddedIds.map((id) => nameById.get(id) ?? String(id));
-      const removedNames = locationRemovedIds.map((id) => nameById.get(id) ?? String(id));
-
-      if (rulesChanged && locationsChanged) {
-        openPostureAssignmentWarning({
-          kind: 'postures',
-          added: addedNames,
-          removed: removedNames,
-          extraBody: m.modal_posture_rules_warning_body(),
-          actionPromise: () => saveMutation.mutateAsync(values),
-          onError: () => {
-            Snackbar.error(m.posture_checks_edit_save_failed());
-          },
-        });
+      const deferred = rulesChanged && defaults.locations.size > 0;
+      if (
+        confirmLocationSelectionChange(
+          [...defaults.locations],
+          [...values.locations],
+          locationOptions,
+          () => saveMutation.mutateAsync(values),
+          deferred,
+        )
+      ) {
         return;
       }
-
-      if (locationsChanged) {
-        openPostureAssignmentWarning({
-          kind: 'postures',
-          added: addedNames,
-          removed: removedNames,
-          actionPromise: () => saveMutation.mutateAsync(values),
-          onError: () => {
-            Snackbar.error(m.posture_checks_edit_save_failed());
-          },
-        });
-        return;
-      }
-
-      openModal(ModalName.ConfirmAction, {
-        title: m.modal_posture_assignment_warning_title(),
-        contentMd: m.modal_posture_rules_warning_body(),
-        actionPromise: () => saveMutation.mutateAsync(values),
-        submitProps: {
-          text: m.controls_save_changes_anyway(),
-          variant: 'critical',
-        },
-        onError: () => {
-          Snackbar.error(m.posture_checks_edit_save_failed());
-        },
-      });
-      return;
     }
-
-    void saveMutation.mutateAsync(values);
+    saveMutation.mutate(values);
   };
 
   const updateValues = (
