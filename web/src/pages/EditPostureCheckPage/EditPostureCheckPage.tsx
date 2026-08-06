@@ -146,6 +146,11 @@ const EditPostureCheckForm = ({
   }, [values.locations, defaults.locations]);
 
   const handleSubmit = () => {
+    if (defaults.locations.size === 0 && !locationsChanged) {
+      void saveMutation.mutateAsync(values);
+      return;
+    }
+
     if (rulesChanged || locationsChanged) {
       const locationAddedIds: number[] = [];
       const locationRemovedIds: number[] = [];
