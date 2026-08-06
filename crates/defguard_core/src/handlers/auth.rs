@@ -26,8 +26,8 @@ use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
-    SESSION_COOKIE_NAME, WebAuthnRegistration,
+    ApiErrorResponse, ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode,
+    RecoveryCodes, SESSION_COOKIE_NAME, WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
@@ -124,17 +124,27 @@ pub async fn create_session(
     }
 }
 
-/// Authenticate a user.
-///
-/// # For successful login, returns:
-/// * 200 with MFA disabled
-/// * 201 with MFA enabled when additional authentication factor is required
+/// Authenticate a user
 #[utoipa::path(
     post,
     path = "/api/v1/auth",
+    tag = "auth",
+    request_body(content = Auth, description = "`username` also accepts the user's email address.", example = json!({"username": "admin", "password": "some-password"})),
     responses(
-        (status = OK, description = "User authenticated"),
-        (status = CREATED, description = "User authenticated, but an additional authentication factor is required"),
+        (status = 200, description = "User authenticated.", body = AuthResponse,
+            headers(
+                ("Set-Cookie" = String, description = "`defguard_session` cookie."),
+            ),
+        ),
+        (status = 201, description = "A second authentication factor is required. Verify one of the listed methods with the matching `/api/v1/auth/{method}` endpoint.", body = MFAInfo,
+            headers(
+                ("Set-Cookie" = String, description = "`defguard_session` cookie of a not fully authenticated session."),
+            ),
+        ),
+        (status = 401, description = "Invalid credentials or user groups are not synced.", body = ApiErrorResponse, example = json!({"msg": "Invalid credentials"})),
+        (status = 403, description = "License user limit reached.", body = ApiErrorResponse, example = json!({"msg": "License limit reached."})),
+        (status = 429, description = "Too many failed login attempts for this user.", body = ApiErrorResponse, example = json!({"msg": "Too many login attempts"})),
+        (status = 500, description = "Unable to authenticate user.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
 )]
 pub async fn authenticate(
@@ -305,13 +315,25 @@ pub async fn authenticate(
     }
 }
 
-/// Logout - forget the session cookie.
+/// Log out and clear the session cookie
 #[utoipa::path(
     post,
     path = "/api/v1/auth/logout",
+    tag = "auth",
     responses(
-        (status = OK, description = "User logged out"),
+        (status = 200, description = "Session removed.",
+            headers(
+                ("Set-Cookie" = String, description = "Expired `defguard_session` cookie."),
+            ),
+        ),
+        (status = 400, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "User 1 does not exist"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to remove the session.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
 )]
 pub async fn logout(
     cookies: CookieJar,
@@ -347,6 +369,23 @@ pub async fn logout(
 }
 
 /// Enable MFA
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    put,
+    path = "/api/v1/auth/mfa",
+    tag = "auth",
+    responses(
+        (status = 200, description = "MFA enabled. All other sessions of this user are terminated."),
+        (status = 304, description = "MFA could not be enabled, for example when no authentication factor is configured."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to enable MFA.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn mfa_enable(
     cookies: CookieJar,
     SessionExtractor(_session): SessionExtractor,
@@ -371,7 +410,23 @@ pub async fn mfa_enable(
     }
 }
 
-/// Disable own MFA
+/// Disable MFA
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/auth/mfa",
+    tag = "auth",
+    responses(
+        (status = 200, description = "MFA disabled."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to disable MFA.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn mfa_disable(
     session_info: SessionInfo,
     context: ApiRequestContext,
@@ -388,7 +443,26 @@ pub async fn mfa_disable(
     Ok(ApiResponse::default())
 }
 
-/// Disable specific user's MFA
+/// Disable MFA of a user
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/{username}/mfa",
+    tag = "user",
+    params(
+        ("username" = String, Path, description = "Name of the user."),
+    ),
+    responses(
+        (status = 200, description = "MFA disabled for the user."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
+        (status = 500, description = "Unable to disable MFA.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn disable_user_mfa(
     session_info: SessionInfo,
     context: ApiRequestContext,
@@ -406,7 +480,30 @@ pub async fn disable_user_mfa(
     Ok(ApiResponse::default())
 }
 
-/// Initialize WebAuthn registration
+/// Start WebAuthn registration
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/webauthn/init",
+    tag = "auth",
+    responses(
+        (status = 200, description = "WebAuthn registration challenge.", body = Object, example = json!({
+            "publicKey": {
+                "rp": {"name": "defguard", "id": "vpn.example.com"},
+                "user": {"id": "TDNkX2FkbWlu", "name": "admin", "displayName": "admin"},
+                "challenge": "y5EiUNc9wZ0mGvJ0mQdKZg",
+                "pubKeyCredParams": [{"type": "public-key", "alg": -7}]
+            }
+        })),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to start WebAuthn registration.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn webauthn_init(
     mut session_info: SessionInfo,
     State(appstate): State<AppState>,
@@ -441,6 +538,24 @@ pub async fn webauthn_init(
 }
 
 /// Finish WebAuthn registration
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/webauthn/finish",
+    tag = "auth",
+    request_body = WebAuthnRegistration,
+    responses(
+        (status = 200, description = "Security key registered. Returns recovery codes when this is the first configured factor.", body = RecoveryCodes),
+        (status = 400, description = "Invalid registration data.", body = ApiErrorResponse, example = json!({"msg": "Webauthn registration error"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to finish WebAuthn registration.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn webauthn_finish(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -513,6 +628,31 @@ pub async fn webauthn_finish(
 }
 
 /// Start WebAuthn authentication
+///
+/// Returns the challenge for the session started by `POST /api/v1/auth`. Send the answer to
+/// `POST /api/v1/auth/webauthn`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/webauthn/start",
+    tag = "auth",
+    responses(
+        (status = 200, description = "WebAuthn authentication challenge.", body = Object, example = json!({
+            "publicKey": {
+                "challenge": "y5EiUNc9wZ0mGvJ0mQdKZg",
+                "rpId": "vpn.example.com",
+                "allowCredentials": [{"type": "public-key", "id": "AbCdEf0123456789"}],
+                "userVerification": "preferred"
+            }
+        })),
+        (status = 400, description = "No security key is registered for this user.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to start WebAuthn authentication.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn webauthn_start(
     SessionExtractor(mut session): SessionExtractor,
     State(appstate): State<AppState>,
@@ -532,6 +672,24 @@ pub async fn webauthn_start(
 }
 
 /// Finish WebAuthn authentication
+///
+/// Verifies the second factor of the session started by `POST /api/v1/auth`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/webauthn",
+    tag = "auth",
+    request_body = Object,
+    responses(
+        (status = 200, description = "Security key verified, user is fully authenticated.", body = AuthResponse),
+        (status = 400, description = "Invalid security key assertion.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to finish WebAuthn authentication.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn webauthn_end(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
@@ -638,7 +796,23 @@ pub async fn webauthn_end(
     Err(WebError::Http(StatusCode::BAD_REQUEST))
 }
 
-/// Generate new TOTP secret
+/// Generate a new TOTP secret
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/totp/init",
+    tag = "auth",
+    responses(
+        (status = 200, description = "New TOTP secret. It becomes active only after `POST /api/v1/auth/totp`.", body = AuthTotp),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to generate TOTP secret.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
@@ -649,6 +823,24 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
 }
 
 /// Enable TOTP
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/totp",
+    tag = "auth",
+    request_body = AuthCode,
+    responses(
+        (status = 200, description = "TOTP enabled. Returns recovery codes when this is the first configured factor.", body = RecoveryCodes),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Invalid TOTP code.", body = ApiErrorResponse, example = json!({"msg": "Invalid TOTP code"})),
+        (status = 500, description = "Unable to enable TOTP.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn totp_enable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -686,7 +878,26 @@ pub async fn totp_enable(
     }
 }
 
-/// Disable TOTP
+/// Disable TOTP of a user
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/{username}/totp",
+    tag = "user",
+    params(
+        ("username" = String, Path, description = "Name of the user."),
+    ),
+    responses(
+        (status = 200, description = "TOTP disabled for the user."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
+        (status = 500, description = "Unable to disable TOTP.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn totp_disable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -705,7 +916,26 @@ pub async fn totp_disable(
     Ok(ApiResponse::default())
 }
 
-/// Validate one-time passcode
+/// Verify a TOTP code
+///
+/// Verifies the second factor of the session started by `POST /api/v1/auth`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/totp/verify",
+    tag = "auth",
+    request_body = AuthCode,
+    responses(
+        (status = 200, description = "TOTP code verified, user is fully authenticated.", body = AuthResponse),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Invalid TOTP code"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "Invalid user"})),
+        (status = 429, description = "Too many failed login attempts for this user.", body = ApiErrorResponse, example = json!({"msg": "Too many login attempts"})),
+        (status = 500, description = "Unable to verify TOTP code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn totp_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
@@ -800,7 +1030,24 @@ pub async fn totp_code(
     }
 }
 
-/// Initialize email MFA setup
+/// Start email MFA setup
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/email/init",
+    tag = "auth",
+    responses(
+        (status = 200, description = "Configuration started, email code sent."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to start email MFA configuration.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 503, description = "SMTP is not configured.", body = ApiErrorResponse, example = json!({"msg": "SMTP is not configured", "code": "smtp_not_configured"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     // check if SMTP is configured
     let settings = Settings::get_current_settings();
@@ -834,6 +1081,24 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
 }
 
 /// Enable email MFA
+///
+/// Applies to the user of the current session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/email",
+    tag = "auth",
+    request_body = AuthCode,
+    responses(
+        (status = 200, description = "Email MFA enabled. Returns recovery codes when this is the first configured factor.", body = RecoveryCodes),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Invalid email MFA code.", body = ApiErrorResponse, example = json!({"msg": "Invalid email MFA code"})),
+        (status = 500, description = "Unable to enable email MFA.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn email_mfa_enable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -870,7 +1135,26 @@ pub async fn email_mfa_enable(
     }
 }
 
-/// Disable email MFA
+/// Disable email MFA of a user
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/{username}/email",
+    tag = "user",
+    params(
+        ("username" = String, Path, description = "Name of the user."),
+    ),
+    responses(
+        (status = 200, description = "Email MFA disabled for the user."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "user not found"})),
+        (status = 500, description = "Unable to disable email MFA.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn email_mfa_disable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -889,7 +1173,25 @@ pub async fn email_mfa_disable(
     Ok(ApiResponse::default())
 }
 
-/// Send email code to user
+/// Send an email MFA code
+///
+/// Sends the code to the user of the session started by `POST /api/v1/auth`.
+#[utoipa::path(
+    get,
+    path = "/api/v1/auth/email",
+    tag = "auth",
+    responses(
+        (status = 200, description = "Email code sent."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Email MFA not enabled"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "Invalid user"})),
+        (status = 500, description = "Unable to send email MFA code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+        (status = 503, description = "SMTP is not configured.", body = ApiErrorResponse, example = json!({"msg": "SMTP is not configured", "code": "smtp_not_configured"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn request_email_mfa_code(
     SessionExtractor(session): SessionExtractor,
     State(appstate): State<AppState>,
@@ -918,7 +1220,26 @@ pub async fn request_email_mfa_code(
     }
 }
 
-/// Validate email MFA code
+/// Verify an email MFA code
+///
+/// Verifies the second factor of the session started by `POST /api/v1/auth`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/email/verify",
+    tag = "auth",
+    request_body = AuthCode,
+    responses(
+        (status = 200, description = "Email MFA code verified, user is fully authenticated.", body = AuthResponse),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Invalid email MFA code"})),
+        (status = 404, description = "User not found.", body = ApiErrorResponse, example = json!({"msg": "Invalid user"})),
+        (status = 429, description = "Too many failed login attempts for this user.", body = ApiErrorResponse, example = json!({"msg": "Too many login attempts"})),
+        (status = 500, description = "Unable to verify email MFA code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn email_mfa_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
@@ -1014,7 +1335,24 @@ pub async fn email_mfa_code(
     }
 }
 
-/// Authenticate with a recovery code.
+/// Authenticate with a recovery code
+///
+/// Verifies the second factor of the session started by `POST /api/v1/auth`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/recovery",
+    tag = "auth",
+    request_body = RecoveryCode,
+    responses(
+        (status = 200, description = "Recovery code verified, user is fully authenticated.", body = AuthResponse),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Unable to verify recovery code.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,

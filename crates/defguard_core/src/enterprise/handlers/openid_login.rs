@@ -14,7 +14,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, settings::OpenIdUsernameHandling, user::User},
+        models::{MFAInfo, Settings, settings::OpenIdUsernameHandling, user::User},
     },
 };
 use openidconnect::{
@@ -48,7 +48,8 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
-        ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+        ApiErrorResponse, ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME,
+        SIGN_IN_COOKIE_NAME,
         auth::create_session,
         cookie_domain,
         mail::send_user_import_blocked_email,
@@ -557,6 +558,20 @@ pub async fn user_from_claims(
     Ok(user)
 }
 
+/// Start login through the external OpenID provider
+///
+/// Returns the provider authorization URL the user should be redirected to.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/auth_info",
+    tag = "OpenID",
+    responses(
+        (status = 200, description = "Authorization URL of the external provider.", body = Object, example = json!({"url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=..."})),
+        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "No external OpenID provider is configured.", body = ApiErrorResponse, example = json!({"msg": "OpenID provider not set"})),
+        (status = 500, description = "Unable to build authorization URL.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn get_auth_info(
     _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
@@ -634,6 +649,31 @@ pub struct AuthenticationResponse {
     state: CsrfToken,
 }
 
+/// Finish login through the external OpenID provider
+///
+/// Exchanges the authorization code for tokens and creates a defguard session.
+#[utoipa::path(
+    post,
+    path = "/api/v1/openid/callback",
+    tag = "OpenID",
+    request_body = Object,
+    responses(
+        (status = 200, description = "User authenticated.", body = AuthResponse,
+            headers(
+                ("Set-Cookie" = String, description = "`defguard_session` cookie."),
+            ),
+        ),
+        (status = 201, description = "A second authentication factor is required. Verify one of the listed methods with the matching `/api/v1/auth/{method}` endpoint.", body = MFAInfo,
+            headers(
+                ("Set-Cookie" = String, description = "`defguard_session` cookie of a not fully authenticated session."),
+            ),
+        ),
+        (status = 400, description = "Invalid callback payload.", body = ApiErrorResponse, example = json!({"msg": "Invalid state"})),
+        (status = 401, description = "CSRF token mismatch or missing nonce cookie.", body = ApiErrorResponse, example = json!({"msg": "State mismatch"})),
+        (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to finish external login.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,

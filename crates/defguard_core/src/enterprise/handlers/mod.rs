@@ -24,7 +24,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
 pub struct LicenseInfo {
@@ -98,7 +98,40 @@ where
     }
 }
 
-/// Gets full information about enterprise status.
+/// Get information about the enterprise license and enabled features
+#[utoipa::path(
+    get,
+    path = "/api/v1/enterprise_info",
+    tag = "license",
+    responses(
+        (status = 200, description = "License information and effective enterprise features.", body = Object, example = json!({
+            "license_info": {
+                "valid_until": "2027-01-01T00:00:00Z",
+                "subscription": true,
+                "expired": false,
+                "limits_exceeded": false,
+                "tier": "Enterprise",
+                "support_type": "DirectEnterprise",
+                "limits": {
+                    "users": {"current": 12, "limit": 100},
+                    "locations": {"current": 2, "limit": 10},
+                    "user_devices": null,
+                    "network_devices": null,
+                    "devices": {"current": 30, "limit": 500}
+                },
+                "features": ["DevicePosture"],
+                "customer_id": "cus_00000000"
+            }
+        })),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to get license information.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let license = get_cached_license();
     let license_info = license.as_ref().map(|license| {

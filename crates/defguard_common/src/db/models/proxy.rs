@@ -10,6 +10,7 @@ use crate::db::{Id, NoId};
 
 #[derive(Clone, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub name: String,
     pub address: String,
