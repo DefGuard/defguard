@@ -10,7 +10,6 @@ use defguard_common::{
 use defguard_static_ip::error::StaticIpError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
-use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -25,7 +24,7 @@ use crate::{
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error, ToSchema)]
+#[derive(Debug, Error)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -56,46 +55,34 @@ pub enum WebError {
     #[error("Public key already exists {0}")]
     PubkeyExists(String),
     #[error("HTTP error: {0}")]
-    #[schema(value_type=Object)]
     Http(StatusCode),
     #[error(transparent)]
-    #[schema(value_type=Object)]
     TooManyLoginAttempts(#[from] FailedLoginError),
     #[error("Bad request: {0}")]
     BadRequest(String),
     #[error(transparent)]
-    #[schema(value_type=Object)]
     TemplateError(#[from] TemplateError),
     #[error("License error: {0}")]
-    #[schema(value_type=Object)]
     LicenseError(#[from] LicenseError),
     #[error("Failed to get client IP address")]
     ClientIpError,
     #[error("ACL error: {0}")]
-    #[schema(value_type=Object)]
     AclError(#[from] AclError),
     #[error("Firewall config error: {0}")]
-    #[schema(value_type=Object)]
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
-    #[schema(value_type=Object)]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
     #[error("Activity log stream error: {0}")]
-    #[schema(value_type=Object)]
     ActivityLogStreamError(#[from] ActivityLogStreamError),
     #[error(transparent)]
-    #[schema(value_type=Object)]
     CertificateError(#[from] defguard_certs::CertificateError),
     #[error(transparent)]
-    #[schema(value_type=Object)]
     UrlParseError(#[from] UrlParseError),
     #[error(transparent)]
-    #[schema(value_type=Object)]
     StaticIpError(#[from] StaticIpError),
     #[error("Network full: {0}")]
     NetworkFull(String),
     #[error(transparent)]
-    #[schema(value_type=Object)]
     IpNetwork(#[from] ipnetwork::IpNetworkError),
 }
 

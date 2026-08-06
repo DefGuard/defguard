@@ -72,7 +72,7 @@ impl fmt::Display for MFAMethod {
     }
 }
 
-/// Only `id` and `name` from [`WebAuthn`].
+/// A registered security key.
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct SecurityKey {
     pub id: Id,

@@ -6,6 +6,7 @@ use axum::{
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Deserializer, Serialize, de};
+use utoipa::ToSchema;
 
 use crate::error::WebError;
 
@@ -151,13 +152,18 @@ impl fmt::Display for PaginationParams {
     }
 }
 
-/// Metadata about the pagination included in response
-#[derive(Serialize)]
+/// Pagination metadata included in the response.
+#[derive(Serialize, ToSchema)]
 struct PaginationMeta {
+    /// Number of the returned page, starting from 1.
     current_page: u32,
+    /// Requested page size.
     page_size: u32,
+    /// Total number of items matching the query.
     total_items: u32,
+    /// Total number of pages for the requested page size.
     total_pages: u32,
+    /// Number of the next page, or `null` on the last page.
     next_page: Option<u32>,
 }
 
@@ -185,8 +191,10 @@ impl PaginationMeta {
 
 pub(crate) type PaginatedApiResult<T> = Result<PaginatedApiResponse<T>, WebError>;
 
-#[derive(Serialize)]
+/// Envelope returned by paginated endpoints.
+#[derive(Serialize, ToSchema)]
 pub(crate) struct PaginatedApiResponse<T> {
+    /// Items of the requested page.
     data: Vec<T>,
     pagination: PaginationMeta,
 }

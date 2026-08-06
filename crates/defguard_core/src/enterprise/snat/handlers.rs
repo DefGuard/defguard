@@ -22,28 +22,23 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
-/// List all SNAT bindings for a WireGuard location
-///
-/// # Returns
-/// - `Vec<UserSnatBinding<i64>>` object
-///
-/// - `WebError` if error occurs
+/// List SNAT bindings in a location
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/snat",
     tag = "SNAT",
     params(
-        ("location_id" = Id, Path, description = "WireGuard location ID")
+        ("location_id" = i64, Path, description = "ID of the location.")
     ),
     responses(
-        (status = 200, description = "List of SNAT bindings", body = [UserSnatBinding]),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - location does not exist"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "All SNAT bindings in the location.", body = [UserSnatBinding]),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Location 1 not found"})),
+        (status = 500, description = "Unable to list SNAT bindings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -73,37 +68,30 @@ pub async fn list_snat_bindings(
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct NewUserSnatBinding {
-    /// User ID to bind to the public IP
+    /// ID of the user bound to the public IP address.
     pub user_id: Id,
-    /// Public IP address for SNAT
+    /// Public IP address used for SNAT.
     #[schema(value_type = String)]
     pub public_ip: IpAddr,
 }
 
-/// Create a new SNAT binding for a user in a WireGuard location
-///
-/// Create snat binding basing on `NewUserSnatBinding` object.
-///
-/// # Returns
-/// - `UserSnatBinding<i64>` object
-///
-/// - `WebError` if error occurs
+/// Create a SNAT binding for a user in a location
 #[utoipa::path(
     post,
     path = "/api/v1/network/{location_id}/snat",
     tag = "SNAT",
     params(
-        ("location_id" = Id, Path, description = "WireGuard location ID")
+        ("location_id" = i64, Path, description = "ID of the location.")
     ),
     request_body = NewUserSnatBinding,
     responses(
-        (status = 201, description = "SNAT binding created successfully", body = UserSnatBinding),
-        (status = 400, description = "Bad request - Invalid input data"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - location or user does not exist"),
-        (status = 409, description = "Conflict - Binding already exists"),
-        (status = 500, description = "Internal server error")
+        (status = 201, description = "SNAT binding created.", body = UserSnatBinding),
+        (status = 400, description = "Invalid request data.", body = ApiErrorResponse, example = json!({"msg": "Invalid request data"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Location or user not found.", body = ApiErrorResponse, example = json!({"msg": "Location 1 not found"})),
+        (status = 409, description = "A SNAT binding for this user in this location already exists.", body = ApiErrorResponse, example = json!({"msg": "Binding already exists"})),
+        (status = 500, description = "Unable to create SNAT binding.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -170,35 +158,28 @@ pub async fn create_snat_binding(
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct EditUserSnatBinding {
-    /// New public IP address for SNAT
+    /// New public IP address used for SNAT.
     #[schema(value_type = String)]
     pub public_ip: IpAddr,
 }
 
-/// Modify an existing SNAT binding for a user in a WireGuard location
-///
-/// Modify an **existing** SNAT binding basing on `EditUserSnatBinding` object.
-///
-/// # Returns
-/// - `UserSnatBinding` object
-///
-/// - `WebError` if error occurs
+/// Update a SNAT binding
 #[utoipa::path(
     put,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
     tag = "SNAT",
     params(
-        ("location_id" = Id, Path, description = "WireGuard location ID"),
-        ("user_id" = Id, Path, description = "User ID")
+        ("location_id" = i64, Path, description = "ID of the location."),
+        ("user_id" = i64, Path, description = "ID of the user.")
     ),
     request_body = EditUserSnatBinding,
     responses(
-        (status = 200, description = "SNAT binding updated successfully", body = UserSnatBinding),
-        (status = 400, description = "Bad request - Invalid input data"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - SNAT binding does not exist"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "SNAT binding updated.", body = UserSnatBinding),
+        (status = 400, description = "Invalid request data.", body = ApiErrorResponse, example = json!({"msg": "Invalid request data"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Location, user or SNAT binding not found.", body = ApiErrorResponse, example = json!({"msg": "Binding not found"})),
+        (status = 500, description = "Unable to update SNAT binding.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -267,28 +248,21 @@ pub async fn modify_snat_binding(
     Ok(ApiResponse::json(snat_binding, StatusCode::OK))
 }
 
-/// Delete an existing SNAT binding for a user in a WireGuard location
-///
-/// Delete an existing SNAT binding basing on `location_id` and `user_id`.
-///
-/// # Returns
-/// - empty JSON
-///
-/// - `WebError` if error occurs
+/// Delete a SNAT binding
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
     tag = "SNAT",
     params(
-        ("location_id" = Id, Path, description = "WireGuard location ID"),
-        ("user_id" = Id, Path, description = "User ID")
+        ("location_id" = i64, Path, description = "ID of the location."),
+        ("user_id" = i64, Path, description = "ID of the user.")
     ),
     responses(
-        (status = 200, description = "SNAT binding deleted successfully"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden - Admin role required"),
-        (status = 404, description = "Not found - SNAT binding does not exist"),
-        (status = 500, description = "Internal server error")
+        (status = 200, description = "SNAT binding deleted."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "Location, user or SNAT binding not found.", body = ApiErrorResponse, example = json!({"msg": "Binding not found"})),
+        (status = 500, description = "Unable to delete SNAT binding.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),

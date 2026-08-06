@@ -13,7 +13,7 @@ use defguard_common::db::{
 use sqlx::PgPool;
 use struct_patch::Patch;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiErrorResponse, ApiResponse, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
@@ -25,6 +25,22 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
+/// Get instance settings
+#[utoipa::path(
+    get,
+    path = "/api/v1/settings",
+    tag = "settings",
+    responses(
+        (status = 200, description = "Instance settings.", body = Settings),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to get settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     if let Some(mut settings) = Settings::get(&appstate.pool).await? {
@@ -40,6 +56,26 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
     Ok(ApiResponse::default())
 }
 
+/// Replace instance settings
+///
+/// The whole settings object has to be sent. Use `PATCH` to update selected fields only.
+#[utoipa::path(
+    put,
+    path = "/api/v1/settings",
+    tag = "settings",
+    request_body = Settings,
+    responses(
+        (status = 200, description = "Settings updated."),
+        (status = 400, description = "Invalid settings.", body = ApiErrorResponse, example = json!({"msg": "Invalid settings"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to update settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn update_settings(
     _admin: AdminRole,
     session: SessionInfo,
@@ -70,6 +106,26 @@ pub(crate) async fn update_settings(
     Ok(ApiResponse::default())
 }
 
+/// Get settings required to render the web UI
+///
+/// Public endpoint. Returns only non-sensitive settings.
+#[utoipa::path(
+    get,
+    path = "/api/v1/settings_essentials",
+    tag = "settings",
+    responses(
+        (status = 200, description = "Essential settings.", body = Object, example = json!({
+            "instance_name": "defguard",
+            "main_logo_url": "/svg/logo-defguard-white.svg",
+            "nav_logo_url": "/svg/defguard-nav-logo.svg",
+            "wireguard_enabled": true,
+            "webhooks_enabled": true,
+            "worker_enabled": false,
+            "openid_enabled": true
+        })),
+        (status = 500, description = "Unable to get essential settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+)]
 pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Retrieving essential settings");
     let mut settings = SettingsEssentials::get_settings_essentials(&pool).await?;
@@ -85,6 +141,25 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
     Ok(ApiResponse::json(settings, StatusCode::OK))
 }
 
+/// Restore default branding settings
+#[utoipa::path(
+    put,
+    path = "/api/v1/settings/{id}",
+    tag = "settings",
+    params(
+        ("id" = i64, Path, description = "Not used."),
+    ),
+    responses(
+        (status = 200, description = "Instance settings, with the branding fields restored to defaults.", body = Settings),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to restore default branding settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn set_default_branding(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -117,6 +192,26 @@ pub(crate) async fn set_default_branding(
     }
 }
 
+/// Update selected instance settings
+///
+/// Only the fields present in the request body are modified. Sending `null` clears a field.
+#[utoipa::path(
+    patch,
+    path = "/api/v1/settings",
+    tag = "settings",
+    request_body = Object,
+    responses(
+        (status = 200, description = "Settings updated."),
+        (status = 400, description = "Invalid settings.", body = ApiErrorResponse, example = json!({"msg": "Invalid settings"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to update settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn patch_settings(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -166,6 +261,23 @@ pub async fn patch_settings(
     Ok(ApiResponse::default())
 }
 
+/// Test the LDAP connection using the currently saved settings
+#[utoipa::path(
+    get,
+    path = "/api/v1/ldap/test",
+    tag = "LDAP",
+    responses(
+        (status = 200, description = "LDAP connection established."),
+        (status = 400, description = "Unable to connect to LDAP."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to test LDAP connection.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
     debug!("Testing LDAP connection");
     match LDAPConnection::create().await {

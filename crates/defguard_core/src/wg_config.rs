@@ -10,13 +10,15 @@ use defguard_common::{
 };
 use ipnetwork::{IpNetwork, IpNetworkError};
 use thiserror::Error;
+use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
     pub wireguard_pubkey: String,
+    #[schema(value_type = Vec<String>)]
     pub wireguard_ips: Vec<IpAddr>,
 }
 

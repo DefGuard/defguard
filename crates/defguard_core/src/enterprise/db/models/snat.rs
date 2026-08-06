@@ -11,6 +11,7 @@ use crate::enterprise::snat::error::UserSnatBindingError;
 #[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 #[table(user_snat_binding)]
 pub struct UserSnatBinding<I = NoId> {
+    #[schema(value_type = i64)]
     pub id: I,
     pub user_id: Id,
     pub location_id: Id,

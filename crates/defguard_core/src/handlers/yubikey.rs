@@ -4,10 +4,32 @@ use axum::{
     http::StatusCode,
 };
 use defguard_common::db::{Id, models::YubiKey};
+use utoipa::ToSchema;
 
-use super::{ApiResponse, ApiResult, user_for_admin_or_self};
+use super::{ApiErrorResponse, ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
 
+/// Delete a YubiKey of a user
+#[utoipa::path(
+    delete,
+    path = "/api/v1/user/{username}/yubikey/{key_id}",
+    tag = "user",
+    params(
+        ("username" = String, Path, description = "Name of the user."),
+        ("key_id" = i64, Path, description = "ID of the YubiKey."),
+    ),
+    responses(
+        (status = 200, description = "YubiKey deleted."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User or YubiKey not found.", body = ApiErrorResponse, example = json!({"msg": "YubiKey not found"})),
+        (status = 500, description = "Unable to delete YubiKey.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn delete_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -31,11 +53,33 @@ pub(crate) async fn delete_yubikey(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub(crate) struct RenameRequest {
     name: String,
 }
 
+/// Rename a YubiKey of a user
+#[utoipa::path(
+    post,
+    path = "/api/v1/user/{username}/yubikey/{key_id}/rename",
+    tag = "user",
+    request_body = RenameRequest,
+    params(
+        ("username" = String, Path, description = "Name of the user."),
+        ("key_id" = i64, Path, description = "ID of the YubiKey."),
+    ),
+    responses(
+        (status = 200, description = "YubiKey renamed.", body = Object, example = json!({"id": 1, "name": "work key", "serial": "12345678", "user_id": 1})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "User or YubiKey not found.", body = ApiErrorResponse, example = json!({"msg": "YubiKey not found"})),
+        (status = 500, description = "Unable to rename YubiKey.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub(crate) async fn rename_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,
