@@ -448,15 +448,12 @@ pub(crate) async fn modify_network(
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
     let maybe_firewall_config =
         try_get_location_firewall_config(&network, &mut transaction).await?;
-    appstate.send_gateway_command(GatewayCommand::NetworkModified(
-        network.id,
-        network.clone(),
-        peers,
-        maybe_firewall_config,
-    ));
+    let gateway_command =
+        GatewayCommand::NetworkModified(network.id, network.clone(), peers, maybe_firewall_config);
 
     // commit DB transaction
     transaction.commit().await?;
+    appstate.send_gateway_command(gateway_command);
 
     info!(
         "User {} updated WireGuard network {network_id}",

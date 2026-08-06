@@ -408,6 +408,80 @@ async fn fetch_location_postures(client: &TestClient, location_id: i64) -> Vec<i
 }
 
 #[sqlx::test]
+async fn test_modify_network_does_not_notify_gateway_when_commit_fails(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_payload(
+            "location",
+            "10.1.1.1/24",
+            "disabled",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+
+    let pool = client_state.pool.clone();
+    let mut gateway_rx = client_state.gateway_rx;
+    assert_matches!(
+        gateway_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkCreated(..)
+    );
+
+    sqlx::query(
+        "CREATE FUNCTION fail_network_update_commit() RETURNS trigger AS $$
+         BEGIN
+             RAISE EXCEPTION 'forced commit failure';
+         END;
+         $$ LANGUAGE plpgsql",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "CREATE CONSTRAINT TRIGGER fail_network_update_commit
+         AFTER UPDATE ON wireguard_network
+         DEFERRABLE INITIALLY DEFERRED
+         FOR EACH ROW EXECUTE FUNCTION fail_network_update_commit()",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "renamed-location",
+            "10.1.1.1/24",
+            "disabled",
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_matches!(
+        gateway_rx.try_recv(),
+        Err(tokio::sync::broadcast::error::TryRecvError::Empty)
+    );
+
+    let response = client
+        .get(format!("/api/v1/network/{}", location.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let persisted: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(persisted.name, "location");
+}
+
+#[sqlx::test]
 async fn test_create_network_rejects_service_location_with_mfa(
     _: PgPoolOptions,
     options: PgConnectOptions,
