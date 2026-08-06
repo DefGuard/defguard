@@ -873,8 +873,7 @@ impl ClientMfaServer {
     /// session internals.
     ///
     /// A location with no postures assigned is approved with an *empty* preshared key and no
-    /// session, since its peers are handed to the gateway without one - see the `has_postures`
-    /// check below.
+    /// session, since its peers are handed to the gateway without one.
     pub async fn handle_posture_check(
         &mut self,
         request: DevicePostureCheckRequest,
@@ -985,7 +984,6 @@ impl ClientMfaServer {
             });
         }
 
-        // Evaluate posture. Use values already validated above rather than the untrusted request.
         let posture_result = match validate_posture(
             &self.pool,
             location.id,

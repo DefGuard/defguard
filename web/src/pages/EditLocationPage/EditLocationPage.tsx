@@ -928,92 +928,71 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </>
           )}
         </form.Subscribe>
-        <form.Subscribe selector={(s) => s.values.service_location_mode}>
-          {(serviceLocationMode) => (
-            <>
-              {serviceLocationMode === LocationServiceMode.Prelogon && (
-                <InfoBanner
-                  icon="info-outlined"
-                  variant="info"
-                  text={m.location_posture_prelogon_windows_only()}
-                />
-              )}
-              <EditPageFormSection
-                label={m.cmp_nav_item_posture_checks()}
-                labelContent={postureChecksLabelContent}
-              >
-                {postureChecksSectionState.showEmptyState && (
-                  <div className="posture-checks-empty-state">
-                    <img
-                      src={postureCheckShield}
-                      alt=""
-                      className="posture-check-shield"
-                    />
-                    <p>
-                      {m.location_posture_checks_empty_state_before_link()}{' '}
-                      <Link to="/acl/posture-checks">
-                        {m.cmp_nav_item_posture_checks()}
-                      </Link>{' '}
-                      {m.location_posture_checks_empty_state_after_link()}
-                    </p>
-                  </div>
-                )}
-                {postureChecksSectionState.showAssignedPostureChecks && (
-                  <div className="posture-checks-assigned-state">
-                    <SelectMultiple
-                      options={postureCheckOptions}
-                      selected={
-                        new Set(
-                          assignedPostureChecks?.map((postureCheck) => postureCheck.id),
-                        )
-                      }
-                      modalTitle={m.location_posture_checks_select()}
-                      editText={m.location_posture_checks_edit()}
-                      editIcon={IconKind.Edit}
-                      toggleValue={false}
-                      counterText={() => ''}
-                      onSelectionChange={(values) => {
-                        setLocationPostures({
-                          postures: values.filter(
-                            (value): value is number => typeof value === 'number',
-                          ),
-                        });
-                      }}
-                      onToggleChange={() => {}}
-                      selectionCustomItemRender={renderPostureCheckSelectionItem}
-                      selectionModalProps={{
-                        contentClassName: 'posture-check-assignment-modal',
-                        enableDividers: true,
-                        itemGap: 12,
-                        searchPlaceholder: m.controls_search(),
-                        visibleItemsLimit: 6,
-                      }}
-                    />
-                  </div>
-                )}
-                {postureChecksSectionState.showAssignButton && (
-                  <Button
-                    variant="outlined"
-                    iconLeft={IconKind.ConnectedDevices}
-                    loading={isUpdatingLocationPostures}
-                    text={m.posture_checks_wizard_title()}
-                    onClick={openPostureChecksSelection}
-                  />
-                )}
-                {postureChecksSectionState.showLockedButton && (
-                  <div className="posture-checks-locked-state">
-                    <Button
-                      variant="primary"
-                      disabled
-                      iconLeft={IconKind.ConnectedDevices}
-                      text={m.posture_checks_wizard_title()}
-                    />
-                  </div>
-                )}
-              </EditPageFormSection>
-            </>
+        <EditPageFormSection
+          label={m.cmp_nav_item_posture_checks()}
+          labelContent={postureChecksLabelContent}
+        >
+          {postureChecksSectionState.showEmptyState && (
+            <div className="posture-checks-empty-state">
+              <img src={postureCheckShield} alt="" className="posture-check-shield" />
+              <p>
+                {m.location_posture_checks_empty_state_before_link()}{' '}
+                <Link to="/acl/posture-checks">{m.cmp_nav_item_posture_checks()}</Link>{' '}
+                {m.location_posture_checks_empty_state_after_link()}
+              </p>
+            </div>
           )}
-        </form.Subscribe>
+          {postureChecksSectionState.showAssignedPostureChecks && (
+            <div className="posture-checks-assigned-state">
+              <SelectMultiple
+                options={postureCheckOptions}
+                selected={
+                  new Set(assignedPostureChecks?.map((postureCheck) => postureCheck.id))
+                }
+                modalTitle={m.location_posture_checks_select()}
+                editText={m.location_posture_checks_edit()}
+                editIcon={IconKind.Edit}
+                toggleValue={false}
+                counterText={() => ''}
+                onSelectionChange={(values) => {
+                  setLocationPostures({
+                    postures: values.filter(
+                      (value): value is number => typeof value === 'number',
+                    ),
+                  });
+                }}
+                onToggleChange={() => {}}
+                selectionCustomItemRender={renderPostureCheckSelectionItem}
+                selectionModalProps={{
+                  contentClassName: 'posture-check-assignment-modal',
+                  enableDividers: true,
+                  itemGap: 12,
+                  searchPlaceholder: m.controls_search(),
+                  visibleItemsLimit: 6,
+                }}
+              />
+            </div>
+          )}
+          {postureChecksSectionState.showAssignButton && (
+            <Button
+              variant="outlined"
+              iconLeft={IconKind.ConnectedDevices}
+              loading={isUpdatingLocationPostures}
+              text={m.posture_checks_wizard_title()}
+              onClick={openPostureChecksSelection}
+            />
+          )}
+          {postureChecksSectionState.showLockedButton && (
+            <div className="posture-checks-locked-state">
+              <Button
+                variant="primary"
+                disabled
+                iconLeft={IconKind.ConnectedDevices}
+                text={m.posture_checks_wizard_title()}
+              />
+            </div>
+          )}
+        </EditPageFormSection>
         <form.Subscribe
           selector={(form) => ({
             isSubmitting: form.isSubmitting,
