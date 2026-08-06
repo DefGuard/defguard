@@ -4,8 +4,17 @@ import { ModalName } from '../hooks/modalControls/modalTypes';
 
 type Option = { readonly id: number; readonly label: string };
 
-/** Escape markdown control characters so admin-supplied labels render as literal text. */
-const escapeMarkdown = (s: string) => s.replace(/[\\`*_{}[\]()#+\-.!>|~]/g, '\\$&');
+/**
+ * Every ASCII punctuation character, all of which CommonMark guarantees are
+ * backslash-escapable. Escaping the whole set rather than an enumerated subset
+ * leaves no character to audit: `<` and `&` matter in particular, because
+ * `RenderMarkdown` runs `rehypeRaw`, so an unescaped tag or entity in a name
+ * would be parsed as HTML rather than shown to the admin as written.
+ */
+const MARKDOWN_PUNCTUATION = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/g;
+
+/** Escape markdown and HTML syntax so admin-supplied labels render as literal text. */
+const escapeMarkdown = (value: string) => value.replace(MARKDOWN_PUNCTUATION, '\\$&');
 
 type SelectionChangeArgs = {
   current: Iterable<number>;

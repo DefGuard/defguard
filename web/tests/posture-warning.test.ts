@@ -249,6 +249,44 @@ describe('markdown escaping', () => {
     expect(contentMd).toContain('- plain');
   });
 
+  it('escapes HTML syntax so rehypeRaw cannot parse a tag out of a label', () => {
+    const htmlOptions: Option[] = [
+      { id: 1, label: 'old' },
+      { id: 2, label: '<b>bold</b>' },
+      { id: 3, label: '<img src=x onerror=alert(1)>' },
+      { id: 4, label: '&amp;' },
+    ];
+
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2, 3, 4],
+      options: htmlOptions,
+      actionPromise: noop,
+    });
+
+    const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
+    expect(contentMd).toContain('\\<b\\>bold\\<\\/b\\>');
+    expect(contentMd).toContain('\\<img src\\=x onerror\\=alert\\(1\\)\\>');
+    expect(contentMd).toContain('\\&amp\\;');
+  });
+
+  it('leaves no unescaped angle bracket or ampersand in the body', () => {
+    const hostileOptions: Option[] = [
+      { id: 1, label: '<a href="https://evil.example">click</a>' },
+      { id: 2, label: '<script>alert(1)</script> & co' },
+    ];
+
+    confirmPostureSelectionChange({
+      current: [1],
+      next: [2],
+      options: hostileOptions,
+      actionPromise: noop,
+    });
+
+    const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
+    expect(contentMd).not.toMatch(/(?<!\\)[<>&]/);
+  });
+
   it('prevents underscores from being interpreted as italics', () => {
     const underscoreOptions: Option[] = [
       { id: 1, label: 'old' },
