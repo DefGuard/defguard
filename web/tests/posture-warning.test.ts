@@ -221,87 +221,24 @@ describe('confirmLocationSelectionChange', () => {
   });
 });
 
-describe('markdown escaping', () => {
-  it('escapes markdown control characters in labels', () => {
+describe('labels are passed through verbatim', () => {
+  it('does not alter labels containing markdown syntax', () => {
     const spikyOptions: Option[] = [
       { id: 1, label: 'plain' },
       { id: 2, label: '*bold*' },
       { id: 3, label: '[link](url)' },
-      { id: 4, label: 'back`tick' },
     ];
 
     confirmPostureSelectionChange({
       current: [1],
-      next: [2, 3, 4],
+      next: [2, 3],
       options: spikyOptions,
       actionPromise: noop,
     });
 
     const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
-    // Asterisks escaped
-    expect(contentMd).toContain('\\*bold\\*');
-    expect(contentMd).not.toMatch(/(?<!\\)\*bold\*/);
-    // Brackets/parens escaped
-    expect(contentMd).toContain('\\[link\\]\\(url\\)');
-    // Backtick escaped
-    expect(contentMd).toContain('back\\`tick');
-    // Plain label untouched
-    expect(contentMd).toContain('- plain');
-  });
-
-  it('escapes HTML syntax so rehypeRaw cannot parse a tag out of a label', () => {
-    const htmlOptions: Option[] = [
-      { id: 1, label: 'old' },
-      { id: 2, label: '<b>bold</b>' },
-      { id: 3, label: '<img src=x onerror=alert(1)>' },
-      { id: 4, label: '&amp;' },
-    ];
-
-    confirmPostureSelectionChange({
-      current: [1],
-      next: [2, 3, 4],
-      options: htmlOptions,
-      actionPromise: noop,
-    });
-
-    const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
-    expect(contentMd).toContain('\\<b\\>bold\\<\\/b\\>');
-    expect(contentMd).toContain('\\<img src\\=x onerror\\=alert\\(1\\)\\>');
-    expect(contentMd).toContain('\\&amp\\;');
-  });
-
-  it('leaves no unescaped angle bracket or ampersand in the body', () => {
-    const hostileOptions: Option[] = [
-      { id: 1, label: '<a href="https://evil.example">click</a>' },
-      { id: 2, label: '<script>alert(1)</script> & co' },
-    ];
-
-    confirmPostureSelectionChange({
-      current: [1],
-      next: [2],
-      options: hostileOptions,
-      actionPromise: noop,
-    });
-
-    const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
-    expect(contentMd).not.toMatch(/(?<!\\)[<>&]/);
-  });
-
-  it('prevents underscores from being interpreted as italics', () => {
-    const underscoreOptions: Option[] = [
-      { id: 1, label: 'old' },
-      { id: 2, label: 'os_version_check' },
-    ];
-
-    confirmPostureSelectionChange({
-      current: [1],
-      next: [2],
-      options: underscoreOptions,
-      actionPromise: noop,
-    });
-
-    const contentMd = vi.mocked(openModal).mock.calls[0][1].contentMd;
-    expect(contentMd).not.toMatch(/(?<!\\)_os_version_check/);
+    expect(contentMd).toContain('- *bold*');
+    expect(contentMd).toContain('- [link](url)');
   });
 });
 

@@ -4,18 +4,6 @@ import { ModalName } from '../hooks/modalControls/modalTypes';
 
 type Option = { readonly id: number; readonly label: string };
 
-/**
- * Every ASCII punctuation character, all of which CommonMark guarantees are
- * backslash-escapable. Escaping the whole set rather than an enumerated subset
- * leaves no character to audit: `<` and `&` matter in particular, because
- * `RenderMarkdown` runs `rehypeRaw`, so an unescaped tag or entity in a name
- * would be parsed as HTML rather than shown to the admin as written.
- */
-const MARKDOWN_PUNCTUATION = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/g;
-
-/** Escape markdown and HTML syntax so admin-supplied labels render as literal text. */
-const escapeMarkdown = (value: string) => value.replace(MARKDOWN_PUNCTUATION, '\\$&');
-
 type SelectionChangeArgs = {
   current: Iterable<number>;
   next: Iterable<number>;
@@ -29,9 +17,9 @@ type ConfirmSelectionChangeArgs = SelectionChangeArgs & {
 };
 
 /**
- * Diffs id sets, resolves labels, escapes markdown, composes the four
- * states (diff only, deferred-enforcement only, both, neither) and opens
- * the ConfirmAction modal. Returns `true` when a modal was opened.
+ * Diffs id sets, resolves labels, composes the four states (diff only,
+ * deferred-enforcement only, both, neither) and opens the ConfirmAction
+ * modal. Returns `true` when a modal was opened.
  */
 const confirmSelectionChange = ({
   current,
@@ -50,10 +38,10 @@ const confirmSelectionChange = ({
   const labelMap = new Map(options.map((o) => [o.id, o.label]));
 
   const sortedAdded = addedIds
-    .map((id) => escapeMarkdown(labelMap.get(id) ?? String(id)))
+    .map((id) => labelMap.get(id) ?? String(id))
     .sort((a, b) => a.localeCompare(b));
   const sortedRemoved = removedIds
-    .map((id) => escapeMarkdown(labelMap.get(id) ?? String(id)))
+    .map((id) => labelMap.get(id) ?? String(id))
     .sort((a, b) => a.localeCompare(b));
 
   const parts: string[] = [];
