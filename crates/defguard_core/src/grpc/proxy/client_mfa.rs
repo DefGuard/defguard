@@ -212,7 +212,7 @@ impl ClientMfaServer {
             })?;
 
         // validate user is allowed to connect to a given location
-        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+        Self::validate_location_access(&self.pool, &location, &device, &user_info).await?;
 
         // Evaluate postures if necessary.
         let has_postures = location.has_postures(&self.pool).await.map_err(|err| {
@@ -470,10 +470,11 @@ impl ClientMfaServer {
         }))
     }
 
-    /// Checks if given user is allowed to access a location
+    /// Checks whether the user and device are allowed to access a location.
     async fn validate_location_access(
         pool: &PgPool,
         location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
         user_info: &UserInfo,
     ) -> Result<(), Status> {
         // acquire connection
@@ -502,10 +503,26 @@ impl ClientMfaServer {
                 {allowed_groups:?}",
                 user_info.username, user_info.groups
             );
-            Err(Status::unauthenticated("unauthorized"))
-        } else {
-            Ok(())
+            return Err(Status::unauthenticated("unauthorized"));
         }
+
+        let assignment = WireguardNetworkDevice::find(&mut *conn, device.id, location.id)
+            .await
+            .map_err(|err| {
+                error!(
+                    "Failed to validate assignment for device {device} in location {location}: \
+                    {err}"
+                );
+                Status::internal("unexpected error")
+            })?;
+        if assignment.is_none() {
+            error!("Device {device} is not assigned to location {location}");
+            return Err(Status::permission_denied(
+                "device is not assigned to location",
+            ));
+        }
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -964,7 +981,7 @@ impl ClientMfaServer {
                 );
                 Status::internal("unexpected error")
             })?;
-        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+        Self::validate_location_access(&self.pool, &location, &device, &user_info).await?;
 
         // If location has no postures assigned, approve the posture check returning empty string as PSK.
         // This way the client can recover on it's own if the admin unassigns PCs from a location and the client
@@ -1730,6 +1747,44 @@ mod tests {
             gateway_rx.try_recv().is_err(),
             "no gateway command may be sent when a location has no postures"
         );
+    }
+
+    #[sqlx::test]
+    async fn test_posture_check_without_postures_rejects_device_not_assigned_to_location(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        let token = create_polling_token(&pool, device.id).await;
+        let (mut server, mut event_rx, mut gateway_rx) = make_server(pool);
+
+        let status = match server
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey,
+                    device_posture_data: None,
+                    token: Some(token),
+                },
+                device_info(),
+            )
+            .await
+        {
+            Ok(_) => panic!("a device not assigned to the location must not be approved"),
+            Err(status) => status,
+        };
+
+        assert_eq!(status.code(), Code::PermissionDenied);
+        assert_eq!(status.message(), "device is not assigned to location");
+        assert!(event_rx.try_recv().is_err());
+        assert!(gateway_rx.try_recv().is_err());
     }
 
     /// The empty-preshared-key approval must not outrank the access checks: deactivating a user has
