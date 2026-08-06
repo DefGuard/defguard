@@ -233,7 +233,7 @@ export const PostureChecksTable = ({
             row,
             locationOptions,
             navigate,
-            assignLocationsAsync: (locations) =>
+            assignLocations: (locations) =>
               assignLocationsAsync({ postureCheckId: row.id, locations }),
             duplicatePosture: () => duplicatePosture(row.id),
           });

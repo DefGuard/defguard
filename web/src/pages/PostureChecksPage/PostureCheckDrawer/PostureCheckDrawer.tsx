@@ -74,7 +74,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     row,
     locationOptions,
     navigate,
-    assignLocationsAsync,
+    assignLocations: assignLocationsAsync,
     onAfterEdit: onClose,
     onAfterDelete: onClose,
     duplicatePosture: () => duplicatePosture(row.id),
