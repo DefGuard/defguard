@@ -125,27 +125,22 @@ const EditPostureCheckForm = ({
     [defaults, values],
   );
 
-  const locationsChanged = useMemo(() => {
-    if (values.locations.size !== defaults.locations.size) return true;
-    for (const id of values.locations) {
-      if (!defaults.locations.has(id)) return true;
-    }
-    return false;
-  }, [values.locations, defaults.locations]);
-
   const handleSubmit = () => {
-    if (rulesChanged || locationsChanged) {
-      const modalOpened = confirmLocationSelectionChange({
-        current: defaults.locations,
-        next: values.locations,
-        options: locationOptions,
-        actionPromise: () => saveMutation.mutateAsync(values),
-        // A posture assigned to no locations after this save enforces nothing
-        // anywhere, so the deferred-enforcement claim would be misleading.
-        deferredEnforcement: rulesChanged && values.locations.size > 0,
-      });
-      if (modalOpened) return;
-    }
+    // The helper diffs the location sets itself and returns false when there is
+    // nothing to confirm, which covers the submit that changed only the name or
+    // description.
+    const modalOpened = confirmLocationSelectionChange({
+      current: defaults.locations,
+      next: values.locations,
+      options: locationOptions,
+      actionPromise: () => saveMutation.mutateAsync(values),
+      // A posture assigned to no locations after this save enforces nothing
+      // anywhere, so the deferred-enforcement claim would be misleading.
+      deferredEnforcement: rulesChanged && values.locations.size > 0,
+    });
+
+    if (modalOpened) return;
+
     saveMutation.mutate(values);
   };
 

@@ -17,6 +17,26 @@ type ConfirmSelectionChangeArgs = SelectionChangeArgs & {
 };
 
 /**
+ * One bold heading followed by the ids as label bullets, sorted by label, or
+ * `null` when there are no ids so the group is omitted along with its heading.
+ */
+const formatGroup = (
+  heading: string,
+  ids: number[],
+  labelFor: (id: number) => string,
+) => {
+  if (ids.length === 0) return null;
+
+  const bullets = ids
+    .map(labelFor)
+    .sort((left, right) => left.localeCompare(right))
+    .map((label) => `- ${label}`)
+    .join('\n');
+
+  return `**${heading}**\n\n${bullets}`;
+};
+
+/**
  * Diffs id sets, resolves labels, composes the four states (diff only,
  * deferred-enforcement only, both, neither) and opens the ConfirmAction
  * modal. Returns `true` when a modal was opened.
@@ -35,32 +55,13 @@ const confirmSelectionChange = ({
   const addedIds = [...nextSet].filter((id) => !currentSet.has(id));
   const removedIds = [...currentSet].filter((id) => !nextSet.has(id));
 
-  const labelMap = new Map(options.map((o) => [o.id, o.label]));
+  const labelMap = new Map(options.map((option) => [option.id, option.label]));
+  const labelFor = (id: number) => labelMap.get(id) ?? String(id);
 
-  const sortedAdded = addedIds
-    .map((id) => labelMap.get(id) ?? String(id))
-    .sort((a, b) => a.localeCompare(b));
-  const sortedRemoved = removedIds
-    .map((id) => labelMap.get(id) ?? String(id))
-    .sort((a, b) => a.localeCompare(b));
-
-  const parts: string[] = [];
-
-  if (sortedAdded.length > 0) {
-    parts.push(
-      `**${m.modal_posture_assignment_warning_added()}**\n\n${sortedAdded
-        .map((name) => `- ${name}`)
-        .join('\n')}`,
-    );
-  }
-
-  if (sortedRemoved.length > 0) {
-    parts.push(
-      `**${m.modal_posture_assignment_warning_removed()}**\n\n${sortedRemoved
-        .map((name) => `- ${name}`)
-        .join('\n')}`,
-    );
-  }
+  const parts = [
+    formatGroup(m.modal_posture_assignment_warning_added(), addedIds, labelFor),
+    formatGroup(m.modal_posture_assignment_warning_removed(), removedIds, labelFor),
+  ].filter((part): part is string => part !== null);
 
   const changes = parts.length > 0 ? parts.join('\n\n') : null;
   const hasDiff = changes !== null;
