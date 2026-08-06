@@ -37,6 +37,7 @@ import {
 } from '../../shared/query';
 import { openPostureAssignmentWarning } from '../../shared/utils/postureWarning';
 import { buildAddPostureCheckRequest } from '../AddPostureCheckWizardPage/payload';
+import { getDeletePostureCheckModalData } from '../PostureChecksPage/postureChecks';
 import {
   getPostureCheckVersionValues,
   type PostureCheckVersionValues,
@@ -253,12 +254,15 @@ const EditPostureCheckForm = ({
           text: m.controls_delete(),
           disabled: saveMutation.isPending,
           onClick: () => {
+            const assignedLocationNames = locationOptions
+              .filter((loc) => postureCheck.locations.includes(loc.id))
+              .map((loc) => loc.label);
+
             openModal(ModalName.ConfirmAction, {
-              title: m.posture_checks_edit_delete_title(),
-              contentMd: m.posture_checks_edit_delete_body({ name: postureCheck.name }),
-              actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
-              invalidateKeys: [['device-posture'], ['network'], ['activity-log']],
-              submitProps: { text: m.controls_delete(), variant: 'critical' },
+              ...getDeletePostureCheckModalData(
+                { id: postureCheck.id, name: postureCheck.name },
+                assignedLocationNames,
+              ),
               onSuccess: () => {
                 Snackbar.default(m.posture_checks_edit_delete_success());
                 navigate({ to: '/acl/posture-checks', replace: true });
