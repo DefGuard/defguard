@@ -6,7 +6,6 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
-
 use utoipa::ToSchema;
 
 use super::{

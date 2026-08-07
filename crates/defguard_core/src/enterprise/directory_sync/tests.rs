@@ -650,6 +650,38 @@ mod test {
         assert_eq!(user_groups[0].id, group.id);
     }
 
+    // Logging in through OIDC used to sync the user's groups regardless of the configured sync
+    // target, overwriting locally managed group assignments when the target was set to users only.
+    #[sqlx::test]
+    async fn test_sync_user_groups_target_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::Users,
+            false,
+        )
+        .await;
+        let user = make_test_user_and_device("testuser", &pool).await;
+        let local_group = Group::new("localgroup").save(&pool).await.unwrap();
+        user.add_to_group(&pool, &local_group).await.unwrap();
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+
+        sync_user_groups_if_configured(&user, &pool, &gateway_tx, &ldap_tx, &dirsync_tx)
+            .await
+            .unwrap();
+
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 1);
+        assert_eq!(user_groups[0].id, local_group.id);
+    }
+
     #[sqlx::test]
     async fn test_sync_target_users(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;

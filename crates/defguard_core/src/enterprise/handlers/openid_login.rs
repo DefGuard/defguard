@@ -807,9 +807,45 @@ pub async fn auth_callback(
 
 #[cfg(test)]
 mod test {
+    use std::{
+        net::Ipv4Addr,
+        sync::{Arc, Mutex, RwLock, atomic::AtomicBool},
+    };
+
+    use axum::http::HeaderMap;
+    use axum_extra::extract::cookie::Key;
+    use chrono::Utc;
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::{
+            models::{group::Group, settings::initialize_current_settings},
+            setup_pool,
+        },
+    };
+    use openidconnect::{
+        AccessToken, Audience, AuthUrl, EmptyAdditionalClaims, EmptyAdditionalProviderMetadata,
+        EmptyExtraTokenFields, EndUserEmail, JsonWebKeySetUrl, PrivateSigningKey, ResponseTypes,
+        StandardClaims, SubjectIdentifier, TokenUrl,
+        core::{
+            CoreIdToken, CoreIdTokenClaims, CoreIdTokenFields, CoreJsonWebKeySet,
+            CoreJwsSigningAlgorithm, CoreResponseType, CoreSubjectIdentifierType,
+            CoreTokenResponse, CoreTokenType,
+        },
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc};
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path},
+    };
+
     use super::*;
     use crate::{
+        auth::failed_login::FailedLoginMap,
         enterprise::{
+            db::models::openid_provider::{
+                DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+            },
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{Counts, set_counts},
         },
@@ -995,5 +1031,222 @@ mod test {
         set_cached_license(Some(license));
 
         assert_eq!(reached_user_license_limit(), None);
+    }
+
+    const TEST_CLIENT_ID: &str = "client_id";
+    const TEST_NONCE: &str = "test_nonce";
+    const TEST_CSRF: &str = "test_csrf";
+    const TEST_SUB: &str = "test_sub";
+
+    async fn make_mock_provider_server(email: &str) -> MockServer {
+        let server = MockServer::start().await;
+        let issuer = IssuerUrl::new(server.uri()).unwrap();
+        let signing_key = Settings::get_current_settings()
+            .openid_key_required()
+            .unwrap();
+
+        let metadata = CoreProviderMetadata::new(
+            issuer.clone(),
+            AuthUrl::new(format!("{}/authorize", server.uri())).unwrap(),
+            JsonWebKeySetUrl::new(format!("{}/jwks", server.uri())).unwrap(),
+            vec![ResponseTypes::new(vec![CoreResponseType::Code])],
+            vec![CoreSubjectIdentifierType::Public],
+            vec![CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256],
+            EmptyAdditionalProviderMetadata {},
+        )
+        .set_token_endpoint(Some(
+            TokenUrl::new(format!("{}/token", server.uri())).unwrap(),
+        ));
+
+        let issue_time = Utc::now();
+        let id_token = CoreIdToken::new(
+            CoreIdTokenClaims::new(
+                issuer,
+                vec![Audience::new(TEST_CLIENT_ID.to_owned())],
+                issue_time + chrono::Duration::hours(1),
+                issue_time,
+                StandardClaims::new(SubjectIdentifier::new(TEST_SUB.to_owned()))
+                    .set_email(Some(EndUserEmail::new(email.to_owned()))),
+                EmptyAdditionalClaims {},
+            )
+            .set_nonce(Some(Nonce::new(TEST_NONCE.to_owned()))),
+            &signing_key,
+            CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
+            None,
+            None,
+        )
+        .unwrap();
+        let token_response = CoreTokenResponse::new(
+            AccessToken::new("access_token".to_owned()),
+            CoreTokenType::Bearer,
+            CoreIdTokenFields::new(Some(id_token), EmptyExtraTokenFields {}),
+        );
+
+        Mock::given(method("GET"))
+            .and(path("/.well-known/openid-configuration"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(metadata))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/jwks"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(CoreJsonWebKeySet::new(vec![
+                    signing_key.as_verification_key(),
+                ])),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(token_response))
+            .mount(&server)
+            .await;
+
+        server
+    }
+
+    fn make_app_state(pool: PgPool, key: Key) -> AppState {
+        let (webhook_tx, webhook_rx) = mpsc::unbounded_channel();
+        let (gateway_tx, _gateway_rx) = broadcast::channel(16);
+        let (web_reload_tx, _web_reload_rx) = broadcast::channel(8);
+        let (event_tx, _event_rx) = mpsc::unbounded_channel();
+        let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+        let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
+        let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(10);
+
+        AppState::new(
+            pool,
+            webhook_tx,
+            webhook_rx,
+            gateway_tx,
+            web_reload_tx,
+            key,
+            Arc::new(Mutex::new(FailedLoginMap::new())),
+            event_tx,
+            ldap_tx,
+            dirsync_tx,
+            Arc::new(RwLock::default()),
+            proxy_control_tx,
+            Arc::new(AtomicBool::new(false)),
+        )
+    }
+
+    /// Log a user belonging to a single locally managed group in through an external OpenID
+    /// provider configured with the given directory sync target. The mock directory reports the
+    /// user as a member of "group1" only, so a sync that runs replaces the local group.
+    async fn login_with_sync_target(
+        pool: &PgPool,
+        target: DirectorySyncTarget,
+    ) -> (User<Id>, Group<Id>) {
+        let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());
+        Settings::initialize_runtime_defaults(pool).await.unwrap();
+        initialize_current_settings(pool).await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            None,
+            "LastName",
+            "FirstName",
+            "testuser@email.com",
+            None,
+        )
+        .save(pool)
+        .await
+        .unwrap();
+        let local_group = Group::new("localgroup").save(pool).await.unwrap();
+        user.add_to_group(pool, &local_group).await.unwrap();
+
+        let provider_server = make_mock_provider_server(&user.email).await;
+        // The provider name selects the directory sync client, "Test" is the mock one.
+        OpenIdProvider::new(
+            "Test".to_owned(),
+            provider_server.uri(),
+            OpenIdProviderKind::Custom,
+            TEST_CLIENT_ID.to_owned(),
+            "client_secret".to_owned(),
+            None,
+            None,
+            None,
+            None,
+            true,
+            60,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            target,
+            None,
+            None,
+            Vec::new(),
+            None,
+            false,
+            false,
+            None,
+        )
+        .save(pool)
+        .await
+        .unwrap();
+
+        let key = Key::generate();
+        let private_cookies = PrivateCookieJar::from_headers(&HeaderMap::new(), key.clone())
+            .add(Cookie::new(NONCE_COOKIE_NAME, TEST_NONCE))
+            .add(Cookie::new(CSRF_COOKIE_NAME, TEST_CSRF));
+
+        let _response = auth_callback(
+            LicenseInfo { valid: true },
+            CookieJar::from_headers(&HeaderMap::new()),
+            private_cookies,
+            TypedHeader(UserAgent::from_static("test")),
+            ClientIpAddr(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+            State(make_app_state(pool.clone(), key)),
+            Json(AuthenticationResponse {
+                code: AuthorizationCode::new("code".to_owned()),
+                state: CsrfToken::new(TEST_CSRF.to_owned()),
+            }),
+        )
+        .await
+        .unwrap();
+
+        (user, local_group)
+    }
+
+    // Logging in through an external OpenID provider used to sync the user's groups regardless of
+    // the configured directory sync target, wiping locally managed group assignments when the
+    // target was set to users only.
+    #[sqlx::test]
+    async fn test_login_keeps_groups_when_sync_target_is_users(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let (user, local_group) = login_with_sync_target(&pool, DirectorySyncTarget::Users).await;
+
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 1);
+        assert_eq!(user_groups[0].id, local_group.id);
+    }
+
+    #[sqlx::test]
+    async fn test_login_syncs_groups_when_sync_target_is_all(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let (user, _) = login_with_sync_target(&pool, DirectorySyncTarget::All).await;
+
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 1);
+        assert_eq!(user_groups[0].name, "group1");
+    }
+
+    #[sqlx::test]
+    async fn test_login_syncs_groups_when_sync_target_is_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let (user, _) = login_with_sync_target(&pool, DirectorySyncTarget::Groups).await;
+
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 1);
+        assert_eq!(user_groups[0].name, "group1");
     }
 }

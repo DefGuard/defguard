@@ -479,6 +479,16 @@ pub async fn sync_user_groups_if_configured(
         debug!("Directory sync is disabled, skipping syncing user groups");
         return Ok(());
     }
+    if !matches!(
+        provider.directory_sync_target,
+        DirectorySyncTarget::All | DirectorySyncTarget::Groups
+    ) {
+        debug!(
+            "Directory sync target is set to {}, skipping syncing user groups",
+            provider.directory_sync_target
+        );
+        return Ok(());
+    }
 
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
