@@ -142,6 +142,32 @@ impl WireguardNetworkData {
         Ok(())
     }
 
+    /// Rejects service-location mode combined with location MFA: core cannot serve it and the
+    /// client cannot represent it (`Location::is_service_location()` requires MFA disabled).
+    pub(crate) fn validate_service_location_mfa(&self) -> Result<(), WebError> {
+        if self.service_location_mode == ServiceLocationMode::Disabled
+            || self.location_mfa_mode == LocationMfaMode::Disabled
+        {
+            return Ok(());
+        }
+
+        Err(WebError::BadRequest(
+            "Service location mode cannot be combined with location MFA".into(),
+        ))
+    }
+
+    /// Rejects a zero (or negative) keepalive interval to prevent idle service locations
+    /// from disconnecting.
+    pub(crate) fn validate_keepalive_interval(&self) -> Result<(), WebError> {
+        if self.keepalive_interval >= 1 {
+            return Ok(());
+        }
+
+        Err(WebError::BadRequest(
+            "keepalive_interval must be at least 1".into(),
+        ))
+    }
+
     pub(crate) fn validate_allowed_groups(&self) -> Result<(), WebError> {
         if self.allow_all_groups || !self.allowed_groups.is_empty() {
             return Ok(());
@@ -231,6 +257,8 @@ pub(crate) async fn create_network(
 
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
+    data.validate_service_location_mfa()?;
+    data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
 
     let allowed_ips = data.parse_allowed_ips();
@@ -358,6 +386,8 @@ pub(crate) async fn modify_network(
 
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
+    data.validate_service_location_mfa()?;
+    data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
 
     let network = find_network(network_id, &appstate.pool).await?;
@@ -381,35 +411,25 @@ pub(crate) async fn modify_network(
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
     network.allowed_ips_from_acl = data.allowed_ips_from_acl;
-    network.service_location_mode = if data.location_mfa_mode == LocationMfaMode::Disabled {
-        data.service_location_mode
-    } else {
-        warn!(
-            "Disabling service location mode for location {} because location MFA is enabled",
-            network.name
-        );
-        ServiceLocationMode::Disabled
-    };
+    network.service_location_mode = data.service_location_mode;
     network.location_mfa_mode = data.location_mfa_mode;
 
     network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
+
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
     let maybe_firewall_config =
         try_get_location_firewall_config(&network, &mut transaction).await?;
-    appstate.send_gateway_command(GatewayCommand::NetworkModified(
-        network.id,
-        network.clone(),
-        peers,
-        maybe_firewall_config,
-    ));
+    let gateway_command =
+        GatewayCommand::NetworkModified(network.id, network.clone(), peers, maybe_firewall_config);
 
     // commit DB transaction
     transaction.commit().await?;
+    appstate.send_gateway_command(gateway_command);
 
     info!(
         "User {} updated WireGuard network {network_id}",

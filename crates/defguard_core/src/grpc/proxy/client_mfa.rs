@@ -212,7 +212,7 @@ impl ClientMfaServer {
             })?;
 
         // validate user is allowed to connect to a given location
-        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+        Self::validate_location_access(&self.pool, &location, &device, &user_info).await?;
 
         // Evaluate postures if necessary.
         let has_postures = location.has_postures(&self.pool).await.map_err(|err| {
@@ -470,10 +470,11 @@ impl ClientMfaServer {
         }))
     }
 
-    /// Checks if given user is allowed to access a location
+    /// Checks whether the user and device are allowed to access a location.
     async fn validate_location_access(
         pool: &PgPool,
         location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
         user_info: &UserInfo,
     ) -> Result<(), Status> {
         // acquire connection
@@ -502,10 +503,26 @@ impl ClientMfaServer {
                 {allowed_groups:?}",
                 user_info.username, user_info.groups
             );
-            Err(Status::unauthenticated("unauthorized"))
-        } else {
-            Ok(())
+            return Err(Status::unauthenticated("unauthorized"));
         }
+
+        let assignment = WireguardNetworkDevice::find(&mut *conn, device.id, location.id)
+            .await
+            .map_err(|err| {
+                error!(
+                    "Failed to validate assignment for device {device} in location {location}: \
+                    {err}"
+                );
+                Status::internal("unexpected error")
+            })?;
+        if assignment.is_none() {
+            error!("Device {device} is not assigned to location {location}");
+            return Err(Status::permission_denied(
+                "device is not assigned to location",
+            ));
+        }
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -871,9 +888,13 @@ impl ClientMfaServer {
     /// with a generated preshared key. Returns a typed outcome so the caller can
     /// map it to the appropriate `CoreResponse` payload without needing to know about
     /// session internals.
+    ///
+    /// A location with no postures assigned is approved with an *empty* preshared key and no
+    /// session, since its peers are handed to the gateway without one.
     pub async fn handle_posture_check(
         &mut self,
         request: DevicePostureCheckRequest,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<PostureCheckOutcome, Status> {
         debug!(
             "Handling posture check for device pubkey={} location_id={}",
@@ -937,17 +958,6 @@ impl ClientMfaServer {
             return Err(Status::unauthenticated("token does not match device"));
         }
 
-        if !location.has_postures(&self.pool).await.map_err(|err| {
-            error!("Posture check: failed to fetch postures for location {location}: {err}");
-            Status::internal("unexpected error")
-        })? {
-            error!(
-                "Posture check: location {location} has no postures defined but device {} requested posture check",
-                device.wireguard_pubkey
-            );
-            return Err(Status::invalid_argument("location does not use postures"));
-        }
-
         let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
             error!("Posture check: user {} not found", device.user_id);
             return Err(Status::internal("user not found"));
@@ -971,10 +981,26 @@ impl ClientMfaServer {
                 );
                 Status::internal("unexpected error")
             })?;
-        Self::validate_location_access(&self.pool, &location, &user_info).await?;
+        Self::validate_location_access(&self.pool, &location, &device, &user_info).await?;
 
-        // Evaluate posture. `location.id` rather than `request.location_id`: the location was
-        // already looked up and validated above, so this passes the trusted value.
+        // If location has no postures assigned, approve the posture check returning empty string as PSK.
+        // This way the client can recover on it's own if the admin unassigns PCs from a location and the client
+        // didn't get the config yet. Matters especially for service locations where the client UI may not be
+        // running and therefore config is not being polled.
+        if !location.has_postures(&self.pool).await.map_err(|err| {
+            error!("Posture check: failed to fetch postures for location {location}: {err}");
+            Status::internal("unexpected error")
+        })? {
+            info!(
+                "Posture check: location {location} has no postures assigned, approving device {} \
+                with an empty preshared key without creating a session",
+                device.wireguard_pubkey
+            );
+            return Ok(PostureCheckOutcome::Approved {
+                preshared_key: String::new(),
+            });
+        }
+
         let posture_result = match validate_posture(
             &self.pool,
             location.id,
@@ -994,10 +1020,40 @@ impl ClientMfaServer {
             }
         };
 
+        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+        let context =
+            BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
+
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons.iter().map(ToString::to_string).collect();
+            let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
+            if let Err(err) = self.emit_event(BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::PostureCheckFailed {
+                        device: device.clone(),
+                        location: location.clone(),
+                        device_posture_data: request.device_posture_data.clone(),
+                        failed_checks: failed_checks.clone(),
+                    },
+                )),
+            }) {
+                error!("Failed to emit DevicePostureCheckFailed event: {err}");
+            }
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
+        }
+
+        if let Err(err) = self.emit_event(BidiStreamEvent {
+            context,
+            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                DesktopClientMfaEvent::PostureCheckPassed {
+                    device: device.clone(),
+                    location: location.clone(),
+                    device_posture_data: request.device_posture_data.clone(),
+                },
+            )),
+        }) {
+            error!("Failed to emit DevicePostureCheckPassed event: {err}");
         }
 
         // Posture check succeeded - create a vpn session
@@ -1217,8 +1273,11 @@ mod tests {
         },
         setup_pool,
     };
-    use defguard_proto::enterprise::posture::{
-        BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
+    use defguard_proto::{
+        enterprise::posture::{
+            BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
+        },
+        proxy::DeviceInfo,
     };
     use ipnetwork::IpNetwork;
     use sqlx::{
@@ -1243,6 +1302,16 @@ mod tests {
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
     const NEW_MFA_PRESHARED_KEY: &str = "new-psk";
+    const DEVICE_INFO_IP: &str = "10.0.0.7";
+
+    /// The `DeviceInfo` the proxy attaches to every bidi request; audit events are built from it.
+    fn device_info() -> Option<DeviceInfo> {
+        Some(DeviceInfo {
+            ip_address: DEVICE_INFO_IP.to_owned(),
+            user_agent: Some("defguard-client/1.6.0".to_owned()),
+            ..Default::default()
+        })
+    }
 
     #[sqlx::test]
     async fn test_posture_check_success_emits_vpn_session_authorized_event(
@@ -1263,12 +1332,15 @@ mod tests {
         let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
 
         let outcome = server
-            .handle_posture_check(DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                device_posture_data: Some(passing_linux_posture_data()),
-                token: Some(token.clone()),
-            })
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: Some(passing_linux_posture_data()),
+                    token: Some(token.clone()),
+                },
+                device_info(),
+            )
             .await
             .expect("posture check should pass");
         let preshared_key = match outcome {
@@ -1341,12 +1413,15 @@ mod tests {
         let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
 
         server
-            .handle_posture_check(DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                device_posture_data: Some(passing_linux_posture_data()),
-                token: Some(token.clone()),
-            })
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: Some(passing_linux_posture_data()),
+                    token: Some(token.clone()),
+                },
+                device_info(),
+            )
             .await
             .expect("replacement posture check should pass");
 
@@ -1370,6 +1445,18 @@ mod tests {
                 assert!(network_info.preshared_key.is_some());
             }
             other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        // the passing posture evaluation is audited first
+        let event = event_rx
+            .try_recv()
+            .expect("expected posture check passed audit event");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::PostureCheckPassed { .. } => {}
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
         }
 
         // replacing a connected posture-only session emits the unified session
@@ -1418,12 +1505,15 @@ mod tests {
 
         for token in [None, Some(String::new())] {
             let err = server
-                .handle_posture_check(DevicePostureCheckRequest {
-                    location_id: location.id,
-                    pubkey: device.wireguard_pubkey.clone(),
-                    device_posture_data: Some(passing_linux_posture_data()),
-                    token,
-                })
+                .handle_posture_check(
+                    DevicePostureCheckRequest {
+                        location_id: location.id,
+                        pubkey: device.wireguard_pubkey.clone(),
+                        device_posture_data: Some(passing_linux_posture_data()),
+                        token,
+                    },
+                    device_info(),
+                )
                 .await;
             let err = match err {
                 Ok(_) => panic!("posture check without a token must be refused"),
@@ -1462,12 +1552,15 @@ mod tests {
         let (mut server, _, _) = make_server(pool);
 
         let err = server
-            .handle_posture_check(DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                device_posture_data: Some(passing_linux_posture_data()),
-                token: Some("not-a-real-token".to_owned()),
-            })
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: Some(passing_linux_posture_data()),
+                    token: Some("not-a-real-token".to_owned()),
+                },
+                device_info(),
+            )
             .await;
         let err = match err {
             Ok(_) => panic!("posture check with an unknown token must be refused"),
@@ -1529,12 +1622,15 @@ mod tests {
 
         // Attacker presents its own valid token but claims the victim's public key.
         let err = server
-            .handle_posture_check(DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: victim.wireguard_pubkey.clone(),
-                device_posture_data: Some(passing_linux_posture_data()),
-                token: Some(attacker_token),
-            })
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: victim.wireguard_pubkey.clone(),
+                    device_posture_data: Some(passing_linux_posture_data()),
+                    token: Some(attacker_token),
+                },
+                device_info(),
+            )
             .await;
         let err = match err {
             Ok(_) => panic!("a token from another device must not authorize this one"),
@@ -1573,12 +1669,15 @@ mod tests {
         let (mut server, _, _) = make_server(pool);
 
         let err = match server
-            .handle_posture_check(DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: "irrelevant".to_owned(),
-                device_posture_data: None,
-                token: Some(token),
-            })
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: "irrelevant".to_owned(),
+                    device_posture_data: None,
+                    token: Some(token),
+                },
+                device_info(),
+            )
             .await
         {
             Ok(_) => panic!("MFA-enabled location should reject posture-only flow"),
@@ -1588,33 +1687,299 @@ mod tests {
         assert_eq!(err.code(), Code::InvalidArgument);
     }
 
+    /// A location with no postures assigned hands its peers to the gateway without a preshared
+    /// key, so the only answer that lets a client connect is an empty one. Approving instead of
+    /// erroring is what allows a service location whose cached config still demands a posture check
+    /// to recover after an admin unassigns the last posture.
     #[sqlx::test]
-    async fn test_posture_check_rejects_location_without_postures(
+    async fn test_posture_check_without_postures_approves_with_empty_preshared_key(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
+        set_enterprise_license();
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
         let location = create_non_mfa_location(&pool).await;
         let user = create_user(&pool).await;
         let device = create_device(&pool, user.id).await;
         attach_device_to_location(&pool, location.id, device.id).await;
         let token = create_polling_token(&pool, device.id).await;
-        let (mut server, _, _) = make_server(pool);
+        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
 
-        let err = match server
-            .handle_posture_check(DevicePostureCheckRequest {
-                location_id: location.id,
-                pubkey: device.wireguard_pubkey,
-                device_posture_data: None,
-                token: Some(token),
-            })
+        let outcome = server
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: None,
+                    token: Some(token),
+                },
+                device_info(),
+            )
+            .await
+            .expect("location without postures should be approved");
+
+        match outcome {
+            super::PostureCheckOutcome::Approved { preshared_key } => assert!(
+                preshared_key.is_empty(),
+                "a location without postures must not hand out a preshared key"
+            ),
+            super::PostureCheckOutcome::Rejected { failed_checks } => {
+                panic!("posture check unexpectedly failed: {failed_checks:?}")
+            }
+        }
+
+        // No session may be created and the gateway must not be touched.
+        assert!(
+            VpnClientSession::get_all_active_device_sessions_in_location(
+                &pool,
+                location.id,
+                device.id
+            )
+            .await
+            .expect("failed to query sessions")
+            .is_empty(),
+            "no VPN session may be created when a location has no postures"
+        );
+        assert!(
+            gateway_rx.try_recv().is_err(),
+            "no gateway command may be sent when a location has no postures"
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_posture_check_without_postures_rejects_device_not_assigned_to_location(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        let token = create_polling_token(&pool, device.id).await;
+        let (mut server, mut event_rx, mut gateway_rx) = make_server(pool);
+
+        let status = match server
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey,
+                    device_posture_data: None,
+                    token: Some(token),
+                },
+                device_info(),
+            )
             .await
         {
-            Ok(_) => panic!("location without postures should reject posture-only flow"),
-            Err(err) => err,
+            Ok(_) => panic!("a device not assigned to the location must not be approved"),
+            Err(status) => status,
         };
 
-        assert_eq!(err.code(), Code::InvalidArgument);
+        assert_eq!(status.code(), Code::PermissionDenied);
+        assert_eq!(status.message(), "device is not assigned to location");
+        assert!(event_rx.try_recv().is_err());
+        assert!(gateway_rx.try_recv().is_err());
+    }
+
+    /// The empty-preshared-key approval must not outrank the access checks: deactivating a user has
+    /// to stop their devices from getting anything that reads as approval, even on a location with
+    /// no postures where the approval grants nothing by itself.
+    #[sqlx::test]
+    async fn test_posture_check_without_postures_still_rejects_inactive_user(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        let mut user = create_user(&pool).await;
+        user.is_active = false;
+        user.save(&pool).await.expect("failed to deactivate user");
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let token = create_polling_token(&pool, device.id).await;
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+
+        let status = match server
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: None,
+                    token: Some(token),
+                },
+                device_info(),
+            )
+            .await
+        {
+            Ok(super::PostureCheckOutcome::Approved { .. }) => {
+                panic!("an inactive user must not be approved, even without postures")
+            }
+            Ok(super::PostureCheckOutcome::Rejected { .. }) => {
+                panic!("expected an inactive-user error, not a posture rejection")
+            }
+            Err(status) => status,
+        };
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        assert_eq!(status.message(), "user is inactive");
+    }
+
+    /// A passing posture evaluation must be auditable, so an operator can see that a headless
+    /// service location connected and why.
+    #[sqlx::test]
+    async fn test_posture_check_pass_emits_posture_check_passed_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let token = create_polling_token(&pool, device.id).await;
+        let (mut server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+
+        let posture_data = passing_linux_posture_data();
+        match server
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: Some(posture_data.clone()),
+                    token: Some(token),
+                },
+                device_info(),
+            )
+            .await
+            .expect("posture check should pass")
+        {
+            super::PostureCheckOutcome::Approved { preshared_key } => {
+                assert!(!preshared_key.is_empty());
+            }
+            super::PostureCheckOutcome::Rejected { failed_checks } => {
+                panic!("posture check unexpectedly failed: {failed_checks:?}")
+            }
+        }
+
+        let event = event_rx
+            .try_recv()
+            .expect("expected posture check passed audit event");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::PostureCheckPassed {
+                    device: event_device,
+                    location: event_location,
+                    device_posture_data,
+                } => {
+                    assert_eq!(event_device.id, device.id);
+                    assert_eq!(event_location.id, location.id);
+                    assert_eq!(device_posture_data, Some(posture_data));
+                }
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
+        }
+        assert_eq!(event.context.user_id, user.id);
+        assert_eq!(event.context.username, user.username);
+        assert_eq!(event.context.ip, Some(DEVICE_INFO_IP.parse().unwrap()));
+    }
+
+    /// A failing posture evaluation must be auditable too - on a service location this is the only
+    /// way to find out why the tunnel never came up.
+    #[sqlx::test]
+    async fn test_posture_check_failure_emits_posture_check_failed_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_non_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let token = create_polling_token(&pool, device.id).await;
+        let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
+
+        // the policy requires disk encryption
+        let posture_data = DevicePostureData {
+            disk_encryption: Some(BoolCheck {
+                result: Some(bool_check::Result::Value(false)),
+            }),
+            ..passing_linux_posture_data()
+        };
+        let rejected_checks = match server
+            .handle_posture_check(
+                DevicePostureCheckRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    device_posture_data: Some(posture_data.clone()),
+                    token: Some(token),
+                },
+                device_info(),
+            )
+            .await
+            .expect("posture check should complete")
+        {
+            super::PostureCheckOutcome::Approved { .. } => {
+                panic!("posture check with unencrypted disk should be rejected")
+            }
+            super::PostureCheckOutcome::Rejected { failed_checks } => failed_checks,
+        };
+        assert!(!rejected_checks.is_empty());
+
+        let event = event_rx
+            .try_recv()
+            .expect("expected posture check failed audit event");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::PostureCheckFailed {
+                    device: event_device,
+                    location: event_location,
+                    device_posture_data,
+                    failed_checks,
+                } => {
+                    assert_eq!(event_device.id, device.id);
+                    assert_eq!(event_location.id, location.id);
+                    assert_eq!(device_posture_data, Some(posture_data));
+                    assert_eq!(failed_checks, rejected_checks);
+                }
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
+        }
+        assert_eq!(event.context.user_id, user.id);
+        assert_eq!(event.context.username, user.username);
+
+        // a rejected check must not authorize anything
+        assert!(gateway_rx.try_recv().is_err());
+        assert!(
+            VpnClientSession::get_all_active_device_sessions_in_location(
+                &pool,
+                location.id,
+                device.id
+            )
+            .await
+            .expect("failed to query sessions")
+            .is_empty()
+        );
     }
 
     #[sqlx::test]

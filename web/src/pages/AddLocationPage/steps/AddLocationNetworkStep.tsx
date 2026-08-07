@@ -14,6 +14,8 @@ import { useAddLocationStore } from '../useAddLocationStore';
 const formSchema = z.object({
   keepalive_interval: z
     .number(m.form_error_required())
+    // Keepalive is mandatory to prevent idle service locations from disconnecting
+    .min(1, m.form_error_keepalive_min())
     .max(65535, m.form_error_port_max()),
   mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
   fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),

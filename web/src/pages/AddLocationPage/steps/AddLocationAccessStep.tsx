@@ -95,10 +95,7 @@ export const AddLocationAccessStep = () => {
               }
               saveChanges(selected, allowAllGroups);
               useAddLocationStore.setState({
-                activeStep:
-                  locationType === 'service'
-                    ? AddLocationPageStep.Firewall
-                    : AddLocationPageStep.PostureCheck,
+                activeStep: AddLocationPageStep.PostureCheck,
               });
             }}
           />
