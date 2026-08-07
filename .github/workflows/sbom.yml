@@ -34,6 +34,11 @@ jobs:
           ref: ${{ steps.vars.outputs.TAG_NAME }}
           submodules: recursive
 
+      - name: Use current vulnerability policy from default branch
+        run: |
+          git fetch --depth=1 origin ${{ github.event.repository.default_branch }}
+          git checkout FETCH_HEAD -- .trivyignore.yaml || echo "Keeping tagged .trivyignore.yaml"
+
       - name: Create SBOM with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
