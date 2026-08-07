@@ -74,7 +74,7 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/${{ matrix.github_repo }}/releases \
             | jq -r --argjson pre "$PRERELEASE" --arg major "$MAJOR" \
-              '[.[] | select(.prerelease == $pre and (.tag_name | startswith($major)))][0].tag_name // empty')
+              '[.[] | select(.draft == false and .prerelease == $pre and (.tag_name | startswith($major)))][0].tag_name // empty')
           if [ -z "$VERSION" ]; then
             echo "::notice::no $MAJOR release (prerelease=$PRERELEASE) of ${{ matrix.package }} on GitHub, skipping"
             echo "SKIP=true" >> $GITHUB_ENV
