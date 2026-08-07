@@ -7,6 +7,7 @@ import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/ty
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { confirmPostureLocationChange } from '../../shared/utils/postureWarning';
 import { getDeletePostureCheckModalData, type PostureCheckRow } from './postureChecks';
 
 type LocationOption = SelectionOption<number>;
@@ -15,7 +16,7 @@ type BuildPostureCheckMenuArgs = {
   row: PostureCheckRow;
   locationOptions: LocationOption[];
   navigate: ReturnType<typeof useNavigate>;
-  assignLocations: (locationIds: number[]) => void;
+  assignLocations: (locationIds: number[]) => Promise<unknown>;
   duplicatePosture: () => void;
   onAfterEdit?: () => void;
   onAfterDelete?: () => void;
@@ -58,7 +59,13 @@ export const buildPostureCheckMenuItems = ({
             options: locationOptions,
             selected: new Set(row.locations),
             onSubmit: (selected) => {
-              assignLocations(selected as number[]);
+              const next = selected as number[];
+              confirmPostureLocationChange({
+                current: row.locations,
+                next,
+                options: locationOptions,
+                actionPromise: () => assignLocations(next),
+              });
             },
           });
         },

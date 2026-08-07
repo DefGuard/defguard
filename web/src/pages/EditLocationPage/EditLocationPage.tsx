@@ -43,6 +43,7 @@ import {
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
 import { smallestNetworkCapacity } from '../../shared/utils/network';
+import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
 import { getPostureChecksSectionState } from './postureChecksSection';
@@ -393,17 +394,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     [postureChecks],
   );
 
-  const assignedPostureChecks = useMemo(() => {
-    const labelsById = new Map(
-      postureChecks.map((postureCheck) => [postureCheck.id, postureCheck.name]),
-    );
-
-    return location.posture_checks?.map((id) => ({
-      id,
-      label: labelsById.get(id) ?? String(id),
-    }));
-  }, [location.posture_checks, postureChecks]);
-
   const serviceLocationLabelContent = useMemo(() => {
     if (!serviceLocationLocked) return undefined;
     return (
@@ -474,7 +464,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const { mutate: setLocationPostures, isPending: isUpdatingLocationPostures } =
+  const { mutateAsync: setLocationPosturesAsync, isPending: isUpdatingLocationPostures } =
     useMutation({
       mutationFn: (data: { postures: number[] }) =>
         api.devicePosture.setLocationPostures(location.id, data),
@@ -485,6 +475,16 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         Snackbar.error(m.location_posture_checks_update_failed());
       },
     });
+
+  const handlePostureSelection = (values: (string | number)[]) => {
+    const next = values.filter((value): value is number => typeof value === 'number');
+    confirmLocationPostureChange({
+      current: location.posture_checks ?? [],
+      next,
+      options: postureCheckOptions,
+      actionPromise: () => setLocationPosturesAsync({ postures: next }),
+    });
+  };
 
   const openPostureChecksSelection = () => {
     useSelectionModal.setState({
@@ -501,11 +501,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       searchPlaceholder: m.controls_search(),
       selected: new Set(location.posture_checks),
       visibleItemsLimit: 4,
-      onSubmit: (values) => {
-        setLocationPostures({
-          postures: values.filter((value): value is number => typeof value === 'number'),
-        });
-      },
+      onSubmit: handlePostureSelection,
     });
   };
 
@@ -946,21 +942,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <div className="posture-checks-assigned-state">
               <SelectMultiple
                 options={postureCheckOptions}
-                selected={
-                  new Set(assignedPostureChecks?.map((postureCheck) => postureCheck.id))
-                }
+                selected={new Set(location.posture_checks)}
                 modalTitle={m.location_posture_checks_select()}
                 editText={m.location_posture_checks_edit()}
                 editIcon={IconKind.Edit}
                 toggleValue={false}
                 counterText={() => ''}
-                onSelectionChange={(values) => {
-                  setLocationPostures({
-                    postures: values.filter(
-                      (value): value is number => typeof value === 'number',
-                    ),
-                  });
-                }}
+                onSelectionChange={handlePostureSelection}
                 onToggleChange={() => {}}
                 selectionCustomItemRender={renderPostureCheckSelectionItem}
                 selectionModalProps={{

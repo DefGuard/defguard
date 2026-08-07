@@ -18,7 +18,7 @@ describe('posture check delete confirmation', () => {
 
     expect(modalData.title).toBe('Delete posture check');
     expect(modalData.contentMd).toBe(
-      'Are you sure you want to delete this check? It’s currently used in Warsaw and Berlin. Removing it may change access criteria for users in these locations.',
+      'Are you sure you want to delete this check? It’s currently used in Warsaw and Berlin. Removing it may change access criteria for users in these locations and disconnect active VPN client sessions there.',
     );
     expect(modalData.invalidateKeys).toEqual([
       ['device-posture'],
@@ -45,7 +45,7 @@ describe('posture check delete confirmation', () => {
     );
 
     expect(modalData.contentMd).toBe(
-      'Are you sure you want to delete this check? It’s currently used in Warsaw, Berlin, and Paris. Removing it may change access criteria for users in these locations.',
+      'Are you sure you want to delete this check? It’s currently used in Warsaw, Berlin, and Paris. Removing it may change access criteria for users in these locations and disconnect active VPN client sessions there.',
     );
   });
 

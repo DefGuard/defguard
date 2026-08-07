@@ -271,7 +271,7 @@ describe('posture checks page helpers', () => {
       ),
     ).toEqual({
       allowPrereleaseClient: true,
-      configuredOperatingSystems: ['windows', 'android'],
+      configuredOperatingSystems: ['android', 'windows'],
       description: 'Existing policy',
       locations: [3, 9],
       minimumDesktopClientVersion: '2.0',

@@ -35,7 +35,9 @@ import {
   getDevicePostureVersionMetadataQueryOptions,
   getLocationsQueryOptions,
 } from '../../shared/query';
+import { confirmPostureLocationChange } from '../../shared/utils/postureWarning';
 import { buildAddPostureCheckRequest } from '../AddPostureCheckWizardPage/payload';
+import { getDeletePostureCheckModalData } from '../PostureChecksPage/postureChecks';
 import {
   getPostureCheckVersionValues,
   type PostureCheckVersionValues,
@@ -43,6 +45,7 @@ import {
 import {
   type EditPostureCheckFormValues,
   getInitialEditPostureCheckFormValues,
+  normalizeEditPostureCheckEnforcementFields,
   normalizeEditPostureCheckFormValues,
 } from './form';
 
@@ -115,6 +118,32 @@ const EditPostureCheckForm = ({
     [defaults, values],
   );
 
+  const rulesChanged = useMemo(
+    () =>
+      JSON.stringify(normalizeEditPostureCheckEnforcementFields(values)) !==
+      JSON.stringify(normalizeEditPostureCheckEnforcementFields(defaults)),
+    [defaults, values],
+  );
+
+  const handleSubmit = () => {
+    // The helper diffs the location sets itself and returns false when there is
+    // nothing to confirm, which covers the submit that changed only the name or
+    // description.
+    const modalOpened = confirmPostureLocationChange({
+      current: defaults.locations,
+      next: values.locations,
+      options: locationOptions,
+      actionPromise: () => saveMutation.mutateAsync(values),
+      // A posture assigned to no locations after this save enforces nothing
+      // anywhere, so the deferred-enforcement claim would be misleading.
+      deferredEnforcement: rulesChanged && values.locations.size > 0,
+    });
+
+    if (modalOpened) return;
+
+    saveMutation.mutate(values);
+  };
+
   const updateValues = (
     updater: (current: EditPostureCheckFormValues) => EditPostureCheckFormValues,
   ) => {
@@ -128,7 +157,7 @@ const EditPostureCheckForm = ({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        void saveMutation.mutateAsync(values);
+        handleSubmit();
       }}
     >
       <EditPageFormSection label={m.posture_checks_edit_general()}>
@@ -161,12 +190,15 @@ const EditPostureCheckForm = ({
           text: m.controls_delete(),
           disabled: saveMutation.isPending,
           onClick: () => {
+            const assignedLocationNames = locationOptions
+              .filter((loc) => postureCheck.locations.includes(loc.id))
+              .map((loc) => loc.label);
+
             openModal(ModalName.ConfirmAction, {
-              title: m.posture_checks_edit_delete_title(),
-              contentMd: m.posture_checks_edit_delete_body({ name: postureCheck.name }),
-              actionPromise: () => api.devicePosture.deleteDevicePosture(postureCheck.id),
-              invalidateKeys: [['device-posture'], ['network'], ['activity-log']],
-              submitProps: { text: m.controls_delete(), variant: 'critical' },
+              ...getDeletePostureCheckModalData(
+                { id: postureCheck.id, name: postureCheck.name },
+                assignedLocationNames,
+              ),
               onSuccess: () => {
                 Snackbar.default(m.posture_checks_edit_delete_success());
                 navigate({ to: '/acl/posture-checks', replace: true });
@@ -187,7 +219,7 @@ const EditPostureCheckForm = ({
           disabled: saveDisabled,
           loading: saveMutation.isPending,
           onClick: () => {
-            void saveMutation.mutateAsync(values);
+            handleSubmit();
           },
         }}
       />

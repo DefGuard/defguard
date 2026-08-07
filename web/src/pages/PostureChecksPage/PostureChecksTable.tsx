@@ -63,7 +63,7 @@ export const PostureChecksTable = ({
     () => buildFilteredLocationOptions(locations),
     [locations],
   );
-  const { mutate: assignLocations } = useMutation({
+  const { mutateAsync: assignLocationsAsync } = useMutation({
     mutationFn: ({
       postureCheckId,
       locations,
@@ -234,7 +234,7 @@ export const PostureChecksTable = ({
             locationOptions,
             navigate,
             assignLocations: (locations) =>
-              assignLocations({ postureCheckId: row.id, locations }),
+              assignLocationsAsync({ postureCheckId: row.id, locations }),
             duplicatePosture: () => duplicatePosture(row.id),
           });
 
@@ -243,12 +243,12 @@ export const PostureChecksTable = ({
       }),
     ],
     [
-      assignLocations,
       columnFilterOptions,
       locationOptions,
       navigate,
       onRowClick,
       duplicatePosture,
+      assignLocationsAsync,
     ],
   );
 

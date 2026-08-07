@@ -135,9 +135,47 @@ export const getInitialEditPostureCheckFormValues = (
   };
 };
 
+const sortOperatingSystemState = (
+  operatingSystemState: EditPostureCheckFormValues['operatingSystemState'],
+) =>
+  Object.fromEntries(
+    Object.entries(operatingSystemState).map(([os, state]) => [
+      os,
+      { ...state, conditions: [...state.conditions].sort() },
+    ]),
+  );
+
 export const normalizeEditPostureCheckFormValues = (
   values: EditPostureCheckFormValues,
 ) => ({
   ...values,
+  configuredOperatingSystems: [...values.configuredOperatingSystems].sort(),
   locations: Array.from(values.locations).sort((left, right) => left - right),
+  operatingSystemState: sortOperatingSystemState(values.operatingSystemState),
 });
+
+/**
+ * Projection of enforcement-related fields for `rulesChanged` comparison:
+ * everything except `name`, `description` and `locations`. Derived from
+ * `normalizeEditPostureCheckFormValues` so both comparisons share one sort
+ * policy.
+ */
+export const normalizeEditPostureCheckEnforcementFields = (
+  values: EditPostureCheckFormValues,
+) => {
+  const {
+    allowPrereleaseClient,
+    configuredOperatingSystems,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
+    operatingSystemState,
+  } = normalizeEditPostureCheckFormValues(values);
+
+  return {
+    allowPrereleaseClient,
+    configuredOperatingSystems,
+    minimumDesktopClientVersion,
+    minimumMobileClientVersion,
+    operatingSystemState,
+  };
+};
