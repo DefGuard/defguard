@@ -35,6 +35,7 @@ jobs:
           submodules: recursive
 
       - name: Use current vulnerability policy from default branch
+        if: inputs.tag != ''
         run: |
           git fetch --depth=1 origin ${{ github.event.repository.default_branch }}
           git checkout FETCH_HEAD -- .trivyignore.yaml || echo "Keeping tagged .trivyignore.yaml"
