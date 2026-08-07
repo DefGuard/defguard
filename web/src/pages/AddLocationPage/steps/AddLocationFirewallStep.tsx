@@ -26,7 +26,6 @@ import { useAddLocationStore } from '../useAddLocationStore';
 type Choice = 'disable' | 'enabled-allowed' | 'enabled-denied';
 
 export const AddLocationFirewallStep = () => {
-  const locationType = useAddLocationStore((s) => s.locationType);
   const [state, setState] = useState<Choice>('disable');
   const [showGateway, setShowGateway] = useState(true);
   const navigate = useNavigate();
@@ -150,10 +149,7 @@ export const AddLocationFirewallStep = () => {
           onClick={() => {
             saveChanges(state);
             useAddLocationStore.setState({
-              activeStep:
-                locationType === 'service'
-                  ? AddLocationPageStep.AccessControl
-                  : AddLocationPageStep.PostureCheck,
+              activeStep: AddLocationPageStep.PostureCheck,
             });
           }}
         />

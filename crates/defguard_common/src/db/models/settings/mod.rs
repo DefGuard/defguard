@@ -121,7 +121,7 @@ pub enum OpenIdUsernameHandling {
     PruneEmailDomain,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, Type)]
+#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, ToSchema, Type)]
 #[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
 pub enum LdapSyncStatus {
     InSync,
@@ -157,7 +157,8 @@ where
     Ok(Some(Option::deserialize(deserializer)?))
 }
 
-#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+/// Instance settings.
+#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize, ToSchema)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct Settings {
     // Modules
@@ -190,6 +191,7 @@ pub struct Settings {
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
+    #[schema(value_type = Option<String>)]
     pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,

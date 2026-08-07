@@ -1608,10 +1608,10 @@ pub enum AliasState {
     Modified,
 }
 
-/// ACL alias can be of one of the following types:
-/// - Destination: the alias defines a complete destination that an ACL rule applies to
-/// - Component: the alias defines parts of a destination and will be combined with other parts
-///   manually defined in an ACL rule
+/// Type of an ACL alias:
+/// - `destination`: the alias defines a complete destination that an ACL rule applies to.
+/// - `component`: the alias defines parts of a destination and is combined with the parts
+///   defined in the ACL rule itself.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "aclalias_kind", rename_all = "lowercase")]
 pub enum AliasKind {

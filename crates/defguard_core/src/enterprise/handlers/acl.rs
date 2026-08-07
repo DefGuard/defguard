@@ -19,14 +19,13 @@ use crate::{
     enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol, RuleState},
     error::WebError,
     handlers::{
-        ApiResponse, ApiResult,
+        ApiErrorResponse, ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
 };
 
-/// API representation of [`AclRule`] used in API responses.
-/// All relations represented as arrays of IDs.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+/// An ACL rule. All relations represented as arrays of IDs.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub struct ApiAclRule {
     pub id: Id,
     pub parent_id: Option<Id>,
@@ -102,7 +101,7 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
     }
 }
 
-/// API representation of [`AclRule`] used in API requests for modification operations
+/// An ACL rule, as accepted when creating or updating one.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub struct EditAclRule {
     pub name: String,
@@ -252,14 +251,25 @@ pub struct AclStateCount {
     pub pending: i64,
 }
 
-/// List all ACL rules.
+/// List ACL rules
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule",
     tag = "ACL",
-    responses(
-        (status = OK, description = "ACL rules"),
+    params(
+        ("page" = Option<u32>, Query, description = "Page number. Defaults to 1."),
+        ("per_page" = Option<u32>, Query, description = "Number of items per page, from 1 to 100. Defaults to 50."),
     ),
+    responses(
+        (status = 200, description = "Paginated list of ACL rules.", body = PaginatedApiResponse<ApiAclRule>),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to list ACL rules.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
 )]
 pub(crate) async fn list_acl_rules(
     _admin: AdminRole,
@@ -298,14 +308,21 @@ pub(crate) async fn list_acl_rules(
     ))
 }
 
-/// Count ACL rules by state.
+/// Count ACL rules by state
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule/count",
     tag = "ACL",
     responses(
-        (status = OK, description = "ACL rule state counts", body = AclStateCount),
+        (status = 200, description = "Number of ACL rules in each state.", body = AclStateCount),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to count ACL rules.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
 )]
 pub(crate) async fn count_acl_rules(
     _admin: AdminRole,
@@ -325,16 +342,24 @@ pub(crate) async fn count_acl_rules(
     Ok(ApiResponse::json(counts, StatusCode::OK))
 }
 
-/// Get ACL rule.
+/// Get an ACL rule
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule/{id}",
     tag = "ACL",
     params(
-        ("id" = Id, Path, description = "ID of ACL rule",)
+        ("id" = i64, Path, description = "ID of the ACL rule.",)
     ),
     responses(
-        (status = OK, description = "ACL rule"),
+        (status = 200, description = "ACL rule details.", body = ApiAclRule),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found."),
+        (status = 500, description = "Unable to get ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn get_acl_rule(
@@ -363,14 +388,23 @@ pub(crate) async fn get_acl_rule(
     Ok(ApiResponse::new(rule, status))
 }
 
-/// Create ACL rule.
+/// Create an ACL rule
 #[utoipa::path(
     post,
     path = "/api/v1/acl/rule",
     tag = "ACL",
-    request_body = EditAclRule,
+    request_body(content = EditAclRule, description = "The rule starts working after `PUT /api/v1/acl/rule/apply`.", example = json!({"name": "allow-web", "all_locations": false, "locations": [1], "enabled": true, "allow_all_users": false, "deny_all_users": false, "allow_all_groups": false, "deny_all_groups": false, "allow_all_network_devices": false, "deny_all_network_devices": false, "allowed_users": [1], "denied_users": [], "allowed_groups": [], "denied_groups": [], "allowed_network_devices": [], "denied_network_devices": [], "use_manual_destination_settings": true, "addresses": "10.0.0.0/24", "ports": "80, 443", "protocols": [6], "any_address": false, "any_port": false, "any_protocol": false, "aliases": [], "destinations": [], "expires": null})),
     responses(
-        (status = OK, description = "ACL rule"),
+        (status = 201, description = "ACL rule created.", body = ApiAclRule),
+        (status = 400, description = "Cannot use a modified alias in an ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Cannot use modified alias in ACL rule [1]"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 422, description = "Invalid addresses, ports or protocols.", body = ApiErrorResponse, example = json!({"msg": "Unprocessable entity"})),
+        (status = 500, description = "Unable to create ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn create_acl_rule(
@@ -398,17 +432,27 @@ pub(crate) async fn create_acl_rule(
     Ok(ApiResponse::json(rule, StatusCode::CREATED))
 }
 
-/// Update ACL rule.
+/// Update an ACL rule
 #[utoipa::path(
     put,
     path = "/api/v1/acl/rule/{id}",
     tag = "ACL",
     params(
-        ("id" = Id, Path, description = "ID of ACL rule",)
+        ("id" = i64, Path, description = "ID of the ACL rule.",)
     ),
     request_body = EditAclRule,
     responses(
-        (status = OK, description = "ACL rule"),
+        (status = 200, description = "ACL rule updated.", body = ApiAclRule),
+        (status = 400, description = "Cannot modify a deleted ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Cannot modify deleted ACL rule 1"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 not found"})),
+        (status = 422, description = "Invalid addresses, ports or protocols.", body = ApiErrorResponse, example = json!({"msg": "Unprocessable entity"})),
+        (status = 500, description = "Unable to update ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn update_acl_rule(
@@ -434,16 +478,24 @@ pub(crate) async fn update_acl_rule(
     Ok(ApiResponse::json(rule, StatusCode::OK))
 }
 
-/// Delete ACL rule.
+/// Delete an ACL rule
 #[utoipa::path(
     delete,
     path = "/api/v1/acl/rule/{id}",
     tag = "ACL",
     params(
-        ("id" = Id, Path, description = "ID of ACL rule",)
+        ("id" = i64, Path, description = "ID of the ACL rule.",)
     ),
     responses(
-        (status = OK, description = "ACL rule"),
+        (status = 200, description = "ACL rule deleted."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 not found"})),
+        (status = 500, description = "Unable to delete ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn delete_acl_rule(
@@ -464,13 +516,23 @@ pub(crate) async fn delete_acl_rule(
     Ok(ApiResponse::default())
 }
 
-/// Apply ACL alias.
+/// Apply ACL rules
 #[utoipa::path(
     put,
     path = "/api/v1/acl/rule/apply",
+    tag = "ACL",
     request_body = ApplyAclRulesData,
     responses(
-        (status = OK, description = "ACL alias"),
+        (status = 200, description = "Pending rule changes applied."),
+        (status = 400, description = "ACL rule is already applied.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 already applied"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 not found"})),
+        (status = 500, description = "Unable to apply ACL rules.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn apply_acl_rules(

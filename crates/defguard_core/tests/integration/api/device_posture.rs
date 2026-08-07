@@ -1303,7 +1303,7 @@ async fn make_service_location(client: &TestClient, name: &str) -> i64 {
 }
 
 #[sqlx::test]
-async fn test_set_postures_for_service_location_rejected(
+async fn test_set_postures_for_service_location_allowed(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1319,7 +1319,7 @@ async fn test_set_postures_for_service_location_rejected(
         .await;
     client.drain_all_events();
 
-    // assigning posture checks to a service location is rejected
+    // assigning posture checks to a service location is allowed
     let response = client
         .put(format!("/api/v1/network/{service_location_id}/postures"))
         .json(&AssignPosturesData {
@@ -1327,16 +1327,24 @@ async fn test_set_postures_for_service_location_rejected(
         })
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    client.assert_event_queue_is_empty();
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result, vec![posture.id]);
 
-    // nothing was assigned to the posture
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::LocationPosturesAssigned { .. }
+    ));
+
+    // the assignment is visible on the posture
     let response = client
         .get(format!("/api/v1/device-posture/{}", posture.id))
         .send()
         .await;
     let fetched: ApiDevicePosture = response.json().await;
-    assert!(fetched.locations.is_empty());
+    assert_eq!(fetched.locations, vec![service_location_id]);
 
     // clearing (empty list) is still allowed on a service location
     let response = client
@@ -1347,10 +1355,18 @@ async fn test_set_postures_for_service_location_rejected(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    client.drain_all_events();
+
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", posture.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert!(fetched.locations.is_empty());
 }
 
 #[sqlx::test]
-async fn test_set_locations_for_posture_rejects_service_location(
+async fn test_set_locations_for_posture_allows_service_location(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1369,7 +1385,7 @@ async fn test_set_locations_for_posture_rejects_service_location(
         .await;
     client.drain_all_events();
 
-    // assigning a service location to a posture is rejected
+    // assigning a service location to a posture is allowed
     let response = client
         .put(format!("/api/v1/device-posture/{}/locations", posture.id))
         .json(&AssignLocationsData {
@@ -1377,10 +1393,18 @@ async fn test_set_locations_for_posture_rejects_service_location(
         })
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    client.assert_event_queue_is_empty();
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result, vec![service_location_id]);
 
-    // a mix containing a service location is rejected too — nothing is assigned
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::DevicePostureLocationsAssigned { .. }
+    ));
+
+    // a mix containing a service location is accepted too
     let response = client
         .put(format!("/api/v1/device-posture/{}/locations", posture.id))
         .json(&AssignLocationsData {
@@ -1388,15 +1412,21 @@ async fn test_set_locations_for_posture_rejects_service_location(
         })
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    client.assert_event_queue_is_empty();
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result.len(), 2);
+    assert!(result.contains(&regular_location_id));
+    assert!(result.contains(&service_location_id));
+    client.drain_all_events();
 
     let response = client
         .get(format!("/api/v1/device-posture/{}", posture.id))
         .send()
         .await;
     let fetched: ApiDevicePosture = response.json().await;
-    assert!(fetched.locations.is_empty());
+    assert_eq!(fetched.locations.len(), 2);
+    assert!(fetched.locations.contains(&regular_location_id));
+    assert!(fetched.locations.contains(&service_location_id));
 
     // assigning only regular locations still works
     let response = client
