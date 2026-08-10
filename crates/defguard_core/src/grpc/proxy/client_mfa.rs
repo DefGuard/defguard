@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    net::IpAddr,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -262,7 +263,7 @@ impl ClientMfaServer {
                     }) {
                         error!("Failed to emit DevicePostureCheckFailed event: {err}");
                     }
-                    self.revoke_rejected_posture_sessions(&location, &user, &device)
+                    self.revoke_rejected_posture_sessions(&location, &user, &device, ip)
                         .await?;
                     return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
                 }
@@ -1043,7 +1044,7 @@ impl ClientMfaServer {
                 error!("Failed to emit DevicePostureCheckFailed event: {err}");
             }
 
-            self.revoke_rejected_posture_sessions(&location, &user, &device)
+            self.revoke_rejected_posture_sessions(&location, &user, &device, ip)
                 .await?;
 
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
@@ -1120,13 +1121,14 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
+        ip: IpAddr,
     ) -> Result<(), Status> {
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction for posture session rejection: {err}");
             Status::internal("unexpected error")
         })?;
         let disconnect_events = self
-            .revoke_active_posture_sessions(&mut transaction, location, user, device)
+            .revoke_active_posture_sessions(&mut transaction, location, user, device, ip)
             .await?;
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit rejected posture session cleanup: {err}");
@@ -1153,6 +1155,7 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
+        ip: IpAddr,
     ) -> Result<Vec<BidiStreamEvent>, Status> {
         let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
             &mut *conn,
@@ -1191,7 +1194,7 @@ impl ClientMfaServer {
                         timestamp: disconnect_timestamp,
                         user_id: user.id,
                         username: user.username.clone(),
-                        ip: None,
+                        ip: Some(ip),
                         device_name: format!("{device}"),
                     },
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -2111,6 +2114,7 @@ mod tests {
             },
             other => panic!("unexpected bidi stream event type: {other:?}"),
         }
+        assert_eq!(event.context.ip, Some(DEVICE_INFO_IP.parse().unwrap()));
 
         let active_session = VpnClientSession::find_by_id(&pool, active_session.id)
             .await
@@ -2157,7 +2161,7 @@ mod tests {
             .save(&pool)
             .await
             .expect("failed to create active MFA session");
-        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+        let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let posture_data = DevicePostureData {
             disk_encryption: Some(BoolCheck {
                 result: Some(bool_check::Result::Value(false)),
@@ -2192,6 +2196,14 @@ mod tests {
             }
             other => panic!("unexpected gateway event: {other:?}"),
         }
+
+        event_rx
+            .try_recv()
+            .expect("expected posture check failed audit event");
+        let event = event_rx
+            .try_recv()
+            .expect("expected session disconnected audit event");
+        assert_eq!(event.context.ip, Some(DEVICE_INFO_IP.parse().unwrap()));
 
         let active_session = VpnClientSession::find_by_id(&pool, active_session.id)
             .await
