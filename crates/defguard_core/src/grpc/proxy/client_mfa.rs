@@ -262,6 +262,8 @@ impl ClientMfaServer {
                     }) {
                         error!("Failed to emit DevicePostureCheckFailed event: {err}");
                     }
+                    self.revoke_rejected_posture_sessions(&location, &user, &device)
+                        .await?;
                     return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
                 }
                 PostureResult::Pass => {
@@ -1041,27 +1043,8 @@ impl ClientMfaServer {
                 error!("Failed to emit DevicePostureCheckFailed event: {err}");
             }
 
-            let mut transaction = self.pool.begin().await.map_err(|err| {
-                error!("Failed to begin transaction for posture session rejection: {err}");
-                Status::internal("unexpected error")
-            })?;
-            let disconnect_events = self
-                .revoke_active_posture_sessions(&mut transaction, &location, &user, &device)
+            self.revoke_rejected_posture_sessions(&location, &user, &device)
                 .await?;
-            transaction.commit().await.map_err(|err| {
-                error!("Failed to commit rejected posture session cleanup: {err}");
-                Status::internal("unexpected error")
-            })?;
-
-            let event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
-            if let Err(err) = self.gateway_tx.send(event) {
-                error!("Error sending WireGuard event: {err}");
-            }
-            for event in disconnect_events {
-                if let Err(err) = self.emit_event(event) {
-                    error!("Failed to emit VPN session disconnect event: {err}");
-                }
-            }
 
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
@@ -1129,6 +1112,38 @@ impl ClientMfaServer {
         Ok(PostureCheckOutcome::Approved {
             preshared_key: key.public,
         })
+    }
+
+    /// Revokes sessions after a definitive posture rejection and publishes resulting events.
+    async fn revoke_rejected_posture_sessions(
+        &self,
+        location: &WireguardNetwork<Id>,
+        user: &User<Id>,
+        device: &Device<Id>,
+    ) -> Result<(), Status> {
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction for posture session rejection: {err}");
+            Status::internal("unexpected error")
+        })?;
+        let disconnect_events = self
+            .revoke_active_posture_sessions(&mut transaction, location, user, device)
+            .await?;
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit rejected posture session cleanup: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        let event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
+        if let Err(err) = self.gateway_tx.send(event) {
+            error!("Error sending WireGuard event: {err}");
+        }
+        for event in disconnect_events {
+            if let Err(err) = self.emit_event(event) {
+                error!("Failed to emit VPN session disconnect event: {err}");
+            }
+        }
+
+        Ok(())
     }
 
     /// Marks active posture sessions disconnected and returns their audit events.
@@ -1359,6 +1374,7 @@ mod tests {
         setup_pool,
     };
     use defguard_proto::{
+        client_types::{ClientMfaStartRequest, MfaMethod},
         enterprise::posture::{
             BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
         },
@@ -2112,6 +2128,77 @@ mod tests {
             .expect("failed to query sessions")
             .is_empty()
         );
+    }
+
+    #[sqlx::test]
+    async fn test_mfa_start_posture_failure_revokes_active_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        save_linux_posture_policy(&pool, location.id).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let mut active_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            Some(Utc::now().naive_utc()),
+            Some(VpnClientMfaMethod::Totp),
+        );
+        active_session.preshared_key = Some("active-mfa-psk".to_owned());
+        let active_session = active_session
+            .save(&pool)
+            .await
+            .expect("failed to create active MFA session");
+        let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+        let posture_data = DevicePostureData {
+            disk_encryption: Some(BoolCheck {
+                result: Some(bool_check::Result::Value(false)),
+            }),
+            ..passing_linux_posture_data()
+        };
+
+        let outcome = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    method: MfaMethod::Email as i32,
+                    posture_data: Some(posture_data),
+                },
+                device_info(),
+            )
+            .await
+            .expect("posture check should complete");
+        assert!(matches!(
+            outcome,
+            super::ClientMfaStartOutcome::Rejected { .. }
+        ));
+
+        match gateway_rx
+            .try_recv()
+            .expect("expected rejected MFA session to be deauthorized")
+        {
+            GatewayCommand::VpnSessionDeauthorized(location_id, disconnected_device) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(disconnected_device.id, device.id);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
+        let active_session = VpnClientSession::find_by_id(&pool, active_session.id)
+            .await
+            .expect("failed to reload active MFA session")
+            .expect("expected active MFA session");
+        assert_eq!(active_session.state, VpnClientSessionState::Disconnected);
+        assert!(active_session.disconnected_at.is_some());
     }
 
     #[sqlx::test]
