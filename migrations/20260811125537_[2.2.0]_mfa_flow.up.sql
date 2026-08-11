@@ -39,3 +39,35 @@ CREATE TABLE location_mfa_flow_group (
 -- Stored MFA toggle, independent of assignment presence
 ALTER TABLE wireguard_network ADD COLUMN mfa_enabled BOOLEAN NOT NULL DEFAULT false;
 UPDATE wireguard_network SET mfa_enabled = (location_mfa_mode <> 'disabled');
+
+-- Backfill: create shared default flows for existing MFA-enabled locations
+
+-- "Default Internal MFA": one step with all internal methods
+INSERT INTO mfa_flow (title)
+SELECT 'Default Internal MFA'
+WHERE EXISTS (SELECT 1 FROM wireguard_network WHERE location_mfa_mode = 'internal');
+
+INSERT INTO mfa_flow_step (flow_id, position, methods)
+SELECT mf.id, 0, ARRAY['totp','email','biometric','mobileapprove']::vpn_client_mfa_method[]
+FROM mfa_flow mf
+WHERE mf.title = 'Default Internal MFA';
+
+INSERT INTO location_mfa_flow (location_id, flow_id, position, is_default)
+SELECT wn.id, mf.id, 0, true
+FROM wireguard_network wn, mfa_flow mf
+WHERE wn.location_mfa_mode = 'internal' AND mf.title = 'Default Internal MFA';
+
+-- "Default External MFA": one step with OIDC
+INSERT INTO mfa_flow (title)
+SELECT 'Default External MFA'
+WHERE EXISTS (SELECT 1 FROM wireguard_network WHERE location_mfa_mode = 'external');
+
+INSERT INTO mfa_flow_step (flow_id, position, methods)
+SELECT mf.id, 0, ARRAY['oidc']::vpn_client_mfa_method[]
+FROM mfa_flow mf
+WHERE mf.title = 'Default External MFA';
+
+INSERT INTO location_mfa_flow (location_id, flow_id, position, is_default)
+SELECT wn.id, mf.id, 0, true
+FROM wireguard_network wn, mfa_flow mf
+WHERE wn.location_mfa_mode = 'external' AND mf.title = 'Default External MFA';
