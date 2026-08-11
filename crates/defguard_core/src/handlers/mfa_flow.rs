@@ -7,8 +7,8 @@ use defguard_common::db::{
     Id,
     models::{
         mfa_flow::{
-            MfaFlow, MfaFlowSnapshot, MfaFlowStep, MfaFlowValidationField, MfaFlowWithStepCount,
-            validate_flow_input,
+            MfaFlow, MfaFlowDeleteError, MfaFlowSnapshot, MfaFlowStep, MfaFlowValidationField,
+            MfaFlowWithStepCount, validate_flow_input,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -388,6 +388,35 @@ pub async fn delete_mfa_flow(
     let flow = MfaFlow::find_by_id(&appstate.pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("MFA flow {id} not found")))?;
+
+    MfaFlow::check_deletable(&appstate.pool, id)
+        .await
+        .map_err(|e| match e {
+            MfaFlowDeleteError::LocationRequiresFlow(locations) => WebError::BadRequest(
+                serde_json::json!({
+                    "error": "validation_failed",
+                    "fields": [{
+                        "field": "id",
+                        "code": "location_requires_flow",
+                        "locations": locations,
+                    }]
+                })
+                .to_string(),
+            ),
+            MfaFlowDeleteError::FlowIsDefault(locations) => WebError::BadRequest(
+                serde_json::json!({
+                    "error": "validation_failed",
+                    "fields": [{
+                        "field": "id",
+                        "code": "flow_is_default",
+                        "locations": locations,
+                    }]
+                })
+                .to_string(),
+            ),
+            MfaFlowDeleteError::Sqlx(e) => WebError::from(e),
+        })?;
+
     let steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
 
     let snapshot = MfaFlowSnapshot {

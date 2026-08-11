@@ -74,6 +74,17 @@ pub enum MfaFlowAssignmentError {
     Sqlx(#[from] sqlx::Error),
 }
 
+/// Errors that can occur when deleting an MFA flow.
+#[derive(Debug, Error)]
+pub enum MfaFlowDeleteError {
+    #[error("MFA flow is the only assignment for location(s): {}", .0.join(", "))]
+    LocationRequiresFlow(Vec<String>),
+    #[error("MFA flow is the designated default for location(s): {}", .0.join(", "))]
+    FlowIsDefault(Vec<String>),
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+}
+
 /// A single structured validation error for an MFA flow input.
 #[derive(Clone, Debug)]
 pub struct MfaFlowValidationField {
@@ -329,6 +340,47 @@ impl MfaFlow<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    /// Checks whether a flow can be deleted, returning an error naming the
+    /// affected locations if it cannot.
+    pub async fn check_deletable<'e, E: PgExecutor<'e> + Copy>(
+        executor: E,
+        flow_id: Id,
+    ) -> Result<(), MfaFlowDeleteError> {
+        // Flow is the only assignment for any location?
+        let orphaned: Vec<String> = query_scalar!(
+            "SELECT wn.name \
+             FROM location_mfa_flow lmf \
+             JOIN wireguard_network wn ON wn.id = lmf.location_id \
+             WHERE lmf.flow_id = $1 \
+             AND (SELECT COUNT(*) FROM location_mfa_flow \
+                  WHERE location_id = lmf.location_id) = 1",
+            flow_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        if !orphaned.is_empty() {
+            return Err(MfaFlowDeleteError::LocationRequiresFlow(orphaned));
+        }
+
+        // Flow is the designated default for any location?
+        let defaults: Vec<String> = query_scalar!(
+            "SELECT wn.name \
+             FROM location_mfa_flow lmf \
+             JOIN wireguard_network wn ON wn.id = lmf.location_id \
+             WHERE lmf.flow_id = $1 AND lmf.is_default = true",
+            flow_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        if !defaults.is_empty() {
+            return Err(MfaFlowDeleteError::FlowIsDefault(defaults));
+        }
+
+        Ok(())
     }
 }
 

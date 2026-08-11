@@ -343,6 +343,91 @@ async fn test_assign_default_with_groups_rejected(_: PgPoolOptions, options: PgC
 }
 
 #[sqlx::test]
+async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.4.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow1.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let result = MfaFlow::check_deletable(&pool, flow1.id).await;
+    assert!(matches!(
+        result,
+        Err(MfaFlowDeleteError::LocationRequiresFlow(_))
+    ));
+}
+
+#[sqlx::test]
+async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut *tx,
+            "Second".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.5.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: false,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // flow2 is not the only assignment and not default → OK
+    assert!(MfaFlow::check_deletable(&pool, flow2.id).await.is_ok());
+    // flow1 is the default → refused
+    let result = MfaFlow::check_deletable(&pool, flow1.id).await;
+    assert!(matches!(result, Err(MfaFlowDeleteError::FlowIsDefault(_))));
+}
+
+#[sqlx::test]
 async fn test_validation_empty_title(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let _pool = pool;
