@@ -7,7 +7,10 @@ use sqlx::{FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use thiserror::Error;
 use utoipa::ToSchema;
 
-use crate::db::{Id, NoId, models::vpn_client_session::VpnClientMfaMethod};
+use crate::db::{
+    Id, NoId,
+    models::{vpn_client_session::VpnClientMfaMethod, wireguard::LocationMfaMode},
+};
 
 /// An MFA flow is a named, ordered list of MFA steps.
 #[derive(Clone, Debug, Deserialize, FromRow, Model, PartialEq, Serialize, ToSchema)]
@@ -446,6 +449,48 @@ impl MfaFlow<Id> {
                 .expect("default flow must exist");
             let steps = MfaFlowStep::find_by_flow(executor, flow_id).await?;
             return Ok(Some((flow, steps)));
+        }
+
+        Ok(None)
+    }
+
+    /// Derives the legacy `LocationMfaMode` for a location if the current
+    /// flow configuration is backward-compatible. Returns `None` when the
+    /// location uses multi-flow, multi-step, or subset-of-internal-methods
+    /// configurations that legacy clients cannot represent.
+    pub async fn derive_legacy_mode<'e>(
+        executor: impl PgExecutor<'e> + Copy,
+        location_id: Id,
+    ) -> sqlx::Result<Option<LocationMfaMode>> {
+        use std::collections::HashSet;
+
+        let assignments = Self::for_location(executor, location_id).await?;
+        if assignments.len() != 1 {
+            return Ok(None);
+        }
+
+        let steps = MfaFlowStep::find_by_flow(executor, assignments[0].id).await?;
+        if steps.len() != 1 {
+            return Ok(None);
+        }
+
+        let methods = &steps[0].methods;
+        let set: HashSet<VpnClientMfaMethod> = methods.iter().copied().collect();
+
+        let all_internal: HashSet<VpnClientMfaMethod> = [
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Biometric,
+            VpnClientMfaMethod::MobileApprove,
+        ]
+        .into();
+
+        if set == all_internal {
+            return Ok(Some(LocationMfaMode::Internal));
+        }
+
+        if set == HashSet::from([VpnClientMfaMethod::Oidc]) {
+            return Ok(Some(LocationMfaMode::External));
         }
 
         Ok(None)

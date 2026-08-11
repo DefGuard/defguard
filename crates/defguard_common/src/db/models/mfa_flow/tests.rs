@@ -2,7 +2,11 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
 use crate::db::{
-    models::{group::Group, user::User, wireguard::WireguardNetwork},
+    models::{
+        group::Group,
+        user::User,
+        wireguard::{LocationMfaMode, WireguardNetwork},
+    },
     setup_pool,
 };
 
@@ -554,6 +558,166 @@ async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOp
         .unwrap();
     assert!(result.is_some());
     assert_eq!(result.unwrap().0.id, flow2.id);
+}
+
+#[sqlx::test]
+async fn test_derive_legacy_internal(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut *tx,
+        "Internal".into(),
+        vec![vec![
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Biometric,
+            VpnClientMfaMethod::MobileApprove,
+        ]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.1.0.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, Some(LocationMfaMode::Internal));
+}
+
+#[sqlx::test]
+async fn test_derive_legacy_external(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut *tx,
+        "External".into(),
+        vec![vec![VpnClientMfaMethod::Oidc]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.1.1.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, Some(LocationMfaMode::External));
+}
+
+#[sqlx::test]
+async fn test_derive_legacy_multi_step_omitted(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow, _) = create_flow(&pool).await; // 2 steps
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.1.2.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, None);
+}
+
+#[sqlx::test]
+async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut *tx,
+        "Subset".into(),
+        vec![vec![VpnClientMfaMethod::Totp]], // only TOTP, not all four
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.1.3.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, None);
 }
 
 #[sqlx::test]
