@@ -49,6 +49,7 @@ use handlers::{
     auth::disable_user_mfa,
     component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
+    mfa_flow::{create_mfa_flow, delete_mfa_flow, get_mfa_flow, list_mfa_flows, update_mfa_flow},
     network_devices::{
         add_network_device, check_ip_availability, find_available_ips, get_network_device,
         list_network_devices, modify_network_device, network_device_configs,
@@ -564,6 +565,18 @@ pub fn build_webapp(
                     .delete(delete_acl_destination),
             )
             .route("/destination/apply", put(apply_acl_destinations)),
+    );
+
+    let api_router = api_router.nest(
+        "/api/v1/mfa-flow",
+        Router::new()
+            .route("/", get(list_mfa_flows).post(create_mfa_flow))
+            .route(
+                "/{id}",
+                get(get_mfa_flow)
+                    .put(update_mfa_flow)
+                    .delete(delete_mfa_flow),
+            ),
     );
 
     let api_router = api_router.nest(
