@@ -315,6 +315,13 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         ApiEventType::MfaFlowDeleted { snapshot } => {
             Some(format!("Deleted MFA flow '{}'", snapshot.flow.title))
         }
+        ApiEventType::LocationMfaFlowsAssigned {
+            location_name,
+            assignment_count,
+            ..
+        } => Some(format!(
+            "Assigned {assignment_count} MFA flow(s) to location '{location_name}'"
+        )),
         ApiEventType::EnrollmentTokenAdded { user } => {
             Some(format!("Added enrollment token for user {user}"))
         }

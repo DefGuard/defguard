@@ -375,6 +375,11 @@ pub enum ApiEventType {
     MfaFlowDeleted {
         snapshot: MfaFlowSnapshot,
     },
+    LocationMfaFlowsAssigned {
+        location_id: Id,
+        location_name: String,
+        assignment_count: i64,
+    },
 }
 
 /// Events from Web API

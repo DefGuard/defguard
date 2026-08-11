@@ -648,6 +648,19 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     EventType::MfaFlowDeleted,
                     serde_json::to_value(snapshot).ok(),
                 ),
+                ApiEventType::LocationMfaFlowsAssigned {
+                    location_id,
+                    location_name,
+                    assignment_count,
+                } => (
+                    EventType::LocationMfaFlowsAssigned,
+                    serde_json::to_value(serde_json::json!({
+                        "location_id": location_id,
+                        "location_name": location_name,
+                        "assignment_count": assignment_count,
+                    }))
+                    .ok(),
+                ),
                 ApiEventType::DevicePostureDuplicated {
                     original,
                     duplicate,

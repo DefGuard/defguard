@@ -7,7 +7,8 @@ use defguard_common::db::{
     Id,
     models::{
         mfa_flow::{
-            MfaFlow, MfaFlowDeleteError, MfaFlowSnapshot, MfaFlowStep, MfaFlowValidationField,
+            LocationMfaFlowAssignment, LocationMfaFlowItem, MfaFlow, MfaFlowAssignmentError,
+            MfaFlowDeleteError, MfaFlowSnapshot, MfaFlowStep, MfaFlowValidationField,
             MfaFlowWithStepCount, validate_flow_input,
         },
         vpn_client_session::VpnClientMfaMethod,
@@ -106,6 +107,45 @@ pub struct UpdateMfaFlowStep {
     pub id: Option<Id>,
     pub position: i32,
     pub methods: Vec<VpnClientMfaMethod>,
+}
+
+/// Request body for assigning flows to a location.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct AssignMfaFlowsRequest {
+    pub assignments: Vec<AssignMfaFlowEntry>,
+}
+
+/// A single entry in an assignment list.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct AssignMfaFlowEntry {
+    pub flow_id: Id,
+    pub is_default: bool,
+    #[serde(default)]
+    pub group_ids: Vec<Id>,
+}
+
+/// Assignment item returned by `GET /location/{id}/mfa-flows`.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct LocationMfaFlowResponse {
+    pub id: Id,
+    pub title: String,
+    pub step_count: i64,
+    pub group_names: Vec<String>,
+    pub position: i32,
+    pub is_default: bool,
+}
+
+impl From<LocationMfaFlowItem> for LocationMfaFlowResponse {
+    fn from(item: LocationMfaFlowItem) -> Self {
+        Self {
+            id: item.id,
+            title: item.title,
+            step_count: item.step_count,
+            group_names: item.group_names,
+            position: item.position,
+            is_default: item.is_default,
+        }
+    }
 }
 
 // Helpers
@@ -434,4 +474,116 @@ pub async fn delete_mfa_flow(
     })?;
 
     Ok(ApiResponse::default())
+}
+
+/// Get MFA flows assigned to a location
+#[utoipa::path(
+    get,
+    path = "/api/v1/location/{id}/mfa-flows",
+    tag = "mfa flow",
+    params(
+        ("id" = i64, Path, description = "ID of the location.")
+    ),
+    responses(
+        (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
+        (status = 500, description = "Unable to list assigned flows.", body = ApiErrorResponse)
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn get_location_mfa_flows(
+    _admin: AdminRole,
+    session: SessionInfo,
+    Path(id): Path<Id>,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} getting MFA flows for location {id}",
+        session.user.username
+    );
+
+    let items = MfaFlow::for_location(&appstate.pool, id).await?;
+    let response: Vec<LocationMfaFlowResponse> = items.into_iter().map(Into::into).collect();
+
+    Ok(ApiResponse::json(response, StatusCode::OK))
+}
+
+/// Assign MFA flows to a location (full replace)
+#[utoipa::path(
+    put,
+    path = "/api/v1/location/{id}/mfa-flows",
+    tag = "mfa flow",
+    params(
+        ("id" = i64, Path, description = "ID of the location.")
+    ),
+    request_body = AssignMfaFlowsRequest,
+    responses(
+        (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
+        (status = 400, description = "Invalid assignment.", body = ApiErrorResponse),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
+        (status = 500, description = "Unable to assign flows.", body = ApiErrorResponse)
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn set_location_mfa_flows(
+    _admin: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Path(location_id): Path<Id>,
+    State(appstate): State<AppState>,
+    Json(data): Json<AssignMfaFlowsRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} assigning MFA flows to location {location_id}",
+        session.user.username
+    );
+
+    let assignments: Vec<LocationMfaFlowAssignment> = data
+        .assignments
+        .into_iter()
+        .map(|a| LocationMfaFlowAssignment {
+            flow_id: a.flow_id,
+            is_default: a.is_default,
+            group_ids: a.group_ids,
+        })
+        .collect();
+
+    let mut tx = appstate.pool.begin().await?;
+    MfaFlow::assign_to_location(&mut *tx, location_id, &assignments)
+        .await
+        .map_err(|e| match e {
+            MfaFlowAssignmentError::NoDefaultDesignated => {
+                let fields: Vec<Value> = vec![json!({
+                    "field": "mfa_flows",
+                    "code": "no_default_designated"
+                })];
+                WebError::BadRequest(
+                    json!({"error": "validation_failed", "fields": fields}).to_string(),
+                )
+            }
+            MfaFlowAssignmentError::Sqlx(e) => WebError::from(e),
+        })?;
+    tx.commit().await?;
+
+    let items = MfaFlow::for_location(&appstate.pool, location_id).await?;
+    let response: Vec<LocationMfaFlowResponse> = items.into_iter().map(Into::into).collect();
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+            location_id,
+            location_name: String::new(), // populated by event logger
+            assignment_count: response.len() as i64,
+        }),
+    })?;
+
+    Ok(ApiResponse::json(response, StatusCode::OK))
 }
