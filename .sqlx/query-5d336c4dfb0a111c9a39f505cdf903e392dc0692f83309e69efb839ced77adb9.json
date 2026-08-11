@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mf.id, mf.title, mf.created_at, mf.updated_at, COALESCE(s.step_count, 0) AS \"step_count!: i64\" FROM mfa_flow mf LEFT JOIN ( SELECT flow_id, COUNT(*) AS step_count FROM mfa_flow_step GROUP BY flow_id ) s ON s.flow_id = mf.id ORDER BY mf.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "step_count!: i64",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "5d336c4dfb0a111c9a39f505cdf903e392dc0692f83309e69efb839ced77adb9"
+}

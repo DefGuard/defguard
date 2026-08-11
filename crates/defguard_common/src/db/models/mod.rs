@@ -8,6 +8,7 @@ pub mod error;
 pub mod gateway;
 pub mod group;
 pub mod initial_setup_wizard;
+pub mod mfa_flow;
 pub mod mfa_info;
 pub mod migration_wizard;
 pub mod oauth2authorizedapp;

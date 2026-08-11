@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"mfa_flow\" SET \"title\" = $2,\"created_at\" = $3,\"updated_at\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fb155286c7f7c7b8fad9385078690d4ee41cee64088959625e31c0d532ae77cd"
+}
