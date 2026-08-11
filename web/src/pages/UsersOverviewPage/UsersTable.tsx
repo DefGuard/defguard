@@ -683,6 +683,15 @@ export const UsersTable = () => {
           text: m.profile_devices_menu_show_config(),
           onClick: () => {
             api.device.getDeviceConfigs(device).then((modalData) => {
+              const hasConfigs = modalData.configs.some(
+                (c) =>
+                  c.location_mfa_mode === LocationMfaMode.Disabled &&
+                  !c.posture_check_required,
+              );
+              if (!hasConfigs) {
+                Snackbar.error(m.profile_devices_config_no_locations());
+                return;
+              }
               openModal(ModalName.UserDeviceConfig, modalData);
             });
           },
