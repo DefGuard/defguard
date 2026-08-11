@@ -287,6 +287,62 @@ async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConne
 }
 
 #[sqlx::test]
+async fn test_assign_no_default_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.2.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let result = MfaFlow::assign_to_location(
+        &mut *pool.acquire().await.unwrap(),
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow1.id,
+            is_default: false,
+            group_ids: vec![],
+        }],
+    )
+    .await;
+    assert!(matches!(
+        result,
+        Err(MfaFlowAssignmentError::NoDefaultDesignated)
+    ));
+}
+
+#[sqlx::test]
+async fn test_assign_default_with_groups_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.3.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let result = MfaFlow::assign_to_location(
+        &mut *pool.acquire().await.unwrap(),
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow1.id,
+            is_default: true,
+            group_ids: vec![flow1.id], // default must have empty groups
+        }],
+    )
+    .await;
+    assert!(matches!(
+        result,
+        Err(MfaFlowAssignmentError::NoDefaultDesignated)
+    ));
+}
+
+#[sqlx::test]
 async fn test_validation_empty_title(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let _pool = pool;

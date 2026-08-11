@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
+use thiserror::Error;
 use utoipa::ToSchema;
 
 use crate::db::{Id, NoId, models::vpn_client_session::VpnClientMfaMethod};
@@ -62,6 +63,15 @@ pub struct LocationMfaFlowAssignment {
     pub flow_id: Id,
     pub is_default: bool,
     pub group_ids: Vec<Id>,
+}
+
+/// Errors that can occur during MFA flow assignment.
+#[derive(Debug, Error)]
+pub enum MfaFlowAssignmentError {
+    #[error("No default MFA flow designated for this location")]
+    NoDefaultDesignated,
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
 }
 
 /// A single structured validation error for an MFA flow input.
@@ -241,7 +251,17 @@ impl MfaFlow<Id> {
         conn: &mut PgConnection,
         location_id: Id,
         assignments: &[LocationMfaFlowAssignment],
-    ) -> sqlx::Result<()> {
+    ) -> Result<(), MfaFlowAssignmentError> {
+        let default_count = assignments.iter().filter(|a| a.is_default).count();
+        if default_count != 1 {
+            return Err(MfaFlowAssignmentError::NoDefaultDesignated);
+        }
+        if let Some(default) = assignments.iter().find(|a| a.is_default) {
+            if !default.group_ids.is_empty() {
+                return Err(MfaFlowAssignmentError::NoDefaultDesignated);
+            }
+        }
+
         query!(
             "DELETE FROM location_mfa_flow WHERE location_id = $1",
             location_id,
