@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE mfa_flow_step SET position = $1, methods = $2::vpn_client_mfa_method[] WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "vpn_client_mfa_method[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dc7afcf8c0641b999d8244db937ce9807a4a82d95e92aa5ddfdef1d61a57ba42"
+}

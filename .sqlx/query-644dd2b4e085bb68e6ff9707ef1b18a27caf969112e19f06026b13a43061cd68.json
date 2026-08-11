@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE mfa_flow_step SET position = position + $2 WHERE flow_id = $1 AND id = ANY($3::bigint[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "644dd2b4e085bb68e6ff9707ef1b18a27caf969112e19f06026b13a43061cd68"
+}
