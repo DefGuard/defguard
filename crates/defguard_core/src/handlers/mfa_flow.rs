@@ -7,7 +7,8 @@ use defguard_common::db::{
     Id,
     models::{
         mfa_flow::{
-            MfaFlow, MfaFlowStep, MfaFlowValidationField, MfaFlowWithStepCount, validate_flow_input,
+            MfaFlow, MfaFlowSnapshot, MfaFlowStep, MfaFlowValidationField, MfaFlowWithStepCount,
+            validate_flow_input,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -20,6 +21,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
@@ -191,6 +193,7 @@ pub async fn list_mfa_flows(
 pub async fn create_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<CreateMfaFlowRequest>,
 ) -> ApiResult {
@@ -210,6 +213,16 @@ pub async fn create_mfa_flow(
     tx.commit().await?;
 
     debug!("Created MFA flow {}", flow.id);
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::MfaFlowCreated {
+            snapshot: MfaFlowSnapshot {
+                flow: flow.clone(),
+                steps: steps.clone(),
+            },
+        }),
+    })?;
 
     let response = MfaFlowDetailResponse {
         id: flow.id,
@@ -291,6 +304,7 @@ pub async fn get_mfa_flow(
 pub async fn update_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(id): Path<Id>,
     State(appstate): State<AppState>,
     Json(data): Json<UpdateMfaFlowRequest>,
@@ -301,6 +315,7 @@ pub async fn update_mfa_flow(
     let existing = MfaFlow::find_by_id(&appstate.pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("MFA flow {id} not found")))?;
+    let before_steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
 
     let step_updates = extract_update_step_updates(&data.steps);
     let step_methods: Vec<Vec<VpnClientMfaMethod>> =
@@ -315,6 +330,20 @@ pub async fn update_mfa_flow(
     let (flow, steps) =
         MfaFlow::update_with_steps(&mut *tx, existing.id, data.title, step_updates).await?;
     tx.commit().await?;
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::MfaFlowUpdated {
+            before: MfaFlowSnapshot {
+                flow: existing,
+                steps: before_steps,
+            },
+            after: MfaFlowSnapshot {
+                flow: flow.clone(),
+                steps: steps.clone(),
+            },
+        }),
+    })?;
 
     let response = MfaFlowDetailResponse {
         id: flow.id,
@@ -350,6 +379,7 @@ pub async fn update_mfa_flow(
 pub async fn delete_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(id): Path<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -358,10 +388,21 @@ pub async fn delete_mfa_flow(
     let flow = MfaFlow::find_by_id(&appstate.pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("MFA flow {id} not found")))?;
+    let steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
+
+    let snapshot = MfaFlowSnapshot {
+        flow: flow.clone(),
+        steps,
+    };
 
     flow.delete(&appstate.pool).await?;
 
     debug!("Deleted MFA flow {id}");
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::MfaFlowDeleted { snapshot }),
+    })?;
 
     Ok(ApiResponse::default())
 }

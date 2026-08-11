@@ -37,6 +37,14 @@ pub struct MfaFlowWithStepCount {
     pub updated_at: DateTime<Utc>,
 }
 
+/// A point-in-time snapshot of an MFA flow and its steps, used as the
+/// payload for audit events.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct MfaFlowSnapshot {
+    pub flow: MfaFlow<Id>,
+    pub steps: Vec<MfaFlowStep<Id>>,
+}
+
 /// A single structured validation error for an MFA flow input.
 #[derive(Clone, Debug)]
 pub struct MfaFlowValidationField {
