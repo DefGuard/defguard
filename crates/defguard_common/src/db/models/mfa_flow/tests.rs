@@ -165,3 +165,64 @@ async fn test_position_swap(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(updated_steps[1].methods, step0_methods);
     assert_eq!(updated_steps[1].position, 1);
 }
+
+#[sqlx::test]
+async fn test_validation_empty_title(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let errors = validate_flow_input("  ", &[vec![VpnClientMfaMethod::Totp]]);
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.field == "title" && e.code == "required")
+    );
+}
+
+#[sqlx::test]
+async fn test_validation_zero_steps(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let errors = validate_flow_input("Test", &[]);
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.field == "steps" && e.code == "min_items")
+    );
+}
+
+#[sqlx::test]
+async fn test_validation_zero_method_step(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let errors = validate_flow_input("Test", &[vec![], vec![VpnClientMfaMethod::Totp]]);
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.field == "steps[0].methods" && e.code == "min_items")
+    );
+    // The valid step should not produce errors
+    assert!(
+        !errors
+            .iter()
+            .any(|e| e.field == "steps[1].methods" && e.code == "min_items")
+    );
+}
+
+#[sqlx::test]
+async fn test_validation_duplicate_method(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let errors = validate_flow_input(
+        "Test",
+        &[vec![
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Totp,
+        ]],
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.field == "steps[0].methods" && e.code == "duplicate")
+    );
+}

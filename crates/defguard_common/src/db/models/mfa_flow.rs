@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::{DateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
@@ -33,6 +35,58 @@ pub struct MfaFlowWithStepCount {
     pub step_count: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// A single structured validation error for an MFA flow input.
+#[derive(Clone, Debug)]
+pub struct MfaFlowValidationField {
+    pub field: String,
+    pub code: String,
+}
+
+/// Validates the structural rules for an MFA flow input (title + step methods).
+/// License, SMTP and OIDC checks are applied separately by the handler.
+pub fn validate_flow_input(
+    title: &str,
+    step_methods: &[Vec<VpnClientMfaMethod>],
+) -> Vec<MfaFlowValidationField> {
+    let mut errors = Vec::new();
+
+    if title.trim().is_empty() {
+        errors.push(MfaFlowValidationField {
+            field: "title".into(),
+            code: "required".into(),
+        });
+    }
+
+    if step_methods.is_empty() {
+        errors.push(MfaFlowValidationField {
+            field: "steps".into(),
+            code: "min_items".into(),
+        });
+    }
+
+    for (i, methods) in step_methods.iter().enumerate() {
+        if methods.is_empty() {
+            errors.push(MfaFlowValidationField {
+                field: format!("steps[{i}].methods"),
+                code: "min_items".into(),
+            });
+        }
+
+        let mut seen = HashSet::new();
+        for method in methods {
+            if !seen.insert(*method) {
+                errors.push(MfaFlowValidationField {
+                    field: format!("steps[{i}].methods"),
+                    code: "duplicate".into(),
+                });
+                break;
+            }
+        }
+    }
+
+    errors
 }
 
 impl MfaFlow<NoId> {
