@@ -458,18 +458,26 @@ impl MfaFlow<Id> {
     /// flow configuration is backward-compatible. Returns `None` when the
     /// location uses multi-flow, multi-step, or subset-of-internal-methods
     /// configurations that legacy clients cannot represent.
-    pub async fn derive_legacy_mode<'e>(
-        executor: impl PgExecutor<'e> + Copy,
+    pub async fn derive_legacy_mode<'e, E: PgExecutor<'e>>(
+        executor: E,
         location_id: Id,
     ) -> sqlx::Result<Option<LocationMfaMode>> {
-        use std::collections::HashSet;
-
-        let assignments = Self::for_location(executor, location_id).await?;
-        if assignments.len() != 1 {
-            return Ok(None);
+        struct StepRow {
+            methods: Vec<VpnClientMfaMethod>,
         }
 
-        let steps = MfaFlowStep::find_by_flow(executor, assignments[0].id).await?;
+        let steps = query_as!(
+            StepRow,
+            "SELECT mfs.methods AS \"methods: Vec<VpnClientMfaMethod>\" \
+             FROM location_mfa_flow lmf \
+             JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id \
+             WHERE lmf.location_id = $1 \
+             ORDER BY lmf.position, mfs.position",
+            location_id
+        )
+        .fetch_all(executor)
+        .await?;
+
         if steps.len() != 1 {
             return Ok(None);
         }

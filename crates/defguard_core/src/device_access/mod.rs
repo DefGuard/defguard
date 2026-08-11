@@ -9,8 +9,9 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceError, WireguardNetwork,
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
+            mfa_flow::MfaFlow,
             user::User,
-            wireguard::WireguardNetworkError,
+            wireguard::{LocationMfaMode, WireguardNetworkError},
         },
     },
     device_config_gen::create_wireguard_config,
@@ -37,7 +38,12 @@ pub async fn build_device_config(
     let has_postures = network
         .has_postures(&mut *conn)
         .await
-        .map_err(|e| DeviceError::Unexpected(e.to_string()))?;
+        .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
+
+    let location_mfa_mode = MfaFlow::derive_legacy_mode(&mut *conn, network.id)
+        .await
+        .map_err(|err| DeviceError::Unexpected(err.to_string()))?
+        .unwrap_or(LocationMfaMode::Disabled);
 
     Ok(DeviceConfig {
         network_id: network.id,
@@ -49,7 +55,7 @@ pub async fn build_device_config(
         pubkey: network.pubkey.clone(),
         dns: network.dns.clone(),
         keepalive_interval: network.keepalive_interval,
-        location_mfa_mode: network.location_mfa_mode.clone(),
+        location_mfa_mode,
         service_location_mode: network.service_location_mode.clone(),
         posture_check_required: has_postures,
     })
