@@ -35,3 +35,7 @@ CREATE TABLE location_mfa_flow_group (
     FOREIGN KEY (location_id, flow_id)
         REFERENCES location_mfa_flow(location_id, flow_id) ON DELETE CASCADE
 );
+
+-- Stored MFA toggle, independent of assignment presence
+ALTER TABLE wireguard_network ADD COLUMN mfa_enabled BOOLEAN NOT NULL DEFAULT false;
+UPDATE wireguard_network SET mfa_enabled = (location_mfa_mode <> 'disabled');
