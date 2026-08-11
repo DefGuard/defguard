@@ -38,7 +38,11 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   const selectOptions = useMemo(
     () =>
       response.configs
-        .filter((item) => item.location_mfa_mode === LocationMfaMode.Disabled)
+        .filter(
+          (item) =>
+            item.location_mfa_mode === LocationMfaMode.Disabled &&
+            !item.posture_check_required,
+        )
         .map((item): SelectOption<AddDeviceResponseConfig> => configToOption(item)),
     [response.configs],
   );
@@ -69,7 +73,8 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   const handleDownloadAll = useCallback(async () => {
     if (!response) return;
     const nonMfaConfigs = response.configs.filter(
-      (c) => c.location_mfa_mode === LocationMfaMode.Disabled,
+      (c) =>
+        c.location_mfa_mode === LocationMfaMode.Disabled && !c.posture_check_required,
     );
     let data: AddDeviceResponseConfig[] = [];
     if (isPresent(privateKey)) {

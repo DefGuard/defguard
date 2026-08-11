@@ -599,6 +599,7 @@ export interface AddDeviceResponseConfig {
   network_name: string;
   config: string;
   location_mfa_mode: LocationMfaModeValue;
+  posture_check_required: boolean;
 }
 
 export interface AddDeviceResponse {
