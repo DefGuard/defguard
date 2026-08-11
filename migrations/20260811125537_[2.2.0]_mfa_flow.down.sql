@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS mfa_flow_step;
+DROP TABLE IF EXISTS mfa_flow;
