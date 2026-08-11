@@ -1,7 +1,10 @@
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::db::{models::wireguard::WireguardNetwork, setup_pool};
+use crate::db::{
+    models::{group::Group, user::User, wireguard::WireguardNetwork},
+    setup_pool,
+};
 
 /// Helper: create a flow with two steps and return its (flow, steps).
 async fn create_flow(pool: &sqlx::PgPool) -> (MfaFlow<Id>, Vec<MfaFlowStep<Id>>) {
@@ -425,6 +428,132 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
     // flow1 is the default → refused
     let result = MfaFlow::check_deletable(&pool, flow1.id).await;
     assert!(matches!(result, Err(MfaFlowDeleteError::FlowIsDefault(_))));
+}
+
+#[sqlx::test]
+async fn test_resolve_group_match(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut *tx,
+            "Default".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let user = User::new("resolver", None, "Ln", "Fn", "r@t.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group = Group::new("resolver-group").save(&pool).await.unwrap();
+    sqlx::query!(
+        "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)",
+        group.id,
+        user.id,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.6.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: false,
+                group_ids: vec![group.id],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let result = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+        .await
+        .unwrap();
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().0.id, flow1.id);
+}
+
+#[sqlx::test]
+async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut *tx,
+            "Default".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let user = User::new("fallback", None, "Ln", "Fn", "f@t.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group = Group::new("fb-group").save(&pool).await.unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.7.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: false,
+                group_ids: vec![group.id],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let result = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+        .await
+        .unwrap();
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().0.id, flow2.id);
 }
 
 #[sqlx::test]

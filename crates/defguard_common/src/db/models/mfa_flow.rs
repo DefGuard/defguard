@@ -382,6 +382,81 @@ impl MfaFlow<Id> {
 
         Ok(())
     }
+
+    /// Resolves the first matching MFA flow for a user at a location.
+    pub async fn resolve_for_user<'e>(
+        executor: impl PgExecutor<'e> + Copy,
+        location_id: Id,
+        user_id: Id,
+    ) -> sqlx::Result<Option<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)>> {
+        use std::collections::HashSet;
+
+        let assignments = query_as!(
+            ResolveAssignmentRow,
+            "SELECT lmf.flow_id, lmf.is_default, \
+             COALESCE(array_agg(lmfg.group_id) \
+                      FILTER (WHERE lmfg.group_id IS NOT NULL), '{}') \
+                      AS \"group_ids!: Vec<Id>\" \
+             FROM location_mfa_flow lmf \
+             LEFT JOIN location_mfa_flow_group lmfg \
+                 ON lmfg.location_id = lmf.location_id \
+                 AND lmfg.flow_id = lmf.flow_id \
+             WHERE lmf.location_id = $1 \
+             GROUP BY lmf.flow_id, lmf.position, lmf.is_default \
+             ORDER BY lmf.position",
+            location_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        if assignments.is_empty() {
+            return Ok(None);
+        }
+
+        let user_groups: HashSet<Id> = query_scalar!(
+            "SELECT group_id FROM group_user WHERE user_id = $1",
+            user_id
+        )
+        .fetch_all(executor)
+        .await?
+        .into_iter()
+        .flatten()
+        .collect();
+
+        let mut default_flow_id: Option<Id> = None;
+        for assignment in &assignments {
+            if assignment.is_default {
+                default_flow_id = Some(assignment.flow_id);
+            } else if assignment
+                .group_ids
+                .iter()
+                .any(|group_id| user_groups.contains(group_id))
+            {
+                let flow = MfaFlow::find_by_id(executor, assignment.flow_id)
+                    .await?
+                    .expect("flow referenced by assignment must exist");
+                let steps = MfaFlowStep::find_by_flow(executor, assignment.flow_id).await?;
+                return Ok(Some((flow, steps)));
+            }
+        }
+
+        if let Some(flow_id) = default_flow_id {
+            let flow = MfaFlow::find_by_id(executor, flow_id)
+                .await?
+                .expect("default flow must exist");
+            let steps = MfaFlowStep::find_by_flow(executor, flow_id).await?;
+            return Ok(Some((flow, steps)));
+        }
+
+        Ok(None)
+    }
+}
+
+/// Internal row type for the resolve_for_user query.
+struct ResolveAssignmentRow {
+    flow_id: Id,
+    is_default: bool,
+    group_ids: Vec<Id>,
 }
 
 impl MfaFlowStep<NoId> {
