@@ -45,6 +45,25 @@ pub struct MfaFlowSnapshot {
     pub steps: Vec<MfaFlowStep<Id>>,
 }
 
+/// Assignment of an MFA flow to a location, enriched for API consumption.
+#[derive(Clone, Debug, Serialize)]
+pub struct LocationMfaFlowItem {
+    pub id: Id,
+    pub title: String,
+    pub step_count: i64,
+    pub group_names: Vec<String>,
+    pub position: i32,
+    pub is_default: bool,
+}
+
+/// Input for a single flow assignment to a location.
+#[derive(Clone, Debug)]
+pub struct LocationMfaFlowAssignment {
+    pub flow_id: Id,
+    pub is_default: bool,
+    pub group_ids: Vec<Id>,
+}
+
 /// A single structured validation error for an MFA flow input.
 #[derive(Clone, Debug)]
 pub struct MfaFlowValidationField {
@@ -215,6 +234,81 @@ impl MfaFlow<Id> {
             .expect("flow was just updated");
 
         Ok((flow, resulting_steps))
+    }
+
+    /// Replaces all MFA flow assignments for a location.
+    pub async fn assign_to_location(
+        conn: &mut PgConnection,
+        location_id: Id,
+        assignments: &[LocationMfaFlowAssignment],
+    ) -> sqlx::Result<()> {
+        query!(
+            "DELETE FROM location_mfa_flow WHERE location_id = $1",
+            location_id,
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        for (i, a) in assignments.iter().enumerate() {
+            let position = i as i32;
+            query!(
+                "INSERT INTO location_mfa_flow (location_id, flow_id, position, is_default) \
+                 VALUES ($1, $2, $3, $4)",
+                location_id,
+                a.flow_id,
+                position,
+                a.is_default,
+            )
+            .execute(&mut *conn)
+            .await?;
+
+            if !a.group_ids.is_empty() {
+                query!(
+                    "INSERT INTO location_mfa_flow_group (location_id, flow_id, group_id) \
+                     SELECT $1, $2, unnest($3::bigint[])",
+                    location_id,
+                    a.flow_id,
+                    &a.group_ids,
+                )
+                .execute(&mut *conn)
+                .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns the enriched assignment list for a location, ordered by position.
+    pub async fn for_location<'e, E: PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+    ) -> sqlx::Result<Vec<LocationMfaFlowItem>> {
+        query_as!(
+            LocationMfaFlowItem,
+            "SELECT mf.id, mf.title, \
+             COALESCE(s.step_count, 0) AS \"step_count!: i64\", \
+             COALESCE(array_agg(g.name ORDER BY g.name) \
+                      FILTER (WHERE g.name IS NOT NULL), '{}') \
+                      AS \"group_names!: Vec<String>\", \
+             lmf.position, lmf.is_default \
+             FROM location_mfa_flow lmf \
+             JOIN mfa_flow mf ON mf.id = lmf.flow_id \
+             LEFT JOIN ( \
+                 SELECT flow_id, COUNT(*) AS step_count \
+                 FROM mfa_flow_step \
+                 GROUP BY flow_id \
+             ) s ON s.flow_id = mf.id \
+             LEFT JOIN location_mfa_flow_group lmfg \
+                 ON lmfg.location_id = lmf.location_id \
+                 AND lmfg.flow_id = lmf.flow_id \
+             LEFT JOIN \"group\" g ON g.id = lmfg.group_id \
+             WHERE lmf.location_id = $1 \
+             GROUP BY mf.id, mf.title, s.step_count, lmf.position, lmf.is_default \
+             ORDER BY lmf.position",
+            location_id
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 

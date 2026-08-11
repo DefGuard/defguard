@@ -1,7 +1,7 @@
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::db::setup_pool;
+use crate::db::{models::wireguard::WireguardNetwork, setup_pool};
 
 /// Helper: create a flow with two steps and return its (flow, steps).
 async fn create_flow(pool: &sqlx::PgPool) -> (MfaFlow<Id>, Vec<MfaFlowStep<Id>>) {
@@ -164,6 +164,126 @@ async fn test_position_swap(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(updated_steps[1].id, step0_id);
     assert_eq!(updated_steps[1].methods, step0_methods);
     assert_eq!(updated_steps[1].position, 1);
+}
+
+#[sqlx::test]
+async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut *tx,
+            "Second Flow".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.0.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // Assign two flows to the location
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: false,
+                group_ids: vec![],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let items = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert_eq!(items.len(), 2);
+    assert_eq!(items[0].id, flow1.id);
+    assert_eq!(items[0].position, 0);
+    assert!(!items[0].is_default);
+    assert_eq!(items[0].group_names.len(), 0);
+    assert_eq!(items[1].id, flow2.id);
+    assert_eq!(items[1].position, 1);
+    assert!(items[1].is_default);
+    assert_eq!(items[0].step_count, 2);
+    assert_eq!(items[1].step_count, 1);
+}
+
+#[sqlx::test]
+async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut *tx,
+            "Second Flow".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.1.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // First assignment: flow1 only
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow1.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // Second assignment replaces: flow2 only
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut *tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow2.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let items = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].id, flow2.id);
 }
 
 #[sqlx::test]
