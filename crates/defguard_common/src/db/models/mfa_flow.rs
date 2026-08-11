@@ -80,6 +80,106 @@ impl MfaFlow<Id> {
         .fetch_all(executor)
         .await
     }
+
+    /// Updates a flow's title and reconciles its steps in one operation.
+    ///
+    /// `step_updates` is the full ordered list the caller wants after the
+    /// update. Each entry is `(Option<id>, methods)`: `Some(id)` indicates
+    /// an existing step to UPDATE (position derived from its index), `None`
+    /// indicates a new step to INSERT.
+    ///
+    /// Steps in the DB that are absent from `step_updates` are DELETEd.
+    /// Position swaps are handled by offsetting existing steps into a
+    /// disjoint range before moving them to final positions, avoiding
+    /// transient UNIQUE conflicts.
+    pub async fn update_with_steps(
+        conn: &mut PgConnection,
+        flow_id: Id,
+        title: String,
+        step_updates: Vec<(Option<Id>, Vec<VpnClientMfaMethod>)>,
+    ) -> sqlx::Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> {
+        const OFFSET: i32 = 10_000;
+
+        let now = Utc::now();
+        query!(
+            "UPDATE mfa_flow SET title = $1, updated_at = $2 WHERE id = $3",
+            title,
+            now,
+            flow_id,
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        let incoming_ids: Vec<Id> = step_updates.iter().filter_map(|(id, _)| *id).collect();
+
+        if incoming_ids.is_empty() {
+            query!("DELETE FROM mfa_flow_step WHERE flow_id = $1", flow_id,)
+                .execute(&mut *conn)
+                .await?;
+        } else {
+            query!(
+                "DELETE FROM mfa_flow_step \
+                 WHERE flow_id = $1 AND id != ALL($2::bigint[])",
+                flow_id,
+                &incoming_ids,
+            )
+            .execute(&mut *conn)
+            .await?;
+
+            query!(
+                "UPDATE mfa_flow_step \
+                 SET position = position + $2 \
+                 WHERE flow_id = $1 AND id = ANY($3::bigint[])",
+                flow_id,
+                OFFSET,
+                &incoming_ids,
+            )
+            .execute(&mut *conn)
+            .await?;
+        }
+
+        let mut resulting_steps = Vec::with_capacity(step_updates.len());
+        for (index, (maybe_id, methods)) in step_updates.into_iter().enumerate() {
+            let position = index as i32;
+            let id = if let Some(step_id) = maybe_id {
+                query!(
+                    "UPDATE mfa_flow_step \
+                     SET position = $1, methods = $2::vpn_client_mfa_method[] \
+                     WHERE id = $3",
+                    position,
+                    &methods as &[VpnClientMfaMethod],
+                    step_id,
+                )
+                .execute(&mut *conn)
+                .await?;
+                step_id
+            } else {
+                let new_id = query_scalar!(
+                    "INSERT INTO mfa_flow_step (flow_id, position, methods) \
+                     VALUES ($1, $2, $3::vpn_client_mfa_method[]) RETURNING id",
+                    flow_id,
+                    position,
+                    &methods as &[VpnClientMfaMethod],
+                )
+                .fetch_one(&mut *conn)
+                .await?;
+                new_id
+            };
+
+            resulting_steps.push(MfaFlowStep {
+                id,
+                flow_id,
+                position,
+                methods,
+            });
+        }
+
+        let flow = MfaFlow::find_by_id(&mut *conn, flow_id)
+            .await?
+            .expect("flow was just updated");
+
+        Ok((flow, resulting_steps))
+    }
 }
 
 impl MfaFlowStep<NoId> {
@@ -140,3 +240,6 @@ impl MfaFlowStep<Id> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
