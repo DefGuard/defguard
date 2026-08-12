@@ -10,10 +10,11 @@ use defguard_common::{
         Id, NoId,
         models::{
             Device, DeviceType, User, WireguardNetwork,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             polling_token::PollingToken,
             settings::{Settings, update_current_settings},
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-            vpn_client_session::VpnClientSession,
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
             wireguard::ServiceLocationMode,
         },
     },
@@ -431,13 +432,41 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
     }
 }
 
-/// Insert a WireGuard network with `LocationMfaMode::Internal`, returning the
-/// saved `WireguardNetwork<Id>`.  Use this for any test that exercises the MFA
-/// flow (the default `create_network` uses `LocationMfaMode::Disabled`).
+/// Assign a single-step MFA flow to a location so that `MfaFlow::derive_legacy_mode` yields a
+/// legacy mode for it.
+///
+/// `mfa_enabled` alone is no longer enough: the legacy mode is derived from the location's flow
+/// configuration, and a location with no flows derives `None`, which the MFA start path refuses.
+async fn assign_legacy_mfa_flow(
+    pool: &PgPool,
+    location_id: Id,
+    title: &str,
+    methods: Vec<VpnClientMfaMethod>,
+) {
+    let mut conn = pool.acquire().await.expect("failed to acquire connection");
+    let (flow, _steps) = MfaFlow::create(&mut conn, title.to_owned(), vec![methods])
+        .await
+        .expect("failed to create test mfa flow");
+    MfaFlow::assign_to_location(
+        &mut conn,
+        location_id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: Vec::new(),
+        }],
+    )
+    .await
+    .expect("failed to assign test mfa flow to location");
+}
+
+/// Insert a WireGuard network that derives the legacy `Internal` MFA mode, returning the saved
+/// `WireguardNetwork<Id>`. Use this for any test that exercises the MFA flow (the default
+/// `create_network` leaves MFA disabled).
 pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
     static NET_CTR: AtomicU16 = AtomicU16::new(0);
     let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
-    WireguardNetwork::new(
+    let network = WireguardNetwork::new(
         format!("test-mfa-network-{network_number}"),
         41820 + i32::from(network_number % 10_000),
         "10.1.0.1".to_owned(),
@@ -454,14 +483,30 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
     .expect("failed to set mfa network address")
     .save(pool)
     .await
-    .expect("failed to save test mfa wireguard network")
+    .expect("failed to save test mfa wireguard network");
+
+    // The full internal method set is what derives `LocationMfaMode::Internal`.
+    assign_legacy_mfa_flow(
+        pool,
+        network.id,
+        &format!("test-internal-mfa-flow-{network_number}"),
+        vec![
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Biometric,
+            VpnClientMfaMethod::MobileApprove,
+        ],
+    )
+    .await;
+
+    network
 }
 
-/// Insert a WireGuard network with `LocationMfaMode::External`.
+/// Insert a WireGuard network that derives the legacy `External` MFA mode.
 pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
     static NET_CTR: AtomicU16 = AtomicU16::new(0);
     let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
-    WireguardNetwork::new(
+    let network = WireguardNetwork::new(
         format!("test-ext-mfa-network-{network_number}"),
         31820 + i32::from(network_number % 10_000),
         "10.2.0.1".to_owned(),
@@ -478,7 +523,18 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     .expect("failed to set ext mfa network address")
     .save(pool)
     .await
-    .expect("failed to save test external mfa wireguard network")
+    .expect("failed to save test external mfa wireguard network");
+
+    // A lone OIDC method is what derives `LocationMfaMode::External`.
+    assign_legacy_mfa_flow(
+        pool,
+        network.id,
+        &format!("test-external-mfa-flow-{network_number}"),
+        vec![VpnClientMfaMethod::Oidc],
+    )
+    .await;
+
+    network
 }
 
 /// Enable email MFA for `user`, returning the currently-valid MFA code.

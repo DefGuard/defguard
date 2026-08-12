@@ -5,8 +5,15 @@ use defguard_common::db::{
     Id, NoId,
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
-        WebAuthn, WireguardNetwork, gateway::Gateway, group::Group, oauth2client::OAuth2Client,
-        proxy::Proxy, settings::set_settings, wireguard::ServiceLocationMode,
+        WebAuthn, WireguardNetwork,
+        gateway::Gateway,
+        group::Group,
+        mfa_flow::{MfaFlow, MfaFlowSnapshot, MfaFlowStep},
+        oauth2client::OAuth2Client,
+        proxy::Proxy,
+        settings::set_settings,
+        vpn_client_session::VpnClientMfaMethod,
+        wireguard::ServiceLocationMode,
     },
 };
 use defguard_core::{
@@ -415,6 +422,43 @@ fn api_event_cases() -> Vec<EventTestCase> {
         },
         os_rules: Vec::new(),
         location_ids: Vec::new(),
+    };
+
+    let mfa_flow_snapshot = MfaFlowSnapshot {
+        flow: MfaFlow {
+            id: 1,
+            title: "Strong MFA".into(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        },
+        steps: vec![MfaFlowStep {
+            id: 1,
+            flow_id: 1,
+            position: 0,
+            methods: vec![VpnClientMfaMethod::Totp],
+        }],
+    };
+    let mfa_flow_snapshot2 = MfaFlowSnapshot {
+        flow: MfaFlow {
+            id: 1,
+            title: "Stronger MFA".into(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        },
+        steps: vec![
+            MfaFlowStep {
+                id: 1,
+                flow_id: 1,
+                position: 0,
+                methods: vec![VpnClientMfaMethod::Totp],
+            },
+            MfaFlowStep {
+                id: 2,
+                flow_id: 1,
+                position: 1,
+                methods: vec![VpnClientMfaMethod::Email],
+            },
+        ],
     };
 
     let cases = vec![
@@ -1130,6 +1174,45 @@ fn api_event_cases() -> Vec<EventTestCase> {
             event_type: EventType::LocationPosturesAssigned,
             module: ActivityLogModule::Posture,
             description_contains: Some("Assigned"),
+        },
+        EventTestCase {
+            name: "MfaFlowCreated",
+            message: api_message(ApiEventType::MfaFlowCreated {
+                snapshot: mfa_flow_snapshot.clone(),
+            }),
+            event_type: EventType::MfaFlowCreated,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Created MFA flow"),
+        },
+        EventTestCase {
+            name: "MfaFlowUpdated",
+            message: api_message(ApiEventType::MfaFlowUpdated {
+                before: mfa_flow_snapshot.clone(),
+                after: mfa_flow_snapshot2.clone(),
+            }),
+            event_type: EventType::MfaFlowUpdated,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Updated MFA flow"),
+        },
+        EventTestCase {
+            name: "MfaFlowDeleted",
+            message: api_message(ApiEventType::MfaFlowDeleted {
+                snapshot: mfa_flow_snapshot.clone(),
+            }),
+            event_type: EventType::MfaFlowDeleted,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Deleted MFA flow"),
+        },
+        EventTestCase {
+            name: "LocationMfaFlowsAssigned",
+            message: api_message(ApiEventType::LocationMfaFlowsAssigned {
+                location_id: location.id,
+                location_name: location.name.clone(),
+                assignment_count: 2,
+            }),
+            event_type: EventType::LocationMfaFlowsAssigned,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("MFA flow"),
         },
     ];
 

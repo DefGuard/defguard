@@ -271,7 +271,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
-        .json(&json!({ "vpn_mfa_mode": "disabled" }))
+        .json(&json!({ "vpn_mfa_mode": false }))
         .send()
         .await
         .expect("Failed to set MFA settings");
