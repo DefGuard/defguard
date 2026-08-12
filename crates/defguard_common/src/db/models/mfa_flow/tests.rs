@@ -27,6 +27,42 @@ async fn create_flow(pool: &sqlx::PgPool) -> (MfaFlow<Id>, Vec<MfaFlowStep<Id>>)
     (flow, steps)
 }
 
+/// Assign two group-scoped entries and one default in a single full-replace call, used by the
+/// resolution-ordering tests. Each `(flow_id, group_id)` pair fixes one entry's scope.
+async fn assign_three(
+    pool: &sqlx::PgPool,
+    location_id: Id,
+    first: (Id, Id),
+    second: (Id, Id),
+    default: Id,
+) {
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        location_id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: first.0,
+                is_default: false,
+                group_ids: vec![first.1],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: second.0,
+                is_default: false,
+                group_ids: vec![second.1],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: default,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+}
+
 #[sqlx::test]
 async fn test_insert_new_step(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -945,6 +981,253 @@ async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOp
     assert_eq!(result.unwrap().0.id, flow2.id);
 }
 
+/// Ordered first-match: when a user matches two group-scoped assignments, the one at the lower
+/// `position` wins. The test runs resolution in both orderings and asserts the resolved flow
+/// flips, so a single ordering cannot pass by accident.
+#[sqlx::test]
+async fn test_resolve_order_decides_between_matches(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (flow_first, _) = create_flow(&pool).await; // TOTP -> Email
+    let (flow_second, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Second".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+    let (flow_default, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Default".into(),
+            vec![vec![VpnClientMfaMethod::Biometric]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let user = User::new("order-resolver", None, "Ln", "Fn", "o@t.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group_a = Group::new("order-a").save(&pool).await.unwrap();
+    let group_b = Group::new("order-b").save(&pool).await.unwrap();
+    for gid in [group_a.id, group_b.id] {
+        sqlx::query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)",
+            gid,
+            user.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.3.0.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // flow_first (scoped to group_a) at position 0, flow_second (group_b) at position 1.
+    assign_three(
+        &pool,
+        network.id,
+        (flow_first.id, group_a.id),
+        (flow_second.id, group_b.id),
+        flow_default.id,
+    )
+    .await;
+    let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.0.id, flow_first.id, "lower position must win");
+
+    // Swap the positions: the resolved flow must flip to the new lower-position entry.
+    assign_three(
+        &pool,
+        network.id,
+        (flow_second.id, group_b.id),
+        (flow_first.id, group_a.id),
+        flow_default.id,
+    )
+    .await;
+    let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.0.id, flow_second.id, "swapped position must win");
+}
+
+/// A user in two groups that each match a different assignment resolves to the same flow on every
+/// call: ordered first-match is deterministic.
+#[sqlx::test]
+async fn test_resolve_user_in_two_groups_deterministic(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (flow_a, _) = create_flow(&pool).await;
+    let (flow_b, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Second".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+    let (flow_default, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Default".into(),
+            vec![vec![VpnClientMfaMethod::Biometric]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let user = User::new("two-group-resolver", None, "Ln", "Fn", "t@t.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group_a = Group::new("two-group-a").save(&pool).await.unwrap();
+    let group_b = Group::new("two-group-b").save(&pool).await.unwrap();
+    for gid in [group_a.id, group_b.id] {
+        sqlx::query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)",
+            gid,
+            user.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.3.1.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    assign_three(
+        &pool,
+        network.id,
+        (flow_a.id, group_a.id),
+        (flow_b.id, group_b.id),
+        flow_default.id,
+    )
+    .await;
+
+    for _ in 0..5 {
+        let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(resolved.0.id, flow_a.id, "resolution must be stable");
+    }
+}
+
+/// `position`, not `mfa_flow.id` or creation order, decides. `flow_low_id` is created first (so it
+/// has the lower id) but is assigned the higher position; `flow_high_id` is created second yet
+/// wins because it holds the lower position. A stray `ORDER BY mf.id` would resolve to
+/// `flow_low_id`, so this test catches it.
+#[sqlx::test]
+async fn test_resolve_position_not_id_order(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // Created first: lower id, but assigned the higher position.
+    let (flow_low_id, _) = create_flow(&pool).await;
+    // Created second: higher id, assigned the lower position.
+    let (flow_high_id, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Higher Id".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+    let (flow_default, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Default".into(),
+            vec![vec![VpnClientMfaMethod::Biometric]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    assert!(
+        flow_low_id.id < flow_high_id.id,
+        "precondition: ids follow creation order"
+    );
+
+    let user = User::new("position-resolver", None, "Ln", "Fn", "p@t.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group_a = Group::new("position-a").save(&pool).await.unwrap();
+    let group_b = Group::new("position-b").save(&pool).await.unwrap();
+    for gid in [group_a.id, group_b.id] {
+        sqlx::query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)",
+            gid,
+            user.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.3.2.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // Higher-id flow at position 0, lower-id flow at position 1.
+    assign_three(
+        &pool,
+        network.id,
+        (flow_high_id.id, group_a.id),
+        (flow_low_id.id, group_b.id),
+        flow_default.id,
+    )
+    .await;
+
+    let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.0.id, flow_high_id.id, "position must outrank id");
+}
+
 #[sqlx::test]
 async fn test_derive_legacy_internal(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -1102,6 +1385,75 @@ async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: P
             is_default: true,
             group_ids: vec![],
         }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, None);
+}
+
+/// A location with two flows assigned is not legacy-representable: the legacy mode collapses to a
+/// single flow, so `derive_legacy_mode` must omit it even though each flow is individually
+/// single-step and full-internal. This is the fourth incompatible shape the ADR lists.
+#[sqlx::test]
+async fn test_derive_legacy_multi_flow_omitted(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let full_internal = vec![vec![
+        VpnClientMfaMethod::Totp,
+        VpnClientMfaMethod::Email,
+        VpnClientMfaMethod::Biometric,
+        VpnClientMfaMethod::MobileApprove,
+    ]];
+
+    let (flow_a, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(&mut tx, "Flow A".into(), full_internal.clone())
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+    let (flow_b, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(&mut tx, "Flow B".into(), full_internal)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.1.4.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let group = Group::new("multi-flow-group").save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow_a.id,
+                is_default: false,
+                group_ids: vec![group.id],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow_b.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
     )
     .await
     .unwrap();
