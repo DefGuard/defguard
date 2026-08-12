@@ -73,6 +73,10 @@ pub struct LocationMfaFlowAssignment {
 pub enum MfaFlowAssignmentError {
     #[error("No default MFA flow designated for this location")]
     NoDefaultDesignated,
+    #[error("More than one MFA flow designated as the default for this location")]
+    MultipleDefaultsDesignated,
+    #[error("The default MFA flow assignment must not be scoped to any groups")]
+    DefaultHasGroups,
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
 }
@@ -277,14 +281,18 @@ impl MfaFlow<Id> {
         location_id: Id,
         assignments: &[LocationMfaFlowAssignment],
     ) -> Result<(), MfaFlowAssignmentError> {
+        // Exactly one assignment must be flagged as the default, at every licence tier, and it is
+        // never inferred from position or from being the only entry.
         let default_count = assignments.iter().filter(|a| a.is_default).count();
-        if default_count != 1 {
-            return Err(MfaFlowAssignmentError::NoDefaultDesignated);
+        match default_count {
+            1 => {}
+            0 => return Err(MfaFlowAssignmentError::NoDefaultDesignated),
+            _ => return Err(MfaFlowAssignmentError::MultipleDefaultsDesignated),
         }
         if let Some(default) = assignments.iter().find(|a| a.is_default)
             && !default.group_ids.is_empty()
         {
-            return Err(MfaFlowAssignmentError::NoDefaultDesignated);
+            return Err(MfaFlowAssignmentError::DefaultHasGroups);
         }
 
         query!(

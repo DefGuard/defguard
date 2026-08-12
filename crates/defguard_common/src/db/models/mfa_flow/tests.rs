@@ -321,6 +321,48 @@ async fn test_assign_no_default_rejected(_: PgPoolOptions, options: PgConnectOpt
     ));
 }
 
+/// Two assignments both flagged default is a distinct failure from none being flagged, so it must
+/// not be reported as `no_default_designated`.
+#[sqlx::test]
+async fn test_assign_multiple_defaults_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.7.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let result = MfaFlow::assign_to_location(
+        &mut pool.acquire().await.unwrap(),
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await;
+    assert!(matches!(
+        result,
+        Err(MfaFlowAssignmentError::MultipleDefaultsDesignated)
+    ));
+
+    // The rejected save must not have partially applied.
+    let assignments = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert!(assignments.is_empty());
+}
+
 #[sqlx::test]
 async fn test_assign_default_with_groups_rejected(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -345,7 +387,7 @@ async fn test_assign_default_with_groups_rejected(_: PgPoolOptions, options: PgC
     .await;
     assert!(matches!(
         result,
-        Err(MfaFlowAssignmentError::NoDefaultDesignated)
+        Err(MfaFlowAssignmentError::DefaultHasGroups)
     ));
 }
 

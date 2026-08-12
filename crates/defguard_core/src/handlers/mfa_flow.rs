@@ -156,48 +156,68 @@ impl From<LocationMfaFlowItem> for LocationMfaFlowResponse {
 
 // Helpers
 
-/// Check license gates for flow create/update. Returns `true` if the request
-/// passes all checks; emits a `403` response into `err` otherwise.
+/// Build a `403` licence-refusal response carrying the same `fields[]` contract as validation
+/// errors, so the editor can attach the message to the offending row.
+///
+/// The status stays `403` rather than the `400` the impl spec tabulates: a licence refusal is not
+/// a malformed request, and the rest of the codebase answers licence gates with `403`. The
+/// top-level `error` discriminator distinguishes it from `validation_failed`.
+fn license_error_response(field: String, code: &str) -> ApiResponse {
+    ApiResponse::new(
+        json!({
+            "error": "license_required",
+            "fields": [{"field": field, "code": code}]
+        }),
+        StatusCode::FORBIDDEN,
+    )
+}
+
+/// Check licence gates for flow create/update, returning a refusal response when the request
+/// would produce over-tier state.
+///
+/// Gates compose additively on top of the per-method checks: multi-step needs Business, and OIDC
+/// needs Business plus a configured provider.
 #[must_use]
 fn check_flow_license_gates(
     step_methods: &[Vec<VpnClientMfaMethod>],
     oidc_configured: bool,
 ) -> Option<ApiResponse> {
     if step_methods.len() > 1 && !is_business_license_active() {
-        return Some(ApiResponse::new(
-            json!({"msg": "Multi-step MFA flows require a business license"}),
-            StatusCode::FORBIDDEN,
+        return Some(license_error_response(
+            "steps".into(),
+            "business_license_required",
         ));
     }
-    let has_oidc = step_methods
+
+    let oidc_step = step_methods
         .iter()
-        .any(|methods| methods.contains(&VpnClientMfaMethod::Oidc));
-    if has_oidc {
+        .position(|methods| methods.contains(&VpnClientMfaMethod::Oidc));
+    if let Some(index) = oidc_step {
+        let field = format!("steps[{index}].methods");
         if !is_business_license_active() {
-            return Some(ApiResponse::new(
-                json!({"msg": "OIDC MFA method requires a business license"}),
-                StatusCode::FORBIDDEN,
-            ));
+            return Some(license_error_response(field, "business_license_required"));
         }
         if !oidc_configured {
-            return Some(ApiResponse::new(
-                json!({"msg": "OIDC MFA method requires a configured OpenID provider"}),
-                StatusCode::BAD_REQUEST,
-            ));
+            return Some(validation_error_response(vec![MfaFlowValidationField {
+                field,
+                code: "oidc_provider_missing".into(),
+            }]));
         }
     }
+
     None
 }
 
-/// Check license gates for flow assignment. Returns `true` if the request
-/// passes all checks; emits a `403` response into `err` otherwise.
+/// Check licence gates for flow assignment: group scoping requires Enterprise.
 #[must_use]
 fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<ApiResponse> {
-    let has_group_scoping = assignments.iter().any(|a| !a.group_ids.is_empty());
-    if has_group_scoping && !has_enterprise_access(None) {
-        return Some(ApiResponse::new(
-            json!({"msg": "Group-scoped MFA assignments require an enterprise license"}),
-            StatusCode::FORBIDDEN,
+    let scoped = assignments.iter().position(|a| !a.group_ids.is_empty());
+    if let Some(index) = scoped
+        && !has_enterprise_access(None)
+    {
+        return Some(license_error_response(
+            format!("assignments[{index}].group_ids"),
+            "enterprise_license_required",
         ));
     }
     None
@@ -215,23 +235,23 @@ fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse
     )
 }
 
-/// Extract step methods from create request, deriving positions from array order.
+/// Extract step methods from a create request.
+///
+/// Array order is authoritative: the server derives contiguous 0-based positions from it and
+/// ignores any client-supplied `position`, which makes gaps and duplicate positions
+/// unrepresentable.
 fn extract_create_step_methods(steps: &[CreateMfaFlowStep]) -> Vec<Vec<VpnClientMfaMethod>> {
-    let mut sorted: Vec<&CreateMfaFlowStep> = steps.iter().collect();
-    sorted.sort_by_key(|s| s.position);
-    sorted.into_iter().map(|s| s.methods.clone()).collect()
+    steps.iter().map(|s| s.methods.clone()).collect()
 }
 
-/// Extract step updates from update request, deriving positions from array order.
+/// Extract step updates from an update request.
+///
+/// Array order is authoritative, as for create. `id` is carried through so the model can
+/// reconcile existing steps.
 fn extract_update_step_updates(
     steps: &[UpdateMfaFlowStep],
 ) -> Vec<(Option<Id>, Vec<VpnClientMfaMethod>)> {
-    let mut sorted: Vec<&UpdateMfaFlowStep> = steps.iter().collect();
-    sorted.sort_by_key(|s| s.position);
-    sorted
-        .into_iter()
-        .map(|s| (s.id, s.methods.clone()))
-        .collect()
+    steps.iter().map(|s| (s.id, s.methods.clone())).collect()
 }
 
 // Handlers
@@ -477,6 +497,7 @@ pub async fn update_mfa_flow(
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "MFA flow not found.", body = ApiErrorResponse, example = json!({"msg": "MFA flow 1 not found"})),
+        (status = 409, description = "The flow is still load-bearing for at least one location: `location_requires_flow` when deleting it would leave an MFA-enabled location with no flows, `flow_is_default` when it is a location's designated default.", body = ApiErrorResponse, example = json!({"error": "conflict", "fields": [{"field": "id", "code": "flow_is_default", "locations": ["Warsaw Office"]}]})),
         (status = 500, description = "Unable to delete MFA flow.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -497,33 +518,29 @@ pub async fn delete_mfa_flow(
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("MFA flow {id} not found")))?;
 
-    MfaFlow::check_deletable(&appstate.pool, id)
-        .await
-        .map_err(|e| match e {
-            MfaFlowDeleteError::LocationRequiresFlow(locations) => WebError::BadRequest(
-                serde_json::json!({
-                    "error": "validation_failed",
-                    "fields": [{
-                        "field": "id",
-                        "code": "location_requires_flow",
-                        "locations": locations,
-                    }]
-                })
-                .to_string(),
-            ),
-            MfaFlowDeleteError::FlowIsDefault(locations) => WebError::BadRequest(
-                serde_json::json!({
-                    "error": "validation_failed",
-                    "fields": [{
-                        "field": "id",
-                        "code": "flow_is_default",
-                        "locations": locations,
-                    }]
-                })
-                .to_string(),
-            ),
-            MfaFlowDeleteError::Sqlx(e) => WebError::from(e),
-        })?;
+    // Both refusals are 409 Conflict: the request is well formed, but the flow is load-bearing
+    // for at least one location. The two codes are deliberately distinct.
+    if let Err(e) = MfaFlow::check_deletable(&appstate.pool, id).await {
+        let (code, locations) = match e {
+            MfaFlowDeleteError::LocationRequiresFlow(locations) => {
+                ("location_requires_flow", locations)
+            }
+            MfaFlowDeleteError::FlowIsDefault(locations) => ("flow_is_default", locations),
+            MfaFlowDeleteError::Sqlx(e) => return Err(WebError::from(e)),
+        };
+
+        return Ok(ApiResponse::new(
+            json!({
+                "error": "conflict",
+                "fields": [{
+                    "field": "id",
+                    "code": code,
+                    "locations": locations,
+                }]
+            }),
+            StatusCode::CONFLICT,
+        ));
+    }
 
     let steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
 
@@ -591,9 +608,9 @@ pub async fn get_location_mfa_flows(
     request_body = AssignMfaFlowsRequest,
     responses(
         (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
-        (status = 400, description = "Invalid assignment.", body = ApiErrorResponse),
+        (status = 400, description = "Invalid assignment: `no_default_designated`, `multiple_defaults_designated`, or `default_must_have_no_groups`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "mfa_flows", "code": "no_default_designated"}]})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
+        (status = 403, description = "Requires admin privileges, or group scoping without an enterprise license (`enterprise_license_required`).", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "assignments[0].group_ids", "code": "enterprise_license_required"}]})),
         (status = 500, description = "Unable to assign flows.", body = ApiErrorResponse)
     ),
     security(
@@ -629,20 +646,23 @@ pub async fn set_location_mfa_flows(
     }
 
     let mut tx = appstate.pool.begin().await?;
-    MfaFlow::assign_to_location(&mut tx, location_id, &assignments)
-        .await
-        .map_err(|e| match e {
-            MfaFlowAssignmentError::NoDefaultDesignated => {
-                let fields: Vec<Value> = vec![json!({
-                    "field": "mfa_flows",
-                    "code": "no_default_designated"
-                })];
-                WebError::BadRequest(
-                    json!({"error": "validation_failed", "fields": fields}).to_string(),
-                )
+    if let Err(e) = MfaFlow::assign_to_location(&mut tx, location_id, &assignments).await {
+        let (field, code) = match e {
+            MfaFlowAssignmentError::NoDefaultDesignated => ("mfa_flows", "no_default_designated"),
+            MfaFlowAssignmentError::MultipleDefaultsDesignated => {
+                ("mfa_flows", "multiple_defaults_designated")
             }
-            MfaFlowAssignmentError::Sqlx(e) => WebError::from(e),
-        })?;
+            MfaFlowAssignmentError::DefaultHasGroups => {
+                ("mfa_flows", "default_must_have_no_groups")
+            }
+            MfaFlowAssignmentError::Sqlx(e) => return Err(WebError::from(e)),
+        };
+
+        return Ok(validation_error_response(vec![MfaFlowValidationField {
+            field: field.into(),
+            code: code.into(),
+        }]));
+    }
     tx.commit().await?;
 
     let items = MfaFlow::for_location(&appstate.pool, location_id).await?;

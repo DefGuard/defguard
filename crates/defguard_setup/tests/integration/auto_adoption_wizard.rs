@@ -177,7 +177,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
-        .json(&json!({ "vpn_mfa_mode": false }))
+        .json(&json!({ "mfa_enabled": false }))
         .send()
         .await
         .expect("Failed to set MFA settings");
@@ -309,7 +309,7 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
         .post(format!(
             "{base_url}/api/v1/initial_setup/auto_wizard/mfa_settings"
         ))
-        .json(&json!({ "vpn_mfa_mode": false }))
+        .json(&json!({ "mfa_enabled": false }))
         .header(USER_AGENT, "test/0.0")
         .send()
         .await

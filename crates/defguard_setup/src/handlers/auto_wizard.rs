@@ -303,7 +303,6 @@ pub async fn set_vpn_settings(
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct MfaSettingsConfig {
-    #[serde(rename = "vpn_mfa_mode")]
     mfa_enabled: bool,
 }
 
@@ -337,7 +336,7 @@ pub async fn set_mfa_settings(
     advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::Summary).await?;
 
     debug!(
-        "Auto-adoption MFA settings applied to network_id={} location_mfa_mode={:?}",
+        "Auto-adoption MFA settings applied to network_id={} mfa_enabled={}",
         network.id, network.mfa_enabled
     );
 

@@ -190,7 +190,7 @@ export interface SetAutoAdoptionVpnSettingsRequest {
 }
 
 export interface SetAutoAdoptionMfaSettingsRequest {
-  vpn_mfa_mode: boolean;
+  mfa_enabled: boolean;
 }
 
 export interface ValidateDeviceIpsRequest {

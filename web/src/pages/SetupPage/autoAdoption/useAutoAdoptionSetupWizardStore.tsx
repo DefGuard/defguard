@@ -28,7 +28,7 @@ type StoreValues = {
   vpn_gateway_address: string;
   vpn_allowed_ips: string;
   vpn_dns_server_ip: string;
-  vpn_mfa_mode: boolean;
+  mfa_enabled: boolean;
   // Internal URL SSL configuration
   internal_ssl_type: InternalSslType;
   internal_ssl_cert_info: CertInfo | null;
@@ -62,7 +62,7 @@ const defaults: StoreValues = {
   vpn_gateway_address: '',
   vpn_allowed_ips: '',
   vpn_dns_server_ip: '',
-  vpn_mfa_mode: false,
+  mfa_enabled: false,
   internal_ssl_type: 'none',
   internal_ssl_cert_info: null,
   external_ssl_type: 'none',

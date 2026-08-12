@@ -12,7 +12,7 @@ import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardSt
 
 export const AutoAdoptionMfaSetupStep = () => {
   const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const mfaEnabled = useAutoAdoptionSetupWizardStore((s) => s.vpn_mfa_mode);
+  const mfaEnabled = useAutoAdoptionSetupWizardStore((s) => s.mfa_enabled);
 
   const { mutate: setMfaSettings, isPending } = useMutation({
     mutationFn: api.initial_setup.setAutoAdoptionMfaSettings,
@@ -26,7 +26,7 @@ export const AutoAdoptionMfaSetupStep = () => {
       <Toggle
         active={mfaEnabled}
         onClick={() =>
-          useAutoAdoptionSetupWizardStore.setState({ vpn_mfa_mode: !mfaEnabled })
+          useAutoAdoptionSetupWizardStore.setState({ mfa_enabled: !mfaEnabled })
         }
         label={m.add_location_mfa_toggle_label()}
         testId="toggle-mfa"
@@ -42,7 +42,7 @@ export const AutoAdoptionMfaSetupStep = () => {
           <Button
             text={m.initial_setup_controls_continue()}
             onClick={() => {
-              setMfaSettings({ vpn_mfa_mode: mfaEnabled });
+              setMfaSettings({ mfa_enabled: mfaEnabled });
             }}
             loading={isPending}
           />

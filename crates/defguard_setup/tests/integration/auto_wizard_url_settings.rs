@@ -519,7 +519,7 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
-        .json(&json!({ "vpn_mfa_mode": false }))
+        .json(&json!({ "mfa_enabled": false }))
         .send()
         .await
         .unwrap();
