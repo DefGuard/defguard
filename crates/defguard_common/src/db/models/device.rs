@@ -41,7 +41,14 @@ pub struct DeviceConfig {
     pub pubkey: String,
     pub dns: Option<String>,
     pub keepalive_interval: i32,
-    pub location_mfa_mode: LocationMfaMode,
+    /// Whether the location requires MFA. This is the authoritative flag, read from the stored
+    /// `wireguard_network.mfa_enabled` column.
+    pub mfa_enabled: bool,
+    /// Legacy single-factor mode, derived in memory for backward-compatible locations only.
+    /// `None` when the location's flow configuration cannot be expressed as a legacy mode, which
+    /// includes every location that has no flows at all. Consumers deciding whether a location
+    /// requires MFA must use `mfa_enabled`, not the absence of this field.
+    pub location_mfa_mode: Option<LocationMfaMode>,
     pub service_location_mode: ServiceLocationMode,
     pub posture_check_required: bool,
 }
@@ -229,7 +236,7 @@ pub struct UserDeviceNetworkInfo {
     pub last_connected_ip: Option<String>,
     pub last_connected_at: Option<NaiveDateTime>,
     pub is_active: bool,
-    pub location_mfa_mode: LocationMfaMode,
+    pub mfa_enabled: bool,
 }
 
 impl UserDevice {
@@ -296,7 +303,7 @@ impl UserDevice {
                     last_connected_ip: device_ip,
                     last_connected_at: r.last_connected_at,
                     is_active,
-                    location_mfa_mode: LocationMfaMode::default(),
+                    mfa_enabled: r.mfa_enabled,
                 }
             })
             .collect::<Vec<_>>();

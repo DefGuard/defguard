@@ -186,6 +186,17 @@ impl MfaFlow<Id> {
         Ok(())
     }
 
+    /// Returns whether at least one MFA flow exists.
+    ///
+    /// Used as the `mfa_enabled` precondition: a location cannot enable MFA until there is a
+    /// flow available to assign to it.
+    pub async fn any_exist<'e, E: PgExecutor<'e>>(executor: E) -> sqlx::Result<bool> {
+        let exists = query_scalar!("SELECT EXISTS (SELECT 1 FROM mfa_flow)")
+            .fetch_one(executor)
+            .await?;
+        Ok(exists.unwrap_or(false))
+    }
+
     /// Lists all flows enriched with `step_count`.
     pub async fn list_with_step_count<'e, E: PgExecutor<'e>>(
         executor: E,

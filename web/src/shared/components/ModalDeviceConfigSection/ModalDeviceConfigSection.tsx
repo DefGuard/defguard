@@ -1,5 +1,4 @@
 import type { AddDeviceResponse, AddDeviceResponseConfig } from '../../api/types';
-import { LocationMfaMode } from '../../api/types';
 import './style.scss';
 import { ZipArchive } from '@shortercode/webzip';
 import { useCallback, useMemo, useState } from 'react';
@@ -38,7 +37,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   const selectOptions = useMemo(
     () =>
       response.configs
-        .filter((item) => item.location_mfa_mode === LocationMfaMode.Disabled)
+        .filter((item) => !item.mfa_enabled)
         .map((item): SelectOption<AddDeviceResponseConfig> => configToOption(item)),
     [response.configs],
   );
@@ -68,9 +67,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
 
   const handleDownloadAll = useCallback(async () => {
     if (!response) return;
-    const nonMfaConfigs = response.configs.filter(
-      (c) => c.location_mfa_mode === LocationMfaMode.Disabled,
-    );
+    const nonMfaConfigs = response.configs.filter((c) => !c.mfa_enabled);
     let data: AddDeviceResponseConfig[] = [];
     if (isPresent(privateKey)) {
       data = nonMfaConfigs.map((c) => ({

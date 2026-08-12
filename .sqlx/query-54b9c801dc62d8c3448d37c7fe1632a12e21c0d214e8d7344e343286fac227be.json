@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mfs.methods AS \"methods: Vec<VpnClientMfaMethod>\" FROM location_mfa_flow lmf JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id WHERE lmf.location_id = $1 ORDER BY lmf.position, mfs.position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "methods: Vec<VpnClientMfaMethod>",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_mfa_method[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "54b9c801dc62d8c3448d37c7fe1632a12e21c0d214e8d7344e343286fac227be"
+}

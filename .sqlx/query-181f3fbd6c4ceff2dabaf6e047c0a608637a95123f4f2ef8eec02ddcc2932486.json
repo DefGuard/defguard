@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM aclrulenetwork r JOIN wireguard_network n ON n.id = r.network_id WHERE r.rule_id = $1",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\" \"mfa_enabled: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "address: _",
         "type_info": "InetArray"
       },
       {
@@ -55,7 +55,7 @@
       },
       {
         "ordinal": 10,
-        "name": "allowed_ips",
+        "name": "allowed_ips: _",
         "type_info": "InetArray"
       },
       {
@@ -70,48 +70,37 @@
       },
       {
         "ordinal": 13,
-        "name": "keepalive_interval",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 14,
-        "name": "peer_disconnect_threshold",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 15,
         "name": "acl_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 16,
+        "ordinal": 14,
         "name": "acl_default_allow",
         "type_info": "Bool"
       },
       {
-        "ordinal": 17,
+        "ordinal": 15,
         "name": "allowed_ips_from_acl",
         "type_info": "Bool"
       },
       {
+        "ordinal": 16,
+        "name": "keepalive_interval",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 17,
+        "name": "peer_disconnect_threshold",
+        "type_info": "Int4"
+      },
+      {
         "ordinal": 18,
-        "name": "location_mfa_mode: LocationMfaMode",
-        "type_info": {
-          "Custom": {
-            "name": "location_mfa_mode",
-            "kind": {
-              "Enum": [
-                "disabled",
-                "internal",
-                "external"
-              ]
-            }
-          }
-        }
+        "name": "mfa_enabled: _",
+        "type_info": "Bool"
       },
       {
         "ordinal": 19,
-        "name": "service_location_mode: ServiceLocationMode",
+        "name": "service_location_mode: _",
         "type_info": {
           "Custom": {
             "name": "service_location_mode",
@@ -127,9 +116,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -154,5 +141,5 @@
       false
     ]
   },
-  "hash": "daf745b8d55787b50a4f2eb74d6e5fcc3d7d87178bd44190b2e565f3017014db"
+  "hash": "181f3fbd6c4ceff2dabaf6e047c0a608637a95123f4f2ef8eec02ddcc2932486"
 }

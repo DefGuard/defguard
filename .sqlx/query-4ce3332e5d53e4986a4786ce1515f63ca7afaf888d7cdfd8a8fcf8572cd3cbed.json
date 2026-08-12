@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at,  keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, mfa_enabled \"mfa_enabled!: bool\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1) AND NOT mfa_enabled",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address: _",
+        "name": "address",
         "type_info": "InetArray"
       },
       {
@@ -55,7 +55,7 @@
       },
       {
         "ordinal": 10,
-        "name": "allowed_ips: _",
+        "name": "allowed_ips",
         "type_info": "InetArray"
       },
       {
@@ -70,48 +70,37 @@
       },
       {
         "ordinal": 13,
-        "name": "acl_enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 14,
-        "name": "acl_default_allow",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 15,
-        "name": "allowed_ips_from_acl",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 16,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 17,
+        "ordinal": 14,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
+        "ordinal": 15,
+        "name": "acl_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "acl_default_allow",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "allowed_ips_from_acl",
+        "type_info": "Bool"
+      },
+      {
         "ordinal": 18,
-        "name": "location_mfa_mode: _",
-        "type_info": {
-          "Custom": {
-            "name": "location_mfa_mode",
-            "kind": {
-              "Enum": [
-                "disabled",
-                "internal",
-                "external"
-              ]
-            }
-          }
-        }
+        "name": "mfa_enabled!: bool",
+        "type_info": "Bool"
       },
       {
         "ordinal": 19,
-        "name": "service_location_mode: _",
+        "name": "service_location_mode: ServiceLocationMode",
         "type_info": {
           "Custom": {
             "name": "service_location_mode",
@@ -128,7 +117,6 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8"
       ]
     },
@@ -155,5 +143,5 @@
       false
     ]
   },
-  "hash": "ff188a49f1e440cf3a2e0fe9e51c8e56219024ee49eda0217392ae8b7d22913e"
+  "hash": "4ce3332e5d53e4986a4786ce1515f63ca7afaf888d7cdfd8a8fcf8572cd3cbed"
 }

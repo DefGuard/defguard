@@ -299,18 +299,37 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid MFA method selected")
         })?;
 
-        let location_mfa_mode = MfaFlow::derive_legacy_mode(&self.pool, request.location_id)
+        // Derive the legacy single-factor mode for this location. `None` means the location's
+        // flow configuration cannot be expressed as a legacy mode (multi-flow, multi-step, or a
+        // subset of the internal method set), so no current client can enforce it. Fail closed
+        // rather than fall back to a mode: `mfa_enabled` is a stored column now, so it no longer
+        // implies that a legacy mode is derivable.
+        let Some(location_mfa_mode) = MfaFlow::derive_legacy_mode(&self.pool, request.location_id)
             .await
             .map_err(|err| {
                 error!("Failed to derive legacy MFA mode: {err}");
                 Status::internal("unexpected error")
             })?
-            .unwrap_or(LocationMfaMode::Disabled);
+        else {
+            error!(
+                "Location {location} has an MFA flow configuration that cannot be enforced by \
+                this client"
+            );
+            return Err(Status::failed_precondition(
+                "location MFA configuration is not supported by this client",
+            ));
+        };
 
         // check if selected MFA method matches location settings
         match (&location_mfa_mode, selected_method) {
-            // MFA enabled status is already verified
-            (LocationMfaMode::Disabled, _) => unreachable!(),
+            // `derive_legacy_mode` only yields Internal or External; refuse defensively rather
+            // than panic if that ever changes.
+            (LocationMfaMode::Disabled, _) => {
+                error!("Location {location} resolved to a disabled legacy MFA mode");
+                return Err(Status::failed_precondition(
+                    "location MFA configuration is not supported by this client",
+                ));
+            }
             (
                 LocationMfaMode::Internal,
                 MfaMethod::Totp

@@ -123,7 +123,12 @@ pub(crate) struct DeviceWireGuardConfig {
     pub(crate) network_id: Id,
     pub(crate) network_name: String,
     pub(crate) config: String,
-    pub(crate) location_mfa_mode: LocationMfaMode,
+    /// Authoritative flag for whether the location requires MFA.
+    pub(crate) mfa_enabled: bool,
+    /// Legacy derived mode. Absent when the location's MFA flow configuration has no legacy
+    /// equivalent, which includes every location with no flows, so it must not be used to infer
+    /// whether MFA is required.
+    pub(crate) location_mfa_mode: Option<LocationMfaMode>,
 }
 
 /// Get the WireGuard configuration of a network device
@@ -195,6 +200,7 @@ pub(crate) async fn network_device_configs(
             network_id: device_config.network_id,
             network_name: device_config.network_name,
             config: device_config.config,
+            mfa_enabled: device_config.mfa_enabled,
             location_mfa_mode: device_config.location_mfa_mode,
         };
         result.push(device_config);

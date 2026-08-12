@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM location_mfa_flow WHERE location_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "94b724fd845cde4b019f9c509304aa6d1f44aeac31c89e5d227663a00a78d52f"
+}

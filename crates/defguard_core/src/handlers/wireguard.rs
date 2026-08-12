@@ -11,6 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
+            mfa_flow::MfaFlow,
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -109,6 +110,29 @@ impl WireguardNetworkData {
         Err(WebError::BadRequest(format!(
             "peer_disconnect_threshold must be at least {MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA} when location MFA is enabled"
         )))
+    }
+
+    /// Rejects enabling MFA for a location while no MFA flow exists to assign to it.
+    ///
+    /// The UI hides the toggle until at least one flow exists, but the API is the source of
+    /// truth, so the precondition is enforced here.
+    pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<(), WebError> {
+        if !self.mfa_enabled || MfaFlow::any_exist(executor).await? {
+            return Ok(());
+        }
+
+        error!("Unable to enable MFA for location: no MFA flows are configured");
+
+        Err(WebError::BadRequest(
+            json!({
+                "error": "validation_failed",
+                "fields": [{"field": "mfa_enabled", "code": "no_flows_exist"}]
+            })
+            .to_string(),
+        ))
     }
 
     /// Rejects service-location mode combined with location MFA: core cannot serve it and the
@@ -226,6 +250,7 @@ pub(crate) async fn create_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
+    data.validate_mfa_flows_exist(&appstate.pool).await?;
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -354,6 +379,7 @@ pub(crate) async fn modify_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
+    data.validate_mfa_flows_exist(&appstate.pool).await?;
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
@@ -1520,6 +1546,7 @@ pub(crate) async fn user_device_configs(
             network_id: device_config.network_id,
             network_name: device_config.network_name,
             config: device_config.config,
+            mfa_enabled: device_config.mfa_enabled,
             location_mfa_mode: device_config.location_mfa_mode,
         });
     }

@@ -11,7 +11,7 @@ use defguard_common::{
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
             mfa_flow::MfaFlow,
             user::User,
-            wireguard::{LocationMfaMode, WireguardNetworkError},
+            wireguard::WireguardNetworkError,
         },
     },
     device_config_gen::create_wireguard_config,
@@ -40,10 +40,12 @@ pub async fn build_device_config(
         .await
         .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
 
+    // `None` when the location's flow configuration has no legacy equivalent. Carried through as
+    // absent rather than coerced to `Disabled`, which would advertise an MFA-enabled location as
+    // unprotected. Gating such locations for legacy clients is tracked separately (#3042).
     let location_mfa_mode = MfaFlow::derive_legacy_mode(&mut *conn, network.id)
         .await
-        .map_err(|err| DeviceError::Unexpected(err.to_string()))?
-        .unwrap_or(LocationMfaMode::Disabled);
+        .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
 
     Ok(DeviceConfig {
         network_id: network.id,
@@ -55,6 +57,7 @@ pub async fn build_device_config(
         pubkey: network.pubkey.clone(),
         dns: network.dns.clone(),
         keepalive_interval: network.keepalive_interval,
+        mfa_enabled: network.mfa_enabled,
         location_mfa_mode,
         service_location_mode: network.service_location_mode.clone(),
         posture_check_required: has_postures,
