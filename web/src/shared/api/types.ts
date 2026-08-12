@@ -190,7 +190,7 @@ export interface SetAutoAdoptionVpnSettingsRequest {
 }
 
 export interface SetAutoAdoptionMfaSettingsRequest {
-  vpn_mfa_mode: LocationMfaModeValue;
+  vpn_mfa_mode: boolean;
 }
 
 export interface ValidateDeviceIpsRequest {
@@ -811,7 +811,7 @@ export interface NetworkLocation {
   acl_enabled: boolean;
   acl_default_allow: boolean;
   allowed_ips_from_acl: boolean;
-  location_mfa_mode: LocationMfaModeValue;
+  mfa_enabled: boolean;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
   posture_checks?: number[];

@@ -46,6 +46,7 @@
   "add_location_internal_vpn_helper_allowed_ips": "",
   "add_location_internal_vpn_label_dns": "DNS",
   "add_location_internal_vpn_helper_dns": "",
+  "add_location_mfa_toggle_label": "Enforce Multi-Factor Authentication for this location",
   "add_location_mfa_disabled_title": "Do not enforce MFA",
   "add_location_mfa_internal_title": "Internal Defguard Multi-Factor Authentication",
   "add_location_mfa_internal_content": "Uses the MFA methods configured in your Defguard profile.",

@@ -10,7 +10,6 @@ import api from '../../shared/api/api';
 import {
   type EditNetworkLocation,
   LicenseFeature,
-  LocationMfaMode,
   LocationServiceMode,
   type NetworkLocation,
 } from '../../shared/api/types';
@@ -30,6 +29,7 @@ import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
@@ -164,13 +164,13 @@ const formSchema = z
     allowed_groups: z.array(
       z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
     ),
-    location_mfa_mode: z.enum(LocationMfaMode),
+    mfa_enabled: z.boolean(),
     service_location_mode: z.enum(LocationServiceMode),
     firewall: z.enum(LocationFirewall),
     allowed_ips_from_acl: z.boolean(),
   })
   .superRefine((value, context) => {
-    if (value.location_mfa_mode !== LocationMfaMode.Disabled) {
+    if (value.mfa_enabled) {
       if (value.peer_disconnect_threshold === null) {
         context.addIssue({
           code: 'custom',
@@ -202,7 +202,7 @@ type DisconnectRelevantField =
   | 'port'
   | 'mtu'
   | 'fwmark'
-  | 'location_mfa_mode'
+  | 'mfa_enabled'
   | 'service_location_mode'
   | 'allow_all_groups'
   | 'allowed_groups';
@@ -213,7 +213,7 @@ type DisconnectRelevantLocationData = Pick<
   | 'port'
   | 'mtu'
   | 'fwmark'
-  | 'location_mfa_mode'
+  | 'mfa_enabled'
   | 'service_location_mode'
   | 'allow_all_groups'
   | 'allowed_groups'
@@ -241,7 +241,7 @@ const buildLocationSubmissionData = (
 ): EditNetworkLocation => {
   const normalizedValue = cloneDeep(value);
 
-  if (normalizedValue.location_mfa_mode !== LocationMfaMode.Disabled) {
+  if (normalizedValue.mfa_enabled) {
     normalizedValue.service_location_mode = LocationServiceMode.Disabled;
   }
 
@@ -263,7 +263,7 @@ const getDisconnectRelevantLocationData = (
   port: value.port,
   mtu: value.mtu,
   fwmark: value.fwmark,
-  location_mfa_mode: value.location_mfa_mode,
+  mfa_enabled: value.mfa_enabled,
   service_location_mode: value.service_location_mode,
   allow_all_groups: value.allow_all_groups,
   allowed_groups: value.allow_all_groups ? [] : value.allowed_groups,
@@ -280,7 +280,7 @@ const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string
       return m.location_network_label_mtu();
     case 'fwmark':
       return m.location_network_label_fwmark();
-    case 'location_mfa_mode':
+    case 'mfa_enabled':
       return m.add_location_step_mfa_label();
     case 'service_location_mode':
       return m.location_edit_section_location_type();
@@ -319,8 +319,8 @@ const getDisconnectRelevantChangedFields = (
     changedFields.add('fwmark');
   }
 
-  if (original.location_mfa_mode !== submitted.location_mfa_mode) {
-    changedFields.add('location_mfa_mode');
+  if (original.mfa_enabled !== submitted.mfa_enabled) {
+    changedFields.add('mfa_enabled');
   }
 
   if (original.service_location_mode !== submitted.service_location_mode) {
@@ -517,7 +517,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       keepalive_interval: location.keepalive_interval,
       mtu: location.mtu,
       fwmark: location.fwmark,
-      location_mfa_mode: location.location_mfa_mode,
+      mfa_enabled: location.mfa_enabled,
       peer_disconnect_threshold: location.peer_disconnect_threshold,
       port: location.port,
       service_location_mode: location.service_location_mode,
@@ -778,24 +778,16 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
         </EditPageFormSection>
-        <form.Subscribe
-          selector={(s) => s.values.location_mfa_mode !== LocationMfaMode.Disabled}
-        >
+        <form.Subscribe selector={(s) => s.values.mfa_enabled}>
           {(mfaEnabled) => (
             <form.AppField
               name="service_location_mode"
-              validators={{ onChangeListenTo: ['location_mfa_mode'] }}
+              validators={{ onChangeListenTo: ['mfa_enabled'] }}
               listeners={{
                 onChange: ({ value, fieldApi }) => {
-                  const mfa = fieldApi.form.getFieldValue('location_mfa_mode');
-                  if (
-                    value !== LocationServiceMode.Disabled &&
-                    mfa !== LocationMfaMode.Disabled
-                  ) {
-                    fieldApi.form.setFieldValue(
-                      'location_mfa_mode',
-                      LocationMfaMode.Disabled,
-                    );
+                  const mfa = fieldApi.form.getFieldValue('mfa_enabled');
+                  if (value !== LocationServiceMode.Disabled && mfa) {
+                    fieldApi.form.setFieldValue('mfa_enabled', false);
                   }
                 },
               }}
@@ -854,7 +846,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               )}
               <EditPageFormSection label={m.add_location_step_mfa_label()}>
                 <form.AppField
-                  name="location_mfa_mode"
+                  name="mfa_enabled"
                   validators={{
                     onChangeListenTo: ['service_location_mode'],
                   }}
@@ -863,10 +855,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       const service = fieldApi.form.getFieldValue(
                         'service_location_mode',
                       );
-                      if (
-                        value !== LocationMfaMode.Disabled &&
-                        service !== LocationServiceMode.Disabled
-                      ) {
+                      if (value && service !== LocationServiceMode.Disabled) {
                         fieldApi.form.setFieldValue(
                           'service_location_mode',
                           LocationServiceMode.Disabled,
@@ -876,32 +865,15 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   }}
                 >
                   {(field) => (
-                    <>
-                      <field.FormRadio
-                        value={LocationMfaMode.Disabled}
-                        text={m.add_location_mfa_disabled_title()}
-                        disabled={isServiceLocation}
-                      />
-                      <SizedBox height={ThemeSpacing.Md} />
-                      <field.FormRadio
-                        value={LocationMfaMode.Internal}
-                        text={m.location_mfa_option_internal()}
-                        disabled={isServiceLocation}
-                      />
-                      <SizedBox height={ThemeSpacing.Md} />
-                      <field.FormRadio
-                        value={LocationMfaMode.External}
-                        text={m.location_mfa_option_external()}
-                        disabled={isServiceLocation}
-                      />
-                    </>
+                    <Toggle
+                      active={field.state.value}
+                      onClick={() => field.handleChange(!field.state.value)}
+                      label={m.add_location_mfa_toggle_label()}
+                      disabled={isServiceLocation}
+                    />
                   )}
                 </form.AppField>
-                <form.Subscribe
-                  selector={(state) =>
-                    state.values.location_mfa_mode !== LocationMfaMode.Disabled
-                  }
-                >
+                <form.Subscribe selector={(state) => state.values.mfa_enabled}>
                   {(showDisconnectThreshold) =>
                     showDisconnectThreshold ? (
                       <>

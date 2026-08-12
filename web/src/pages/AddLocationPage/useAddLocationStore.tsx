@@ -1,11 +1,7 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import {
-  type EditNetworkLocation,
-  LocationMfaMode,
-  LocationServiceMode,
-} from '../../shared/api/types';
+import { type EditNetworkLocation, LocationServiceMode } from '../../shared/api/types';
 import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 
 type StoreValues = {
@@ -40,7 +36,7 @@ const defaults: StoreValues = {
   allowed_ips: '',
   dns: '',
   endpoint: '',
-  location_mfa_mode: LocationMfaMode.Disabled,
+  mfa_enabled: false,
   service_location_mode: LocationServiceMode.Disabled,
   posture_checks: [],
 };

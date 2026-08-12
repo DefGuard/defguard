@@ -160,39 +160,26 @@ export const LocationsTable = () => {
         minSize: 250,
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
-      columnHelper.accessor('location_mfa_mode', {
+      columnHelper.accessor('mfa_enabled', {
         header: m.location_col_mfa(),
         minSize: 100,
-        sortingFn: 'text',
         cell: (info) => {
-          switch (info.getValue()) {
-            case 'disabled':
-              return (
-                <TableCell>
-                  <Badge text={m.location_mfa_none()} />
-                </TableCell>
-              );
-            case 'external':
-              return (
-                <TableCell>
-                  <Badge
-                    icon="external-mfa"
-                    text={m.location_mfa_external()}
-                    variant="warning"
-                  />
-                </TableCell>
-              );
-            case 'internal':
-              return (
-                <TableCell>
-                  <Badge
-                    icon="internal-mfa"
-                    text={m.location_mfa_internal()}
-                    variant="success"
-                  />
-                </TableCell>
-              );
+          if (info.getValue()) {
+            return (
+              <TableCell>
+                <Badge
+                  icon="internal-mfa"
+                  text={m.location_mfa_internal()}
+                  variant="success"
+                />
+              </TableCell>
+            );
           }
+          return (
+            <TableCell>
+              <Badge text={m.location_mfa_none()} />
+            </TableCell>
+          );
         },
       }),
       columnHelper.accessor('service_location_mode', {
