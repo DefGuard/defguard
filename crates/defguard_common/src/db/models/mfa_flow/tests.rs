@@ -417,7 +417,7 @@ async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: 
     .unwrap();
     tx.commit().await.unwrap();
 
-    let result = MfaFlow::check_deletable(&pool, flow1.id).await;
+    let result = MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow1.id).await;
     assert!(matches!(
         result,
         Err(MfaFlowDeleteError::LocationRequiresFlow(_))
@@ -470,10 +470,83 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
     tx.commit().await.unwrap();
 
     // flow2 is not the only assignment and not default → OK
-    assert!(MfaFlow::check_deletable(&pool, flow2.id).await.is_ok());
+    assert!(
+        MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow2.id)
+            .await
+            .is_ok()
+    );
     // flow1 is the default → refused
-    let result = MfaFlow::check_deletable(&pool, flow1.id).await;
+    let result = MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow1.id).await;
     assert!(matches!(result, Err(MfaFlowDeleteError::FlowIsDefault(_))));
+}
+
+/// A delete that passes its checks must not race an assignment that makes the same flow a
+/// location's sole default. The two paths contend on the flow row (`FOR UPDATE` against
+/// `FOR SHARE`), so the assignment cannot commit inside the delete's check-to-delete window.
+#[sqlx::test]
+async fn test_delete_and_assign_do_not_race(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.8.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // Transaction A: the flow is assigned nowhere, so the delete is currently allowed.
+    let mut tx_delete = pool.begin().await.unwrap();
+    MfaFlow::check_deletable(&mut tx_delete, flow.id)
+        .await
+        .expect("flow is unassigned, so deletion is permitted");
+
+    // Transaction B tries to make it a location's default while A still holds the lock. It must
+    // block rather than commit, so a short timeout has to elapse.
+    let assign_pool = pool.clone();
+    let flow_id = flow.id;
+    let location_id = network.id;
+    let mut assign = tokio::spawn(async move {
+        let mut tx = assign_pool.begin().await.unwrap();
+        let result = MfaFlow::assign_to_location(
+            &mut tx,
+            location_id,
+            &[LocationMfaFlowAssignment {
+                flow_id,
+                is_default: true,
+                group_ids: vec![],
+            }],
+        )
+        .await;
+        if result.is_ok() {
+            tx.commit().await.unwrap();
+        }
+        result
+    });
+
+    let blocked = tokio::time::timeout(std::time::Duration::from_millis(500), &mut assign).await;
+    assert!(
+        blocked.is_err(),
+        "the assignment must block until the delete transaction finishes"
+    );
+
+    // A completes the delete it was cleared for.
+    query!("DELETE FROM mfa_flow WHERE id = $1", flow.id)
+        .execute(&mut *tx_delete)
+        .await
+        .unwrap();
+    tx_delete.commit().await.unwrap();
+
+    // B unblocks, sees the flow is gone, and refuses instead of violating the foreign key.
+    let result = assign.await.unwrap();
+    assert!(matches!(
+        result,
+        Err(MfaFlowAssignmentError::UnknownFlow(id)) if id == flow_id
+    ));
+
+    // The location was left with no assignments rather than a dangling default.
+    let items = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert!(items.is_empty());
 }
 
 #[sqlx::test]

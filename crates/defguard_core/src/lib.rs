@@ -571,24 +571,23 @@ pub fn build_webapp(
     );
 
     let api_router = api_router.nest(
-        "/api/v1/mfa-flow",
+        "/api/v1",
         Router::new()
-            .route("/", get(list_mfa_flows).post(create_mfa_flow))
+            .route("/mfa-flow", get(list_mfa_flows).post(create_mfa_flow))
             .route(
-                "/{id}",
+                "/mfa-flow/{id}",
                 get(get_mfa_flow)
                     .put(update_mfa_flow)
                     .delete(delete_mfa_flow),
             )
-            .route("/method-availability", get(get_method_availability)),
-    );
-
-    let api_router = api_router.nest(
-        "/api/v1",
-        Router::new().route(
-            "/location/{id}/mfa-flows",
-            get(get_location_mfa_flows).put(set_location_mfa_flows),
-        ),
+            .route(
+                "/mfa-flow/method-availability",
+                get(get_method_availability),
+            )
+            .route(
+                "/location/{id}/mfa-flows",
+                get(get_location_mfa_flows).put(set_location_mfa_flows),
+            ),
     );
 
     let api_router = api_router.nest(

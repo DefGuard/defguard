@@ -81,6 +81,18 @@ impl From<MfaFlowStep<Id>> for MfaFlowStepResponse {
     }
 }
 
+impl From<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> for MfaFlowDetailResponse {
+    fn from((flow, steps): (MfaFlow<Id>, Vec<MfaFlowStep<Id>>)) -> Self {
+        Self {
+            id: flow.id,
+            title: flow.title,
+            steps: steps.into_iter().map(Into::into).collect(),
+            created_at: flow.created_at,
+            updated_at: flow.updated_at,
+        }
+    }
+}
+
 /// Request body for creating an MFA flow.
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct CreateMfaFlowRequest {
@@ -402,13 +414,7 @@ pub async fn create_mfa_flow(
         }),
     })?;
 
-    let response = MfaFlowDetailResponse {
-        id: flow.id,
-        title: flow.title,
-        steps: steps.into_iter().map(Into::into).collect(),
-        created_at: flow.created_at,
-        updated_at: flow.updated_at,
-    };
+    let response = MfaFlowDetailResponse::from((flow, steps));
 
     Ok(ApiResponse::json(response, StatusCode::CREATED))
 }
@@ -446,13 +452,7 @@ pub async fn get_mfa_flow(
         .ok_or_else(|| WebError::ObjectNotFound(format!("MFA flow {id} not found")))?;
     let steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
 
-    let response = MfaFlowDetailResponse {
-        id: flow.id,
-        title: flow.title,
-        steps: steps.into_iter().map(Into::into).collect(),
-        created_at: flow.created_at,
-        updated_at: flow.updated_at,
-    };
+    let response = MfaFlowDetailResponse::from((flow, steps));
 
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
@@ -549,13 +549,7 @@ pub async fn update_mfa_flow(
         }),
     })?;
 
-    let response = MfaFlowDetailResponse {
-        id: flow.id,
-        title: flow.title,
-        steps: steps.into_iter().map(Into::into).collect(),
-        created_at: flow.created_at,
-        updated_at: flow.updated_at,
-    };
+    let response = MfaFlowDetailResponse::from((flow, steps));
 
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
@@ -594,9 +588,13 @@ pub async fn delete_mfa_flow(
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("MFA flow {id} not found")))?;
 
+    // The refusal checks and the delete share one transaction so a concurrent assignment cannot
+    // make this flow a location's sole default in between.
+    let mut tx = appstate.pool.begin().await?;
+
     // Both refusals are 409 Conflict: the request is well formed, but the flow is load-bearing
     // for at least one location. The two codes are deliberately distinct.
-    if let Err(e) = MfaFlow::check_deletable(&appstate.pool, id).await {
+    if let Err(e) = MfaFlow::check_deletable(&mut tx, id).await {
         let (code, locations) = match e {
             MfaFlowDeleteError::LocationRequiresFlow(locations) => {
                 ("location_requires_flow", locations)
@@ -618,14 +616,15 @@ pub async fn delete_mfa_flow(
         ));
     }
 
-    let steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
+    let steps = MfaFlowStep::find_by_flow(&mut *tx, id).await?;
 
     let snapshot = MfaFlowSnapshot {
         flow: flow.clone(),
         steps,
     };
 
-    flow.delete(&appstate.pool).await?;
+    flow.delete(&mut *tx).await?;
+    tx.commit().await?;
 
     debug!("Deleted MFA flow {id}");
 

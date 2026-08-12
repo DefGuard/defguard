@@ -366,13 +366,19 @@ impl MfaFlow<Id> {
 
         // Referenced flows and groups must exist, otherwise the INSERTs below fail on a foreign
         // key and the caller sees a 500 rather than a validation error.
+        // `FOR SHARE` holds the referenced flows against concurrent deletion for the rest of this
+        // transaction, and conversely blocks here while a delete of one of them is in flight. See
+        // the note on `check_deletable`. If that delete commits first, the row is gone by the time
+        // this query runs and the caller gets `UnknownFlow` rather than a foreign-key 500.
         let flow_ids: Vec<Id> = assignments.iter().map(|a| a.flow_id).collect();
-        let existing_flows: HashSet<Id> =
-            query_scalar!("SELECT id FROM mfa_flow WHERE id = ANY($1)", &flow_ids)
-                .fetch_all(&mut *conn)
-                .await?
-                .into_iter()
-                .collect();
+        let existing_flows: HashSet<Id> = query_scalar!(
+            "SELECT id FROM mfa_flow WHERE id = ANY($1) FOR SHARE",
+            &flow_ids
+        )
+        .fetch_all(&mut *conn)
+        .await?
+        .into_iter()
+        .collect();
         if let Some(missing) = flow_ids.iter().find(|id| !existing_flows.contains(id)) {
             return Err(MfaFlowAssignmentError::UnknownFlow(*missing));
         }
@@ -464,10 +470,21 @@ impl MfaFlow<Id> {
 
     /// Checks whether a flow can be deleted, returning an error naming the
     /// affected locations if it cannot.
-    pub async fn check_deletable<'e, E: PgExecutor<'e> + Copy>(
-        executor: E,
+    ///
+    /// Must be called on the same connection as the subsequent DELETE, and inside its
+    /// transaction: the checks below and the delete have to be atomic with respect to
+    /// [`Self::assign_to_location`], or a concurrent assignment could make this flow a location's
+    /// sole default in the window between checking and deleting, leaving that location with no
+    /// MFA policy. The `FOR UPDATE` below takes the flow-identity lock that
+    /// `assign_to_location` contends on with `FOR SHARE`.
+    pub async fn check_deletable(
+        conn: &mut PgConnection,
         flow_id: Id,
     ) -> Result<(), MfaFlowDeleteError> {
+        query_scalar!("SELECT id FROM mfa_flow WHERE id = $1 FOR UPDATE", flow_id)
+            .fetch_optional(&mut *conn)
+            .await?;
+
         // Flow is the only assignment for any location?
         let orphaned: Vec<String> = query_scalar!(
             "SELECT wn.name \
@@ -478,7 +495,7 @@ impl MfaFlow<Id> {
                   WHERE location_id = lmf.location_id) = 1",
             flow_id
         )
-        .fetch_all(executor)
+        .fetch_all(&mut *conn)
         .await?;
 
         if !orphaned.is_empty() {
@@ -493,7 +510,7 @@ impl MfaFlow<Id> {
              WHERE lmf.flow_id = $1 AND lmf.is_default = true",
             flow_id
         )
-        .fetch_all(executor)
+        .fetch_all(&mut *conn)
         .await?;
 
         if !defaults.is_empty() {
@@ -503,7 +520,22 @@ impl MfaFlow<Id> {
         Ok(())
     }
 
-    /// Resolves the first matching MFA flow for a user at a location.
+    /// Resolves the MFA flow that applies to a user at a location.
+    ///
+    /// Ordered first-match over `location_mfa_flow.position`: the first assignment whose group set
+    /// intersects the user's groups wins, otherwise the assignment flagged `is_default` wins.
+    /// Because the default is mandatory and carries an empty group set, a location that has a
+    /// policy always resolves, so "user matches nothing" is unrepresentable.
+    ///
+    /// `None` is therefore not a resolution failure but an absence of policy, and callers must
+    /// **fail closed** on it rather than treat it as "no MFA required". It occurs in exactly two
+    /// cases:
+    ///
+    /// 1. The location has no assignments at all. This is legitimate and transient: a location can
+    ///    be `mfa_enabled` before its policy has been built.
+    /// 2. The location has assignments but none is flagged default. The API makes this
+    ///    unreachable, since [`Self::assign_to_location`] rejects it and [`Self::check_deletable`]
+    ///    refuses to remove a default, so this arm only guards data predating those rules.
     pub async fn resolve_for_user<'e>(
         executor: impl PgExecutor<'e> + Copy,
         location_id: Id,
