@@ -103,9 +103,10 @@ async fn test_delete_removed_step(_: PgPoolOptions, options: PgConnectOptions) {
     let (flow, original_steps) = create_flow(&pool).await;
     assert_eq!(original_steps.len(), 2);
 
-    // Add a third step
+    // Add a third step at position 2 (the flow already has steps at positions 0 and 1, so this
+    // must not collide with the `UNIQUE (flow_id, position)` constraint).
     let mut tx = pool.begin().await.unwrap();
-    MfaFlowStep::insert_batch(&mut tx, flow.id, &[vec![VpnClientMfaMethod::Oidc]])
+    MfaFlowStep::insert_single(&mut tx, flow.id, 2, &[VpnClientMfaMethod::Oidc])
         .await
         .unwrap();
     tx.commit().await.unwrap();
@@ -173,6 +174,51 @@ async fn test_position_swap(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(updated_steps[1].position, 1);
 }
 
+/// A three-step reorder still satisfies `UNIQUE (flow_id, position)`: the offset-into-disjoint-
+/// range reconciliation must never leave two steps sharing a position inside the transaction.
+#[sqlx::test]
+async fn test_position_reorder_three_steps(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, steps) = MfaFlow::create(
+        &mut tx,
+        "Reorder".into(),
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Email],
+            vec![VpnClientMfaMethod::Biometric],
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+    assert_eq!(steps.len(), 3);
+
+    // Reverse the order.
+    let mut tx = pool.begin().await.unwrap();
+    let (_, updated) = MfaFlow::update_with_steps(
+        &mut tx,
+        flow.id,
+        "Reorder".into(),
+        vec![
+            (Some(steps[2].id), steps[2].methods.clone()),
+            (Some(steps[1].id), steps[1].methods.clone()),
+            (Some(steps[0].id), steps[0].methods.clone()),
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    assert_eq!(updated[0].id, steps[2].id);
+    assert_eq!(updated[0].position, 0);
+    assert_eq!(updated[1].id, steps[1].id);
+    assert_eq!(updated[1].position, 1);
+    assert_eq!(updated[2].id, steps[0].id);
+    assert_eq!(updated[2].position, 2);
+}
+
 #[sqlx::test]
 async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -197,8 +243,9 @@ async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
         .save(&pool)
         .await
         .unwrap();
+    let group = Group::new("assign-group").save(&pool).await.unwrap();
 
-    // Assign two flows to the location
+    // Assign two flows to the location: the non-default flow is group-scoped, the default is not.
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
         &mut tx,
@@ -207,7 +254,7 @@ async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
             LocationMfaFlowAssignment {
                 flow_id: flow1.id,
                 is_default: false,
-                group_ids: vec![],
+                group_ids: vec![group.id],
             },
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
@@ -225,7 +272,7 @@ async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(items[0].id, flow1.id);
     assert_eq!(items[0].position, 0);
     assert!(!items[0].is_default);
-    assert_eq!(items[0].group_names.len(), 0);
+    assert_eq!(items[0].group_names.len(), 1);
     assert_eq!(items[1].id, flow2.id);
     assert_eq!(items[1].position, 1);
     assert!(items[1].is_default);
@@ -391,6 +438,164 @@ async fn test_assign_default_with_groups_rejected(_: PgPoolOptions, options: PgC
     ));
 }
 
+/// An MFA-disabled location can have its assignment list cleared: there is nothing to enforce, so
+/// an empty list is a valid (re)configuration rather than a missing default.
+#[sqlx::test]
+async fn test_assign_clear_disabled_location(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.9.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    // network.mfa_enabled is false (default).
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    MfaFlow::assign_to_location(&mut tx, network.id, &[])
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    let items = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert!(items.is_empty(), "clearing must remove all assignments");
+}
+
+/// Clearing an MFA-enabled location's assignment list is still refused: such a location must keep
+/// something to enforce.
+#[sqlx::test]
+async fn test_assign_clear_enabled_location_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.0.10.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let result =
+        MfaFlow::assign_to_location(&mut pool.acquire().await.unwrap(), network.id, &[]).await;
+    assert!(matches!(
+        result,
+        Err(MfaFlowAssignmentError::NoDefaultDesignated)
+    ));
+}
+
+/// A non-default assignment scoped to no groups can never match any user, so it is refused rather
+/// than saved as an assignment that never fires. This is the mirror of `DefaultHasGroups`.
+#[sqlx::test]
+async fn test_assign_non_default_without_groups_rejected(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.11.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let result = MfaFlow::assign_to_location(
+        &mut pool.acquire().await.unwrap(),
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: false,
+                group_ids: vec![], // inert: empty group set
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await;
+    assert!(matches!(
+        result,
+        Err(MfaFlowAssignmentError::NonDefaultWithoutGroups(id)) if id == flow1.id
+    ));
+
+    // The rejected save must not have partially applied.
+    let assignments = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert!(assignments.is_empty());
+}
+
+/// `has_default_assignment` reflects the presence of a designated default, which is what the
+/// `mfa_enabled` precondition keys on.
+#[sqlx::test]
+async fn test_has_default_assignment(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (flow, _) = create_flow(&pool).await;
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.12.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    assert!(
+        !MfaFlow::has_default_assignment(&pool, network.id)
+            .await
+            .unwrap()
+    );
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    assert!(
+        MfaFlow::has_default_assignment(&pool, network.id)
+            .await
+            .unwrap()
+    );
+
+    // Clearing (an MFA-disabled location) removes the default.
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(&mut tx, network.id, &[])
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    assert!(
+        !MfaFlow::has_default_assignment(&pool, network.id)
+            .await
+            .unwrap()
+    );
+}
+
 #[sqlx::test]
 async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -457,6 +662,7 @@ async fn test_check_deletable_allows_disabled_location(
         .await
         .unwrap();
     // network.mfa_enabled is false (default).
+    let group = Group::new("disabled-group").save(&pool).await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
@@ -466,7 +672,7 @@ async fn test_check_deletable_allows_disabled_location(
             LocationMfaFlowAssignment {
                 flow_id: flow1.id,
                 is_default: false,
-                group_ids: vec![],
+                group_ids: vec![group.id],
             },
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
@@ -510,6 +716,7 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
         .save(&pool)
         .await
         .unwrap();
+    let group = Group::new("default-group").save(&pool).await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
@@ -524,7 +731,7 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: false,
-                group_ids: vec![],
+                group_ids: vec![group.id],
             },
         ],
     )

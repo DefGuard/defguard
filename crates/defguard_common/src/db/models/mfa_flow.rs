@@ -105,6 +105,8 @@ pub enum MfaFlowAssignmentError {
     MultipleDefaultsDesignated,
     #[error("The default MFA flow assignment must not be scoped to any groups")]
     DefaultHasGroups,
+    #[error("MFA flow {0} is a non-default assignment scoped to no groups")]
+    NonDefaultWithoutGroups(Id),
     #[error("MFA flow {0} is assigned more than once to this location")]
     DuplicateFlow(Id),
     #[error("MFA flow {0} does not exist")]
@@ -204,7 +206,7 @@ pub fn validate_flow_input(
 }
 
 /// Offset applied to existing step positions during a swap so that
-/// intermediate positions never conflict.
+/// intermediate positions never conflict with the `UNIQUE (flow_id, position)` constraint.
 pub const POSITION_SWAP_OFFSET: i32 = 10_000;
 
 impl MfaFlow<NoId> {
@@ -257,6 +259,23 @@ impl MfaFlow<Id> {
         let exists = query_scalar!("SELECT EXISTS (SELECT 1 FROM mfa_flow)")
             .fetch_one(executor)
             .await?;
+        Ok(exists.unwrap_or(false))
+    }
+
+    /// Returns whether the location has a designated default assignment.
+    ///
+    /// The `mfa_enabled` precondition uses this: a location cannot be enabled until it has a
+    /// default flow to enforce, so "enabled with no policy" is unrepresentable.
+    pub async fn has_default_assignment<'e, E: PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+    ) -> sqlx::Result<bool> {
+        let exists = query_scalar!(
+            "SELECT EXISTS (SELECT 1 FROM location_mfa_flow WHERE location_id = $1 AND is_default = true)",
+            location_id,
+        )
+        .fetch_one(executor)
+        .await?;
         Ok(exists.unwrap_or(false))
     }
 
@@ -357,6 +376,28 @@ impl MfaFlow<Id> {
         location_id: Id,
         assignments: &[LocationMfaFlowAssignment],
     ) -> Result<(), MfaFlowAssignmentError> {
+        let mfa_enabled: bool = query_scalar!(
+            "SELECT mfa_enabled FROM wireguard_network WHERE id = $1",
+            location_id,
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+
+        // Clearing a location's assignment list is only valid while MFA is off: an MFA-enabled
+        // location must always carry a default to enforce, but a disabled one has nothing to
+        // protect, and clearing is the only way to take it back from "has assignments" to "has
+        // none". An empty list has zero defaults, so without this early return it would be
+        // refused as `NoDefaultDesignated`.
+        if assignments.is_empty() && !mfa_enabled {
+            query!(
+                "DELETE FROM location_mfa_flow WHERE location_id = $1",
+                location_id,
+            )
+            .execute(&mut *conn)
+            .await?;
+            return Ok(());
+        }
+
         // Exactly one assignment must be flagged as the default, at every licence tier, and it is
         // never inferred from position or from being the only entry.
         let default_count = assignments.iter().filter(|a| a.is_default).count();
@@ -378,6 +419,18 @@ impl MfaFlow<Id> {
             if !seen_flows.insert(a.flow_id) {
                 return Err(MfaFlowAssignmentError::DuplicateFlow(a.flow_id));
             }
+        }
+
+        // The mirror of the default rule: a non-default assignment scoped to no groups can never
+        // overlap any user, so it can never match and would be inert. Reject it rather than let an
+        // admin save an assignment that never fires.
+        if let Some(inert) = assignments
+            .iter()
+            .find(|a| !a.is_default && a.group_ids.is_empty())
+        {
+            return Err(MfaFlowAssignmentError::NonDefaultWithoutGroups(
+                inert.flow_id,
+            ));
         }
 
         // Referenced flows and groups must exist, otherwise the INSERTs below fail on a foreign

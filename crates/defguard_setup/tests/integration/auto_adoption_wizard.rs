@@ -648,11 +648,10 @@ async fn test_auto_adoption_mfa_enabled_requires_flow(_: PgPoolOptions, options:
         .await
         .expect("Failed to set MFA settings");
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    let body = resp.text().await.unwrap();
-    assert!(
-        body.contains("no_flows_exist"),
-        "Expected no_flows_exist error in response body, got: {body}"
-    );
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
+    assert_eq!(body["fields"][0]["code"], "no_flows_exist");
 
     // Disabling MFA is still allowed (mfa_enabled=false with no flows is fine).
     let resp = client

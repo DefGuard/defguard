@@ -387,6 +387,117 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     );
 }
 
+/// A non-default assignment with an empty group set can never match any user, so it must be
+/// rejected with a field path pointing at the offending entry's `group_ids`.
+#[sqlx::test]
+async fn test_location_mfa_flows_non_default_without_groups(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let flow1_id = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({"title": "Scoped", "steps": [{"methods": ["totp"]}]}))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+    let flow2_id = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({"title": "Default", "steps": [{"methods": ["biometric"]}]}))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+
+    let network_resp = make_network(&client, "non-default-without-groups").await;
+    let location_id = network_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": [
+            {"flow_id": flow1_id, "is_default": false, "group_ids": []},
+            {"flow_id": flow2_id, "is_default": true, "group_ids": []},
+        ]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "assignments[0].group_ids");
+    assert_eq!(body["fields"][0]["code"], "non_default_must_have_groups");
+}
+
+/// An MFA-disabled location's assignment list can be cleared to empty via the API.
+#[sqlx::test]
+async fn test_location_mfa_flows_clear_disabled_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let flow_resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": "Flow", "steps": [{"methods": ["totp"]}]}))
+        .send()
+        .await;
+    let flow_id = flow_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    let network_resp = make_network(&client, "clear-disabled").await;
+    let location_id = network_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    // Assign a default, then clear it.
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": [
+            {"flow_id": flow_id, "is_default": true, "group_ids": []},
+        ]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": []}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .get(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .json::<serde_json::Value>()
+            .await
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+}
+
 /// Method availability returns all five methods with correct availability.
 #[sqlx::test]
 async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOptions) {

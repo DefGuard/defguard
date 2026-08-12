@@ -330,15 +330,15 @@ pub async fn set_mfa_settings(
             ))
         })?;
 
-    // Enforce the precondition: MFA cannot be enabled until at least one flow exists.
-    if mfa_settings.mfa_enabled && !MfaFlow::any_exist(&pool).await? {
-        return Err(WebError::BadRequest(
-            json!({
-                "error": "validation_failed",
-                "fields": [{"field": "mfa_enabled", "code": "no_flows_exist"}]
-            })
-            .to_string(),
-        ));
+    // Enforce the precondition: MFA cannot be enabled until a default flow is assigned to the
+    // location, so "enabled with no policy" is unrepresentable.
+    if mfa_settings.mfa_enabled {
+        if !MfaFlow::any_exist(&pool).await? {
+            return Ok(defguard_core::handlers::wireguard::no_flows_exist_response());
+        }
+        if !MfaFlow::has_default_assignment(&pool, first_network_id).await? {
+            return Ok(defguard_core::handlers::wireguard::no_flows_assigned_response());
+        }
     }
 
     network.mfa_enabled = mfa_settings.mfa_enabled;

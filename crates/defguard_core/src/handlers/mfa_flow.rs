@@ -305,6 +305,18 @@ fn group_field(assignments: &[AssignMfaFlowEntry], group_id: Id) -> String {
         )
 }
 
+/// Field path for the assignment entry whose empty group set made it inert, pointing at the
+/// `group_ids` the admin must populate rather than at the flow as a whole.
+fn non_default_group_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
+    assignments
+        .iter()
+        .position(|a| a.flow_id == flow_id)
+        .map_or_else(
+            || "assignments".to_owned(),
+            |i| format!("assignments[{i}].group_ids"),
+        )
+}
+
 /// Build a `400` response with structured `fields[]` errors.
 fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse {
     let fields: Vec<Value> = errors
@@ -722,7 +734,7 @@ pub async fn get_location_mfa_flows(
     request_body = AssignMfaFlowsRequest,
     responses(
         (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
-        (status = 400, description = "Invalid assignment: `no_default_designated`, `multiple_defaults_designated`, or `default_must_have_no_groups`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "mfa_flows", "code": "no_default_designated"}]})),
+        (status = 400, description = "Invalid assignment: `no_default_designated`, `multiple_defaults_designated`, `default_must_have_no_groups`, or `non_default_must_have_groups`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "mfa_flows", "code": "no_default_designated"}]})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
         (status = 403, description = "Requires admin privileges, or group scoping without an enterprise license (`enterprise_license_required`).", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "assignments[0].group_ids", "code": "enterprise_license_required"}]})),
         (status = 500, description = "Unable to assign flows.", body = ApiErrorResponse)
@@ -777,6 +789,10 @@ pub async fn set_location_mfa_flows(
             MfaFlowAssignmentError::DefaultHasGroups => {
                 ("mfa_flows".to_owned(), "default_must_have_no_groups")
             }
+            MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
+                non_default_group_field(&data.assignments, flow_id),
+                "non_default_must_have_groups",
+            ),
             MfaFlowAssignmentError::DuplicateFlow(flow_id) => {
                 (assignment_field(&data.assignments, flow_id), "duplicate")
             }

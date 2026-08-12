@@ -13,7 +13,8 @@ CREATE TABLE mfa_flow_step (
     position INTEGER NOT NULL,
     methods  vpn_client_mfa_method[] NOT NULL,
     CONSTRAINT mfa_flow_step_methods_nonempty CHECK (array_length(methods, 1) >= 1),
-    CONSTRAINT mfa_flow_step_position_nonneg CHECK (position >= 0)
+    CONSTRAINT mfa_flow_step_position_nonneg CHECK (position >= 0),
+    CONSTRAINT mfa_flow_step_flow_position_unique UNIQUE (flow_id, position)
 );
 CREATE INDEX idx_mfa_flow_step_flow_id ON mfa_flow_step(flow_id);
 
@@ -23,8 +24,15 @@ CREATE TABLE location_mfa_flow (
     flow_id     BIGINT NOT NULL REFERENCES mfa_flow(id) ON DELETE CASCADE,
     position    INTEGER NOT NULL,
     is_default  BOOLEAN NOT NULL DEFAULT false,
-    PRIMARY KEY (location_id, flow_id)
+    PRIMARY KEY (location_id, flow_id),
+    CONSTRAINT location_mfa_flow_position_unique UNIQUE (location_id, position)
 );
+
+-- At most one assignment per location may be flagged default. The API enforces "exactly one",
+-- this index enforces "at most one" so a bug or a race cannot leave two defaults.
+CREATE UNIQUE INDEX idx_location_mfa_flow_single_default
+    ON location_mfa_flow (location_id)
+    WHERE is_default;
 
 -- Group scoping per assignment
 CREATE TABLE location_mfa_flow_group (

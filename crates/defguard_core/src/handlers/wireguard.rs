@@ -91,6 +91,35 @@ pub struct WireguardNetworkData {
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
 
+/// Build the structured `400` response for the `mfa_enabled` precondition: a location cannot be
+/// MFA-enabled while no MFA flow exists to assign to it.
+///
+/// The body is a real structured `validation_failed` payload, not a string inside `msg`, so the
+/// frontend parses it in one step like every other validation path in this feature.
+#[must_use]
+pub fn no_flows_exist_response() -> ApiResponse {
+    ApiResponse::new(
+        json!({
+            "error": "validation_failed",
+            "fields": [{"field": "mfa_enabled", "code": "no_flows_exist"}]
+        }),
+        StatusCode::BAD_REQUEST,
+    )
+}
+
+/// Build the structured `400` response for the `mfa_enabled` precondition when the location has no
+/// default flow assigned: MFA cannot be enabled until a policy exists to enforce.
+#[must_use]
+pub fn no_flows_assigned_response() -> ApiResponse {
+    ApiResponse::new(
+        json!({
+            "error": "validation_failed",
+            "fields": [{"field": "mfa_enabled", "code": "no_flows_assigned"}]
+        }),
+        StatusCode::BAD_REQUEST,
+    )
+}
+
 impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
         self.allowed_ips
@@ -112,27 +141,37 @@ impl WireguardNetworkData {
         )))
     }
 
-    /// Rejects enabling MFA for a location while no MFA flow exists to assign to it.
+    /// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
     ///
-    /// The UI hides the toggle until at least one flow exists, but the API is the source of
-    /// truth, so the precondition is enforced here.
-    pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e>>(
+    /// The check is per-location: an existing location (`Some(id)`) must carry a designated
+    /// default assignment, and a brand-new location (`None`, the create path) can never have one,
+    /// so creating with `mfa_enabled` is refused here too. The global `no_flows_exist` check runs
+    /// first so a fresh instance reports the more actionable "create a flow" error. Returns a
+    /// structured `400` response (not a `WebError`) so the body is parsed in one step.
+    pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
         &self,
         executor: E,
-    ) -> Result<(), WebError> {
-        if !self.mfa_enabled || MfaFlow::any_exist(executor).await? {
-            return Ok(());
+        location_id: Option<Id>,
+    ) -> Result<Option<ApiResponse>, WebError> {
+        if !self.mfa_enabled {
+            return Ok(None);
         }
 
-        error!("Unable to enable MFA for location: no MFA flows are configured");
+        if !MfaFlow::any_exist(executor).await? {
+            error!("Unable to enable MFA for location: no MFA flows are configured");
+            return Ok(Some(no_flows_exist_response()));
+        }
 
-        Err(WebError::BadRequest(
-            json!({
-                "error": "validation_failed",
-                "fields": [{"field": "mfa_enabled", "code": "no_flows_exist"}]
-            })
-            .to_string(),
-        ))
+        let has_default = match location_id {
+            Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
+            None => false,
+        };
+        if !has_default {
+            error!("Unable to enable MFA for location: no default MFA flow is assigned");
+            return Ok(Some(no_flows_assigned_response()));
+        }
+
+        Ok(None)
     }
 
     /// Rejects service-location mode combined with location MFA: core cannot serve it and the
@@ -250,7 +289,9 @@ pub(crate) async fn create_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    data.validate_mfa_flows_exist(&appstate.pool).await?;
+    if let Some(resp) = data.validate_mfa_flows_exist(&appstate.pool, None).await? {
+        return Ok(resp);
+    }
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -379,7 +420,12 @@ pub(crate) async fn modify_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    data.validate_mfa_flows_exist(&appstate.pool).await?;
+    if let Some(resp) = data
+        .validate_mfa_flows_exist(&appstate.pool, Some(network_id))
+        .await?
+    {
+        return Ok(resp);
+    }
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods

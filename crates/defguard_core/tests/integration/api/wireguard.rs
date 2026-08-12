@@ -376,7 +376,9 @@ fn location_payload(
 ///
 /// `PUT`/`POST /api/v1/network` refuses `mfa_enabled: true` with `no_flows_exist` while no flow
 /// exists globally, so any test that enables MFA on a location has to create one first.
-async fn make_mfa_flow(client: &TestClient) {
+///
+/// Returns the created flow's id so callers can assign it to a location.
+async fn make_mfa_flow(client: &TestClient) -> i64 {
     let response = client
         .post("/api/v1/mfa-flow")
         .json(&json!({
@@ -386,6 +388,189 @@ async fn make_mfa_flow(client: &TestClient) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    response.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap()
+}
+
+/// Assign a flow as a location's default so the location can be MFA-enabled.
+async fn assign_default_mfa_flow(client: &TestClient, location_id: i64, flow_id: i64) {
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+/// Enabling MFA while no flow exists returns a structured `validation_failed` body that parses as
+/// JSON in one step, not a JSON string wrapped inside `msg`.
+#[sqlx::test]
+async fn test_mfa_enabled_no_flows_structured_body(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "no-flows",
+            "address": "10.9.9.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.9.9.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": true,
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
+    assert_eq!(body["fields"][0]["code"], "no_flows_exist");
+    assert!(
+        body.get("msg").is_none(),
+        "the refusal body must not be double-encoded via msg"
+    );
+}
+
+/// Clearing assignments on an MFA-disabled location is allowed, and the location still cannot be
+/// MFA-enabled afterward while no flows exist: the `no_flows_exist` precondition still guards the
+/// toggle.
+#[sqlx::test]
+async fn test_enable_mfa_after_clear_refused_without_flows(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // Create a flow and a location, assign, then clear.
+    let flow_id = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({"title": "Flow", "steps": [{"methods": ["totp"]}]}))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+
+    let network_resp = make_network(&client, "clear-then-enable").await;
+    let location_id = network_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": [
+            {"flow_id": flow_id, "is_default": true, "group_ids": []},
+        ]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Clearing is allowed on the MFA-disabled location.
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": []}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Delete the now-unassigned flow so no flows exist globally.
+    let response = client
+        .delete(format!("/api/v1/mfa-flow/{flow_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Re-enabling MFA is still refused: no flows exist to assign.
+    let response = client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&json!({
+            "name": "clear-then-enable",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": true,
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["fields"][0]["code"], "no_flows_exist");
+}
+
+/// Enabling MFA on a location that has no default flow assigned is refused with
+/// `no_flows_assigned`, even when a flow exists globally.
+#[sqlx::test]
+async fn test_enable_mfa_without_assignment_refused(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    make_mfa_flow(&client).await;
+    let network_resp = make_network(&client, "no-assignment").await;
+    let location_id = network_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    let response = client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&json!({
+            "name": "no-assignment",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": true,
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
+    assert_eq!(body["fields"][0]["code"], "no_flows_assigned");
 }
 
 /// Create a posture check and return its ID.
@@ -501,7 +686,6 @@ async fn test_create_network_rejects_service_location_with_mfa(
     let (mut client, _client_state) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
     set_enterprise_license();
-    make_mfa_flow(&client).await;
 
     for service_location_mode in ["prelogon", "alwayson"] {
         let response = client
@@ -521,15 +705,10 @@ async fn test_create_network_rejects_service_location_with_mfa(
         );
     }
 
-    // MFA without service location mode is fine
+    // A plain location (no service location mode, no MFA) is fine
     let response = client
         .post("/api/v1/network")
-        .json(&location_payload(
-            "mfa-only",
-            "10.1.1.1/24",
-            true,
-            "disabled",
-        ))
+        .json(&location_payload("plain", "10.1.1.1/24", false, "disabled"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -868,6 +1047,8 @@ async fn test_peer_disconnect_threshold_validation_create(
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
+    // Even with a valid threshold, creating a location already MFA-enabled is refused: a new
+    // location has no default flow assigned yet, so enabling at create is always rejected.
     location_data.name = "test_location_internal_boundary".into();
     location_data.peer_disconnect_threshold = MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD;
     let response = client
@@ -875,7 +1056,9 @@ async fn test_peer_disconnect_threshold_validation_create(
         .json(&location_data)
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["fields"][0]["code"], "no_flows_assigned");
 }
 
 #[sqlx::test]
@@ -887,7 +1070,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
 
     let (mut client, _client_state) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
-    make_mfa_flow(&client).await;
+    let flow_id = make_mfa_flow(&client).await;
 
     let mut location_data = WireguardNetworkData {
         name: "test_location".into(),
@@ -916,6 +1099,10 @@ async fn test_peer_disconnect_threshold_validation_modify(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Give the location a default flow so the threshold checks below operate on a
+    // MFA-enableable location.
+    assign_default_mfa_flow(&client, 1, flow_id).await;
 
     let response = client
         .put("/api/v1/network/1")
@@ -1802,7 +1989,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    make_mfa_flow(&client).await;
+    let flow_id = make_mfa_flow(&client).await;
 
     // Create a normal location (allow_all_groups so the device is allowed)
     let normal_location: WireguardNetwork<Id> = client
@@ -1831,9 +2018,38 @@ async fn test_user_device_configs_excludes_mfa_locations(
         .json()
         .await;
 
-    // Create an MFA location (internal mode, no enterprise license required).
+    // Create an MFA location (internal mode, no enterprise license required). It starts with MFA
+    // off: a new location cannot be created already enabled, so we assign a flow and enable it.
     let mfa_location: WireguardNetwork<Id> = client
         .post("/api/v1/network")
+        .json(&json!({
+            "name": "mfa-location",
+            "address": "10.1.2.1/24",
+            "port": 55556,
+            "endpoint": "192.168.4.15",
+            "allowed_ips": "10.1.2.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": false,
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await
+        .json()
+        .await;
+
+    assign_default_mfa_flow(&client, mfa_location.id, flow_id).await;
+
+    let response = client
+        .put(format!("/api/v1/network/{}", mfa_location.id))
         .json(&json!({
             "name": "mfa-location",
             "address": "10.1.2.1/24",
@@ -1854,9 +2070,8 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "service_location_mode": "disabled"
         }))
         .send()
-        .await
-        .json()
         .await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // Create a user device
     let device_payload = json!({
