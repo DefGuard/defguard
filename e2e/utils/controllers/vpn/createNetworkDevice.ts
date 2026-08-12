@@ -15,13 +15,13 @@ export const getDeviceRow = async ({
 }) => {
   const deviceList = page.locator('#devices-page-devices-list').first();
   const deviceRows = await deviceList.locator('.device-row').all();
-  const row = deviceRows.find(async (val) => {
-    if ((await val.innerText()) === deviceName) {
-      return true;
-    } else {
-      return false;
+  let row: Locator | undefined;
+  for (const deviceRow of deviceRows) {
+    if ((await deviceRow.innerText()) === deviceName) {
+      row = deviceRow;
+      break;
     }
-  });
+  }
   expect(row).toBeDefined();
   return row as Locator;
 };
