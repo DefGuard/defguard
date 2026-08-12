@@ -50,8 +50,8 @@ use handlers::{
     component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
     mfa_flow::{
-        create_mfa_flow, delete_mfa_flow, get_location_mfa_flows, get_mfa_flow, list_mfa_flows,
-        set_location_mfa_flows, update_mfa_flow,
+        create_mfa_flow, delete_mfa_flow, get_location_mfa_flows, get_method_availability,
+        get_mfa_flow, list_mfa_flows, set_location_mfa_flows, update_mfa_flow,
     },
     network_devices::{
         add_network_device, check_ip_availability, find_available_ips, get_network_device,
@@ -579,7 +579,8 @@ pub fn build_webapp(
                 get(get_mfa_flow)
                     .put(update_mfa_flow)
                     .delete(delete_mfa_flow),
-            ),
+            )
+            .route("/method-availability", get(get_method_availability)),
     );
 
     let api_router = api_router.nest(

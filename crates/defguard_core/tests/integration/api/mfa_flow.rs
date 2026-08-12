@@ -236,3 +236,60 @@ async fn test_mfa_flow_update_multi_step_requires_business(
 
     set_cached_license(saved);
 }
+
+/// Method availability returns all five methods with correct availability.
+#[sqlx::test]
+async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    let saved = get_cached_license().clone();
+
+    let response = client
+        .get("/api/v1/mfa-flow/method-availability")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let items = response.json::<serde_json::Value>().await;
+    let items = items.as_array().unwrap();
+    assert_eq!(items.len(), 5);
+
+    let find = |method: &str| -> &serde_json::Value {
+        items
+            .iter()
+            .find(|m| m["method"].as_str() == Some(method))
+            .unwrap()
+    };
+
+    assert_eq!(find("totp")["available"].as_bool(), Some(true));
+    assert_eq!(find("email")["available"].as_bool(), Some(false));
+    assert_eq!(
+        find("email")["reason"].as_str(),
+        Some("smtp_not_configured")
+    );
+    assert_eq!(find("oidc")["available"].as_bool(), Some(false));
+    assert_eq!(
+        find("oidc")["reason"].as_str(),
+        Some("oidc_provider_missing")
+    );
+    assert_eq!(find("biometric")["available"].as_bool(), Some(true));
+    assert_eq!(find("mobileapprove")["available"].as_bool(), Some(true));
+
+    set_cached_license(None);
+    let response = client
+        .get("/api/v1/mfa-flow/method-availability")
+        .send()
+        .await;
+    let items = response.json::<serde_json::Value>().await;
+    let items = items.as_array().unwrap();
+    let find = |method: &str| -> &serde_json::Value {
+        items
+            .iter()
+            .find(|m| m["method"].as_str() == Some(method))
+            .unwrap()
+    };
+    assert_eq!(find("oidc")["available"].as_bool(), Some(false));
+    assert_eq!(find("oidc")["reason"].as_str(), Some("licensed"));
+
+    set_cached_license(saved);
+}

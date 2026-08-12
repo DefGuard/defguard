@@ -6,6 +6,7 @@ use axum::{
 use defguard_common::db::{
     Id,
     models::{
+        Settings,
         mfa_flow::{
             LocationMfaFlowAssignment, LocationMfaFlowItem, MfaFlow, MfaFlowAssignmentError,
             MfaFlowDeleteError, MfaFlowSnapshot, MfaFlowStep, MfaFlowValidationField,
@@ -657,4 +658,117 @@ pub async fn set_location_mfa_flows(
     })?;
 
     Ok(ApiResponse::json(response, StatusCode::OK))
+}
+
+/// Method availability entry returned by the catalogue endpoint.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct MethodAvailabilityResponse {
+    pub method: VpnClientMfaMethod,
+    pub available: bool,
+    pub reason: MethodAvailabilityReason,
+}
+
+/// Reason a method is (un)available.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MethodAvailabilityReason {
+    /// Method is usable.
+    Available,
+    /// A higher-tier license is required.
+    Licensed,
+    /// SMTP must be configured first.
+    SmtpNotConfigured,
+    /// An OpenID provider must be configured first.
+    OidcProviderMissing,
+}
+
+/// Compute per-method availability for the MFA flow editor.
+///
+/// Checks license tier, SMTP configuration, and OIDC provider presence to
+/// determine which methods are currently usable. All five methods in
+/// [`VpnClientMfaMethod`] are always enumerated; unavailable methods carry
+/// a `reason` that the UI maps to an appropriate CTA.
+fn compute_method_availability(
+    smtp_configured: bool,
+    oidc_configured: bool,
+) -> Vec<MethodAvailabilityResponse> {
+    let has_business = is_business_license_active();
+
+    let methods = [
+        (
+            VpnClientMfaMethod::Totp,
+            true,
+            MethodAvailabilityReason::Available,
+        ),
+        (
+            VpnClientMfaMethod::Email,
+            smtp_configured,
+            if smtp_configured {
+                MethodAvailabilityReason::Available
+            } else {
+                MethodAvailabilityReason::SmtpNotConfigured
+            },
+        ),
+        (
+            VpnClientMfaMethod::Oidc,
+            has_business && oidc_configured,
+            if !has_business {
+                MethodAvailabilityReason::Licensed
+            } else if !oidc_configured {
+                MethodAvailabilityReason::OidcProviderMissing
+            } else {
+                MethodAvailabilityReason::Available
+            },
+        ),
+        (
+            VpnClientMfaMethod::Biometric,
+            true,
+            MethodAvailabilityReason::Available,
+        ),
+        (
+            VpnClientMfaMethod::MobileApprove,
+            true,
+            MethodAvailabilityReason::Available,
+        ),
+    ];
+
+    methods
+        .into_iter()
+        .map(|(method, available, reason)| MethodAvailabilityResponse {
+            method,
+            available,
+            reason,
+        })
+        .collect()
+}
+
+/// Get per-method MFA availability.
+#[utoipa::path(
+    get,
+    path = "/api/v1/mfa-flow/method-availability",
+    tag = "mfa flow",
+    responses(
+        (status = 200, description = "Per-method availability catalogue.", body = [MethodAvailabilityResponse]),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
+        (status = 500, description = "Unable to compute method availability.", body = ApiErrorResponse)
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn get_method_availability(
+    _admin: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} fetching MFA method availability",
+        session.user.username
+    );
+    let smtp_configured = Settings::get_current_settings().smtp_configured();
+    let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
+    let result = compute_method_availability(smtp_configured, oidc_configured);
+    Ok(ApiResponse::json(result, StatusCode::OK))
 }
