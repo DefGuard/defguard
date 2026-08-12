@@ -71,3 +71,5 @@ INSERT INTO location_mfa_flow (location_id, flow_id, position, is_default)
 SELECT wn.id, mf.id, 0, true
 FROM wireguard_network wn, mfa_flow mf
 WHERE wn.location_mfa_mode = 'external' AND mf.title = 'Default External MFA';
+
+ALTER TABLE wireguard_network DROP COLUMN location_mfa_mode;

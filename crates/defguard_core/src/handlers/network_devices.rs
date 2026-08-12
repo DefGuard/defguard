@@ -138,7 +138,7 @@ pub(crate) struct DeviceWireGuardConfig {
     ),
     responses(
         (status = 200, description = "Network device configuration for each location of the device.", body = [Object], example = json!([
-            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "location_mfa_mode": "disabled"}
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false}
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -781,7 +781,7 @@ pub(crate) async fn start_network_device_setup_for_device(
                 "pubkey": "Zm9vYmFyMDEyMzQ1Njc4OWFiY2RlZmdoaWprbG1ub3A=",
                 "dns": "10.0.0.1",
                 "keepalive_interval": 25,
-                "location_mfa_mode": "disabled",
+                "mfa_enabled": false,
                 "service_location_mode": "disabled",
                 "posture_check_required": false
             },

@@ -8,7 +8,6 @@ use defguard_common::{
             initial_setup_wizard::InitialSetupStep,
             settings::update_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-            wireguard::LocationMfaMode,
             wizard::{ActiveWizard, Wizard},
         },
     },
@@ -305,7 +304,7 @@ pub async fn set_vpn_settings(
 #[derive(Deserialize, Serialize, Debug)]
 pub struct MfaSettingsConfig {
     #[serde(rename = "vpn_mfa_mode")]
-    mfa_mode: LocationMfaMode,
+    mfa_enabled: bool,
 }
 
 /// Updates first auto-adopted network location with MFA mode from Auto-adoption wizard.
@@ -332,14 +331,14 @@ pub async fn set_mfa_settings(
             ))
         })?;
 
-    network.location_mfa_mode = mfa_settings.mfa_mode;
+    network.mfa_enabled = mfa_settings.mfa_enabled;
     network.save(&pool).await?;
 
     advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::Summary).await?;
 
     debug!(
         "Auto-adoption MFA settings applied to network_id={} location_mfa_mode={:?}",
-        network.id, network.location_mfa_mode
+        network.id, network.mfa_enabled
     );
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))

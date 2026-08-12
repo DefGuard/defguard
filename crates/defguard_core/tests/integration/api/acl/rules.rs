@@ -670,7 +670,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .save(&pool)
@@ -1219,7 +1219,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .save(&pool)

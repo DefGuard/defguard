@@ -7,8 +7,7 @@ mod test {
         db::{
             models::{
                 Device, DeviceType, Session, SessionState, Settings, User, WireguardNetwork,
-                settings::initialize_current_settings,
-                wireguard::{LocationMfaMode, ServiceLocationMode},
+                settings::initialize_current_settings, wireguard::ServiceLocationMode,
             },
             setup_pool,
         },
@@ -89,7 +88,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.10.10.1/24").unwrap()])

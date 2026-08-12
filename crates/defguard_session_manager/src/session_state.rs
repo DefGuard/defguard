@@ -11,7 +11,6 @@ use defguard_common::{
             Device, User, WireguardNetwork,
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
-            wireguard::LocationMfaMode,
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
@@ -359,7 +358,7 @@ impl ActiveSessionsMap {
 
         // check location MFA mode since MFA sessions should be created elsewhere
         // once MFA auth is successful
-        if location.location_mfa_mode != LocationMfaMode::Disabled {
+        if location.mfa_enabled {
             warn!(
                 "Received peer stats update for MFA-enabled location {location}, but VPN session does not exist yet. Skipping creating a new session..."
             );

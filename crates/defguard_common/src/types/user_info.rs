@@ -48,7 +48,7 @@ async fn has_non_mfa_location_access(pool: &PgPool, groups: &[String]) -> sqlx::
     query_scalar!(
         "SELECT EXISTS( \
             SELECT 1 FROM wireguard_network wn \
-            WHERE wn.location_mfa_mode = 'disabled' \
+            WHERE NOT wn.mfa_enabled \
             AND ( \
                 wn.allow_all_groups \
                 OR EXISTS( \
@@ -243,7 +243,7 @@ mod test {
                 group::Group,
                 settings::initialize_current_settings,
                 user::User,
-                wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+                wireguard::{ServiceLocationMode, WireguardNetwork},
             },
             setup_pool,
         },
@@ -509,7 +509,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.1.1.1/24").unwrap()])
@@ -540,7 +540,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.2.1.1/24").unwrap()])
@@ -578,7 +578,7 @@ mod test {
             false,
             false,
             false, // not allow_all_groups
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.3.1.1/24").unwrap()])
@@ -614,7 +614,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.4.1.1/24").unwrap()])
@@ -646,7 +646,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.5.1.1/24").unwrap()])
@@ -666,7 +666,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.6.1.1/24").unwrap()])
@@ -701,7 +701,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.7.1.1/24").unwrap()])
@@ -733,7 +733,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.8.1.1/24").unwrap()])
@@ -786,7 +786,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.9.1.1/24").unwrap()])
@@ -806,7 +806,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::from_str("10.10.1.1/24").unwrap()])

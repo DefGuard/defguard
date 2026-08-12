@@ -8,7 +8,7 @@ use defguard_common::{
             certificates::{CoreCertSource, ProxyCertSource},
             settings::initialize_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
             wizard::{ActiveWizard, Wizard},
         },
         setup_pool,
@@ -74,7 +74,7 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])

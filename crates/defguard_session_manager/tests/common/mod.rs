@@ -13,7 +13,7 @@ use defguard_common::{
             gateway::Gateway,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
         },
     },
     gateway_event::GatewayCommand,
@@ -117,12 +117,12 @@ impl SessionManagerHarness {
 }
 
 pub(crate) async fn create_location(pool: &PgPool) -> WireguardNetwork<Id> {
-    create_location_with_mfa_mode(pool, LocationMfaMode::Disabled).await
+    create_location_with_mfa_mode(pool, false).await
 }
 
 pub(crate) async fn create_location_with_mfa_mode(
     pool: &PgPool,
-    location_mfa_mode: LocationMfaMode,
+    mfa_enabled: bool,
 ) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
         "TestNet".to_owned(),
@@ -134,7 +134,7 @@ pub(crate) async fn create_location_with_mfa_mode(
         false,
         false,
         false,
-        location_mfa_mode,
+        mfa_enabled,
         ServiceLocationMode::Disabled,
     )
     .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 24).unwrap()])

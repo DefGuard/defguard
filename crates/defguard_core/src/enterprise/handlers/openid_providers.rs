@@ -6,7 +6,6 @@ use axum::{
 use defguard_common::db::models::{
     Settings, WireguardNetwork,
     settings::{OpenIdUsernameHandling, update_current_settings},
-    wireguard::LocationMfaMode,
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
@@ -308,7 +307,7 @@ pub(crate) async fn delete_openid_provider(
                 "Falling back to internal MFA for {location} because exteral OIDC provider has \
                 been removed"
             );
-            location.location_mfa_mode = LocationMfaMode::Internal;
+            location.mfa_enabled = true;
             location.save(&mut *transaction).await?;
         }
         transaction.commit().await?;

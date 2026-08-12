@@ -257,7 +257,7 @@ impl EnrollmentServer {
             let instance_has_internal_mfa = query_scalar!(
                 "SELECT EXISTS( \
                     SELECT 1 FROM wireguard_network \
-                    WHERE location_mfa_mode = 'internal'::location_mfa_mode \
+                    WHERE mfa_enabled = true \
                 ) \"exists!\""
             )
             .fetch_one(&self.pool)

@@ -34,7 +34,7 @@ use defguard_common::{
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
             wizard::{ActiveWizard, Wizard},
         },
     },
@@ -1066,7 +1066,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
@@ -1168,7 +1168,7 @@ pub async fn init_vpn_location(
                 false,
                 false,
                 false,
-                LocationMfaMode::Disabled,
+                false, // mfa_enabled
                 ServiceLocationMode::Disabled,
             )
             .set_address([args.address])?;
@@ -1209,7 +1209,7 @@ pub async fn init_vpn_location(
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([args.address])?;

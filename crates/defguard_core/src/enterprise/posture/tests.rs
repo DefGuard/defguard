@@ -1,10 +1,7 @@
 use chrono::{TimeDelta, Utc};
 use defguard_common::db::{
     Id, NoId,
-    models::{
-        WireguardNetwork,
-        wireguard::{LocationMfaMode, ServiceLocationMode},
-    },
+    models::{WireguardNetwork, wireguard::ServiceLocationMode},
     setup_pool,
 };
 use defguard_proto::enterprise::posture::{
@@ -63,7 +60,7 @@ async fn create_location(pool: &PgPool) -> Id {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .save(pool)

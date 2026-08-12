@@ -128,7 +128,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
     #[model(enum)]
-    pub location_mfa_mode: LocationMfaMode,
+    pub mfa_enabled: bool,
     #[model(enum)]
     pub service_location_mode: ServiceLocationMode,
 }
@@ -169,7 +169,6 @@ impl fmt::Debug for WireguardNetwork<Id> {
             .field("allowed_ips_from_acl", &self.allowed_ips_from_acl)
             .field("keepalive_interval", &self.keepalive_interval)
             .field("peer_disconnect_threshold", &self.peer_disconnect_threshold)
-            .field("location_mfa_mode", &self.location_mfa_mode)
             .field("service_location_mode", &self.service_location_mode)
             .finish()
     }
@@ -226,7 +225,7 @@ impl WireguardNetwork {
         acl_enabled: bool,
         acl_default_allow: bool,
         allowed_ips_from_acl: bool,
-        location_mfa_mode: LocationMfaMode,
+        mfa_enabled: bool,
         service_location_mode: ServiceLocationMode,
     ) -> Self
     where
@@ -253,7 +252,7 @@ impl WireguardNetwork {
             acl_enabled,
             acl_default_allow,
             allowed_ips_from_acl,
-            location_mfa_mode,
+            mfa_enabled,
             service_location_mode,
         }
     }
@@ -352,7 +351,7 @@ impl WireguardNetwork<Id> {
             allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            mfa_enabled \"mfa_enabled!: bool\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
             name
@@ -381,7 +380,7 @@ impl WireguardNetwork<Id> {
             allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            mfa_enabled \"mfa_enabled!: bool\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device \
@@ -408,12 +407,12 @@ impl WireguardNetwork<Id> {
             allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            mfa_enabled \"mfa_enabled!: bool\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device \
             WHERE device_id = $1) \
-            AND location_mfa_mode = 'disabled'",
+            AND NOT mfa_enabled",
             device_id
         )
         .fetch_all(executor)
@@ -431,7 +430,7 @@ impl WireguardNetwork<Id> {
             allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            mfa_enabled \"mfa_enabled!: bool\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM aclrulenetwork r \
             JOIN wireguard_network n ON n.id = r.network_id \
@@ -1317,10 +1316,7 @@ impl WireguardNetwork<Id> {
 
     #[must_use]
     pub fn mfa_enabled(&self) -> bool {
-        match self.location_mfa_mode {
-            LocationMfaMode::Internal | LocationMfaMode::External => true,
-            LocationMfaMode::Disabled => false,
-        }
+        self.mfa_enabled
     }
 
     /// Fetch all locations using external MFA.
@@ -1334,9 +1330,9 @@ impl WireguardNetwork<Id> {
             allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            mfa_enabled \"mfa_enabled!: bool\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
-            FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
+            FROM wireguard_network WHERE mfa_enabled = true",
         )
         .fetch_all(executor)
         .await?;
@@ -1546,7 +1542,7 @@ impl Default for WireguardNetwork {
             acl_enabled: false,
             acl_default_allow: false,
             allowed_ips_from_acl: false,
-            location_mfa_mode: LocationMfaMode::default(),
+            mfa_enabled: false,
             service_location_mode: ServiceLocationMode::default(),
         }
     }

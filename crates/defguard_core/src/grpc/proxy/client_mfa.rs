@@ -13,6 +13,7 @@ use defguard_common::{
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
+            mfa_flow::MfaFlow,
             polling_token::PollingToken,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
@@ -298,8 +299,16 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid MFA method selected")
         })?;
 
+        let location_mfa_mode = MfaFlow::derive_legacy_mode(&self.pool, request.location_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to derive legacy MFA mode: {err}");
+                Status::internal("unexpected error")
+            })?
+            .unwrap_or(LocationMfaMode::Disabled);
+
         // check if selected MFA method matches location settings
-        match (&location.location_mfa_mode, selected_method) {
+        match (&location_mfa_mode, selected_method) {
             // MFA enabled status is already verified
             (LocationMfaMode::Disabled, _) => unreachable!(),
             (
@@ -317,8 +326,7 @@ impl ClientMfaServer {
             _ => {
                 error!(
                     "Selected MFA method ({selected_method}) is not supported by location \
-                    {location} which uses {}",
-                    location.location_mfa_mode
+                    {location}"
                 );
 
                 return Err(Status::invalid_argument(
@@ -2566,7 +2574,7 @@ mod tests {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 0, 1)), 24).unwrap()])
@@ -2587,7 +2595,7 @@ mod tests {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 20, 0, 1)), 24).unwrap()])

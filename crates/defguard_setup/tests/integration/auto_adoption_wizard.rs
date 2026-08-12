@@ -10,7 +10,7 @@ use defguard_common::{
             setup_auto_adoption::{
                 AutoAdoptionWizardState, AutoAdoptionWizardStep, SetupAutoAdoptionComponent,
             },
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
             wizard::{ActiveWizard, Wizard},
         },
         setup_pool,
@@ -65,7 +65,7 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])
@@ -189,7 +189,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .await
         .expect("DB query failed")
         .expect("Network not found after MFA settings update");
-    assert_eq!(updated_network.location_mfa_mode, LocationMfaMode::Disabled);
+    assert_eq!(updated_network.mfa_enabled, false);
 
     let resp = client
         .get("/api/v1/initial_setup/auto_adoption")

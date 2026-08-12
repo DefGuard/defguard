@@ -90,7 +90,7 @@ pub async fn build_device_config_response(
             }
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
+            let mfa_enabled = network.mfa_enabled;
 
             let mut conn = pool.acquire().await.map_err(|err| {
                 error!("Failed to acquire connection: {err}");
@@ -163,7 +163,7 @@ pub async fn build_device_config_response(
                 continue;
             }
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
+            let mfa_enabled = network.mfa_enabled;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let mut conn = pool.acquire().await.map_err(|err| {
                     error!("Failed to acquire connection: {err}");

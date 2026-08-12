@@ -5,13 +5,8 @@ use defguard_common::db::{
     Id, NoId,
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
-        WebAuthn, WireguardNetwork,
-        gateway::Gateway,
-        group::Group,
-        oauth2client::OAuth2Client,
-        proxy::Proxy,
-        settings::set_settings,
-        wireguard::{LocationMfaMode, ServiceLocationMode},
+        WebAuthn, WireguardNetwork, gateway::Gateway, group::Group, oauth2client::OAuth2Client,
+        proxy::Proxy, settings::set_settings, wireguard::ServiceLocationMode,
     },
 };
 use defguard_core::{
@@ -69,7 +64,7 @@ fn sample_location() -> WireguardNetwork<Id> {
         false,
         false,
         false,
-        LocationMfaMode::Internal,
+        true, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 24).unwrap()])

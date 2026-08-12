@@ -14,7 +14,7 @@ use defguard_common::{
             settings::{Settings, update_current_settings},
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_session::VpnClientSession,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
         },
     },
     secret::SecretStringWrapper,
@@ -186,7 +186,7 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
         false, // acl_enabled
         false, // acl_default_allow
         false,
-        LocationMfaMode::default(),
+        false, // mfa_enabled
         ServiceLocationMode::default(),
     )
     .try_set_address("10.0.0.1/24")
@@ -447,7 +447,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
         false, // acl_enabled
         false, // acl_default_allow
         false,
-        LocationMfaMode::Internal,
+        true, // mfa_enabled
         ServiceLocationMode::default(),
     )
     .try_set_address("10.1.0.1/24")
@@ -471,7 +471,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
         false, // acl_enabled
         false, // acl_default_allow
         false,
-        LocationMfaMode::External,
+        true, // mfa_enabled
         ServiceLocationMode::default(),
     )
     .try_set_address("10.2.0.1/24")

@@ -1292,7 +1292,7 @@ async fn make_service_location(client: &TestClient, name: &str) -> i64 {
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "prelogon"
         }))
         .send()

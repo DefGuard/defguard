@@ -87,7 +87,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         acl_enabled: false,
         acl_default_allow: false,
         allowed_ips_from_acl: false,
-        location_mfa_mode: LocationMfaMode::Disabled,
+        mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: None,
     };
@@ -192,7 +192,7 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -265,7 +265,7 @@ async fn test_create_network_with_posture_checks_assigns_postures(
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled",
             "posture_checks": posture_ids
         }))
@@ -327,7 +327,7 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled",
             "posture_checks": [1]
         }))
@@ -640,7 +640,7 @@ async fn test_modify_network_rejects_service_location_with_mfa(
         .send()
         .await;
     let fetched: WireguardNetwork<Id> = response.json().await;
-    assert_eq!(fetched.location_mfa_mode, LocationMfaMode::Disabled);
+    assert_eq!(fetched.mfa_enabled, false);
     assert_eq!(fetched.service_location_mode, ServiceLocationMode::Disabled);
 
     // enabling service location mode alone is accepted and persisted
@@ -837,7 +837,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         acl_enabled: false,
         acl_default_allow: false,
         allowed_ips_from_acl: false,
-        location_mfa_mode: LocationMfaMode::External,
+        mfa_enabled: true,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: None,
     };
@@ -926,7 +926,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         acl_enabled: false,
         acl_default_allow: false,
         allowed_ips_from_acl: false,
-        location_mfa_mode: LocationMfaMode::Disabled,
+        mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: None,
     };
@@ -946,7 +946,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
     set_cached_license(None);
 
     // attempt to modify location
-    location_data.location_mfa_mode = LocationMfaMode::External;
+    location_data.mfa_enabled = true;
     let response = client
         .put("/api/v1/network/1")
         .json(&location_data)
@@ -1033,7 +1033,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         acl_enabled: false,
         acl_default_allow: false,
         allowed_ips_from_acl: false,
-        location_mfa_mode: LocationMfaMode::Disabled,
+        mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: None,
     };
@@ -1046,7 +1046,7 @@ async fn test_peer_disconnect_threshold_validation_create(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     location_data.name = "test_location_internal".into();
-    location_data.location_mfa_mode = LocationMfaMode::Internal;
+    location_data.mfa_enabled = true;
     let response = client
         .post("/api/v1/network")
         .json(&location_data)
@@ -1090,7 +1090,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         acl_enabled: false,
         acl_default_allow: false,
         allowed_ips_from_acl: false,
-        location_mfa_mode: LocationMfaMode::Disabled,
+        mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: None,
     };
@@ -1109,7 +1109,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    location_data.location_mfa_mode = LocationMfaMode::Internal;
+    location_data.mfa_enabled = true;
     let response = client
         .put("/api/v1/network/1")
         .json(&location_data)
@@ -1364,7 +1364,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "acl_enabled": false,
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-        "location_mfa_mode": "disabled",
+        "mfa_enabled": false,
         "service_location_mode": "disabled"
     });
     let response = client
@@ -1693,7 +1693,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "acl_enabled": false,
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-        "location_mfa_mode": "disabled",
+        "mfa_enabled": false,
         "service_location_mode": "disabled"
     });
     let response = client
@@ -1721,7 +1721,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "acl_enabled": false,
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-        "location_mfa_mode": "disabled",
+        "mfa_enabled": false,
         "service_location_mode": "disabled"
     });
     let response = client
@@ -1852,7 +1852,7 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -1942,7 +1942,7 @@ async fn test_add_device_for_disabled_user(_: PgPoolOptions, options: PgConnectO
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2006,7 +2006,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2099,7 +2099,7 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2140,7 +2140,7 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2183,7 +2183,7 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2324,7 +2324,7 @@ async fn test_config_allowed_ips_from_acl_merged(_: PgPoolOptions, options: PgCo
             "acl_enabled": true,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2393,7 +2393,7 @@ async fn test_config_allowed_ips_from_acl_no_match(_: PgPoolOptions, options: Pg
             "acl_enabled": true,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2500,7 +2500,7 @@ async fn test_config_allowed_ips_from_acl_toggle_off(_: PgPoolOptions, options: 
             "acl_enabled": true,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2572,7 +2572,7 @@ async fn test_config_allowed_ips_from_acl_any_address_skipped(
             "acl_enabled": true,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2652,7 +2652,7 @@ async fn test_config_allowed_ips_from_acl_no_license(_: PgPoolOptions, options: 
             "acl_enabled": true,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -2723,7 +2723,7 @@ async fn test_config_allowed_ips_from_acl_disabled(_: PgPoolOptions, options: Pg
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()

@@ -179,11 +179,11 @@ impl DeviceInfo {
             "SELECT wnd.wireguard_network_id network_id, \
                 wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
                 CASE \
-                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN NULL::text \
+                    WHEN NOT n.mfa_enabled THEN NULL::text \
                     ELSE active_session.preshared_key \
                 END \"preshared_key?\", \
                 CASE \
-                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN TRUE \
+                    WHEN NOT n.mfa_enabled THEN TRUE \
                     ELSE active_session.preshared_key IS NOT NULL \
                 END \"is_authorized!\" \
             FROM wireguard_network_device wnd \
@@ -241,7 +241,7 @@ impl UserDevice {
 				latest_successful_stats.endpoint \"device_endpoint?\", \
 	            latest_successful_session.connected_at \"last_connected_at?\", \
 	            latest_successful_session.state \"state?: VpnClientSessionState\", \
-                n.location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+                n.mfa_enabled
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN LATERAL ( \
@@ -296,7 +296,7 @@ impl UserDevice {
                     last_connected_ip: device_ip,
                     last_connected_at: r.last_connected_at,
                     is_active,
-                    location_mfa_mode: r.location_mfa_mode,
+                    location_mfa_mode: LocationMfaMode::default(),
                 }
             })
             .collect::<Vec<_>>();
@@ -1366,7 +1366,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .try_set_address("10.1.1.1/24")
@@ -1417,7 +1417,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .try_set_address("10.1.1.1/24")
@@ -1495,7 +1495,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .try_set_address("10.1.1.1/24")
@@ -1570,7 +1570,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .try_set_address("10.1.1.1/24")
@@ -1651,7 +1651,7 @@ mod test {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .try_set_address("10.1.1.1/24")
