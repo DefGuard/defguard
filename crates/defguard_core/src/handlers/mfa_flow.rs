@@ -21,6 +21,10 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider, has_enterprise_access,
+        is_business_license_active,
+    },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
@@ -105,6 +109,7 @@ pub struct UpdateMfaFlowRequest {
 pub struct UpdateMfaFlowStep {
     #[serde(default)]
     pub id: Option<Id>,
+    #[serde(default)]
     pub position: i32,
     pub methods: Vec<VpnClientMfaMethod>,
 }
@@ -149,6 +154,53 @@ impl From<LocationMfaFlowItem> for LocationMfaFlowResponse {
 }
 
 // Helpers
+
+/// Check license gates for flow create/update. Returns `true` if the request
+/// passes all checks; emits a `403` response into `err` otherwise.
+#[must_use]
+fn check_flow_license_gates(
+    step_methods: &[Vec<VpnClientMfaMethod>],
+    oidc_configured: bool,
+) -> Option<ApiResponse> {
+    if step_methods.len() > 1 && !is_business_license_active() {
+        return Some(ApiResponse::new(
+            json!({"msg": "Multi-step MFA flows require a business license"}),
+            StatusCode::FORBIDDEN,
+        ));
+    }
+    let has_oidc = step_methods
+        .iter()
+        .any(|methods| methods.contains(&VpnClientMfaMethod::Oidc));
+    if has_oidc {
+        if !is_business_license_active() {
+            return Some(ApiResponse::new(
+                json!({"msg": "OIDC MFA method requires a business license"}),
+                StatusCode::FORBIDDEN,
+            ));
+        }
+        if !oidc_configured {
+            return Some(ApiResponse::new(
+                json!({"msg": "OIDC MFA method requires a configured OpenID provider"}),
+                StatusCode::BAD_REQUEST,
+            ));
+        }
+    }
+    None
+}
+
+/// Check license gates for flow assignment. Returns `true` if the request
+/// passes all checks; emits a `403` response into `err` otherwise.
+#[must_use]
+fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<ApiResponse> {
+    let has_group_scoping = assignments.iter().any(|a| !a.group_ids.is_empty());
+    if has_group_scoping && !has_enterprise_access(None) {
+        return Some(ApiResponse::new(
+            json!({"msg": "Group-scoped MFA assignments require an enterprise license"}),
+            StatusCode::FORBIDDEN,
+        ));
+    }
+    None
+}
 
 /// Build a `400` response with structured `fields[]` errors.
 fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse {
@@ -243,6 +295,14 @@ pub async fn create_mfa_flow(
     );
 
     let step_methods = extract_create_step_methods(&data.steps);
+
+    if let Some(resp) = check_flow_license_gates(
+        &step_methods,
+        OpenIdProvider::get_current(&appstate.pool).await?.is_some(),
+    ) {
+        return Ok(resp);
+    }
+
     let errors = validate_flow_input(&data.title, &step_methods);
     if !errors.is_empty() {
         return Ok(validation_error_response(errors));
@@ -360,6 +420,13 @@ pub async fn update_mfa_flow(
     let step_updates = extract_update_step_updates(&data.steps);
     let step_methods: Vec<Vec<VpnClientMfaMethod>> =
         data.steps.iter().map(|s| s.methods.clone()).collect();
+
+    if let Some(resp) = check_flow_license_gates(
+        &step_methods,
+        OpenIdProvider::get_current(&appstate.pool).await?.is_some(),
+    ) {
+        return Ok(resp);
+    }
 
     let errors = validate_flow_input(&data.title, &step_methods);
     if !errors.is_empty() {
@@ -548,13 +615,17 @@ pub async fn set_location_mfa_flows(
 
     let assignments: Vec<LocationMfaFlowAssignment> = data
         .assignments
-        .into_iter()
+        .iter()
         .map(|a| LocationMfaFlowAssignment {
             flow_id: a.flow_id,
             is_default: a.is_default,
-            group_ids: a.group_ids,
+            group_ids: a.group_ids.clone(),
         })
         .collect();
+
+    if let Some(resp) = check_assignment_license_gates(&data.assignments) {
+        return Ok(resp);
+    }
 
     let mut tx = appstate.pool.begin().await?;
     MfaFlow::assign_to_location(&mut tx, location_id, &assignments)
