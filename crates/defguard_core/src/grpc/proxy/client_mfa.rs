@@ -322,14 +322,6 @@ impl ClientMfaServer {
 
         // check if selected MFA method matches location settings
         match (&location_mfa_mode, selected_method) {
-            // `derive_legacy_mode` only yields Internal or External; refuse defensively rather
-            // than panic if that ever changes.
-            (LocationMfaMode::Disabled, _) => {
-                error!("Location {location} resolved to a disabled legacy MFA mode");
-                return Err(Status::failed_precondition(
-                    "location MFA configuration is not supported by this client",
-                ));
-            }
             (
                 LocationMfaMode::Internal,
                 MfaMethod::Totp
