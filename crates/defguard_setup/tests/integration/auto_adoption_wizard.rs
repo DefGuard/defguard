@@ -189,7 +189,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .await
         .expect("DB query failed")
         .expect("Network not found after MFA settings update");
-    assert_eq!(updated_network.mfa_enabled, false);
+    assert!(!updated_network.mfa_enabled);
 
     let resp = client
         .get("/api/v1/initial_setup/auto_adoption")

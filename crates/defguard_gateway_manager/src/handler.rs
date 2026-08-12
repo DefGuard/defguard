@@ -1162,7 +1162,7 @@ mod tests {
         GatewayHandler, GatewayUpdatesHandler, WireguardPeer, try_protos_into_stats_message,
     };
 
-    fn test_network(mfa_enabled: bool) -> WireguardNetwork<Id> {
+    fn test_network(__mfa_enabled: bool) -> WireguardNetwork<Id> {
         WireguardNetwork::new(
             "test-network".into(),
             51820,

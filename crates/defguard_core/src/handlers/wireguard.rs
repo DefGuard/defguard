@@ -32,11 +32,10 @@ use crate::{
     enterprise::{
         db::models::{
             device_posture::DevicePostureLocation, enterprise_settings::EnterpriseSettings,
-            openid_provider::OpenIdProvider,
         },
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
-        has_enterprise_access, is_business_license_active,
+        has_enterprise_access,
         license::{LicenseFeature, get_cached_license},
         limits::{get_counts, update_counts},
     },

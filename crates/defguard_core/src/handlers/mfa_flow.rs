@@ -249,7 +249,7 @@ pub async fn create_mfa_flow(
     }
 
     let mut tx = appstate.pool.begin().await?;
-    let (flow, steps) = MfaFlow::create(&mut *tx, data.title, step_methods).await?;
+    let (flow, steps) = MfaFlow::create(&mut tx, data.title, step_methods).await?;
     tx.commit().await?;
 
     debug!("Created MFA flow {}", flow.id);
@@ -368,7 +368,7 @@ pub async fn update_mfa_flow(
 
     let mut tx = appstate.pool.begin().await?;
     let (flow, steps) =
-        MfaFlow::update_with_steps(&mut *tx, existing.id, data.title, step_updates).await?;
+        MfaFlow::update_with_steps(&mut tx, existing.id, data.title, step_updates).await?;
     tx.commit().await?;
 
     appstate.emit_event(ApiEvent {
@@ -557,7 +557,7 @@ pub async fn set_location_mfa_flows(
         .collect();
 
     let mut tx = appstate.pool.begin().await?;
-    MfaFlow::assign_to_location(&mut *tx, location_id, &assignments)
+    MfaFlow::assign_to_location(&mut tx, location_id, &assignments)
         .await
         .map_err(|e| match e {
             MfaFlowAssignmentError::NoDefaultDesignated => {

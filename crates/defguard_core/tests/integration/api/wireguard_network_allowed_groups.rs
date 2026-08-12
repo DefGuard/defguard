@@ -10,7 +10,7 @@ use defguard_common::{
             group::Group,
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-                LocationMfaMode, ServiceLocationMode,
+                ServiceLocationMode,
             },
         },
     },

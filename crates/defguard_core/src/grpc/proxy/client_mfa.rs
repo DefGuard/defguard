@@ -1380,7 +1380,7 @@ mod tests {
             polling_token::PollingToken,
             settings::initialize_current_settings,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
         },
         setup_pool,
     };

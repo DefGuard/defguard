@@ -9,7 +9,7 @@ use defguard_common::db::{
         settings::OpenIdUsernameHandling,
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-            LocationMfaMode, ServiceLocationMode,
+            ServiceLocationMode,
         },
     },
 };
@@ -640,7 +640,7 @@ async fn test_modify_network_rejects_service_location_with_mfa(
         .send()
         .await;
     let fetched: WireguardNetwork<Id> = response.json().await;
-    assert_eq!(fetched.mfa_enabled, false);
+    assert!(!fetched.mfa_enabled);
     assert_eq!(fetched.service_location_mode, ServiceLocationMode::Disabled);
 
     // enabling service location mode alone is accepted and persisted

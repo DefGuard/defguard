@@ -270,10 +270,10 @@ impl MfaFlow<Id> {
         if default_count != 1 {
             return Err(MfaFlowAssignmentError::NoDefaultDesignated);
         }
-        if let Some(default) = assignments.iter().find(|a| a.is_default) {
-            if !default.group_ids.is_empty() {
-                return Err(MfaFlowAssignmentError::NoDefaultDesignated);
-            }
+        if let Some(default) = assignments.iter().find(|a| a.is_default)
+            && !default.group_ids.is_empty()
+        {
+            return Err(MfaFlowAssignmentError::NoDefaultDesignated);
         }
 
         query!(

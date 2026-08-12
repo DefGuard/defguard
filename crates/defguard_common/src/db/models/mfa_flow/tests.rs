@@ -14,7 +14,7 @@ use crate::db::{
 async fn create_flow(pool: &sqlx::PgPool) -> (MfaFlow<Id>, Vec<MfaFlowStep<Id>>) {
     let mut tx = pool.begin().await.unwrap();
     let (flow, steps) = MfaFlow::create(
-        &mut *tx,
+        &mut tx,
         "Test Flow".into(),
         vec![
             vec![VpnClientMfaMethod::Totp],
@@ -35,7 +35,7 @@ async fn test_insert_new_step(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut tx = pool.begin().await.unwrap();
     let (_, updated_steps) = MfaFlow::update_with_steps(
-        &mut *tx,
+        &mut tx,
         flow.id,
         "Test Flow".into(),
         vec![
@@ -65,7 +65,7 @@ async fn test_update_kept_step(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut tx = pool.begin().await.unwrap();
     let (_, updated_steps) = MfaFlow::update_with_steps(
-        &mut *tx,
+        &mut tx,
         flow.id,
         "Renamed Flow".into(),
         vec![
@@ -105,7 +105,7 @@ async fn test_delete_removed_step(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Add a third step
     let mut tx = pool.begin().await.unwrap();
-    MfaFlowStep::insert_batch(&mut *tx, flow.id, &[vec![VpnClientMfaMethod::Oidc]])
+    MfaFlowStep::insert_batch(&mut tx, flow.id, &[vec![VpnClientMfaMethod::Oidc]])
         .await
         .unwrap();
     tx.commit().await.unwrap();
@@ -116,7 +116,7 @@ async fn test_delete_removed_step(_: PgPoolOptions, options: PgConnectOptions) {
     // Update: keep steps 0 and 2, delete step 1
     let mut tx = pool.begin().await.unwrap();
     let (_, updated_steps) = MfaFlow::update_with_steps(
-        &mut *tx,
+        &mut tx,
         flow.id,
         "Test Flow".into(),
         vec![
@@ -152,7 +152,7 @@ async fn test_position_swap(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut tx = pool.begin().await.unwrap();
     let (_, updated_steps) = MfaFlow::update_with_steps(
-        &mut *tx,
+        &mut tx,
         flow.id,
         "Test Flow".into(),
         vec![
@@ -181,7 +181,7 @@ async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
     let (flow2, _) = {
         let mut tx = pool.begin().await.unwrap();
         let (f, s) = MfaFlow::create(
-            &mut *tx,
+            &mut tx,
             "Second Flow".into(),
             vec![vec![VpnClientMfaMethod::Oidc]],
         )
@@ -201,7 +201,7 @@ async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
     // Assign two flows to the location
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[
             LocationMfaFlowAssignment {
@@ -241,7 +241,7 @@ async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConne
     let (flow2, _) = {
         let mut tx = pool.begin().await.unwrap();
         let (f, s) = MfaFlow::create(
-            &mut *tx,
+            &mut tx,
             "Second Flow".into(),
             vec![vec![VpnClientMfaMethod::Oidc]],
         )
@@ -261,7 +261,7 @@ async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConne
     // First assignment: flow1 only
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
@@ -276,7 +276,7 @@ async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConne
     // Second assignment replaces: flow2 only
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow2.id,
@@ -306,7 +306,7 @@ async fn test_assign_no_default_rejected(_: PgPoolOptions, options: PgConnectOpt
         .unwrap();
 
     let result = MfaFlow::assign_to_location(
-        &mut *pool.acquire().await.unwrap(),
+        &mut pool.acquire().await.unwrap(),
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
@@ -334,7 +334,7 @@ async fn test_assign_default_with_groups_rejected(_: PgPoolOptions, options: PgC
         .unwrap();
 
     let result = MfaFlow::assign_to_location(
-        &mut *pool.acquire().await.unwrap(),
+        &mut pool.acquire().await.unwrap(),
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
@@ -363,7 +363,7 @@ async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: 
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
@@ -389,7 +389,7 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
     let (flow2, _) = {
         let mut tx = pool.begin().await.unwrap();
         let (f, s) = MfaFlow::create(
-            &mut *tx,
+            &mut tx,
             "Second".into(),
             vec![vec![VpnClientMfaMethod::Oidc]],
         )
@@ -408,7 +408,7 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[
             LocationMfaFlowAssignment {
@@ -442,7 +442,7 @@ async fn test_resolve_group_match(_: PgPoolOptions, options: PgConnectOptions) {
     let (flow2, _) = {
         let mut tx = pool.begin().await.unwrap();
         let (f, s) = MfaFlow::create(
-            &mut *tx,
+            &mut tx,
             "Default".into(),
             vec![vec![VpnClientMfaMethod::Oidc]],
         )
@@ -475,7 +475,7 @@ async fn test_resolve_group_match(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[
             LocationMfaFlowAssignment {
@@ -509,7 +509,7 @@ async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOp
     let (flow2, _) = {
         let mut tx = pool.begin().await.unwrap();
         let (f, s) = MfaFlow::create(
-            &mut *tx,
+            &mut tx,
             "Default".into(),
             vec![vec![VpnClientMfaMethod::Oidc]],
         )
@@ -534,7 +534,7 @@ async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOp
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[
             LocationMfaFlowAssignment {
@@ -566,7 +566,7 @@ async fn test_derive_legacy_internal(_: PgPoolOptions, options: PgConnectOptions
 
     let mut tx = pool.begin().await.unwrap();
     let (flow, _) = MfaFlow::create(
-        &mut *tx,
+        &mut tx,
         "Internal".into(),
         vec![vec![
             VpnClientMfaMethod::Totp,
@@ -588,7 +588,7 @@ async fn test_derive_legacy_internal(_: PgPoolOptions, options: PgConnectOptions
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
@@ -612,7 +612,7 @@ async fn test_derive_legacy_external(_: PgPoolOptions, options: PgConnectOptions
 
     let mut tx = pool.begin().await.unwrap();
     let (flow, _) = MfaFlow::create(
-        &mut *tx,
+        &mut tx,
         "External".into(),
         vec![vec![VpnClientMfaMethod::Oidc]],
     )
@@ -629,7 +629,7 @@ async fn test_derive_legacy_external(_: PgPoolOptions, options: PgConnectOptions
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
@@ -661,7 +661,7 @@ async fn test_derive_legacy_multi_step_omitted(_: PgPoolOptions, options: PgConn
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
@@ -685,7 +685,7 @@ async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: P
 
     let mut tx = pool.begin().await.unwrap();
     let (flow, _) = MfaFlow::create(
-        &mut *tx,
+        &mut tx,
         "Subset".into(),
         vec![vec![VpnClientMfaMethod::Totp]], // only TOTP, not all four
     )
@@ -702,7 +702,7 @@ async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: P
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
-        &mut *tx,
+        &mut tx,
         network.id,
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
