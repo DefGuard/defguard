@@ -295,21 +295,41 @@ pub(crate) async fn delete_openid_provider(
     let mut transaction = appstate.pool.begin().await?;
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &name).await?;
     if let Some(provider) = provider {
-        provider.clone().delete(&mut *transaction).await?;
-        // fetch all locations using external MFA
+        // Check for locations whose assigned flows still reference OIDC before
+        // deleting the provider.  The flow model has no single mode field to
+        // flip, so there is no safe automatic fallback.  Refusing to delete is
+        // the fail-closed option and is consistent with check_method_prerequisites,
+        // which already refuses to save a flow containing OIDC when no provider is
+        // configured.
+        //
+        // PRODUCT DECISION (escalated): three alternatives exist for what
+        // "fall back to internal MFA" should mean in the flow model:
+        //   (a) Rewrite affected flows' steps to replace OIDC with internal
+        //       methods - destroys admin configuration silently.
+        //   (b) Refuse to delete while OIDC flows reference the provider -
+        //       fail-closed, consistent with check_method_prerequisites
+        //       (this is what is implemented here).
+        //   (c) Leave flows unchanged and surface a warning to the admin -
+        //       non-destructive but leaves unsatisfiable flows behind.
+        // The choice between (b) and (c) affects the admin workflow for
+        // provider removal and requires a product decision.
         let locations = WireguardNetwork::all_using_external_mfa(&mut *transaction).await?;
-        if locations.is_empty() {
-            debug!("No locations are using OIDC provider for external MFA");
+        if !locations.is_empty() {
+            let names: Vec<String> = locations.iter().map(|l| l.name.clone()).collect();
+            return Ok(ApiResponse::new(
+                json!({
+                    "error": "conflict",
+                    "msg": format!(
+                        "Cannot delete OIDC provider: the following locations still have \
+                         OIDC in their MFA flows: {}. Edit the flows to remove OIDC first.",
+                        names.join(", ")
+                    ),
+                    "locations": names,
+                }),
+                StatusCode::CONFLICT,
+            ));
         }
-        // fall back to internal MFA in all relevant locations
-        for mut location in locations {
-            debug!(
-                "Falling back to internal MFA for {location} because exteral OIDC provider has \
-                been removed"
-            );
-            location.mfa_enabled = true;
-            location.save(&mut *transaction).await?;
-        }
+        debug!("No locations have OIDC in their MFA flows; deletion is safe");
         transaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",

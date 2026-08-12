@@ -1319,20 +1319,30 @@ impl WireguardNetwork<Id> {
         self.mfa_enabled
     }
 
-    /// Fetch all locations using external MFA.
+    /// Fetch all locations whose assigned flow steps include the OIDC method.
+    ///
+    /// This replaces a pre-flow-model query that selected on the legacy
+    /// `location_mfa_mode = 'external'` column. The boolean `mfa_enabled` cannot
+    /// distinguish external (OIDC) from internal MFA, so the predicate inspects
+    /// the actual flow shape by joining through `location_mfa_flow` and
+    /// `mfa_flow_step`.
     pub async fn all_using_external_mfa<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
         let locations = query_as!(
             WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
-            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
-            allowed_ips_from_acl, \
-            mfa_enabled \"mfa_enabled!: bool\", \
-            service_location_mode \"service_location_mode: ServiceLocationMode\" \
-            FROM wireguard_network WHERE mfa_enabled = true",
+            "SELECT DISTINCT wn.id, wn.name, wn.address, wn.port, wn.pubkey, wn.prvkey, \
+             wn.endpoint, wn.dns, wn.mtu, wn.fwmark, \
+             wn.allowed_ips, wn.allow_all_groups, wn.connected_at, wn.keepalive_interval, \
+             wn.peer_disconnect_threshold, wn.acl_enabled, wn.acl_default_allow, \
+             wn.allowed_ips_from_acl, \
+             wn.mfa_enabled \"mfa_enabled!: bool\", \
+             wn.service_location_mode \"service_location_mode: ServiceLocationMode\" \
+             FROM wireguard_network wn \
+             JOIN location_mfa_flow lmf ON lmf.location_id = wn.id \
+             JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id \
+             WHERE 'oidc' = ANY(mfs.methods)",
         )
         .fetch_all(executor)
         .await?;

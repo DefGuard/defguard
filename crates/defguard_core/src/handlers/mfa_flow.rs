@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use axum::{
     Json,
     extract::{Path, State},
@@ -218,23 +220,32 @@ fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<
 /// OIDC needs a configured provider.
 ///
 /// These are checked on every save so a flow can never reference a method the instance cannot
-/// actually perform.
+/// actually perform.  `before_methods` is aligned with `step_methods`: each entry carries the
+/// methods that already existed in the corresponding step (matched by step id), or `None` for a
+/// newly added step.  Methods already present in a step are not re-checked - this follows the
+/// "permissive read, restrictive write" principle and prevents a backfilled flow from becoming
+/// uneditable when a prerequisite (e.g. SMTP) is not configured for a method the backfill itself
+/// inserted.  Newly added methods are still checked.
 #[must_use]
 fn check_method_prerequisites(
     step_methods: &[Vec<VpnClientMfaMethod>],
     smtp_configured: bool,
     oidc_configured: bool,
+    before_methods: &[Option<HashSet<VpnClientMfaMethod>>],
 ) -> Option<ApiResponse> {
     let mut errors = Vec::new();
 
     for (index, methods) in step_methods.iter().enumerate() {
-        if methods.contains(&VpnClientMfaMethod::Email) && !smtp_configured {
+        let before = before_methods.get(index).and_then(|b| b.as_ref());
+        let email_is_new = before.is_none_or(|b| !b.contains(&VpnClientMfaMethod::Email));
+        if methods.contains(&VpnClientMfaMethod::Email) && email_is_new && !smtp_configured {
             errors.push(MfaFlowValidationField {
                 field: format!("steps[{index}].methods"),
                 code: "smtp_not_configured".into(),
             });
         }
-        if methods.contains(&VpnClientMfaMethod::Oidc) && !oidc_configured {
+        let oidc_is_new = before.is_none_or(|b| !b.contains(&VpnClientMfaMethod::Oidc));
+        if methods.contains(&VpnClientMfaMethod::Oidc) && oidc_is_new && !oidc_configured {
             errors.push(MfaFlowValidationField {
                 field: format!("steps[{index}].methods"),
                 code: "oidc_provider_missing".into(),
@@ -250,6 +261,13 @@ fn check_method_prerequisites(
 }
 
 /// Check licence gates for flow assignment: group scoping requires Enterprise.
+///
+/// Uses `has_enterprise_access(None)` (raw Enterprise tier) rather than
+/// `has_enterprise_access(Some(LicenseFeature::MfaFlowGroupScoping))` because
+/// adding a `LicenseFeature` variant would require coordination outside this
+/// repo: the proto enum in the `proto` repo and license issuance must both
+/// recognise the new variant.  The `None` form gates strictly on the Enterprise
+/// tier, which is the correct behaviour for this feature.
 #[must_use]
 fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<ApiResponse> {
     let scoped = assignments.iter().position(|a| !a.group_ids.is_empty());
@@ -394,6 +412,7 @@ pub async fn create_mfa_flow(
         &step_methods,
         Settings::get_current_settings().smtp_configured(),
         OpenIdProvider::get_current(&appstate.pool).await?.is_some(),
+        &[],
     ) {
         return Ok(resp);
     }
@@ -508,10 +527,21 @@ pub async fn update_mfa_flow(
         return Ok(validation_error_response(errors));
     }
 
+    let before_by_id: HashMap<Id, &MfaFlowStep<Id>> =
+        before_steps.iter().map(|s| (s.id, s)).collect();
+    let before_methods: Vec<Option<HashSet<VpnClientMfaMethod>>> = data
+        .steps
+        .iter()
+        .map(|s| {
+            s.id.and_then(|id| before_by_id.get(&id))
+                .map(|bs| bs.methods.iter().copied().collect())
+        })
+        .collect();
     if let Some(resp) = check_method_prerequisites(
         &step_methods,
         Settings::get_current_settings().smtp_configured(),
         OpenIdProvider::get_current(&appstate.pool).await?.is_some(),
+        &before_methods,
     ) {
         return Ok(resp);
     }

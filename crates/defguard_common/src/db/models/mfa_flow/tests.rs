@@ -1020,3 +1020,253 @@ async fn test_validation_duplicate_method(_: PgPoolOptions, options: PgConnectOp
             .any(|e| e.field == "steps[0].methods" && e.code == "duplicate")
     );
 }
+
+#[sqlx::test]
+async fn test_validation_title_too_long(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let long_title = "x".repeat(MAX_MFA_FLOW_TITLE_LEN + 1);
+    let errors = validate_flow_input(&long_title, &[vec![VpnClientMfaMethod::Totp]]);
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.field == "title" && e.code == "max_length"),
+        "expected max_length error for overly long title, got: {errors:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_validation_title_at_max_is_ok(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let max_title = "x".repeat(MAX_MFA_FLOW_TITLE_LEN);
+    let errors = validate_flow_input(&max_title, &[vec![VpnClientMfaMethod::Totp]]);
+    assert!(
+        !errors
+            .iter()
+            .any(|e| e.field == "title" && e.code == "max_length"),
+        "title at max length should pass, got: {errors:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_validation_too_many_steps(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _pool = pool;
+    let many_steps: Vec<Vec<VpnClientMfaMethod>> = (0..=MAX_MFA_FLOW_STEPS)
+        .map(|_| vec![VpnClientMfaMethod::Totp])
+        .collect();
+    let errors = validate_flow_input("Test", &many_steps);
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.field == "steps" && e.code == "max_items"),
+        "expected max_items error for too many steps, got: {errors:?}"
+    );
+}
+
+/// `all_using_external_mfa` must select locations whose assigned flow steps
+/// include OIDC, and exclude locations that use internal-only flows.
+#[sqlx::test]
+async fn test_all_using_external_mfa_flow_shape_predicate(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Create an OIDC-only flow.
+    let mut tx = pool.begin().await.unwrap();
+    let (oidc_flow, _) = MfaFlow::create(
+        &mut tx,
+        "OIDC Only".into(),
+        vec![vec![VpnClientMfaMethod::Oidc]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // Create an internal-only flow.
+    let mut tx = pool.begin().await.unwrap();
+    let (internal_flow, _) = MfaFlow::create(
+        &mut tx,
+        "Internal Only".into(),
+        vec![vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // Location A: OIDC flow, MFA enabled.
+    let mut network_oidc = WireguardNetwork::default()
+        .try_set_address("10.20.0.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network_oidc.mfa_enabled = true;
+    network_oidc.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network_oidc.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: oidc_flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // Location B: internal flow, MFA enabled.
+    let mut network_internal = WireguardNetwork::default()
+        .try_set_address("10.20.1.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network_internal.mfa_enabled = true;
+    network_internal.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network_internal.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: internal_flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let external = WireguardNetwork::all_using_external_mfa(&pool)
+        .await
+        .unwrap();
+    let external_ids: Vec<_> = external.iter().map(|l| l.id).collect();
+    assert!(
+        external_ids.contains(&network_oidc.id),
+        "OIDC-flow location {oidc_id} should be in results, got: {external_ids:?}",
+        oidc_id = network_oidc.id
+    );
+    assert!(
+        !external_ids.contains(&network_internal.id),
+        "internal-only location {internal_id} must not be in results",
+        internal_id = network_internal.id
+    );
+}
+
+/// `all_using_external_mfa` must return an empty set when no location's flows
+/// contain OIDC, even when MFA is enabled on some locations.
+#[sqlx::test]
+async fn test_all_using_external_mfa_empty_when_no_oidc(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut tx,
+        "Internal".into(),
+        vec![vec![VpnClientMfaMethod::Totp]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.20.2.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let external = WireguardNetwork::all_using_external_mfa(&pool)
+        .await
+        .unwrap();
+    assert!(
+        external.is_empty(),
+        "should return empty when no location has OIDC in its flows, got {} locations",
+        external.len()
+    );
+}
+
+/// Query checking for internal MFA should return false when every MFA location
+/// uses only OIDC flows.
+#[sqlx::test]
+async fn test_internal_mfa_query_false_for_oidc_only(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (oidc_flow, _) = MfaFlow::create(
+        &mut tx,
+        "OIDC Only".into(),
+        vec![vec![VpnClientMfaMethod::Oidc]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.30.0.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: oidc_flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // The same flow-shape query the enrollment server uses: any MFA-enabled
+    // location whose flows include an internal method.
+    let has_internal = sqlx::query_scalar!(
+        "SELECT EXISTS( \
+            SELECT 1 FROM wireguard_network wn \
+            JOIN location_mfa_flow lmf ON lmf.location_id = wn.id \
+            JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id \
+            WHERE wn.mfa_enabled = true \
+            AND mfs.methods && ARRAY['totp','email','biometric','mobileapprove']::vpn_client_mfa_method[] \
+        ) \"exists!\""
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(
+        !has_internal,
+        "OIDC-only location must not trigger the internal MFA check"
+    );
+}

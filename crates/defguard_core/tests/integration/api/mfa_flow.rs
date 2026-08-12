@@ -1,10 +1,15 @@
-use defguard_common::db::setup_pool;
+use defguard_common::db::{
+    models::{Settings, settings::update_current_settings},
+    setup_pool,
+};
 use defguard_core::enterprise::license::{get_cached_license, set_cached_license};
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{authenticate_admin, make_network, make_test_client, set_enterprise_license};
+use super::common::{
+    authenticate_admin, configure_smtp, make_network, make_test_client, set_enterprise_license,
+};
 
 /// Single-step flow without OIDC — should succeed without any license.
 #[sqlx::test]
@@ -437,4 +442,80 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(find("oidc")["reason"].as_str(), Some("licensed"));
 
     set_cached_license(saved);
+}
+
+/// Updating a flow that already contains email (e.g. backfilled from a
+/// migration) must succeed even when SMTP is not configured, as long as email
+/// was already present in the flow.  Adding email where it did not exist
+/// before must still be rejected.
+#[sqlx::test]
+async fn test_mfa_flow_update_preserves_backfilled_email(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    // Enable SMTP so we can create a flow with email.
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    // Create a flow with email - this represents the backfilled "Default
+    // Internal MFA" flow.
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "Flow With Email",
+            "steps": [{ "methods": ["totp", "email"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let created: serde_json::Value = resp.json().await;
+    let flow_id = created["id"].as_i64().unwrap();
+
+    // Remove SMTP.
+    let mut settings = Settings::get_current_settings();
+    settings.smtp.server = None;
+    settings.smtp.port = None;
+    settings.smtp.sender = None;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    // Update the flow keeping email unchanged -> should succeed.
+    let resp = client
+        .put(format!("/api/v1/mfa-flow/{flow_id}"))
+        .json(&json!({
+            "title": "Flow With Email Updated",
+            "steps": created["steps"]
+        }))
+        .send()
+        .await;
+    assert_eq!(
+        resp.status(),
+        StatusCode::OK,
+        "updating a flow with unchanged email must succeed even without SMTP"
+    );
+
+    // Update the flow adding email to a new step -> must be rejected.
+    let resp = client
+        .put(format!("/api/v1/mfa-flow/{flow_id}"))
+        .json(&json!({
+            "title": "Flow With Email Updated",
+            "steps": [
+                { "methods": ["totp"] },
+                { "methods": ["email"] }
+            ]
+        }))
+        .send()
+        .await;
+    assert_eq!(
+        resp.status(),
+        StatusCode::BAD_REQUEST,
+        "adding email to a new step must still be rejected without SMTP"
+    );
+    let body: serde_json::Value = resp.json().await;
+    assert_eq!(body["fields"][0]["field"], "steps[1].methods");
+    assert_eq!(body["fields"][0]["code"], "smtp_not_configured");
 }

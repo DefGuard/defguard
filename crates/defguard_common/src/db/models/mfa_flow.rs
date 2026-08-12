@@ -142,6 +142,12 @@ pub struct MfaFlowValidationField {
     pub code: String,
 }
 
+/// Maximum number of steps allowed in a single MFA flow.
+pub const MAX_MFA_FLOW_STEPS: usize = 20;
+
+/// Maximum length of an MFA flow title.
+pub const MAX_MFA_FLOW_TITLE_LEN: usize = 255;
+
 /// Validates the structural rules for an MFA flow input (title + step methods).
 /// License, SMTP and OIDC checks are applied separately by the handler.
 pub fn validate_flow_input(
@@ -155,12 +161,22 @@ pub fn validate_flow_input(
             field: "title".into(),
             code: "required".into(),
         });
+    } else if title.len() > MAX_MFA_FLOW_TITLE_LEN {
+        errors.push(MfaFlowValidationField {
+            field: "title".into(),
+            code: "max_length".into(),
+        });
     }
 
     if step_methods.is_empty() {
         errors.push(MfaFlowValidationField {
             field: "steps".into(),
             code: "min_items".into(),
+        });
+    } else if step_methods.len() > MAX_MFA_FLOW_STEPS {
+        errors.push(MfaFlowValidationField {
+            field: "steps".into(),
+            code: "max_items".into(),
         });
     }
 
