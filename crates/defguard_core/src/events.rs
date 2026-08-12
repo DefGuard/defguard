@@ -5,7 +5,10 @@ use defguard_common::db::{
     Id,
     models::{
         AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        gateway::Gateway, group::Group, mfa_flow::MfaFlowSnapshot, oauth2client::OAuth2Client,
+        gateway::Gateway,
+        group::Group,
+        mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlowSnapshot},
+        oauth2client::OAuth2Client,
         proxy::Proxy,
     },
 };
@@ -378,7 +381,7 @@ pub enum ApiEventType {
     LocationMfaFlowsAssigned {
         location_id: Id,
         location_name: String,
-        assignment_count: i64,
+        assignments: Vec<LocationMfaFlowAssignmentSnapshot>,
     },
 }
 

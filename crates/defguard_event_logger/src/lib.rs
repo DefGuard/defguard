@@ -651,13 +651,13 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ApiEventType::LocationMfaFlowsAssigned {
                     location_id,
                     location_name,
-                    assignment_count,
+                    assignments,
                 } => (
                     EventType::LocationMfaFlowsAssigned,
                     serde_json::to_value(serde_json::json!({
                         "location_id": location_id,
                         "location_name": location_name,
-                        "assignment_count": assignment_count,
+                        "assignments": assignments,
                     }))
                     .ok(),
                 ),

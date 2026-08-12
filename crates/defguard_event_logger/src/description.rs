@@ -317,10 +317,11 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         }
         ApiEventType::LocationMfaFlowsAssigned {
             location_name,
-            assignment_count,
+            assignments,
             ..
         } => Some(format!(
-            "Assigned {assignment_count} MFA flow(s) to location '{location_name}'"
+            "Assigned {} MFA flow(s) to location '{location_name}'",
+            assignments.len()
         )),
         ApiEventType::EnrollmentTokenAdded { user } => {
             Some(format!("Added enrollment token for user {user}"))

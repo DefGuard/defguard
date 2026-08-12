@@ -8,7 +8,7 @@ use defguard_common::db::{
         WebAuthn, WireguardNetwork,
         gateway::Gateway,
         group::Group,
-        mfa_flow::{MfaFlow, MfaFlowSnapshot, MfaFlowStep},
+        mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlow, MfaFlowSnapshot, MfaFlowStep},
         oauth2client::OAuth2Client,
         proxy::Proxy,
         settings::set_settings,
@@ -1208,7 +1208,20 @@ fn api_event_cases() -> Vec<EventTestCase> {
             message: api_message(ApiEventType::LocationMfaFlowsAssigned {
                 location_id: location.id,
                 location_name: location.name.clone(),
-                assignment_count: 2,
+                assignments: vec![
+                    LocationMfaFlowAssignmentSnapshot {
+                        flow_id: 1,
+                        position: 0,
+                        is_default: false,
+                        group_ids: vec![7],
+                    },
+                    LocationMfaFlowAssignmentSnapshot {
+                        flow_id: 2,
+                        position: 1,
+                        is_default: true,
+                        group_ids: vec![],
+                    },
+                ],
             }),
             event_type: EventType::LocationMfaFlowsAssigned,
             module: ActivityLogModule::Defguard,

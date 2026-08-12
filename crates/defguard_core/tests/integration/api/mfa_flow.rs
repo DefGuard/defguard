@@ -40,7 +40,7 @@ async fn test_mfa_flow_multi_step_requires_business(_: PgPoolOptions, options: P
         "title": "Multi-Step Flow",
         "steps": [
             { "methods": ["totp"] },
-            { "methods": ["email"] }
+            { "methods": ["biometric"] }
         ]
     });
 
@@ -82,8 +82,37 @@ async fn test_mfa_flow_oidc_requires_business_and_provider(
     set_cached_license(saved.clone());
     let response = client.post("/api/v1/mfa-flow").json(&body).send().await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "steps[0].methods");
+    assert_eq!(body["fields"][0]["code"], "oidc_provider_missing");
 
     set_cached_license(saved);
+}
+
+/// The Email method cannot be saved while SMTP is unconfigured, otherwise a flow would reference a
+/// factor the instance is unable to deliver.
+#[sqlx::test]
+async fn test_mfa_flow_email_requires_smtp(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "Email Flow",
+            "steps": [{ "methods": ["totp"] }, { "methods": ["email"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["error"], "validation_failed");
+    // The field path must point at the offending step so the editor can highlight that row.
+    assert_eq!(body["fields"][0]["field"], "steps[1].methods");
+    assert_eq!(body["fields"][0]["code"], "smtp_not_configured");
 }
 
 /// Group-scoped assignments require an enterprise license.
@@ -117,7 +146,7 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
             .post("/api/v1/mfa-flow")
             .json(&json!({
                 "title": "Scoped Flow",
-                "steps": [{ "methods": ["email"] }]
+                "steps": [{ "methods": ["biometric"] }]
             }))
             .send()
             .await;
@@ -212,7 +241,7 @@ async fn test_mfa_flow_update_multi_step_requires_business(
             "title": "Updated Flow",
             "steps": [
                 { "methods": ["totp"] },
-                { "methods": ["email"] }
+                { "methods": ["biometric"] }
             ]
         }))
         .send()
@@ -227,7 +256,7 @@ async fn test_mfa_flow_update_multi_step_requires_business(
             "title": "Updated Flow",
             "steps": [
                 { "methods": ["totp"] },
-                { "methods": ["email"] }
+                { "methods": ["biometric"] }
             ]
         }))
         .send()
@@ -235,6 +264,122 @@ async fn test_mfa_flow_update_multi_step_requires_business(
     assert_eq!(response.status(), StatusCode::OK);
 
     set_cached_license(saved);
+}
+
+/// A step id belonging to another flow must be refused, not silently applied. Reconciliation
+/// UPDATEs by step id, so an unscoped write would rewrite the other flow's step and report it as
+/// this flow's.
+#[sqlx::test]
+async fn test_mfa_flow_update_rejects_foreign_step_id(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": "Flow A", "steps": [{ "methods": ["totp"] }]}))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let flow_a: serde_json::Value = resp.json().await;
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": "Flow B", "steps": [{ "methods": ["totp"] }]}))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let flow_b: serde_json::Value = resp.json().await;
+
+    let flow_a_id = flow_a["id"].as_i64().unwrap();
+    let flow_b_id = flow_b["id"].as_i64().unwrap();
+    let flow_b_step_id = flow_b["steps"][0]["id"].as_i64().unwrap();
+
+    // Update flow A, but hand it flow B's step id.
+    let response = client
+        .put(format!("/api/v1/mfa-flow/{flow_a_id}"))
+        .json(&json!({
+            "title": "Flow A",
+            "steps": [{ "id": flow_b_step_id, "methods": ["biometric"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["fields"][0]["code"], "unknown_step");
+
+    // Flow B must be untouched.
+    let response = client
+        .get(format!("/api/v1/mfa-flow/{flow_b_id}"))
+        .send()
+        .await;
+    let flow_b_after: serde_json::Value = response.json().await;
+    assert_eq!(
+        flow_b_after["steps"], flow_b["steps"],
+        "the other flow's steps must not have been rewritten"
+    );
+}
+
+/// Assignment input that cannot be satisfied is a validation error, not a 500 from a constraint
+/// violation, and an unknown location is a 404 rather than an empty list.
+#[sqlx::test]
+async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let network_resp = make_network(&client, "assignment-validation").await;
+    let location_id = network_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+    let flow_resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": "Flow", "steps": [{ "methods": ["totp"] }]}))
+        .send()
+        .await;
+    let flow_id = flow_resp.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    // Unknown location → 404, not an empty list.
+    let response = client.get("/api/v1/location/999999/mfa-flows").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    let response = client
+        .put("/api/v1/location/999999/mfa-flows")
+        .json(&json!({"assignments": [{"flow_id": flow_id, "is_default": true, "group_ids": []}]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // The same flow twice would violate the (location_id, flow_id) primary key.
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": [
+            {"flow_id": flow_id, "is_default": true, "group_ids": []},
+            {"flow_id": flow_id, "is_default": false, "group_ids": []},
+        ]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response.json::<serde_json::Value>().await["fields"][0]["code"],
+        "duplicate"
+    );
+
+    // A nonexistent flow would violate the foreign key.
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({"assignments": [
+            {"flow_id": 999999, "is_default": true, "group_ids": []},
+        ]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response.json::<serde_json::Value>().await["fields"][0]["code"],
+        "unknown_flow"
+    );
 }
 
 /// Method availability returns all five methods with correct availability.

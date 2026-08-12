@@ -68,6 +68,34 @@ pub struct LocationMfaFlowAssignment {
     pub group_ids: Vec<Id>,
 }
 
+/// A single assignment as recorded in the audit log, including the position the server derived
+/// from the submitted order.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct LocationMfaFlowAssignmentSnapshot {
+    pub flow_id: Id,
+    pub position: i32,
+    pub is_default: bool,
+    pub group_ids: Vec<Id>,
+}
+
+impl LocationMfaFlowAssignment {
+    /// Build the audit snapshot for an ordered assignment list, stamping each entry with the
+    /// position it was stored at.
+    #[must_use]
+    pub fn snapshot(assignments: &[Self]) -> Vec<LocationMfaFlowAssignmentSnapshot> {
+        assignments
+            .iter()
+            .enumerate()
+            .map(|(i, a)| LocationMfaFlowAssignmentSnapshot {
+                flow_id: a.flow_id,
+                position: i as i32,
+                is_default: a.is_default,
+                group_ids: a.group_ids.clone(),
+            })
+            .collect()
+    }
+}
+
 /// Errors that can occur during MFA flow assignment.
 #[derive(Debug, Error)]
 pub enum MfaFlowAssignmentError {
@@ -77,6 +105,21 @@ pub enum MfaFlowAssignmentError {
     MultipleDefaultsDesignated,
     #[error("The default MFA flow assignment must not be scoped to any groups")]
     DefaultHasGroups,
+    #[error("MFA flow {0} is assigned more than once to this location")]
+    DuplicateFlow(Id),
+    #[error("MFA flow {0} does not exist")]
+    UnknownFlow(Id),
+    #[error("Group {0} does not exist")]
+    UnknownGroup(Id),
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+}
+
+/// Errors that can occur when updating an MFA flow.
+#[derive(Debug, Error)]
+pub enum MfaFlowUpdateError {
+    #[error("Step {0} does not belong to this MFA flow")]
+    UnknownStep(Id),
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
 }
@@ -237,8 +280,24 @@ impl MfaFlow<Id> {
         flow_id: Id,
         title: String,
         step_updates: Vec<(Option<Id>, Vec<VpnClientMfaMethod>)>,
-    ) -> sqlx::Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> {
+    ) -> Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>), MfaFlowUpdateError> {
         let incoming_ids: Vec<Id> = step_updates.iter().filter_map(|(id, _)| *id).collect();
+
+        // Every submitted step id must already belong to this flow. Without this check an id
+        // borrowed from another flow would be silently UPDATEd, rewriting that flow's step and
+        // reporting it in this flow's response.
+        if !incoming_ids.is_empty() {
+            let owned: HashSet<Id> =
+                query_scalar!("SELECT id FROM mfa_flow_step WHERE flow_id = $1", flow_id)
+                    .fetch_all(&mut *conn)
+                    .await?
+                    .into_iter()
+                    .collect();
+
+            if let Some(foreign) = incoming_ids.iter().find(|id| !owned.contains(id)) {
+                return Err(MfaFlowUpdateError::UnknownStep(*foreign));
+            }
+        }
 
         Self::update_title(&mut *conn, flow_id, &title).await?;
 
@@ -254,7 +313,8 @@ impl MfaFlow<Id> {
         for (index, (maybe_id, methods)) in step_updates.into_iter().enumerate() {
             let position = index as i32;
             let id = if let Some(step_id) = maybe_id {
-                MfaFlowStep::update_single(&mut *conn, step_id, position, &methods).await?;
+                MfaFlowStep::update_single(&mut *conn, flow_id, step_id, position, &methods)
+                    .await?;
                 step_id
             } else {
                 MfaFlowStep::insert_single(&mut *conn, flow_id, position, &methods).await?
@@ -293,6 +353,44 @@ impl MfaFlow<Id> {
             && !default.group_ids.is_empty()
         {
             return Err(MfaFlowAssignmentError::DefaultHasGroups);
+        }
+
+        // `location_mfa_flow` is keyed on (location_id, flow_id), so a repeated flow would raise a
+        // primary-key violation. Reject it as bad input instead of surfacing a 500.
+        let mut seen_flows = HashSet::new();
+        for a in assignments {
+            if !seen_flows.insert(a.flow_id) {
+                return Err(MfaFlowAssignmentError::DuplicateFlow(a.flow_id));
+            }
+        }
+
+        // Referenced flows and groups must exist, otherwise the INSERTs below fail on a foreign
+        // key and the caller sees a 500 rather than a validation error.
+        let flow_ids: Vec<Id> = assignments.iter().map(|a| a.flow_id).collect();
+        let existing_flows: HashSet<Id> =
+            query_scalar!("SELECT id FROM mfa_flow WHERE id = ANY($1)", &flow_ids)
+                .fetch_all(&mut *conn)
+                .await?
+                .into_iter()
+                .collect();
+        if let Some(missing) = flow_ids.iter().find(|id| !existing_flows.contains(id)) {
+            return Err(MfaFlowAssignmentError::UnknownFlow(*missing));
+        }
+
+        let group_ids: Vec<Id> = assignments
+            .iter()
+            .flat_map(|a| a.group_ids.iter().copied())
+            .collect();
+        if !group_ids.is_empty() {
+            let existing_groups: HashSet<Id> =
+                query_scalar!("SELECT id FROM \"group\" WHERE id = ANY($1)", &group_ids)
+                    .fetch_all(&mut *conn)
+                    .await?
+                    .into_iter()
+                    .collect();
+            if let Some(missing) = group_ids.iter().find(|id| !existing_groups.contains(id)) {
+                return Err(MfaFlowAssignmentError::UnknownGroup(*missing));
+            }
         }
 
         query!(
@@ -638,8 +736,12 @@ impl MfaFlowStep<Id> {
     }
 
     /// Updates the position and methods of a single step.
+    ///
+    /// Scoped by `flow_id` so a step id belonging to another flow can never be written through
+    /// this path, even if a caller skips the ownership check in `update_with_steps`.
     pub async fn update_single(
         conn: &mut PgConnection,
+        flow_id: Id,
         step_id: Id,
         position: i32,
         methods: &[VpnClientMfaMethod],
@@ -647,10 +749,11 @@ impl MfaFlowStep<Id> {
         query!(
             "UPDATE mfa_flow_step \
              SET position = $1, methods = $2::vpn_client_mfa_method[] \
-             WHERE id = $3",
+             WHERE id = $3 AND flow_id = $4",
             position,
             methods as &[VpnClientMfaMethod],
             step_id,
+            flow_id,
         )
         .execute(&mut *conn)
         .await?;
