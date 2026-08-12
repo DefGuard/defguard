@@ -471,6 +471,9 @@ impl MfaFlow<Id> {
     /// Checks whether a flow can be deleted, returning an error naming the
     /// affected locations if it cannot.
     ///
+    /// [`MfaFlowDeleteError::LocationRequiresFlow`] is scoped to MFA-enabled locations: a flow
+    /// that is the only assignment for an MFA-disabled location can be deleted.
+    ///
     /// Must be called on the same connection as the subsequent DELETE, and inside its
     /// transaction: the checks below and the delete have to be atomic with respect to
     /// [`Self::assign_to_location`], or a concurrent assignment could make this flow a location's
@@ -485,12 +488,13 @@ impl MfaFlow<Id> {
             .fetch_optional(&mut *conn)
             .await?;
 
-        // Flow is the only assignment for any location?
+        // Flow is the only assignment for any MFA-enabled location?
         let orphaned: Vec<String> = query_scalar!(
             "SELECT wn.name \
              FROM location_mfa_flow lmf \
              JOIN wireguard_network wn ON wn.id = lmf.location_id \
              WHERE lmf.flow_id = $1 \
+             AND wn.mfa_enabled = true \
              AND (SELECT COUNT(*) FROM location_mfa_flow \
                   WHERE location_id = lmf.location_id) = 1",
             flow_id
@@ -603,35 +607,60 @@ impl MfaFlow<Id> {
         Ok(None)
     }
 
-    /// Derives the legacy `LocationMfaMode` for a location if the current
-    /// flow configuration is backward-compatible. Returns `None` when the
-    /// location uses multi-flow, multi-step, or subset-of-internal-methods
+    /// Derives the legacy `LocationMfaMode` for a location.
+    ///
+    /// `mfa_enabled` is the authoritative flag and is checked first: when `false` the location
+    /// is MFA-off, which is legacy-representable as `Disabled`. When `true`, the function
+    /// inspects the flow configuration and returns the matching legacy mode when it is
+    /// backward-compatible (single-flow, single-step, full internal set or OIDC only). Returns
+    /// `None` when the location uses multi-flow, multi-step, or subset-of-internal-methods
     /// configurations that legacy clients cannot represent.
+    ///
+    /// The invariant this guarantees: a location with `mfa_enabled = false` is never advertised
+    /// to any client as MFA-required.
     pub async fn derive_legacy_mode<'e, E: PgExecutor<'e>>(
         executor: E,
         location_id: Id,
     ) -> sqlx::Result<Option<LocationMfaMode>> {
-        struct StepRow {
-            methods: Vec<VpnClientMfaMethod>,
+        // Fetch mfa_enabled and step methods in one query so the executor is consumed only once.
+        struct DeriveRow {
+            mfa_enabled: bool,
+            methods: Option<Vec<VpnClientMfaMethod>>,
         }
 
-        let steps = query_as!(
-            StepRow,
-            "SELECT mfs.methods AS \"methods: Vec<VpnClientMfaMethod>\" \
-             FROM location_mfa_flow lmf \
-             JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id \
-             WHERE lmf.location_id = $1 \
+        let rows = query_as!(
+            DeriveRow,
+            "SELECT wn.mfa_enabled AS \"mfa_enabled!: bool\", \
+             mfs.methods AS \"methods?: Vec<VpnClientMfaMethod>\" \
+             FROM wireguard_network wn \
+             LEFT JOIN location_mfa_flow lmf ON lmf.location_id = wn.id \
+             LEFT JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id \
+             WHERE wn.id = $1 \
              ORDER BY lmf.position, mfs.position",
             location_id
         )
         .fetch_all(executor)
         .await?;
 
+        if rows.is_empty() {
+            return Ok(None);
+        }
+
+        // mfa_enabled is the authoritative flag. When false the location is MFA-off, which is
+        // legacy-representable as Disabled rather than omitted.
+        if !rows[0].mfa_enabled {
+            return Ok(Some(LocationMfaMode::Disabled));
+        }
+
+        // Collect step rows that actually have methods (NULL for locations with no flows).
+        let steps: Vec<&Vec<VpnClientMfaMethod>> =
+            rows.iter().filter_map(|r| r.methods.as_ref()).collect();
+
         if steps.len() != 1 {
             return Ok(None);
         }
 
-        let methods = &steps[0].methods;
+        let methods = steps[0];
         let set: HashSet<VpnClientMfaMethod> = methods.iter().copied().collect();
 
         let all_internal: HashSet<VpnClientMfaMethod> = [

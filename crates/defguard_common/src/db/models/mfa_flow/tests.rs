@@ -396,12 +396,15 @@ async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: 
     let pool = setup_pool(options).await;
     let (flow1, _) = create_flow(&pool).await;
 
-    let network = WireguardNetwork::default()
+    let mut network = WireguardNetwork::default()
         .try_set_address("10.0.4.1/24")
         .unwrap()
         .save(&pool)
         .await
         .unwrap();
+    // location_requires_flow is scoped to MFA-enabled locations.
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
@@ -422,6 +425,66 @@ async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: 
         result,
         Err(MfaFlowDeleteError::LocationRequiresFlow(_))
     ));
+}
+
+/// When MFA is disabled at a location, deleting the location's only assigned,
+/// non-default flow is allowed because `LocationRequiresFlow` is scoped to
+/// MFA-enabled locations.
+#[sqlx::test]
+async fn test_check_deletable_allows_disabled_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (flow1, _) = create_flow(&pool).await;
+    let (flow2, _) = {
+        let mut tx = pool.begin().await.unwrap();
+        let (f, s) = MfaFlow::create(
+            &mut tx,
+            "Default".into(),
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (f, s)
+    };
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.4.2/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    // network.mfa_enabled is false (default).
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: flow1.id,
+                is_default: false,
+                group_ids: vec![],
+            },
+            LocationMfaFlowAssignment {
+                flow_id: flow2.id,
+                is_default: true,
+                group_ids: vec![],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // flow1 is the only non-default assignment for an MFA-disabled location.
+    let result = MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow1.id).await;
+    assert!(
+        result.is_ok(),
+        "deletion should be allowed from an MFA-disabled location: {result:?}"
+    );
 }
 
 #[sqlx::test]
@@ -694,12 +757,14 @@ async fn test_derive_legacy_internal(_: PgPoolOptions, options: PgConnectOptions
     .unwrap();
     tx.commit().await.unwrap();
 
-    let network = WireguardNetwork::default()
+    let mut network = WireguardNetwork::default()
         .try_set_address("10.1.0.1/24")
         .unwrap()
         .save(&pool)
         .await
         .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
@@ -735,12 +800,14 @@ async fn test_derive_legacy_external(_: PgPoolOptions, options: PgConnectOptions
     .unwrap();
     tx.commit().await.unwrap();
 
-    let network = WireguardNetwork::default()
+    let mut network = WireguardNetwork::default()
         .try_set_address("10.1.1.1/24")
         .unwrap()
         .save(&pool)
         .await
         .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
@@ -767,12 +834,14 @@ async fn test_derive_legacy_multi_step_omitted(_: PgPoolOptions, options: PgConn
     let pool = setup_pool(options).await;
     let (flow, _) = create_flow(&pool).await; // 2 steps
 
-    let network = WireguardNetwork::default()
+    let mut network = WireguardNetwork::default()
         .try_set_address("10.1.2.1/24")
         .unwrap()
         .save(&pool)
         .await
         .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
@@ -808,8 +877,60 @@ async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: P
     .unwrap();
     tx.commit().await.unwrap();
 
-    let network = WireguardNetwork::default()
+    let mut network = WireguardNetwork::default()
         .try_set_address("10.1.3.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, None);
+}
+
+/// A location with mfa_enabled = false returns Disabled even when it has
+/// flow assignments, because the stored flag is authoritative and the
+/// location must never be advertised as MFA-required.
+#[sqlx::test]
+async fn test_derive_legacy_disabled_with_assignments(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut tx,
+        "Internal Recipe".into(),
+        vec![vec![
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Biometric,
+            VpnClientMfaMethod::MobileApprove,
+        ]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // network.mfa_enabled is false (default), but the flow is assigned.
+    let network = WireguardNetwork::default()
+        .try_set_address("10.2.0.1/24")
         .unwrap()
         .save(&pool)
         .await
@@ -832,7 +953,11 @@ async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: P
     let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
         .await
         .unwrap();
-    assert_eq!(mode, None);
+    assert_eq!(
+        mode,
+        Some(LocationMfaMode::Disabled),
+        "mfa_enabled=false must derive Disabled to never advertise MFA-required"
+    );
 }
 
 #[sqlx::test]

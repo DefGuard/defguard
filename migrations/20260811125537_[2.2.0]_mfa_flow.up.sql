@@ -73,3 +73,4 @@ FROM wireguard_network wn, mfa_flow mf
 WHERE wn.location_mfa_mode = 'external' AND mf.title = 'Default External MFA';
 
 ALTER TABLE wireguard_network DROP COLUMN location_mfa_mode;
+DROP TYPE location_mfa_mode;

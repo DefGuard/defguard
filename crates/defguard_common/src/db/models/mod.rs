@@ -35,6 +35,7 @@ pub use device::{Device, DeviceConfig, DeviceError, DeviceNetworkInfo, DeviceTyp
 pub use device_login::DeviceLoginEvent;
 pub use error::ModelError;
 pub use initial_setup_wizard::{InitialSetupState, InitialSetupStep};
+pub use mfa_flow::MfaFlow;
 pub use mfa_info::MFAInfo;
 pub use oauth2authorizedapp::OAuth2AuthorizedApp;
 pub use oauth2token::OAuth2Token;

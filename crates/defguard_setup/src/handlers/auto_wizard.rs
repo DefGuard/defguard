@@ -4,7 +4,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates, WireguardNetwork,
+            Certificates, MfaFlow, WireguardNetwork,
             initial_setup_wizard::InitialSetupStep,
             settings::update_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
@@ -329,6 +329,17 @@ pub async fn set_mfa_settings(
                 "Network location with ID '{first_network_id}' not found"
             ))
         })?;
+
+    // Enforce the precondition: MFA cannot be enabled until at least one flow exists.
+    if mfa_settings.mfa_enabled && !MfaFlow::any_exist(&pool).await? {
+        return Err(WebError::BadRequest(
+            json!({
+                "error": "validation_failed",
+                "fields": [{"field": "mfa_enabled", "code": "no_flows_exist"}]
+            })
+            .to_string(),
+        ));
+    }
 
     network.mfa_enabled = mfa_settings.mfa_enabled;
     network.save(&pool).await?;
