@@ -1,4 +1,5 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
+use defguard_common::db::models::wireguard::LocationMfaMode;
 use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
@@ -164,6 +165,16 @@ impl ClientFeature {
 
         supported
     }
+}
+
+/// Returns `true` when a location should be omitted from a device's config
+/// because the device's client version does not support multi-step MFA and
+/// the location's MFA configuration has no legacy equivalent.
+pub fn should_omit_location_for_device(
+    location_mfa_mode: Option<LocationMfaMode>,
+    device_info: Option<&DeviceInfo>,
+) -> bool {
+    location_mfa_mode.is_none() && !ClientFeature::MultiStepMfa.is_supported_by_device(device_info)
 }
 
 #[cfg(test)]
@@ -726,5 +737,42 @@ mod tests {
             !ClientFeature::MultiStepMfa.is_supported_by_device(None),
             "MultiStepMfa should not be supported without device info"
         );
+    }
+
+    #[test]
+    fn test_should_omit_location_for_device() {
+        // Legacy client (below the MultiStepMfa floor).
+        let legacy = create_device_info(
+            Some("2.1.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+
+        // A capable client (at the MultiStepMfa floor).
+        let capable = create_device_info(
+            Some("2.2.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+
+        // Legacy client with legacy-derivable modes is included.
+        assert!(!should_omit_location_for_device(
+            Some(LocationMfaMode::Internal),
+            Some(&legacy),
+        ));
+        assert!(!should_omit_location_for_device(
+            Some(LocationMfaMode::Disabled),
+            Some(&legacy),
+        ));
+
+        // Legacy client with no legacy equivalent is omitted.
+        assert!(should_omit_location_for_device(None, Some(&legacy)));
+
+        // Capable client with no legacy equivalent is not omitted.
+        assert!(!should_omit_location_for_device(None, Some(&capable)));
     }
 }
