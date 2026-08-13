@@ -602,6 +602,7 @@ export interface AddDeviceResponseConfig {
   /** @deprecated Legacy derived mode; absent when the location's flows have no legacy
    * equivalent, which includes locations with no flows. Use `mfa_enabled` instead. */
   location_mfa_mode?: LocationMfaModeValue;
+  posture_check_required: boolean;
 }
 
 export interface AddDeviceResponse {

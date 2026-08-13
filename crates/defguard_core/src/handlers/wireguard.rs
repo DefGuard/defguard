@@ -1550,7 +1550,7 @@ pub(crate) async fn download_config(
     ),
     responses(
         (status = 200, description = "Device configuration for each location.", body = [Object], example = json!([
-            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false}
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false, "posture_check_required": false}
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -1608,6 +1608,7 @@ pub(crate) async fn user_device_configs(
             config: device_config.config,
             mfa_enabled: device_config.mfa_enabled,
             location_mfa_mode: device_config.location_mfa_mode,
+            posture_check_required: device_config.posture_check_required,
         });
     }
 

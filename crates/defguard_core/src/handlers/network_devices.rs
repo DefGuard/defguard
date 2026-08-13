@@ -129,6 +129,7 @@ pub(crate) struct DeviceWireGuardConfig {
     /// equivalent, which includes every location with no flows, so it must not be used to infer
     /// whether MFA is required.
     pub(crate) location_mfa_mode: Option<LocationMfaMode>,
+    pub(crate) posture_check_required: bool,
 }
 
 /// Get the WireGuard configuration of a network device
@@ -143,7 +144,7 @@ pub(crate) struct DeviceWireGuardConfig {
     ),
     responses(
         (status = 200, description = "Network device configuration for each location of the device.", body = [Object], example = json!([
-            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false}
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false, "posture_check_required": false}
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -202,6 +203,7 @@ pub(crate) async fn network_device_configs(
             config: device_config.config,
             mfa_enabled: device_config.mfa_enabled,
             location_mfa_mode: device_config.location_mfa_mode,
+            posture_check_required: device_config.posture_check_required,
         };
         result.push(device_config);
     }
