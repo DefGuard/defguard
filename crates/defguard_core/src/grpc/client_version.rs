@@ -53,6 +53,7 @@ pub(crate) fn parse_client_version_platform(
 pub enum ClientFeature {
     ServiceLocations,
     PostureChecks,
+    MultiStepMfa,
 }
 
 /// One supported client/platform combination for a feature.
@@ -132,6 +133,11 @@ impl ClientFeature {
                     os_type: None,
                 },
             ],
+            Self::MultiStepMfa => vec![ClientFeatureRule {
+                min_version: Version::new(2, 2, 0),
+                os_family: None,
+                os_type: None,
+            }],
         }
     }
 
@@ -643,6 +649,82 @@ mod tests {
         assert!(
             !ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
             "ServiceLocations should not support a below-floor pre-release on Windows"
+        );
+    }
+
+    #[test]
+    fn test_multi_step_mfa_feature_support() {
+        // Supported at the 2.2.0 floor regardless of platform.
+        for (os_family, os_type) in [
+            ("windows", "Windows"),
+            ("unix", "linux"),
+            ("macos", "macOS"),
+        ] {
+            let info = create_device_info(
+                Some("2.2.0".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    os_type: os_type.to_owned(),
+                    ..Default::default()
+                }),
+            );
+            assert!(
+                ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+                "MultiStepMfa should be supported on {os_family} at version 2.2.0"
+            );
+        }
+
+        // A pre-release of the floor itself passes.
+        let info = create_device_info(
+            Some("2.2.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should support a 2.2.0 pre-release"
+        );
+
+        // Below the floor is not supported.
+        let info = create_device_info(
+            Some("2.1.99".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should not be supported below version 2.2.0"
+        );
+
+        // Indifferent to platform: a missing platform still passes (no platform constraints).
+        let info = create_device_info(Some("2.2.0".to_owned()), None);
+        assert!(
+            ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should be supported without platform info"
+        );
+
+        // Missing version information fails.
+        let info = create_device_info(None, None);
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should not be supported without version info"
+        );
+
+        // Malformed version fails.
+        let info = create_device_info(Some("invalid".to_owned()), None);
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should not be supported with an invalid version"
+        );
+
+        // No device info fails.
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(None),
+            "MultiStepMfa should not be supported without device info"
         );
     }
 }
