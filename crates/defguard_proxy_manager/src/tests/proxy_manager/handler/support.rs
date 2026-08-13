@@ -551,8 +551,10 @@ pub(crate) async fn send_mfa_start(
             ClientMfaStartRequest {
                 location_id,
                 pubkey: pubkey.to_owned(),
+                #[allow(deprecated)]
                 method: method as i32,
                 posture_data: None,
+                selected_methods: Vec::new(),
             },
         )),
     });
@@ -595,6 +597,7 @@ pub(crate) async fn send_mfa_finish(
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     let psk = match &response.payload {
+        #[allow(deprecated)]
         Some(core_response::Payload::ClientMfaFinish(r)) => r.preshared_key.clone(),
         Some(core_response::Payload::CoreError(e)) => panic!(
             "send_mfa_finish: got CoreError status={} msg={}",
