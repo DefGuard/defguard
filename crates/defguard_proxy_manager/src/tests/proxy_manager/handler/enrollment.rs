@@ -18,7 +18,7 @@ use defguard_proto::{
     client_types::{
         EnrollmentStartRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest,
     },
-    proxy::{CoreRequest, core_request, core_response},
+    proxy::{CoreRequest, DeviceInfo, core_request, core_response},
 };
 use ipnetwork::IpNetwork;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -27,11 +27,11 @@ use tokio::time::timeout;
 use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,
     complete_proxy_handshake, configure_ldap, configure_smtp, create_acl_network,
-    create_enrollment_token, create_network, create_polling_token, create_user,
-    create_user_with_device, insert_acl_rule_for_network, make_device_info, send_activate_user,
-    send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
-    set_test_license_enterprise, setup_user_totp_mfa, start_enrollment_session,
-    totp_code_from_base32_secret,
+    create_enrollment_token, create_mfa_network, create_multi_step_mfa_network, create_network,
+    create_polling_token, create_user, create_user_with_device, insert_acl_rule_for_network,
+    make_device_info, send_activate_user, send_activate_user_without_password,
+    send_code_mfa_setup_finish, send_code_mfa_setup_start, set_test_license_enterprise,
+    setup_user_totp_mfa, start_enrollment_session, totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -135,6 +135,92 @@ async fn test_new_device_creates_polling_token(_: PgPoolOptions, options: PgConn
     assert!(
         in_db.is_some(),
         "PollingToken row should exist in DB after NewDevice enrollment"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A `NewDevice` enrollment must omit multi-step MFA locations for a legacy
+/// client (which cannot represent them) while retaining them for a capable one.
+/// Legacy-derivable locations must remain present for both.
+#[sqlx::test]
+async fn test_new_device_omits_multi_step_location_for_legacy_client(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // A multi-step location (derives `None`) and a legacy-derivable internal one.
+    let multi_step = create_multi_step_mfa_network(&context.pool).await;
+    let internal = create_mfa_network(&context.pool).await;
+
+    let user = create_user(&context.pool).await;
+
+    // Legacy client (2.1.0): the multi-step location is omitted.
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    let legacy_pubkey = "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=";
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(DeviceInfo {
+            version: Some("2.1.0".to_owned()),
+            ..make_device_info()
+        }),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "Legacy Laptop".to_owned(),
+            pubkey: legacy_pubkey.to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+    let names: Vec<&str> = cfg
+        .configs
+        .iter()
+        .map(|config| config.network_name.as_str())
+        .collect();
+    assert!(
+        !names.contains(&multi_step.name.as_str()),
+        "multi-step location must be omitted for a legacy client, got: {names:?}"
+    );
+    assert!(
+        names.contains(&internal.name.as_str()),
+        "legacy-derivable location must be retained for a legacy client, got: {names:?}"
+    );
+
+    // Capable client (2.2.0): both locations are retained.
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    let capable_pubkey = "BB1bKzSCUmupeZLQnLn3x0Ee7wfGF5sROR0WY3y6iqM=";
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(DeviceInfo {
+            version: Some("2.2.0".to_owned()),
+            ..make_device_info()
+        }),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "Capable Laptop".to_owned(),
+            pubkey: capable_pubkey.to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+    let names: Vec<&str> = cfg
+        .configs
+        .iter()
+        .map(|config| config.network_name.as_str())
+        .collect();
+    assert!(
+        names.contains(&multi_step.name.as_str()),
+        "multi-step location must be retained for a capable client, got: {names:?}"
+    );
+    assert!(
+        names.contains(&internal.name.as_str()),
+        "legacy-derivable location must be retained for a capable client, got: {names:?}"
     );
 
     context.finish().await.expect_server_finished().await;

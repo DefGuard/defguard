@@ -28,7 +28,7 @@ use defguard_core::{
     },
     grpc::{
         GatewayCommand, InstanceInfo,
-        client_version::ClientFeature,
+        client_version::{ClientFeature, should_omit_location_for_device},
         utils::{build_device_config_response, parse_client_ip_agent},
     },
     handlers::user::check_password_strength,
@@ -924,6 +924,12 @@ impl EnrollmentServer {
             .filter(|config| {
                 !config.posture_check_required
                     || ClientFeature::PostureChecks.is_supported_by_device(req_device_info.as_ref())
+            })
+            .filter(|config| {
+                !should_omit_location_for_device(
+                    config.location_mfa_mode.clone(),
+                    req_device_info.as_ref(),
+                )
             })
             .collect::<Vec<DeviceConfig>>();
 
