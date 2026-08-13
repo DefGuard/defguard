@@ -306,6 +306,23 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
             posture_ids.len(),
             location.id
         )),
+        ApiEventType::MfaFlowCreated { snapshot } => {
+            Some(format!("Created MFA flow '{}'", snapshot.flow.title))
+        }
+        ApiEventType::MfaFlowUpdated { after, .. } => {
+            Some(format!("Updated MFA flow '{}'", after.flow.title))
+        }
+        ApiEventType::MfaFlowDeleted { snapshot } => {
+            Some(format!("Deleted MFA flow '{}'", snapshot.flow.title))
+        }
+        ApiEventType::LocationMfaFlowsAssigned {
+            location_name,
+            assignments,
+            ..
+        } => Some(format!(
+            "Assigned {} MFA flow(s) to location '{location_name}'",
+            assignments.len()
+        )),
         ApiEventType::EnrollmentTokenAdded { user } => {
             Some(format!("Added enrollment token for user {user}"))
         }

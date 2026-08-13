@@ -241,7 +241,7 @@ async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address([IpNetwork::from_str("10.1.1.1/24").unwrap()])
@@ -371,7 +371,7 @@ async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgCon
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address([

@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, flow_id, position, methods AS \"methods: Vec<VpnClientMfaMethod>\" FROM mfa_flow_step WHERE flow_id = $1 ORDER BY position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "flow_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "position",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "methods: Vec<VpnClientMfaMethod>",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_mfa_method[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5da675e723a05e1367bdd91c174361e91fdb169a8f9c2ce7b222abed5970e69b"
+}

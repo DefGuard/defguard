@@ -1,9 +1,7 @@
 use std::net::IpAddr;
 
 use defguard_common::db::models::{
-    Device, DeviceType, User, WireguardNetwork,
-    device::UserDevice,
-    wireguard::{LocationMfaMode, ServiceLocationMode},
+    Device, DeviceType, User, WireguardNetwork, device::UserDevice, wireguard::ServiceLocationMode,
 };
 use defguard_core::{
     device_access::join_device_to_all_networks,
@@ -58,7 +56,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(["10.1.9.1/24".parse().unwrap()])

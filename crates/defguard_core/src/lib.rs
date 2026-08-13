@@ -34,7 +34,7 @@ use defguard_common::{
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
             wizard::{ActiveWizard, Wizard},
         },
     },
@@ -49,6 +49,10 @@ use handlers::{
     auth::disable_user_mfa,
     component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
+    mfa_flow::{
+        create_mfa_flow, delete_mfa_flow, get_location_mfa_flows, get_method_availability,
+        get_mfa_flow, list_mfa_flows, set_location_mfa_flows, update_mfa_flow,
+    },
     network_devices::{
         add_network_device, check_ip_availability, find_available_ips, get_network_device,
         list_network_devices, modify_network_device, network_device_configs,
@@ -569,6 +573,26 @@ pub fn build_webapp(
     let api_router = api_router.nest(
         "/api/v1",
         Router::new()
+            .route("/mfa-flow", get(list_mfa_flows).post(create_mfa_flow))
+            .route(
+                "/mfa-flow/{id}",
+                get(get_mfa_flow)
+                    .put(update_mfa_flow)
+                    .delete(delete_mfa_flow),
+            )
+            .route(
+                "/mfa-flow/method-availability",
+                get(get_method_availability),
+            )
+            .route(
+                "/location/{id}/mfa-flows",
+                get(get_location_mfa_flows).put(set_location_mfa_flows),
+            ),
+    );
+
+    let api_router = api_router.nest(
+        "/api/v1",
+        Router::new()
             .route("/device-posture/versions", get(get_device_posture_versions))
             .route(
                 "/device-posture",
@@ -1042,7 +1066,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
@@ -1144,7 +1168,7 @@ pub async fn init_vpn_location(
                 false,
                 false,
                 false,
-                LocationMfaMode::Disabled,
+                false, // mfa_enabled
                 ServiceLocationMode::Disabled,
             )
             .set_address([args.address])?;
@@ -1185,7 +1209,7 @@ pub async fn init_vpn_location(
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([args.address])?;

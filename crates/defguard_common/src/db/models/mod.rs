@@ -8,6 +8,7 @@ pub mod error;
 pub mod gateway;
 pub mod group;
 pub mod initial_setup_wizard;
+pub mod mfa_flow;
 pub mod mfa_info;
 pub mod migration_wizard;
 pub mod oauth2authorizedapp;
@@ -34,6 +35,7 @@ pub use device::{Device, DeviceConfig, DeviceError, DeviceNetworkInfo, DeviceTyp
 pub use device_login::DeviceLoginEvent;
 pub use error::ModelError;
 pub use initial_setup_wizard::{InitialSetupState, InitialSetupStep};
+pub use mfa_flow::MfaFlow;
 pub use mfa_info::MFAInfo;
 pub use oauth2authorizedapp::OAuth2AuthorizedApp;
 pub use oauth2token::OAuth2Token;

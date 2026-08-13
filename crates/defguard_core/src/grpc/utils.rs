@@ -90,7 +90,7 @@ pub async fn build_device_config_response(
             }
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
+            let mfa_enabled = network.mfa_enabled;
 
             let mut conn = pool.acquire().await.map_err(|err| {
                 error!("Failed to acquire connection: {err}");
@@ -117,12 +117,9 @@ pub async fn build_device_config_response(
                 keepalive_interval: device_config.keepalive_interval,
                 #[allow(deprecated)]
                 mfa_enabled,
-                location_mfa_mode: Some(
-                    <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                        device_config.location_mfa_mode,
-                    )
-                    .into(),
-                ),
+                location_mfa_mode: device_config
+                    .location_mfa_mode
+                    .map(|mode| <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()),
                 service_location_mode: Some(
                     <ServiceLocationMode as Into<
                         defguard_proto::client_types::ServiceLocationMode,
@@ -163,7 +160,7 @@ pub async fn build_device_config_response(
                 continue;
             }
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
+            let mfa_enabled = network.mfa_enabled;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let mut conn = pool.acquire().await.map_err(|err| {
                     error!("Failed to acquire connection: {err}");
@@ -200,12 +197,9 @@ pub async fn build_device_config_response(
                     keepalive_interval: device_config.keepalive_interval,
                     #[allow(deprecated)]
                     mfa_enabled,
-                    location_mfa_mode: Some(
-                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                            device_config.location_mfa_mode,
-                        )
-                        .into(),
-                    ),
+                    location_mfa_mode: device_config.location_mfa_mode.map(|mode| {
+                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
+                    }),
                     service_location_mode: Some(
                         <ServiceLocationMode as Into<
                             defguard_proto::client_types::ServiceLocationMode,

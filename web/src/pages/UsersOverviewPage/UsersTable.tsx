@@ -24,7 +24,6 @@ import api from '../../shared/api/api';
 import {
   type BulkStartEnrollmentResponse,
   type Device,
-  LocationMfaMode,
   type StartEnrollmentResponse,
   type User,
   type UserSortKey,
@@ -678,15 +677,13 @@ export const UsersTable = () => {
         },
       ];
 
-      if (device.networks.some((n) => n.location_mfa_mode === LocationMfaMode.Disabled)) {
+      if (device.networks.some((n) => !n.mfa_enabled)) {
         items.push({
           text: m.profile_devices_menu_show_config(),
           onClick: () => {
             api.device.getDeviceConfigs(device).then((modalData) => {
               const hasConfigs = modalData.configs.some(
-                (c) =>
-                  c.location_mfa_mode === LocationMfaMode.Disabled &&
-                  !c.posture_check_required,
+                (c) => !c.mfa_enabled && !c.posture_check_required,
               );
               if (!hasConfigs) {
                 Snackbar.error(m.profile_devices_config_no_locations());

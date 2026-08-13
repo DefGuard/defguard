@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wn.mfa_enabled AS \"mfa_enabled!: bool\", mfs.methods AS \"methods?: Vec<VpnClientMfaMethod>\" FROM wireguard_network wn LEFT JOIN location_mfa_flow lmf ON lmf.location_id = wn.id LEFT JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id WHERE wn.id = $1 ORDER BY lmf.position, mfs.position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mfa_enabled!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "methods?: Vec<VpnClientMfaMethod>",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_mfa_method[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "be5959bb82c34ffd3293b1168af62662fdf15fc1c809d039ea8adccad2c5c2a0"
+}

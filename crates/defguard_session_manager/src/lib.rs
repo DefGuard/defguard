@@ -220,7 +220,7 @@ impl SessionManager {
             );
 
             let session_authorization_required =
-                location.mfa_enabled() || location.has_postures(&mut *transaction).await?;
+                location.mfa_enabled || location.has_postures(&mut *transaction).await?;
 
             // get all connected sessions which have become inactive
             let inactive_sessions =

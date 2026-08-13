@@ -13,6 +13,7 @@ use defguard_common::{
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
+            mfa_flow::MfaFlow,
             polling_token::PollingToken,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
@@ -187,7 +188,7 @@ impl ClientMfaServer {
         };
 
         // return early if MFA is not enabled for this location
-        if !location.mfa_enabled() {
+        if !location.mfa_enabled {
             error!("MFA is not enabled for location {location}");
             return Err(Status::invalid_argument("MFA not enabled for location"));
         }
@@ -298,10 +299,29 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid MFA method selected")
         })?;
 
+        // Derive the legacy single-factor mode for this location. `None` means the location's
+        // flow configuration cannot be expressed as a legacy mode (multi-flow, multi-step, or a
+        // subset of the internal method set), so no current client can enforce it. Fail closed
+        // rather than fall back to a mode: `mfa_enabled` is a stored column now, so it no longer
+        // implies that a legacy mode is derivable.
+        let Some(location_mfa_mode) = MfaFlow::derive_legacy_mode(&self.pool, request.location_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to derive legacy MFA mode: {err}");
+                Status::internal("unexpected error")
+            })?
+        else {
+            error!(
+                "Location {location} has an MFA flow configuration that cannot be enforced by \
+                this client"
+            );
+            return Err(Status::failed_precondition(
+                "location MFA configuration is not supported by this client",
+            ));
+        };
+
         // check if selected MFA method matches location settings
-        match (&location.location_mfa_mode, selected_method) {
-            // MFA enabled status is already verified
-            (LocationMfaMode::Disabled, _) => unreachable!(),
+        match (&location_mfa_mode, selected_method) {
             (
                 LocationMfaMode::Internal,
                 MfaMethod::Totp
@@ -317,8 +337,7 @@ impl ClientMfaServer {
             _ => {
                 error!(
                     "Selected MFA method ({selected_method}) is not supported by location \
-                    {location} which uses {}",
-                    location.location_mfa_mode
+                    {location}"
                 );
 
                 return Err(Status::invalid_argument(
@@ -936,7 +955,7 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("location not found"));
         };
 
-        if location.mfa_enabled() {
+        if location.mfa_enabled {
             error!(
                 "Posture check: location {location} has MFA enabled, posture-only sessions are not allowed"
             );
@@ -1372,7 +1391,7 @@ mod tests {
             polling_token::PollingToken,
             settings::initialize_current_settings,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
         },
         setup_pool,
     };
@@ -2566,7 +2585,7 @@ mod tests {
             false,
             false,
             false,
-            LocationMfaMode::Internal,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 0, 1)), 24).unwrap()])
@@ -2587,7 +2606,7 @@ mod tests {
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 20, 0, 1)), 24).unwrap()])

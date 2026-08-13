@@ -8,7 +8,7 @@ use defguard_common::{
             certificates::{CoreCertSource, ProxyCertSource},
             settings::initialize_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
             wizard::{ActiveWizard, Wizard},
         },
         setup_pool,
@@ -74,7 +74,7 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])
@@ -519,7 +519,7 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
-        .json(&json!({ "vpn_mfa_mode": "disabled" }))
+        .json(&json!({ "mfa_enabled": false }))
         .send()
         .await
         .unwrap();

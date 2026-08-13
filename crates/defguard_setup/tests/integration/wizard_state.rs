@@ -4,7 +4,7 @@ use defguard_common::{
         models::{
             settings::initialize_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+            wireguard::{ServiceLocationMode, WireguardNetwork},
             wizard::{ActiveWizard, Wizard},
         },
         setup_pool,
@@ -148,7 +148,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(["10.0.0.1/24".parse().unwrap()])
@@ -271,7 +271,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
-        .json(&json!({ "vpn_mfa_mode": "disabled" }))
+        .json(&json!({ "mfa_enabled": false }))
         .send()
         .await
         .expect("Failed to set MFA settings");

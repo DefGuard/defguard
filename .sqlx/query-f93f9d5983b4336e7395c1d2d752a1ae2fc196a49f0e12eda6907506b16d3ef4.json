@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -95,19 +95,8 @@
       },
       {
         "ordinal": 18,
-        "name": "location_mfa_mode: _",
-        "type_info": {
-          "Custom": {
-            "name": "location_mfa_mode",
-            "kind": {
-              "Enum": [
-                "disabled",
-                "internal",
-                "external"
-              ]
-            }
-          }
-        }
+        "name": "mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 19,
@@ -127,10 +116,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -155,5 +141,5 @@
       false
     ]
   },
-  "hash": "ff188a49f1e440cf3a2e0fe9e51c8e56219024ee49eda0217392ae8b7d22913e"
+  "hash": "f93f9d5983b4336e7395c1d2d752a1ae2fc196a49f0e12eda6907506b16d3ef4"
 }

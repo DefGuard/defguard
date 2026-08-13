@@ -5,7 +5,11 @@ use defguard_common::db::{
     Id,
     models::{
         AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
+        gateway::Gateway,
+        group::Group,
+        mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlowSnapshot},
+        oauth2client::OAuth2Client,
+        proxy::Proxy,
     },
 };
 use defguard_proto::{client_types::MfaMethod, enterprise::posture::DevicePostureData};
@@ -363,6 +367,21 @@ pub enum ApiEventType {
     LocationPosturesAssigned {
         location: WireguardNetwork<Id>,
         posture_ids: Vec<Id>,
+    },
+    MfaFlowCreated {
+        snapshot: MfaFlowSnapshot,
+    },
+    MfaFlowUpdated {
+        before: MfaFlowSnapshot,
+        after: MfaFlowSnapshot,
+    },
+    MfaFlowDeleted {
+        snapshot: MfaFlowSnapshot,
+    },
+    LocationMfaFlowsAssigned {
+        location_id: Id,
+        location_name: String,
+        assignments: Vec<LocationMfaFlowAssignmentSnapshot>,
     },
 }
 

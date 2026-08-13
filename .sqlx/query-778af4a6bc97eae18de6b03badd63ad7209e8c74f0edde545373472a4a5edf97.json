@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO location_mfa_flow (location_id, flow_id, position, is_default) VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "778af4a6bc97eae18de6b03badd63ad7209e8c74f0edde545373472a4a5edf97"
+}

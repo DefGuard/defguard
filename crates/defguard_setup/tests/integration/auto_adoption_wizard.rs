@@ -10,7 +10,7 @@ use defguard_common::{
             setup_auto_adoption::{
                 AutoAdoptionWizardState, AutoAdoptionWizardStep, SetupAutoAdoptionComponent,
             },
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wireguard::ServiceLocationMode,
             wizard::{ActiveWizard, Wizard},
         },
         setup_pool,
@@ -65,7 +65,7 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])
@@ -177,7 +177,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
-        .json(&json!({ "vpn_mfa_mode": "disabled" }))
+        .json(&json!({ "mfa_enabled": false }))
         .send()
         .await
         .expect("Failed to set MFA settings");
@@ -189,7 +189,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .await
         .expect("DB query failed")
         .expect("Network not found after MFA settings update");
-    assert_eq!(updated_network.location_mfa_mode, LocationMfaMode::Disabled);
+    assert!(!updated_network.mfa_enabled);
 
     let resp = client
         .get("/api/v1/initial_setup/auto_adoption")
@@ -309,7 +309,7 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
         .post(format!(
             "{base_url}/api/v1/initial_setup/auto_wizard/mfa_settings"
         ))
-        .json(&json!({ "vpn_mfa_mode": "disabled" }))
+        .json(&json!({ "mfa_enabled": false }))
         .header(USER_AGENT, "test/0.0")
         .send()
         .await
@@ -579,4 +579,86 @@ async fn test_attempt_auto_adoption_persists_actionable_gateway_failure_logs(
         "Expected captured Core debug log in gateway logs: {:?}",
         gateway_result.logs
     );
+}
+
+/// The wizard must reject enabling MFA when no flow exists to assign.
+#[sqlx::test]
+async fn test_auto_adoption_mfa_enabled_requires_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    init_tracing_once();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    seed_wireguard_network(&pool).await;
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to init wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    // Progress wizard through to the MFA settings step.
+    let resp = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Mfa",
+            "last_name": "Test",
+            "username": "mfa_test_admin",
+            "email": "mfa_test@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    client
+        .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
+        .json(&json!({"defguard_url": "https://mfa-test.example.com", "ssl_type": "none"}))
+        .send()
+        .await
+        .expect("Failed");
+    client
+        .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
+        .json(
+            &json!({"public_proxy_url": "https://proxy.mfa-test.example.com", "ssl_type": "none"}),
+        )
+        .send()
+        .await
+        .expect("Failed");
+    client
+        .post("/api/v1/initial_setup/auto_wizard/vpn_settings")
+        .json(&json!({
+            "vpn_public_ip": "6.6.6.6",
+            "vpn_wireguard_port": 51820,
+            "vpn_gateway_address": "10.11.0.1/24",
+            "vpn_allowed_ips": "0.0.0.0/0",
+            "vpn_dns_server_ip": "8.8.8.8"
+        }))
+        .send()
+        .await
+        .expect("Failed");
+
+    assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::MfaSettings).await;
+
+    // Enabling MFA with no flows must be rejected.
+    let resp = client
+        .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
+        .json(&json!({ "mfa_enabled": true }))
+        .send()
+        .await
+        .expect("Failed to set MFA settings");
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
+    assert_eq!(body["fields"][0]["code"], "no_flows_exist");
+
+    // Disabling MFA is still allowed (mfa_enabled=false with no flows is fine).
+    let resp = client
+        .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
+        .json(&json!({ "mfa_enabled": false }))
+        .send()
+        .await
+        .expect("Failed to set MFA settings");
+    assert_eq!(resp.status(), StatusCode::CREATED);
 }
