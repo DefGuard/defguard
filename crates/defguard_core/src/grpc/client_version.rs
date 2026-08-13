@@ -86,8 +86,15 @@ impl ClientFeatureRule {
 
     /// Returns whether both client version and platform satisfy this rule.
     fn matches(&self, version: Option<&Version>, platform: Option<&ClientPlatformInfo>) -> bool {
-        version.is_some_and(|version| version >= &self.min_version)
-            && self.matches_platform(platform)
+        version.is_some_and(|version| {
+            let triple = (version.major, version.minor, version.patch);
+            let floor = (
+                self.min_version.major,
+                self.min_version.minor,
+                self.min_version.patch,
+            );
+            triple >= floor
+        }) && self.matches_platform(platform)
     }
 }
 
@@ -547,6 +554,95 @@ mod tests {
         assert!(
             !ClientFeature::PostureChecks.is_supported_by_device(None),
             "PostureChecks should not be supported without device info"
+        );
+    }
+
+    #[test]
+    fn test_matches_compares_release_triples() {
+        let rule = ClientFeatureRule {
+            min_version: Version::new(2, 2, 0),
+            os_family: None,
+            os_type: None,
+        };
+
+        // A pre-release of the floor itself passes the gate.
+        assert!(rule.matches(Some(&Version::parse("2.2.0-alpha1").unwrap()), None,));
+        // A release below the floor still fails.
+        assert!(!rule.matches(Some(&Version::parse("2.1.99").unwrap()), None,));
+        // Build metadata is stripped, so a build of the floor passes.
+        assert!(rule.matches(Some(&Version::parse("2.2.0+build.1").unwrap()), None,));
+        // Missing version information never matches.
+        assert!(!rule.matches(None, None));
+    }
+
+    #[test]
+    fn test_own_floor_prerelease_passes_each_feature() {
+        // ServiceLocations / Windows floor 1.6.0.
+        let info = create_device_info(
+            Some("1.6.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should support a 1.6.0 pre-release on Windows"
+        );
+
+        // ServiceLocations / Linux floor 2.1.0.
+        let info = create_device_info(
+            Some("2.1.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "unix".to_owned(),
+                os_type: "linux".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should support a 2.1.0 pre-release on Linux"
+        );
+
+        // PostureChecks / desktop floor 2.1.0.
+        let info = create_device_info(
+            Some("2.1.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "linux".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should support a 2.1.0 pre-release on desktop"
+        );
+
+        // PostureChecks / mobile floor 1.7.0.
+        let info = create_device_info(
+            Some("1.7.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "android".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should support a 1.7.0 pre-release on Android"
+        );
+
+        // A below-floor pre-release still fails (ServiceLocations / Windows).
+        let info = create_device_info(
+            Some("1.5.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            !ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should not support a below-floor pre-release on Windows"
         );
     }
 }
