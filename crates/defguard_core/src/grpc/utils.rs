@@ -71,7 +71,7 @@ pub async fn build_device_config_response(
                 Status::internal(format!("unexpected error: {err}"))
             })?;
         if let Some(wireguard_network_device) = wireguard_network_device {
-            let network = wireguard_network_device
+            let location = wireguard_network_device
                 .network(pool)
                 .await
                 .map_err(|err| {
@@ -82,18 +82,17 @@ pub async fn build_device_config_response(
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
 
-            if network.service_location_mode != ServiceLocationMode::Disabled {
+            if location.service_location_mode != ServiceLocationMode::Disabled {
                 error!(
                     "Network device {} tried to fetch config for service location {}, which is unsupported.",
-                    device.name, network.name
+                    device.name, location.name
                 );
                 return Err(Status::permission_denied(
                     "service location mode is not available for network devices",
                 ));
             }
 
-            // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.mfa_enabled;
+            let mfa_enabled = location.mfa_enabled;
 
             let mut conn = pool.acquire().await.map_err(|err| {
                 error!("Failed to acquire connection: {err}");
@@ -101,12 +100,22 @@ pub async fn build_device_config_response(
             })?;
 
             let device_config =
-                build_device_config(&mut conn, &network, &wireguard_network_device, &user)
+                build_device_config(&mut conn, &location, &wireguard_network_device, &user)
                     .await
                     .map_err(|err| {
                         error!("Failed to build device config: {err}");
                         Status::internal(format!("unexpected error: {err}"))
                     })?;
+
+            if device_config.mfa_enabled {
+                error!(
+                    "Network device {} tried to fetch config for location {} with MFA enabled, which is unsupported.",
+                    device.name, location.name
+                );
+                return Err(Status::failed_precondition(
+                    "network devices cannot connect to locations with MFA enabled",
+                ));
+            }
 
             let config = ProtoDeviceConfig {
                 config: device_config.config,
@@ -293,6 +302,7 @@ mod tests {
         PgPool,
         postgres::{PgConnectOptions, PgPoolOptions},
     };
+    use tonic::Code;
 
     use super::build_device_config_response;
 
@@ -337,6 +347,25 @@ mod tests {
         .save(pool)
         .await
         .expect("failed to create device")
+    }
+
+    async fn create_network_device(
+        pool: &PgPool,
+        user_id: Id,
+        name: &str,
+        pubkey: &str,
+    ) -> Device<Id> {
+        Device::new(
+            name.to_owned(),
+            pubkey.to_owned(),
+            user_id,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create network device")
     }
 
     /// Creates an MFA-enabled location with a single default flow built from `step_methods`.
@@ -385,6 +414,34 @@ mod tests {
         tx.commit().await.expect("failed to commit tx");
 
         network
+    }
+
+    /// Creates an MFA-disabled location with no flow configured.
+    async fn create_disabled_location(
+        pool: &PgPool,
+        name: &str,
+        address_octet: u8,
+    ) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            name.to_owned(),
+            51820,
+            "vpn.example.com".to_owned(),
+            None,
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            false,
+            false,
+            false,
+            false, // mfa_enabled
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, address_octet, 1)), 24).unwrap(),
+        ])
+        .expect("failed to set location address")
+        .save(pool)
+        .await
+        .expect("failed to create location")
     }
 
     async fn attach_device(pool: &PgPool, location_id: Id, device_id: Id) {
@@ -479,5 +536,80 @@ mod tests {
             names.contains(&"internal-location"),
             "legacy-derivable location must be retained, got: {names:?}"
         );
+    }
+
+    #[sqlx::test]
+    async fn test_network_device_rejected_on_mfa_locations(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+
+        // Multi-step location: a network device must be rejected.
+        let multi_step = create_location(
+            &pool,
+            "multi-step-location",
+            1,
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+        )
+        .await;
+        let multi_step_device =
+            create_network_device(&pool, user.id, "multi-step-device", "multi-step-pubkey").await;
+        attach_device(&pool, multi_step.id, multi_step_device.id).await;
+
+        let error = build_device_config_response(&pool, multi_step_device, None, None)
+            .await
+            .err()
+            .expect("network device on multi-step location should be rejected");
+        assert_eq!(error.code(), Code::FailedPrecondition);
+        assert_eq!(
+            error.message(),
+            "network devices cannot connect to locations with MFA enabled"
+        );
+
+        // Legacy-derivable (internal) location: also rejected, since a network device cannot
+        // perform any MFA.
+        let internal = create_location(
+            &pool,
+            "internal-location",
+            2,
+            vec![vec![
+                VpnClientMfaMethod::Totp,
+                VpnClientMfaMethod::Email,
+                VpnClientMfaMethod::Biometric,
+                VpnClientMfaMethod::MobileApprove,
+            ]],
+        )
+        .await;
+        let internal_device =
+            create_network_device(&pool, user.id, "internal-device", "internal-pubkey").await;
+        attach_device(&pool, internal.id, internal_device.id).await;
+
+        let error = build_device_config_response(&pool, internal_device, None, None)
+            .await
+            .err()
+            .expect("network device on legacy-derivable location should be rejected");
+        assert_eq!(error.code(), Code::FailedPrecondition);
+        assert_eq!(
+            error.message(),
+            "network devices cannot connect to locations with MFA enabled"
+        );
+
+        // MFA-disabled location: the config is still produced.
+        let disabled = create_disabled_location(&pool, "disabled-location", 3).await;
+        let disabled_device =
+            create_network_device(&pool, user.id, "disabled-device", "disabled-pubkey").await;
+        attach_device(&pool, disabled.id, disabled_device.id).await;
+
+        let response = build_device_config_response(&pool, disabled_device, None, None)
+            .await
+            .expect("network device on MFA-disabled location should get config");
+        assert_eq!(response.configs.len(), 1);
+        assert_eq!(response.configs[0].network_name, "disabled-location");
     }
 }
