@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -30,7 +30,7 @@ export const AddLocationMfaStep = () => {
     }
   };
 
-  useMemo(() => {
+  useEffect(() => {
     if (!mfaEnabled) {
       setError(null);
       setDisconnect(300);

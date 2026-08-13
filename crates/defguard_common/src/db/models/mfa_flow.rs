@@ -209,6 +209,13 @@ pub fn validate_flow_input(
 /// intermediate positions never conflict with the `UNIQUE (flow_id, position)` constraint.
 pub const POSITION_SWAP_OFFSET: i32 = 10_000;
 
+/// Internal row type for the `resolve_for_user` query.
+struct ResolveAssignmentRow {
+    flow_id: Id,
+    is_default: bool,
+    group_ids: Vec<Id>,
+}
+
 impl MfaFlow<NoId> {
     /// Creates a new flow with its steps in a single transaction.
     /// `step_methods` is one `Vec` per step; positions are assigned 0-based
@@ -614,8 +621,6 @@ impl MfaFlow<Id> {
         location_id: Id,
         user_id: Id,
     ) -> sqlx::Result<Option<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)>> {
-        use std::collections::HashSet;
-
         let assignments = query_as!(
             ResolveAssignmentRow,
             "SELECT lmf.flow_id, lmf.is_default, \
@@ -750,13 +755,6 @@ impl MfaFlow<Id> {
 
         Ok(None)
     }
-}
-
-/// Internal row type for the resolve_for_user query.
-struct ResolveAssignmentRow {
-    flow_id: Id,
-    is_default: bool,
-    group_ids: Vec<Id>,
 }
 
 impl MfaFlowStep<NoId> {

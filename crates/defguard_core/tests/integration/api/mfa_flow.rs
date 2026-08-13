@@ -18,7 +18,7 @@ use super::common::{
     authenticate_admin, configure_smtp, make_network, make_test_client, set_enterprise_license,
 };
 
-/// Single-step flow without OIDC — should succeed without any license.
+/// Single-step flow without OIDC - should succeed without any license.
 #[sqlx::test]
 async fn test_mfa_flow_single_step_no_license(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;

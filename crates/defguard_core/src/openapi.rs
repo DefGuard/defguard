@@ -316,7 +316,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         (name = "OpenID", description = "External OpenID providers used for logging in to defguard."),
         (name = "OAuth2", description = "defguard acting as an OAuth2 / OpenID Connect provider for other applications."),
         (name = "support", description = "Diagnostics, logs and support data."),
-        (name = "mfa flow", description = "MFA flow templates — ordered multi-step authentication recipes."),
+        (name = "mfa flow", description = "MFA flow templates - ordered multi-step authentication recipes."),
         (name = "license", description = "Enterprise license."),
     )
 )]

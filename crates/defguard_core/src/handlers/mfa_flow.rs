@@ -19,6 +19,7 @@ use defguard_common::db::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use crate::{
@@ -348,6 +349,40 @@ fn extract_update_step_updates(
     steps.iter().map(|s| (s.id, s.methods.clone())).collect()
 }
 
+/// Run the create/update validation sequence: licence gates, structural validation, then
+/// per-method prerequisites. Returns the first refusal response, or `None` when the request
+/// passes all three.
+///
+/// `before_methods` carries the methods that already existed per step (by step id) so that
+/// [`check_method_prerequisites`] can skip re-checking backfilled methods; the create path passes
+/// an empty slice because it has no pre-existing steps.
+async fn validate_flow_request(
+    title: &str,
+    step_methods: &[Vec<VpnClientMfaMethod>],
+    before_methods: &[Option<HashSet<VpnClientMfaMethod>>],
+    pool: &PgPool,
+) -> Result<Option<ApiResponse>, WebError> {
+    if let Some(resp) = check_flow_license_gates(step_methods) {
+        return Ok(Some(resp));
+    }
+
+    let errors = validate_flow_input(title, step_methods);
+    if !errors.is_empty() {
+        return Ok(Some(validation_error_response(errors)));
+    }
+
+    if let Some(resp) = check_method_prerequisites(
+        step_methods,
+        Settings::get_current_settings().smtp_configured(),
+        OpenIdProvider::get_current(pool).await?.is_some(),
+        before_methods,
+    ) {
+        return Ok(Some(resp));
+    }
+
+    Ok(None)
+}
+
 // Handlers
 
 /// List all MFA flows
@@ -411,21 +446,9 @@ pub async fn create_mfa_flow(
 
     let step_methods = extract_create_step_methods(&data.steps);
 
-    if let Some(resp) = check_flow_license_gates(&step_methods) {
-        return Ok(resp);
-    }
-
-    let errors = validate_flow_input(&data.title, &step_methods);
-    if !errors.is_empty() {
-        return Ok(validation_error_response(errors));
-    }
-
-    if let Some(resp) = check_method_prerequisites(
-        &step_methods,
-        Settings::get_current_settings().smtp_configured(),
-        OpenIdProvider::get_current(&appstate.pool).await?.is_some(),
-        &[],
-    ) {
+    if let Some(resp) =
+        validate_flow_request(&data.title, &step_methods, &[], &appstate.pool).await?
+    {
         return Ok(resp);
     }
 
@@ -530,15 +553,6 @@ pub async fn update_mfa_flow(
     let step_methods: Vec<Vec<VpnClientMfaMethod>> =
         data.steps.iter().map(|s| s.methods.clone()).collect();
 
-    if let Some(resp) = check_flow_license_gates(&step_methods) {
-        return Ok(resp);
-    }
-
-    let errors = validate_flow_input(&data.title, &step_methods);
-    if !errors.is_empty() {
-        return Ok(validation_error_response(errors));
-    }
-
     let before_by_id: HashMap<Id, &MfaFlowStep<Id>> =
         before_steps.iter().map(|s| (s.id, s)).collect();
     let before_methods: Vec<Option<HashSet<VpnClientMfaMethod>>> = data
@@ -549,12 +563,10 @@ pub async fn update_mfa_flow(
                 .map(|bs| bs.methods.iter().copied().collect())
         })
         .collect();
-    if let Some(resp) = check_method_prerequisites(
-        &step_methods,
-        Settings::get_current_settings().smtp_configured(),
-        OpenIdProvider::get_current(&appstate.pool).await?.is_some(),
-        &before_methods,
-    ) {
+
+    if let Some(resp) =
+        validate_flow_request(&data.title, &step_methods, &before_methods, &appstate.pool).await?
+    {
         return Ok(resp);
     }
 

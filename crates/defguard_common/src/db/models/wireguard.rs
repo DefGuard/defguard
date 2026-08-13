@@ -127,7 +127,6 @@ pub struct WireguardNetwork<I = NoId> {
     pub allowed_ips_from_acl: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
-    #[model(enum)]
     pub mfa_enabled: bool,
     #[model(enum)]
     pub service_location_mode: ServiceLocationMode,
