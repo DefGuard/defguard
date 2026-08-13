@@ -1072,6 +1072,7 @@ impl ProxyHandler {
                                 }
                             }
                         }
+                        Some(core_request::Payload::ClientMfaStepStart(_)) => unimplemented!(),
                     };
 
                     if let Some(payload) = payload {

@@ -162,6 +162,7 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
             keepalive_interval: config.keepalive_interval,
             #[allow(deprecated)]
             mfa_enabled,
+            #[allow(deprecated)]
             location_mfa_mode: Some(
                 <LocationMfaMode as Into<client_types::LocationMfaMode>>::into(
                     config.location_mfa_mode,
@@ -175,6 +176,7 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
                 .into(),
             ),
             posture_check_required: Some(config.posture_check_required),
+            steps: Vec::new(),
         }
     }
 }

@@ -293,6 +293,7 @@ impl ClientMfaServer {
         })?;
 
         // extract user selected method from request
+        #[allow(deprecated)]
         let selected_method = MfaMethod::try_from(request.method).map_err(|err| {
             error!("Invalid MFA method selected ({}): {err}", request.method);
             Status::invalid_argument("invalid MFA method selected")
@@ -470,6 +471,7 @@ impl ClientMfaServer {
         Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
             token,
             challenge: response_challenge,
+            rejections: Vec::new(),
         }))
     }
 
@@ -549,7 +551,11 @@ impl ClientMfaServer {
                     let req = CoreResponse {
                         id: request_id,
                         payload: Some(Payload::AwaitRemoteMfaFinish(
-                            AwaitRemoteMfaFinishResponse { preshared_key },
+                            AwaitRemoteMfaFinishResponse {
+                                #[allow(deprecated)]
+                                preshared_key,
+                                result: None,
+                            },
                         )),
                     };
                     // Once the key is here, send it back to proxy.
@@ -853,11 +859,13 @@ impl ClientMfaServer {
         })?;
 
         let response = ClientMfaFinishResponse {
+            #[allow(deprecated)]
             preshared_key: key.public.clone(),
             token: match method {
                 MfaMethod::MobileApprove => Some(request.token.clone()),
                 _ => None,
             },
+            result: None,
         };
 
         // remove login session from map
@@ -2174,8 +2182,10 @@ mod tests {
                 ClientMfaStartRequest {
                     location_id: location.id,
                     pubkey: device.wireguard_pubkey.clone(),
+                    #[allow(deprecated)]
                     method: MfaMethod::Email as i32,
                     posture_data: Some(posture_data),
+                    selected_methods: Vec::new(),
                 },
                 device_info(),
             )

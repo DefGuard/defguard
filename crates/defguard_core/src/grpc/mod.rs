@@ -230,6 +230,7 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
             disable_tunnels: Some(instance.disable_tunnels),
+            mfa_user_state: None,
         }
     }
 }
