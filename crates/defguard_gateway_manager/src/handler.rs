@@ -691,7 +691,7 @@ impl GatewayUpdatesHandler {
         network: &WireguardNetwork<Id>,
         pool: Option<&PgPool>,
     ) -> bool {
-        if network.mfa_enabled() {
+        if network.mfa_enabled {
             return true;
         }
 
@@ -1344,7 +1344,7 @@ mod tests {
 
         let mut handler =
             GatewayUpdatesHandler::new(network.id, network, "gateway".into(), None, events_rx, tx);
-        handler.session_authorization_required = handler.network.mfa_enabled();
+        handler.session_authorization_required = handler.network.mfa_enabled;
         handler
     }
 

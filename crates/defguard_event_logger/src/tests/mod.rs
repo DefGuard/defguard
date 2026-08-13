@@ -428,8 +428,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         flow: MfaFlow {
             id: 1,
             title: "Strong MFA".into(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now().naive_utc(),
         },
         steps: vec![MfaFlowStep {
             id: 1,
@@ -442,8 +442,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         flow: MfaFlow {
             id: 1,
             title: "Stronger MFA".into(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now().naive_utc(),
         },
         steps: vec![
             MfaFlowStep {

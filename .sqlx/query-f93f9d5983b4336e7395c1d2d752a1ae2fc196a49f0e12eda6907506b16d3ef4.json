@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\" \"mfa_enabled: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -95,7 +95,7 @@
       },
       {
         "ordinal": 18,
-        "name": "mfa_enabled: _",
+        "name": "mfa_enabled",
         "type_info": "Bool"
       },
       {
@@ -116,10 +116,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -144,5 +141,5 @@
       false
     ]
   },
-  "hash": "f6a8ecb5344bb4d32a9e0a8bc3f1f5f87a92fbca5ccb1426d6f4159b32229d2f"
+  "hash": "f93f9d5983b4336e7395c1d2d752a1ae2fc196a49f0e12eda6907506b16d3ef4"
 }

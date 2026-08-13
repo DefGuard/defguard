@@ -2,8 +2,8 @@
 CREATE TABLE mfa_flow (
     id         bigserial PRIMARY KEY,
     title      text NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- MFA Flow step: ordered per-flow, methods as PG array

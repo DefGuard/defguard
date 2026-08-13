@@ -28,7 +28,7 @@ pub async fn get_location_allowed_peers(
     }
 
     let has_postures = location.has_postures(&mut *conn).await?;
-    if !location.mfa_enabled() && !has_postures {
+    if !location.mfa_enabled && !has_postures {
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, \
                     ARRAY( \

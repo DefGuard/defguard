@@ -40,8 +40,8 @@ pub struct MfaFlowListItemResponse {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::NaiveDateTime,
+    pub updated_at: chrono::NaiveDateTime,
 }
 
 impl From<MfaFlowWithStepCount> for MfaFlowListItemResponse {
@@ -62,8 +62,8 @@ pub struct MfaFlowDetailResponse {
     pub id: Id,
     pub title: String,
     pub steps: Vec<MfaFlowStepResponse>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::NaiveDateTime,
+    pub updated_at: chrono::NaiveDateTime,
 }
 
 /// A single step in a flow detail response.
@@ -221,12 +221,12 @@ fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<
 /// OIDC needs a configured provider.
 ///
 /// These are checked on every save so a flow can never reference a method the instance cannot
-/// actually perform.  `before_methods` is aligned with `step_methods`: each entry carries the
+/// actually perform. `before_methods` is aligned with `step_methods`: each entry carries the
 /// methods that already existed in the corresponding step (matched by step id), or `None` for a
-/// newly added step.  Methods already present in a step are not re-checked - this follows the
+/// newly added step. Methods already present in a step are not re-checked - this follows the
 /// "permissive read, restrictive write" principle and prevents a backfilled flow from becoming
 /// uneditable when a prerequisite (e.g. SMTP) is not configured for a method the backfill itself
-/// inserted.  Newly added methods are still checked.
+/// inserted. Newly added methods are still checked.
 #[must_use]
 fn check_method_prerequisites(
     step_methods: &[Vec<VpnClientMfaMethod>],
@@ -267,7 +267,7 @@ fn check_method_prerequisites(
 /// `has_enterprise_access(Some(LicenseFeature::MfaFlowGroupScoping))` because
 /// adding a `LicenseFeature` variant would require coordination outside this
 /// repo: the proto enum in the `proto` repo and license issuance must both
-/// recognise the new variant.  The `None` form gates strictly on the Enterprise
+/// recognise the new variant. The `None` form gates strictly on the Enterprise
 /// tier, which is the correct behaviour for this feature.
 #[must_use]
 fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<ApiResponse> {
@@ -283,39 +283,37 @@ fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<
     None
 }
 
-/// Field path for the assignment entry referencing `flow_id`, so the error points at the row the
-/// admin submitted rather than at the list as a whole.
+/// Field path for the first assignment entry matching `predicate`, suffixed with `suffix`.
+///
+/// Errors point at the row the admin submitted rather than at the list as a whole. When no entry
+/// matches, the path degrades to the bare `assignments` list, which is the best available anchor.
+fn assignment_field_path(
+    assignments: &[AssignMfaFlowEntry],
+    suffix: &str,
+    predicate: impl Fn(&AssignMfaFlowEntry) -> bool,
+) -> String {
+    assignments.iter().position(predicate).map_or_else(
+        || "assignments".to_owned(),
+        |i| format!("assignments[{i}].{suffix}"),
+    )
+}
+
+/// Field path for the assignment entry referencing `flow_id`.
 fn assignment_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
-    assignments
-        .iter()
-        .position(|a| a.flow_id == flow_id)
-        .map_or_else(
-            || "assignments".to_owned(),
-            |i| format!("assignments[{i}].flow_id"),
-        )
+    assignment_field_path(assignments, "flow_id", |a| a.flow_id == flow_id)
 }
 
 /// Field path for the assignment entry referencing `group_id`.
 fn group_field(assignments: &[AssignMfaFlowEntry], group_id: Id) -> String {
-    assignments
-        .iter()
-        .position(|a| a.group_ids.contains(&group_id))
-        .map_or_else(
-            || "assignments".to_owned(),
-            |i| format!("assignments[{i}].group_ids"),
-        )
+    assignment_field_path(assignments, "group_ids", |a| {
+        a.group_ids.contains(&group_id)
+    })
 }
 
 /// Field path for the assignment entry whose empty group set made it inert, pointing at the
 /// `group_ids` the admin must populate rather than at the flow as a whole.
 fn non_default_group_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
-    assignments
-        .iter()
-        .position(|a| a.flow_id == flow_id)
-        .map_or_else(
-            || "assignments".to_owned(),
-            |i| format!("assignments[{i}].group_ids"),
-        )
+    assignment_field_path(assignments, "group_ids", |a| a.flow_id == flow_id)
 }
 
 /// Build a `400` response with structured `fields[]` errors.
@@ -422,9 +420,9 @@ pub async fn list_mfa_flows(
     request_body = CreateMfaFlowRequest,
     responses(
         (status = 201, description = "MFA flow created.", body = MfaFlowDetailResponse),
-        (status = 400, description = "Invalid request data.", body = ApiErrorResponse),
+        (status = 400, description = "Invalid request data: structured `validation_failed` with `fields[]`, e.g. `required`, `min_items`, `max_items`, `max_length`, `duplicate`, `smtp_not_configured`, `oidc_provider_missing`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "steps[0].methods", "code": "oidc_provider_missing"}]})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 403, description = "Requires admin privileges, or the request needs a higher licence tier (`business_license_required` for a multi-step flow or an OIDC method). A licence refusal carries the same `fields[]` contract as validation errors under an `error` of `license_required`.", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "steps", "code": "business_license_required"}]})),
         (status = 500, description = "Unable to create MFA flow.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -522,9 +520,9 @@ pub async fn get_mfa_flow(
     request_body = UpdateMfaFlowRequest,
     responses(
         (status = 200, description = "MFA flow updated.", body = MfaFlowDetailResponse),
-        (status = 400, description = "Invalid request data.", body = ApiErrorResponse),
+        (status = 400, description = "Invalid request data: structured `validation_failed` with `fields[]`, e.g. `required`, `min_items`, `max_items`, `max_length`, `duplicate`, `smtp_not_configured`, `oidc_provider_missing`. A method already present in a step is not re-checked, so a prerequisite that was never configured does not make an existing flow uneditable.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "steps[0].methods", "code": "oidc_provider_missing"}]})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
+        (status = 403, description = "Requires admin privileges, or the request needs a higher licence tier (`business_license_required` for a multi-step flow or an OIDC method). A licence refusal carries the same `fields[]` contract as validation errors under an `error` of `license_required`.", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "steps", "code": "business_license_required"}]})),
         (status = 404, description = "MFA flow not found.", body = ApiErrorResponse, example = json!({"msg": "MFA flow 1 not found"})),
         (status = 500, description = "Unable to update MFA flow.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -550,8 +548,10 @@ pub async fn update_mfa_flow(
     let before_steps = MfaFlowStep::find_by_flow(&appstate.pool, id).await?;
 
     let step_updates = extract_update_step_updates(&data.steps);
-    let step_methods: Vec<Vec<VpnClientMfaMethod>> =
-        data.steps.iter().map(|s| s.methods.clone()).collect();
+    let step_methods: Vec<Vec<VpnClientMfaMethod>> = step_updates
+        .iter()
+        .map(|(_, methods)| methods.clone())
+        .collect();
 
     let before_by_id: HashMap<Id, &MfaFlowStep<Id>> =
         before_steps.iter().map(|s| (s.id, s)).collect();

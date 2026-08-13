@@ -708,7 +708,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
 
 /// Updating a flow that already contains email (e.g. backfilled from a
 /// migration) must succeed even when SMTP is not configured, as long as email
-/// was already present in the flow.  Adding email where it did not exist
+/// was already present in the flow. Adding email where it did not exist
 /// before must still be rejected.
 #[sqlx::test]
 async fn test_mfa_flow_update_preserves_backfilled_email(

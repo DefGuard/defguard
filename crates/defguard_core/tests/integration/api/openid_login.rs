@@ -15,9 +15,10 @@ use defguard_core::{
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
+use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{exceed_enterprise_limits, make_client, setup_pool};
+use super::common::{exceed_enterprise_limits, make_client, make_network, setup_pool};
 use crate::api::PaginatedApiResponse;
 
 #[derive(Deserialize)]
@@ -281,4 +282,196 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
     // // Am I logged in?
     // let response = client.get("/api/v1/me").send().await;
     // assert_eq!(response.status(), StatusCode::OK);
+}
+
+/// Deleting an OIDC provider must actually remove it, not merely report success.
+///
+/// Regression test: the OIDC-flow conflict check added for multi-step MFA replaced the
+/// `provider.delete(...)` call, so the handler committed an empty transaction, logged and
+/// audited a deletion, and returned 200 while the provider row survived. An admin removing
+/// a compromised IdP would have been told it was gone while it stayed live for SSO and for
+/// OIDC MFA steps.
+#[sqlx::test]
+async fn test_delete_openid_provider_removes_it(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    let provider_data = AddProviderData {
+        name: "to-delete".to_owned(),
+        base_url: "https://example.com".to_owned(),
+        kind: OpenIdProviderKind::Custom,
+        client_id: "client_id".to_owned(),
+        client_secret: "client_secret".to_owned(),
+        display_name: Some("display_name".to_owned()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
+        okta_dirsync_client_id: None,
+        okta_private_jwk: None,
+        directory_sync_group_match: None,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
+        jumpcloud_api_key: None,
+        prefetch_users: false,
+        disable_password_management: false,
+        directory_sync_user_groups: None,
+    };
+
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // The provider exists before deletion.
+    let response = client.get("/api/v1/openid/provider/to-delete").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // No location has OIDC in an MFA flow, so deletion is unobstructed.
+    let response = client
+        .delete("/api/v1/openid/provider/to-delete")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // The provider must actually be gone. `get_openid_provider` answers 204 when
+    // no provider carries the requested name.
+    let response = client.get("/api/v1/openid/provider/to-delete").send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::NO_CONTENT,
+        "provider still exists after a successful DELETE"
+    );
+}
+
+/// Deleting an OIDC provider proceeds even while locations still reference OIDC in their MFA
+/// flows, and reports those locations so an admin can be warned.
+///
+/// Removing a provider is frequently incident response (a compromised or decommissioned IdP), so
+/// revocation is deliberately not blocked. Access still fails closed: the affected flows become
+/// unsatisfiable, so connect-time MFA refuses rather than letting anyone through.
+#[sqlx::test]
+async fn test_delete_openid_provider_reports_affected_locations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // Set the licence explicitly: a sibling test in this file leaves an expired one cached, and
+    // saving an OIDC flow step requires an active business licence.
+    set_cached_license(Some(License::new(
+        "test".to_owned(),
+        false,
+        Some(Utc::now() + Duration::days(365)),
+        None,
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+        vec![],
+    )));
+
+    // The provider has to exist first: an OIDC flow cannot be saved without one.
+    let provider_data = AddProviderData {
+        name: "to-delete".to_owned(),
+        base_url: "https://example.com".to_owned(),
+        kind: OpenIdProviderKind::Custom,
+        client_id: "client_id".to_owned(),
+        client_secret: "client_secret".to_owned(),
+        display_name: Some("display_name".to_owned()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
+        okta_dirsync_client_id: None,
+        okta_private_jwk: None,
+        directory_sync_group_match: None,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
+        jumpcloud_api_key: None,
+        prefetch_users: false,
+        disable_password_management: false,
+        directory_sync_user_groups: None,
+    };
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let location_id = make_network(&client, "oidc-location")
+        .await
+        .json::<serde_json::Value>()
+        .await["id"]
+        .as_i64()
+        .unwrap();
+
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "OIDC Flow",
+            "steps": [{ "methods": ["oidc"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let flow_id = response.json::<serde_json::Value>().await["id"]
+        .as_i64()
+        .unwrap();
+
+    // Assign the OIDC flow as the location's default, so the location genuinely depends on it.
+    let response = client
+        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .json(&json!({
+            "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Deletion proceeds and names the location whose flows are now unsatisfiable.
+    let response = client
+        .delete("/api/v1/openid/provider/to-delete")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(
+        body["affected_locations"],
+        json!(["oidc-location"]),
+        "the location depending on OIDC must be reported back to the caller"
+    );
+
+    // The provider is gone despite the outstanding OIDC reference: revocation is not blocked.
+    let response = client.get("/api/v1/openid/provider/to-delete").send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::NO_CONTENT,
+        "provider still exists after a successful DELETE"
+    );
 }

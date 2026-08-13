@@ -248,7 +248,7 @@ impl UserDevice {
 				latest_successful_stats.endpoint \"device_endpoint?\", \
 	            latest_successful_session.connected_at \"last_connected_at?\", \
 	            latest_successful_session.state \"state?: VpnClientSessionState\", \
-                n.mfa_enabled
+                n.mfa_enabled \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN LATERAL ( \
@@ -344,7 +344,7 @@ impl WireguardNetworkDevice {
     where
         E: PgExecutor<'e>,
     {
-        if !network.mfa_enabled() {
+        if !network.mfa_enabled {
             return Ok(None);
         }
 
@@ -357,7 +357,7 @@ impl WireguardNetworkDevice {
         network: &WireguardNetwork<Id>,
         active_session: Option<&VpnClientSession<Id>>,
     ) -> DeviceNetworkInfo {
-        let (preshared_key, is_authorized) = if network.mfa_enabled() {
+        let (preshared_key, is_authorized) = if network.mfa_enabled {
             let preshared_key = active_session.and_then(|session| session.preshared_key.clone());
             let is_authorized = preshared_key.is_some();
             (preshared_key, is_authorized)

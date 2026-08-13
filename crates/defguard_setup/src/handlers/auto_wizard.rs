@@ -4,7 +4,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates, MfaFlow, WireguardNetwork,
+            Certificates, WireguardNetwork,
             initial_setup_wizard::InitialSetupStep,
             settings::update_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
@@ -331,14 +331,17 @@ pub async fn set_mfa_settings(
         })?;
 
     // Enforce the precondition: MFA cannot be enabled until a default flow is assigned to the
-    // location, so "enabled with no policy" is unrepresentable.
-    if mfa_settings.mfa_enabled {
-        if !MfaFlow::any_exist(&pool).await? {
-            return Ok(defguard_core::handlers::wireguard::no_flows_exist_response());
-        }
-        if !MfaFlow::has_default_assignment(&pool, first_network_id).await? {
-            return Ok(defguard_core::handlers::wireguard::no_flows_assigned_response());
-        }
+    // location, so "enabled with no policy" is unrepresentable. This is the same check
+    // `create_network` and `modify_network` apply, shared rather than reimplemented so the three
+    // entry points cannot drift. Validated before saving, so a refusal writes nothing.
+    if let Some(response) = defguard_core::handlers::wireguard::validate_mfa_flows_exist(
+        &pool,
+        mfa_settings.mfa_enabled,
+        Some(first_network_id),
+    )
+    .await?
+    {
+        return Ok(response);
     }
 
     network.mfa_enabled = mfa_settings.mfa_enabled;

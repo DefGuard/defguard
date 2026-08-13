@@ -188,7 +188,7 @@ impl ClientMfaServer {
         };
 
         // return early if MFA is not enabled for this location
-        if !location.mfa_enabled() {
+        if !location.mfa_enabled {
             error!("MFA is not enabled for location {location}");
             return Err(Status::invalid_argument("MFA not enabled for location"));
         }
@@ -955,7 +955,7 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("location not found"));
         };
 
-        if location.mfa_enabled() {
+        if location.mfa_enabled {
             error!(
                 "Posture check: location {location} has MFA enabled, posture-only sessions are not allowed"
             );

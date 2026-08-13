@@ -255,7 +255,7 @@ impl EnrollmentServer {
                     })?;
             // Check if any MFA-enabled location has at least one flow step that
             // includes an internal MFA method (totp, email, biometric, or
-            // mobileapprove).  The boolean mfa_enabled cannot distinguish
+            // mobileapprove). The boolean mfa_enabled cannot distinguish
             // internal from OIDC-only, so the predicate inspects the actual
             // flow shape.
             let instance_has_internal_mfa = query_scalar!(

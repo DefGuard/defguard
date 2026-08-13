@@ -12,8 +12,8 @@
     "parameters": {
       "Left": [
         "Text",
-        "Timestamptz",
-        "Timestamptz"
+        "Timestamp",
+        "Timestamp"
       ]
     },
     "nullable": [

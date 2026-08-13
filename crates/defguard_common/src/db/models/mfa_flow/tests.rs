@@ -1624,10 +1624,10 @@ async fn test_validation_too_many_steps(_: PgPoolOptions, options: PgConnectOpti
     );
 }
 
-/// `all_using_external_mfa` must select locations whose assigned flow steps
+/// `all_with_oidc_in_flows` must select locations whose assigned flow steps
 /// include OIDC, and exclude locations that use internal-only flows.
 #[sqlx::test]
-async fn test_all_using_external_mfa_flow_shape_predicate(
+async fn test_all_with_oidc_in_flows_flow_shape_predicate(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1703,7 +1703,7 @@ async fn test_all_using_external_mfa_flow_shape_predicate(
     .unwrap();
     tx.commit().await.unwrap();
 
-    let external = WireguardNetwork::all_using_external_mfa(&pool)
+    let external = WireguardNetwork::all_with_oidc_in_flows(&pool)
         .await
         .unwrap();
     let external_ids: Vec<_> = external.iter().map(|l| l.id).collect();
@@ -1719,10 +1719,72 @@ async fn test_all_using_external_mfa_flow_shape_predicate(
     );
 }
 
-/// `all_using_external_mfa` must return an empty set when no location's flows
+/// An MFA-disabled location whose flows reference OIDC must still be returned.
+///
+/// This pins a deliberate decision. Adding `WHERE wn.mfa_enabled = true` to the predicate would
+/// look like a consistency fix against `instance_has_internal_mfa`, but it would silently drop this
+/// case from the provider-deletion warning. Switching MFA off preserves the assignment list, and
+/// re-enabling checks only that a default assignment exists, never that its methods are
+/// satisfiable, so such a location is one call away from refusing every user at connect time.
+#[sqlx::test]
+async fn test_oidc_predicate_includes_mfa_disabled_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (oidc_flow, _) = MfaFlow::create(
+        &mut tx,
+        "OIDC Only".into(),
+        vec![vec![VpnClientMfaMethod::Oidc]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // MFA is off, but the OIDC assignment survives, exactly as it does after an admin toggles MFA
+    // off on a previously OIDC-protected location.
+    let network = WireguardNetwork::default()
+        .try_set_address("10.21.0.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    assert!(
+        !network.mfa_enabled,
+        "precondition: this location must have MFA disabled"
+    );
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: oidc_flow.id,
+            is_default: true,
+            group_ids: vec![],
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let affected = WireguardNetwork::all_with_oidc_in_flows(&pool)
+        .await
+        .unwrap();
+    let affected_ids: Vec<_> = affected.iter().map(|l| l.id).collect();
+    assert!(
+        affected_ids.contains(&network.id),
+        "MFA-disabled location {id} with an OIDC flow must still be reported, got: {affected_ids:?}",
+        id = network.id
+    );
+}
+
+/// `all_with_oidc_in_flows` must return an empty set when no location's flows
 /// contain OIDC, even when MFA is enabled on some locations.
 #[sqlx::test]
-async fn test_all_using_external_mfa_empty_when_no_oidc(
+async fn test_all_with_oidc_in_flows_empty_when_no_oidc(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1761,7 +1823,7 @@ async fn test_all_using_external_mfa_empty_when_no_oidc(
     .unwrap();
     tx.commit().await.unwrap();
 
-    let external = WireguardNetwork::all_using_external_mfa(&pool)
+    let external = WireguardNetwork::all_with_oidc_in_flows(&pool)
         .await
         .unwrap();
     assert!(

@@ -7,8 +7,8 @@
       "Left": [
         "Int8",
         "Text",
-        "Timestamptz",
-        "Timestamptz"
+        "Timestamp",
+        "Timestamp"
       ]
     },
     "nullable": []

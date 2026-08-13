@@ -216,7 +216,7 @@ pub(crate) async fn enable_internal_mfa_for_network(
         .save(pool)
         .await
         .expect("failed to enable MFA for test network");
-    assert!(network.mfa_enabled());
+    assert!(network.mfa_enabled);
 }
 
 pub(crate) async fn enable_linux_posture_for_network(

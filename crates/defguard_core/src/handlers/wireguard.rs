@@ -120,6 +120,42 @@ pub fn no_flows_assigned_response() -> ApiResponse {
     )
 }
 
+/// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
+///
+/// The check is per-location: an existing location (`Some(id)`) must carry a designated default
+/// assignment, and a brand-new location (`None`, the create path) can never have one, so creating
+/// with `mfa_enabled` is refused here too. The global `no_flows_exist` check runs first so a fresh
+/// instance reports the more actionable "create a flow" error. Returns a structured `400` response
+/// (not a `WebError`) so the body is parsed in one step.
+///
+/// Shared by `create_network`, `modify_network` and the auto-adoption wizard, which sets
+/// `mfa_enabled` on an already-persisted location, so the three entry points cannot drift.
+pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
+    executor: E,
+    mfa_enabled: bool,
+    location_id: Option<Id>,
+) -> Result<Option<ApiResponse>, WebError> {
+    if !mfa_enabled {
+        return Ok(None);
+    }
+
+    if !MfaFlow::any_exist(executor).await? {
+        error!("Unable to enable MFA for location: no MFA flows are configured");
+        return Ok(Some(no_flows_exist_response()));
+    }
+
+    let has_default = match location_id {
+        Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
+        None => false,
+    };
+    if !has_default {
+        error!("Unable to enable MFA for location: no default MFA flow is assigned");
+        return Ok(Some(no_flows_assigned_response()));
+    }
+
+    Ok(None)
+}
+
 impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
         self.allowed_ips
@@ -143,35 +179,13 @@ impl WireguardNetworkData {
 
     /// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
     ///
-    /// The check is per-location: an existing location (`Some(id)`) must carry a designated
-    /// default assignment, and a brand-new location (`None`, the create path) can never have one,
-    /// so creating with `mfa_enabled` is refused here too. The global `no_flows_exist` check runs
-    /// first so a fresh instance reports the more actionable "create a flow" error. Returns a
-    /// structured `400` response (not a `WebError`) so the body is parsed in one step.
+    /// Thin wrapper over [`validate_mfa_flows_exist`] for the create/modify request path.
     pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
         &self,
         executor: E,
         location_id: Option<Id>,
     ) -> Result<Option<ApiResponse>, WebError> {
-        if !self.mfa_enabled {
-            return Ok(None);
-        }
-
-        if !MfaFlow::any_exist(executor).await? {
-            error!("Unable to enable MFA for location: no MFA flows are configured");
-            return Ok(Some(no_flows_exist_response()));
-        }
-
-        let has_default = match location_id {
-            Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
-            None => false,
-        };
-        if !has_default {
-            error!("Unable to enable MFA for location: no default MFA flow is assigned");
-            return Ok(Some(no_flows_assigned_response()));
-        }
-
-        Ok(None)
+        validate_mfa_flows_exist(executor, self.mfa_enabled, location_id).await
     }
 
     /// Rejects service-location mode combined with location MFA: core cannot serve it and the

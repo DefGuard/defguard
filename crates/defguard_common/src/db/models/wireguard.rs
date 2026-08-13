@@ -1313,19 +1313,24 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
-    #[must_use]
-    pub fn mfa_enabled(&self) -> bool {
-        self.mfa_enabled
-    }
-
-    /// Fetch all locations whose assigned flow steps include the OIDC method.
+    /// Fetch all locations whose assigned flow steps include the OIDC method, whether or not MFA
+    /// is currently enabled on them.
     ///
     /// This replaces a pre-flow-model query that selected on the legacy
     /// `location_mfa_mode = 'external'` column. The boolean `mfa_enabled` cannot
     /// distinguish external (OIDC) from internal MFA, so the predicate inspects
     /// the actual flow shape by joining through `location_mfa_flow` and
     /// `mfa_flow_step`.
-    pub async fn all_using_external_mfa<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
+    ///
+    /// **Deliberately not filtered on `mfa_enabled`**, unlike `instance_has_internal_mfa` in
+    /// `defguard_proxy_manager`. The sole caller warns an admin which locations are left with
+    /// unsatisfiable flows after an OIDC provider is deleted, and an MFA-disabled location still
+    /// belongs in that warning: switching MFA off preserves the assignment list, and re-enabling it
+    /// checks only that a default assignment exists, never that the flow's methods are satisfiable.
+    /// Such a location is one call away from refusing every user at connect time. Adding the filter
+    /// would silently drop that case, so `test_oidc_predicate_includes_mfa_disabled_location`
+    /// pins the behaviour.
+    pub async fn all_with_oidc_in_flows<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {

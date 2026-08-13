@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use chrono::{DateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
@@ -18,8 +18,8 @@ use crate::db::{
 pub struct MfaFlow<I = NoId> {
     pub id: I,
     pub title: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 /// A single step within an MFA flow.
@@ -37,8 +37,8 @@ pub struct MfaFlowWithStepCount {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 /// A point-in-time snapshot of an MFA flow and its steps, used as the
@@ -225,7 +225,7 @@ impl MfaFlow<NoId> {
         title: String,
         step_methods: Vec<Vec<VpnClientMfaMethod>>,
     ) -> sqlx::Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> {
-        let now = Utc::now();
+        let now = Utc::now().naive_utc();
         let flow = MfaFlow {
             id: NoId,
             title,
@@ -248,9 +248,13 @@ impl MfaFlow<Id> {
         flow_id: Id,
         title: &str,
     ) -> sqlx::Result<()> {
+        // `updated_at` is bound from Rust rather than set with SQL `now()`: the column is
+        // `timestamp without time zone`, so `now()` would be cast using the session time
+        // zone, while inserts write `Utc::now().naive_utc()`. Binding keeps both UTC.
         query!(
-            "UPDATE mfa_flow SET title = $1, updated_at = now() WHERE id = $2",
+            "UPDATE mfa_flow SET title = $1, updated_at = $2 WHERE id = $3",
             title,
+            Utc::now().naive_utc(),
             flow_id,
         )
         .execute(&mut *conn)
@@ -786,15 +790,7 @@ impl MfaFlowStep<NoId> {
     ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
         let mut steps = Vec::with_capacity(step_methods.len());
         for (i, methods) in step_methods.iter().enumerate() {
-            let id = query_scalar!(
-                "INSERT INTO mfa_flow_step (flow_id, position, methods) \
-                 VALUES ($1, $2, $3::vpn_client_mfa_method[]) RETURNING id",
-                flow_id,
-                i as i32,
-                methods as &[VpnClientMfaMethod],
-            )
-            .fetch_one(&mut *conn)
-            .await?;
+            let id = Self::insert_single(&mut *conn, flow_id, i as i32, methods).await?;
 
             steps.push(MfaFlowStep {
                 id,
