@@ -25,7 +25,10 @@ use super::InstanceInfo;
 use crate::{
     device_access::build_device_config,
     enterprise::db::models::openid_provider::OpenIdProvider,
-    grpc::{client_version::ClientFeature, should_prevent_service_location_usage},
+    grpc::{
+        client_version::{ClientFeature, should_omit_location_for_device},
+        should_prevent_service_location_usage,
+    },
 };
 
 pub async fn build_device_config_response(
@@ -41,7 +44,7 @@ pub async fn build_device_config_response(
         Status::internal(format!("unexpected error: {err}"))
     })?;
 
-    let networks = WireguardNetwork::all(pool).await.map_err(|err| {
+    let locations = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
         Status::internal(format!("unexpected error: {err}"))
     })?;
@@ -133,36 +136,38 @@ pub async fn build_device_config_response(
             configs.push(config);
         }
     } else {
-        for network in networks {
+        for location in locations {
             let wireguard_network_device = WireguardNetworkDevice::find(
-                pool, device.id, network.id,
+                pool,
+                device.id,
+                location.id,
             )
             .await
             .map_err(|err| {
                 error!(
                     "Failed to fetch WireGuard network device for device {} and network {}: {err}",
-                    device.id, network.id
+                    device.id, location.id
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            if should_prevent_service_location_usage(&network) {
+            if should_prevent_service_location_usage(&location) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
-                    network.name
+                    location.name
                 );
                 continue;
             }
-            if network.service_location_mode != ServiceLocationMode::Disabled
+            if location.service_location_mode != ServiceLocationMode::Disabled
                 && !ClientFeature::ServiceLocations.is_supported_by_device(device_info.as_ref())
             {
                 info!(
                     "Device {} does not support service locations feature, skipping sending network {} configuration to device {}.",
-                    device.name, network.name, device.name
+                    device.name, location.name, device.name
                 );
                 continue;
             }
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.mfa_enabled;
+            let mfa_enabled = location.mfa_enabled;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let mut conn = pool.acquire().await.map_err(|err| {
                     error!("Failed to acquire connection: {err}");
@@ -170,7 +175,7 @@ pub async fn build_device_config_response(
                 })?;
 
                 let device_config =
-                    build_device_config(&mut conn, &network, &wireguard_network_device, &user)
+                    build_device_config(&mut conn, &location, &wireguard_network_device, &user)
                         .await
                         .map_err(|err| {
                             error!("Failed to build device config: {err}");
@@ -182,7 +187,18 @@ pub async fn build_device_config_response(
                 {
                     info!(
                         "Device {} does not support posture checks feature, skipping sending network {} configuration to device {}.",
-                        device.name, network.name, device.name
+                        device.name, location.name, device.name
+                    );
+                    continue;
+                }
+
+                if should_omit_location_for_device(
+                    device_config.location_mfa_mode.clone(),
+                    device_info.as_ref(),
+                ) {
+                    info!(
+                        "Device {} does not support multi-step MFA, skipping sending network {} configuration to device {}.",
+                        device.name, location.name, device.name
                     );
                     continue;
                 }
@@ -253,4 +269,215 @@ pub fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, Strin
     let escaped_agent = tera::escape_html(&user_agent);
 
     Ok((ip, escaped_agent))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use defguard_common::db::{
+        Id,
+        models::{
+            Device, DeviceType, Settings, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
+            settings::{initialize_current_settings, update_current_settings},
+            vpn_client_session::VpnClientMfaMethod,
+            wireguard::ServiceLocationMode,
+        },
+        setup_pool,
+    };
+    use defguard_proto::proxy::DeviceInfo;
+    use ipnetwork::IpNetwork;
+    use sqlx::{
+        PgPool,
+        postgres::{PgConnectOptions, PgPoolOptions},
+    };
+
+    use super::build_device_config_response;
+
+    const DEFGUARD_URL: &str = "http://localhost:8000";
+    const PROXY_URL: &str = "http://localhost:8080";
+
+    async fn init_settings(pool: &PgPool) {
+        initialize_current_settings(pool)
+            .await
+            .expect("failed to init settings");
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = DEFGUARD_URL.to_owned();
+        settings.public_proxy_url = PROXY_URL.to_owned();
+        update_current_settings(pool, settings)
+            .await
+            .expect("failed to update settings");
+    }
+
+    async fn create_user(pool: &PgPool) -> User<Id> {
+        User::new(
+            "mfa-gate-test",
+            Some("pass123"),
+            "Tester",
+            "MfaGate",
+            "mfa-gate@example.com",
+            None,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create user")
+    }
+
+    async fn create_device(pool: &PgPool, user_id: Id) -> Device<Id> {
+        Device::new(
+            "mfa-gate-device".to_owned(),
+            "mfa-gate-pubkey".to_owned(),
+            user_id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create device")
+    }
+
+    /// Creates an MFA-enabled location with a single default flow built from `step_methods`.
+    async fn create_location(
+        pool: &PgPool,
+        name: &str,
+        address_octet: u8,
+        step_methods: Vec<Vec<VpnClientMfaMethod>>,
+    ) -> WireguardNetwork<Id> {
+        let network = WireguardNetwork::new(
+            name.to_owned(),
+            51820,
+            "vpn.example.com".to_owned(),
+            None,
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            false,
+            false,
+            false,
+            true, // mfa_enabled
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, address_octet, 1)), 24).unwrap(),
+        ])
+        .expect("failed to set location address")
+        .save(pool)
+        .await
+        .expect("failed to create location");
+
+        let mut tx = pool.begin().await.expect("failed to begin tx");
+        let (flow, _) = MfaFlow::create(&mut tx, format!("{name}-flow"), step_methods)
+            .await
+            .expect("failed to create flow");
+        MfaFlow::assign_to_location(
+            &mut tx,
+            network.id,
+            &[LocationMfaFlowAssignment {
+                flow_id: flow.id,
+                is_default: true,
+                group_ids: vec![],
+            }],
+        )
+        .await
+        .expect("failed to assign flow");
+        tx.commit().await.expect("failed to commit tx");
+
+        network
+    }
+
+    async fn attach_device(pool: &PgPool, location_id: Id, device_id: Id) {
+        WireguardNetworkDevice::new(
+            location_id,
+            device_id,
+            vec![IpAddr::V4(Ipv4Addr::new(10, 10, 0, 10))],
+        )
+        .insert(pool)
+        .await
+        .expect("failed to attach device");
+    }
+
+    fn device_info(version: &str) -> Option<DeviceInfo> {
+        Some(DeviceInfo {
+            version: Some(version.to_owned()),
+            ..Default::default()
+        })
+    }
+
+    #[sqlx::test]
+    async fn test_multi_step_location_omitted_for_legacy_client(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        // Multi-step location: two steps, so `derive_legacy_mode` returns `None`.
+        let multi_step = create_location(
+            &pool,
+            "multi-step-location",
+            1,
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+        )
+        .await;
+        // Legacy-derivable location: single internal step, so `Some(Internal)`.
+        let internal = create_location(
+            &pool,
+            "internal-location",
+            2,
+            vec![vec![
+                VpnClientMfaMethod::Totp,
+                VpnClientMfaMethod::Email,
+                VpnClientMfaMethod::Biometric,
+                VpnClientMfaMethod::MobileApprove,
+            ]],
+        )
+        .await;
+        attach_device(&pool, multi_step.id, device.id).await;
+        attach_device(&pool, internal.id, device.id).await;
+
+        // Legacy client (2.1.0): the multi-step location is omitted, the internal one retained.
+        let response =
+            build_device_config_response(&pool, device.clone(), None, device_info("2.1.0"))
+                .await
+                .expect("failed to build config for legacy client");
+        let names: Vec<&str> = response
+            .configs
+            .iter()
+            .map(|config| config.network_name.as_str())
+            .collect();
+        assert!(
+            !names.contains(&"multi-step-location"),
+            "multi-step location must be omitted for a legacy client, got: {names:?}"
+        );
+        assert!(
+            names.contains(&"internal-location"),
+            "legacy-derivable location must be retained, got: {names:?}"
+        );
+
+        // Capable client (2.2.0): both locations are retained.
+        let response =
+            build_device_config_response(&pool, device.clone(), None, device_info("2.2.0"))
+                .await
+                .expect("failed to build config for capable client");
+        let names: Vec<&str> = response
+            .configs
+            .iter()
+            .map(|config| config.network_name.as_str())
+            .collect();
+        assert!(
+            names.contains(&"multi-step-location"),
+            "multi-step location must be retained for a capable client, got: {names:?}"
+        );
+        assert!(
+            names.contains(&"internal-location"),
+            "legacy-derivable location must be retained, got: {names:?}"
+        );
+    }
 }
