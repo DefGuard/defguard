@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"mfa_flow\" (\"title\",\"created_at\",\"updated_at\") VALUES ($1,$2,$3) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cbc5530fe713d2d1eb12dbf939248274929c4c3be8d9821de27beb4667fdb6c8"
+}

@@ -12,6 +12,7 @@ mod forward_auth;
 mod gateway;
 mod group;
 mod location_stats;
+mod mfa_flow;
 mod oauth;
 mod openid;
 mod openid_login;

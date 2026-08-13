@@ -28,7 +28,7 @@ pub async fn get_location_allowed_peers(
     }
 
     let has_postures = location.has_postures(&mut *conn).await?;
-    if !location.mfa_enabled() && !has_postures {
+    if !location.mfa_enabled && !has_postures {
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, \
                     ARRAY( \
@@ -105,11 +105,8 @@ mod test {
     use chrono::Utc;
     use defguard_common::db::{
         models::{
-            Device, DeviceType, WireguardNetwork,
-            device::WireguardNetworkDevice,
-            user::User,
-            vpn_client_session::VpnClientSession,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, user::User,
+            vpn_client_session::VpnClientSession, wireguard::ServiceLocationMode,
         },
         setup_pool,
     };
@@ -164,7 +161,7 @@ mod test {
             .unwrap();
         network_normal.name = "normal-location".to_owned();
         network_normal.service_location_mode = ServiceLocationMode::Disabled;
-        network_normal.location_mfa_mode = LocationMfaMode::Disabled;
+        network_normal.mfa_enabled = false;
         let network_normal = network_normal.save(&mut *conn).await.unwrap();
 
         WireguardNetworkDevice::new(
@@ -188,7 +185,7 @@ mod test {
             .unwrap();
         network_prelogon.name = "prelogon-service-location".to_owned();
         network_prelogon.service_location_mode = ServiceLocationMode::PreLogon;
-        network_prelogon.location_mfa_mode = LocationMfaMode::Disabled;
+        network_prelogon.mfa_enabled = false;
         let network_prelogon = network_prelogon.save(&mut *conn).await.unwrap();
 
         WireguardNetworkDevice::new(
@@ -217,7 +214,7 @@ mod test {
             .unwrap();
         network_alwayson.name = "alwayson-service-location".to_owned();
         network_alwayson.service_location_mode = ServiceLocationMode::AlwaysOn;
-        network_alwayson.location_mfa_mode = LocationMfaMode::Disabled;
+        network_alwayson.mfa_enabled = false;
         let network_alwayson = network_alwayson.save(&mut *conn).await.unwrap();
 
         let device3 = Device::new(
@@ -289,7 +286,7 @@ mod test {
             .unwrap();
         network.name = "mfa-location".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
-        network.location_mfa_mode = LocationMfaMode::Internal;
+        network.mfa_enabled = true;
         let network = network.save(&mut *conn).await.unwrap();
 
         let network_device = WireguardNetworkDevice::new(
@@ -347,7 +344,7 @@ mod test {
             .unwrap();
         network.name = "non-mfa-location".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
-        network.location_mfa_mode = LocationMfaMode::Disabled;
+        network.mfa_enabled = false;
         let network = network.save(&mut *conn).await.unwrap();
 
         let network_device = WireguardNetworkDevice::new(
@@ -414,7 +411,7 @@ mod test {
             .unwrap();
         network.name = "mfa-location-with-session-psk".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
-        network.location_mfa_mode = LocationMfaMode::Internal;
+        network.mfa_enabled = true;
         let network = network.save(&mut *conn).await.unwrap();
 
         WireguardNetworkDevice::new(

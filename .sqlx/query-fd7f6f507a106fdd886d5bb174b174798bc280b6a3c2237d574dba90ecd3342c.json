@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO mfa_flow_step (flow_id, position, methods) VALUES ($1, $2, $3::vpn_client_mfa_method[]) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        {
+          "Custom": {
+            "name": "vpn_client_mfa_method[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fd7f6f507a106fdd886d5bb174b174798bc280b6a3c2237d574dba90ecd3342c"
+}

@@ -253,11 +253,18 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            // check if any locations enforce internal MFA
+            // Check if any MFA-enabled location has at least one flow step that
+            // includes an internal MFA method (totp, email, biometric, or
+            // mobileapprove). The boolean mfa_enabled cannot distinguish
+            // internal from OIDC-only, so the predicate inspects the actual
+            // flow shape.
             let instance_has_internal_mfa = query_scalar!(
                 "SELECT EXISTS( \
-                    SELECT 1 FROM wireguard_network \
-                    WHERE location_mfa_mode = 'internal'::location_mfa_mode \
+                    SELECT 1 FROM wireguard_network wn \
+                    JOIN location_mfa_flow lmf ON lmf.location_id = wn.id \
+                    JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id \
+                    WHERE wn.mfa_enabled = true \
+                    AND mfs.methods && ARRAY['totp','email','biometric','mobileapprove']::vpn_client_mfa_method[] \
                 ) \"exists!\""
             )
             .fetch_one(&self.pool)

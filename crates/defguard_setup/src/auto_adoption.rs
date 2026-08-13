@@ -19,7 +19,7 @@ use defguard_common::{
         setup_auto_adoption::{
             AutoAdoptionComponentResult, AutoAdoptionWizardState, SetupAutoAdoptionComponent,
         },
-        wireguard::{LocationMfaMode, ServiceLocationMode},
+        wireguard::ServiceLocationMode,
     },
     utils::strip_scheme,
 };
@@ -984,7 +984,7 @@ id={} for new gateway",
             false,
             false,
             false,
-            LocationMfaMode::Disabled,
+            false, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([network_address])?

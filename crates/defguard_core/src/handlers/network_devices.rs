@@ -123,7 +123,12 @@ pub(crate) struct DeviceWireGuardConfig {
     pub(crate) network_id: Id,
     pub(crate) network_name: String,
     pub(crate) config: String,
-    pub(crate) location_mfa_mode: LocationMfaMode,
+    /// Authoritative flag for whether the location requires MFA.
+    pub(crate) mfa_enabled: bool,
+    /// Legacy derived mode. Absent when the location's MFA flow configuration has no legacy
+    /// equivalent, which includes every location with no flows, so it must not be used to infer
+    /// whether MFA is required.
+    pub(crate) location_mfa_mode: Option<LocationMfaMode>,
     pub(crate) posture_check_required: bool,
 }
 
@@ -139,7 +144,7 @@ pub(crate) struct DeviceWireGuardConfig {
     ),
     responses(
         (status = 200, description = "Network device configuration for each location of the device.", body = [Object], example = json!([
-            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "location_mfa_mode": "disabled", "posture_check_required": false}
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false, "posture_check_required": false}
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -196,6 +201,7 @@ pub(crate) async fn network_device_configs(
             network_id: device_config.network_id,
             network_name: device_config.network_name,
             config: device_config.config,
+            mfa_enabled: device_config.mfa_enabled,
             location_mfa_mode: device_config.location_mfa_mode,
             posture_check_required: device_config.posture_check_required,
         };
@@ -783,7 +789,7 @@ pub(crate) async fn start_network_device_setup_for_device(
                 "pubkey": "Zm9vYmFyMDEyMzQ1Njc4OWFiY2RlZmdoaWprbG1ub3A=",
                 "dns": "10.0.0.1",
                 "keepalive_interval": 25,
-                "location_mfa_mode": "disabled",
+                "mfa_enabled": false,
                 "service_location_mode": "disabled",
                 "posture_check_required": false
             },

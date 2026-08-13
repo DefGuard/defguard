@@ -37,18 +37,8 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
 
   await page.getByTestId('continue').click();
 
-  if (network.location_mfa_mode) {
-    switch (network.location_mfa_mode) {
-      case 'internal':
-        await page.getByTestId('enforce-internal-mfa').click();
-        break;
-      case 'external':
-        await page.getByTestId('enforce-external-mfa').click();
-        break;
-      default:
-        await page.getByTestId('do-not-enforce-mfa').click();
-        break;
-    }
+  if (network.mfa_enabled) {
+    await page.getByTestId('toggle-mfa').click();
   }
   await page.getByTestId('finish').click();
 

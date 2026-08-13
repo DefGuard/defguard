@@ -24,8 +24,8 @@ use super::{
         SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, activity_log, app_info, auth,
         component_setup, core_certs, forward_auth, gateway,
         group::{self, BulkAssignToGroupsRequest},
-        license, location_stats, mail, network_devices, openid_clients, openid_flow, proxy,
-        reserved, resource_display, session_info, settings, ssh_authorized_keys, static_ips,
+        license, location_stats, mail, mfa_flow, network_devices, openid_clients, openid_flow,
+        proxy, reserved, resource_display, session_info, settings, ssh_authorized_keys, static_ips,
         support, updates,
         user::{self, UserDetails},
         webhooks, wireguard as device, wireguard as network,
@@ -264,6 +264,15 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         openid_clients::get_openid_client,
         openid_clients::change_openid_client_state,
         openid_clients::change_openid_client,
+        // mfa flow
+        mfa_flow::list_mfa_flows,
+        mfa_flow::create_mfa_flow,
+        mfa_flow::get_mfa_flow,
+        mfa_flow::update_mfa_flow,
+        mfa_flow::delete_mfa_flow,
+        mfa_flow::get_location_mfa_flows,
+        mfa_flow::set_location_mfa_flows,
+        mfa_flow::get_method_availability,
         // support
         mail::send_support_data,
         mail::test_mail,
@@ -307,6 +316,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         (name = "OpenID", description = "External OpenID providers used for logging in to defguard."),
         (name = "OAuth2", description = "defguard acting as an OAuth2 / OpenID Connect provider for other applications."),
         (name = "support", description = "Diagnostics, logs and support data."),
+        (name = "mfa flow", description = "MFA flow templates - ordered multi-step authentication recipes."),
         (name = "license", description = "Enterprise license."),
     )
 )]

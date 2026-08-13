@@ -1,5 +1,4 @@
 import type { AddDeviceResponse, AddDeviceResponseConfig } from '../../api/types';
-import { LocationMfaMode } from '../../api/types';
 import './style.scss';
 import { ZipArchive } from '@shortercode/webzip';
 import { useCallback, useMemo, useState } from 'react';
@@ -38,11 +37,10 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   const selectOptions = useMemo(
     () =>
       response.configs
-        .filter(
-          (item) =>
-            item.location_mfa_mode === LocationMfaMode.Disabled &&
-            !item.posture_check_required,
-        )
+        // A config is downloadable only when the location needs neither MFA nor a posture
+        // check. `mfa_enabled` is the authoritative flag; the legacy `location_mfa_mode` is
+        // derived and absent for flows with no legacy equivalent, so it cannot be used here.
+        .filter((item) => !item.mfa_enabled && !item.posture_check_required)
         .map((item): SelectOption<AddDeviceResponseConfig> => configToOption(item)),
     [response.configs],
   );
@@ -73,8 +71,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   const handleDownloadAll = useCallback(async () => {
     if (!response) return;
     const nonMfaConfigs = response.configs.filter(
-      (c) =>
-        c.location_mfa_mode === LocationMfaMode.Disabled && !c.posture_check_required,
+      (c) => !c.mfa_enabled && !c.posture_check_required,
     );
     let data: AddDeviceResponseConfig[] = [];
     if (isPresent(privateKey)) {

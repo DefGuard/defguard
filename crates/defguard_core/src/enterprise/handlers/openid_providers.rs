@@ -6,7 +6,6 @@ use axum::{
 use defguard_common::db::models::{
     Settings, WireguardNetwork,
     settings::{OpenIdUsernameHandling, update_current_settings},
-    wireguard::LocationMfaMode,
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
@@ -262,12 +261,16 @@ pub(crate) async fn get_openid_provider(
 }
 
 /// Delete an OpenID provider
+///
+/// Deletion always proceeds. Any location whose assigned MFA flows still reference OIDC is
+/// returned in `affected_locations`: those flows become unsatisfiable, so their users cannot
+/// complete MFA until an admin edits them. Callers should surface this as a warning.
 #[utoipa::path(
     delete,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
     responses(
-        (status = 200, description = "OpenID provider deleted."),
+        (status = 200, description = "OpenID provider deleted. `affected_locations` names any location whose MFA flows still reference OIDC and now cannot complete MFA.", body = Object, example = json!({"affected_locations": ["Warsaw office"]})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "OpenID provider not found."),
@@ -296,31 +299,50 @@ pub(crate) async fn delete_openid_provider(
     let mut transaction = appstate.pool.begin().await?;
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &name).await?;
     if let Some(provider) = provider {
+        // Deleting the provider leaves any flow step referencing OIDC unsatisfiable. Deletion is
+        // still allowed to proceed, because removing a provider is frequently incident response
+        // (a compromised or decommissioned IdP) and blocking it would keep that provider live for
+        // SSO during exactly the window that matters most. The two rejected alternatives were
+        // refusing the delete, which impedes revocation, and rewriting the affected flows, which
+        // is unsafe because `location_mfa_flow` is many-to-many so one flow can serve several
+        // locations and rewriting it would silently change policy for all of them.
+        //
+        // Access still fails closed: an unsatisfiable step makes connect-time MFA return
+        // `failed_precondition`, so affected users are refused rather than let through. The
+        // affected locations are returned to the caller so an admin can be warned and repair the
+        // flows. The set is deliberately not filtered on `mfa_enabled`: a location with MFA
+        // currently switched off would hit the same problem the moment it is re-enabled, so it
+        // belongs in the warning.
+        let affected = WireguardNetwork::all_with_oidc_in_flows(&mut *transaction).await?;
+        let affected_locations: Vec<String> = affected.iter().map(|l| l.name.clone()).collect();
+
         provider.clone().delete(&mut *transaction).await?;
-        // fetch all locations using external MFA
-        let locations = WireguardNetwork::all_using_external_mfa(&mut *transaction).await?;
-        if locations.is_empty() {
-            debug!("No locations are using OIDC provider for external MFA");
-        }
-        // fall back to internal MFA in all relevant locations
-        for mut location in locations {
-            debug!(
-                "Falling back to internal MFA for {location} because exteral OIDC provider has \
-                been removed"
-            );
-            location.location_mfa_mode = LocationMfaMode::Internal;
-            location.save(&mut *transaction).await?;
-        }
         transaction.commit().await?;
-        info!(
-            "User {} deleted OpenID provider {}",
-            session.user.username, provider.name
-        );
+
+        if affected_locations.is_empty() {
+            info!(
+                "User {} deleted OpenID provider {}",
+                session.user.username, provider.name
+            );
+        } else {
+            warn!(
+                "User {} deleted OpenID provider {}. {} location(s) still reference OIDC in their \
+                 MFA flows and their users cannot complete MFA until those flows are edited: {}",
+                session.user.username,
+                provider.name,
+                affected_locations.len(),
+                affected_locations.join(", "),
+            );
+        }
+
         appstate.emit_event(ApiEvent {
             context,
             event: Box::new(ApiEventType::OpenIdProviderRemoved { provider }),
         })?;
-        Ok(ApiResponse::with_status(StatusCode::OK))
+        Ok(ApiResponse::new(
+            json!({ "affected_locations": affected_locations }),
+            StatusCode::OK,
+        ))
     } else {
         warn!(
             "User {} failed to delete OpenID provider {name}. Such provider does not exist.",

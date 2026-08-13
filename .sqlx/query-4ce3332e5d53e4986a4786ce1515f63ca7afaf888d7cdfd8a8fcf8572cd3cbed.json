@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at,  keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, mfa_enabled \"mfa_enabled!: bool\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1) AND NOT mfa_enabled",
   "describe": {
     "columns": [
       {
@@ -95,19 +95,8 @@
       },
       {
         "ordinal": 18,
-        "name": "location_mfa_mode: LocationMfaMode",
-        "type_info": {
-          "Custom": {
-            "name": "location_mfa_mode",
-            "kind": {
-              "Enum": [
-                "disabled",
-                "internal",
-                "external"
-              ]
-            }
-          }
-        }
+        "name": "mfa_enabled!: bool",
+        "type_info": "Bool"
       },
       {
         "ordinal": 19,
@@ -127,7 +116,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -152,5 +143,5 @@
       false
     ]
   },
-  "hash": "418cfbdf875f541c080ef6ce96d31b7b9d4e630c4c1b1d244386ca53ab1b335d"
+  "hash": "4ce3332e5d53e4986a4786ce1515f63ca7afaf888d7cdfd8a8fcf8572cd3cbed"
 }

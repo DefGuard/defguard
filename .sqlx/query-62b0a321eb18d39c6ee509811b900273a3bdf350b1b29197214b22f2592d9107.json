@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM mfa_flow_step WHERE flow_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "62b0a321eb18d39c6ee509811b900273a3bdf350b1b29197214b22f2592d9107"
+}

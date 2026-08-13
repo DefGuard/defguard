@@ -7,7 +7,7 @@ use defguard_common::{
             device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
             user::User,
             vpn_client_session::VpnClientSession,
-            wireguard::{LocationMfaMode, WireguardNetwork},
+            wireguard::WireguardNetwork,
         },
     },
     gateway_event::GatewayCommand,
@@ -211,12 +211,12 @@ pub(crate) async fn enable_internal_mfa_for_network(
     pool: &sqlx::PgPool,
     network: &mut WireguardNetwork<Id>,
 ) {
-    network.location_mfa_mode = LocationMfaMode::Internal;
+    network.mfa_enabled = true;
     network
         .save(pool)
         .await
         .expect("failed to enable MFA for test network");
-    assert!(network.mfa_enabled());
+    assert!(network.mfa_enabled);
 }
 
 pub(crate) async fn enable_linux_posture_for_network(

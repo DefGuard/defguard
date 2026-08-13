@@ -7,7 +7,7 @@ use defguard_common::{
         Id,
         models::{
             Device, WireguardNetwork,
-            wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
+            wireguard::{DEFAULT_WIREGUARD_MTU, ServiceLocationMode},
         },
     },
 };
@@ -120,7 +120,7 @@ pub(crate) fn parse_wireguard_config(
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .set_address(addresses.clone())?;

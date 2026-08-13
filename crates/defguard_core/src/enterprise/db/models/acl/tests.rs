@@ -2,10 +2,7 @@ use std::ops::Bound;
 
 use chrono::{NaiveDateTime, Timelike};
 use defguard_common::{
-    db::{
-        models::wireguard::{LocationMfaMode, ServiceLocationMode},
-        setup_pool,
-    },
+    db::{models::wireguard::ServiceLocationMode, setup_pool},
     utils::parse_address_list,
 };
 use rand::{Rng, thread_rng};
@@ -168,7 +165,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .save(&pool)
@@ -184,7 +181,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         false,
-        LocationMfaMode::Disabled,
+        false, // mfa_enabled
         ServiceLocationMode::Disabled,
     )
     .save(&pool)

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO location_mfa_flow_group (location_id, flow_id, group_id) SELECT $1, $2, unnest($3::bigint[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1a390d684b013ab653c83681b343869c197148982067a5a98f453a47b1d9664b"
+}

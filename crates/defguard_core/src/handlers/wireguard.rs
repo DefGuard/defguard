@@ -11,7 +11,8 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            wireguard::{LocationMfaMode, MappedDevice, ServiceLocationMode},
+            mfa_flow::MfaFlow,
+            wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
     utils::parse_network_address_list,
@@ -32,11 +33,10 @@ use crate::{
     enterprise::{
         db::models::{
             device_posture::DevicePostureLocation, enterprise_settings::EnterpriseSettings,
-            openid_provider::OpenIdProvider,
         },
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
-        has_enterprise_access, is_business_license_active,
+        has_enterprise_access,
         license::{LicenseFeature, get_cached_license},
         limits::{get_counts, update_counts},
     },
@@ -84,12 +84,77 @@ pub struct WireguardNetworkData {
     pub acl_default_allow: bool,
     #[serde(default)]
     pub allowed_ips_from_acl: bool,
-    pub location_mfa_mode: LocationMfaMode,
+    pub mfa_enabled: bool,
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Option<Vec<i64>>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
+
+/// Build the structured `400` response for the `mfa_enabled` precondition: a location cannot be
+/// MFA-enabled while no MFA flow exists to assign to it.
+///
+/// The body is a real structured `validation_failed` payload, not a string inside `msg`, so the
+/// frontend parses it in one step like every other validation path in this feature.
+#[must_use]
+pub fn no_flows_exist_response() -> ApiResponse {
+    ApiResponse::new(
+        json!({
+            "error": "validation_failed",
+            "fields": [{"field": "mfa_enabled", "code": "no_flows_exist"}]
+        }),
+        StatusCode::BAD_REQUEST,
+    )
+}
+
+/// Build the structured `400` response for the `mfa_enabled` precondition when the location has no
+/// default flow assigned: MFA cannot be enabled until a policy exists to enforce.
+#[must_use]
+pub fn no_flows_assigned_response() -> ApiResponse {
+    ApiResponse::new(
+        json!({
+            "error": "validation_failed",
+            "fields": [{"field": "mfa_enabled", "code": "no_flows_assigned"}]
+        }),
+        StatusCode::BAD_REQUEST,
+    )
+}
+
+/// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
+///
+/// The check is per-location: an existing location (`Some(id)`) must carry a designated default
+/// assignment, and a brand-new location (`None`, the create path) can never have one, so creating
+/// with `mfa_enabled` is refused here too. The global `no_flows_exist` check runs first so a fresh
+/// instance reports the more actionable "create a flow" error. Returns a structured `400` response
+/// (not a `WebError`) so the body is parsed in one step.
+///
+/// Shared by `create_network`, `modify_network` and the auto-adoption wizard, which sets
+/// `mfa_enabled` on an already-persisted location, so the three entry points cannot drift.
+pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
+    executor: E,
+    mfa_enabled: bool,
+    location_id: Option<Id>,
+) -> Result<Option<ApiResponse>, WebError> {
+    if !mfa_enabled {
+        return Ok(None);
+    }
+
+    if !MfaFlow::any_exist(executor).await? {
+        error!("Unable to enable MFA for location: no MFA flows are configured");
+        return Ok(Some(no_flows_exist_response()));
+    }
+
+    let has_default = match location_id {
+        Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
+        None => false,
+    };
+    if !has_default {
+        error!("Unable to enable MFA for location: no default MFA flow is assigned");
+        return Ok(Some(no_flows_assigned_response()));
+    }
+
+    Ok(None)
+}
 
 impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
@@ -99,7 +164,7 @@ impl WireguardNetworkData {
     }
 
     pub(crate) fn validate_peer_disconnect_threshold(&self) -> Result<(), WebError> {
-        if self.location_mfa_mode == LocationMfaMode::Disabled {
+        if !self.mfa_enabled {
             return Ok(());
         }
 
@@ -112,42 +177,21 @@ impl WireguardNetworkData {
         )))
     }
 
-    pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
+    /// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
+    ///
+    /// Thin wrapper over [`validate_mfa_flows_exist`] for the create/modify request path.
+    pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
         &self,
         executor: E,
-    ) -> Result<(), WebError> {
-        // if external MFA was chosen verify if enterprise features are enabled
-        // and external OpenID provider is configured
-        if self.location_mfa_mode == LocationMfaMode::External {
-            if !is_business_license_active() {
-                error!(
-                    "Unable to create location with external MFA. External OpenID provider is not configured"
-                );
-
-                return Err(WebError::Forbidden(
-                    "Cannot enable external MFA. Enterprise features are disabled",
-                ));
-            }
-
-            if OpenIdProvider::get_current(executor).await?.is_none() {
-                error!(
-                    "Unable to create location with external MFA. External OpenID provider is not configured"
-                );
-                return Err(WebError::BadRequest(
-                    "Cannot enable external MFA. External OpenID provider is not configured".into(),
-                ));
-            }
-        }
-
-        Ok(())
+        location_id: Option<Id>,
+    ) -> Result<Option<ApiResponse>, WebError> {
+        validate_mfa_flows_exist(executor, self.mfa_enabled, location_id).await
     }
 
     /// Rejects service-location mode combined with location MFA: core cannot serve it and the
     /// client cannot represent it (`Location::is_service_location()` requires MFA disabled).
     pub(crate) fn validate_service_location_mfa(&self) -> Result<(), WebError> {
-        if self.service_location_mode == ServiceLocationMode::Disabled
-            || self.location_mfa_mode == LocationMfaMode::Disabled
-        {
+        if self.service_location_mode == ServiceLocationMode::Disabled || !self.mfa_enabled {
             return Ok(());
         }
 
@@ -204,7 +248,7 @@ pub struct ImportedNetworkData {
     post,
     path = "/api/v1/network",
     tag = "network",
-    request_body(content = WireguardNetworkData, description = "`address` is a comma-separated list of network addresses.", example = json!({"name": "office", "address": "10.0.0.1/24", "endpoint": "vpn.example.com", "port": 50051, "allowed_ips": "0.0.0.0/0", "dns": "1.1.1.1", "mtu": 1420, "fwmark": 0, "allow_all_groups": true, "allowed_groups": [], "keepalive_interval": 25, "peer_disconnect_threshold": 180, "acl_enabled": false, "acl_default_allow": false, "allowed_ips_from_acl": false, "location_mfa_mode": "disabled", "service_location_mode": "disabled"})),
+    request_body(content = WireguardNetworkData, description = "`address` is a comma-separated list of network addresses.", example = json!({"name": "office", "address": "10.0.0.1/24", "endpoint": "vpn.example.com", "port": 50051, "allowed_ips": "0.0.0.0/0", "dns": "1.1.1.1", "mtu": 1420, "fwmark": 0, "allow_all_groups": true, "allowed_groups": [], "keepalive_interval": 25, "peer_disconnect_threshold": 180, "acl_enabled": false, "acl_default_allow": false, "allowed_ips_from_acl": false, "mfa_enabled": false, "service_location_mode": "disabled"})),
     responses(
         (status = 201, description = "Network created.", body = WireguardNetwork),
         (status = 400, description = "Invalid location settings.", body = ApiErrorResponse, example = json!({"msg": "At least one group must be specified when allow_all_groups is disabled"})),
@@ -256,10 +300,12 @@ pub(crate) async fn create_network(
     }
 
     data.validate_peer_disconnect_threshold()?;
-    data.validate_location_mfa_mode(&appstate.pool).await?;
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
+    if let Some(resp) = data.validate_mfa_flows_exist(&appstate.pool, None).await? {
+        return Ok(resp);
+    }
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -272,7 +318,7 @@ pub(crate) async fn create_network(
         data.acl_enabled,
         data.acl_default_allow,
         data.allowed_ips_from_acl,
-        data.location_mfa_mode,
+        data.mfa_enabled,
         data.service_location_mode,
     )
     .try_set_address(&data.address)?;
@@ -385,10 +431,15 @@ pub(crate) async fn modify_network(
     }
 
     data.validate_peer_disconnect_threshold()?;
-    data.validate_location_mfa_mode(&appstate.pool).await?;
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
+    if let Some(resp) = data
+        .validate_mfa_flows_exist(&appstate.pool, Some(network_id))
+        .await?
+    {
+        return Ok(resp);
+    }
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
@@ -412,7 +463,7 @@ pub(crate) async fn modify_network(
     network.acl_default_allow = data.acl_default_allow;
     network.allowed_ips_from_acl = data.allowed_ips_from_acl;
     network.service_location_mode = data.service_location_mode;
-    network.location_mfa_mode = data.location_mfa_mode;
+    network.mfa_enabled = data.mfa_enabled;
 
     network.save(&mut *transaction).await?;
     network
@@ -868,7 +919,7 @@ pub(crate) struct AddDeviceResult {
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
                         "keepalive_interval": 5,
-			            "location_mfa_mode": "disabled",
+			            "mfa_enabled": false,
                         "service_location_mode": "disabled"
                     }
                 ],
@@ -1499,7 +1550,7 @@ pub(crate) async fn download_config(
     ),
     responses(
         (status = 200, description = "Device configuration for each location.", body = [Object], example = json!([
-            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "location_mfa_mode": "disabled", "posture_check_required": false}
+            {"network_id": 1, "network_name": "office", "config": "[Interface]\n...", "mfa_enabled": false, "posture_check_required": false}
         ])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges or the request must target your own account.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
@@ -1555,6 +1606,7 @@ pub(crate) async fn user_device_configs(
             network_id: device_config.network_id,
             network_name: device_config.network_name,
             config: device_config.config,
+            mfa_enabled: device_config.mfa_enabled,
             location_mfa_mode: device_config.location_mfa_mode,
             posture_check_required: device_config.posture_check_required,
         });

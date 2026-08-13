@@ -43,6 +43,7 @@ pub(crate) mod group;
 pub mod license;
 pub(crate) mod location_stats;
 pub mod mail;
+pub(crate) mod mfa_flow;
 pub mod network_devices;
 pub mod openid_clients;
 pub mod openid_flow;

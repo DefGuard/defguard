@@ -148,8 +148,6 @@ impl From<Status> for CoreError {
 
 impl From<DeviceConfig> for client_types::DeviceConfig {
     fn from(config: DeviceConfig) -> Self {
-        // DEPRECATED(1.5): superseeded by location_mfa_mode
-        let mfa_enabled = config.location_mfa_mode == LocationMfaMode::Internal;
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
@@ -160,15 +158,15 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
             allowed_ips: config.allowed_ips.as_csv(),
             dns: config.dns,
             keepalive_interval: config.keepalive_interval,
+            // DEPRECATED(1.5): superseeded by location_mfa_mode
             #[allow(deprecated)]
-            mfa_enabled,
+            mfa_enabled: config.mfa_enabled,
+            // Absent when the location's flow configuration has no legacy equivalent. Legacy
+            // client gating for that case is tracked separately (#3042).
             #[allow(deprecated)]
-            location_mfa_mode: Some(
-                <LocationMfaMode as Into<client_types::LocationMfaMode>>::into(
-                    config.location_mfa_mode,
-                )
-                .into(),
-            ),
+            location_mfa_mode: config.location_mfa_mode.map(|mode| {
+                <LocationMfaMode as Into<client_types::LocationMfaMode>>::into(mode).into()
+            }),
             service_location_mode: Some(
                 <ServiceLocationMode as Into<client_types::ServiceLocationMode>>::into(
                     config.service_location_mode,

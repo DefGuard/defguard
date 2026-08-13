@@ -190,7 +190,7 @@ export interface SetAutoAdoptionVpnSettingsRequest {
 }
 
 export interface SetAutoAdoptionMfaSettingsRequest {
-  vpn_mfa_mode: LocationMfaModeValue;
+  mfa_enabled: boolean;
 }
 
 export interface ValidateDeviceIpsRequest {
@@ -344,7 +344,7 @@ export interface DeviceNetworkInfo {
   network_name: string;
   last_connected_at?: string;
   last_connected_ip?: string;
-  location_mfa_mode: LocationMfaModeValue;
+  mfa_enabled: boolean;
 }
 
 export interface Device {
@@ -598,7 +598,10 @@ export interface AddDeviceResponseConfig {
   network_id: number;
   network_name: string;
   config: string;
-  location_mfa_mode: LocationMfaModeValue;
+  mfa_enabled: boolean;
+  /** @deprecated Legacy derived mode; absent when the location's flows have no legacy
+   * equivalent, which includes locations with no flows. Use `mfa_enabled` instead. */
+  location_mfa_mode?: LocationMfaModeValue;
   posture_check_required: boolean;
 }
 
@@ -771,7 +774,10 @@ export type DeviceConfigResponse = {
   network_id: number;
   network_name: string;
   pubkey: string;
-  location_mfa_mode: LocationMfaModeValue;
+  mfa_enabled: boolean;
+  /** @deprecated Legacy derived mode; absent when the location's flows have no legacy
+   * equivalent, which includes locations with no flows. Use `mfa_enabled` instead. */
+  location_mfa_mode?: LocationMfaModeValue;
 };
 
 export type AddNetworkDeviceResponse = {
@@ -812,7 +818,7 @@ export interface NetworkLocation {
   acl_enabled: boolean;
   acl_default_allow: boolean;
   allowed_ips_from_acl: boolean;
-  location_mfa_mode: LocationMfaModeValue;
+  mfa_enabled: boolean;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
   posture_checks?: number[];

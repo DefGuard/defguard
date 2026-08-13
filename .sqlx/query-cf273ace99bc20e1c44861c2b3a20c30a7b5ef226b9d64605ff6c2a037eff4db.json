@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"wireguard_network\" (\"name\",\"address\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\",\"service_location_mode\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id",
+  "query": "INSERT INTO \"wireguard_network\" (\"name\",\"address\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\",\"service_location_mode\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -28,18 +28,7 @@
         "Bool",
         "Int4",
         "Int4",
-        {
-          "Custom": {
-            "name": "location_mfa_mode",
-            "kind": {
-              "Enum": [
-                "disabled",
-                "internal",
-                "external"
-              ]
-            }
-          }
-        },
+        "Bool",
         {
           "Custom": {
             "name": "service_location_mode",
@@ -58,5 +47,5 @@
       false
     ]
   },
-  "hash": "1d9d6fd32cc1ee120d797fb74e03d742d4904e0fc345431b60c68c47538ba12f"
+  "hash": "cf273ace99bc20e1c44861c2b3a20c30a7b5ef226b9d64605ff6c2a037eff4db"
 }

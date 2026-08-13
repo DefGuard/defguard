@@ -8,7 +8,6 @@ use defguard_common::{
             initial_setup_wizard::InitialSetupStep,
             settings::update_current_settings,
             setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-            wireguard::LocationMfaMode,
             wizard::{ActiveWizard, Wizard},
         },
     },
@@ -304,8 +303,7 @@ pub async fn set_vpn_settings(
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct MfaSettingsConfig {
-    #[serde(rename = "vpn_mfa_mode")]
-    mfa_mode: LocationMfaMode,
+    mfa_enabled: bool,
 }
 
 /// Updates first auto-adopted network location with MFA mode from Auto-adoption wizard.
@@ -332,14 +330,28 @@ pub async fn set_mfa_settings(
             ))
         })?;
 
-    network.location_mfa_mode = mfa_settings.mfa_mode;
+    // Enforce the precondition: MFA cannot be enabled until a default flow is assigned to the
+    // location, so "enabled with no policy" is unrepresentable. This is the same check
+    // `create_network` and `modify_network` apply, shared rather than reimplemented so the three
+    // entry points cannot drift. Validated before saving, so a refusal writes nothing.
+    if let Some(response) = defguard_core::handlers::wireguard::validate_mfa_flows_exist(
+        &pool,
+        mfa_settings.mfa_enabled,
+        Some(first_network_id),
+    )
+    .await?
+    {
+        return Ok(response);
+    }
+
+    network.mfa_enabled = mfa_settings.mfa_enabled;
     network.save(&pool).await?;
 
     advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::Summary).await?;
 
     debug!(
-        "Auto-adoption MFA settings applied to network_id={} location_mfa_mode={:?}",
-        network.id, network.location_mfa_mode
+        "Auto-adoption MFA settings applied to network_id={} mfa_enabled={}",
+        network.id, network.mfa_enabled
     );
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))

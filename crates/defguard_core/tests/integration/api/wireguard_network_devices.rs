@@ -39,7 +39,7 @@ async fn make_first_network(client: &TestClient) -> TestResponse {
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -67,7 +67,7 @@ async fn make_second_network(client: &TestClient) -> TestResponse {
             "acl_enabled": false,
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-            "location_mfa_mode": "disabled",
+            "mfa_enabled": false,
             "service_location_mode": "disabled"
         }))
         .send()
@@ -335,7 +335,7 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         "acl_enabled": false,
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
-        "location_mfa_mode": "disabled",
+        "mfa_enabled": false,
         "service_location_mode": "disabled"
     });
     let response = client.post("/api/v1/network").json(&location).send().await;
