@@ -163,24 +163,15 @@ export const LocationsTable = () => {
       columnHelper.accessor('mfa_enabled', {
         header: m.location_col_mfa(),
         minSize: 100,
-        cell: (info) => {
-          if (info.getValue()) {
-            return (
-              <TableCell>
-                <Badge
-                  icon="internal-mfa"
-                  text={m.location_mfa_internal()}
-                  variant="success"
-                />
-              </TableCell>
-            );
-          }
-          return (
-            <TableCell>
-              <Badge text={m.location_mfa_none()} />
-            </TableCell>
-          );
-        },
+        cell: (info) => (
+          <TableCell className="cell-with-check-icons">
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : (
+              <Icon icon="disabled" />
+            )}
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('service_location_mode', {
         header: m.location_col_type(),

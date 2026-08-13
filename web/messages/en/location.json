@@ -60,8 +60,6 @@
   "location_col_fwmark": "FWMark",
   "location_col_mtu": "MTU",
   "location_col_allowed_groups": "Allowed groups",
-  "location_mfa_none": "No MFA",
-  "location_mfa_internal": "Internal",
   "location_mfa_label_client_disconnect_threshold": "Client disconnect threshold (seconds)",
   "location_mfa_helper_client_disconnect_threshold": "The Client disconnect threshold (seconds) is the inactivity timeout after which Defguard drops a VPN connection. If no WireGuard® traffic is detected for this duration, the client is disconnected and will be required to re-authorize via MFA when reconnecting.",
   "location_allowed_groups_all": "All allowed",
