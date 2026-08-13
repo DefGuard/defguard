@@ -163,6 +163,7 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
             mfa_enabled: config.mfa_enabled,
             // Absent when the location's flow configuration has no legacy equivalent. Legacy
             // client gating for that case is tracked separately (#3042).
+            #[allow(deprecated)]
             location_mfa_mode: config.location_mfa_mode.map(|mode| {
                 <LocationMfaMode as Into<client_types::LocationMfaMode>>::into(mode).into()
             }),
@@ -173,6 +174,7 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
                 .into(),
             ),
             posture_check_required: Some(config.posture_check_required),
+            steps: Vec::new(),
         }
     }
 }

@@ -35,8 +35,10 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
+                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
+                selected_methods: Vec::new(),
             },
         )),
     });
@@ -67,8 +69,10 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
             ClientMfaStartRequest {
                 location_id: nonexistent_location_id,
                 pubkey: device.wireguard_pubkey.clone(),
+                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
+                selected_methods: Vec::new(),
             },
         )),
     });
@@ -210,8 +214,10 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: "no-such-pubkey".to_owned(),
+                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
+                selected_methods: Vec::new(),
             },
         )),
     });
@@ -243,8 +249,10 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
+                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
+                selected_methods: Vec::new(),
             },
         )),
     });
@@ -419,8 +427,10 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
+                #[allow(deprecated)]
                 method: MfaMethod::Oidc as i32,
                 posture_data: None,
+                selected_methods: Vec::new(),
             },
         )),
     });
@@ -433,6 +443,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
 }
 
 #[sqlx::test]
+#[allow(deprecated)]
 async fn test_mfa_await_remote_receives_psk_after_finish(
     _: PgPoolOptions,
     options: PgConnectOptions,

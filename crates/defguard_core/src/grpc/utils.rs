@@ -117,6 +117,7 @@ pub async fn build_device_config_response(
                 keepalive_interval: device_config.keepalive_interval,
                 #[allow(deprecated)]
                 mfa_enabled,
+                #[allow(deprecated)]
                 location_mfa_mode: device_config
                     .location_mfa_mode
                     .map(|mode| <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()),
@@ -127,6 +128,7 @@ pub async fn build_device_config_response(
                     .into(),
                 ),
                 posture_check_required: Some(device_config.posture_check_required),
+                steps: Vec::new(),
             };
             configs.push(config);
         }
@@ -197,6 +199,7 @@ pub async fn build_device_config_response(
                     keepalive_interval: device_config.keepalive_interval,
                     #[allow(deprecated)]
                     mfa_enabled,
+                    #[allow(deprecated)]
                     location_mfa_mode: device_config.location_mfa_mode.map(|mode| {
                         <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
                     }),
@@ -207,6 +210,7 @@ pub async fn build_device_config_response(
                         .into(),
                     ),
                     posture_check_required: Some(device_config.posture_check_required),
+                    steps: Vec::new(),
                 };
                 configs.push(config);
             }
