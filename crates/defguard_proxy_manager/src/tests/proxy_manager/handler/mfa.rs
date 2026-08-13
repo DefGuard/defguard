@@ -443,6 +443,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
 }
 
 #[sqlx::test]
+#[allow(deprecated)]
 async fn test_mfa_await_remote_receives_psk_after_finish(
     _: PgPoolOptions,
     options: PgConnectOptions,
