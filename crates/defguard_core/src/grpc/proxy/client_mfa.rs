@@ -317,7 +317,7 @@ impl ClientMfaServer {
                 this client"
             );
             return Err(Status::failed_precondition(
-                "location MFA configuration is not supported by this client",
+                "Defguard client version is too old to connect to this location. Please update your client.",
             ));
         };
 
@@ -1396,6 +1396,7 @@ mod tests {
         models::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             polling_token::PollingToken,
             settings::initialize_current_settings,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
@@ -2240,6 +2241,75 @@ mod tests {
             .expect("expected active MFA session");
         assert_eq!(active_session.state, VpnClientSessionState::Disconnected);
         assert!(active_session.disconnected_at.is_some());
+    }
+
+    #[sqlx::test]
+    async fn test_mfa_start_rejects_non_derivable_location_with_update_message(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+
+        // Assign a two-step flow so `derive_legacy_mode` returns `None`.
+        let mut tx = pool.begin().await.expect("failed to begin tx");
+        let (flow, _) = MfaFlow::create(
+            &mut tx,
+            "multi-step".to_owned(),
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+        )
+        .await
+        .expect("failed to create flow");
+        MfaFlow::assign_to_location(
+            &mut tx,
+            location.id,
+            &[LocationMfaFlowAssignment {
+                flow_id: flow.id,
+                is_default: true,
+                group_ids: Vec::new(),
+            }],
+        )
+        .await
+        .expect("failed to assign flow");
+        tx.commit().await.expect("failed to commit tx");
+
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, _, _) = make_server(pool);
+
+        let error = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    #[allow(deprecated)]
+                    method: MfaMethod::Totp as i32,
+                    posture_data: None,
+                    selected_methods: Vec::new(),
+                },
+                device_info(),
+            )
+            .await
+            .err()
+            .expect("non-derivable location should be rejected");
+
+        assert_eq!(error.code(), Code::FailedPrecondition);
+        assert_eq!(
+            error.message(),
+            "Defguard client version is too old to connect to this location. Please update your client."
+        );
+        assert!(
+            !error.message().contains("no valid license"),
+            "rejection message must not contain 'no valid license'"
+        );
     }
 
     #[sqlx::test]
