@@ -669,8 +669,8 @@ impl ClientMfaServer {
                             context,
                             event: BidiStreamEventType::DesktopClientMfa(Box::new(
                                 DesktopClientMfaEvent::Failed {
-                                    location: location.clone(),
-                                    device: device.clone(),
+                                    location,
+                                    device,
                                     method,
                                     message: "Signed challenge rejected".to_owned(),
                                 },
@@ -704,8 +704,8 @@ impl ClientMfaServer {
                             context,
                             event: BidiStreamEventType::DesktopClientMfa(Box::new(
                                 DesktopClientMfaEvent::Failed {
-                                    location: location.clone(),
-                                    device: device.clone(),
+                                    location,
+                                    device,
                                     method,
                                     message: "Signed challenge rejected".to_owned(),
                                 },
@@ -724,8 +724,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
+                                location,
+                                device,
                                 method,
                                 message: "TOTP code not provided in request".to_owned(),
                             },
@@ -758,8 +758,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
+                                location,
+                                device,
                                 method,
                                 message: "email MFA code not provided in request".to_owned(),
                             },
@@ -773,8 +773,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
+                                location,
+                                device,
                                 method,
                                 message: "invalid email MFA code".to_owned(),
                             },
@@ -793,8 +793,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
+                                location,
+                                device,
                                 method,
                                 message: "tried to finish OIDC MFA login but they haven't \
                                     completed OIDC authentication yet"
@@ -869,8 +869,8 @@ impl ClientMfaServer {
             context,
             event: BidiStreamEventType::DesktopClientMfa(Box::new(
                 DesktopClientMfaEvent::Success {
-                    location: location.clone(),
-                    device: device.clone(),
+                    location,
+                    device,
                     method,
                     mobile_auth_device_name,
                 },
