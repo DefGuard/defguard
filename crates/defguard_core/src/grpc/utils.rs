@@ -374,6 +374,7 @@ mod tests {
         Id,
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
+            biometric_auth::BiometricAuth,
             device::WireguardNetworkDevice,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             settings::{initialize_current_settings, update_current_settings},
@@ -382,7 +383,10 @@ mod tests {
         },
         setup_pool,
     };
-    use defguard_proto::{client_types::LocationMfaMode, proxy::DeviceInfo};
+    use defguard_proto::{
+        client_types::{LocationMfaMode, MfaMethod},
+        proxy::DeviceInfo,
+    };
     use ipnetwork::IpNetwork;
     use sqlx::{
         PgPool,
@@ -390,7 +394,7 @@ mod tests {
     };
     use tonic::Code;
 
-    use super::build_device_config_response;
+    use super::{build_device_config_response, build_wire_steps};
     use crate::enterprise::license::{
         License, LicenseTier, SupportType, get_cached_license, set_cached_license,
     };
@@ -942,5 +946,68 @@ mod tests {
         );
 
         set_cached_license(saved_license);
+    }
+
+    /// The wire `steps` carry each method's `configured` flag for the user's own setup, not just
+    /// the method list: setup state AND deployment availability gate it.
+    #[sqlx::test]
+    async fn test_build_wire_steps_computes_configured_flags(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+
+        let mut user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        // User setup: TOTP enabled, email not set up, OIDC identity present, biometric
+        // registered on this device (which also makes mobile-approve available).
+        user.totp_enabled = true;
+        user.openid_sub = Some("oidc-sub".to_owned());
+        BiometricAuth::new(device.id, "biometric-pubkey".to_owned())
+            .save(&pool)
+            .await
+            .expect("failed to save biometric auth");
+
+        // A two-step flow covering all five methods.
+        let mut tx = pool.begin().await.expect("failed to begin tx");
+        let (_, steps) = MfaFlow::create(
+            &mut tx,
+            "wire-steps-flow".to_owned(),
+            vec![
+                vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email],
+                vec![
+                    VpnClientMfaMethod::Oidc,
+                    VpnClientMfaMethod::Biometric,
+                    VpnClientMfaMethod::MobileApprove,
+                ],
+            ],
+        )
+        .await
+        .expect("failed to create flow");
+        tx.commit().await.expect("failed to commit tx");
+
+        // SMTP is configured, OIDC is not: email is gated on the user (not set up), OIDC on
+        // deployment (no provider).
+        let wire = build_wire_steps(&pool, &steps, &user, device.id, true, false)
+            .await
+            .expect("failed to build wire steps");
+
+        assert_eq!(wire.len(), 2);
+
+        assert_eq!(wire[0].methods.len(), 2);
+        assert_eq!(wire[0].methods[0].method, MfaMethod::Totp as i32);
+        assert!(wire[0].methods[0].configured);
+        assert_eq!(wire[0].methods[1].method, MfaMethod::Email as i32);
+        assert!(!wire[0].methods[1].configured);
+
+        assert_eq!(wire[1].methods.len(), 3);
+        assert_eq!(wire[1].methods[0].method, MfaMethod::Oidc as i32);
+        assert!(!wire[1].methods[0].configured);
+        assert_eq!(wire[1].methods[1].method, MfaMethod::Biometric as i32);
+        assert!(wire[1].methods[1].configured);
+        assert_eq!(wire[1].methods[2].method, MfaMethod::MobileApprove as i32);
+        assert!(wire[1].methods[2].configured);
     }
 }
