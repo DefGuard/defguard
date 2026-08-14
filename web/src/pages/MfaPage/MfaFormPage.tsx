@@ -16,8 +16,7 @@ const formSchema = z.object({
   name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
 });
 
-/** Displays the create and, later, edit form for an MFA flow. */
-export const MfaFlowPage = () => {
+export const MfaFormPage = () => {
   const navigate = useNavigate();
   const form = useAppForm({
     defaultValues: {
