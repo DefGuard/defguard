@@ -2,18 +2,30 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
-import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
+import { MfaConfiguration } from '../../shared/components/MfaConfiguration/MfaConfiguration';
+import {
+  type MfaConfigurationStepData,
+  MfaMethod,
+} from '../../shared/components/MfaConfiguration/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { MarkedSectionHeader } from '../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 
 const formSchema = z.object({
   name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+  steps: z
+    .array(
+      z.object({
+        id: z.union([z.string(), z.number()]),
+        methods: z.array(z.enum(MfaMethod)).min(1),
+      }),
+    )
+    .min(1, m.mfa_flow_step_required()),
 });
 
 export const MfaFormPage = () => {
@@ -21,6 +33,7 @@ export const MfaFormPage = () => {
   const form = useAppForm({
     defaultValues: {
       name: '',
+      steps: [] as MfaConfigurationStepData[],
     },
     validationLogic: formChangeLogic,
     validators: {
@@ -49,19 +62,29 @@ export const MfaFormPage = () => {
     >
       <form.AppForm>
         <MarkedSection icon="settings">
-          <DescriptionBlock title={m.mfa_flow_form_general_settings()}>
-            <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField name="name">
-              {(field) => <field.FormInput required label={m.mfa_flow_form_name()} />}
-            </form.AppField>
-          </DescriptionBlock>
+          <MarkedSectionHeader title={m.mfa_flow_form_general_settings()} />
+          <form.AppField name="name">
+            {(field) => <field.FormInput required label={m.mfa_flow_form_name()} />}
+          </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="manage-keys">
-          <DescriptionBlock title={m.mfa_flow_form_methods_title()}>
-            <SizedBox height={ThemeSpacing.Xs} />
-            <p>{m.mfa_flow_form_methods_description()}</p>
-          </DescriptionBlock>
+          <MarkedSectionHeader
+            title={m.mfa_flow_form_methods_title()}
+            description={m.mfa_flow_form_methods_description()}
+          />
+          <form.AppField name="steps">
+            {(field) => {
+              const error = field.state.meta.errors[0];
+              return (
+                <MfaConfiguration
+                  steps={field.state.value}
+                  onChange={field.handleChange}
+                  error={typeof error === 'string' ? error : error?.message}
+                />
+              );
+            }}
+          </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <Controls>

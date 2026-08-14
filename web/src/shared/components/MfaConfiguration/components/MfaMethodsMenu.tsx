@@ -15,20 +15,23 @@ import { ButtonMenu } from '../../../defguard-ui/components/ButtonMenu/MenuButto
 import { Menu } from '../../../defguard-ui/components/Menu/Menu';
 import type { MenuItemsGroup } from '../../../defguard-ui/components/Menu/types';
 
+/** Properties for the standard button menu variant. */
 type ButtonVariantProps = Omit<ButtonProps, 'ref'> & {
   kind: 'button';
   options: MenuItemsGroup[];
 };
 
+/** Properties for the compact text menu variant. */
 type PlainVariantProps = {
   kind: 'plain';
   options: MenuItemsGroup[];
   label: string;
 };
 
-type LocationMfaMethodsMenuProps = ButtonVariantProps | PlainVariantProps;
+type MfaMethodsMenuProps = ButtonVariantProps | PlainVariantProps;
 
-export const LocationMfaMethodsMenu = (props: LocationMfaMethodsMenuProps) => {
+/** Renders the method menu as either an outlined button or a text action. */
+export const MfaMethodsMenu = (props: MfaMethodsMenuProps) => {
   if (props.kind === 'button') {
     const { kind, options, ...buttonProps } = props;
     return <ButtonMenu menuItems={options} {...buttonProps} />;
@@ -37,6 +40,7 @@ export const LocationMfaMethodsMenu = (props: LocationMfaMethodsMenuProps) => {
   return <PlainButton options={props.options} label={props.label} />;
 };
 
+/** Renders the compact add-method menu trigger used inside a step. */
 const PlainButton = ({
   options,
   label,
@@ -68,14 +72,18 @@ const PlainButton = ({
     escapeKey: true,
     outsidePress: (event) => !(event.target as HTMLElement).closest('.menu'),
   });
-
   const { getFloatingProps, getReferenceProps } = useInteractions([click, dismiss]);
 
   return (
     <>
-      <div className="plain-button" ref={refs.setReference} {...getReferenceProps()}>
-        <p>{label}</p>
-      </div>
+      <button
+        type="button"
+        className="plain-button"
+        ref={refs.setReference}
+        {...getReferenceProps()}
+      >
+        <span>{label}</span>
+      </button>
       {isOpen && (
         <FloatingPortal>
           <Menu

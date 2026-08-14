@@ -1,11 +1,9 @@
-.location-mfa-configuration {
-  .main-track {
-    .steps-track {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-lg);
-    }
+.mfa-configuration {
+  .steps-track {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
   .actions {
@@ -70,12 +68,12 @@
       }
     }
 
-    > .factors {
+    > .methods {
       display: flex;
       flex-flow: column;
-      row-gap: var(--spacing-md);
+      row-gap: var(--spacing-sm);
 
-      > .factor {
+      > .method {
         align-items: center;
         border-radius: 12px;
         box-sizing: border-box;
@@ -97,14 +95,7 @@
           > .right {
             margin-left: auto;
             display: flex;
-            flex-flow: row nowrap;
             align-items: center;
-            column-gap: var(--spacing-md);
-
-            > p {
-              font: var(--t-body-xxs-500);
-              color: var(--fg-disabled);
-            }
           }
         }
       }
@@ -127,7 +118,7 @@
     user-select: none;
     cursor: pointer;
 
-    > p {
+    > span {
       font: var(--t-body-sm-400);
       color: var(--fg-action);
     }

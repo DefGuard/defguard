@@ -32,7 +32,8 @@
       "./messages/{locale}/flow_end.json",
       "./messages/{locale}/support.json",
       "./messages/{locale}/acl.json",
-      "./messages/{locale}/postures.json"
+      "./messages/{locale}/postures.json",
+      "./messages/{locale}/mfa_flow.json"
     ]
   }
 }
