@@ -10,6 +10,7 @@ use defguard_common::db::{
         proxy::Proxy,
         settings::{LdapSyncStatus, OpenIdUsernameHandling, smtp::SmtpEncryption},
         user::User,
+        vpn_client_session::VpnClientMfaMethod,
     },
 };
 
@@ -188,6 +189,13 @@ impl From<ActivityLogStream<Id>> for ActivityLogStreamNoSecrets {
 pub struct VpnClientMetadata {
     pub location: WireguardNetwork<Id>,
     pub device: Device<Id>,
+}
+
+#[derive(Serialize)]
+pub struct VpnClientMfaSessionMetadata {
+    pub location: WireguardNetwork<Id>,
+    pub device: Device<Id>,
+    pub mfa_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Serialize)]

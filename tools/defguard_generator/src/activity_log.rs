@@ -15,6 +15,7 @@ use defguard_core::{
             MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
             NetworkDeviceMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
             UserMetadata, UserMfaDisabledMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            VpnClientMfaSessionMetadata,
         },
     },
     events::{ApiEventType, ClientMFAMethod, EnrollmentEvent as CoreEnrollmentEvent},
@@ -1038,14 +1039,24 @@ fn build_vpn_event(
                 location: location.clone(),
                 device: device.clone(),
             }),
-            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+            serde_json::to_value(VpnClientMfaSessionMetadata {
+                location,
+                device,
+                mfa_methods: vec![random_client_mfa_method(rng).into()],
+            })
+            .ok(),
         ),
         EventType::VpnClientMfaDisconnected => (
             get_vpn_event_description(&VpnEvent::MfaDisconnectedFromLocation {
                 location: location.clone(),
                 device: device.clone(),
             }),
-            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+            serde_json::to_value(VpnClientMfaSessionMetadata {
+                location,
+                device,
+                mfa_methods: vec![random_client_mfa_method(rng).into()],
+            })
+            .ok(),
         ),
         EventType::VpnClientMfaSuccess => {
             let method = random_client_mfa_method(rng);

@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
-    models::{Device, User, WireguardNetwork},
+    models::{Device, User, WireguardNetwork, vpn_client_session::VpnClientMfaMethod},
 };
 use strum::EnumCount;
 
@@ -15,28 +15,22 @@ pub struct SessionManagerEvent {
 
 impl SessionManagerEvent {
     #[must_use]
-    pub fn connected_for_session(
-        context: SessionManagerEventContext,
-        is_mfa_session: bool,
-    ) -> Self {
-        let event = if is_mfa_session {
-            SessionManagerEventType::MfaClientConnected
-        } else {
+    pub fn connected_for_session(context: SessionManagerEventContext) -> Self {
+        let event = if context.mfa_methods.is_empty() {
             SessionManagerEventType::ClientConnected
+        } else {
+            SessionManagerEventType::MfaClientConnected
         };
 
         Self { context, event }
     }
 
     #[must_use]
-    pub fn disconnected_for_session(
-        context: SessionManagerEventContext,
-        is_mfa_session: bool,
-    ) -> Self {
-        let event = if is_mfa_session {
-            SessionManagerEventType::MfaClientDisconnected
-        } else {
+    pub fn disconnected_for_session(context: SessionManagerEventContext) -> Self {
+        let event = if context.mfa_methods.is_empty() {
             SessionManagerEventType::ClientDisconnected
+        } else {
+            SessionManagerEventType::MfaClientDisconnected
         };
 
         Self { context, event }
@@ -50,6 +44,7 @@ pub struct SessionManagerEventContext {
     pub user: User<Id>,
     pub device: Device<Id>,
     pub public_ip: Option<IpAddr>,
+    pub mfa_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, EnumCount)]

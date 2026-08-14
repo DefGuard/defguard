@@ -22,8 +22,9 @@ use defguard_core::{
             SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserImportBlockedMetadata,
             UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
             UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
-            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
-            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
+            VpnClientMfaMetadata, VpnClientMfaSessionMetadata, VpnLocationMetadata,
+            VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
+            WebHookStateChangedMetadata,
         },
     },
     events::{
@@ -844,8 +845,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
             event,
             location,
             device,
+            mfa_methods,
         } => {
             let module = ActivityLogModule::Vpn;
+            let methods_description = mfa_methods
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
             let description = match event {
                 SessionManagerEventType::ClientConnected => {
                     Some(format!("Device {device} connected to location {location}"))
@@ -854,10 +861,10 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     "Device {device} disconnected from location {location}"
                 )),
                 SessionManagerEventType::MfaClientConnected => Some(format!(
-                    "Device {device} connected to MFA location {location}"
+                    "Device {device} connected to MFA location {location} using {methods_description}"
                 )),
                 SessionManagerEventType::MfaClientDisconnected => Some(format!(
-                    "Device {device} disconnected from MFA location {location}"
+                    "Device {device} disconnected from MFA location {location} using {methods_description}"
                 )),
             };
             let (event_type, metadata) = match event {
@@ -871,11 +878,21 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ),
                 SessionManagerEventType::MfaClientConnected => (
                     EventType::VpnClientMfaConnected,
-                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                    serde_json::to_value(VpnClientMfaSessionMetadata {
+                        location,
+                        device,
+                        mfa_methods,
+                    })
+                    .ok(),
                 ),
                 SessionManagerEventType::MfaClientDisconnected => (
                     EventType::VpnClientMfaDisconnected,
-                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                    serde_json::to_value(VpnClientMfaSessionMetadata {
+                        location,
+                        device,
+                        mfa_methods,
+                    })
+                    .ok(),
                 ),
             };
             (module, event_type, description, metadata)

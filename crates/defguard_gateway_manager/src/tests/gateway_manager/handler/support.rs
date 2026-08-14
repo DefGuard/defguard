@@ -103,8 +103,14 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
         .expect("failed to load MFA test network")
         .expect("expected MFA test network");
 
-    let mut session =
-        VpnClientSession::new(network_id, device.user_id, device.id, None, vec![], None);
+    let mut session = VpnClientSession::new(
+        network_id,
+        device.user_id,
+        device.id,
+        None,
+        Vec::new(),
+        None,
+    );
     session.preshared_key = Some(preshared_key.to_owned());
     session
         .save(&context.pool)

@@ -111,7 +111,7 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
         client_state.test_user.id,
         user_device.id,
         Some(now),
-        vec![],
+        Vec::new(),
         None,
     )
     .save(&client_state.pool)
@@ -122,7 +122,7 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
         client_state.test_user.id,
         network_device.id,
         Some(now),
-        vec![],
+        Vec::new(),
         None,
     )
     .save(&client_state.pool)

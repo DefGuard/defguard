@@ -1,3 +1,5 @@
+use std::fmt;
+
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
@@ -27,6 +29,18 @@ pub enum VpnClientMfaMethod {
     Oidc,
     Biometric,
     MobileApprove,
+}
+
+impl fmt::Display for VpnClientMfaMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Totp => "TOTP",
+            Self::Email => "Email",
+            Self::Oidc => "OIDC",
+            Self::Biometric => "Biometric",
+            Self::MobileApprove => "MobileApprove",
+        })
+    }
 }
 
 /// Represents a single VPN client session from creation to eventual disconnection

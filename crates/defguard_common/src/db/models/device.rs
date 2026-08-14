@@ -1678,7 +1678,8 @@ mod test {
         );
         wireguard_network_device.insert(&pool).await.unwrap();
 
-        let mut session = VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
+        let mut session =
+            VpnClientSession::new(network.id, user.id, device.id, None, Vec::new(), None);
         session.preshared_key = Some("legacy-session-psk".into());
         session.save(&pool).await.unwrap();
 
@@ -1767,7 +1768,7 @@ mod test {
             user.id,
             device.id,
             Some(last_successful_connection),
-            vec![],
+            Vec::new(),
             None,
         );
         connected_session.created_at = last_successful_connection;
@@ -1789,7 +1790,7 @@ mod test {
         .unwrap();
 
         let mut disconnected_session =
-            VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
+            VpnClientSession::new(network.id, user.id, device.id, None, Vec::new(), None);
         disconnected_session.created_at = newer_session_created_at;
         disconnected_session.disconnected_at = Some(newer_session_created_at);
         disconnected_session.state = VpnClientSessionState::Disconnected;
@@ -1894,7 +1895,7 @@ mod test {
             user.id,
             device.id,
             Some(last_successful_connection),
-            vec![],
+            Vec::new(),
             None,
         );
         connected_session.created_at = last_successful_connection;
@@ -1903,7 +1904,7 @@ mod test {
         connected_session.save(&pool).await.unwrap();
 
         let mut new_session =
-            VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
+            VpnClientSession::new(network.id, user.id, device.id, None, Vec::new(), None);
         new_session.created_at = newer_session_created_at;
         new_session.save(&pool).await.unwrap();
 
@@ -1990,7 +1991,7 @@ mod test {
             user.id,
             device.id,
             Some(connected_at),
-            vec![],
+            Vec::new(),
             None,
         )
         .save(&pool)
@@ -2089,7 +2090,7 @@ mod test {
             .expect("expected valid time");
 
         let mut attempted_session =
-            VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
+            VpnClientSession::new(network.id, user.id, device.id, None, Vec::new(), None);
         attempted_session.created_at = attempted_at;
         let attempted_session = attempted_session.save(&pool).await.unwrap();
 
@@ -2180,7 +2181,7 @@ mod test {
             user.id,
             device.id,
             Some(connected_at),
-            vec![],
+            Vec::new(),
             None,
         )
         .save(&pool)
@@ -2268,7 +2269,7 @@ mod test {
             user.id,
             device.id,
             Some(connected_at),
-            vec![],
+            Vec::new(),
             None,
         )
         .save(&pool)

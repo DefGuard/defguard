@@ -721,7 +721,7 @@ async fn test_get_user_exposes_active_network_state(_: PgPoolOptions, options: P
         user.id,
         device.id,
         Some(session_connected_at),
-        vec![],
+        Vec::new(),
         None,
     )
     .save(&pool)
@@ -830,7 +830,7 @@ async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_s
         user.id,
         device.id,
         Some(last_successful_connection),
-        vec![],
+        Vec::new(),
         None,
     );
     connected_session.created_at = last_successful_connection;
@@ -852,7 +852,7 @@ async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_s
     .unwrap();
 
     let mut disconnected_session =
-        VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
+        VpnClientSession::new(network.id, user.id, device.id, None, Vec::new(), None);
     disconnected_session.created_at = disconnected_at;
     disconnected_session.disconnected_at = Some(disconnected_at);
     disconnected_session.state = VpnClientSessionState::Disconnected;
@@ -1031,7 +1031,7 @@ async fn test_add_user_blocked_when_user_count_exceeds_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     let new_user = AddUserData {
@@ -1083,7 +1083,7 @@ async fn test_disabled_users_not_counted_towards_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     // only admin is active, so there is still room under the limit of 2
@@ -1148,7 +1148,7 @@ async fn test_modify_user_enable_blocked_when_it_would_exceed_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     // active count is already at the limit of 2 (admin, hpotter), so re-enabling must be blocked
@@ -1230,7 +1230,7 @@ async fn test_bulk_enable_users_blocked_when_it_would_exceed_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     // active count is 2 (admin, hpotter); re-enabling both would bring it to 4, over the limit of 3

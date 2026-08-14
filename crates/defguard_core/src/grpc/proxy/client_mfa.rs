@@ -1116,7 +1116,7 @@ impl ClientMfaServer {
             &location,
             &user,
             &device,
-            vec![],
+            Vec::new(),
             None,
             key.public.clone(),
         )
@@ -1536,7 +1536,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            vec![],
+            Vec::new(),
             None,
         );
         old_session.preshared_key = Some("old-posture-psk".to_owned());
@@ -1745,7 +1745,7 @@ mod tests {
             user.id,
             victim.id,
             Some(Utc::now().naive_utc()),
-            vec![],
+            Vec::new(),
             None,
         );
         victim_session.preshared_key = Some("victim-psk".to_owned());
@@ -2056,7 +2056,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            vec![],
+            Vec::new(),
             None,
         );
         active_session.preshared_key = Some("active-posture-psk".to_owned());
@@ -2270,7 +2270,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            vec![],
+            Vec::new(),
             None,
         )
         .save(&pool)
@@ -2666,7 +2666,7 @@ mod tests {
             None,
             LicenseTier::Enterprise,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
         set_counts(Counts::new(1, 1, 1, 1));
