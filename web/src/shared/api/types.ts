@@ -496,6 +496,7 @@ export const LicenseFeature = {
   DevicePosture: 'DevicePosture',
   AclAllowedIps: 'AclAllowedIps',
   ComponentHa: 'ComponentHa',
+  MfaFlow: 'MfaFlow',
 } as const;
 
 export type LicenseFeatureValue = (typeof LicenseFeature)[keyof typeof LicenseFeature];

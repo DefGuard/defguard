@@ -50,6 +50,7 @@ import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
 import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
 import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_authorized/_default/settings/index'
+import { Route as AuthorizedDefaultMfaIndexRouteImport } from './routes/_authorized/_default/mfa/index'
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
@@ -294,6 +295,12 @@ const AuthorizedDefaultSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultMfaIndexRoute =
+  AuthorizedDefaultMfaIndexRouteImport.update({
+    id: '/mfa/',
+    path: '/mfa/',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsIndexRoute =
   AuthorizedDefaultLocationsIndexRouteImport.update({
     id: '/locations/',
@@ -511,6 +518,7 @@ export interface FileRoutesByFullPath {
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
+  '/mfa/': typeof AuthorizedDefaultMfaIndexRoute
   '/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
@@ -577,6 +585,7 @@ export interface FileRoutesByTo {
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
+  '/mfa': typeof AuthorizedDefaultMfaIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
@@ -647,6 +656,7 @@ export interface FileRoutesById {
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
+  '/_authorized/_default/mfa/': typeof AuthorizedDefaultMfaIndexRoute
   '/_authorized/_default/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/_authorized/_default/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
@@ -716,6 +726,7 @@ export interface FileRouteTypes {
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations/'
+    | '/mfa/'
     | '/settings/'
     | '/vpn-overview/'
     | '/edge/$edgeId/edit'
@@ -782,6 +793,7 @@ export interface FileRouteTypes {
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
+    | '/mfa'
     | '/settings'
     | '/vpn-overview'
     | '/edge/$edgeId/edit'
@@ -851,6 +863,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
     | '/_authorized/_default/locations/'
+    | '/_authorized/_default/mfa/'
     | '/_authorized/_default/settings/'
     | '/_authorized/_default/vpn-overview/'
     | '/_authorized/_default/edge/$edgeId/edit'
@@ -1164,6 +1177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/mfa/': {
+      id: '/_authorized/_default/mfa/'
+      path: '/mfa'
+      fullPath: '/mfa/'
+      preLoaderRoute: typeof AuthorizedDefaultMfaIndexRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/': {
       id: '/_authorized/_default/locations/'
       path: '/locations'
@@ -1396,6 +1416,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
+  AuthorizedDefaultMfaIndexRoute: typeof AuthorizedDefaultMfaIndexRoute
   AuthorizedDefaultSettingsIndexRoute: typeof AuthorizedDefaultSettingsIndexRoute
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
   AuthorizedDefaultEdgeEdgeIdEditRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRoute
@@ -1442,6 +1463,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,
   AuthorizedDefaultLocationsIndexRoute: AuthorizedDefaultLocationsIndexRoute,
+  AuthorizedDefaultMfaIndexRoute: AuthorizedDefaultMfaIndexRoute,
   AuthorizedDefaultSettingsIndexRoute: AuthorizedDefaultSettingsIndexRoute,
   AuthorizedDefaultVpnOverviewIndexRoute:
     AuthorizedDefaultVpnOverviewIndexRoute,

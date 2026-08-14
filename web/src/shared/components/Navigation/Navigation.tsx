@@ -103,6 +103,14 @@ const navigationConfig: NavGroupProps[] = [
         licenseTier: LicenseTier.Enterprise,
         licenseFeature: LicenseFeature.DevicePosture,
       },
+      {
+        id: 'mfa',
+        icon: 'connected-devices',
+        label: m.cmp_nav_item_mfa(),
+        link: '/mfa',
+        licenseTier: LicenseTier.Business,
+        licenseFeature: LicenseFeature.MfaFlow,
+      },
     ],
   },
   {

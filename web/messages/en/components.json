@@ -20,6 +20,7 @@
   "cmp_nav_item_destinations": "Destinations",
   "cmp_nav_item_aliases": "Aliases",
   "cmp_nav_item_posture_checks": "Posture Checks",
+  "cmp_nav_item_mfa": "MFA Flow",
   "cmp_nav_item_users": "Users",
   "cmp_nav_item_groups": "Groups",
   "cmp_nav_item_enrollment": "Enrollment",
