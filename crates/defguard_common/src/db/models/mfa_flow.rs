@@ -152,6 +152,7 @@ pub const MAX_MFA_FLOW_TITLE_LEN: usize = 255;
 
 /// Validates the structural rules for an MFA flow input (title + step methods).
 /// License, SMTP and OIDC checks are applied separately by the handler.
+#[must_use]
 pub fn validate_flow_input(
     title: &str,
     step_methods: &[Vec<VpnClientMfaMethod>],

@@ -21,8 +21,8 @@ enum ModelType {
 }
 
 impl ModelType {
-    fn is_any(&self) -> bool {
-        if let Self::Any = self { true } else { false }
+    fn is_any(self) -> bool {
+        matches!(self, Self::Any)
     }
 }
 
