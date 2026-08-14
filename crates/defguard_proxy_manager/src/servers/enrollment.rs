@@ -29,7 +29,7 @@ use defguard_core::{
     grpc::{
         GatewayCommand, InstanceInfo,
         client_version::{ClientFeature, should_omit_location_for_device},
-        utils::{build_device_config_response, parse_client_ip_agent},
+        utils::{build_device_config_response, build_wire_steps, parse_client_ip_agent},
     },
     handlers::user::check_password_strength,
     headers::get_device_info,
@@ -973,6 +973,7 @@ impl EnrollmentServer {
                 error!("Failed to get OpenID provider: {err}");
                 Status::internal(format!("unexpected error: {err}"))
             })?;
+        let oidc_configured = openid_provider.is_some();
 
         let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
             .await
@@ -981,9 +982,37 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+        let is_capable =
+            ClientFeature::MultiStepMfa.is_supported_by_device(req_device_info.as_ref());
+        let smtp_configured = settings.smtp_configured();
+
+        let mut wire_configs = Vec::with_capacity(configs.len());
+        for device_config in configs {
+            let resolved_steps = device_config.steps.clone();
+            let mut config: defguard_proto::client_types::DeviceConfig = device_config.into();
+            if is_capable {
+                #[allow(deprecated)]
+                {
+                    config.location_mfa_mode = None;
+                }
+                config.steps = build_wire_steps(
+                    &self.pool,
+                    &resolved_steps,
+                    &user,
+                    device.id,
+                    smtp_configured,
+                    oidc_configured,
+                )
+                .await?;
+            } else {
+                config.steps.clear();
+            }
+            wire_configs.push(config);
+        }
+
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
-            configs: configs.into_iter().map(Into::into).collect(),
+            configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
         };

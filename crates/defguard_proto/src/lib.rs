@@ -137,6 +137,18 @@ impl From<MfaMethod> for VpnClientMfaMethod {
     }
 }
 
+impl From<VpnClientMfaMethod> for MfaMethod {
+    fn from(val: VpnClientMfaMethod) -> Self {
+        match val {
+            VpnClientMfaMethod::Totp => Self::Totp,
+            VpnClientMfaMethod::Email => Self::Email,
+            VpnClientMfaMethod::Oidc => Self::Oidc,
+            VpnClientMfaMethod::Biometric => Self::Biometric,
+            VpnClientMfaMethod::MobileApprove => Self::MobileApprove,
+        }
+    }
+}
+
 impl From<Status> for CoreError {
     fn from(status: Status) -> Self {
         Self {
@@ -174,7 +186,20 @@ impl From<DeviceConfig> for client_types::DeviceConfig {
                 .into(),
             ),
             posture_check_required: Some(config.posture_check_required),
-            steps: Vec::new(),
+            steps: config
+                .steps
+                .into_iter()
+                .map(|step| client_types::MfaStep {
+                    methods: step
+                        .methods
+                        .into_iter()
+                        .map(|method| client_types::MfaStepMethod {
+                            method: <VpnClientMfaMethod as Into<MfaMethod>>::into(method) as i32,
+                            configured: false,
+                        })
+                        .collect(),
+                })
+                .collect(),
         }
     }
 }

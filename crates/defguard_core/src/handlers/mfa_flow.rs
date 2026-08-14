@@ -963,7 +963,6 @@ pub async fn get_method_availability(
 /// Per-user setup reads `User::totp_enabled` (TOTP), `User::email_mfa_enabled` (email),
 /// `User::openid_sub` (OIDC identity), and the `biometric_auth` table - keyed on the device for
 /// biometric and on any of the user's devices for mobile-approve.
-#[allow(dead_code)]
 pub async fn is_method_configured<'e, E: PgExecutor<'e>>(
     executor: E,
     method: VpnClientMfaMethod,

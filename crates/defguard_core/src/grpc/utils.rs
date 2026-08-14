@@ -7,6 +7,8 @@ use defguard_common::{
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
             device::WireguardNetworkDevice,
+            mfa_flow::MfaFlowStep,
+            vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
@@ -14,7 +16,7 @@ use defguard_common::{
 use defguard_proto::{
     client_types::{
         DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse,
-        LocationMfaMode as ProtoLocationMfaMode,
+        LocationMfaMode as ProtoLocationMfaMode, MfaMethod, MfaStep, MfaStepMethod,
     },
     proxy::DeviceInfo,
 };
@@ -29,6 +31,7 @@ use crate::{
         client_version::{ClientFeature, should_omit_location_for_device},
         should_prevent_service_location_usage,
     },
+    handlers::mfa_flow::is_method_configured,
 };
 
 pub async fn build_device_config_response(
@@ -43,6 +46,9 @@ pub async fn build_device_config_response(
         error!("Failed to get OpenID provider: {err}");
         Status::internal(format!("unexpected error: {err}"))
     })?;
+
+    let smtp_configured = settings.smtp_configured();
+    let oidc_configured = openid_provider.is_some();
 
     let locations = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
@@ -145,6 +151,7 @@ pub async fn build_device_config_response(
             configs.push(config);
         }
     } else {
+        let is_capable = ClientFeature::MultiStepMfa.is_supported_by_device(device_info.as_ref());
         for location in locations {
             let wireguard_network_device = WireguardNetworkDevice::find(
                 pool,
@@ -225,9 +232,13 @@ pub async fn build_device_config_response(
                     #[allow(deprecated)]
                     mfa_enabled,
                     #[allow(deprecated)]
-                    location_mfa_mode: device_config.location_mfa_mode.map(|mode| {
-                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
-                    }),
+                    location_mfa_mode: if is_capable {
+                        None
+                    } else {
+                        device_config.location_mfa_mode.map(|mode| {
+                            <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
+                        })
+                    },
                     service_location_mode: Some(
                         <ServiceLocationMode as Into<
                             defguard_proto::client_types::ServiceLocationMode,
@@ -235,7 +246,19 @@ pub async fn build_device_config_response(
                         .into(),
                     ),
                     posture_check_required: Some(device_config.posture_check_required),
-                    steps: Vec::new(),
+                    steps: if is_capable {
+                        build_wire_steps(
+                            pool,
+                            &device_config.steps,
+                            &user,
+                            device.id,
+                            smtp_configured,
+                            oidc_configured,
+                        )
+                        .await?
+                    } else {
+                        Vec::new()
+                    },
                 };
                 configs.push(config);
             }
@@ -260,6 +283,43 @@ pub async fn build_device_config_response(
         instance: Some(instance_info.into()),
         token,
     })
+}
+
+/// Maps the resolved MFA flow steps to the wire `MfaStep` list, computing each method's
+/// `configured` flag for the given user/device.
+pub async fn build_wire_steps(
+    pool: &PgPool,
+    steps: &[MfaFlowStep<Id>],
+    user: &User<Id>,
+    device_id: Id,
+    smtp_configured: bool,
+    oidc_configured: bool,
+) -> Result<Vec<MfaStep>, Status> {
+    let mut wire_steps = Vec::with_capacity(steps.len());
+    for step in steps {
+        let mut methods = Vec::with_capacity(step.methods.len());
+        for &method in &step.methods {
+            let configured = is_method_configured(
+                pool,
+                method,
+                user,
+                device_id,
+                smtp_configured,
+                oidc_configured,
+            )
+            .await
+            .map_err(|err| {
+                error!("Failed to compute MFA method configuration: {err}");
+                Status::internal("unexpected error")
+            })?;
+            methods.push(MfaStepMethod {
+                method: <VpnClientMfaMethod as Into<MfaMethod>>::into(method) as i32,
+                configured,
+            });
+        }
+        wire_steps.push(MfaStep { methods });
+    }
+    Ok(wire_steps)
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
@@ -296,7 +356,7 @@ mod tests {
         },
         setup_pool,
     };
-    use defguard_proto::proxy::DeviceInfo;
+    use defguard_proto::{client_types::LocationMfaMode, proxy::DeviceInfo};
     use ipnetwork::IpNetwork;
     use sqlx::{
         PgPool,
@@ -611,5 +671,151 @@ mod tests {
             .expect("network device on MFA-disabled location should get config");
         assert_eq!(response.configs.len(), 1);
         assert_eq!(response.configs[0].network_name, "disabled-location");
+    }
+
+    /// Asserts every cell of the per-client-version config-shape matrix: four location
+    /// configurations across a legacy (2.1.0) and a capable (2.2.0) client.
+    #[sqlx::test]
+    #[allow(deprecated)]
+    async fn test_device_config_matrix(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        let disabled = create_disabled_location(&pool, "disabled-location", 1).await;
+        let internal = create_location(
+            &pool,
+            "internal-location",
+            2,
+            vec![vec![
+                VpnClientMfaMethod::Totp,
+                VpnClientMfaMethod::Email,
+                VpnClientMfaMethod::Biometric,
+                VpnClientMfaMethod::MobileApprove,
+            ]],
+        )
+        .await;
+        let external = create_location(
+            &pool,
+            "external-location",
+            3,
+            vec![vec![VpnClientMfaMethod::Oidc]],
+        )
+        .await;
+        let multi_step = create_location(
+            &pool,
+            "multi-step-location",
+            4,
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+        )
+        .await;
+
+        attach_device(&pool, disabled.id, device.id).await;
+        attach_device(&pool, internal.id, device.id).await;
+        attach_device(&pool, external.id, device.id).await;
+        attach_device(&pool, multi_step.id, device.id).await;
+
+        // Legacy client (2.1.0): multi-step location omitted; others carry `location_mfa_mode`
+        // and no `steps`.
+        let response =
+            build_device_config_response(&pool, device.clone(), None, device_info("2.1.0"))
+                .await
+                .expect("failed to build config for legacy client");
+        let names: Vec<&str> = response
+            .configs
+            .iter()
+            .map(|config| config.network_name.as_str())
+            .collect();
+        assert!(
+            !names.contains(&"multi-step-location"),
+            "multi-step location must be omitted for a legacy client, got: {names:?}"
+        );
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "disabled-location")
+            .expect("disabled location must be present");
+        assert!(!config.mfa_enabled);
+        assert_eq!(
+            config.location_mfa_mode,
+            Some(LocationMfaMode::Disabled as i32)
+        );
+        assert!(config.steps.is_empty());
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "internal-location")
+            .expect("internal location must be present");
+        assert!(config.mfa_enabled);
+        assert_eq!(
+            config.location_mfa_mode,
+            Some(LocationMfaMode::Internal as i32)
+        );
+        assert!(config.steps.is_empty());
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "external-location")
+            .expect("external location must be present");
+        assert!(config.mfa_enabled);
+        assert_eq!(
+            config.location_mfa_mode,
+            Some(LocationMfaMode::External as i32)
+        );
+        assert!(config.steps.is_empty());
+
+        // Capable client (2.2.0): every location present; `location_mfa_mode` absent and `steps`
+        // populated from the resolved flow.
+        let response =
+            build_device_config_response(&pool, device.clone(), None, device_info("2.2.0"))
+                .await
+                .expect("failed to build config for capable client");
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "disabled-location")
+            .expect("disabled location must be present");
+        assert!(!config.mfa_enabled);
+        assert_eq!(config.location_mfa_mode, None);
+        assert!(config.steps.is_empty());
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "internal-location")
+            .expect("internal location must be present");
+        assert!(config.mfa_enabled);
+        assert_eq!(config.location_mfa_mode, None);
+        assert_eq!(config.steps.len(), 1);
+        assert_eq!(config.steps[0].methods.len(), 4);
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "external-location")
+            .expect("external location must be present");
+        assert!(config.mfa_enabled);
+        assert_eq!(config.location_mfa_mode, None);
+        assert_eq!(config.steps.len(), 1);
+        assert_eq!(config.steps[0].methods.len(), 1);
+
+        let config = response
+            .configs
+            .iter()
+            .find(|config| config.network_name == "multi-step-location")
+            .expect("multi-step location must be present for a capable client");
+        assert!(config.mfa_enabled);
+        assert_eq!(config.location_mfa_mode, None);
+        assert_eq!(config.steps.len(), 2);
+        assert_eq!(config.steps[0].methods.len(), 1);
+        assert_eq!(config.steps[1].methods.len(), 1);
     }
 }
