@@ -63,6 +63,7 @@ import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './route
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
 import { Route as AuthorizedDefaultSettingsCertsRouteImport } from './routes/_authorized/_default/settings/certs'
 import { Route as AuthorizedDefaultSettingsCaRouteImport } from './routes/_authorized/_default/settings/ca'
+import { Route as AuthorizedDefaultMfaAddFlowRouteImport } from './routes/_authorized/_default/mfa/add-flow'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
 import { Route as AuthorizedDefaultAclPostureChecksRouteImport } from './routes/_authorized/_default/acl/posture-checks'
 import { Route as AuthorizedDefaultAclEditRuleRouteImport } from './routes/_authorized/_default/acl/edit-rule'
@@ -373,6 +374,12 @@ const AuthorizedDefaultSettingsCaRoute =
     path: '/settings/ca',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultMfaAddFlowRoute =
+  AuthorizedDefaultMfaAddFlowRouteImport.update({
+    id: '/mfa/add-flow',
+    path: '/mfa/add-flow',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclRulesRoute =
   AuthorizedDefaultAclRulesRouteImport.update({
     id: '/acl/rules',
@@ -506,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/mfa/add-flow': typeof AuthorizedDefaultMfaAddFlowRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -573,6 +581,7 @@ export interface FileRoutesByTo {
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/mfa/add-flow': typeof AuthorizedDefaultMfaAddFlowRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -644,6 +653,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/_authorized/_default/mfa/add-flow': typeof AuthorizedDefaultMfaAddFlowRoute
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -714,6 +724,7 @@ export interface FileRouteTypes {
     | '/acl/edit-rule'
     | '/acl/posture-checks'
     | '/acl/rules'
+    | '/mfa/add-flow'
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
@@ -781,6 +792,7 @@ export interface FileRouteTypes {
     | '/acl/edit-rule'
     | '/acl/posture-checks'
     | '/acl/rules'
+    | '/mfa/add-flow'
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
@@ -851,6 +863,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/edit-rule'
     | '/_authorized/_default/acl/posture-checks'
     | '/_authorized/_default/acl/rules'
+    | '/_authorized/_default/mfa/add-flow'
     | '/_authorized/_default/settings/ca'
     | '/_authorized/_default/settings/certs'
     | '/_authorized/_default/settings/client'
@@ -1268,6 +1281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsCaRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/mfa/add-flow': {
+      id: '/_authorized/_default/mfa/add-flow'
+      path: '/mfa/add-flow'
+      fullPath: '/mfa/add-flow'
+      preLoaderRoute: typeof AuthorizedDefaultMfaAddFlowRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/rules': {
       id: '/_authorized/_default/acl/rules'
       path: '/acl/rules'
@@ -1404,6 +1424,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclEditRuleRoute: typeof AuthorizedDefaultAclEditRuleRoute
   AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
+  AuthorizedDefaultMfaAddFlowRoute: typeof AuthorizedDefaultMfaAddFlowRoute
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
@@ -1447,6 +1468,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultAclPostureChecksRoute:
     AuthorizedDefaultAclPostureChecksRouteWithChildren,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
+  AuthorizedDefaultMfaAddFlowRoute: AuthorizedDefaultMfaAddFlowRoute,
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
