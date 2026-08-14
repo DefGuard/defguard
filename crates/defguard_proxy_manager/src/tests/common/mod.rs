@@ -451,7 +451,6 @@ impl HandlerTestContext {
             .expect("failed to build proxy url");
 
         let remote_mfa_responses = Arc::default();
-        let sessions = Arc::default();
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<bool>();
 
         let handler = ProxyHandler::new_with_test_socket(
@@ -459,7 +458,6 @@ impl HandlerTestContext {
             url,
             &tx_set,
             remote_mfa_responses,
-            sessions,
             Arc::new(tokio::sync::Mutex::new(shutdown_rx)),
             proxy.id,
             axum_extra::extract::cookie::Key::derive_from(

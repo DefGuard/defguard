@@ -34,9 +34,7 @@ use defguard_core::{
     events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent},
     grpc::{
         GatewayCommand,
-        proxy::client_mfa::{
-            ClientLoginSession, ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome,
-        },
+        proxy::client_mfa::{ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome},
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -135,14 +133,13 @@ impl ProxyHandler {
         url: Url,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
     ) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
+        let services = ProxyServices::new(&pool, tx, remote_mfa_responses);
 
         Self {
             pool,
@@ -167,7 +164,6 @@ impl ProxyHandler {
         pool: PgPool,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
@@ -179,7 +175,6 @@ impl ProxyHandler {
             url,
             tx,
             remote_mfa_responses,
-            sessions,
             shutdown_signal,
             proxy_id,
             proxy_cookie_key,
@@ -1103,7 +1098,6 @@ impl ProxyHandler {
         url: Url,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
@@ -1115,7 +1109,6 @@ impl ProxyHandler {
             url,
             tx,
             remote_mfa_responses,
-            sessions,
             shutdown_signal,
             proxy_id,
             proxy_cookie_key,
@@ -1270,7 +1263,6 @@ impl ProxyServices {
         pool: &PgPool,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
@@ -1285,7 +1277,6 @@ impl ProxyServices {
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
             remote_mfa_responses,
-            sessions,
         );
         let polling = PollingServer::new(pool.clone());
 
