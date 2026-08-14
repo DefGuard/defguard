@@ -49,8 +49,8 @@ axum-extra = { version = "0.12", features = [
     "query",
 ] }
 base32 = "0.5"
-base64 = "0.22"
-bytes = { version = "1.11.1", features = ["serde"] }
+base64 = "0.23"
+bytes = { version = "1.12", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
@@ -58,7 +58,7 @@ chrono = { version = "0.4", default-features = false, features = [
 claims = "0.8"
 clap = { version = "4.5", features = ["derive", "env"] }
 futures = "0.3"
-http = "1.4"
+http = "1.5"
 hyper-rustls = { version = "0.27", features = ["http2"] }
 humantime = "2.1"
 # match version used by sqlx
@@ -90,7 +90,7 @@ reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
 rust-ini = "0.21"
 rustls = { version = "0.23", features = ["ring"] }
-rustls-pki-types = "1.14"
+rustls-pki-types = "1.15"
 semver = { version = "1.0", features = ["serde"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -109,7 +109,7 @@ sqlx = { version = "0.8", features = [
     "uuid",
 ] }
 ssh-key = "0.6"
-struct-patch = { version = "0.12", default-features = false, features = ["nesting"] }
+struct-patch = { version = "0.13", default-features = false, features = ["nesting"] }
 strum = { version = "0.28", features = ["derive"] }
 strum_macros = "0.28"
 tera = "1.20"
@@ -144,7 +144,7 @@ trait-variant = "0.1"
 # openapi
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
-uuid = { version = "1.9", features = ["v4"] }
+uuid = { version = "1.24", features = ["v4"] }
 webauthn-authenticator-rs = "0.5"
 webauthn-rs = { version = "0.5", features = [
     "danger-allow-state-serialisation",
