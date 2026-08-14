@@ -137,6 +137,18 @@ impl From<MfaMethod> for VpnClientMfaMethod {
     }
 }
 
+impl From<VpnClientMfaMethod> for MfaMethod {
+    fn from(val: VpnClientMfaMethod) -> Self {
+        match val {
+            VpnClientMfaMethod::Totp => Self::Totp,
+            VpnClientMfaMethod::Email => Self::Email,
+            VpnClientMfaMethod::Oidc => Self::Oidc,
+            VpnClientMfaMethod::Biometric => Self::Biometric,
+            VpnClientMfaMethod::MobileApprove => Self::MobileApprove,
+        }
+    }
+}
+
 impl From<Status> for CoreError {
     fn from(status: Status) -> Self {
         Self {
