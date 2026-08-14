@@ -14,8 +14,8 @@ use defguard_common::{
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
             mfa_flow::MfaFlow,
             polling_token::PollingToken,
+            vpn_client_mfa_session::{VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
-            wireguard::LocationMfaMode,
         },
     },
     types::user_info::UserInfo,
@@ -255,51 +255,45 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid MFA method selected")
         })?;
 
-        // Derive the legacy single-factor mode for this location. `None` means the location's
-        // flow configuration cannot be expressed as a legacy mode (multi-flow, multi-step, or a
-        // subset of the internal method set), so no current client can enforce it. Fail closed
-        // rather than fall back to a mode: `mfa_enabled` is a stored column now, so it no longer
-        // implies that a legacy mode is derivable.
-        let Some(location_mfa_mode) = MfaFlow::derive_legacy_mode(&self.pool, request.location_id)
+        // Resolve the MFA flow that applies to this user at this location. The legacy adapter
+        // drives only the first step, so license-filter its methods and validate the client's
+        // selected method against them.
+        let Some((flow, steps)) = MfaFlow::resolve_for_user(&self.pool, location.id, user.id)
             .await
             .map_err(|err| {
-                error!("Failed to derive legacy MFA mode: {err}");
+                error!("Failed to resolve MFA flow: {err}");
                 Status::internal("unexpected error")
             })?
         else {
             error!(
-                "Location {location} has an MFA flow configuration that cannot be enforced by \
-                this client"
+                "Location {location} has no MFA flow that applies to user {}",
+                user.username
             );
             return Err(Status::failed_precondition(
                 "location MFA configuration is not supported by this client",
             ));
         };
 
-        // check if selected MFA method matches location settings
-        match (&location_mfa_mode, selected_method) {
-            (
-                LocationMfaMode::Internal,
-                MfaMethod::Totp
-                | MfaMethod::Email
-                | MfaMethod::Biometric
-                | MfaMethod::MobileApprove,
-            ) => {
-                debug!("Location uses internal MFA. Selected method: {selected_method}");
-            }
-            (LocationMfaMode::External, MfaMethod::Oidc) => {
-                debug!("Location uses external MFA. Selected method: {selected_method}");
-            }
-            _ => {
-                error!(
-                    "Selected MFA method ({selected_method}) is not supported by location \
-                    {location}"
-                );
+        let Some(first_step) = steps.first() else {
+            error!("Resolved MFA flow has no steps");
+            return Err(Status::internal("unexpected error"));
+        };
+        let first_step_methods: Vec<VpnClientMfaMethod> = first_step
+            .methods
+            .iter()
+            .copied()
+            .filter(|method| *method != VpnClientMfaMethod::Oidc || is_business_license_active())
+            .collect();
 
-                return Err(Status::invalid_argument(
-                    "selected MFA method is not supported by location",
-                ));
-            }
+        let selected_client_method: VpnClientMfaMethod = selected_method.into();
+        if !first_step_methods.contains(&selected_client_method) {
+            error!(
+                "Selected MFA method ({selected_method}) is not supported by location \
+                {location}"
+            );
+            return Err(Status::invalid_argument(
+                "selected MFA method is not supported by location",
+            ));
         }
 
         let mut selected_mobile_auth: Option<BiometricAuth<Id>> = None;
@@ -394,15 +388,6 @@ impl ClientMfaServer {
             }
         }
 
-        // TODO(#3043): resolve the flow and start a durable session (Step 3.2). Until then, the
-        // token is a placeholder and the session is not persisted.
-        let token = String::new();
-
-        info!(
-            "Desktop client MFA login started for {} at location {}",
-            user.username, location.name
-        );
-
         let biometric_challenge: Option<BiometricChallenge> = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
                 Some(mobile_auth) => {
@@ -427,8 +412,56 @@ impl ClientMfaServer {
             .as_ref()
             .map(|challenge| challenge.challenge.clone());
 
+        // Start the durable in-progress session, freezing the license-filtered first step.
+        let mut conn = self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })?;
+        let (_, outcome) = VpnClientMfaSession::start(
+            &mut conn,
+            location.id,
+            device.id,
+            user.id,
+            flow.id,
+            vec![first_step_methods],
+            VPN_MFA_SESSION_TIMEOUT,
+        )
+        .await
+        .map_err(|err| {
+            error!("Failed to start MFA session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        // Cancel the superseded session's waiter (best-effort hygiene) and emit the supersede
+        // event.
+        if let Some(superseded_token_hash) = outcome.superseded_token_hash {
+            self.remote_mfa_responses
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                .remove(&superseded_token_hash);
+
+            let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+            let context =
+                BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
+            self.emit_event(BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::SessionSuperseded {
+                        location: location.clone(),
+                        device: device.clone(),
+                        is_mfa_session: true,
+                    },
+                )),
+            })?;
+        }
+
+        info!(
+            "Desktop client MFA login started for {} at location {}",
+            user.username, location.name
+        );
+
         Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
-            token,
+            token: outcome.token,
             challenge: response_challenge,
             rejections: Vec::new(),
         }))
@@ -1031,8 +1064,10 @@ mod tests {
         models::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             polling_token::PollingToken,
             settings::initialize_current_settings,
+            vpn_client_mfa_session::VpnClientMfaSession,
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::ServiceLocationMode,
         },
@@ -1053,7 +1088,7 @@ mod tests {
     use tokio::sync::{broadcast, mpsc, oneshot};
     use tonic::Code;
 
-    use super::ClientMfaServer;
+    use super::{ClientMfaServer, ClientMfaStartOutcome};
     use crate::{
         enterprise::{
             db::models::device_posture::{
@@ -2273,6 +2308,95 @@ mod tests {
         .insert(pool)
         .await
         .expect("failed to attach device to location");
+    }
+
+    async fn create_and_assign_mfa_flow(pool: &PgPool, location_id: Id) {
+        let mut tx = pool.begin().await.expect("failed to begin transaction");
+        let (flow, _steps) = MfaFlow::create(
+            &mut tx,
+            "Default Internal MFA".into(),
+            vec![vec![VpnClientMfaMethod::Totp]],
+        )
+        .await
+        .expect("failed to create MFA flow");
+        MfaFlow::assign_to_location(
+            &mut tx,
+            location_id,
+            &[LocationMfaFlowAssignment {
+                flow_id: flow.id,
+                is_default: true,
+                group_ids: Vec::new(),
+            }],
+        )
+        .await
+        .expect("failed to assign MFA flow to location");
+        tx.commit().await.expect("failed to commit transaction");
+    }
+
+    #[sqlx::test]
+    async fn test_start_client_mfa_login_supersedes_existing_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        create_and_assign_mfa_flow(&pool, location.id).await;
+        let mut user = create_user(&pool).await;
+        user.enable_totp(&pool)
+            .await
+            .expect("failed to enable TOTP");
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+
+        let request = || ClientMfaStartRequest {
+            location_id: location.id,
+            pubkey: device.wireguard_pubkey.clone(),
+            #[allow(deprecated)]
+            method: MfaMethod::Totp as i32,
+            posture_data: None,
+            selected_methods: Vec::new(),
+        };
+
+        let first = server
+            .start_client_mfa_login(request(), device_info())
+            .await
+            .expect("first start should succeed");
+        let first_token = match first {
+            ClientMfaStartOutcome::Approved(response) => response.token,
+            ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
+        };
+        assert!(
+            VpnClientMfaSession::find_active_by_token(&pool, &first_token)
+                .await
+                .is_some()
+        );
+
+        let second = server
+            .start_client_mfa_login(request(), device_info())
+            .await
+            .expect("second start should succeed");
+        let second_token = match second {
+            ClientMfaStartOutcome::Approved(response) => response.token,
+            ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
+        };
+
+        // The first token no longer validates; the second one does.
+        assert!(
+            VpnClientMfaSession::find_active_by_token(&pool, &first_token)
+                .await
+                .is_none()
+        );
+        assert!(
+            VpnClientMfaSession::find_active_by_token(&pool, &second_token)
+                .await
+                .is_some()
+        );
     }
 
     fn set_enterprise_license() {
