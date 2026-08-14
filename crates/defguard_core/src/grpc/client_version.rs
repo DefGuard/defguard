@@ -4,6 +4,8 @@ use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
 
+use crate::enterprise::is_business_license_active;
+
 /// Extracts the semantic client version and decoded platform metadata from proxy device info.
 ///
 /// Invalid or missing fields are logged and returned as `None` so feature checks can fail closed
@@ -167,19 +169,24 @@ impl ClientFeature {
     }
 }
 
-/// Returns `true` when a location should be omitted from a device's config
-/// because the device's client version does not support multi-step MFA and
-/// the location's MFA configuration has no legacy equivalent.
+/// Returns `true` when a location should be omitted from a device's config because the location's
+/// MFA configuration has no legacy equivalent and either the device's client version does not
+/// support multi-step MFA or multi-step MFA is unavailable without an active business license.
 pub fn should_omit_location_for_device(
     location_mfa_mode: Option<LocationMfaMode>,
     device_info: Option<&DeviceInfo>,
 ) -> bool {
-    location_mfa_mode.is_none() && !ClientFeature::MultiStepMfa.is_supported_by_device(device_info)
+    location_mfa_mode.is_none()
+        && (!ClientFeature::MultiStepMfa.is_supported_by_device(device_info)
+            || !is_business_license_active())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::enterprise::license::{
+        License, LicenseTier, SupportType, get_cached_license, set_cached_license,
+    };
 
     // Helper function to create DeviceInfo
     fn create_device_info(
@@ -739,8 +746,23 @@ mod tests {
         );
     }
 
+    fn business_license() -> License {
+        License {
+            customer_id: "test".to_owned(),
+            subscription: false,
+            valid_until: None,
+            limits: None,
+            version_date_limit: None,
+            tier: LicenseTier::Business,
+            support_type: SupportType::Basic,
+            features: vec![],
+        }
+    }
+
     #[test]
     fn test_should_omit_location_for_device() {
+        let saved_license = get_cached_license().clone();
+
         // Legacy client (below the MultiStepMfa floor).
         let legacy = create_device_info(
             Some("2.1.0".to_owned()),
@@ -772,7 +794,14 @@ mod tests {
         // Legacy client with no legacy equivalent is omitted.
         assert!(should_omit_location_for_device(None, Some(&legacy)));
 
-        // Capable client with no legacy equivalent is not omitted.
+        // Capable client with no legacy equivalent but no business license is omitted.
+        set_cached_license(None);
+        assert!(should_omit_location_for_device(None, Some(&capable)));
+
+        // Capable client with no legacy equivalent and an active business license is included.
+        set_cached_license(Some(business_license()));
         assert!(!should_omit_location_for_device(None, Some(&capable)));
+
+        set_cached_license(saved_license);
     }
 }

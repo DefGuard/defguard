@@ -365,6 +365,9 @@ mod tests {
     use tonic::Code;
 
     use super::build_device_config_response;
+    use crate::enterprise::license::{
+        License, LicenseTier, SupportType, get_cached_license, set_cached_license,
+    };
 
     const DEFGUARD_URL: &str = "http://localhost:8000";
     const PROXY_URL: &str = "http://localhost:8080";
@@ -522,6 +525,19 @@ mod tests {
         })
     }
 
+    fn business_license() -> License {
+        License {
+            customer_id: "test".to_owned(),
+            subscription: false,
+            valid_until: None,
+            limits: None,
+            version_date_limit: None,
+            tier: LicenseTier::Business,
+            support_type: SupportType::Basic,
+            features: vec![],
+        }
+    }
+
     #[sqlx::test]
     async fn test_multi_step_location_omitted_for_legacy_client(
         _: PgPoolOptions,
@@ -529,6 +545,8 @@ mod tests {
     ) {
         let pool = setup_pool(options).await;
         init_settings(&pool).await;
+        let saved_license = get_cached_license().clone();
+        set_cached_license(Some(business_license()));
         let user = create_user(&pool).await;
         let device = create_device(&pool, user.id).await;
 
@@ -596,6 +614,8 @@ mod tests {
             names.contains(&"internal-location"),
             "legacy-derivable location must be retained, got: {names:?}"
         );
+
+        set_cached_license(saved_license);
     }
 
     #[sqlx::test]
@@ -680,6 +700,8 @@ mod tests {
     async fn test_device_config_matrix(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
         init_settings(&pool).await;
+        let saved_license = get_cached_license().clone();
+        set_cached_license(Some(business_license()));
         let user = create_user(&pool).await;
         let device = create_device(&pool, user.id).await;
 
@@ -817,5 +839,7 @@ mod tests {
         assert_eq!(config.steps.len(), 2);
         assert_eq!(config.steps[0].methods.len(), 1);
         assert_eq!(config.steps[1].methods.len(), 1);
+
+        set_cached_license(saved_license);
     }
 }
