@@ -1,6 +1,5 @@
-use std::{net::Ipv6Addr, str::FromStr};
+use std::{assert_matches, net::Ipv6Addr, str::FromStr};
 
-use matches::assert_matches;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;

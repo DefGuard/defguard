@@ -1,15 +1,12 @@
-use base64::{Engine, engine::general_purpose, prelude::BASE64_STANDARD};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use base64::{Engine, engine::general_purpose::STANDARD};
+use ed25519_dalek::{PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH, Signature, Verifier, VerifyingKey};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query, query_as};
+use sqlx::{PgExecutor, query_as, query_scalar};
 use thiserror::Error;
 
 use crate::{
-    db::{
-        Id, NoId,
-        models::device::{Device, DeviceType},
-    },
+    db::{Id, NoId},
     random::gen_alphanumeric,
 };
 
@@ -27,17 +24,15 @@ pub enum BiometricAuthError {
     ChallengeNotOwned,
 }
 
-impl From<BiometricAuthError> for tonic::Status {
-    fn from(value: BiometricAuthError) -> Self {
-        Self::invalid_argument(value.to_string())
-    }
-}
+type PubKeyBytes = [u8; PUBLIC_KEY_LENGTH];
+type SignatureBytes = [u8; SIGNATURE_LENGTH];
 
-#[derive(Model, Clone)]
+#[derive(Model)]
 #[table(biometric_auth)]
 pub struct BiometricAuth<I = NoId> {
-    pub id: I,
-    pub pub_key: String,
+    id: I,
+    /// `ed25519_dalek::VerifyingKey` encoded in base64.
+    pub_key: String,
     pub device_id: Id,
 }
 
@@ -50,45 +45,40 @@ impl BiometricAuth {
             pub_key,
         }
     }
-
-    pub fn validate_pubkey(pub_key: &str) -> Result<(), BiometricAuthError> {
-        let decoded = BASE64_STANDARD.decode(pub_key)?;
-        if decoded.len() != ed25519_dalek::PUBLIC_KEY_LENGTH {
-            return Err(BiometricAuthError::InvalidPublicKey);
-        }
-        Ok(())
-    }
 }
 
 impl BiometricAuth<Id> {
+    #[must_use]
+    pub fn pub_key(&self) -> &str {
+        self.pub_key.as_str()
+    }
+
     pub async fn find_by_device_id<'e, E>(executor: E, device_id: Id) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT id, pub_key, device_id FROM biometric_auth WHERE device_id=$1",
+            "SELECT id, pub_key, device_id FROM biometric_auth WHERE device_id = $1",
             &device_id
         )
         .fetch_optional(executor)
         .await
     }
 
-    /// Returns the device owning the given biometric auth public key, scoped to
+    /// Returns the name of device owning the given biometric auth public key, scoped to
     /// the provided user. `None` if no such device exists.
-    pub async fn find_device<'e, E>(
+    pub async fn find_device_name<'e, E>(
         executor: E,
         user_id: Id,
         pub_key: &str,
-    ) -> sqlx::Result<Option<Device<Id>>>
+    ) -> sqlx::Result<Option<String>>
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Device,
-            "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
-            d.device_type \"device_type: DeviceType\", d.configured \
-            FROM biometric_auth as b JOIN device d ON b.device_id = d.id \
+        query_scalar!(
+            "SELECT d.name \
+            FROM biometric_auth b JOIN device d ON b.device_id = d.id \
             WHERE d.user_id = $1 AND b.pub_key = $2",
             user_id,
             pub_key
@@ -97,27 +87,15 @@ impl BiometricAuth<Id> {
         .await
     }
 
-    pub async fn verify_owner<'e, E>(executor: E, user_id: Id, pub_key: &str) -> sqlx::Result<bool>
-    where
-        E: PgExecutor<'e>,
-    {
-        let q_result = query!(
-            "SELECT b.id FROM biometric_auth as b JOIN device d ON b.device_id = d.id WHERE d.user_id = $1 AND b.pub_key = $2",
-            user_id,
-            pub_key
-        )
-        .fetch_optional(executor)
-        .await?;
-        Ok(q_result.is_some())
-    }
-
     pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT b.id, b.pub_key, b.device_id FROM biometric_auth as b JOIN device d ON b.device_id = d.id WHERE d.user_id = $1", &user_id
+            "SELECT b.id, b.pub_key, b.device_id FROM biometric_auth b \
+            JOIN device d ON b.device_id = d.id WHERE d.user_id = $1",
+            &user_id
         )
         .fetch_all(executor)
         .await
@@ -126,19 +104,18 @@ impl BiometricAuth<Id> {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct BiometricChallenge {
-    pub auth_pub_key: Option<String>,
+    pub auth_pub_key: Option<VerifyingKey>,
     pub challenge: String,
 }
 
 fn decode_pub_key(public_key: &str) -> Result<VerifyingKey, BiometricAuthError> {
-    let pub_bytes: [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] = general_purpose::STANDARD
+    let pub_bytes: PubKeyBytes = STANDARD
         .decode(public_key)
         .map_err(|_| BiometricAuthError::InvalidPublicKey)?
         .try_into()
         .map_err(|_| BiometricAuthError::InvalidPublicKey)?;
-    let verifying_key =
-        VerifyingKey::from_bytes(&pub_bytes).map_err(|_| BiometricAuthError::InvalidPublicKey)?;
-    Ok(verifying_key)
+
+    VerifyingKey::from_bytes(&pub_bytes).map_err(|_| BiometricAuthError::InvalidPublicKey)
 }
 
 impl Default for BiometricChallenge {
@@ -148,10 +125,10 @@ impl Default for BiometricChallenge {
 }
 
 impl BiometricChallenge {
-    pub fn new_with_owner(pub_key: &str) -> Result<Self, BiometricAuthError> {
-        let _ = decode_pub_key(pub_key)?;
+    pub fn with_pubkey(pub_key: &str) -> Result<Self, BiometricAuthError> {
+        let verifying_key = decode_pub_key(pub_key)?;
         let mut res = Self::new();
-        res.auth_pub_key = Some(pub_key.to_owned());
+        res.auth_pub_key = Some(verifying_key);
         Ok(res)
     }
 
@@ -170,10 +147,11 @@ impl BiometricChallenge {
         owner: Option<String>,
     ) -> Result<(), BiometricAuthError> {
         if let Some(auth_pub_key) = owner {
-            return verify(signed_challenge, auth_pub_key.as_str(), &self.challenge);
+            let verifying_key = decode_pub_key(auth_pub_key.as_str())?;
+            return verify(signed_challenge, &verifying_key, &self.challenge);
         }
-        if let Some(auth_pub_key) = &self.auth_pub_key {
-            return verify(signed_challenge, auth_pub_key.as_str(), &self.challenge);
+        if let Some(verifying_key) = &self.auth_pub_key {
+            return verify(signed_challenge, verifying_key, &self.challenge);
         }
         Err(BiometricAuthError::ChallengeNotOwned)
     }
@@ -181,11 +159,10 @@ impl BiometricChallenge {
 
 fn verify(
     signature: &str,
-    public_key: &str,
+    verifying_key: &VerifyingKey,
     original_challenge: &str,
 ) -> Result<(), BiometricAuthError> {
-    let verifying_key = decode_pub_key(public_key)?;
-    let sig_bytes: [u8; ed25519_dalek::SIGNATURE_LENGTH] = general_purpose::STANDARD
+    let sig_bytes: SignatureBytes = STANDARD
         .decode(signature)
         .map_err(|_| BiometricAuthError::InvalidSignature)?
         .try_into()
@@ -198,53 +175,49 @@ fn verify(
 
 #[cfg(test)]
 mod test {
-    use base64::engine::general_purpose;
-    use ed25519_dalek::Signer;
-    use matches::assert_matches;
+    use std::assert_matches;
+
+    use ed25519_dalek::{Signer, SigningKey};
+    use getrandom::{SysRng, rand_core::UnwrapErr};
 
     use super::*;
 
+    const TEST_CHALLENGE: &str = "test-challenge";
+
     #[test]
     fn test_verify_valid_sig() {
-        let mut csprng = rand::rngs::OsRng;
-        let signing_key = ed25519_dalek::SigningKey::generate(&mut csprng);
-        let challenge = "test-challenge";
-        let signed = signing_key.sign(challenge.as_bytes());
-        let serialized_signature = BASE64_STANDARD.encode(signed.to_bytes());
-        let serialized_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().as_bytes());
-
-        assert_matches!(
-            verify(&serialized_signature, &serialized_pub_key, challenge),
-            Ok(())
+        let mut csprng = UnwrapErr(SysRng);
+        let signing_key = SigningKey::generate(&mut csprng);
+        let signed = signing_key.sign(TEST_CHALLENGE.as_bytes());
+        let serialized_signature = STANDARD.encode(signed.to_bytes());
+        assert!(
+            verify(
+                &serialized_signature,
+                &signing_key.verifying_key(),
+                TEST_CHALLENGE
+            )
+            .is_ok()
         );
     }
 
     #[test]
     fn test_verify_invalid_signature() {
-        let mut csprng = rand::rngs::OsRng;
-        let signing_key = ed25519_dalek::SigningKey::generate(&mut csprng);
-        let challenge = "test-challenge";
-
-        let bad_signature = [0u8; ed25519_dalek::SIGNATURE_LENGTH];
-        let signature_b64 = general_purpose::STANDARD.encode(bad_signature);
-        let public_key_b64 =
-            general_purpose::STANDARD.encode(signing_key.verifying_key().as_bytes());
-
-        let result = verify(&signature_b64, &public_key_b64, challenge);
+        let mut csprng = UnwrapErr(SysRng);
+        let signing_key = SigningKey::generate(&mut csprng);
+        let bad_signature = [0u8; SIGNATURE_LENGTH];
+        let signature_b64 = STANDARD.encode(bad_signature);
+        let result = verify(&signature_b64, &signing_key.verifying_key(), TEST_CHALLENGE);
 
         assert_matches!(result, Err(BiometricAuthError::InvalidSignature));
     }
 
     #[test]
     fn test_verify_invalid_public_key() {
-        let challenge = "test-challenge";
-        let signature = [0u8; ed25519_dalek::SIGNATURE_LENGTH];
-        let signature_b64 = general_purpose::STANDARD.encode(signature);
+        let bad_pub_key = STANDARD.encode([1, 2, 3]);
 
-        let bad_pub_key = general_purpose::STANDARD.encode([1, 2, 3]);
-
-        let result = verify(&signature_b64, &bad_pub_key, challenge);
-
-        assert_matches!(result, Err(BiometricAuthError::InvalidPublicKey));
+        assert_matches!(
+            decode_pub_key(bad_pub_key.as_str()),
+            Err(BiometricAuthError::InvalidPublicKey)
+        );
     }
 }

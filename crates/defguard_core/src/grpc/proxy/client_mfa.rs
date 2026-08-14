@@ -359,7 +359,7 @@ impl ClientMfaServer {
             ));
         }
 
-        let mut selected_mobile_auth: Option<BiometricAuth<Id>> = None;
+        let mut selected_mobile_auth = None;
 
         // check if selected method is configured
         match selected_method {
@@ -447,15 +447,23 @@ impl ClientMfaServer {
             }
         }
 
-        let biometric_challenge: Option<BiometricChallenge> = match selected_method {
+        // generate auth token
+        // let token = Self::generate_token(&request.pubkey)?;
+
+        info!(
+            "Desktop client MFA login started for {} at location {}",
+            user.username, location.name
+        );
+
+        let biometric_challenge = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
                 Some(mobile_auth) => {
-                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key)
+                    let challenge = BiometricChallenge::with_pubkey(mobile_auth.pub_key())
                         .map_err(|e| {
                             error!(
                                 "Start biometric MFA failed. Challenge creation failed. Reason: {e}"
                             );
-                            Status::invalid_argument("Invalid public key")
+                            Status::invalid_argument("invalid public key")
                         })?;
                     Some(challenge)
                 }
@@ -712,7 +720,7 @@ impl ClientMfaServer {
             BidiRequestContext::new(user.id, user.username.clone(), ip, format!("{device}"));
 
         // name of the device used to approve a mobile approve login; populated below
-        let mut mobile_auth_device_name: Option<String> = None;
+        let mut mobile_auth_device_name = None;
 
         // validate code
         match method {
@@ -729,30 +737,15 @@ impl ClientMfaServer {
                     error!("Authorization device key missing in request");
                     Status::invalid_argument("Authorization device key missing in request")
                 })?;
-                if !BiometricAuth::verify_owner(&self.pool, user.id, &auth_device_pub_key)
-                    .await
-                    .map_err(|err| {
-                        error!(
-                            "Failed to verify mobile approve owner for user {}: {err}",
-                            user.id
-                        );
-                        Status::internal("unexpected error")
-                    })?
-                {
+
+                // Record the approving device's name for the success activity log event.
+                mobile_auth_device_name =
+                    BiometricAuth::find_device_name(&self.pool, user.id, &auth_device_pub_key)
+                        .await
+                        .map_err(|_| Status::internal("unexpected error"))?;
+                if mobile_auth_device_name.is_none() {
                     return Err(Status::invalid_argument("Arguments invalid"));
                 }
-                // record the approving device's name for the success activity log event
-                mobile_auth_device_name =
-                    BiometricAuth::find_device(&self.pool, user.id, &auth_device_pub_key)
-                        .await
-                        .map_err(|err| {
-                            error!(
-                                "Failed to find mobile approve device for user {}: {err}",
-                                user.id
-                            );
-                            Status::internal("unexpected error")
-                        })?
-                        .map(|auth_device| auth_device.name);
                 match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
                     Ok(()) => {
                         debug!("Signature verified successfully.");
@@ -779,19 +772,17 @@ impl ClientMfaServer {
                 }
             }
             MfaMethod::Biometric => {
-                let challenge = biometric_challenge.as_ref().ok_or_else(|| {
+                let Some(challenge) = biometric_challenge else {
                     error!("Challenge not found in MFA session !");
-                    Status::internal("Challenge not found in MFA session")
-                })?;
-                let signed_challenge = request.code.ok_or_else(|| {
+                    return Err(Status::internal("Challenge not found in MFA session"));
+                };
+                let Some(signed_challenge) = request.code else {
                     error!("Signed challenge not found in request");
-                    Status::invalid_argument("Challenge not found in request")
-                })?;
+                    return Err(Status::invalid_argument("Challenge not found in request"));
+                };
                 match challenge.verify(signed_challenge.as_str(), None) {
                     // verification passed
-                    Ok(()) => {
-                        debug!("Signature verified successfully.");
-                    }
+                    Ok(()) => debug!("Signature verified successfully."),
                     // challenge rejected
                     Err(e) => {
                         error!(
@@ -815,9 +806,7 @@ impl ClientMfaServer {
                 }
             }
             MfaMethod::Totp => {
-                let code = if let Some(code) = request.code {
-                    code.clone()
-                } else {
+                let Some(code) = request.code else {
                     error!("TOTP code not provided in request");
                     self.emit_event(BidiStreamEvent {
                         context,
@@ -850,9 +839,7 @@ impl ClientMfaServer {
                 }
             }
             MfaMethod::Email => {
-                let code = if let Some(code) = request.code {
-                    code.clone()
-                } else {
+                let Some(code) = request.code else {
                     error!("Email MFA code not provided in request");
                     self.emit_event(BidiStreamEvent {
                         context,

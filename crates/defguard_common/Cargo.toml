@@ -18,7 +18,8 @@ base64.workspace = true
 chrono.workspace = true
 claims.workspace = true
 clap.workspace = true
-ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+ed25519-dalek.workspace = true
+getrandom.workspace = true
 humantime.workspace = true
 ipnetwork.workspace = true
 jsonwebtoken.workspace = true
@@ -51,7 +52,6 @@ url = "2.5"
 test-support = ["tokio/net", "tokio/io-util"]
 
 [dev-dependencies]
-matches.workspace = true
 
 [build-dependencies]
 vergen-git2 = "10.0"

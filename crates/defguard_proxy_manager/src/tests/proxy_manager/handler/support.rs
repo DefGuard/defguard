@@ -50,6 +50,7 @@ use defguard_proto::{
     },
 };
 use ed25519_dalek::{Signer, SigningKey};
+use getrandom::{SysRng, rand_core::UnwrapErr};
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
@@ -717,7 +718,8 @@ pub(crate) async fn send_mfa_start_with_challenge(
 /// Both legacy signature flows verify a challenge against a key the device enrolled up front, so
 /// a test has to plant one before it can produce a signature the handler will accept.
 pub(crate) async fn register_biometric_key(pool: &PgPool, device_id: Id) -> SigningKey {
-    let signing_key = SigningKey::generate(&mut rand::rngs::OsRng);
+    let mut csprng = UnwrapErr(SysRng);
+    let signing_key = SigningKey::generate(&mut csprng);
     let pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().as_bytes());
     BiometricAuth::new(device_id, pub_key)
         .save(pool)

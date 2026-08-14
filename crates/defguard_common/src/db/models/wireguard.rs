@@ -9,7 +9,6 @@ use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
-use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
@@ -230,7 +229,7 @@ impl WireguardNetwork {
     where
         V: Into<Vec<IpNetwork>>,
     {
-        let prvkey = StaticSecret::random_from_rng(OsRng);
+        let prvkey = StaticSecret::random();
         let pubkey = PublicKey::from(&prvkey);
         Self {
             id: NoId,
@@ -443,7 +442,7 @@ impl WireguardNetwork<Id> {
     /// Utility method to create WireGuard keypair
     #[must_use]
     pub fn genkey() -> WireguardKey {
-        let private = StaticSecret::random_from_rng(OsRng);
+        let private = StaticSecret::random();
         let public = PublicKey::from(&private);
         WireguardKey {
             private: BASE64_STANDARD.encode(private.to_bytes()),
