@@ -217,14 +217,10 @@ mod tests {
             .save(&pool)
             .await
             .expect("failed to create group");
-        sqlx::query!(
-            "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)",
-            group.id,
-            group_user.id,
-        )
-        .execute(&pool)
-        .await
-        .expect("failed to add user to group");
+        group_user
+            .add_to_group(&pool, &group)
+            .await
+            .expect("failed to add user to group");
 
         let mut network = WireguardNetwork::default()
             .try_set_address("10.0.0.1/24")
