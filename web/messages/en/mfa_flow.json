@@ -22,5 +22,11 @@
   "mfa_flow_method_authenticator_app": "Authenticator App",
   "mfa_flow_method_external_provider": "External ID Provider",
   "mfa_flow_method_email_code": "Email Verification Code",
-  "mfa_flow_form_action_create": "Create MFA flow"
+  "mfa_flow_method_biometric": "Biometrics",
+  "mfa_flow_form_action_create": "Create MFA flow",
+  "mfa_flow_created": "MFA flow created successfully.",
+  "mfa_flow_save_failed": "Failed to save MFA flow.",
+  "mfa_flow_error_business_license": "A Business license is required for multiple steps and external identity providers.",
+  "mfa_flow_error_smtp_not_configured": "Configure SMTP before using email verification codes.",
+  "mfa_flow_error_oidc_provider_missing": "Configure an OpenID provider before using external identity provider verification."
 }

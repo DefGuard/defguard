@@ -1415,6 +1415,49 @@ export interface CountResponse {
   count: number;
 }
 
+export const MfaFlowMethod = {
+  Totp: 'totp',
+  Email: 'email',
+  OpenId: 'oidc',
+  Biometric: 'biometric',
+  MobileApprove: 'mobileapprove',
+} as const;
+
+export type MfaFlowMethodValue = (typeof MfaFlowMethod)[keyof typeof MfaFlowMethod];
+
+export interface CreateMfaFlowStep {
+  methods: MfaFlowMethodValue[];
+}
+
+export interface CreateMfaFlowRequest {
+  title: string;
+  steps: CreateMfaFlowStep[];
+}
+
+export interface MfaFlowStep {
+  id: number;
+  position: number;
+  methods: MfaFlowMethodValue[];
+}
+
+export interface MfaFlowDetailResponse {
+  id: number;
+  title: string;
+  steps: MfaFlowStep[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MfaFlowErrorField {
+  field: string;
+  code: string;
+}
+
+export interface MfaFlowErrorResponse {
+  error: string;
+  fields: MfaFlowErrorField[];
+}
+
 export interface AclDestination {
   id: number;
   parent_id: number | null;

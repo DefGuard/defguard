@@ -1,33 +1,30 @@
 import './style.scss';
 import { Reorder } from 'motion/react';
 import { m } from '../../../paraglide/messages';
+import { MfaFlowMethod, type MfaFlowMethodValue } from '../../api/types';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
-import type {
-  MfaConfigurationProps,
-  MfaConfigurationStepData,
-  MfaMethodValue,
-} from './types';
-import { MfaMethod } from './types';
+import type { MfaConfigurationProps, MfaConfigurationStepData } from './types';
 
-const availableMethods: MfaMethodValue[] = [
-  MfaMethod.MobileClient,
-  MfaMethod.Totp,
-  MfaMethod.OpenId,
-  MfaMethod.Email,
+const availableMethods: MfaFlowMethodValue[] = [
+  MfaFlowMethod.MobileApprove,
+  MfaFlowMethod.Totp,
+  MfaFlowMethod.OpenId,
+  MfaFlowMethod.Email,
 ];
 
 /** Configures ordered MFA steps and the methods accepted by each step. */
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
-  const methodLabels: Record<MfaMethodValue, string> = {
-    [MfaMethod.MobileClient]: m.mfa_flow_method_mobile_client(),
-    [MfaMethod.Totp]: m.mfa_flow_method_authenticator_app(),
-    [MfaMethod.OpenId]: m.mfa_flow_method_external_provider(),
-    [MfaMethod.Email]: m.mfa_flow_method_email_code(),
+  const methodLabels: Record<MfaFlowMethodValue, string> = {
+    [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
+    [MfaFlowMethod.Totp]: m.mfa_flow_method_authenticator_app(),
+    [MfaFlowMethod.OpenId]: m.mfa_flow_method_external_provider(),
+    [MfaFlowMethod.Email]: m.mfa_flow_method_email_code(),
+    [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
   };
   /** Builds one selectable MFA method menu item. */
-  const buildOption = (method: MfaMethodValue, onClick: () => void) => ({
+  const buildOption = (method: MfaFlowMethodValue, onClick: () => void) => ({
     text: methodLabels[method],
     onClick,
   });
@@ -46,7 +43,10 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
     onChange(steps.filter((step) => step.id !== id));
   };
   /** Adds a method to an existing MFA step. */
-  const addMethod = (stepId: MfaConfigurationStepData['id'], method: MfaMethodValue) => {
+  const addMethod = (
+    stepId: MfaConfigurationStepData['id'],
+    method: MfaFlowMethodValue,
+  ) => {
     onChange(
       steps.map((step) =>
         step.id === stepId ? { ...step, methods: [...step.methods, method] } : step,
@@ -56,7 +56,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
   /** Removes a method and drops the step when it becomes empty. */
   const deleteMethod = (
     stepId: MfaConfigurationStepData['id'],
-    method: MfaMethodValue,
+    method: MfaFlowMethodValue,
   ) => {
     const step = steps.find((item) => item.id === stepId);
     if (!step) return;

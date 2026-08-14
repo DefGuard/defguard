@@ -46,6 +46,7 @@ import type {
   CreateAdminRequest,
   CreateCARequest,
   CreateGroupRequest,
+  CreateMfaFlowRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
@@ -89,6 +90,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  MfaFlowDetailResponse,
   MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
@@ -525,6 +527,10 @@ const api = {
       ),
     getCA: () => client.get<GetCAResponse>('/core/cert/ca'),
     getCerts: () => client.get<GetCertsResponse>('/core/cert/certs'),
+  },
+  mfaFlow: {
+    create: (data: CreateMfaFlowRequest) =>
+      client.post<MfaFlowDetailResponse>('/mfa-flow', data),
   },
   acl: {
     destination: {
