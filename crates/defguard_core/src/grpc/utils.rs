@@ -219,6 +219,17 @@ pub async fn build_device_config_response(
                     continue;
                 }
 
+                if device_config.location_mfa_mode.is_none() && device_config.steps.is_empty() {
+                    error!(
+                        "Device {} cannot fetch config for location {} with MFA enabled but no MFA flow configured.",
+                        device.name, location.name
+                    );
+                    return Err(Status::failed_precondition(format!(
+                        "location {} has MFA enabled but no MFA flow is configured",
+                        location.name
+                    )));
+                }
+
                 let config = ProtoDeviceConfig {
                     config: device_config.config,
                     network_id: device_config.network_id,
@@ -496,6 +507,35 @@ mod tests {
             false,
             false,
             false, // mfa_enabled
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, address_octet, 1)), 24).unwrap(),
+        ])
+        .expect("failed to set location address")
+        .save(pool)
+        .await
+        .expect("failed to create location")
+    }
+
+    /// Creates an MFA-enabled location with no flow assigned (the transient
+    /// "MFA on, no policy built yet" state).
+    async fn create_mfa_location_without_flow(
+        pool: &PgPool,
+        name: &str,
+        address_octet: u8,
+    ) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            name.to_owned(),
+            51820,
+            "vpn.example.com".to_owned(),
+            None,
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            false,
+            false,
+            false,
+            true, // mfa_enabled
             ServiceLocationMode::Disabled,
         )
         .set_address([
@@ -839,6 +879,38 @@ mod tests {
         assert_eq!(config.steps.len(), 2);
         assert_eq!(config.steps[0].methods.len(), 1);
         assert_eq!(config.steps[1].methods.len(), 1);
+
+        set_cached_license(saved_license);
+    }
+
+    /// An MFA-enabled location with no resolvable flow must fail closed for a capable client:
+    /// the config poll is rejected rather than advertising `steps = []`.
+    #[sqlx::test]
+    async fn test_mfa_enabled_location_without_flow_is_rejected(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let saved_license = get_cached_license().clone();
+        set_cached_license(Some(business_license()));
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        let no_flow = create_mfa_location_without_flow(&pool, "no-flow-location", 1).await;
+        attach_device(&pool, no_flow.id, device.id).await;
+
+        // Capable client (2.2.0): the no-flow location must be rejected.
+        let error = build_device_config_response(&pool, device, None, device_info("2.2.0"))
+            .await
+            .err()
+            .expect("MFA-enabled location without a flow must be rejected");
+        assert_eq!(error.code(), Code::FailedPrecondition);
+        assert!(
+            error.message().contains("no MFA flow is configured"),
+            "unexpected message: {}",
+            error.message()
+        );
 
         set_cached_license(saved_license);
     }

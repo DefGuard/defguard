@@ -988,8 +988,15 @@ impl EnrollmentServer {
 
         let mut wire_configs = Vec::with_capacity(configs.len());
         for device_config in configs {
+            let location_mfa_mode_is_none = device_config.location_mfa_mode.is_none();
             let resolved_steps = device_config.steps.clone();
             let mut config: defguard_proto::client_types::DeviceConfig = device_config.into();
+            if location_mfa_mode_is_none && resolved_steps.is_empty() {
+                return Err(Status::failed_precondition(format!(
+                    "location {} has MFA enabled but no MFA flow is configured",
+                    config.network_name
+                )));
+            }
             if is_capable {
                 #[allow(deprecated)]
                 {
