@@ -14,6 +14,7 @@ enum ModelType {
     Any,
     Enum,
     Ip,
+    List,
     Option,
     OptionRef,
     Ref,
@@ -32,6 +33,8 @@ impl From<&Ident> for ModelType {
             Self::Enum
         } else if value == "ip" {
             Self::Ip
+        } else if value == "list" {
+            Self::List
         } else if value == "option" {
             Self::Option
         } else if value == "option_ref" {
@@ -178,7 +181,9 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             ModelType::Secret => format!("\"{name}\" \"{name}?: SecretString\""),
             ModelType::Ip => format!("\"{name}\" \"{name}: IpAddr\""),
             ModelType::Option | ModelType::OptionRef => format!("\"{name}\" \"{name}?: _\""),
-            ModelType::Enum | ModelType::Ref => format!("\"{name}\" \"{name}: _\""),
+            ModelType::Enum | ModelType::Ref | ModelType::List => {
+                format!("\"{name}\" \"{name}: _\"")
+            }
         });
 
         query_args.push(match model_type {
@@ -202,6 +207,10 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             ModelType::Secret => quote! { &self.#name as &Option<SecretString> },
             // FIXME: hard-coded struct name
             ModelType::Ip => quote! { &self.#name as &IpAddr },
+            ModelType::List => {
+                let ty = &field.ty;
+                quote! { &self.#name as &#ty }
+            }
             ModelType::Ref => quote! { &self.#name },
         });
         struct_fields.push(quote! { #name: self.#name });

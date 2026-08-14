@@ -395,6 +395,10 @@ fn bind_args_cast_according_to_model_type() {
         quote!(&self.value as &IpAddr).to_string()
     );
     assert_eq!(
+        bind_arg("#[model(list)] value: Vec<Kind>"),
+        quote!(&self.value as &Vec<Kind>).to_string()
+    );
+    assert_eq!(
         bind_arg("#[model(secret)] value: Option<SecretString>"),
         quote!(&self.value as &Option<SecretString>).to_string()
     );
