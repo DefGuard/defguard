@@ -573,6 +573,26 @@ impl ClientMfaServer {
 
         Ok(())
     }
+    /// Record a proof-verification failure, deleting the session once the per-step cap is
+    /// reached so a subsequent finish fails closed.
+    async fn record_mfa_failure(&self, session: &VpnClientMfaSession) -> Result<(), Status> {
+        let mut conn = self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })?;
+        let at_cap = session.record_failure(&mut conn).await.map_err(|err| {
+            error!("Failed to record MFA failure: {err}");
+            Status::internal("unexpected error")
+        })?;
+        if at_cap {
+            session.delete(&mut *conn).await.map_err(|err| {
+                error!("Failed to delete MFA session: {err}");
+                Status::internal("unexpected error")
+            })?;
+        }
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub async fn finish_client_mfa_login(
         &mut self,
@@ -667,6 +687,7 @@ impl ClientMfaServer {
                                 },
                             )),
                         })?;
+                        self.record_mfa_failure(&session).await?;
                         return Err(Status::unauthenticated("unauthorized"));
                     }
                 }
@@ -702,6 +723,7 @@ impl ClientMfaServer {
                                 },
                             )),
                         })?;
+                        self.record_mfa_failure(&session).await?;
                         return Err(Status::unauthenticated("unauthorized"));
                     }
                 }
@@ -737,6 +759,7 @@ impl ClientMfaServer {
                             },
                         )),
                     })?;
+                    self.record_mfa_failure(&session).await?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
@@ -771,6 +794,7 @@ impl ClientMfaServer {
                             },
                         )),
                     })?;
+                    self.record_mfa_failure(&session).await?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
@@ -1409,7 +1433,7 @@ mod tests {
             polling_token::PollingToken,
             settings::initialize_current_settings,
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-            vpn_client_mfa_session::VpnClientMfaSession,
+            vpn_client_mfa_session::{MFA_FAILED_ATTEMPT_CAP, VpnClientMfaSession},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::ServiceLocationMode,
         },
@@ -2755,6 +2779,70 @@ mod tests {
         assert!(sessions[0].flow_id.is_some());
 
         // The in-progress session is gone.
+        assert!(
+            VpnClientMfaSession::find_active_by_token(&pool, &token)
+                .await
+                .is_none()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_finish_client_mfa_login_failure_cap_deletes_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        create_and_assign_mfa_flow(&pool, location.id).await;
+        let mut user = create_user(&pool).await;
+        let secret = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        user.totp_secret = Some(secret);
+        user.totp_enabled = true;
+        user.save(&pool).await.expect("failed to configure TOTP");
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+
+        let start = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    #[allow(deprecated)]
+                    method: MfaMethod::Totp as i32,
+                    posture_data: None,
+                    selected_methods: Vec::new(),
+                },
+                device_info(),
+            )
+            .await
+            .expect("start should succeed");
+        let token = match start {
+            ClientMfaStartOutcome::Approved(response) => response.token,
+            ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
+        };
+
+        // Repeating a wrong code trips the per-step cap and deletes the session.
+        for _ in 0..MFA_FAILED_ATTEMPT_CAP {
+            let result = server
+                .finish_client_mfa_login(
+                    ClientMfaFinishRequest {
+                        token: token.clone(),
+                        code: Some("000000".to_owned()),
+                        auth_pub_key: None,
+                    },
+                    device_info(),
+                )
+                .await;
+            assert!(result.is_err());
+        }
+
+        // The session is deleted once the cap is reached.
         assert!(
             VpnClientMfaSession::find_active_by_token(&pool, &token)
                 .await
