@@ -4,7 +4,7 @@ use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     db::models::{
         Certificates, CoreCertSource, ProxyCertSource, User, WireguardNetwork,
-        wireguard::ServiceLocationMode,
+        vpn_client_mfa_session::reap_expired, wireguard::ServiceLocationMode,
     },
     types::proxy::ProxyControlMessage,
 };
@@ -38,6 +38,7 @@ const UTILITY_THREAD_MAIN_SLEEP_TIME: Duration = Duration::from_secs(5);
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
+const MFA_SESSION_REAP_INTERVAL: u64 = 60 * 5;
 const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
 const LETSENCRYPT_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24;
 const CERTIFICATE_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24; // 1 day
@@ -61,6 +62,7 @@ pub async fn run_utility_thread(
     let mut last_enterprise_status_check = Instant::now();
     let mut last_letsencrypt_expiry_check = Instant::now();
     let mut last_certificate_check = Instant::now();
+    let mut last_mfa_session_reap = Instant::now();
 
     // helper variable which stores previous enterprise features status
     let mut enterprise_enabled = is_business_license_active();
@@ -112,6 +114,15 @@ pub async fn run_utility_thread(
         }
     };
 
+    let mfa_session_reap_task = || async {
+        if let Err(err) = reap_expired(pool)
+            .instrument(info_span!("mfa_session_reap_task"))
+            .await
+        {
+            error!("Failed to reap expired MFA sessions: {err}");
+        }
+    };
+
     let letsencrypt_refresh_task = || async {
         if let Err(e) = do_letsencrypt_refresh(pool, proxy_control_tx.clone())
             .instrument(info_span!("letsencrypt_refresh_task"))
@@ -126,6 +137,7 @@ pub async fn run_utility_thread(
     updates_check_task().await;
     ldap_sync_task().await;
     expired_acl_rules_task().await;
+    mfa_session_reap_task().await;
     letsencrypt_refresh_task().await;
     check_certificates(pool, &proxy_control_tx, &web_reload_tx).await;
 
@@ -160,6 +172,12 @@ pub async fn run_utility_thread(
         if last_expired_acl_rules_check.elapsed().as_secs() >= EXPIRED_ACL_RULES_CHECK_INTERVAL {
             expired_acl_rules_task().await;
             last_expired_acl_rules_check = Instant::now();
+        }
+
+        // Reap expired in-progress MFA sessions
+        if last_mfa_session_reap.elapsed().as_secs() >= MFA_SESSION_REAP_INTERVAL {
+            mfa_session_reap_task().await;
+            last_mfa_session_reap = Instant::now();
         }
 
         // Check LE cert expiry dates and refresh if necessary
