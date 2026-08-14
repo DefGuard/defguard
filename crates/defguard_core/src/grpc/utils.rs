@@ -243,13 +243,9 @@ pub async fn build_device_config_response(
                     #[allow(deprecated)]
                     mfa_enabled,
                     #[allow(deprecated)]
-                    location_mfa_mode: if is_capable {
-                        None
-                    } else {
-                        device_config.location_mfa_mode.map(|mode| {
-                            <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
-                        })
-                    },
+                    location_mfa_mode: device_config.location_mfa_mode.map(|mode| {
+                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
+                    }),
                     service_location_mode: Some(
                         <ServiceLocationMode as Into<
                             defguard_proto::client_types::ServiceLocationMode,
@@ -833,8 +829,8 @@ mod tests {
         );
         assert!(config.steps.is_empty());
 
-        // Capable client (2.2.0): every location present; `location_mfa_mode` absent and `steps`
-        // populated from the resolved flow.
+        // Capable client (2.2.0): every location present; `location_mfa_mode` carries the
+        // derived value (same as legacy) and `steps` is populated from the resolved flow.
         let response =
             build_device_config_response(&pool, device.clone(), None, device_info("2.2.0"))
                 .await
@@ -846,7 +842,10 @@ mod tests {
             .find(|config| config.network_name == "disabled-location")
             .expect("disabled location must be present");
         assert!(!config.mfa_enabled);
-        assert_eq!(config.location_mfa_mode, None);
+        assert_eq!(
+            config.location_mfa_mode,
+            Some(LocationMfaMode::Disabled as i32)
+        );
         assert!(config.steps.is_empty());
 
         let config = response
@@ -855,7 +854,10 @@ mod tests {
             .find(|config| config.network_name == "internal-location")
             .expect("internal location must be present");
         assert!(config.mfa_enabled);
-        assert_eq!(config.location_mfa_mode, None);
+        assert_eq!(
+            config.location_mfa_mode,
+            Some(LocationMfaMode::Internal as i32)
+        );
         assert_eq!(config.steps.len(), 1);
         assert_eq!(config.steps[0].methods.len(), 4);
 
@@ -865,7 +867,10 @@ mod tests {
             .find(|config| config.network_name == "external-location")
             .expect("external location must be present");
         assert!(config.mfa_enabled);
-        assert_eq!(config.location_mfa_mode, None);
+        assert_eq!(
+            config.location_mfa_mode,
+            Some(LocationMfaMode::External as i32)
+        );
         assert_eq!(config.steps.len(), 1);
         assert_eq!(config.steps[0].methods.len(), 1);
 

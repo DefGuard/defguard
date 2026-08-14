@@ -998,10 +998,6 @@ impl EnrollmentServer {
                 )));
             }
             if is_capable {
-                #[allow(deprecated)]
-                {
-                    config.location_mfa_mode = None;
-                }
                 config.steps = build_wire_steps(
                     &self.pool,
                     &resolved_steps,
