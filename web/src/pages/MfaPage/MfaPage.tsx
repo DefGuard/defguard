@@ -1,11 +1,29 @@
-import { Page } from '../../shared/components/Page/Page';
 import { m } from '../../paraglide/messages';
-import './style.scss';
+import { Page } from '../../shared/components/Page/Page';
+import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
+import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 
 export const MfaPage = () => {
+  const addMfaFlowButtonProps: ButtonProps = {
+    text: m.mfa_flows_button_add(),
+    iconLeft: 'plus',
+    testId: 'add-mfa-flow',
+  };
+
   return (
-    <Page title={m.cmp_nav_item_mfa()} id="mfa-page">
-      <div>TODO</div>
+    <Page id="mfa-page" title={m.cmp_nav_item_mfa()}>
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <TablePageLayout>
+        <EmptyStateFlexible
+          icon="posture-checks"
+          title={m.mfa_flows_empty_title()}
+          subtitle={m.mfa_flows_empty_subtitle()}
+          primaryAction={addMfaFlowButtonProps}
+        />
+      </TablePageLayout>
     </Page>
   );
-}
+};

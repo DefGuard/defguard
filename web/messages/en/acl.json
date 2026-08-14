@@ -39,7 +39,7 @@
   "acl_aliases_table_title_deployed": "Deployed aliases",
   "acl_aliases_table_title_pending": "Pending aliases",
   "acl_aliases_empty_deployed_title": "You haven't created any aliases yet.",
-  "acl_aliases_empty_deployed_subtitle": "Click the first alias by clicking button below.",
+  "acl_aliases_empty_deployed_subtitle": "Add the first alias by clicking button below.",
   "acl_aliases_search_empty_title": "No aliases found.",
   "acl_aliases_search_empty_subtitle": "Try different search.",
   "acl_destination_col_name": "Destination name",
