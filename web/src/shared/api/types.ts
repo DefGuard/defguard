@@ -1434,6 +1434,16 @@ export interface CreateMfaFlowRequest {
   steps: CreateMfaFlowStep[];
 }
 
+export interface UpdateMfaFlowStep {
+  id?: number;
+  methods: MfaFlowMethodValue[];
+}
+
+export interface UpdateMfaFlowRequest {
+  title: string;
+  steps: UpdateMfaFlowStep[];
+}
+
 export interface MfaFlowStep {
   id: number;
   position: number;

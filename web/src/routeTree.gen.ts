@@ -74,6 +74,7 @@ import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_autho
 import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_authorized/_default/acl/add-rule'
 import { Route as AuthorizedDefaultAclAddDestinationRouteImport } from './routes/_authorized/_default/acl/add-destination'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
+import { Route as AuthorizedDefaultMfaFlowIdEditRouteImport } from './routes/_authorized/_default/mfa-flow/$id/edit'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 import { Route as AuthorizedDefaultGatewayGatewayIdEditRouteImport } from './routes/_authorized/_default/gateway/$gatewayId/edit'
 import { Route as AuthorizedDefaultEdgeEdgeIdEditRouteImport } from './routes/_authorized/_default/edge/$edgeId/edit'
@@ -440,6 +441,12 @@ const AuthorizedDefaultAclAddAliasRoute =
     path: '/acl/add-alias',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultMfaFlowIdEditRoute =
+  AuthorizedDefaultMfaFlowIdEditRouteImport.update({
+    id: '/mfa-flow/$id/edit',
+    path: '/mfa-flow/$id/edit',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsLocationIdEditRoute =
   AuthorizedDefaultLocationsLocationIdEditRouteImport.update({
     id: '/locations/$locationId/edit',
@@ -532,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/mfa-flow/$id/edit': typeof AuthorizedDefaultMfaFlowIdEditRoute
   '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -600,6 +608,7 @@ export interface FileRoutesByTo {
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/mfa-flow/$id/edit': typeof AuthorizedDefaultMfaFlowIdEditRoute
   '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesById {
@@ -672,6 +681,7 @@ export interface FileRoutesById {
   '/_authorized/_default/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/_authorized/_default/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/_authorized/_default/mfa-flow/$id/edit': typeof AuthorizedDefaultMfaFlowIdEditRoute
   '/_authorized/_default/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRouteTypes {
@@ -743,6 +753,7 @@ export interface FileRouteTypes {
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/mfa-flow/$id/edit'
     | '/acl/posture-checks/$postureCheckId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -811,6 +822,7 @@ export interface FileRouteTypes {
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/mfa-flow/$id/edit'
     | '/acl/posture-checks/$postureCheckId/edit'
   id:
     | '__root__'
@@ -882,6 +894,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/edge/$edgeId/edit'
     | '/_authorized/_default/gateway/$gatewayId/edit'
     | '/_authorized/_default/locations/$locationId/edit'
+    | '/_authorized/_default/mfa-flow/$id/edit'
     | '/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -1358,6 +1371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclAddAliasRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/mfa-flow/$id/edit': {
+      id: '/_authorized/_default/mfa-flow/$id/edit'
+      path: '/mfa-flow/$id/edit'
+      fullPath: '/mfa-flow/$id/edit'
+      preLoaderRoute: typeof AuthorizedDefaultMfaFlowIdEditRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/$locationId/edit': {
       id: '/_authorized/_default/locations/$locationId/edit'
       path: '/locations/$locationId/edit'
@@ -1443,6 +1463,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultEdgeEdgeIdEditRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   AuthorizedDefaultGatewayGatewayIdEditRoute: typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   AuthorizedDefaultLocationsLocationIdEditRoute: typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  AuthorizedDefaultMfaFlowIdEditRoute: typeof AuthorizedDefaultMfaFlowIdEditRoute
 }
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
@@ -1494,6 +1515,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultGatewayGatewayIdEditRoute,
   AuthorizedDefaultLocationsLocationIdEditRoute:
     AuthorizedDefaultLocationsLocationIdEditRoute,
+  AuthorizedDefaultMfaFlowIdEditRoute: AuthorizedDefaultMfaFlowIdEditRoute,
 }
 
 const AuthorizedDefaultRouteWithChildren =

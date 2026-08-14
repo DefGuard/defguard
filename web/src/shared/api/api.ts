@@ -122,6 +122,7 @@ import type {
   TestDirectorySyncResponse,
   TotpInitResponse,
   UpdateInfo,
+  UpdateMfaFlowRequest,
   UploadCARequest,
   User,
   UserChangePasswordRequest,
@@ -531,6 +532,9 @@ const api = {
   mfaFlow: {
     create: (data: CreateMfaFlowRequest) =>
       client.post<MfaFlowDetailResponse>('/mfa-flow', data),
+    get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
+    update: (id: number, data: UpdateMfaFlowRequest) =>
+      client.put<MfaFlowDetailResponse>(`/mfa-flow/${id}`, data),
   },
   acl: {
     destination: {

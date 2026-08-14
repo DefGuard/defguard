@@ -6,8 +6,10 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type CreateMfaFlowRequest,
+  type MfaFlowDetailResponse,
   type MfaFlowErrorResponse,
   MfaFlowMethod,
+  type UpdateMfaFlowRequest,
 } from '../../shared/api/types';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
@@ -49,8 +51,13 @@ const getSaveErrorMessage = (error: AxiosError<MfaFlowErrorResponse>): string =>
   }
 };
 
-export const MfaFormPage = () => {
+type Props = {
+  flow?: MfaFlowDetailResponse;
+};
+
+export const MfaFormPage = ({ flow }: Props) => {
   const navigate = useNavigate();
+  const isEdit = flow !== undefined;
   const { mutateAsync: createMfaFlow } = useMutation({
     mutationFn: api.mfaFlow.create,
     meta: {
@@ -60,29 +67,56 @@ export const MfaFormPage = () => {
       Snackbar.error(getSaveErrorMessage(error));
     },
   });
-  const form = useAppForm({
-    defaultValues: {
-      title: '',
-      steps: [] as MfaConfigurationStepData[],
+  const { mutateAsync: updateMfaFlow } = useMutation({
+    mutationFn: (request: UpdateMfaFlowRequest) => {
+      if (!flow) throw new Error('Cannot update an MFA flow without an ID.');
+      return api.mfaFlow.update(flow.id, request);
     },
+    meta: {
+      invalidate: ['mfa-flow'],
+    },
+    onError: (error: AxiosError<MfaFlowErrorResponse>) => {
+      Snackbar.error(getSaveErrorMessage(error));
+    },
+  });
+  const form = useAppForm({
+    defaultValues: flow
+      ? {
+          title: flow.title,
+          steps: flow.steps.map(({ id, methods }) => ({ id, methods })),
+        }
+      : {
+          title: '',
+          steps: [] as MfaConfigurationStepData[],
+        },
     validationLogic: formChangeLogic,
     validators: {
       onChange: formSchema,
       onSubmit: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const request: CreateMfaFlowRequest = {
-        title: value.title,
-        steps: value.steps.map(({ methods }) => ({ methods })),
-      };
-
       try {
-        await createMfaFlow(request);
+        if (isEdit) {
+          const request: UpdateMfaFlowRequest = {
+            title: value.title,
+            steps: value.steps.map(({ id, methods }) => ({
+              ...(typeof id === 'number' ? { id } : {}),
+              methods,
+            })),
+          };
+          await updateMfaFlow(request);
+        } else {
+          const request: CreateMfaFlowRequest = {
+            title: value.title,
+            steps: value.steps.map(({ methods }) => ({ methods })),
+          };
+          await createMfaFlow(request);
+        }
       } catch {
         return;
       }
 
-      Snackbar.success(m.mfa_flow_created());
+      Snackbar.default(isEdit ? m.mfa_flow_updated() : m.mfa_flow_created());
       await navigate({ to: '/mfa' });
     },
   });
@@ -101,14 +135,24 @@ export const MfaFormPage = () => {
           <Link key="mfa-flows" to="/mfa">
             {m.cmp_nav_item_mfa()}
           </Link>,
-          <Link key="create-mfa-flow" to="/mfa/add-flow">
-            {m.mfa_flow_breadcrumb_create()}
-          </Link>,
+          isEdit ? (
+            <Link
+              key="edit-mfa-flow"
+              to="/mfa-flow/$id/edit"
+              params={{ id: `${flow.id}` }}
+            >
+              {m.mfa_flow_breadcrumb_edit()}
+            </Link>
+          ) : (
+            <Link key="create-mfa-flow" to="/mfa/add-flow">
+              {m.mfa_flow_breadcrumb_create()}
+            </Link>
+          ),
         ]}
         onBack={() => navigate({ to: '/mfa' })}
         headerProps={{
           icon: 'activity-notes',
-          title: m.mfa_flow_form_title_create(),
+          title: isEdit ? m.mfa_flow_form_title_edit() : m.mfa_flow_form_title_create(),
           subtitle: m.mfa_flow_form_subtitle(),
         }}
       >
@@ -149,7 +193,11 @@ export const MfaFormPage = () => {
                   void navigate({ to: '/mfa' });
                 }}
               />
-              <form.FormSubmitButton text={m.mfa_flow_form_action_create()} />
+              <form.FormSubmitButton
+                text={
+                  isEdit ? m.controls_save_changes() : m.mfa_flow_form_action_create()
+                }
+              />
             </div>
           </Controls>
         </form.AppForm>
