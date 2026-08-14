@@ -330,13 +330,11 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
     let first_cfg_count = first_info
         .device_config
         .as_ref()
-        .map(|c| c.configs.len())
-        .unwrap_or(0);
+        .map_or(0, |c| c.configs.len());
     let second_cfg_count = second_info
         .device_config
         .as_ref()
-        .map(|c| c.configs.len())
-        .unwrap_or(0);
+        .map_or(0, |c| c.configs.len());
 
     assert!(
         second_cfg_count > first_cfg_count,

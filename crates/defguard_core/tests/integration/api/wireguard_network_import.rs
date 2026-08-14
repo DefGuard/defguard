@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{assert_matches, net::IpAddr};
 
 use defguard_common::db::models::{
     Device, DeviceType, User, WireguardNetwork, device::UserDevice, wireguard::ServiceLocationMode,
@@ -8,7 +8,6 @@ use defguard_core::{
     grpc::GatewayCommand,
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

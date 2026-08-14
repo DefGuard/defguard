@@ -1,3 +1,5 @@
+use std::assert_matches;
+
 use defguard_common::db::{
     models::{
         Settings, User, mfa_flow::MfaFlow, settings::update_current_settings,
@@ -9,7 +11,6 @@ use defguard_core::{
     enterprise::license::{get_cached_license, set_cached_license},
     events::ApiEventType,
 };
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    assert_matches,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+};
 
 use defguard_common::db::{
     Id,
@@ -23,7 +26,6 @@ use defguard_core::{
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

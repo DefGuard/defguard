@@ -3,7 +3,7 @@ edition = "2024"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
-rust-version = "1.91.0"
+rust-version = "1.96"
 
 [workspace]
 members = ["crates/*", "tools/*"]
@@ -17,7 +17,6 @@ redundant_closure = "warn"
 
 [workspace.dependencies]
 # internal crates
-
 defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
 defguard_common = { path = "./crates/defguard_common", version = "2.2.0" }
 defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
@@ -56,7 +55,9 @@ chrono = { version = "0.4", default-features = false, features = [
     "serde",
 ] }
 claims = "0.8"
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+ed25519-dalek = { version = "3.0", features = ["rand_core"] }
+getrandom = { version = "0.4", features = ["sys_rng"] }
 futures = "0.3"
 http = "1.5"
 hyper-rustls = { version = "0.27", features = ["http2"] }
@@ -71,7 +72,6 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "tokio1-rustls-tls",
 ] }
-matches = "0.1"
 md4 = "0.10"
 openidconnect = { version = "4.0", default-features = false, features = [
     "reqwest",
@@ -150,7 +150,7 @@ webauthn-rs = { version = "0.5", features = [
     "danger-allow-state-serialisation",
 ] }
 webauthn-rs-proto = "0.5"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets"] }
 x509-parser = "0.18"
 
 [profile.release]

@@ -610,23 +610,20 @@ async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
     let finish_resp =
         send_code_mfa_setup_finish(&mut context, &token.id, MfaMethod::Totp, &code).await;
 
-    match &finish_resp.payload {
-        Some(core_response::Payload::CodeMfaSetupFinishResponse(r)) => {
-            assert!(
-                !r.recovery_codes.is_empty(),
-                "finish must return at least one recovery code"
+    if let Some(core_response::Payload::CodeMfaSetupFinishResponse(r)) = &finish_resp.payload {
+        assert!(
+            !r.recovery_codes.is_empty(),
+            "finish must return at least one recovery code"
+        );
+    } else {
+        // Show the error code if it came back as CoreError.
+        if let Some(core_response::Payload::CoreError(e)) = &finish_resp.payload {
+            panic!(
+                "expected CodeMfaSetupFinishResponse, got CoreError: {:?}",
+                e.message
             );
         }
-        _ => {
-            // Show the error code if it came back as CoreError.
-            if let Some(core_response::Payload::CoreError(e)) = &finish_resp.payload {
-                panic!(
-                    "expected CodeMfaSetupFinishResponse, got CoreError: {:?}",
-                    e.message
-                );
-            }
-            panic!("expected CodeMfaSetupFinishResponse");
-        }
+        panic!("expected CodeMfaSetupFinishResponse");
     }
 
     // DB: user must now have totp_enabled = true and mfa_enabled = true.
@@ -819,7 +816,8 @@ async fn test_register_mobile_auth_happy_path(_: PgPoolOptions, options: PgConne
         .expect("DB query for BiometricAuth failed")
         .expect("expected a BiometricAuth row after RegisterMobileAuth");
     assert_eq!(
-        bio_auth.pub_key, VALID_ED25519_PUBKEY_B64,
+        bio_auth.pub_key(),
+        VALID_ED25519_PUBKEY_B64,
         "BiometricAuth.pub_key must equal the submitted auth_pub_key"
     );
 
