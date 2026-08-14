@@ -4,7 +4,7 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sqlx::{PgConnection, PgExecutor, query, query_as, query_scalar, types::Json};
+use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, query_scalar, types::Json};
 use tracing::debug;
 
 use crate::{
@@ -55,6 +55,15 @@ pub struct EphemeralState {
 pub struct StartOutcome {
     pub token: String,
     pub superseded_token_hash: Option<String>,
+}
+
+/// Outcome of advancing to the next step.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StepOutcome {
+    /// The session advanced to `next_step` (0-indexed).
+    Advanced { next_step: usize },
+    /// The final step completed; collection is the next action.
+    Complete,
 }
 
 /// A durable in-progress VPN MFA session.
@@ -204,6 +213,132 @@ impl VpnClientMfaSession {
             .get(self.current_step as usize)
             .map_or(&[], |step| step.methods.as_slice())
     }
+
+    /// Begin (or re-issue) an attempt on the current step, overwriting any prior attempt.
+    ///
+    /// Returns the fresh `step_attempt_id`, which every async completion (OIDC callback,
+    /// mobile approve) must carry and match.
+    pub async fn begin_attempt(
+        &self,
+        conn: &mut PgConnection,
+        method: VpnClientMfaMethod,
+        challenge: Option<BiometricChallenge>,
+    ) -> sqlx::Result<String> {
+        let step_attempt_id = gen_alphanumeric(32);
+        let state = EphemeralState {
+            step_attempt_id: step_attempt_id.clone(),
+            selected_method: method,
+            openid_auth_completed: false,
+            mobile_approved: false,
+            biometric_challenge: challenge,
+        };
+        let state_json =
+            serde_json::to_value(&state).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+
+        query!(
+            "UPDATE vpn_client_mfa_session SET ephemeral_state = $2 WHERE id = $1",
+            self.id,
+            state_json,
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        Ok(step_attempt_id)
+    }
+
+    /// Mark the current attempt's OIDC verification complete.
+    ///
+    /// Returns `true` if the mark applied; a stale `step_attempt_id` is a no-op.
+    pub async fn mark_oidc_completed(
+        &self,
+        conn: &mut PgConnection,
+        step_attempt_id: &str,
+    ) -> sqlx::Result<bool> {
+        let result = query!(
+            "UPDATE vpn_client_mfa_session \
+             SET ephemeral_state = jsonb_set(ephemeral_state, '{openid_auth_completed}', 'true'::jsonb) \
+             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
+            self.id,
+            step_attempt_id,
+        )
+        .execute(&mut *conn)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Mark the current attempt's mobile approval complete.
+    ///
+    /// Symmetric to [`Self::mark_oidc_completed`]: returns `true` if the mark applied, and a
+    /// stale `step_attempt_id` is a no-op. The caller verifies the approval signature first.
+    pub async fn mark_mobile_approved(
+        &self,
+        conn: &mut PgConnection,
+        step_attempt_id: &str,
+    ) -> sqlx::Result<bool> {
+        let result = query!(
+            "UPDATE vpn_client_mfa_session \
+             SET ephemeral_state = jsonb_set(ephemeral_state, '{mobile_approved}', 'true'::jsonb) \
+             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
+            self.id,
+            step_attempt_id,
+        )
+        .execute(&mut *conn)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Advance to the next step, clearing `ephemeral_state` and resetting `failed_attempts`.
+    ///
+    /// Does not extend `expires_at` (fixed window).
+    pub async fn advance(&self, conn: &mut PgConnection) -> sqlx::Result<StepOutcome> {
+        let next_step = query_scalar!(
+            "UPDATE vpn_client_mfa_session \
+             SET ephemeral_state = NULL, current_step = current_step + 1, failed_attempts = 0 \
+             WHERE id = $1 \
+             RETURNING current_step",
+            self.id,
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+
+        let total_steps = self.steps_snapshot.0.steps.len() as i32;
+        let outcome = if next_step >= total_steps {
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Advanced {
+                next_step: next_step as usize,
+            }
+        };
+
+        Ok(outcome)
+    }
+
+    /// Record a proof-verification failure, incrementing the per-step counter.
+    ///
+    /// Returns `true` at [`MFA_FAILED_ATTEMPT_CAP`]. Does not delete the session; the
+    /// orchestrator owns deletion and the terminal event.
+    pub async fn record_failure(&self, conn: &mut PgConnection) -> sqlx::Result<bool> {
+        let failed_attempts = query_scalar!(
+            "UPDATE vpn_client_mfa_session \
+             SET failed_attempts = failed_attempts + 1 \
+             WHERE id = $1 \
+             RETURNING failed_attempts",
+            self.id,
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+        Ok(failed_attempts >= MFA_FAILED_ATTEMPT_CAP)
+    }
+}
+
+/// Delete every session whose fixed window has elapsed. Silent hygiene, not correctness.
+pub async fn reap_expired(pool: &PgPool) -> sqlx::Result<u64> {
+    let result = query!("DELETE FROM vpn_client_mfa_session WHERE expires_at < now()")
+        .execute(pool)
+        .await?;
+    let count = result.rows_affected();
+    debug!("Reaped {count} expired MFA session(s)");
+    Ok(count)
 }
 
 #[cfg(test)]
