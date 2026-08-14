@@ -120,11 +120,12 @@ impl ClientMfaServer {
     #[instrument(skip_all)]
     pub async fn validate_mfa_token(
         &mut self,
-        _request: ClientMfaTokenValidationRequest,
+        request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
-        // TODO(#3043): validate against the durable store (Step 3.4). Until then, tokens are
-        // reported invalid.
-        Ok(ClientMfaTokenValidationResponse { token_valid: false })
+        let token_valid = VpnClientMfaSession::find_active_by_token(&self.pool, &request.token)
+            .await
+            .is_some();
+        Ok(ClientMfaTokenValidationResponse { token_valid })
     }
 
     #[instrument(skip_all)]
@@ -1419,8 +1420,11 @@ mod tests {
     use std::{
         collections::HashMap,
         net::{IpAddr, Ipv4Addr},
-        sync::{Arc, RwLock},
-        time::SystemTime,
+        sync::{
+            Arc, RwLock,
+            atomic::{AtomicUsize, Ordering},
+        },
+        time::{Duration, SystemTime},
     };
 
     use chrono::Utc;
@@ -1444,7 +1448,7 @@ mod tests {
         enterprise::posture::{
             BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
         },
-        proxy::DeviceInfo,
+        proxy::{ClientMfaTokenValidationRequest, DeviceInfo},
     };
     use ipnetwork::IpNetwork;
     use sqlx::{
@@ -2501,13 +2505,20 @@ mod tests {
         )
     }
 
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn next_suffix() -> String {
+        COUNTER.fetch_add(1, Ordering::Relaxed).to_string()
+    }
+
     async fn create_user(pool: &PgPool) -> User<Id> {
+        let suffix = next_suffix();
         User::new(
-            "client-mfa-test",
+            format!("client-mfa-test-{suffix}"),
             Some("pass123"),
-            "Tester",
-            "ClientMfa",
-            "client-mfa@example.com",
+            "Tester".to_owned(),
+            "ClientMfa".to_owned(),
+            format!("client-mfa-{suffix}@example.com"),
             None,
         )
         .save(pool)
@@ -2516,9 +2527,10 @@ mod tests {
     }
 
     async fn create_device(pool: &PgPool, user_id: Id) -> Device<Id> {
+        let suffix = next_suffix();
         Device::new(
-            "client-mfa-device".to_owned(),
-            "client-mfa-pubkey".to_owned(),
+            format!("client-mfa-device-{suffix}"),
+            format!("client-mfa-pubkey-{suffix}"),
             user_id,
             DeviceType::User,
             None,
@@ -2848,6 +2860,57 @@ mod tests {
                 .await
                 .is_none()
         );
+    }
+
+    async fn start_mfa_session_direct(pool: &PgPool, ttl: Duration) -> String {
+        let location = create_mfa_location(pool).await;
+        let user = create_user(pool).await;
+        let device = create_device(pool, user.id).await;
+        let mut tx = pool.begin().await.unwrap();
+        let (_, outcome) = VpnClientMfaSession::start(
+            &mut tx,
+            location.id,
+            device.id,
+            user.id,
+            1,
+            vec![vec![VpnClientMfaMethod::Totp]],
+            ttl,
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        outcome.token
+    }
+
+    #[sqlx::test]
+    async fn test_validate_mfa_token(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+
+        // Unknown token.
+        let resp = server
+            .validate_mfa_token(ClientMfaTokenValidationRequest {
+                token: "nonexistent".to_owned(),
+            })
+            .await
+            .unwrap();
+        assert!(!resp.token_valid);
+
+        // Expired token.
+        let expired = start_mfa_session_direct(&pool, Duration::ZERO).await;
+        let resp = server
+            .validate_mfa_token(ClientMfaTokenValidationRequest { token: expired })
+            .await
+            .unwrap();
+        assert!(!resp.token_valid);
+
+        // Active token.
+        let active = start_mfa_session_direct(&pool, Duration::from_mins(10)).await;
+        let resp = server
+            .validate_mfa_token(ClientMfaTokenValidationRequest { token: active })
+            .await
+            .unwrap();
+        assert!(resp.token_valid);
     }
 
     #[sqlx::test]
