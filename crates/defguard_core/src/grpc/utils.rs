@@ -580,6 +580,11 @@ mod tests {
         })
     }
 
+    /// Builds a valid Business-tier license for tests that exercise licensed behavior.
+    ///
+    /// Setting this mutates the process-global license cache, so callers save and restore it
+    /// around their body. The restore is best-effort: a parallel test that also mutates the cache
+    /// can still race.
     fn business_license() -> License {
         License {
             customer_id: "test".to_owned(),
