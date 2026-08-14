@@ -621,8 +621,8 @@ impl MfaFlow<Id> {
     /// 2. The location has assignments but none is flagged default. The API makes this
     ///    unreachable, since [`Self::assign_to_location`] rejects it and [`Self::check_deletable`]
     ///    refuses to remove a default, so this arm only guards data predating those rules.
-    pub async fn resolve_for_user<'e>(
-        executor: impl PgExecutor<'e> + Copy,
+    pub async fn resolve_for_user(
+        executor: &mut PgConnection,
         location_id: Id,
         user_id: Id,
     ) -> sqlx::Result<Option<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)>> {
@@ -641,7 +641,7 @@ impl MfaFlow<Id> {
              ORDER BY lmf.position",
             location_id
         )
-        .fetch_all(executor)
+        .fetch_all(&mut *executor)
         .await?;
 
         if assignments.is_empty() {
@@ -652,7 +652,7 @@ impl MfaFlow<Id> {
             "SELECT group_id FROM group_user WHERE user_id = $1",
             user_id
         )
-        .fetch_all(executor)
+        .fetch_all(&mut *executor)
         .await?
         .into_iter()
         .flatten()
@@ -667,19 +667,19 @@ impl MfaFlow<Id> {
                 .iter()
                 .any(|group_id| user_groups.contains(group_id))
             {
-                let flow = MfaFlow::find_by_id(executor, assignment.flow_id)
+                let flow = MfaFlow::find_by_id(&mut *executor, assignment.flow_id)
                     .await?
                     .expect("flow referenced by assignment must exist");
-                let steps = MfaFlowStep::find_by_flow(executor, assignment.flow_id).await?;
+                let steps = MfaFlowStep::find_by_flow(&mut *executor, assignment.flow_id).await?;
                 return Ok(Some((flow, steps)));
             }
         }
 
         if let Some(flow_id) = default_flow_id {
-            let flow = MfaFlow::find_by_id(executor, flow_id)
+            let flow = MfaFlow::find_by_id(&mut *executor, flow_id)
                 .await?
                 .expect("default flow must exist");
-            let steps = MfaFlowStep::find_by_flow(executor, flow_id).await?;
+            let steps = MfaFlowStep::find_by_flow(&mut *executor, flow_id).await?;
             return Ok(Some((flow, steps)));
         }
 

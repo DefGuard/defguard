@@ -78,11 +78,10 @@ pub mod common {
 
 use client_types::MfaMethod;
 use defguard_common::{
-    csv::AsCsv,
     db::{
         Id,
         models::{
-            Device, DeviceConfig, User, WireguardNetwork,
+            Device, User, WireguardNetwork,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -137,44 +136,23 @@ impl From<MfaMethod> for VpnClientMfaMethod {
     }
 }
 
+impl From<VpnClientMfaMethod> for MfaMethod {
+    fn from(val: VpnClientMfaMethod) -> Self {
+        match val {
+            VpnClientMfaMethod::Totp => Self::Totp,
+            VpnClientMfaMethod::Email => Self::Email,
+            VpnClientMfaMethod::Oidc => Self::Oidc,
+            VpnClientMfaMethod::Biometric => Self::Biometric,
+            VpnClientMfaMethod::MobileApprove => Self::MobileApprove,
+        }
+    }
+}
+
 impl From<Status> for CoreError {
     fn from(status: Status) -> Self {
         Self {
             status_code: status.code().into(),
             message: status.message().into(),
-        }
-    }
-}
-
-impl From<DeviceConfig> for client_types::DeviceConfig {
-    fn from(config: DeviceConfig) -> Self {
-        Self {
-            network_id: config.network_id,
-            network_name: config.network_name,
-            config: config.config,
-            endpoint: config.endpoint,
-            assigned_ip: config.address.as_csv(),
-            pubkey: config.pubkey,
-            allowed_ips: config.allowed_ips.as_csv(),
-            dns: config.dns,
-            keepalive_interval: config.keepalive_interval,
-            // DEPRECATED(1.5): superseeded by location_mfa_mode
-            #[allow(deprecated)]
-            mfa_enabled: config.mfa_enabled,
-            // Absent when the location's flow configuration has no legacy equivalent. Legacy
-            // client gating for that case is tracked separately (#3042).
-            #[allow(deprecated)]
-            location_mfa_mode: config.location_mfa_mode.map(|mode| {
-                <LocationMfaMode as Into<client_types::LocationMfaMode>>::into(mode).into()
-            }),
-            service_location_mode: Some(
-                <ServiceLocationMode as Into<client_types::ServiceLocationMode>>::into(
-                    config.service_location_mode,
-                )
-                .into(),
-            ),
-            posture_check_required: Some(config.posture_check_required),
-            steps: Vec::new(),
         }
     }
 }

@@ -537,6 +537,58 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     network
 }
 
+/// Insert a WireGuard network whose MFA flow has two steps, so
+/// `derive_legacy_mode` yields `None` (no legacy equivalent). Use this to test
+/// omission of multi-step locations for legacy clients.
+pub(crate) async fn create_multi_step_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    static NET_CTR: AtomicU16 = AtomicU16::new(0);
+    let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
+    let network = WireguardNetwork::new(
+        format!("test-multi-step-mfa-network-{network_number}"),
+        21820 + i32::from(network_number % 10_000),
+        "10.3.0.1".to_owned(),
+        None,
+        Vec::<IpNetwork>::new(),
+        true,  // allow_all_groups
+        false, // acl_enabled
+        false, // acl_default_allow
+        false,
+        true, // mfa_enabled
+        ServiceLocationMode::default(),
+    )
+    .try_set_address("10.3.0.1/24")
+    .expect("failed to set multi-step mfa network address")
+    .save(pool)
+    .await
+    .expect("failed to save test multi-step mfa wireguard network");
+
+    // Two steps means `derive_legacy_mode` returns `None`.
+    let mut conn = pool.acquire().await.expect("failed to acquire connection");
+    let (flow, _steps) = MfaFlow::create(
+        &mut conn,
+        format!("test-multi-step-mfa-flow-{network_number}"),
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Email],
+        ],
+    )
+    .await
+    .expect("failed to create test multi-step mfa flow");
+    MfaFlow::assign_to_location(
+        &mut conn,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: Vec::new(),
+        }],
+    )
+    .await
+    .expect("failed to assign test multi-step mfa flow to location");
+
+    network
+}
+
 /// Enable email MFA for `user`, returning the currently-valid MFA code.
 ///
 /// The code is valid immediately and can be passed directly to
