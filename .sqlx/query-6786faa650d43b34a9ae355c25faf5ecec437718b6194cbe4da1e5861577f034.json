@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session s LEFT JOIN LATERAL ( SELECT latest_handshake FROM vpn_session_stats WHERE session_id = s.id ORDER BY latest_handshake DESC LIMIT 1 ) ss ON true WHERE location_id = $1 AND state = 'connected' AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
+  "query": "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, mfa_methods \"mfa_methods: Vec<VpnClientMfaMethod>\", flow_id, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session s LEFT JOIN LATERAL ( SELECT latest_handshake FROM vpn_session_stats WHERE session_id = s.id ORDER BY latest_handshake DESC LIMIT 1 ) ss ON true WHERE location_id = $1 AND state = 'connected' AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
   "describe": {
     "columns": [
       {
@@ -40,24 +40,36 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa_method: VpnClientMfaMethod",
+        "name": "mfa_methods: Vec<VpnClientMfaMethod>",
         "type_info": {
           "Custom": {
-            "name": "vpn_client_mfa_method",
+            "name": "vpn_client_mfa_method[]",
             "kind": {
-              "Enum": [
-                "totp",
-                "email",
-                "oidc",
-                "biometric",
-                "mobileapprove"
-              ]
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
             }
           }
         }
       },
       {
         "ordinal": 8,
+        "name": "flow_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
         "name": "state: VpnClientSessionState",
         "type_info": {
           "Custom": {
@@ -73,7 +85,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "preshared_key",
         "type_info": "Text"
       }
@@ -92,10 +104,11 @@
       false,
       true,
       true,
+      false,
       true,
       false,
       true
     ]
   },
-  "hash": "a2a31a9e9d53d830f658131eab155413d1dd6ce5a24b87b9fc4060dd1ae704be"
+  "hash": "6786faa650d43b34a9ae355c25faf5ecec437718b6194cbe4da1e5861577f034"
 }

@@ -837,7 +837,8 @@ impl ClientMfaServer {
                 &location,
                 &user,
                 &device,
-                Some(method.into()),
+                vec![method.into()],
+                None,
                 key.public.clone(),
             )
             .await
@@ -1115,7 +1116,8 @@ impl ClientMfaServer {
             &location,
             &user,
             &device,
-            None, // posture-only session has no MFA method
+            vec![],
+            None,
             key.public.clone(),
         )
         .await?;
@@ -1206,7 +1208,7 @@ impl ClientMfaServer {
         let mut events = Vec::new();
         for mut session in active_sessions {
             let is_connected = session.state == VpnClientSessionState::Connected;
-            let is_mfa_session = session.mfa_method.is_some();
+            let is_mfa_session = !session.mfa_methods.is_empty();
             let disconnect_timestamp = Utc::now().naive_utc();
             session.disconnected_at = Some(disconnect_timestamp);
             session.state = VpnClientSessionState::Disconnected;
@@ -1246,7 +1248,8 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
-        mfa_method: Option<VpnClientMfaMethod>,
+        mfa_methods: Vec<VpnClientMfaMethod>,
+        flow_id: Option<Id>,
         preshared_key: String,
     ) -> Result<VpnClientSession<Id>, Status> {
         debug!(
@@ -1288,7 +1291,8 @@ impl ClientMfaServer {
         }
 
         // create new MFA session
-        let mut session = VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
+        let mut session =
+            VpnClientSession::new(location.id, user.id, device.id, None, mfa_methods, flow_id);
         session.preshared_key = Some(preshared_key);
         session.save(conn).await.map_err(|err| {
             error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
@@ -1307,7 +1311,7 @@ impl ClientMfaServer {
         reason: SessionDisconnectReason,
     ) -> Result<(), Status> {
         let is_connected = session.state == VpnClientSessionState::Connected;
-        let is_mfa_session = session.mfa_method.is_some();
+        let is_mfa_session = !session.mfa_methods.is_empty();
         let requires_gateway_update = is_mfa_session
             || location.has_postures(&mut *conn).await.map_err(|err| {
                 error!("Failed to fetch postures for location {location}: {err}");
@@ -1532,6 +1536,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
+            vec![],
             None,
         );
         old_session.preshared_key = Some("old-posture-psk".to_owned());
@@ -1740,6 +1745,7 @@ mod tests {
             user.id,
             victim.id,
             Some(Utc::now().naive_utc()),
+            vec![],
             None,
         );
         victim_session.preshared_key = Some("victim-psk".to_owned());
@@ -2050,6 +2056,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
+            vec![],
             None,
         );
         active_session.preshared_key = Some("active-posture-psk".to_owned());
@@ -2181,7 +2188,8 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Some(VpnClientMfaMethod::Totp),
+            vec![VpnClientMfaMethod::Totp],
+            None,
         );
         active_session.preshared_key = Some("active-mfa-psk".to_owned());
         let active_session = active_session
@@ -2262,6 +2270,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
+            vec![],
             None,
         )
         .save(&pool)
@@ -2317,7 +2326,8 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Some(VpnClientMfaMethod::Totp),
+            vec![VpnClientMfaMethod::Totp],
+            None,
         )
         .save(&pool)
         .await
@@ -2332,7 +2342,8 @@ mod tests {
                 &location,
                 &user,
                 &device,
-                Some(VpnClientMfaMethod::Totp),
+                vec![VpnClientMfaMethod::Totp],
+                None,
                 REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
@@ -2392,7 +2403,8 @@ mod tests {
             user.id,
             device.id,
             None,
-            Some(VpnClientMfaMethod::Totp),
+            vec![VpnClientMfaMethod::Totp],
+            None,
         )
         .save(&pool)
         .await
@@ -2407,7 +2419,8 @@ mod tests {
                 &location,
                 &user,
                 &device,
-                Some(VpnClientMfaMethod::Totp),
+                vec![VpnClientMfaMethod::Totp],
+                None,
                 REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
@@ -2516,7 +2529,8 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Some(VpnClientMfaMethod::Totp),
+            vec![VpnClientMfaMethod::Totp],
+            None,
         );
         previous_session.preshared_key = Some("old-psk".to_owned());
         previous_session.state = VpnClientSessionState::Connected;
@@ -2547,7 +2561,8 @@ mod tests {
                 &location,
                 &user,
                 &device,
-                Some(VpnClientMfaMethod::Totp),
+                vec![VpnClientMfaMethod::Totp],
+                None,
                 NEW_MFA_PRESHARED_KEY.to_owned(),
             )
             .await

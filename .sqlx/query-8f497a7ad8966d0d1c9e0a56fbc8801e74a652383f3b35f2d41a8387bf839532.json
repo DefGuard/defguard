@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC LIMIT 1",
+  "query": "SELECT id, \"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"mfa_methods\" \"mfa_methods: _\",\"flow_id\",\"state\" \"state: _\",\"preshared_key\" FROM \"vpn_client_session\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -40,25 +40,37 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa_method: VpnClientMfaMethod",
+        "name": "mfa_methods: _",
         "type_info": {
           "Custom": {
-            "name": "vpn_client_mfa_method",
+            "name": "vpn_client_mfa_method[]",
             "kind": {
-              "Enum": [
-                "totp",
-                "email",
-                "oidc",
-                "biometric",
-                "mobileapprove"
-              ]
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
             }
           }
         }
       },
       {
         "ordinal": 8,
-        "name": "state: VpnClientSessionState",
+        "name": "flow_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "state: _",
         "type_info": {
           "Custom": {
             "name": "vpn_client_session_state",
@@ -73,14 +85,13 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "preshared_key",
         "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8"
       ]
     },
@@ -92,10 +103,11 @@
       false,
       true,
       true,
+      false,
       true,
       false,
       true
     ]
   },
-  "hash": "e87af2b4e3fd79709a28381e04690aee96054585a87e6673a5efa275795dc060"
+  "hash": "8f497a7ad8966d0d1c9e0a56fbc8801e74a652383f3b35f2d41a8387bf839532"
 }

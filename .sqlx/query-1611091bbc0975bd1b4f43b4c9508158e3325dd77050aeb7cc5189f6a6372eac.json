@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC",
+  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_methods \"mfa_methods: Vec<VpnClientMfaMethod>\", flow_id, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -40,24 +40,36 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa_method: VpnClientMfaMethod",
+        "name": "mfa_methods: Vec<VpnClientMfaMethod>",
         "type_info": {
           "Custom": {
-            "name": "vpn_client_mfa_method",
+            "name": "vpn_client_mfa_method[]",
             "kind": {
-              "Enum": [
-                "totp",
-                "email",
-                "oidc",
-                "biometric",
-                "mobileapprove"
-              ]
+              "Array": {
+                "Custom": {
+                  "name": "vpn_client_mfa_method",
+                  "kind": {
+                    "Enum": [
+                      "totp",
+                      "email",
+                      "oidc",
+                      "biometric",
+                      "mobileapprove"
+                    ]
+                  }
+                }
+              }
             }
           }
         }
       },
       {
         "ordinal": 8,
+        "name": "flow_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
         "name": "state: VpnClientSessionState",
         "type_info": {
           "Custom": {
@@ -73,7 +85,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "preshared_key",
         "type_info": "Text"
       }
@@ -92,10 +104,11 @@
       false,
       true,
       true,
+      false,
       true,
       false,
       true
     ]
   },
-  "hash": "5a856149fa68d294e5a15ceacdfc5da77a32a11145804dff5692df7c3d74ce7b"
+  "hash": "1611091bbc0975bd1b4f43b4c9508158e3325dd77050aeb7cc5189f6a6372eac"
 }

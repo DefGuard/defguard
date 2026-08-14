@@ -1395,7 +1395,8 @@ mod test {
             created_at: Utc::now().naive_utc(),
             connected_at: None,
             disconnected_at: None,
-            mfa_method: Some(VpnClientMfaMethod::Totp),
+            mfa_methods: vec![VpnClientMfaMethod::Totp],
+            flow_id: None,
             state: VpnClientSessionState::New,
             preshared_key: None,
         };
@@ -1446,7 +1447,8 @@ mod test {
             created_at: Utc::now().naive_utc(),
             connected_at: Some(Utc::now().naive_utc()),
             disconnected_at: None,
-            mfa_method: Some(VpnClientMfaMethod::Totp),
+            mfa_methods: vec![VpnClientMfaMethod::Totp],
+            flow_id: None,
             state: VpnClientSessionState::Connected,
             preshared_key: Some("runtime-session-psk".into()),
         };
@@ -1521,7 +1523,8 @@ mod test {
             user.id,
             device.id,
             None,
-            Some(VpnClientMfaMethod::Totp),
+            vec![VpnClientMfaMethod::Totp],
+            None,
         );
         session.save(&pool).await.unwrap();
 
@@ -1598,7 +1601,8 @@ mod test {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Some(VpnClientMfaMethod::Totp),
+            vec![VpnClientMfaMethod::Totp],
+            None,
         );
         session.preshared_key = Some("device-info-session-psk".into());
         session.save(&pool).await.unwrap();
@@ -1674,7 +1678,7 @@ mod test {
         );
         wireguard_network_device.insert(&pool).await.unwrap();
 
-        let mut session = VpnClientSession::new(network.id, user.id, device.id, None, None);
+        let mut session = VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
         session.preshared_key = Some("legacy-session-psk".into());
         session.save(&pool).await.unwrap();
 
@@ -1763,6 +1767,7 @@ mod test {
             user.id,
             device.id,
             Some(last_successful_connection),
+            vec![],
             None,
         );
         connected_session.created_at = last_successful_connection;
@@ -1784,7 +1789,7 @@ mod test {
         .unwrap();
 
         let mut disconnected_session =
-            VpnClientSession::new(network.id, user.id, device.id, None, None);
+            VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
         disconnected_session.created_at = newer_session_created_at;
         disconnected_session.disconnected_at = Some(newer_session_created_at);
         disconnected_session.state = VpnClientSessionState::Disconnected;
@@ -1889,6 +1894,7 @@ mod test {
             user.id,
             device.id,
             Some(last_successful_connection),
+            vec![],
             None,
         );
         connected_session.created_at = last_successful_connection;
@@ -1896,7 +1902,8 @@ mod test {
         connected_session.state = VpnClientSessionState::Disconnected;
         connected_session.save(&pool).await.unwrap();
 
-        let mut new_session = VpnClientSession::new(network.id, user.id, device.id, None, None);
+        let mut new_session =
+            VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
         new_session.created_at = newer_session_created_at;
         new_session.save(&pool).await.unwrap();
 
@@ -1978,11 +1985,17 @@ mod test {
             .and_hms_opt(3, 5, 6)
             .expect("expected valid time");
 
-        let session =
-            VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), None)
-                .save(&pool)
-                .await
-                .unwrap();
+        let session = VpnClientSession::new(
+            network.id,
+            user.id,
+            device.id,
+            Some(connected_at),
+            vec![],
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         VpnSessionStats::new(
             session.id,
@@ -2076,7 +2089,7 @@ mod test {
             .expect("expected valid time");
 
         let mut attempted_session =
-            VpnClientSession::new(network.id, user.id, device.id, None, None);
+            VpnClientSession::new(network.id, user.id, device.id, None, vec![], None);
         attempted_session.created_at = attempted_at;
         let attempted_session = attempted_session.save(&pool).await.unwrap();
 
@@ -2162,10 +2175,17 @@ mod test {
             .and_hms_opt(3, 4, 5)
             .expect("expected valid time");
 
-        VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), None)
-            .save(&pool)
-            .await
-            .unwrap();
+        VpnClientSession::new(
+            network.id,
+            user.id,
+            device.id,
+            Some(connected_at),
+            vec![],
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         let user_device = UserDevice::from_device(&pool, device)
             .await
@@ -2243,11 +2263,17 @@ mod test {
             .and_hms_opt(3, 5, 6)
             .expect("expected valid time");
 
-        let session =
-            VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), None)
-                .save(&pool)
-                .await
-                .unwrap();
+        let session = VpnClientSession::new(
+            network.id,
+            user.id,
+            device.id,
+            Some(connected_at),
+            vec![],
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         VpnSessionStats::new(
             session.id,

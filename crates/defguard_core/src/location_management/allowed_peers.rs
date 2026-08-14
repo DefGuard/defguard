@@ -296,7 +296,7 @@ mod test {
         );
         network_device.insert(&mut *conn).await.unwrap();
 
-        VpnClientSession::new(network.id, user.id, device.id, None, None)
+        VpnClientSession::new(network.id, user.id, device.id, None, vec![], None)
             .save(&mut *conn)
             .await
             .unwrap();
@@ -432,7 +432,8 @@ mod test {
         .await
         .unwrap();
 
-        let mut new_session = VpnClientSession::new(network.id, user.id, new_device.id, None, None);
+        let mut new_session =
+            VpnClientSession::new(network.id, user.id, new_device.id, None, vec![], None);
         new_session.preshared_key = Some("new-session-psk".into());
         new_session.save(&mut *conn).await.unwrap();
 
@@ -441,6 +442,7 @@ mod test {
             user.id,
             connected_device.id,
             Some(Utc::now().naive_utc()),
+            vec![],
             None,
         );
         connected_session.preshared_key = Some("connected-session-psk".into());
