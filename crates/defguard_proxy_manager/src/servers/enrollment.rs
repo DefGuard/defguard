@@ -30,7 +30,7 @@ use defguard_core::{
     grpc::{
         GatewayCommand, InstanceInfo,
         client_version::{ClientFeature, should_omit_location_for_device},
-        utils::{build_device_config_response, parse_client_ip_agent, wire_steps_for_device},
+        utils::{build_device_config_response, parse_client_ip_agent, to_wire_device_config},
     },
     handlers::user::check_password_strength,
     headers::get_device_info,
@@ -989,14 +989,9 @@ impl EnrollmentServer {
 
         let mut wire_configs = Vec::with_capacity(configs.len());
         for device_config in configs {
-            let location_mfa_mode_is_none = device_config.location_mfa_mode.is_none();
-            let resolved_steps = device_config.steps.clone();
-            let mut config: defguard_proto::client_types::DeviceConfig = device_config.into();
-            config.steps = wire_steps_for_device(
+            let config = to_wire_device_config(
                 &self.pool,
-                location_mfa_mode_is_none,
-                &resolved_steps,
-                &config.network_name,
+                device_config,
                 &user,
                 device.id,
                 smtp_configured,

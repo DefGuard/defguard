@@ -6,7 +6,7 @@ use defguard_common::{
         Id,
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
-            device::WireguardNetworkDevice,
+            device::{DeviceConfig, WireguardNetworkDevice},
             mfa_flow::MfaFlowStep,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -97,8 +97,6 @@ pub async fn build_device_config_response(
                 ));
             }
 
-            let mfa_enabled = location.mfa_enabled;
-
             let mut conn = pool.acquire().await.map_err(|err| {
                 error!("Failed to acquire connection: {err}");
                 Status::internal(format!("unexpected error: {err}"))
@@ -122,31 +120,16 @@ pub async fn build_device_config_response(
                 ));
             }
 
-            let config = ProtoDeviceConfig {
-                config: device_config.config,
-                network_id: device_config.network_id,
-                network_name: device_config.network_name,
-                assigned_ip: device_config.address.as_csv(),
-                endpoint: device_config.endpoint,
-                pubkey: device_config.pubkey,
-                allowed_ips: device_config.allowed_ips.as_csv(),
-                dns: device_config.dns,
-                keepalive_interval: device_config.keepalive_interval,
-                #[allow(deprecated)]
-                mfa_enabled,
-                #[allow(deprecated)]
-                location_mfa_mode: device_config
-                    .location_mfa_mode
-                    .map(|mode| <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()),
-                service_location_mode: Some(
-                    <ServiceLocationMode as Into<
-                        defguard_proto::client_types::ServiceLocationMode,
-                    >>::into(device_config.service_location_mode)
-                    .into(),
-                ),
-                posture_check_required: Some(device_config.posture_check_required),
-                steps: Vec::new(),
-            };
+            let config = to_wire_device_config(
+                pool,
+                device_config,
+                &user,
+                device.id,
+                smtp_configured,
+                oidc_configured,
+                false,
+            )
+            .await?;
             configs.push(config);
         }
     } else {
@@ -182,8 +165,6 @@ pub async fn build_device_config_response(
                 );
                 continue;
             }
-            // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = location.mfa_enabled;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let mut conn = pool.acquire().await.map_err(|err| {
                     error!("Failed to acquire connection: {err}");
@@ -219,11 +200,9 @@ pub async fn build_device_config_response(
                     continue;
                 }
 
-                let steps = wire_steps_for_device(
+                let config = to_wire_device_config(
                     pool,
-                    device_config.location_mfa_mode.is_none(),
-                    &device_config.steps,
-                    &location.name,
+                    device_config,
                     &user,
                     device.id,
                     smtp_configured,
@@ -231,32 +210,6 @@ pub async fn build_device_config_response(
                     supports_multi_step_mfa,
                 )
                 .await?;
-
-                let config = ProtoDeviceConfig {
-                    config: device_config.config,
-                    network_id: device_config.network_id,
-                    network_name: device_config.network_name,
-                    assigned_ip: device_config.address.as_csv(),
-                    endpoint: device_config.endpoint,
-                    pubkey: device_config.pubkey,
-                    allowed_ips: device_config.allowed_ips.as_csv(),
-                    dns: device_config.dns,
-                    keepalive_interval: device_config.keepalive_interval,
-                    #[allow(deprecated)]
-                    mfa_enabled,
-                    #[allow(deprecated)]
-                    location_mfa_mode: device_config.location_mfa_mode.map(|mode| {
-                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()
-                    }),
-                    service_location_mode: Some(
-                        <ServiceLocationMode as Into<
-                            defguard_proto::client_types::ServiceLocationMode,
-                        >>::into(device_config.service_location_mode)
-                        .into(),
-                    ),
-                    posture_check_required: Some(device_config.posture_check_required),
-                    steps,
-                };
                 configs.push(config);
             }
         }
@@ -346,6 +299,59 @@ pub async fn wire_steps_for_device(
     } else {
         Ok(Vec::new())
     }
+}
+
+/// Builds a wire `DeviceConfig` from the resolved internal `DeviceConfig`, applying the per-client
+/// capability branching (`steps`) and the fail-closed empty-flow guard. This is the single
+/// conversion point: the dumb field mapping and the `configured` computation both live here,
+/// because `configured` requires the user/device in scope.
+pub async fn to_wire_device_config(
+    pool: &PgPool,
+    device_config: DeviceConfig,
+    user: &User<Id>,
+    device_id: Id,
+    smtp_configured: bool,
+    oidc_configured: bool,
+    supports_multi_step_mfa: bool,
+) -> Result<ProtoDeviceConfig, Status> {
+    let steps = wire_steps_for_device(
+        pool,
+        device_config.location_mfa_mode.is_none(),
+        &device_config.steps,
+        &device_config.network_name,
+        user,
+        device_id,
+        smtp_configured,
+        oidc_configured,
+        supports_multi_step_mfa,
+    )
+    .await?;
+
+    Ok(ProtoDeviceConfig {
+        config: device_config.config,
+        network_id: device_config.network_id,
+        network_name: device_config.network_name,
+        assigned_ip: device_config.address.as_csv(),
+        endpoint: device_config.endpoint,
+        pubkey: device_config.pubkey,
+        allowed_ips: device_config.allowed_ips.as_csv(),
+        dns: device_config.dns,
+        keepalive_interval: device_config.keepalive_interval,
+        #[allow(deprecated)]
+        mfa_enabled: device_config.mfa_enabled,
+        #[allow(deprecated)]
+        location_mfa_mode: device_config
+            .location_mfa_mode
+            .map(|mode| <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(mode).into()),
+        service_location_mode: Some(
+            <ServiceLocationMode as Into<defguard_proto::client_types::ServiceLocationMode>>::into(
+                device_config.service_location_mode,
+            )
+            .into(),
+        ),
+        posture_check_required: Some(device_config.posture_check_required),
+        steps,
+    })
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
