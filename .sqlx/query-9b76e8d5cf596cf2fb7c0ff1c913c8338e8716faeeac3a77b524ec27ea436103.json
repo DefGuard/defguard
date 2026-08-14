@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vpn_client_mfa_session SET ephemeral_state = jsonb_set(ephemeral_state, '{openid_auth_completed}', 'true'::jsonb) WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9b76e8d5cf596cf2fb7c0ff1c913c8338e8716faeeac3a77b524ec27ea436103"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM vpn_client_mfa_session WHERE location_id = $1 AND device_id = $2 RETURNING token_hash",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_hash",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "16829102fa71c7e4d458c2111aef2a3b7b6c151b5c3c2de57abf5299d53d8477"
+}

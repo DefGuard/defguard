@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM vpn_client_mfa_session WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ddfa5e13f8ec0eaa016c0b8beedcf67b43e2941c23ccd1c93785f0b64cd99ba5"
+}

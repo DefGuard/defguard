@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, token_hash, location_id, device_id, user_id, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, created_at, expires_at FROM vpn_client_mfa_session WHERE token_hash = $1 AND expires_at > now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "location_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "steps_snapshot: Json<StepsSnapshot>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "current_step",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "ephemeral_state: Json<EphemeralState>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "failed_attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 10,
+        "name": "expires_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f9b5e2bf363e1aa257b1938917b707b6b5a9f858b005cadf127b132133c7812a"
+}
