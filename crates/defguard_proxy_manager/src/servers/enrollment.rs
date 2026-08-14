@@ -30,7 +30,7 @@ use defguard_core::{
     grpc::{
         GatewayCommand, InstanceInfo,
         client_version::{ClientFeature, should_omit_location_for_device},
-        utils::{build_device_config_response, build_wire_steps, parse_client_ip_agent},
+        utils::{build_device_config_response, parse_client_ip_agent, wire_steps_for_device},
     },
     handlers::user::check_password_strength,
     headers::get_device_info,
@@ -983,7 +983,7 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-        let is_capable =
+        let supports_multi_step_mfa =
             ClientFeature::MultiStepMfa.is_supported_by_device(req_device_info.as_ref());
         let smtp_configured = settings.smtp_configured();
 
@@ -992,25 +992,18 @@ impl EnrollmentServer {
             let location_mfa_mode_is_none = device_config.location_mfa_mode.is_none();
             let resolved_steps = device_config.steps.clone();
             let mut config: defguard_proto::client_types::DeviceConfig = device_config.into();
-            if location_mfa_mode_is_none && resolved_steps.is_empty() {
-                return Err(Status::failed_precondition(format!(
-                    "location {} has MFA enabled but no MFA flow is configured",
-                    config.network_name
-                )));
-            }
-            if is_capable {
-                config.steps = build_wire_steps(
-                    &self.pool,
-                    &resolved_steps,
-                    &user,
-                    device.id,
-                    smtp_configured,
-                    oidc_configured,
-                )
-                .await?;
-            } else {
-                config.steps.clear();
-            }
+            config.steps = wire_steps_for_device(
+                &self.pool,
+                location_mfa_mode_is_none,
+                &resolved_steps,
+                &config.network_name,
+                &user,
+                device.id,
+                smtp_configured,
+                oidc_configured,
+                supports_multi_step_mfa,
+            )
+            .await?;
             wire_configs.push(config);
         }
 

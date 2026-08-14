@@ -150,7 +150,8 @@ pub async fn build_device_config_response(
             configs.push(config);
         }
     } else {
-        let is_capable = ClientFeature::MultiStepMfa.is_supported_by_device(device_info.as_ref());
+        let supports_multi_step_mfa =
+            ClientFeature::MultiStepMfa.is_supported_by_device(device_info.as_ref());
         for location in locations {
             let wireguard_network_device = WireguardNetworkDevice::find(
                 pool,
@@ -218,16 +219,18 @@ pub async fn build_device_config_response(
                     continue;
                 }
 
-                if device_config.location_mfa_mode.is_none() && device_config.steps.is_empty() {
-                    error!(
-                        "Device {} cannot fetch config for location {} with MFA enabled but no MFA flow configured.",
-                        device.name, location.name
-                    );
-                    return Err(Status::failed_precondition(format!(
-                        "location {} has MFA enabled but no MFA flow is configured",
-                        location.name
-                    )));
-                }
+                let steps = wire_steps_for_device(
+                    pool,
+                    device_config.location_mfa_mode.is_none(),
+                    &device_config.steps,
+                    &location.name,
+                    &user,
+                    device.id,
+                    smtp_configured,
+                    oidc_configured,
+                    supports_multi_step_mfa,
+                )
+                .await?;
 
                 let config = ProtoDeviceConfig {
                     config: device_config.config,
@@ -252,19 +255,7 @@ pub async fn build_device_config_response(
                         .into(),
                     ),
                     posture_check_required: Some(device_config.posture_check_required),
-                    steps: if is_capable {
-                        build_wire_steps(
-                            pool,
-                            &device_config.steps,
-                            &user,
-                            device.id,
-                            smtp_configured,
-                            oidc_configured,
-                        )
-                        .await?
-                    } else {
-                        Vec::new()
-                    },
+                    steps,
                 };
                 configs.push(config);
             }
@@ -320,6 +311,41 @@ pub async fn build_wire_steps(
         wire_steps.push(MfaStep { methods });
     }
     Ok(wire_steps)
+}
+
+/// Computes the wire `steps` for a location, applying per-client capability branching and the
+/// fail-closed empty-flow guard. Returns the resolved flow for clients that support multi-step MFA
+/// and an empty list for legacy clients. Rejects an MFA-enabled location that has no resolvable
+/// flow, so it is never advertised to a capable client as `steps = []`.
+pub async fn wire_steps_for_device(
+    pool: &PgPool,
+    location_mfa_mode_is_none: bool,
+    resolved_steps: &[MfaFlowStep<Id>],
+    network_name: &str,
+    user: &User<Id>,
+    device_id: Id,
+    smtp_configured: bool,
+    oidc_configured: bool,
+    supports_multi_step_mfa: bool,
+) -> Result<Vec<MfaStep>, Status> {
+    if location_mfa_mode_is_none && resolved_steps.is_empty() {
+        return Err(Status::failed_precondition(format!(
+            "location {network_name} has MFA enabled but no MFA flow is configured"
+        )));
+    }
+    if supports_multi_step_mfa {
+        build_wire_steps(
+            pool,
+            resolved_steps,
+            user,
+            device_id,
+            smtp_configured,
+            oidc_configured,
+        )
+        .await
+    } else {
+        Ok(Vec::new())
+    }
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
