@@ -1,7 +1,10 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
+use defguard_common::db::models::wireguard::LocationMfaMode;
 use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
+
+use crate::enterprise::is_business_license_active;
 
 /// Extracts the semantic client version and decoded platform metadata from proxy device info.
 ///
@@ -53,6 +56,7 @@ pub(crate) fn parse_client_version_platform(
 pub enum ClientFeature {
     ServiceLocations,
     PostureChecks,
+    MultiStepMfa,
 }
 
 /// One supported client/platform combination for a feature.
@@ -86,8 +90,15 @@ impl ClientFeatureRule {
 
     /// Returns whether both client version and platform satisfy this rule.
     fn matches(&self, version: Option<&Version>, platform: Option<&ClientPlatformInfo>) -> bool {
-        version.is_some_and(|version| version >= &self.min_version)
-            && self.matches_platform(platform)
+        version.is_some_and(|version| {
+            let triple = (version.major, version.minor, version.patch);
+            let floor = (
+                self.min_version.major,
+                self.min_version.minor,
+                self.min_version.patch,
+            );
+            triple >= floor
+        }) && self.matches_platform(platform)
     }
 }
 
@@ -125,6 +136,11 @@ impl ClientFeature {
                     os_type: None,
                 },
             ],
+            Self::MultiStepMfa => vec![ClientFeatureRule {
+                min_version: Version::new(2, 2, 0),
+                os_family: None,
+                os_type: None,
+            }],
         }
     }
 
@@ -153,9 +169,24 @@ impl ClientFeature {
     }
 }
 
+/// Returns `true` when a location should be omitted from a device's config because the location's
+/// MFA configuration has no legacy equivalent and either the device's client version does not
+/// support multi-step MFA or multi-step MFA is unavailable without an active business license.
+pub fn should_omit_location_for_device(
+    location_mfa_mode: Option<LocationMfaMode>,
+    device_info: Option<&DeviceInfo>,
+) -> bool {
+    location_mfa_mode.is_none()
+        && (!ClientFeature::MultiStepMfa.is_supported_by_device(device_info)
+            || !is_business_license_active())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::enterprise::license::{
+        License, LicenseTier, SupportType, get_cached_license, set_cached_license,
+    };
 
     // Helper function to create DeviceInfo
     fn create_device_info(
@@ -548,5 +579,234 @@ mod tests {
             !ClientFeature::PostureChecks.is_supported_by_device(None),
             "PostureChecks should not be supported without device info"
         );
+    }
+
+    #[test]
+    fn test_matches_compares_release_triples() {
+        let rule = ClientFeatureRule {
+            min_version: Version::new(2, 2, 0),
+            os_family: None,
+            os_type: None,
+        };
+
+        // A pre-release of the floor itself passes the gate.
+        assert!(rule.matches(Some(&Version::parse("2.2.0-alpha1").unwrap()), None,));
+        // A release below the floor still fails.
+        assert!(!rule.matches(Some(&Version::parse("2.1.99").unwrap()), None,));
+        // Build metadata is stripped, so a build of the floor passes.
+        assert!(rule.matches(Some(&Version::parse("2.2.0+build.1").unwrap()), None,));
+        // Missing version information never matches.
+        assert!(!rule.matches(None, None));
+    }
+
+    #[test]
+    fn test_own_floor_prerelease_passes_each_feature() {
+        // ServiceLocations / Windows floor 1.6.0.
+        let info = create_device_info(
+            Some("1.6.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should support a 1.6.0 pre-release on Windows"
+        );
+
+        // ServiceLocations / Linux floor 2.1.0.
+        let info = create_device_info(
+            Some("2.1.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "unix".to_owned(),
+                os_type: "linux".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should support a 2.1.0 pre-release on Linux"
+        );
+
+        // PostureChecks / desktop floor 2.1.0.
+        let info = create_device_info(
+            Some("2.1.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "linux".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should support a 2.1.0 pre-release on desktop"
+        );
+
+        // PostureChecks / mobile floor 1.7.0.
+        let info = create_device_info(
+            Some("1.7.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "android".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::PostureChecks.is_supported_by_device(Some(&info)),
+            "PostureChecks should support a 1.7.0 pre-release on Android"
+        );
+
+        // A below-floor pre-release still fails (ServiceLocations / Windows).
+        let info = create_device_info(
+            Some("1.5.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            !ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
+            "ServiceLocations should not support a below-floor pre-release on Windows"
+        );
+    }
+
+    #[test]
+    fn test_multi_step_mfa_feature_support() {
+        // Supported at the 2.2.0 floor regardless of platform.
+        for (os_family, os_type) in [
+            ("windows", "Windows"),
+            ("unix", "linux"),
+            ("macos", "macOS"),
+        ] {
+            let info = create_device_info(
+                Some("2.2.0".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    os_type: os_type.to_owned(),
+                    ..Default::default()
+                }),
+            );
+            assert!(
+                ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+                "MultiStepMfa should be supported on {os_family} at version 2.2.0"
+            );
+        }
+
+        // A pre-release of the floor itself passes.
+        let info = create_device_info(
+            Some("2.2.0-alpha1".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should support a 2.2.0 pre-release"
+        );
+
+        // Below the floor is not supported.
+        let info = create_device_info(
+            Some("2.1.99".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should not be supported below version 2.2.0"
+        );
+
+        // Indifferent to platform: a missing platform still passes (no platform constraints).
+        let info = create_device_info(Some("2.2.0".to_owned()), None);
+        assert!(
+            ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should be supported without platform info"
+        );
+
+        // Missing version information fails.
+        let info = create_device_info(None, None);
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should not be supported without version info"
+        );
+
+        // Malformed version fails.
+        let info = create_device_info(Some("invalid".to_owned()), None);
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(Some(&info)),
+            "MultiStepMfa should not be supported with an invalid version"
+        );
+
+        // No device info fails.
+        assert!(
+            !ClientFeature::MultiStepMfa.is_supported_by_device(None),
+            "MultiStepMfa should not be supported without device info"
+        );
+    }
+
+    /// Builds a valid Business-tier license for tests that exercise licensed behavior.
+    ///
+    /// Setting this mutates the process-global license cache, so callers save and restore it
+    /// around their body. The restore is best-effort: a parallel test that also mutates the cache
+    /// can still race.
+    fn business_license() -> License {
+        License {
+            customer_id: "test".to_owned(),
+            subscription: false,
+            valid_until: None,
+            limits: None,
+            version_date_limit: None,
+            tier: LicenseTier::Business,
+            support_type: SupportType::Basic,
+            features: vec![],
+        }
+    }
+
+    #[test]
+    fn test_should_omit_location_for_device() {
+        let saved_license = get_cached_license().clone();
+
+        // Legacy client (below the MultiStepMfa floor).
+        let legacy = create_device_info(
+            Some("2.1.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+
+        // A capable client (at the MultiStepMfa floor).
+        let capable = create_device_info(
+            Some("2.2.0".to_owned()),
+            Some(ClientPlatformInfo {
+                os_family: "windows".to_owned(),
+                ..Default::default()
+            }),
+        );
+
+        // Legacy client with legacy-derivable modes is included.
+        assert!(!should_omit_location_for_device(
+            Some(LocationMfaMode::Internal),
+            Some(&legacy),
+        ));
+        assert!(!should_omit_location_for_device(
+            Some(LocationMfaMode::Disabled),
+            Some(&legacy),
+        ));
+
+        // Legacy client with no legacy equivalent is omitted.
+        assert!(should_omit_location_for_device(None, Some(&legacy)));
+
+        // Capable client with no legacy equivalent but no business license is omitted.
+        set_cached_license(None);
+        assert!(should_omit_location_for_device(None, Some(&capable)));
+
+        // Capable client with no legacy equivalent and an active business license is included.
+        set_cached_license(Some(business_license()));
+        assert!(!should_omit_location_for_device(None, Some(&capable)));
+
+        set_cached_license(saved_license);
     }
 }

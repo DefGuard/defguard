@@ -179,8 +179,13 @@ pub(crate) async fn network_device_configs(
             "User {} not found",
             device.user_id
         )))?;
-    let networks =
-        WireguardNetwork::find_network_device_networks(&appstate.pool, device_id).await?;
+    // A network device cannot perform MFA, so a config for an MFA-enabled location would be
+    // unusable; skip such locations (mirroring `user_device_configs`).
+    let networks = WireguardNetwork::find_network_device_networks(&appstate.pool, device_id)
+        .await?
+        .into_iter()
+        .filter(|network| !network.mfa_enabled)
+        .collect::<Vec<_>>();
 
     let mut result = Vec::new();
     for network in networks {

@@ -19,6 +19,7 @@ use defguard_core::{
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
+        is_business_license_active,
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
@@ -28,8 +29,8 @@ use defguard_core::{
     },
     grpc::{
         GatewayCommand, InstanceInfo,
-        client_version::ClientFeature,
-        utils::{build_device_config_response, parse_client_ip_agent},
+        client_version::{ClientFeature, should_omit_location_for_device},
+        utils::{build_device_config_response, parse_client_ip_agent, to_wire_device_config},
     },
     handlers::user::check_password_strength,
     headers::get_device_info,
@@ -925,6 +926,12 @@ impl EnrollmentServer {
                 !config.posture_check_required
                     || ClientFeature::PostureChecks.is_supported_by_device(req_device_info.as_ref())
             })
+            .filter(|config| {
+                !should_omit_location_for_device(
+                    config.location_mfa_mode.clone(),
+                    req_device_info.as_ref(),
+                )
+            })
             .collect::<Vec<DeviceConfig>>();
 
         let template_locations = configs
@@ -967,6 +974,7 @@ impl EnrollmentServer {
                 error!("Failed to get OpenID provider: {err}");
                 Status::internal(format!("unexpected error: {err}"))
             })?;
+        let oidc_configured = is_business_license_active() && openid_provider.is_some();
 
         let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
             .await
@@ -975,9 +983,28 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+        let supports_multi_step_mfa =
+            ClientFeature::MultiStepMfa.is_supported_by_device(req_device_info.as_ref());
+        let smtp_configured = settings.smtp_configured();
+
+        let mut wire_configs = Vec::with_capacity(configs.len());
+        for device_config in configs {
+            let config = to_wire_device_config(
+                &self.pool,
+                device_config,
+                &user,
+                device.id,
+                smtp_configured,
+                oidc_configured,
+                supports_multi_step_mfa,
+            )
+            .await?;
+            wire_configs.push(config);
+        }
+
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
-            configs: configs.into_iter().map(Into::into).collect(),
+            configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
         };
