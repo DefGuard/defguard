@@ -16,7 +16,8 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types::{
-        EnrollmentStartRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest,
+        EnrollmentStartRequest, ExistingDevice, LocationMfaMode, MfaMethod, NewDevice,
+        RegisterMobileAuthRequest,
     },
     proxy::{CoreRequest, DeviceInfo, core_request, core_response},
 };
@@ -145,6 +146,7 @@ async fn test_new_device_creates_polling_token(_: PgPoolOptions, options: PgConn
 /// client (which cannot represent them) while retaining them for a capable one.
 /// Legacy-derivable locations must remain present for both.
 #[sqlx::test]
+#[allow(deprecated)]
 async fn test_new_device_omits_multi_step_location_for_legacy_client(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -224,6 +226,28 @@ async fn test_new_device_omits_multi_step_location_for_legacy_client(
         names.contains(&internal.name.as_str()),
         "legacy-derivable location must be retained for a capable client, got: {names:?}"
     );
+
+    // The capable client receives the resolved steps and the derived location_mfa_mode for each
+    // location (multi-step has no legacy mode, so it is `None`).
+    let multi_step_config = cfg
+        .configs
+        .iter()
+        .find(|config| config.network_name == multi_step.name)
+        .expect("multi-step config must be present for a capable client");
+    assert_eq!(multi_step_config.location_mfa_mode, None);
+    assert_eq!(multi_step_config.steps.len(), 2);
+
+    let internal_config = cfg
+        .configs
+        .iter()
+        .find(|config| config.network_name == internal.name)
+        .expect("internal config must be present for a capable client");
+    assert_eq!(
+        internal_config.location_mfa_mode,
+        Some(LocationMfaMode::Internal as i32)
+    );
+    assert_eq!(internal_config.steps.len(), 1);
+    assert_eq!(internal_config.steps[0].methods.len(), 4);
 
     context.finish().await.expect_server_finished().await;
 }
