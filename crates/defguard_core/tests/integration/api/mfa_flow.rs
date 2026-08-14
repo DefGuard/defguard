@@ -908,7 +908,8 @@ async fn test_mfa_enabled_disable_preserves_assignments(
         .await
         .unwrap()
         .unwrap();
-    let resolved = MfaFlow::resolve_for_user(&pool, location_id, user.id)
+    let mut conn = pool.acquire().await.unwrap();
+    let resolved = MfaFlow::resolve_for_user(&mut conn, location_id, user.id)
         .await
         .unwrap()
         .expect("a default assignment must resolve");

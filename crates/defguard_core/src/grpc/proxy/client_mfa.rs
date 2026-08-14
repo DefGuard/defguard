@@ -256,10 +256,34 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid MFA method selected")
         })?;
 
+        // Reject locations whose flow configuration cannot be expressed as a legacy
+        // single-factor mode (multi-flow, multi-step, or a subset of the internal method set).
+        // Fail closed rather than silently driving only the first step.
+        if MfaFlow::derive_legacy_mode(&self.pool, location.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to derive legacy MFA mode: {err}");
+                Status::internal("unexpected error")
+            })?
+            .is_none()
+        {
+            error!(
+                "Location {location} has an MFA flow configuration that cannot be enforced by \
+                this client"
+            );
+            return Err(Status::failed_precondition(
+                "Defguard client version is too old to connect to this location. Please update your client.",
+            ));
+        }
+
         // Resolve the MFA flow that applies to this user at this location. The legacy adapter
         // drives only the first step, so license-filter its methods and validate the client's
         // selected method against them.
-        let Some((flow, steps)) = MfaFlow::resolve_for_user(&self.pool, location.id, user.id)
+        let mut conn = self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })?;
+        let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
             .await
             .map_err(|err| {
                 error!("Failed to resolve MFA flow: {err}");
@@ -414,10 +438,6 @@ impl ClientMfaServer {
             .map(|challenge| challenge.challenge.clone());
 
         // Start the durable in-progress session, freezing the license-filtered first step.
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })?;
         let (session, outcome) = VpnClientMfaSession::start(
             &mut conn,
             location.id,
@@ -2288,6 +2308,75 @@ mod tests {
     }
 
     #[sqlx::test]
+    async fn test_mfa_start_rejects_non_derivable_location_with_update_message(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+
+        // Assign a two-step flow so `derive_legacy_mode` returns `None`.
+        let mut tx = pool.begin().await.expect("failed to begin tx");
+        let (flow, _) = MfaFlow::create(
+            &mut tx,
+            "multi-step".to_owned(),
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+        )
+        .await
+        .expect("failed to create flow");
+        MfaFlow::assign_to_location(
+            &mut tx,
+            location.id,
+            &[LocationMfaFlowAssignment {
+                flow_id: flow.id,
+                is_default: true,
+                group_ids: Vec::new(),
+            }],
+        )
+        .await
+        .expect("failed to assign flow");
+        tx.commit().await.expect("failed to commit tx");
+
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, _, _) = make_server(pool);
+
+        let error = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    #[allow(deprecated)]
+                    method: MfaMethod::Totp as i32,
+                    posture_data: None,
+                    selected_methods: Vec::new(),
+                },
+                device_info(),
+            )
+            .await
+            .err()
+            .expect("non-derivable location should be rejected");
+
+        assert_eq!(error.code(), Code::FailedPrecondition);
+        assert_eq!(
+            error.message(),
+            "Defguard client version is too old to connect to this location. Please update your client."
+        );
+        assert!(
+            !error.message().contains("no valid license"),
+            "rejection message must not contain 'no valid license'"
+        );
+    }
+
+    #[sqlx::test]
     async fn test_session_revocation_survives_unavailable_side_effect_consumers(
         _: PgPoolOptions,
         options: PgConnectOptions,
@@ -2694,7 +2783,12 @@ mod tests {
         let (flow, _steps) = MfaFlow::create(
             &mut tx,
             "Default Internal MFA".into(),
-            vec![vec![VpnClientMfaMethod::Totp]],
+            vec![vec![
+                VpnClientMfaMethod::Totp,
+                VpnClientMfaMethod::Email,
+                VpnClientMfaMethod::Biometric,
+                VpnClientMfaMethod::MobileApprove,
+            ]],
         )
         .await
         .expect("failed to create MFA flow");

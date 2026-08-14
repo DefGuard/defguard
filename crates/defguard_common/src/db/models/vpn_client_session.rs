@@ -3,12 +3,15 @@ use std::fmt;
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{Type, query_as};
+use sqlx::{PgExecutor, Type, query_as};
 use utoipa::ToSchema;
 
 use crate::db::{
     Id, NoId,
-    models::{WireguardNetwork, vpn_session_stats::VpnSessionStats},
+    models::{
+        WireguardNetwork, biometric_auth::BiometricAuth, user::User,
+        vpn_session_stats::VpnSessionStats,
+    },
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Type)]
@@ -40,6 +43,40 @@ impl fmt::Display for VpnClientMfaMethod {
             Self::Biometric => "Biometric",
             Self::MobileApprove => "MobileApprove",
         })
+    }
+}
+
+impl VpnClientMfaMethod {
+    /// Returns whether this method is configured for `user` (and, for biometric, `device_id`).
+    ///
+    /// Per-user/per-device setup state is ANDed with deployment-level availability:
+    /// `smtp_configured` gates email and `oidc_configured` gates OIDC. The remaining methods have
+    /// no deployment gate. The caller computes `smtp_configured` and `oidc_configured` (the latter
+    /// including license tier and provider presence), so this predicate stays model-level.
+    ///
+    /// Per-user setup reads `User::totp_enabled` (TOTP), `User::email_mfa_enabled` (email),
+    /// `User::openid_sub` (OIDC identity), and the `biometric_auth` table - keyed on the device
+    /// for biometric and on any of the user's devices for mobile-approve.
+    pub async fn is_configured<'e, E: PgExecutor<'e>>(
+        self,
+        executor: E,
+        user: &User<Id>,
+        device_id: Id,
+        smtp_configured: bool,
+        oidc_configured: bool,
+    ) -> sqlx::Result<bool> {
+        let configured = match self {
+            Self::Totp => user.totp_enabled,
+            Self::Email => smtp_configured && user.email_mfa_enabled,
+            Self::Oidc => oidc_configured && user.openid_sub.is_some(),
+            Self::Biometric => BiometricAuth::find_by_device_id(executor, device_id)
+                .await?
+                .is_some(),
+            Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
+                .await?
+                .is_empty(),
+        };
+        Ok(configured)
     }
 }
 
@@ -194,5 +231,156 @@ impl VpnClientSession<Id> {
 			location_id,
 			device_id,
     	).fetch_all(executor).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::{
+        PgPool,
+        postgres::{PgConnectOptions, PgPoolOptions},
+    };
+
+    use super::VpnClientMfaMethod;
+    use crate::db::{
+        Id,
+        models::{Device, DeviceType, User, biometric_auth::BiometricAuth},
+        setup_pool,
+    };
+
+    async fn create_user(pool: &PgPool) -> User<Id> {
+        User::new(
+            "mfa-configured-test",
+            None,
+            "Test",
+            "User",
+            "mfa-configured@test.example",
+            None,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create user")
+    }
+
+    async fn create_device(pool: &PgPool, user_id: Id) -> Device<Id> {
+        Device::new(
+            "mfa-configured-device".to_owned(),
+            "mfa-configured-pubkey".to_owned(),
+            user_id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create device")
+    }
+
+    #[sqlx::test]
+    async fn test_is_configured(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let mut user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        // Nothing set up: every method is unconfigured regardless of deployment availability.
+        assert!(
+            !VpnClientMfaMethod::Totp
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+        assert!(
+            !VpnClientMfaMethod::Email
+                .is_configured(&pool, &user, device.id, true, false)
+                .await
+                .unwrap()
+        );
+        assert!(
+            !VpnClientMfaMethod::Oidc
+                .is_configured(&pool, &user, device.id, false, true)
+                .await
+                .unwrap()
+        );
+        assert!(
+            !VpnClientMfaMethod::Biometric
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+        assert!(
+            !VpnClientMfaMethod::MobileApprove
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+
+        // TOTP: set up -> configured (no deployment gate).
+        user.totp_enabled = true;
+        assert!(
+            VpnClientMfaMethod::Totp
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+
+        // Email: set up AND SMTP configured -> configured.
+        user.email_mfa_enabled = true;
+        assert!(
+            VpnClientMfaMethod::Email
+                .is_configured(&pool, &user, device.id, true, false)
+                .await
+                .unwrap()
+        );
+        // Email set up but SMTP not configured -> unconfigured.
+        assert!(
+            !VpnClientMfaMethod::Email
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+
+        // OIDC: identity + oidc_configured -> configured.
+        user.openid_sub = Some("oidc-sub".to_owned());
+        assert!(
+            VpnClientMfaMethod::Oidc
+                .is_configured(&pool, &user, device.id, false, true)
+                .await
+                .unwrap()
+        );
+        // OIDC identity present but oidc_configured false -> unconfigured.
+        assert!(
+            !VpnClientMfaMethod::Oidc
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+        // OIDC identity absent -> unconfigured even when oidc_configured.
+        user.openid_sub = None;
+        assert!(
+            !VpnClientMfaMethod::Oidc
+                .is_configured(&pool, &user, device.id, false, true)
+                .await
+                .unwrap()
+        );
+
+        // Biometric: the device has a registered biometric auth -> configured.
+        BiometricAuth::new(device.id, "biometric-pubkey".to_owned())
+            .save(&pool)
+            .await
+            .expect("failed to save biometric auth");
+        assert!(
+            VpnClientMfaMethod::Biometric
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+
+        // MobileApprove: the user has a device with a registered biometric auth -> configured.
+        assert!(
+            VpnClientMfaMethod::MobileApprove
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
     }
 }

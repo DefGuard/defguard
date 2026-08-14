@@ -915,7 +915,8 @@ async fn test_resolve_group_match(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
     tx.commit().await.unwrap();
 
-    let result = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+    let mut conn = pool.acquire().await.unwrap();
+    let result = MfaFlow::resolve_for_user(&mut conn, network.id, user.id)
         .await
         .unwrap();
     assert!(result.is_some());
@@ -974,7 +975,8 @@ async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOp
     .unwrap();
     tx.commit().await.unwrap();
 
-    let result = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+    let mut conn = pool.acquire().await.unwrap();
+    let result = MfaFlow::resolve_for_user(&mut conn, network.id, user.id)
         .await
         .unwrap();
     assert!(result.is_some());
@@ -1047,7 +1049,8 @@ async fn test_resolve_order_decides_between_matches(_: PgPoolOptions, options: P
         flow_default.id,
     )
     .await;
-    let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+    let mut conn = pool.acquire().await.unwrap();
+    let resolved = MfaFlow::resolve_for_user(&mut conn, network.id, user.id)
         .await
         .unwrap()
         .unwrap();
@@ -1062,7 +1065,8 @@ async fn test_resolve_order_decides_between_matches(_: PgPoolOptions, options: P
         flow_default.id,
     )
     .await;
-    let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+    let mut conn = pool.acquire().await.unwrap();
+    let resolved = MfaFlow::resolve_for_user(&mut conn, network.id, user.id)
         .await
         .unwrap()
         .unwrap();
@@ -1137,8 +1141,9 @@ async fn test_resolve_user_in_two_groups_deterministic(
     )
     .await;
 
+    let mut conn = pool.acquire().await.unwrap();
     for _ in 0..5 {
-        let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+        let resolved = MfaFlow::resolve_for_user(&mut conn, network.id, user.id)
             .await
             .unwrap()
             .unwrap();
@@ -1221,7 +1226,8 @@ async fn test_resolve_position_not_id_order(_: PgPoolOptions, options: PgConnect
     )
     .await;
 
-    let resolved = MfaFlow::resolve_for_user(&pool, network.id, user.id)
+    let mut conn = pool.acquire().await.unwrap();
+    let resolved = MfaFlow::resolve_for_user(&mut conn, network.id, user.id)
         .await
         .unwrap()
         .unwrap();

@@ -21,6 +21,7 @@ use crate::{
         Id, NoId,
         models::{
             ModelError, WireguardNetwork,
+            mfa_flow::MfaFlowStep,
             user::User,
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
             wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
@@ -51,6 +52,10 @@ pub struct DeviceConfig {
     pub location_mfa_mode: Option<LocationMfaMode>,
     pub service_location_mode: ServiceLocationMode,
     pub posture_check_required: bool,
+    /// The MFA flow steps resolved for this location and user, ordered by step position. Empty
+    /// when the location has MFA disabled or no flow resolves for the user.
+    #[serde(skip)]
+    pub steps: Vec<MfaFlowStep<Id>>,
 }
 
 // The type of a device:

@@ -417,3 +417,118 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         ]
     );
 }
+
+/// The REST network-device config view skips MFA-enabled locations: a network device cannot
+/// perform MFA, so its config would be unusable (the gRPC poll rejects with `failed_precondition`).
+#[sqlx::test]
+async fn test_network_device_config_skips_mfa_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // A two-step flow derives no legacy mode.
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "multi-step",
+            "steps": [{ "methods": ["totp"] }, { "methods": ["biometric"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let flow_id = response.json::<Value>().await["id"].as_i64().unwrap();
+
+    // Create the location, assign the flow as default, then enable MFA.
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "multi-step-location",
+            "address": "10.7.0.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.7.0.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": false,
+            "allowed_groups": ["admin"],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": false,
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+
+    let response = client
+        .put(format!("/api/v1/location/{}/mfa-flows", location.id))
+        .json(&json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&json!({
+            "name": "multi-step-location",
+            "address": "10.7.0.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.7.0.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": false,
+            "allowed_groups": ["admin"],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": true,
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create a network device on the multi-step location.
+    let network_device = AddNetworkDevice {
+        name: "multi-step-device".into(),
+        wireguard_pubkey: "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=".into(),
+        assigned_ips: vec!["10.7.0.2".to_owned()],
+        location_id: location.id,
+        description: None,
+    };
+    let response = client
+        .post("/api/v1/device/network")
+        .json(&network_device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let json = response.json::<Value>().await;
+    let device_id = json["device"]["id"].as_i64().unwrap();
+
+    // The admin view skips the MFA-enabled location, returning an empty config list.
+    let response = client
+        .get(format!("/api/v1/device/network/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs = response.json::<Vec<DeviceWireGuardConfig>>().await;
+    assert!(
+        configs.is_empty(),
+        "MFA-enabled location config must be skipped"
+    );
+}
