@@ -9,19 +9,28 @@ import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptySta
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
-import { getMfaFlowsQueryOptions } from '../../shared/query';
+import { getLicenseInfoQueryOptions, getMfaFlowsQueryOptions } from '../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { MfaFlowsTable } from './MfaFlowsTable';
 
 /** Loads and renders either the configured MFA flows or the first-use empty state. */
 const MfaPageContent = () => {
   const navigate = useNavigate();
   const { data: flows } = useSuspenseQuery(getMfaFlowsQueryOptions);
+  const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const addMfaFlowButtonProps: ButtonProps = {
     text: m.mfa_flows_button_add(),
     iconLeft: 'plus',
     testId: 'add-mfa-flow',
     onClick: () => {
-      void navigate({ to: '/mfa/add-flow' });
+      if (flows.length === 0) {
+        void navigate({ to: '/mfa/add-flow' });
+        return;
+      }
+
+      licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+        void navigate({ to: '/mfa/add-flow' });
+      });
     },
   };
 

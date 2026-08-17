@@ -422,7 +422,7 @@ pub async fn list_mfa_flows(
         (status = 201, description = "MFA flow created.", body = MfaFlowDetailResponse),
         (status = 400, description = "Invalid request data: structured `validation_failed` with `fields[]`, e.g. `required`, `min_items`, `max_items`, `max_length`, `duplicate`, `smtp_not_configured`, `oidc_provider_missing`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "steps[0].methods", "code": "oidc_provider_missing"}]})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges, or the request needs a higher licence tier (`business_license_required` for a multi-step flow or an OIDC method). A licence refusal carries the same `fields[]` contract as validation errors under an `error` of `license_required`.", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "steps", "code": "business_license_required"}]})),
+        (status = 403, description = "Requires admin privileges, or the request needs a higher licence tier (`business_license_required` for an additional flow, a multi-step flow, or an OIDC method). A licence refusal carries the same `fields[]` contract as validation errors under an `error` of `license_required`.", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "steps", "code": "business_license_required"}]})),
         (status = 500, description = "Unable to create MFA flow.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
@@ -451,6 +451,14 @@ pub async fn create_mfa_flow(
     }
 
     let mut tx = appstate.pool.begin().await?;
+    if !is_business_license_active() {
+        if MfaFlow::any_exist(&mut *tx).await? {
+            return Ok(license_error_response(
+                "flow".into(),
+                "business_license_required",
+            ));
+        }
+    }
     let (flow, steps) = MfaFlow::create(&mut tx, data.title, step_methods).await?;
     tx.commit().await?;
 
