@@ -871,8 +871,8 @@ pub enum MethodAvailabilityReason {
 /// Compute per-method availability for the MFA flow editor.
 ///
 /// Checks license tier, SMTP configuration, and OIDC provider presence to
-/// determine which methods are currently usable. All five methods in
-/// [`VpnClientMfaMethod`] are always enumerated; unavailable methods carry
+/// determine which methods are currently usable. Every method in
+/// [`VpnClientMfaMethod`] is always enumerated; unavailable methods carry
 /// a `reason` that the UI maps to an appropriate CTA.
 fn compute_method_availability(
     smtp_configured: bool,
@@ -913,6 +913,11 @@ fn compute_method_availability(
         ),
         (
             VpnClientMfaMethod::MobileApprove,
+            true,
+            MethodAvailabilityReason::Available,
+        ),
+        (
+            VpnClientMfaMethod::Fido2,
             true,
             MethodAvailabilityReason::Available,
         ),

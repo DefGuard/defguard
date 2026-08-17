@@ -58,6 +58,7 @@ pub enum MFAMethod {
     OneTimePassword,
     Webauthn,
     Email,
+    Fido2,
 }
 
 // Web MFA methods
@@ -68,6 +69,7 @@ impl fmt::Display for MFAMethod {
             Self::OneTimePassword => "TOTP",
             Self::Webauthn => "WebAuthn",
             Self::Email => "Email",
+            Self::Fido2 => "FIDO2",
         })
     }
 }

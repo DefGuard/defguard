@@ -49,6 +49,20 @@ impl WebAuthn<Id> {
             })
     }
 
+    /// Check whether a user has at least one security key registered.
+    pub async fn exists_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM webauthn WHERE user_id = $1)",
+            user_id
+        )
+        .fetch_one(executor)
+        .await
+        .map(Option::unwrap_or_default)
+    }
+
     /// Fetch all for a given user.
     pub async fn all_for_user(pool: &PgPool, user_id: Id) -> sqlx::Result<Vec<Self>> {
         query_as!(
