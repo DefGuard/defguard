@@ -15,7 +15,10 @@ use defguard_common::{
     db::{
         Id, NoId,
         models::{
-            gateway::Gateway, settings::initialize_current_settings, wireguard::WireguardNetwork,
+            Settings,
+            gateway::Gateway,
+            settings::{initialize_current_settings, set_settings},
+            wireguard::WireguardNetwork,
         },
         setup_pool,
     },
@@ -23,7 +26,9 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::events::GatewayConnectionEvent;
-use defguard_proto::gateway::{CoreRequest, CoreResponse, PeerStats, core_request, gateway_server};
+use defguard_proto::gateway::{
+    CoreRequest, CoreResponse, PeerStats, core_request, core_response, gateway_server,
+};
 use prost_types::Timestamp;
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
@@ -382,6 +387,42 @@ impl ManagerTestContext {
         self.control.gateway_notification_count(gateway_id)
     }
 
+    pub(crate) fn disconnect_notification_count(&self, gateway_id: Id) -> u64 {
+        self.control.disconnect_notification_count(gateway_id)
+    }
+
+    pub(crate) fn reconnect_notification_count(&self, gateway_id: Id) -> u64 {
+        self.control.reconnect_notification_count(gateway_id)
+    }
+
+    pub(crate) async fn wait_for_disconnect_notification_count(
+        &self,
+        gateway_id: Id,
+        expected_count: u64,
+    ) {
+        timeout(
+            TEST_TIMEOUT,
+            self.control
+                .wait_for_disconnect_notification_count(gateway_id, expected_count),
+        )
+        .await
+        .expect("timed out waiting for gateway disconnect email notification");
+    }
+
+    pub(crate) async fn wait_for_reconnect_notification_count(
+        &self,
+        gateway_id: Id,
+        expected_count: u64,
+    ) {
+        timeout(
+            TEST_TIMEOUT,
+            self.control
+                .wait_for_reconnect_notification_count(gateway_id, expected_count),
+        )
+        .await
+        .expect("timed out waiting for gateway reconnect email notification");
+    }
+
     pub(crate) async fn wait_for_handler_spawn_attempt_count(
         &self,
         gateway_id: Id,
@@ -446,6 +487,10 @@ impl ManagerTestContext {
 
     pub(crate) fn set_retry_delay(&self, retry_delay: Duration) {
         self.control.set_retry_delay(retry_delay);
+    }
+
+    pub(crate) fn set_disconnect_notification_delay(&self, delay: Duration) {
+        self.control.set_disconnect_notification_delay(delay);
     }
 
     pub(crate) async fn finish(mut self) {
@@ -645,6 +690,25 @@ impl Drop for HandlerTestContext {
     }
 }
 
+/// Drives the config handshake between the manager-owned handler and a mock Gateway, and waits
+/// until the Gateway is recorded as connected in the database.
+pub(crate) async fn complete_manager_handshake(
+    context: &ManagerTestContext,
+    gateway: &Gateway<Id>,
+    mock_gateway: &mut MockGatewayHarness,
+) {
+    mock_gateway.wait_connected().await;
+    mock_gateway.send_config_request();
+    let outbound = mock_gateway.recv_outbound().await;
+    assert!(matches!(
+        outbound.payload,
+        Some(core_response::Payload::Config(_))
+    ));
+
+    let gateway_after = wait_for_gateway_connection_state(&context.pool, gateway.id, true).await;
+    assert!(gateway_after.is_connected());
+}
+
 pub(crate) async fn reload_gateway(pool: &PgPool, gateway_id: Id) -> Gateway<Id> {
     Gateway::find_by_id(pool, gateway_id)
         .await
@@ -684,6 +748,21 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
         }),
         allowed_ips: "10.10.0.2/32".to_owned(),
     }
+}
+
+/// Sets the Gateway notification settings in the process-global `SETTINGS` struct. Must be
+/// called after a test context has been created, since that is what initializes the struct.
+///
+/// `set_settings` is used directly rather than `update_current_settings` because the latter
+/// validates that SMTP is configured, which these tests deliberately do not do. Because the
+/// struct is process-global, tests touching it have to be run under nextest, which gives every
+/// test its own process.
+pub(crate) fn configure_gateway_notifications(enabled: bool, inactivity_threshold_minutes: i32) {
+    let mut settings = Settings::get_current_settings();
+    settings.gateway_disconnect_notifications_enabled = enabled;
+    settings.gateway_disconnect_notifications_reconnect_notification_enabled = enabled;
+    settings.gateway_disconnect_notifications_inactivity_threshold = inactivity_threshold_minutes;
+    set_settings(Some(settings));
 }
 
 pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {

@@ -6,12 +6,12 @@ use std::{
     str::FromStr,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::Duration,
 };
 
-use chrono::{DateTime, TimeDelta};
+use chrono::DateTime;
 use defguard_common::{
     VERSION,
     db::{
@@ -94,6 +94,12 @@ pub(crate) struct GatewayHandler {
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     updates_handler_handle: Option<JoinHandle<()>>,
+    /// Disconnect email notification waiting out the inactivity threshold. Aborted when the
+    /// Gateway reconnects inside the window, so short outages produce no email at all.
+    pending_disconnect_notification: Option<JoinHandle<()>>,
+    /// Set by the pending task just before it sends the disconnect email. Guarantees a
+    /// reconnect email is sent if and only if a disconnect email went out for that outage.
+    disconnect_notification_sent: Arc<AtomicBool>,
     #[cfg(test)]
     test_transport: GatewayTestTransport,
     #[cfg(test)]
@@ -126,6 +132,8 @@ impl GatewayHandler {
             peer_stats_tx,
             certs_rx,
             updates_handler_handle: None,
+            pending_disconnect_notification: None,
+            disconnect_notification_sent: Arc::new(AtomicBool::new(false)),
             #[cfg(test)]
             test_transport: GatewayTestTransport::default(),
             #[cfg(test)]
@@ -136,6 +144,11 @@ impl GatewayHandler {
     #[cfg(not(test))]
     fn handler_retry_delay(&self) -> Duration {
         TEN_SECS
+    }
+
+    #[cfg(not(test))]
+    fn disconnect_notification_delay(&self, configured_delay: Duration) -> Duration {
+        configured_delay
     }
 
     #[cfg(not(test))]
@@ -260,69 +273,121 @@ impl GatewayHandler {
         }
     }
 
-    /// Send Gateway disconnected notification.
-    /// Sends notification only if last notification time is bigger than specified in config.
-    async fn send_disconnect_notification(&self) {
+    /// Schedule a Gateway disconnected email notification.
+    ///
+    /// The email is delayed by the configured inactivity threshold instead of being sent
+    /// straight away. A reconnect inside that window aborts the pending task, so a short
+    /// outage produces no notification at all.
+    fn schedule_disconnect_notification(&mut self) {
         let settings = Settings::get_current_settings();
         if !settings.gateway_disconnect_notifications_enabled {
             return;
         }
 
-        // Send email only if disconnection time is before the connection time.
-        if let (Some(connected_at), Some(disconnected_at)) =
-            (self.gateway.connected_at, self.gateway.disconnected_at)
-            && disconnected_at > connected_at
-        {
-            info!("{} disconnected; email notification not sent", self.gateway);
-            return;
-        }
-
-        debug!("Sending Gateway disconnect email notification");
-        let name = match Gateway::find_by_id(&self.pool, self.gateway.id).await {
-            Ok(Some(gateway)) => gateway.name,
-            _ => self.gateway.name.clone(),
-        };
-        let pool = self.pool.clone();
-        let url = format!("{}:{}", self.gateway.address, self.gateway.port);
-
-        let Ok(Some(network)) =
-            WireguardNetwork::find_by_id(&self.pool, self.gateway.location_id).await
-        else {
-            error!(
-                "Failed to fetch network ID {} from database",
-                self.gateway.location_id
+        if let Some(handle) = self.pending_disconnect_notification.take() {
+            warn!(
+                "Found a disconnect email notification already pending for {} while scheduling a \
+                new one; aborting the old one",
+                self.gateway
             );
-            return;
-        };
-
-        // TODO: return result instead of logging.
-        if let Err(err) = send_gateway_disconnected_email(name, network.name, &url, &pool).await {
-            error!("Failed to send Gateway disconnect notification: {err}");
-        } else {
-            info!("Sent email notification about Gateway being disconnected");
+            handle.abort();
         }
+
+        // A threshold of 0 keeps the notification immediate, which is what the settings form
+        // allows as its minimum value.
+        let threshold_minutes =
+            u64::try_from(settings.gateway_disconnect_notifications_inactivity_threshold)
+                .unwrap_or_default();
+        let delay = self.disconnect_notification_delay(Duration::from_secs(60 * threshold_minutes));
+
+        let gateway_id = self.gateway.id;
+        let location_id = self.gateway.location_id;
+        let url = format!("{}:{}", self.gateway.address, self.gateway.port);
+        let pool = self.pool.clone();
+        let notification_sent = Arc::clone(&self.disconnect_notification_sent);
+        #[cfg(test)]
+        let test_support = self.test_support.clone();
+
+        debug!(
+            "Scheduling Gateway disconnect email notification for {} in {delay:?}",
+            self.gateway
+        );
+        let handle = tokio::spawn(async move {
+            sleep(delay).await;
+
+            // Re-read the current state, since the Gateway may have been removed from the
+            // database or reconnected without this task being aborted in time.
+            let gateway = match Gateway::find_by_id(&pool, gateway_id).await {
+                Ok(Some(gateway)) => gateway,
+                Ok(None) => {
+                    info!(
+                        "Gateway id={gateway_id} is no longer in the database; disconnect email \
+                        notification not sent"
+                    );
+                    return;
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to fetch Gateway id={gateway_id} from database, disconnect email \
+                        notification not sent: {err}"
+                    );
+                    return;
+                }
+            };
+            if gateway.is_connected() {
+                info!(
+                    "{gateway} reconnected within the inactivity threshold; disconnect email \
+                    notification not sent"
+                );
+                return;
+            }
+
+            let Ok(Some(network)) = WireguardNetwork::find_by_id(&pool, location_id).await else {
+                error!("Failed to fetch network ID {location_id} from database");
+                return;
+            };
+
+            // Record the notification as sent before awaiting the send, so an abort landing
+            // mid-send cannot leave a later reconnect notification unpaired.
+            notification_sent.store(true, Ordering::SeqCst);
+            #[cfg(test)]
+            note_disconnect_notification_for_tests(test_support.as_ref(), gateway_id);
+
+            debug!("Sending Gateway disconnect email notification");
+            // TODO: return result instead of logging.
+            if let Err(err) =
+                send_gateway_disconnected_email(gateway.name, network.name, &url, &pool).await
+            {
+                error!("Failed to send Gateway disconnect notification: {err}");
+            } else {
+                info!("Sent email notification about Gateway being disconnected");
+            }
+        });
+        self.pending_disconnect_notification = Some(handle);
     }
 
     /// Send Gateway reconnected notification.
+    ///
+    /// Only sent when a disconnect notification actually went out for this outage, so admins
+    /// never receive a reconnect email without a matching disconnect email.
     fn send_reconnect_notification(&self, network_name: String) {
+        // Always clear the flag, even when reconnect notifications are turned off, so that a
+        // later outage cannot inherit it.
+        if !self
+            .disconnect_notification_sent
+            .swap(false, Ordering::SeqCst)
+        {
+            return;
+        }
+
         let settings = Settings::get_current_settings();
         if !settings.gateway_disconnect_notifications_reconnect_notification_enabled {
             return;
         }
 
-        let (Some(connected_at), Some(disconnected_at)) =
-            (self.gateway.connected_at, self.gateway.disconnected_at)
-        else {
-            return;
-        };
-        let inactivity_threshold = TimeDelta::minutes(i64::from(
-            settings.gateway_disconnect_notifications_inactivity_threshold,
-        ));
-        if connected_at - disconnected_at <= inactivity_threshold {
-            return;
-        }
-
         debug!("Sending Gateway reconnect email notification");
+        #[cfg(test)]
+        self.note_reconnect_notification_for_tests();
         let gateway_id = self.gateway.id;
         let fallback_name = self.gateway.name.clone();
         let pool = self.pool.clone();
@@ -355,12 +420,13 @@ impl GatewayHandler {
     }
 
     async fn handle_disconnection_error(&mut self) {
-        let was_connected = self.gateway.is_connected();
-        if self.gateway.is_connected() {
-            self.send_disconnect_notification().await;
+        if !self.gateway.is_connected() {
+            return;
         }
 
-        if was_connected && self.mark_disconnected().await {
+        // Mark the Gateway disconnected before scheduling the notification: the delayed task
+        // re-reads the row when it fires and must not see a stale connected state.
+        if self.mark_disconnected().await {
             let _ = self
                 .connection_events_tx
                 .send(GatewayConnectionEvent::Disconnected {
@@ -368,6 +434,8 @@ impl GatewayHandler {
                     gateway_name: self.gateway.name.clone(),
                 });
         }
+
+        self.schedule_disconnect_notification();
     }
 
     async fn mark_connected_and_maybe_notify(&mut self, network_name: &str) {
@@ -387,6 +455,15 @@ impl GatewayHandler {
                     gateway_id: self.gateway.id,
                     gateway_name: self.gateway.name.clone(),
                 });
+        }
+
+        // A Gateway that came back this quickly should not be reported as down at all.
+        if let Some(handle) = self.pending_disconnect_notification.take() {
+            debug!(
+                "Cancelling pending disconnect email notification for {}",
+                self.gateway
+            );
+            handle.abort();
         }
 
         self.send_reconnect_notification(network_name.to_owned());
@@ -588,6 +665,22 @@ impl Drop for GatewayHandler {
         if let Some(handle) = self.updates_handler_handle.take() {
             handle.abort();
         }
+        if let Some(handle) = self.pending_disconnect_notification.take() {
+            handle.abort();
+        }
+    }
+}
+
+/// Records that a disconnect email notification was sent for the given Gateway.
+/// A free function because the pending notification task only owns a clone of the test support,
+/// not the handler itself.
+#[cfg(test)]
+fn note_disconnect_notification_for_tests(
+    test_support: Option<&GatewayManagerTestSupport>,
+    gateway_id: Id,
+) {
+    if let Some(test_support) = test_support {
+        test_support.note_disconnect_notification_sent(gateway_id);
     }
 }
 
@@ -624,10 +717,24 @@ impl GatewayHandler {
         }
     }
 
+    fn note_reconnect_notification_for_tests(&self) {
+        if let Some(test_support) = &self.test_support {
+            test_support.note_reconnect_notification_sent(self.gateway.id);
+        }
+    }
+
     fn handler_retry_delay(&self) -> Duration {
         self.test_support
             .as_ref()
             .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
+    }
+
+    fn disconnect_notification_delay(&self, configured_delay: Duration) -> Duration {
+        self.test_support
+            .as_ref()
+            .map_or(configured_delay, |test_support| {
+                test_support.disconnect_notification_delay(configured_delay)
+            })
     }
 
     async fn connect_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {

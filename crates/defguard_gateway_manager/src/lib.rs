@@ -79,9 +79,14 @@ struct GatewayManagerTestSupport {
     handler_connection_attempt_notify: Arc<Notify>,
     gateway_notifications_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
     gateway_notification_notify: Arc<Notify>,
+    disconnect_notifications_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
+    disconnect_notification_notify: Arc<Notify>,
+    reconnect_notifications_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
+    reconnect_notification_notify: Arc<Notify>,
     listener_ready: Arc<AtomicBool>,
     listener_ready_notify: Arc<Notify>,
     retry_delay_override: Arc<Mutex<Option<Duration>>>,
+    disconnect_notification_delay_override: Arc<Mutex<Option<Duration>>>,
 }
 
 #[cfg(test)]
@@ -206,6 +211,79 @@ impl GatewayManagerTestSupport {
         }
     }
 
+    /// Records that a Gateway disconnect email notification was actually sent. Tests use this
+    /// instead of a mock SMTP server, because mail delivery itself is fire-and-forget.
+    fn note_disconnect_notification_sent(&self, gateway_id: Id) {
+        let mut disconnect_notifications = self
+            .disconnect_notifications_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification registry");
+        *disconnect_notifications.entry(gateway_id).or_default() += 1;
+        self.disconnect_notification_notify.notify_waiters();
+    }
+
+    #[cfg(test)]
+    fn disconnect_notification_count(&self, gateway_id: Id) -> u64 {
+        self.disconnect_notifications_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification registry")
+            .get(&gateway_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    #[cfg(test)]
+    async fn wait_for_disconnect_notification_count(&self, gateway_id: Id, expected_count: u64) {
+        loop {
+            if self.disconnect_notification_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            let notified = self.disconnect_notification_notify.notified();
+            if self.disconnect_notification_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            notified.await;
+        }
+    }
+
+    /// Records that a Gateway reconnect email notification was actually sent.
+    fn note_reconnect_notification_sent(&self, gateway_id: Id) {
+        let mut reconnect_notifications = self
+            .reconnect_notifications_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager reconnect notification registry");
+        *reconnect_notifications.entry(gateway_id).or_default() += 1;
+        self.reconnect_notification_notify.notify_waiters();
+    }
+
+    #[cfg(test)]
+    fn reconnect_notification_count(&self, gateway_id: Id) -> u64 {
+        self.reconnect_notifications_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager reconnect notification registry")
+            .get(&gateway_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    #[cfg(test)]
+    async fn wait_for_reconnect_notification_count(&self, gateway_id: Id, expected_count: u64) {
+        loop {
+            if self.reconnect_notification_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            let notified = self.reconnect_notification_notify.notified();
+            if self.reconnect_notification_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            notified.await;
+        }
+    }
+
     fn mark_listener_ready(&self) {
         self.listener_ready.store(true, Ordering::Release);
         self.listener_ready_notify.notify_waiters();
@@ -247,6 +325,23 @@ impl GatewayManagerTestSupport {
             .lock()
             .expect("Failed to lock GatewayManager retry delay override")
             .unwrap_or(TEN_SECS)
+    }
+
+    /// Overrides the inactivity threshold delay so tests do not have to wait out whole minutes.
+    #[cfg(test)]
+    fn set_disconnect_notification_delay(&self, delay: Duration) {
+        *self
+            .disconnect_notification_delay_override
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification delay override") =
+            Some(delay);
+    }
+
+    fn disconnect_notification_delay(&self, configured_delay: Duration) -> Duration {
+        self.disconnect_notification_delay_override
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification delay override")
+            .unwrap_or(configured_delay)
     }
 }
 
