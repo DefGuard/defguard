@@ -1238,6 +1238,11 @@ pub(crate) async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
+    let session_id = session.session.id;
+
+    user.logout_all_sessions_except(&appstate.pool, &session_id)
+        .await?;
+
     ldap_change_password(
         &mut user,
         &data.new_password,
@@ -1320,6 +1325,7 @@ pub(crate) async fn change_password(
 
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
+        user.logout_all_sessions(&appstate.pool).await?;
         ldap_change_password(
             &mut user,
             &data.new_password,

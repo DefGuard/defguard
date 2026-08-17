@@ -1170,6 +1170,18 @@ impl User<Id> {
         Ok(())
     }
 
+    pub async fn logout_all_sessions_except<'e, E>(
+        &self,
+        executor: E,
+        session_id: &str,
+    ) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        Session::delete_all_for_user_except(executor, self.id, session_id).await?;
+        Ok(())
+    }
+
     pub async fn find_by_device_id<'e, E>(executor: E, device_id: Id) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
