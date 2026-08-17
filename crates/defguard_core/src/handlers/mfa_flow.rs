@@ -451,13 +451,11 @@ pub async fn create_mfa_flow(
     }
 
     let mut tx = appstate.pool.begin().await?;
-    if !is_business_license_active() {
-        if MfaFlow::any_exist(&mut *tx).await? {
-            return Ok(license_error_response(
-                "flow".into(),
-                "business_license_required",
-            ));
-        }
+    if !is_business_license_active() && MfaFlow::any_exist(&mut *tx).await? {
+        return Ok(license_error_response(
+            "flow".into(),
+            "business_license_required",
+        ));
     }
     let (flow, steps) = MfaFlow::create(&mut tx, data.title, step_methods).await?;
     tx.commit().await?;
