@@ -32,7 +32,7 @@ async fn test_reconnect_inside_inactivity_threshold_sends_no_notifications(
     options: PgConnectOptions,
 ) {
     let mut context = ManagerTestContext::new(options).await;
-    configure_gateway_notifications(true, 5);
+    configure_gateway_notifications(true, true, 5);
     context.set_disconnect_notification_delay(NEVER_ELAPSING_NOTIFICATION_DELAY);
 
     let network = create_network(&context.pool).await;
@@ -76,7 +76,7 @@ async fn test_outage_past_inactivity_threshold_sends_disconnect_then_reconnect_n
     options: PgConnectOptions,
 ) {
     let mut context = ManagerTestContext::new(options).await;
-    configure_gateway_notifications(true, 5);
+    configure_gateway_notifications(true, true, 5);
     context.set_disconnect_notification_delay(FAST_NOTIFICATION_DELAY);
 
     let network = create_network(&context.pool).await;
@@ -127,7 +127,7 @@ async fn test_disabled_notifications_send_nothing_across_a_full_outage(
     options: PgConnectOptions,
 ) {
     let mut context = ManagerTestContext::new(options).await;
-    configure_gateway_notifications(false, 5);
+    configure_gateway_notifications(false, false, 5);
     // Same short delay as the outage test, so a scheduled notification would have fired.
     context.set_disconnect_notification_delay(FAST_NOTIFICATION_DELAY);
 
@@ -166,6 +166,53 @@ async fn test_disabled_notifications_send_nothing_across_a_full_outage(
         context.reconnect_notification_count(gateway.id),
         0,
         "disabled notifications should not produce a reconnect email"
+    );
+
+    context.finish().await;
+}
+
+#[sqlx::test]
+async fn test_reconnect_notification_disabled_sends_only_disconnect_email(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = ManagerTestContext::new(options).await;
+    configure_gateway_notifications(true, false, 5);
+    context.set_disconnect_notification_delay(FAST_NOTIFICATION_DELAY);
+
+    let network = create_network(&context.pool).await;
+    let gateway = create_gateway(&context.pool, network.id).await;
+    let mut mock_gateway = MockGatewayHarness::start().await;
+    context.register_gateway_mock(&gateway, &mock_gateway);
+
+    context.start().await;
+    complete_manager_handshake(&context, &gateway, &mut mock_gateway).await;
+
+    let reconnect_socket_path = mock_gateway.socket_path();
+    mock_gateway.close_stream();
+    let disconnected_gateway =
+        wait_for_gateway_connection_state(&context.pool, gateway.id, false).await;
+    assert!(disconnected_gateway.disconnected_at.is_some());
+    mock_gateway.expect_server_finished().await;
+
+    context
+        .wait_for_disconnect_notification_count(gateway.id, 1)
+        .await;
+
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    replacement_mock_gateway.wait_for_connection_count(1).await;
+    complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
+
+    sleep(NO_NOTIFICATION_GRACE_PERIOD).await;
+    assert_eq!(
+        context.disconnect_notification_count(gateway.id),
+        1,
+        "the outage should have produced exactly one disconnect email"
+    );
+    assert_eq!(
+        context.reconnect_notification_count(gateway.id),
+        0,
+        "a reconnect email must not be sent when reconnect notifications are disabled"
     );
 
     context.finish().await;

@@ -114,6 +114,7 @@ impl GatewayHandler {
         connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+        disconnect_notification_sent: Arc<AtomicBool>,
     ) -> Result<Self, GatewayError> {
         let url = Url::from_str(&gateway.url()).map_err(|err| {
             GatewayError::EndpointError(format!(
@@ -133,7 +134,7 @@ impl GatewayHandler {
             certs_rx,
             updates_handler_handle: None,
             pending_disconnect_notification: None,
-            disconnect_notification_sent: Arc::new(AtomicBool::new(false)),
+            disconnect_notification_sent,
             #[cfg(test)]
             test_transport: GatewayTestTransport::default(),
             #[cfg(test)]
@@ -295,9 +296,17 @@ impl GatewayHandler {
 
         // A threshold of 0 keeps the notification immediate, which is what the settings form
         // allows as its minimum value.
-        let threshold_minutes =
-            u64::try_from(settings.gateway_disconnect_notifications_inactivity_threshold)
-                .unwrap_or_default();
+        let threshold = settings.gateway_disconnect_notifications_inactivity_threshold;
+        let threshold_minutes = match u64::try_from(threshold) {
+            Ok(minutes) => minutes,
+            Err(_) => {
+                warn!(
+                    "Gateway disconnect notifications inactivity threshold {threshold} is \
+                    negative; treating it as 0 (immediate)"
+                );
+                0
+            }
+        };
         let delay = self.disconnect_notification_delay(Duration::from_secs(60 * threshold_minutes));
 
         let gateway_id = self.gateway.id;
@@ -366,17 +375,19 @@ impl GatewayHandler {
         self.pending_disconnect_notification = Some(handle);
     }
 
-    /// Send Gateway reconnected notification.
-    ///
-    /// Only sent when a disconnect notification actually went out for this outage, so admins
-    /// never receive a reconnect email without a matching disconnect email.
-    fn send_reconnect_notification(&self, network_name: String) {
-        // Always clear the flag, even when reconnect notifications are turned off, so that a
-        // later outage cannot inherit it.
-        if !self
-            .disconnect_notification_sent
+    /// Returns true if a disconnect email went out for this outage, and atomically clears the
+    /// flag so a later outage cannot inherit it.
+    fn take_disconnect_notification_sent(&self) -> bool {
+        self.disconnect_notification_sent
             .swap(false, Ordering::SeqCst)
-        {
+    }
+
+    /// Send a Gateway reconnected notification, but only when a matching disconnect notification
+    /// actually went out for this outage.
+    fn maybe_send_reconnect_notification(&self, network_name: String) {
+        // Consume the flag even when reconnect notifications are turned off, so that a later
+        // outage cannot inherit it.
+        if !self.take_disconnect_notification_sent() {
             return;
         }
 
@@ -425,7 +436,9 @@ impl GatewayHandler {
         }
 
         // Mark the Gateway disconnected before scheduling the notification: the delayed task
-        // re-reads the row when it fires and must not see a stale connected state.
+        // re-reads the row when it fires and must not see a stale connected state. If the DB
+        // write fails, skip the notification entirely rather than scheduling a task that would
+        // re-read the still-connected row and never fire.
         if self.mark_disconnected().await {
             let _ = self
                 .connection_events_tx
@@ -433,12 +446,23 @@ impl GatewayHandler {
                     gateway_id: self.gateway.id,
                     gateway_name: self.gateway.name.clone(),
                 });
-        }
 
-        self.schedule_disconnect_notification();
+            self.schedule_disconnect_notification();
+        }
     }
 
     async fn mark_connected_and_maybe_notify(&mut self, network_name: &str) {
+        // A Gateway that came back should not be reported as down at all. Cancel any pending
+        // disconnect email before touching the database, so a DB error cannot leave the task
+        // alive to send a false "disconnected" alert for a gateway that is actually back.
+        if let Some(handle) = self.pending_disconnect_notification.take() {
+            debug!(
+                "Cancelling pending disconnect email notification for {}",
+                self.gateway
+            );
+            handle.abort();
+        }
+
         let was_connected = self.gateway.is_connected();
         if let Err(err) = self.gateway.touch_connected(&self.pool).await {
             error!(
@@ -457,16 +481,7 @@ impl GatewayHandler {
                 });
         }
 
-        // A Gateway that came back this quickly should not be reported as down at all.
-        if let Some(handle) = self.pending_disconnect_notification.take() {
-            debug!(
-                "Cancelling pending disconnect email notification for {}",
-                self.gateway
-            );
-            handle.abort();
-        }
-
-        self.send_reconnect_notification(network_name.to_owned());
+        self.maybe_send_reconnect_notification(network_name.to_owned());
     }
 
     fn remove_client(&self, clients: &Arc<Mutex<HashMap<Id, Client>>>) {
@@ -686,6 +701,9 @@ fn note_disconnect_notification_for_tests(
 
 #[cfg(test)]
 impl GatewayHandler {
+    // Bundles the socket path and reconnect-pairing flag on top of the already-long
+    // `GatewayHandler::new` parameter list; splitting them out is not worth the churn.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
@@ -694,6 +712,7 @@ impl GatewayHandler {
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
         socket_path: PathBuf,
+        disconnect_notification_sent: Arc<AtomicBool>,
     ) -> Result<Self, GatewayError> {
         let mut handler = Self::new(
             gateway,
@@ -702,6 +721,7 @@ impl GatewayHandler {
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
+            disconnect_notification_sent,
         )?;
         handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
         Ok(handler)
@@ -1243,7 +1263,12 @@ fn try_protos_into_stats_message(
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
+    use std::{
+        collections::HashMap,
+        net::IpAddr,
+        str::FromStr,
+        sync::{Arc, atomic::AtomicBool},
+    };
 
     use chrono::{DateTime, Utc};
     use defguard_common::{
@@ -1623,6 +1648,7 @@ mod tests {
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
+            Arc::new(AtomicBool::new(false)),
         )
         .unwrap();
         let (tx, mut rx) = unbounded_channel();

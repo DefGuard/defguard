@@ -6,7 +6,7 @@ use std::{
     process,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicU16, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU16, AtomicU64, Ordering},
     },
     time::Duration,
 };
@@ -556,6 +556,7 @@ impl HandlerTestContext {
             peer_stats_tx,
             certs_rx,
             mock_gateway.socket_path(),
+            Arc::new(AtomicBool::new(false)),
         )
         .expect("failed to create gateway handler");
         let handler_task = tokio::spawn(async move { handler.handle_connection_once().await });
@@ -754,13 +755,15 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
 /// called after a test context has been created, since that is what initializes the struct.
 ///
 /// `set_settings` is used directly rather than `update_current_settings` because the latter
-/// validates that SMTP is configured, which these tests deliberately do not do. Because the
-/// struct is process-global, tests touching it have to be run under nextest, which gives every
-/// test its own process.
-pub(crate) fn configure_gateway_notifications(enabled: bool, inactivity_threshold_minutes: i32) {
+/// validates that SMTP is configured, which these tests deliberately do not do.
+pub(crate) fn configure_gateway_notifications(
+    disconnect_enabled: bool,
+    reconnect_enabled: bool,
+    inactivity_threshold_minutes: i32,
+) {
     let mut settings = Settings::get_current_settings();
-    settings.gateway_disconnect_notifications_enabled = enabled;
-    settings.gateway_disconnect_notifications_reconnect_notification_enabled = enabled;
+    settings.gateway_disconnect_notifications_enabled = disconnect_enabled;
+    settings.gateway_disconnect_notifications_reconnect_notification_enabled = reconnect_enabled;
     settings.gateway_disconnect_notifications_inactivity_threshold = inactivity_threshold_minutes;
     set_settings(Some(settings));
 }

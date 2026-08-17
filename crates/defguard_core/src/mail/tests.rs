@@ -35,13 +35,13 @@ fn dg25_8_server_side_template_injection() {
 
 /// Override the enrollment token/session timeouts and reload the global settings.
 async fn set_enrollment_timeouts(pool: &PgPool, token_hours: i32, session_minutes: i32) {
-    sqlx::query(
+    sqlx::query!(
         "UPDATE settings \
          SET enrollment_token_timeout_hours = $1, \
              enrollment_session_timeout_minutes = $2",
+        token_hours,
+        session_minutes,
     )
-    .bind(token_hours)
-    .bind(session_minutes)
     .execute(pool)
     .await
     .unwrap();
@@ -54,7 +54,7 @@ async fn set_enrollment_timeouts(pool: &PgPool, token_hours: i32, session_minute
 /// The enrollment email must reflect the configured enrollment token and session timeouts
 /// instead of the hardcoded defaults ("24 hours" / "10 minutes").
 #[sqlx::test]
-async fn enrollment_email_reflects_configured_timeouts(
+async fn test_enrollment_email_reflects_configured_timeouts(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -62,6 +62,8 @@ async fn enrollment_email_reflects_configured_timeouts(
     initialize_current_settings(&pool).await.unwrap();
 
     // Configure non-default timeouts: token valid for 1 week, session for 30 minutes.
+    // `build_new_account_mail` reads the session timeout from the global settings set here,
+    // while the token timeout is per-enrollment and passed explicitly.
     set_enrollment_timeouts(&pool, 168, 30).await;
 
     let mut conn = pool.begin().await.unwrap();

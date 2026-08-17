@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
@@ -109,6 +111,13 @@ impl Token {
             token_type,
             device_id: None,
         }
+    }
+
+    /// Duration for which the token is valid, i.e. `expires_at - created_at`, clamped to zero.
+    #[must_use]
+    pub fn validity_duration(&self) -> Duration {
+        let seconds = (self.expires_at - self.created_at).num_seconds().max(0);
+        Duration::from_secs(u64::try_from(seconds).unwrap_or_default())
     }
 
     pub async fn save<'e, E>(&self, executor: E) -> Result<(), TokenError>

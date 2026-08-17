@@ -139,6 +139,11 @@ pub async fn user_import_blocked_mail(
     Ok(())
 }
 
+/// Placeholders substituted into the admin-configurable `token_info` mail text with the
+/// configured enrollment timeouts.
+const TOKEN_TIMEOUT_PLACEHOLDER: &str = "{{ token_timeout }}";
+const SESSION_TIMEOUT_PLACEHOLDER: &str = "{{ session_timeout }}";
+
 // Mail with link to enrollment service.
 pub async fn new_account_mail(
     to: &str,
@@ -191,21 +196,26 @@ pub(crate) async fn build_new_account_mail(
     let message = MailMessage::NewAccount;
     message.fill_context(conn, &mut context).await?;
 
-    // Inject the effective token/session timeouts so the email reflects the configured values
-    // instead of the hardcoded defaults. See https://github.com/DefGuard/defguard/issues/3518.
-    let settings = Settings::get_current_settings();
-    context.insert("token_timeout", &format_timeout(token_timeout));
-    context.insert(
-        "session_timeout",
-        &format_timeout(settings.enrollment_session_timeout()),
-    );
+    // The token timeout is per-enrollment (passed in), while the session timeout is a global
+    // setting read here so the email reflects the configured value.
+    let session_timeout = Settings::get_current_settings().enrollment_session_timeout();
 
-    // The `token_info` section is admin-configurable text; render it as a template so it can
-    // reference the `token_timeout` / `session_timeout` variables above.
+    // Render the effective token/session timeouts into the admin-configurable `token_info` text.
     if let Some(Value::String(token_info)) = context.get("token_info").cloned() {
-        let mut info_tera = safe_tera();
-        info_tera.add_raw_template("token_info", &token_info)?;
-        let rendered = info_tera.render("token_info", &context)?;
+        if !token_info.contains(TOKEN_TIMEOUT_PLACEHOLDER)
+            || !token_info.contains(SESSION_TIMEOUT_PLACEHOLDER)
+        {
+            warn!(
+                "mail_context 'new-account' token_info is missing the timeout placeholders; \
+                the configured enrollment timeouts will not be shown"
+            );
+        }
+        let rendered = token_info
+            .replace(TOKEN_TIMEOUT_PLACEHOLDER, &format_timeout(token_timeout))
+            .replace(
+                SESSION_TIMEOUT_PLACEHOLDER,
+                &format_timeout(session_timeout),
+            );
         context.insert("token_info", &rendered);
     }
 
@@ -759,7 +769,7 @@ mod tests {
     use super::format_timeout;
 
     #[test]
-    fn formats_weeks() {
+    fn test_formats_weeks() {
         assert_eq!(format_timeout(Duration::from_secs(7 * 24 * 3600)), "1 week");
         assert_eq!(
             format_timeout(Duration::from_secs(14 * 24 * 3600)),
@@ -768,25 +778,25 @@ mod tests {
     }
 
     #[test]
-    fn formats_days() {
+    fn test_formats_days() {
         assert_eq!(format_timeout(Duration::from_secs(24 * 3600)), "1 day");
         assert_eq!(format_timeout(Duration::from_secs(2 * 24 * 3600)), "2 days");
     }
 
     #[test]
-    fn formats_hours() {
+    fn test_formats_hours() {
         assert_eq!(format_timeout(Duration::from_secs(3600)), "1 hour");
         assert_eq!(format_timeout(Duration::from_secs(23 * 3600)), "23 hours");
     }
 
     #[test]
-    fn formats_minutes() {
+    fn test_formats_minutes() {
         assert_eq!(format_timeout(Duration::from_secs(60)), "1 minute");
         assert_eq!(format_timeout(Duration::from_secs(30 * 60)), "30 minutes");
     }
 
     #[test]
-    fn formats_seconds() {
+    fn test_formats_seconds() {
         assert_eq!(format_timeout(Duration::from_secs(1)), "1 second");
         assert_eq!(format_timeout(Duration::from_secs(90)), "90 seconds");
     }
