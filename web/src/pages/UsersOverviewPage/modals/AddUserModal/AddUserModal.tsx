@@ -464,6 +464,7 @@ const AddUserModalForm = () => {
             {(field) => (
               <field.FormInput
                 data-testid="field-phone"
+                notNull
                 label={m.form_label_phone()}
                 helper={m.form_helper_phone()}
               />
