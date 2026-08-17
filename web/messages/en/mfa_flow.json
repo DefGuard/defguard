@@ -40,6 +40,7 @@
   "mfa_flow_created": "MFA flow created successfully.",
   "mfa_flow_updated": "MFA flow updated successfully.",
   "mfa_flow_save_failed": "Failed to save MFA flow.",
+  "mfa_flow_error_additional_flow_business_license": "A Business license is required to create more than one MFA flow.",
   "mfa_flow_error_business_license": "A Business license is required for multiple steps and external identity providers.",
   "mfa_flow_error_smtp_not_configured": "Configure SMTP before using email verification codes.",
   "mfa_flow_error_oidc_provider_missing": "Configure an OpenID provider before using external identity provider verification."

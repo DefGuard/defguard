@@ -41,6 +41,8 @@ const formSchema = z.object({
 const getSaveErrorMessage = (error: AxiosError<MfaFlowErrorResponse>): string => {
   const code = error.response?.data.fields?.[0]?.code;
   switch (code) {
+    case 'additional_flow_business_license_required':
+      return m.mfa_flow_error_additional_flow_business_license();
     case 'business_license_required':
       return m.mfa_flow_error_business_license();
     case 'smtp_not_configured':
