@@ -8,10 +8,13 @@ use crate::tests::common::{HandlerTestContext, reload_proxy};
 async fn test_proxy_marked_connected_after_handshake(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
 
-    let proxy_before = context.reload_proxy().await;
-    // Proxy not yet connected: connected_at must be None or older than disconnected_at.
+    // Proxy row as created, snapshotted before the handler task was spawned:
+    // connected_at must be None or older than disconnected_at. Re-reading the
+    // row from the database here would race the handler's mark_connected()
+    // write, which happens as soon as the bidi stream is established - before
+    // the InitialInfo message that complete_proxy_handshake() waits for.
     assert!(
-        !proxy_before.is_connected(),
+        !context.proxy.is_connected(),
         "proxy should not be connected before handshake"
     );
 
