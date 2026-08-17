@@ -1458,6 +1458,15 @@ export interface MfaFlowDetailResponse {
   updated_at: string;
 }
 
+/** Summary returned for an MFA flow in the list endpoint. */
+export interface MfaFlowListItemResponse {
+  id: number;
+  title: string;
+  step_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MfaFlowErrorField {
   field: string;
   code: string;

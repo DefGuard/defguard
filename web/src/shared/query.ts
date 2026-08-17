@@ -46,6 +46,12 @@ export const getLocationsDisplayQueryOptions = queryOptions({
   select: (resp) => resourceDisplayMap(resp.data),
 });
 
+export const getMfaFlowsQueryOptions = queryOptions({
+  queryFn: api.mfaFlow.list,
+  queryKey: ['mfa-flow'],
+  select: (response) => response.data,
+});
+
 export const getEdgesQueryOptions = queryOptions({
   queryFn: api.edge.getEdges,
   queryKey: ['edge'],

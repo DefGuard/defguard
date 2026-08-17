@@ -91,6 +91,7 @@ import type {
   LoginResponseBasic,
   MfaCompleteResponse,
   MfaFlowDetailResponse,
+  MfaFlowListItemResponse,
   MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
@@ -530,11 +531,13 @@ const api = {
     getCerts: () => client.get<GetCertsResponse>('/core/cert/certs'),
   },
   mfaFlow: {
+    list: () => client.get<MfaFlowListItemResponse[]>('/mfa-flow'),
     create: (data: CreateMfaFlowRequest) =>
       client.post<MfaFlowDetailResponse>('/mfa-flow', data),
     get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
     update: (id: number, data: UpdateMfaFlowRequest) =>
       client.put<MfaFlowDetailResponse>(`/mfa-flow/${id}`, data),
+    delete: (id: number) => client.delete(`/mfa-flow/${id}`),
   },
   acl: {
     destination: {
