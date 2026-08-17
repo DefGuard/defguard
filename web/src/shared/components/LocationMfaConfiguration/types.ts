@@ -6,7 +6,7 @@ export const LocationMfaMethod = {
   Email: 'email',
   Biometry: 'biometry',
   MobileConfirm: 'confirm_mobile',
-  HardwareKey: 'hardware_key',
+  Fido2: 'fido2',
   OpenId: 'openid',
 } as const;
 
@@ -16,7 +16,7 @@ export const locationMfaMethodLabels: Record<LocationMfaMethodValue, string> = {
   email: 'Email Verification Code',
   biometry: 'Biometry',
   confirm_mobile: 'Defguard Mobile Client',
-  hardware_key: 'Hardware Key',
+  fido2: 'FIDO2 Security Key',
   openid: 'External ID Provider',
 };
 

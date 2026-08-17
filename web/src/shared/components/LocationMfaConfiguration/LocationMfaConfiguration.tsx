@@ -133,9 +133,9 @@ export const LocationMfaConfiguration = ({
         LocationMfaMethod.MobileConfirm,
         LocationMfaMethod.Totp,
         LocationMfaMethod.Biometry,
+        LocationMfaMethod.Fido2,
         LocationMfaMethod.Tpm,
         LocationMfaMethod.OpenId,
-        // HardwareKey ('hardware_key') is not yet supported in the UI
       ].filter((method) => !usedFactors.has(method)),
     [usedFactors],
   );
@@ -177,6 +177,7 @@ export const LocationMfaConfiguration = ({
       LocationMfaMethod.MobileConfirm,
       LocationMfaMethod.Totp,
       LocationMfaMethod.Biometry,
+      LocationMfaMethod.Fido2,
     ].filter((m) => availableMethods.includes(m));
 
     const higherPlanMethods = [LocationMfaMethod.Tpm, LocationMfaMethod.OpenId].filter(

@@ -351,6 +351,20 @@ impl ClientMfaServer {
 
         // check if selected method is configured
         match selected_method {
+            // FIDO2 has no single-step counterpart: the assertion exchange needs the multi-step
+            // MFA flow, which this legacy fused path does not implement. A location whose flow
+            // contains FIDO2 is not legacy-representable, so `derive_legacy_mode` above already
+            // refuses it - this arm only catches a client that names the method outright.
+            MfaMethod::Fido2 => {
+                error!(
+                    "FIDO2 MFA is not supported on the legacy single-step client login path \
+                    (user {})",
+                    user.username
+                );
+                return Err(Status::invalid_argument(
+                    "selected MFA method is not available",
+                ));
+            }
             MfaMethod::Biometric => {
                 if let Some(found) = BiometricAuth::find_by_device_id(&self.pool, device.id)
                     .await
@@ -632,6 +646,12 @@ impl ClientMfaServer {
 
         // validate code
         match method {
+            // Unreachable in practice: `handle_client_mfa_start` refuses FIDO2 before a session is
+            // stored, so no session can carry this method. Fail closed rather than fall through.
+            MfaMethod::Fido2 => {
+                error!("FIDO2 MFA is not supported on the legacy single-step client login path");
+                return Err(Status::unauthenticated("unauthorized"));
+            }
             MfaMethod::MobileApprove => {
                 let challenge = biometric_challenge.as_ref().ok_or_else(|| {
                     error!("Challenge not found in MFA session.");
