@@ -30,7 +30,6 @@ type PlainVariantProps = {
 
 type MfaMethodsMenuProps = ButtonVariantProps | PlainVariantProps;
 
-/** Renders the method menu as either an outlined button or a text action. */
 export const MfaMethodsMenu = (props: MfaMethodsMenuProps) => {
   if (props.kind === 'button') {
     const { kind, options, ...buttonProps } = props;

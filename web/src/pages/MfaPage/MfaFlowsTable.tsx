@@ -27,7 +27,6 @@ import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 
-/** Data and actions required by the MFA flow table. */
 type Props = {
   flows: MfaFlowListItemResponse[];
   addButtonProps: ButtonProps;
@@ -43,7 +42,6 @@ const filterByStepCount: FilterFn<MfaFlowListItemResponse> = (
 ) => selectedCounts.includes(row.getValue<number>(columnId));
 filterByStepCount.autoRemove = (value) => !Array.isArray(value) || value.length === 0;
 
-/** Displays configured MFA flows and their available row actions. */
 export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');

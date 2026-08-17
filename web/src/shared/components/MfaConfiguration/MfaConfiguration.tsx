@@ -18,7 +18,6 @@ import type {
   MfaMethodGroup,
 } from './types';
 
-/** Configures ordered MFA steps and the methods accepted by each step. */
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
   const { data: methodAvailability } = useQuery(getMfaMethodAvailabilityQueryOptions);
   const availableMethods = methodAvailability?.map(({ method }) => method) ?? [];
@@ -77,6 +76,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
       },
     ];
   };
+
   const addStepMenuOptions = buildMethodGroups(availableMethods).map((group) => ({
     ...group,
     items: group.items.map((method) =>
@@ -86,11 +86,10 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
     ),
   }));
 
-  /** Removes a complete MFA step. */
   const deleteStep = (id: MfaConfigurationStepData['id']) => {
     onChange(steps.filter((step) => step.id !== id));
   };
-  /** Adds a method to an existing MFA step. */
+
   const addMethod = (
     stepId: MfaConfigurationStepData['id'],
     method: MfaFlowMethodValue,
@@ -101,7 +100,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
       ),
     );
   };
-  /** Removes a method and drops the step when it becomes empty. */
+
   const deleteMethod = (
     stepId: MfaConfigurationStepData['id'],
     method: MfaFlowMethodValue,

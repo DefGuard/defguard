@@ -1435,7 +1435,6 @@ export const MfaMethodAvailabilityReason = {
 export type MfaMethodAvailabilityReasonValue =
   (typeof MfaMethodAvailabilityReason)[keyof typeof MfaMethodAvailabilityReason];
 
-/** Availability of an MFA method in the current server configuration. */
 export interface MfaMethodAvailabilityResponse {
   method: MfaFlowMethodValue;
   available: boolean;
@@ -1475,7 +1474,6 @@ export interface MfaFlowDetailResponse {
   updated_at: string;
 }
 
-/** Summary returned for an MFA flow in the list endpoint. */
 export interface MfaFlowListItemResponse {
   id: number;
   title: string;

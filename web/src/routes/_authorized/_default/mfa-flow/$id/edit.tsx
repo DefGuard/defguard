@@ -18,7 +18,6 @@ export const Route = createFileRoute('/_authorized/_default/mfa-flow/$id/edit')(
   component: RouteComponent,
 });
 
-/** Displays the edit form with flow data loaded by the route. */
 function RouteComponent() {
   const flow = Route.useLoaderData();
   return <MfaFormPage flow={flow} />;

@@ -7,7 +7,6 @@ import { ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
 import type { MfaConfigurationStepProps } from '../types';
 import { MfaMethodsMenu } from './MfaMethodsMenu';
 
-/** Renders one reorderable MFA step and its accepted methods. */
 export const MfaConfigurationStep = ({
   step,
   stepNumber,
