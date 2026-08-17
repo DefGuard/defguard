@@ -278,6 +278,29 @@ async fn test_advance_clears_ephemeral_state(_: PgPoolOptions, options: PgConnec
 }
 
 #[sqlx::test]
+async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (session, outcome) = start_session(&pool).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    session
+        .begin_attempt(&mut tx, VpnClientMfaMethod::Totp, None)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    let session = refetch(&pool, &outcome.token).await;
+    let mut tx = pool.begin().await.unwrap();
+    let result = session.advance(&mut tx).await.unwrap();
+    tx.commit().await.unwrap();
+    assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
+
+    let snapshot = &refetch(&pool, &outcome.token).await.steps_snapshot.0;
+    assert_eq!(snapshot.steps[0].satisfied, Some(VpnClientMfaMethod::Totp));
+    assert_eq!(snapshot.steps[1].satisfied, None);
+}
+
+#[sqlx::test]
 async fn test_advance_does_not_extend_expiry(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (session, outcome) = start_session(&pool).await;

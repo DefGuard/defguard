@@ -1,11 +1,8 @@
--- Authorized session records the full ordered method sequence + the governing flow.
-ALTER TABLE vpn_client_session ADD COLUMN mfa_methods vpn_client_mfa_method[] NOT NULL DEFAULT '{}';
-UPDATE vpn_client_session SET mfa_methods = ARRAY[mfa_method]::vpn_client_mfa_method[]
-  WHERE mfa_method IS NOT NULL;
+-- Authorized session records ONLY whether it was MFA-gated. The methods used and the
+-- governing flow live in the immutable authorization activity-log entry, not on this row.
+ALTER TABLE vpn_client_session ADD COLUMN is_mfa_session boolean NOT NULL DEFAULT false;
+UPDATE vpn_client_session SET is_mfa_session = true WHERE mfa_method IS NOT NULL;
 ALTER TABLE vpn_client_session DROP COLUMN mfa_method;
-
-ALTER TABLE vpn_client_session ADD COLUMN flow_id bigint NULL
-  REFERENCES mfa_flow(id) ON DELETE SET NULL;
 
 -- Durable in-progress MFA session. Token is OPAQUE (random); only its hash is stored.
 -- All per-step ephemeral state lives in `ephemeral_state` (JSONB), cleared to NULL on advance.
@@ -15,7 +12,7 @@ CREATE TABLE vpn_client_mfa_session (
     location_id     bigint NOT NULL REFERENCES wireguard_network(id) ON DELETE CASCADE,
     device_id       bigint NOT NULL REFERENCES device(id) ON DELETE CASCADE,
     user_id         bigint NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,  -- denormalized; NOT part of the key
-    steps_snapshot  jsonb NOT NULL,          -- {"flow_id": <id>, "steps": [{"methods": [...]}, ...]}
+    steps_snapshot  jsonb NOT NULL,          -- {"flow_id": <id>, "steps": [{"methods": [...], "satisfied": <method>|null}, ...]}
     current_step    integer NOT NULL DEFAULT 0,
     ephemeral_state jsonb NULL,              -- per-step attempt state; cleared on advance
     failed_attempts integer NOT NULL DEFAULT 0,

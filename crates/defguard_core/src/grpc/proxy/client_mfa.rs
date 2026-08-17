@@ -733,11 +733,18 @@ impl ClientMfaServer {
                     Status::invalid_argument("Signature not found in request")
                 })?;
                 let auth_device_pub_key = request.auth_pub_key.ok_or_else(|| {
+                    error!("Authorization device key missing in request");
                     Status::invalid_argument("Authorization device key missing in request")
                 })?;
                 if !BiometricAuth::verify_owner(&self.pool, user.id, &auth_device_pub_key)
                     .await
-                    .map_err(|_| Status::internal("unexpected error"))?
+                    .map_err(|err| {
+                        error!(
+                            "Failed to verify mobile approve owner for user {}: {err}",
+                            user.id
+                        );
+                        Status::internal("unexpected error")
+                    })?
                 {
                     return Err(Status::invalid_argument("Arguments invalid"));
                 }
@@ -745,7 +752,13 @@ impl ClientMfaServer {
                 mobile_auth_device_name =
                     BiometricAuth::find_device(&self.pool, user.id, &auth_device_pub_key)
                         .await
-                        .map_err(|_| Status::internal("unexpected error"))?
+                        .map_err(|err| {
+                            error!(
+                                "Failed to find mobile approve device for user {}: {err}",
+                                user.id
+                            );
+                            Status::internal("unexpected error")
+                        })?
                         .map(|auth_device| auth_device.name);
                 match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
                     Ok(()) => {
@@ -922,13 +935,44 @@ impl ClientMfaServer {
             return Err(Status::internal("unexpected error"));
         };
 
+        // Advance the single step BEFORE authorizing, so the satisfied method is recorded into
+        // the snapshot and the step outcome is verified (code-review finding: `Complete` must be
+        // confirmed before minting a session).
+        let advance = session.advance(&mut transaction).await.map_err(|err| {
+            error!("Failed to advance MFA session: {err}");
+            Status::internal("unexpected error")
+        })?;
+        if advance != StepOutcome::Complete {
+            error!("MFA session did not complete after its single step: {advance:?}");
+            return Err(Status::internal("unexpected error"));
+        }
+
+        // Read the completed snapshot (now carrying the satisfied method) before it is deleted.
+        let snapshot = VpnClientMfaSession::find_active_by_token(&mut *transaction, &request.token)
+            .await
+            .map_err(|err| {
+                error!("Failed to re-read MFA session snapshot: {err}");
+                Status::internal("unexpected error")
+            })?
+            .ok_or_else(|| {
+                error!("MFA session disappeared after advancing its single step");
+                Status::internal("unexpected error")
+            })?
+            .steps_snapshot
+            .0;
+
+        // Resolve the flow name for attribution. A flow deleted mid-session simply leaves the
+        // name unresolved; that is a display concern, not an error.
+        let flow_name = MfaFlow::find_by_id(&mut *transaction, snapshot.flow_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to resolve MFA flow for attribution: {err}");
+                Status::internal("unexpected error")
+            })?
+            .map(|flow| flow.title);
+
         // generate PSK
         let key = WireguardNetwork::genkey();
-
-        // Flow attribution: the guarded insert in `create_new_session` resolves the snapshot's
-        // flow_id against mfa_flow, so a flow deleted mid-session is stored as NULL rather than
-        // failing the foreign key.
-        let flow_id = Some(session.steps_snapshot.flow_id);
 
         // create new VPN client session
         let vpn_client_session = self
@@ -937,8 +981,7 @@ impl ClientMfaServer {
                 &location,
                 &user,
                 &device,
-                vec![method.into()],
-                flow_id,
+                true,
                 key.public.clone(),
             )
             .await
@@ -972,7 +1015,9 @@ impl ClientMfaServer {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
-                    method,
+                    flow_id: snapshot.flow_id,
+                    snapshot,
+                    flow_name,
                     mobile_auth_device_name,
                 },
             )),
@@ -988,16 +1033,7 @@ impl ClientMfaServer {
             result: None,
         };
 
-        // The single-step flow completes; delete the in-progress session atomically with the
-        // authorization.
-        let advance = session.advance(&mut transaction).await.map_err(|err| {
-            error!("Failed to advance MFA session: {err}");
-            Status::internal("unexpected error")
-        })?;
-        if advance != StepOutcome::Complete {
-            error!("MFA session did not complete after its single step: {advance:?}");
-            return Err(Status::internal("unexpected error"));
-        }
+        // Delete the in-progress session atomically with the authorization.
         session.delete(&mut *transaction).await.map_err(|err| {
             error!("Failed to delete MFA session: {err}");
             Status::internal("unexpected error")
@@ -1226,8 +1262,7 @@ impl ClientMfaServer {
             &location,
             &user,
             &device,
-            Vec::new(),
-            None,
+            false,
             key.public.clone(),
         )
         .await?;
@@ -1318,7 +1353,7 @@ impl ClientMfaServer {
         let mut events = Vec::new();
         for mut session in active_sessions {
             let is_connected = session.state == VpnClientSessionState::Connected;
-            let is_mfa_session = !session.mfa_methods.is_empty();
+            let is_mfa_session = session.is_mfa_session;
             let disconnect_timestamp = Utc::now().naive_utc();
             session.disconnected_at = Some(disconnect_timestamp);
             session.state = VpnClientSessionState::Disconnected;
@@ -1358,8 +1393,7 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
         user: &User<Id>,
         device: &Device<Id>,
-        mfa_methods: Vec<VpnClientMfaMethod>,
-        flow_id: Option<Id>,
+        is_mfa_session: bool,
         preshared_key: String,
     ) -> Result<VpnClientSession<Id>, Status> {
         debug!(
@@ -1402,9 +1436,9 @@ impl ClientMfaServer {
 
         // create new MFA session
         let mut session =
-            VpnClientSession::new(location.id, user.id, device.id, None, mfa_methods, flow_id);
+            VpnClientSession::new(location.id, user.id, device.id, None, is_mfa_session);
         session.preshared_key = Some(preshared_key);
-        session.insert_guarded(conn).await.map_err(|err| {
+        session.save(conn).await.map_err(|err| {
             error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
             Status::internal("unexpected error")
         })
@@ -1421,7 +1455,7 @@ impl ClientMfaServer {
         reason: SessionDisconnectReason,
     ) -> Result<(), Status> {
         let is_connected = session.state == VpnClientSessionState::Connected;
-        let is_mfa_session = !session.mfa_methods.is_empty();
+        let is_mfa_session = session.is_mfa_session;
         let requires_gateway_update = is_mfa_session
             || location.has_postures(&mut *conn).await.map_err(|err| {
                 error!("Failed to fetch postures for location {location}: {err}");
@@ -1655,8 +1689,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Vec::new(),
-            None,
+            false,
         );
         old_session.preshared_key = Some("old-posture-psk".to_owned());
         old_session.state = VpnClientSessionState::Connected;
@@ -1864,8 +1897,7 @@ mod tests {
             user.id,
             victim.id,
             Some(Utc::now().naive_utc()),
-            Vec::new(),
-            None,
+            false,
         );
         victim_session.preshared_key = Some("victim-psk".to_owned());
         victim_session.state = VpnClientSessionState::Connected;
@@ -2175,8 +2207,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Vec::new(),
-            None,
+            false,
         );
         active_session.preshared_key = Some("active-posture-psk".to_owned());
         active_session.state = VpnClientSessionState::Connected;
@@ -2307,8 +2338,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            vec![VpnClientMfaMethod::Totp],
-            None,
+            true,
         );
         active_session.preshared_key = Some("active-mfa-psk".to_owned());
         let active_session = active_session
@@ -2458,8 +2488,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            Vec::new(),
-            None,
+            false,
         )
         .save(&pool)
         .await
@@ -2514,8 +2543,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            vec![VpnClientMfaMethod::Totp],
-            None,
+            true,
         )
         .save(&pool)
         .await
@@ -2530,8 +2558,7 @@ mod tests {
                 &location,
                 &user,
                 &device,
-                vec![VpnClientMfaMethod::Totp],
-                None,
+                true,
                 REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
@@ -2586,17 +2613,10 @@ mod tests {
         let user = create_user(&pool).await;
         let device = create_device(&pool, user.id).await;
         attach_device_to_location(&pool, location.id, device.id).await;
-        let old_session = VpnClientSession::new(
-            location.id,
-            user.id,
-            device.id,
-            None,
-            vec![VpnClientMfaMethod::Totp],
-            None,
-        )
-        .save(&pool)
-        .await
-        .expect("failed to create existing new MFA session");
+        let old_session = VpnClientSession::new(location.id, user.id, device.id, None, true)
+            .save(&pool)
+            .await
+            .expect("failed to create existing new MFA session");
 
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
@@ -2607,8 +2627,7 @@ mod tests {
                 &location,
                 &user,
                 &device,
-                vec![VpnClientMfaMethod::Totp],
-                None,
+                true,
                 REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
@@ -2718,8 +2737,7 @@ mod tests {
             user.id,
             device.id,
             Some(Utc::now().naive_utc()),
-            vec![VpnClientMfaMethod::Totp],
-            None,
+            true,
         );
         previous_session.preshared_key = Some("old-psk".to_owned());
         previous_session.state = VpnClientSessionState::Connected;
@@ -2749,8 +2767,7 @@ mod tests {
                 &location,
                 &user,
                 &device,
-                vec![VpnClientMfaMethod::Totp],
-                None,
+                true,
                 NEW_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
@@ -2940,15 +2957,26 @@ mod tests {
             .expect("expected desktop client MFA success event");
         match event.event {
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
-                DesktopClientMfaEvent::Success { method, .. } => {
-                    assert_eq!(method, MfaMethod::Totp);
+                DesktopClientMfaEvent::Success {
+                    snapshot,
+                    flow_name,
+                    ..
+                } => {
+                    assert_eq!(flow_name.as_deref(), Some("Default Internal MFA"));
+                    assert_eq!(snapshot.steps.len(), 1);
+                    assert_eq!(snapshot.steps[0].satisfied, Some(VpnClientMfaMethod::Totp));
+                    assert!(
+                        snapshot.steps[0]
+                            .methods
+                            .contains(&VpnClientMfaMethod::Totp)
+                    );
                 }
                 other => panic!("unexpected bidi event: {other:?}"),
             },
             other => panic!("unexpected bidi stream event type: {other:?}"),
         }
 
-        // The authorized session carries the single method and the governing flow.
+        // The authorized session records only that MFA was used.
         let sessions = VpnClientSession::get_all_active_device_sessions_in_location(
             &pool,
             location.id,
@@ -2957,8 +2985,7 @@ mod tests {
         .await
         .expect("failed to fetch active sessions");
         assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].mfa_methods, vec![VpnClientMfaMethod::Totp]);
-        assert!(sessions[0].flow_id.is_some());
+        assert!(sessions[0].is_mfa_session);
 
         // The in-progress session is gone.
         assert!(

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"mfa_methods\" \"mfa_methods: _\",\"flow_id\",\"state\" \"state: _\",\"preshared_key\" FROM \"vpn_client_session\" LIMIT $1 OFFSET $2",
+  "query": "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, is_mfa_session, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session s LEFT JOIN LATERAL ( SELECT latest_handshake FROM vpn_session_stats WHERE session_id = s.id ORDER BY latest_handshake DESC LIMIT 1 ) ss ON true WHERE location_id = $1 AND state = 'connected' AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
   "describe": {
     "columns": [
       {
@@ -40,37 +40,12 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa_methods: _",
-        "type_info": {
-          "Custom": {
-            "name": "vpn_client_mfa_method[]",
-            "kind": {
-              "Array": {
-                "Custom": {
-                  "name": "vpn_client_mfa_method",
-                  "kind": {
-                    "Enum": [
-                      "totp",
-                      "email",
-                      "oidc",
-                      "biometric",
-                      "mobileapprove"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
+        "name": "is_mfa_session",
+        "type_info": "Bool"
       },
       {
         "ordinal": 8,
-        "name": "flow_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 9,
-        "name": "state: _",
+        "name": "state: VpnClientSessionState",
         "type_info": {
           "Custom": {
             "name": "vpn_client_session_state",
@@ -85,7 +60,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "preshared_key",
         "type_info": "Text"
       }
@@ -93,7 +68,7 @@
     "parameters": {
       "Left": [
         "Int8",
-        "Int8"
+        "Float8"
       ]
     },
     "nullable": [
@@ -105,10 +80,9 @@
       true,
       true,
       false,
-      true,
       false,
       true
     ]
   },
-  "hash": "812c8221519f59d237f48a4175641f5ce2994f172cb865d73af1d3295d6bda46"
+  "hash": "04f3b04ee13d7bde1ab05f673ba7c07bca2ba859485cfcf0100863d4c5c58d72"
 }

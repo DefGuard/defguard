@@ -269,8 +269,7 @@ pub(crate) async fn authorize_device_in_location(
         user_id,
         device_id,
         Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
-        vec![VpnClientMfaMethod::Totp],
-        None,
+        true,
     );
     session.preshared_key = Some(preshared_key.to_owned());
     session.state = VpnClientSessionState::Connected;
@@ -327,14 +326,12 @@ pub(crate) async fn create_session(
     mfa_method: Option<VpnClientMfaMethod>,
     preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
-    let mfa_methods = mfa_method.into_iter().collect::<Vec<_>>();
     let mut session = VpnClientSession::new(
         location_id,
         user_id,
         device_id,
         connected_at,
-        mfa_methods,
-        None,
+        mfa_method.is_some(),
     );
     session.preshared_key = preshared_key.map(str::to_owned);
     session

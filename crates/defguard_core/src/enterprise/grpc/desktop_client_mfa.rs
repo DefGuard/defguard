@@ -92,7 +92,10 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
-        let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+        let (ip, user_agent) = parse_client_ip_agent(&info).map_err(|err| {
+            error!("Failed to parse client IP and agent during OIDC MFA: {err}");
+            Status::internal("unexpected error")
+        })?;
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),

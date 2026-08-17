@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"vpn_client_session\" SET \"location_id\" = $2,\"user_id\" = $3,\"device_id\" = $4,\"created_at\" = $5,\"connected_at\" = $6,\"disconnected_at\" = $7,\"is_mfa_session\" = $8,\"state\" = $9,\"preshared_key\" = $10 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Timestamp",
+        "Timestamp",
+        "Bool",
+        {
+          "Custom": {
+            "name": "vpn_client_session_state",
+            "kind": {
+              "Enum": [
+                "new",
+                "connected",
+                "disconnected"
+              ]
+            }
+          }
+        },
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "008165e46a6cdb8ce9512ec87c79f095627621f148d092f5bf596e637eb7cfca"
+}

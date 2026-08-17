@@ -45,6 +45,10 @@ pub struct StepsSnapshot {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Step {
     pub methods: Vec<VpnClientMfaMethod>,
+    /// The method that satisfied this step, written by `advance` from the step's
+    /// `ephemeral_state.selected_method` before that state is cleared.
+    #[serde(default)]
+    pub satisfied: Option<VpnClientMfaMethod>,
 }
 
 /// Per-step ephemeral attempt state, cleared to NULL on `advance`.
@@ -124,7 +128,13 @@ impl VpnClientMfaSession {
         let hash = hash_token(&token);
         let snapshot = StepsSnapshot {
             flow_id,
-            steps: steps.into_iter().map(|methods| Step { methods }).collect(),
+            steps: steps
+                .into_iter()
+                .map(|methods| Step {
+                    methods,
+                    satisfied: None,
+                })
+                .collect(),
         };
         let snapshot_json =
             serde_json::to_value(&snapshot).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
@@ -326,11 +336,26 @@ impl VpnClientMfaSession {
 
     /// Advance to the next step, clearing `ephemeral_state` and resetting `failed_attempts`.
     ///
+    /// Records the closing step's proof into the snapshot first:
+    /// `steps[current_step].satisfied = ephemeral_state.selected_method`. The write and the
+    /// clear land in one statement so the proof cannot be lost between them. A NULL
+    /// `ephemeral_state` leaves `satisfied` unset rather than erroring.
+    ///
     /// Does not extend `expires_at` (fixed window).
     pub async fn advance(&self, conn: &mut PgConnection) -> sqlx::Result<StepOutcome> {
         let next_step = query_scalar!(
             "UPDATE vpn_client_mfa_session \
-             SET ephemeral_state = NULL, current_step = current_step + 1, failed_attempts = 0 \
+             SET steps_snapshot = CASE \
+                 WHEN ephemeral_state IS NOT NULL THEN jsonb_set( \
+                     steps_snapshot, \
+                     ARRAY['steps', current_step::text, 'satisfied'], \
+                     ephemeral_state->'selected_method' \
+                 ) \
+                 ELSE steps_snapshot \
+             END, \
+             ephemeral_state = NULL, \
+             current_step = current_step + 1, \
+             failed_attempts = 0 \
              WHERE id = $1 \
              RETURNING current_step",
             self.id,

@@ -127,10 +127,6 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     assert_eq!(connected_event.context.user.id, user.id);
     assert_eq!(connected_event.context.device.id, device.id);
     assert_eq!(connected_event.context.public_ip, Some(endpoint.ip()));
-    assert_eq!(
-        connected_event.context.mfa_methods,
-        vec![VpnClientMfaMethod::Totp]
-    );
 
     let second_collected_at = handshake + TimeDelta::seconds(30);
     let second_handshake = handshake + TimeDelta::seconds(25);

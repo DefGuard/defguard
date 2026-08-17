@@ -3,7 +3,10 @@ use chrono::{Duration, Utc};
 use defguard_common::db::{
     Id, NoId,
     models::{
-        Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork, group::Group,
+        Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
+        group::Group,
+        vpn_client_mfa_session::{Step, StepsSnapshot},
+        vpn_client_session::VpnClientMfaMethod,
     },
 };
 use defguard_core::{
@@ -15,7 +18,6 @@ use defguard_core::{
             MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
             NetworkDeviceMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
             UserMetadata, UserMfaDisabledMetadata, VpnClientMetadata, VpnClientMfaMetadata,
-            VpnClientMfaSessionMetadata,
         },
     },
     events::{ApiEventType, ClientMFAMethod, EnrollmentEvent as CoreEnrollmentEvent},
@@ -1039,27 +1041,25 @@ fn build_vpn_event(
                 location: location.clone(),
                 device: device.clone(),
             }),
-            serde_json::to_value(VpnClientMfaSessionMetadata {
-                location,
-                device,
-                mfa_methods: vec![random_client_mfa_method(rng).into()],
-            })
-            .ok(),
+            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
         ),
         EventType::VpnClientMfaDisconnected => (
             get_vpn_event_description(&VpnEvent::MfaDisconnectedFromLocation {
                 location: location.clone(),
                 device: device.clone(),
             }),
-            serde_json::to_value(VpnClientMfaSessionMetadata {
-                location,
-                device,
-                mfa_methods: vec![random_client_mfa_method(rng).into()],
-            })
-            .ok(),
+            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
         ),
         EventType::VpnClientMfaSuccess => {
             let method = random_client_mfa_method(rng);
+            let satisfied: VpnClientMfaMethod = method.into();
+            let snapshot = StepsSnapshot {
+                flow_id: 1,
+                steps: vec![Step {
+                    methods: vec![satisfied],
+                    satisfied: Some(satisfied),
+                }],
+            };
             (
                 get_vpn_event_description(&VpnEvent::ClientMfaSuccess {
                     location: location.clone(),
@@ -1069,7 +1069,9 @@ fn build_vpn_event(
                 serde_json::to_value(VpnClientMfaMetadata {
                     location,
                     device,
-                    method,
+                    snapshot,
+                    flow_id: 1,
+                    flow_name: Some("Default Internal MFA".to_owned()),
                     mobile_auth_device_name: None,
                 })
                 .ok(),

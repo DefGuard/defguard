@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
-    models::{Device, Settings, WireguardNetwork, vpn_client_session::VpnClientMfaMethod},
+    models::{Device, Settings, WireguardNetwork},
 };
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
@@ -27,7 +27,6 @@ pub enum Event {
         event: SessionManagerEventType,
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-        mfa_methods: Vec<VpnClientMfaMethod>,
     },
     LdapSync {
         /// Whether the directory backend is Active Directory (vs. plain LDAP).
@@ -106,14 +105,12 @@ impl EventLoggerMessage {
     pub fn from_session_manager_event(session_event: SessionManagerEvent) -> Self {
         let location = session_event.context.location.clone();
         let device = session_event.context.device.clone();
-        let mfa_methods = session_event.context.mfa_methods.clone();
         Self {
             context: EventContext::from_session_manager_context(session_event.context),
             event: Event::SessionManager {
                 event: session_event.event,
                 location,
                 device,
-                mfa_methods,
             },
         }
     }

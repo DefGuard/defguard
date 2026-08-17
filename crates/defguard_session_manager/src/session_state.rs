@@ -9,7 +9,7 @@ use defguard_common::{
         Id,
         models::{
             Device, User, WireguardNetwork,
-            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
         },
     },
@@ -100,7 +100,7 @@ struct SessionEventContextData {
     location: WireguardNetwork<Id>,
     user: User<Id>,
     device: Device<Id>,
-    mfa_methods: Vec<VpnClientMfaMethod>,
+    is_mfa_session: bool,
 }
 
 impl SessionState {
@@ -129,14 +129,17 @@ impl SessionState {
     ) -> Result<(), SessionManagerError> {
         // mark new MFA session as connected if necessary
         if self.state == VpnClientSessionState::New {
-            let connected_context = {
+            let (connected_context, is_mfa_session) = {
                 let event_context_data = self.event_context_data.as_ref().ok_or(
                     SessionManagerError::MissingSessionEventContextError(self.session_id),
                 )?;
 
-                event_context_data.build_context(
-                    peer_stats_update.latest_handshake,
-                    peer_stats_update.endpoint.ip(),
+                (
+                    event_context_data.build_context(
+                        peer_stats_update.latest_handshake,
+                        peer_stats_update.endpoint.ip(),
+                    ),
+                    event_context_data.is_mfa_session,
                 )
             };
 
@@ -155,7 +158,8 @@ impl SessionState {
             // even if the event channel is closed.
             self.state = VpnClientSessionState::Connected;
 
-            let event = SessionManagerEvent::connected_for_session(connected_context);
+            let event =
+                SessionManagerEvent::connected_for_session(connected_context, is_mfa_session);
             event_tx.send(event)?;
         }
 
@@ -209,7 +213,6 @@ impl SessionEventContextData {
             user: self.user.clone(),
             device: self.device.clone(),
             public_ip: Some(public_ip),
-            mfa_methods: self.mfa_methods.clone(),
         }
     }
 }
@@ -304,7 +307,7 @@ impl ActiveSessionsMap {
                         location,
                         user,
                         device,
-                        mfa_methods: db_session.mfa_methods.clone(),
+                        is_mfa_session: db_session.is_mfa_session,
                     })
                 } else {
                     None
@@ -392,8 +395,7 @@ impl ActiveSessionsMap {
             user.id,
             device_id,
             Some(stats_update.latest_handshake),
-            Vec::new(),
-            None,
+            false,
         )
         .save(transaction)
         .await?;
@@ -405,7 +407,7 @@ impl ActiveSessionsMap {
                 location: location.clone(),
                 user: user.clone(),
                 device: device.clone(),
-                mfa_methods: Vec::new(),
+                is_mfa_session: false,
             }),
         );
         let session_map = self.get_or_create_location_session_map(location_id);
@@ -422,9 +424,8 @@ impl ActiveSessionsMap {
             user,
             device,
             public_ip: Some(public_ip),
-            mfa_methods: Vec::new(),
         };
-        let event = SessionManagerEvent::connected_for_session(context);
+        let event = SessionManagerEvent::connected_for_session(context, false);
         event_tx.send(event)?;
 
         Ok(session_map.0.get_mut(&device_id))

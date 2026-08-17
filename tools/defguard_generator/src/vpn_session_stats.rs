@@ -159,8 +159,7 @@ async fn generate_stats_for_location(
                     device.user_id,
                     device.id,
                     Some(session_start),
-                    Vec::new(),
-                    None,
+                    false,
                 );
 
                 // mark all but the first session as disconnected

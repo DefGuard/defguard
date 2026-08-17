@@ -721,8 +721,7 @@ async fn test_get_user_exposes_active_network_state(_: PgPoolOptions, options: P
         user.id,
         device.id,
         Some(session_connected_at),
-        Vec::new(),
-        None,
+        false,
     )
     .save(&pool)
     .await
@@ -830,8 +829,7 @@ async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_s
         user.id,
         device.id,
         Some(last_successful_connection),
-        Vec::new(),
-        None,
+        false,
     );
     connected_session.created_at = last_successful_connection;
     let connected_session = connected_session.save(&pool).await.unwrap();
@@ -852,7 +850,7 @@ async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_s
     .unwrap();
 
     let mut disconnected_session =
-        VpnClientSession::new(network.id, user.id, device.id, None, Vec::new(), None);
+        VpnClientSession::new(network.id, user.id, device.id, None, false);
     disconnected_session.created_at = disconnected_at;
     disconnected_session.disconnected_at = Some(disconnected_at);
     disconnected_session.state = VpnClientSessionState::Disconnected;

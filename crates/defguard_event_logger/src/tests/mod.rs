@@ -12,6 +12,7 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
         proxy::Proxy,
         settings::set_settings,
+        vpn_client_mfa_session::{Step, StepsSnapshot},
         vpn_client_session::VpnClientMfaMethod,
         wireguard::ServiceLocationMode,
     },
@@ -1336,7 +1337,15 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Success {
                     location: location.clone(),
                     device: device.clone(),
-                    method: defguard_core::events::ClientMFAMethod::MobileApprove,
+                    snapshot: StepsSnapshot {
+                        flow_id: 1,
+                        steps: vec![Step {
+                            methods: vec![VpnClientMfaMethod::MobileApprove],
+                            satisfied: Some(VpnClientMfaMethod::MobileApprove),
+                        }],
+                    },
+                    flow_id: 1,
+                    flow_name: Some("flow".to_owned()),
                     mobile_auth_device_name: Some("pixel-7".to_owned()),
                 })),
                 Some(location.clone()),
@@ -1444,7 +1453,6 @@ fn session_manager_cases() -> Vec<EventTestCase> {
         event: SessionManagerEventType,
         loc: WireguardNetwork<Id>,
         dev: Device<Id>,
-        mfa_methods: Vec<VpnClientMfaMethod>,
     ) -> EventLoggerMessage {
         EventLoggerMessage {
             context: test_context(),
@@ -1452,7 +1460,6 @@ fn session_manager_cases() -> Vec<EventTestCase> {
                 event,
                 location: loc,
                 device: dev,
-                mfa_methods,
             },
         }
     }
@@ -1464,7 +1471,6 @@ fn session_manager_cases() -> Vec<EventTestCase> {
                 SessionManagerEventType::ClientConnected,
                 location.clone(),
                 device.clone(),
-                Vec::new(),
             ),
             event_type: EventType::VpnClientConnected,
             module: ActivityLogModule::Vpn,
@@ -1476,7 +1482,6 @@ fn session_manager_cases() -> Vec<EventTestCase> {
                 SessionManagerEventType::ClientDisconnected,
                 location.clone(),
                 device.clone(),
-                Vec::new(),
             ),
             event_type: EventType::VpnClientDisconnected,
             module: ActivityLogModule::Vpn,
@@ -1488,11 +1493,10 @@ fn session_manager_cases() -> Vec<EventTestCase> {
                 SessionManagerEventType::MfaClientConnected,
                 location.clone(),
                 device.clone(),
-                vec![VpnClientMfaMethod::Totp],
             ),
             event_type: EventType::VpnClientMfaConnected,
             module: ActivityLogModule::Vpn,
-            description_contains: Some("using TOTP"),
+            description_contains: Some("connected"),
         },
         EventTestCase {
             name: "MfaClientDisconnected",
@@ -1500,11 +1504,10 @@ fn session_manager_cases() -> Vec<EventTestCase> {
                 SessionManagerEventType::MfaClientDisconnected,
                 location,
                 device,
-                vec![VpnClientMfaMethod::Totp],
             ),
             event_type: EventType::VpnClientMfaDisconnected,
             module: ActivityLogModule::Vpn,
-            description_contains: Some("using TOTP"),
+            description_contains: Some("disconnected"),
         },
     ];
 

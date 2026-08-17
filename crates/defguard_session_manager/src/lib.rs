@@ -291,6 +291,7 @@ impl SessionManager {
     ) -> Result<(), SessionManagerError> {
         let disconnect_timestamp = Utc::now().naive_utc();
         let is_connected = session.connected_at.is_some();
+        let is_mfa_session = session.is_mfa_session;
 
         // update session record in DB
         session.disconnected_at = Some(disconnect_timestamp);
@@ -319,10 +320,9 @@ impl SessionManager {
             user,
             device,
             public_ip: None,
-            mfa_methods: session.mfa_methods,
         };
         if is_connected {
-            let event = SessionManagerEvent::disconnected_for_session(context);
+            let event = SessionManagerEvent::disconnected_for_session(context, is_mfa_session);
             self.session_manager_event_tx.send(event)?;
         }
 
