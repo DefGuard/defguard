@@ -18,6 +18,7 @@ import type {
 const availableMethods: MfaFlowMethodValue[] = [
   MfaFlowMethod.Email,
   MfaFlowMethod.MobileApprove,
+  MfaFlowMethod.Biometric,
   MfaFlowMethod.Totp,
   MfaFlowMethod.OpenId,
 ];
