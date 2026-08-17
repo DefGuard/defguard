@@ -76,7 +76,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
   }, [isAdmin]);
 
   const onSuccess = useCallback(() => {
-    Snackbar.success(m.modal_change_password_success());
+    Snackbar.default(m.modal_change_password_success());
     closeModal(modalNameKey);
   }, []);
 
