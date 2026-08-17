@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use defguard_common::db::{
     Id,
     models::{Settings, user::User},
@@ -61,6 +63,7 @@ pub async fn start_user_enrollment(
             base_message_context,
             enrollment_service_url,
             &enrollment.id,
+            Duration::from_secs(token_timeout_seconds),
         )
         .await;
         match result {
@@ -200,6 +203,7 @@ pub async fn send_enrollment_invitation(
         base_message_context,
         enrollment_service_url,
         token_id,
+        Duration::from_secs((token.expires_at - token.created_at).num_seconds().max(0) as u64),
     )
     .await
     {
