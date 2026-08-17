@@ -3,6 +3,7 @@ import { Reorder } from 'motion/react';
 import { m } from '../../../paraglide/messages';
 import { MfaFlowMethod, type MfaFlowMethodValue } from '../../api/types';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
+import { useApp } from '../../hooks/useApp';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type { MfaConfigurationProps, MfaConfigurationStepData } from './types';
@@ -16,6 +17,7 @@ const availableMethods: MfaFlowMethodValue[] = [
 
 /** Configures ordered MFA steps and the methods accepted by each step. */
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
+  const smtpEnabled = useApp((state) => state.appInfo.smtp_enabled);
   const methodLabels: Record<MfaFlowMethodValue, string> = {
     [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
     [MfaFlowMethod.Totp]: m.mfa_flow_method_authenticator_app(),
@@ -24,10 +26,15 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
     [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
   };
   /** Builds one selectable MFA method menu item. */
-  const buildOption = (method: MfaFlowMethodValue, onClick: () => void) => ({
-    text: methodLabels[method],
-    onClick,
-  });
+  const buildOption = (method: MfaFlowMethodValue, onClick: () => void) => {
+    const smtpRequired = method === MfaFlowMethod.Email && !smtpEnabled;
+    return {
+      text: methodLabels[method],
+      onClick,
+      disabled: smtpRequired,
+      disabledHelper: smtpRequired ? m.mfa_flow_method_smtp_required() : undefined,
+    };
+  };
   const addStepMenuOptions = [
     {
       items: availableMethods.map((method) =>

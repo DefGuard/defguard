@@ -24,6 +24,7 @@
   "mfa_flow_method_authenticator_app": "Authenticator App",
   "mfa_flow_method_external_provider": "External ID Provider",
   "mfa_flow_method_email_code": "Email Verification Code",
+  "mfa_flow_method_smtp_required": "Configure SMTP server in Settings (Notifications tab) to activate this MFA method",
   "mfa_flow_method_biometric": "Biometrics",
   "mfa_flow_form_action_create": "Create MFA flow",
   "mfa_flow_created": "MFA flow created successfully.",
