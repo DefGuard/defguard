@@ -52,6 +52,12 @@ export const getMfaFlowsQueryOptions = queryOptions({
   select: (response) => response.data,
 });
 
+export const getMfaMethodAvailabilityQueryOptions = queryOptions({
+  queryFn: api.mfaFlow.methodAvailability,
+  queryKey: ['mfa-flow', 'method-availability'],
+  select: (response) => response.data,
+});
+
 export const getEdgesQueryOptions = queryOptions({
   queryFn: api.edge.getEdges,
   queryKey: ['edge'],

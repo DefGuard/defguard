@@ -1425,6 +1425,23 @@ export const MfaFlowMethod = {
 
 export type MfaFlowMethodValue = (typeof MfaFlowMethod)[keyof typeof MfaFlowMethod];
 
+export const MfaMethodAvailabilityReason = {
+  Available: 'available',
+  Licensed: 'licensed',
+  SmtpNotConfigured: 'smtp_not_configured',
+  OidcProviderMissing: 'oidc_provider_missing',
+} as const;
+
+export type MfaMethodAvailabilityReasonValue =
+  (typeof MfaMethodAvailabilityReason)[keyof typeof MfaMethodAvailabilityReason];
+
+/** Availability of an MFA method in the current server configuration. */
+export interface MfaMethodAvailabilityResponse {
+  method: MfaFlowMethodValue;
+  available: boolean;
+  reason: MfaMethodAvailabilityReasonValue;
+}
+
 export interface CreateMfaFlowStep {
   methods: MfaFlowMethodValue[];
 }

@@ -2,11 +2,14 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Reorder } from 'motion/react';
 import { m } from '../../../paraglide/messages';
-import { MfaFlowMethod, type MfaFlowMethodValue } from '../../api/types';
+import {
+  MfaFlowMethod,
+  type MfaFlowMethodValue,
+  MfaMethodAvailabilityReason,
+  type MfaMethodAvailabilityReasonValue,
+} from '../../api/types';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
-import { useApp } from '../../hooks/useApp';
-import { getLicenseInfoQueryOptions } from '../../query';
-import { canUseBusinessFeature } from '../../utils/license';
+import { getMfaMethodAvailabilityQueryOptions } from '../../query';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
@@ -15,20 +18,10 @@ import type {
   MfaMethodGroup,
 } from './types';
 
-const availableMethods: MfaFlowMethodValue[] = [
-  MfaFlowMethod.Email,
-  MfaFlowMethod.MobileApprove,
-  MfaFlowMethod.Biometric,
-  MfaFlowMethod.Totp,
-  MfaFlowMethod.OpenId,
-];
-
 /** Configures ordered MFA steps and the methods accepted by each step. */
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
-  const smtpEnabled = useApp((state) => state.appInfo.smtp_enabled);
-  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const businessAvailable =
-    licenseInfo === undefined ? undefined : canUseBusinessFeature(licenseInfo).result;
+  const { data: methodAvailability } = useQuery(getMfaMethodAvailabilityQueryOptions);
+  const availableMethods = methodAvailability?.map(({ method }) => method) ?? [];
   const methodLabels: Record<MfaFlowMethodValue, string> = {
     [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
     [MfaFlowMethod.Totp]: m.mfa_flow_method_authenticator_app(),
@@ -36,31 +29,39 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
     [MfaFlowMethod.Email]: m.mfa_flow_method_email_code(),
     [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
   };
+  /** Maps a backend availability reason to menu guidance. */
+  const getDisabledHelper = (reason: MfaMethodAvailabilityReasonValue) => {
+    switch (reason) {
+      case MfaMethodAvailabilityReason.Licensed:
+        return m.mfa_flow_method_business_required();
+      case MfaMethodAvailabilityReason.SmtpNotConfigured:
+        return m.mfa_flow_method_smtp_required();
+      case MfaMethodAvailabilityReason.OidcProviderMissing:
+        return m.mfa_flow_error_oidc_provider_missing();
+      case MfaMethodAvailabilityReason.Available:
+        return undefined;
+    }
+  };
   /** Builds one selectable MFA method menu item. */
   const buildOption = (method: MfaFlowMethodValue, onClick: () => void) => {
-    const smtpRequired = method === MfaFlowMethod.Email && !smtpEnabled;
-    const businessRequired =
-      method === MfaFlowMethod.OpenId && businessAvailable === false;
-    const businessLoading =
-      method === MfaFlowMethod.OpenId && businessAvailable === undefined;
+    const availability = methodAvailability?.find((item) => item.method === method);
     return {
       text: methodLabels[method],
       onClick,
-      disabled: smtpRequired || businessRequired || businessLoading,
-      disabledHelper: smtpRequired
-        ? m.mfa_flow_method_smtp_required()
-        : businessRequired
-          ? m.mfa_flow_method_business_required()
-          : undefined,
+      disabled: availability?.available !== true,
+      disabledHelper: availability ? getDisabledHelper(availability.reason) : undefined,
     };
   };
   /** Groups locked premium methods separately from methods available in the current plan. */
   const buildMethodGroups = (methods: MfaFlowMethodValue[]): MfaMethodGroup[] => {
-    const externalIdLocked =
-      businessAvailable === false && methods.includes(MfaFlowMethod.OpenId);
-    if (!externalIdLocked) return [{ items: methods }];
+    const licensedMethods = methods.filter(
+      (method) =>
+        methodAvailability?.find((item) => item.method === method)?.reason ===
+        MfaMethodAvailabilityReason.Licensed,
+    );
+    if (licensedMethods.length === 0) return [{ items: methods }];
 
-    const planMethods = methods.filter((method) => method !== MfaFlowMethod.OpenId);
+    const planMethods = methods.filter((method) => !licensedMethods.includes(method));
     return [
       ...(planMethods.length > 0
         ? [
@@ -72,7 +73,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         : []),
       {
         header: { text: m.mfa_flow_methods_available_in_higher_plans() },
-        items: [MfaFlowMethod.OpenId],
+        items: licensedMethods,
       },
     ];
   };
@@ -153,6 +154,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
           iconRightRotation="down"
           text={m.mfa_flow_step_add()}
           options={addStepMenuOptions}
+          disabled={methodAvailability === undefined}
         />
       </div>
       <FieldError error={error} />

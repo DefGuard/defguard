@@ -92,6 +92,7 @@ import type {
   MfaCompleteResponse,
   MfaFlowDetailResponse,
   MfaFlowListItemResponse,
+  MfaMethodAvailabilityResponse,
   MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
@@ -532,6 +533,8 @@ const api = {
   },
   mfaFlow: {
     list: () => client.get<MfaFlowListItemResponse[]>('/mfa-flow'),
+    methodAvailability: () =>
+      client.get<MfaMethodAvailabilityResponse[]>('/mfa-flow/method-availability'),
     create: (data: CreateMfaFlowRequest) =>
       client.post<MfaFlowDetailResponse>('/mfa-flow', data),
     get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
