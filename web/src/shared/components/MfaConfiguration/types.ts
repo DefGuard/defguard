@@ -7,11 +7,17 @@ export interface MfaConfigurationStepData {
   methods: MfaFlowMethodValue[];
 }
 
+/** MFA methods grouped for display in an add-method menu. */
+export type MfaMethodGroup = {
+  header?: { text: string };
+  items: MfaFlowMethodValue[];
+};
+
 /** Properties for an individual MFA step card. */
 export type MfaConfigurationStepProps = {
   step: MfaConfigurationStepData;
   stepNumber: number;
-  availableMethods: MfaFlowMethodValue[];
+  methodGroups: MfaMethodGroup[];
   methodLabels: Record<MfaFlowMethodValue, string>;
   onDeleteStep: (id: MfaConfigurationStepData['id']) => void;
   onAddMethod: (

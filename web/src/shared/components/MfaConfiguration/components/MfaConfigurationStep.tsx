@@ -11,7 +11,7 @@ import { MfaMethodsMenu } from './MfaMethodsMenu';
 export const MfaConfigurationStep = ({
   step,
   stepNumber,
-  availableMethods,
+  methodGroups,
   methodLabels,
   onDeleteStep,
   onAddMethod,
@@ -19,13 +19,12 @@ export const MfaConfigurationStep = ({
   buildOption,
 }: MfaConfigurationStepProps) => {
   const dragControls = useDragControls();
-  const addMethodMenuOptions = [
-    {
-      items: availableMethods.map((method) =>
-        buildOption(method, () => onAddMethod(step.id, method)),
-      ),
-    },
-  ];
+  const addMethodMenuOptions = methodGroups.map((group) => ({
+    ...group,
+    items: group.items.map((method) =>
+      buildOption(method, () => onAddMethod(step.id, method)),
+    ),
+  }));
 
   return (
     <Reorder.Item
@@ -76,7 +75,7 @@ export const MfaConfigurationStep = ({
           </div>
         ))}
       </div>
-      {availableMethods.length > 0 && (
+      {methodGroups.some((group) => group.items.length > 0) && (
         <div className="footer">
           <MfaMethodsMenu
             kind="plain"
