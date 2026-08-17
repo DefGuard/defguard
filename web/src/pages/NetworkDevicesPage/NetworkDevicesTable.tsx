@@ -56,9 +56,13 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     mutationFn: async () => {
       const { data: locations } = await api.location.getLocations();
       const availableLocations = orderBy(
-        locations.filter(
-          (location) => location.location_mfa_mode === LocationMfaMode.Disabled,
-        ),
+        locations.filter((location) => {
+          const withoutPostureChecks = (location.posture_checks?.length ?? 0) === 0;
+          return (
+            location.location_mfa_mode === LocationMfaMode.Disabled &&
+            withoutPostureChecks
+          );
+        }),
         ['name'],
         ['asc'],
       );
