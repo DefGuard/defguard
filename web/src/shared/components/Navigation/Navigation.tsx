@@ -107,6 +107,7 @@ const navigationConfig: NavGroupProps[] = [
         id: 'mfa',
         icon: 'mobile-lock',
         label: m.cmp_nav_item_mfa(),
+        licenseTier: LicenseTier.Business,
         link: '/mfa',
       },
     ],
