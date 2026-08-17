@@ -95,6 +95,7 @@ async fn start_session_with_ttl(
 async fn refetch(pool: &sqlx::PgPool, token: &str) -> VpnClientMfaSession {
     VpnClientMfaSession::find_active_by_token(pool, token)
         .await
+        .unwrap()
         .expect("expected active session")
 }
 
@@ -122,11 +123,12 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
 
     assert_eq!(first.current_step_methods(), [VpnClientMfaMethod::Totp]);
     // The raw token is never stored; only its hash is.
-    assert_eq!(first.token_hash, token_hash(&first_outcome.token));
+    assert_eq!(first.token_hash, hash_token(&first_outcome.token));
     assert_ne!(first.token_hash, first_outcome.token);
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, &first_outcome.token)
             .await
+            .unwrap()
             .is_some()
     );
 
@@ -152,11 +154,13 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, &first_outcome.token)
             .await
+            .unwrap()
             .is_none()
     );
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, &second_outcome.token)
             .await
+            .unwrap()
             .is_some()
     );
 }
@@ -227,6 +231,7 @@ async fn test_find_active_by_token_rejects_expired(_: PgPoolOptions, options: Pg
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, &outcome.token)
             .await
+            .unwrap()
             .is_none()
     );
 }
@@ -237,6 +242,7 @@ async fn test_find_active_by_token_rejects_unknown(_: PgPoolOptions, options: Pg
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, "nonexistent-token")
             .await
+            .unwrap()
             .is_none()
     );
 }
@@ -295,7 +301,7 @@ async fn test_record_failure_caps_at_five(_: PgPoolOptions, options: PgConnectOp
     let mut tx = pool.begin().await.unwrap();
     let mut at_cap = false;
     for i in 0..MFA_FAILED_ATTEMPT_CAP {
-        at_cap = session.record_failure(&mut tx).await.unwrap();
+        at_cap = session.increment_failed_attempts(&mut tx).await.unwrap();
         if i + 1 < MFA_FAILED_ATTEMPT_CAP {
             assert!(!at_cap);
         }
@@ -445,11 +451,13 @@ async fn test_reap_expired_deletes_only_expired(_: PgPoolOptions, options: PgCon
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, &active_outcome.token)
             .await
+            .unwrap()
             .is_some()
     );
     assert!(
         VpnClientMfaSession::find_active_by_token(&pool, &expired_outcome.token)
             .await
+            .unwrap()
             .is_none()
     );
 }

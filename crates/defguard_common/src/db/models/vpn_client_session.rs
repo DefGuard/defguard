@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, Type, query_as};
+use sqlx::{PgExecutor, Type, query_as, query_scalar};
 use utoipa::ToSchema;
 
 use crate::db::{
@@ -129,6 +129,49 @@ impl VpnClientSession {
             state,
             preshared_key: None,
         }
+    }
+
+    /// Insert this session, guarding the `flow_id` foreign key.
+    ///
+    /// If the flow referenced by `flow_id` was deleted since the session snapshot was frozen,
+    /// the `SELECT` subquery yields NULL and the session is stored without flow attribution
+    /// instead of failing with a foreign-key violation.
+    pub async fn insert_guarded<'e, E>(self, executor: E) -> sqlx::Result<VpnClientSession<Id>>
+    where
+        E: PgExecutor<'e>,
+    {
+        let id = query_scalar!(
+            "INSERT INTO vpn_client_session \
+                (location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_methods, flow_id, state, preshared_key) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM mfa_flow WHERE id = $8), $9, $10) \
+             RETURNING id",
+            self.location_id,
+            self.user_id,
+            self.device_id,
+            self.created_at,
+            self.connected_at,
+            self.disconnected_at,
+            &self.mfa_methods as &Vec<VpnClientMfaMethod>,
+            self.flow_id,
+            &self.state as &VpnClientSessionState,
+            self.preshared_key,
+        )
+        .fetch_one(executor)
+        .await?;
+
+        Ok(VpnClientSession {
+            id,
+            location_id: self.location_id,
+            user_id: self.user_id,
+            device_id: self.device_id,
+            created_at: self.created_at,
+            connected_at: self.connected_at,
+            disconnected_at: self.disconnected_at,
+            mfa_methods: self.mfa_methods,
+            flow_id: self.flow_id,
+            state: self.state,
+            preshared_key: self.preshared_key,
+        })
     }
 }
 

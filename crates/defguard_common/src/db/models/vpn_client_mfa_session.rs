@@ -4,18 +4,28 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, query_scalar, types::Json};
+use sqlx::{
+    Connection, PgConnection, PgExecutor, PgPool, query, query_as, query_scalar, types::Json,
+};
 use tracing::debug;
 
 use crate::{
     db::{
         Id,
-        models::{biometric_auth::BiometricChallenge, vpn_client_session::VpnClientMfaMethod},
+        models::{
+            biometric_auth::BiometricChallenge, device::Device, user::User,
+            vpn_client_session::VpnClientMfaMethod, wireguard::WireguardNetwork,
+        },
     },
     random::gen_alphanumeric,
 };
 
 /// Fixed wall-clock window for the whole in-progress MFA flow, including collection.
+///
+/// Supersedes the in-memory `ClientLoginSession`, whose map entries lived for
+/// `CLIENT_SESSION_TIMEOUT` (5 minutes). The window is deliberately doubled: a VPN MFA login
+/// may require a remote mobile approval or an OIDC redirect that outlives the old in-memory
+/// entry, and the durable row is reaped by a background job instead of a per-entry expiry.
 pub const VPN_MFA_SESSION_TIMEOUT: Duration = Duration::from_mins(10);
 
 /// Per-step cap on proof-verification failures. A sanity/abuse limit, not a lockout.
@@ -57,6 +67,14 @@ pub struct StartOutcome {
     pub superseded_token_hash: Option<String>,
 }
 
+/// The location, device, and user a VPN MFA session references, loaded together for event
+/// context and authorization.
+pub struct MfaSessionContext {
+    pub location: WireguardNetwork<Id>,
+    pub device: Device<Id>,
+    pub user: User<Id>,
+}
+
 /// Outcome of advancing to the next step.
 #[derive(Clone, Debug, PartialEq)]
 pub enum StepOutcome {
@@ -83,7 +101,7 @@ pub struct VpnClientMfaSession {
 
 /// Hash an opaque token for storage and lookup: base64url-nopad SHA-256.
 #[must_use]
-pub fn token_hash(token: &str) -> String {
+pub fn hash_token(token: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(token.as_bytes()))
 }
 
@@ -103,7 +121,7 @@ impl VpnClientMfaSession {
         ttl: Duration,
     ) -> sqlx::Result<(Self, StartOutcome)> {
         let token = gen_alphanumeric(32);
-        let hash = token_hash(&token);
+        let hash = hash_token(&token);
         let snapshot = StepsSnapshot {
             flow_id,
             steps: steps.into_iter().map(|methods| Step { methods }).collect(),
@@ -114,8 +132,11 @@ impl VpnClientMfaSession {
         let expires_at = created_at + TimeDelta::seconds(ttl.as_secs() as i64);
 
         // Supersede any existing session for this (location, device), capturing its token hash so
-        // the caller can cancel its waiter. The unique index plus the `ON CONFLICT` upsert below
-        // closes the concurrent double-`Start` race (last-writer-wins, not an error).
+        // the caller can cancel its waiter. The DELETE and the upsert run in one transaction so a
+        // concurrent reader never observes the gap between them. The unique index plus the
+        // `ON CONFLICT` upsert below closes the concurrent double-`Start` race (last-writer-wins).
+        let mut tx = conn.begin().await?;
+
         let superseded_token_hash = query_scalar!(
             "DELETE FROM vpn_client_mfa_session \
              WHERE location_id = $1 AND device_id = $2 \
@@ -123,7 +144,7 @@ impl VpnClientMfaSession {
             location_id,
             device_id,
         )
-        .fetch_optional(&mut *conn)
+        .fetch_optional(&mut *tx)
         .await?;
 
         let session = query_as!(
@@ -153,8 +174,10 @@ impl VpnClientMfaSession {
             created_at,
             expires_at,
         )
-        .fetch_one(&mut *conn)
+        .fetch_one(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         Ok((
             session,
@@ -167,14 +190,15 @@ impl VpnClientMfaSession {
 
     /// Look up an active session by raw token, hashing internally.
     ///
-    /// Returns `None` for an unknown token, an expired session, and a stale row whose snapshot
-    /// fails to deserialize.
+    /// Returns `Ok(None)` for an unknown token, an expired session, and a stale row whose
+    /// snapshot fails to deserialize. Database errors are returned to the caller, which owns
+    /// the decision of how to surface them.
     pub async fn find_active_by_token<'e, E: PgExecutor<'e>>(
         executor: E,
         token: &str,
-    ) -> Option<Self> {
-        let hash = token_hash(token);
-        let result = query_as!(
+    ) -> sqlx::Result<Option<Self>> {
+        let hash = hash_token(token);
+        query_as!(
             Self,
             "SELECT id, token_hash, location_id, device_id, user_id, \
              steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, \
@@ -185,15 +209,28 @@ impl VpnClientMfaSession {
             hash,
         )
         .fetch_optional(executor)
-        .await;
+        .await
+    }
 
-        match result {
-            Ok(session) => session,
-            Err(err) => {
-                debug!("Failed to find active MFA session: {err}");
-                None
-            }
-        }
+    /// Load the location, device, and user this session references.
+    ///
+    /// Returns `Ok(None)` if any referenced entity no longer exists (deleted after the session
+    /// was started); callers map the `None` to their own status.
+    pub async fn load_context(&self, pool: &PgPool) -> sqlx::Result<Option<MfaSessionContext>> {
+        let Some(location) = WireguardNetwork::find_by_id(pool, self.location_id).await? else {
+            return Ok(None);
+        };
+        let Some(device) = Device::find_by_id(pool, self.device_id).await? else {
+            return Ok(None);
+        };
+        let Some(user) = User::find_by_id(pool, self.user_id).await? else {
+            return Ok(None);
+        };
+        Ok(Some(MfaSessionContext {
+            location,
+            device,
+            user,
+        }))
     }
 
     /// Remove this session row (authorize-time, abort-time, supersede-time).
@@ -313,11 +350,11 @@ impl VpnClientMfaSession {
         Ok(outcome)
     }
 
-    /// Record a proof-verification failure, incrementing the per-step counter.
+    /// Increment the per-step proof-failure counter.
     ///
-    /// Returns `true` at [`MFA_FAILED_ATTEMPT_CAP`]. Does not delete the session; the
-    /// orchestrator owns deletion and the terminal event.
-    pub async fn record_failure(&self, conn: &mut PgConnection) -> sqlx::Result<bool> {
+    /// Returns `true` once [`MFA_FAILED_ATTEMPT_CAP`] is reached. Does not delete the session;
+    /// the orchestrator owns deletion and the terminal event.
+    pub async fn increment_failed_attempts(&self, conn: &mut PgConnection) -> sqlx::Result<bool> {
         let failed_attempts = query_scalar!(
             "UPDATE vpn_client_mfa_session \
              SET failed_attempts = failed_attempts + 1 \

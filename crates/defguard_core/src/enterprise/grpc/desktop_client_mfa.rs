@@ -1,6 +1,7 @@
 use defguard_common::{
     db::models::{
-        Device, Settings, User, WireguardNetwork, vpn_client_mfa_session::VpnClientMfaSession,
+        Settings,
+        vpn_client_mfa_session::{MfaSessionContext, VpnClientMfaSession},
     },
     types::AuthFlowType,
 };
@@ -11,11 +12,10 @@ use defguard_proto::{
 use openidconnect::{AuthorizationCode, Nonce};
 use tonic::Status;
 
+#[cfg(not(test))]
+use crate::enterprise::is_business_license_active;
 use crate::{
-    enterprise::{
-        handlers::openid_login::{extract_state_data, user_from_claims},
-        is_business_license_active,
-    },
+    enterprise::handlers::openid_login::{extract_state_data, user_from_claims},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{proxy::client_mfa::ClientMfaServer, utils::parse_client_ip_agent},
 };
@@ -27,7 +27,8 @@ impl ClientMfaServer {
         request: ClientMfaOidcAuthenticateRequest,
         info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
-        debug!("Received OIDC MFA authentication request: {request:?}");
+        debug!("Received OIDC MFA authentication request");
+        #[cfg(not(test))]
         if !is_business_license_active() {
             error!("OIDC MFA method requires enterprise feature to be enabled");
             return Err(Status::invalid_argument("OIDC MFA method is not supported"));
@@ -46,25 +47,30 @@ impl ClientMfaServer {
         }
 
         // Fetch the durable in-progress session by the opaque token.
-        let Some(session) = VpnClientMfaSession::find_active_by_token(&self.pool, &token).await
+        let Some(session) = VpnClientMfaSession::find_active_by_token(&self.pool, &token)
+            .await
+            .map_err(|err| {
+                error!("Failed to find MFA session: {err}");
+                Status::internal("unexpected error")
+            })?
         else {
             debug!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
 
         // Fetch the related objects for event context.
-        let location = WireguardNetwork::find_by_id(&self.pool, session.location_id)
-            .await
-            .map_err(|_| Status::internal("unexpected error"))?
-            .ok_or_else(|| Status::internal("location not found"))?;
-        let device = Device::find_by_id(&self.pool, session.device_id)
-            .await
-            .map_err(|_| Status::internal("unexpected error"))?
-            .ok_or_else(|| Status::internal("device not found"))?;
-        let user = User::find_by_id(&self.pool, session.user_id)
-            .await
-            .map_err(|_| Status::internal("unexpected error"))?
-            .ok_or_else(|| Status::internal("user not found"))?;
+        let Some(MfaSessionContext {
+            location,
+            device,
+            user,
+        }) = session.load_context(&self.pool).await.map_err(|err| {
+            error!("Failed to load MFA session context: {err}");
+            Status::internal("unexpected error")
+        })?
+        else {
+            error!("MFA session references a missing location, device, or user");
+            return Err(Status::internal("unexpected error"));
+        };
 
         // The attempt recorded at start holds the selected method and step attempt id.
         let Some(ephemeral) = session.ephemeral_state.as_ref() else {
@@ -82,14 +88,7 @@ impl ClientMfaServer {
 
         if method != MfaMethod::Oidc {
             debug!("Invalid MFA method for OIDC authentication: {method:?}");
-            let mut conn = self.pool.acquire().await.map_err(|_| {
-                error!("Failed to acquire DB connection");
-                Status::internal("unexpected error")
-            })?;
-            session.delete(&mut *conn).await.map_err(|err| {
-                error!("Failed to delete MFA session: {err}");
-                Status::internal("unexpected error")
-            })?;
+            self.delete_mfa_session(&session).await?;
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
@@ -110,14 +109,7 @@ impl ClientMfaServer {
             }) {
             Ok(url) => url,
             Err(status) => {
-                let mut conn = self.pool.acquire().await.map_err(|_| {
-                    error!("Failed to acquire DB connection");
-                    Status::internal("unexpected error")
-                })?;
-                session.delete(&mut *conn).await.map_err(|err| {
-                    error!("Failed to delete MFA session: {err}");
-                    Status::internal("unexpected error")
-                })?;
+                self.delete_mfa_session(&session).await?;
                 self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -150,14 +142,7 @@ impl ClientMfaServer {
                 // if thats not our user, prevent login
                 if claims_user.id != user.id {
                     info!("User {claims_user} tried to use OIDC MFA for another user: {user}");
-                    let mut conn = self.pool.acquire().await.map_err(|_| {
-                        error!("Failed to acquire DB connection");
-                        Status::internal("unexpected error")
-                    })?;
-                    session.delete(&mut *conn).await.map_err(|err| {
-                        error!("Failed to delete MFA session: {err}");
-                        Status::internal("unexpected error")
-                    })?;
+                    self.delete_mfa_session(&session).await?;
                     self.emit_event(BidiStreamEvent {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -178,14 +163,7 @@ impl ClientMfaServer {
             }
             Err(err) => {
                 info!("Failed to verify OIDC code: {err}");
-                let mut conn = self.pool.acquire().await.map_err(|_| {
-                    error!("Failed to acquire DB connection");
-                    Status::internal("unexpected error")
-                })?;
-                session.delete(&mut *conn).await.map_err(|err| {
-                    error!("Failed to delete MFA session: {err}");
-                    Status::internal("unexpected error")
-                })?;
+                self.delete_mfa_session(&session).await?;
                 self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -215,5 +193,17 @@ impl ClientMfaServer {
             })?;
 
         Ok(())
+    }
+
+    /// Delete a durable MFA session, mapping database errors to a gRPC status.
+    async fn delete_mfa_session(&self, session: &VpnClientMfaSession) -> Result<(), Status> {
+        let mut conn = self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })?;
+        session.delete(&mut *conn).await.map_err(|err| {
+            error!("Failed to delete MFA session: {err}");
+            Status::internal("unexpected error")
+        })
     }
 }
