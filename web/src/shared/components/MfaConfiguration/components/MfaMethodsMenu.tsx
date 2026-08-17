@@ -15,13 +15,11 @@ import { ButtonMenu } from '../../../defguard-ui/components/ButtonMenu/MenuButto
 import { Menu } from '../../../defguard-ui/components/Menu/Menu';
 import type { MenuItemsGroup } from '../../../defguard-ui/components/Menu/types';
 
-/** Properties for the standard button menu variant. */
 type ButtonVariantProps = Omit<ButtonProps, 'ref'> & {
   kind: 'button';
   options: MenuItemsGroup[];
 };
 
-/** Properties for the compact text menu variant. */
 type PlainVariantProps = {
   kind: 'plain';
   options: MenuItemsGroup[];

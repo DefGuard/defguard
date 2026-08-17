@@ -31,7 +31,6 @@ export type MfaConfigurationStepProps = {
   buildOption: (method: MfaFlowMethodValue, onClick: () => void) => MenuItemProps;
 };
 
-/** Properties for the controlled MFA configuration editor. */
 export type MfaConfigurationProps = {
   steps: MfaConfigurationStepData[];
   onChange: (steps: MfaConfigurationStepData[]) => void;
