@@ -19,9 +19,10 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
+import { useFormFieldError } from '../../shared/defguard-ui/hooks/useFormFieldError';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
-import { useAppForm } from '../../shared/form';
+import { useAppForm, useFieldContext } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 
 const formSchema = z.object({
@@ -169,18 +170,7 @@ export const MfaFormPage = ({ flow }: Props) => {
               title={m.mfa_flow_form_methods_title()}
               description={m.mfa_flow_form_methods_description()}
             />
-            <form.AppField name="steps">
-              {(field) => {
-                const error = field.state.meta.errors[0];
-                return (
-                  <MfaConfiguration
-                    steps={field.state.value}
-                    onChange={field.handleChange}
-                    error={typeof error === 'string' ? error : error?.message}
-                  />
-                );
-              }}
-            </form.AppField>
+            <form.AppField name="steps">{() => <FormMfaConfiguration />}</form.AppField>
           </MarkedSection>
           <Divider spacing={ThemeSpacing.Xl2} />
           <Controls>
@@ -203,5 +193,18 @@ export const MfaFormPage = ({ flow }: Props) => {
         </form.AppForm>
       </EditPage>
     </form>
+  );
+};
+
+const FormMfaConfiguration = () => {
+  const field = useFieldContext<MfaConfigurationStepData[]>();
+  const error = useFormFieldError();
+
+  return (
+    <MfaConfiguration
+      steps={field.state.value}
+      onChange={field.handleChange}
+      error={error}
+    />
   );
 };
