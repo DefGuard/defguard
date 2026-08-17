@@ -192,4 +192,23 @@ impl Session {
 
         Ok(())
     }
+
+    pub async fn delete_all_for_user_except<'e, E>(
+        executor: E,
+        user_id: Id,
+        session_id: &str,
+    ) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "DELETE FROM session WHERE user_id = $1 AND id != $2",
+            user_id,
+            session_id
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
 }
