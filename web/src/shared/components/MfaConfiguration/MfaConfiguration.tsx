@@ -8,8 +8,14 @@ import {
   MfaMethodAvailabilityReason,
   type MfaMethodAvailabilityReasonValue,
 } from '../../api/types';
+import { Button } from '../../defguard-ui/components/Button/Button';
+import type { ButtonProps } from '../../defguard-ui/components/Button/types';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
-import { getMfaMethodAvailabilityQueryOptions } from '../../query';
+import {
+  getLicenseInfoQueryOptions,
+  getMfaMethodAvailabilityQueryOptions,
+} from '../../query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../utils/license';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
@@ -20,6 +26,11 @@ import type {
 
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
   const { data: methodAvailability } = useQuery(getMfaMethodAvailabilityQueryOptions);
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const businessLicenseCheck =
+    licenseInfo === undefined ? undefined : canUseBusinessFeature(licenseInfo);
+  const additionalStepRequiresBusiness =
+    steps.length > 0 && businessLicenseCheck?.result === false;
   const availableMethods = methodAvailability?.map(({ method }) => method) ?? [];
   const methodLabels: Record<MfaFlowMethodValue, string> = {
     [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
@@ -85,6 +96,16 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
       }),
     ),
   }));
+  const addStepButtonProps: Omit<ButtonProps, 'ref'> = {
+    type: 'button',
+    variant: 'outlined',
+    iconRight: 'arrow-small',
+    iconRightRotation: 'down',
+    text: m.mfa_flow_step_add(),
+    disabled:
+      methodAvailability === undefined ||
+      (steps.length > 0 && businessLicenseCheck === undefined),
+  };
 
   const deleteStep = (id: MfaConfigurationStepData['id']) => {
     onChange(steps.filter((step) => step.id !== id));
@@ -145,16 +166,18 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         ))}
       </Reorder.Group>
       <div className="actions">
-        <MfaMethodsMenu
-          kind="button"
-          type="button"
-          variant="outlined"
-          iconRight="arrow-small"
-          iconRightRotation="down"
-          text={m.mfa_flow_step_add()}
-          options={addStepMenuOptions}
-          disabled={methodAvailability === undefined}
-        />
+        {additionalStepRequiresBusiness && businessLicenseCheck ? (
+          <Button
+            {...addStepButtonProps}
+            onClick={() => licenseActionCheck(businessLicenseCheck, () => {})}
+          />
+        ) : (
+          <MfaMethodsMenu
+            {...addStepButtonProps}
+            kind="button"
+            options={addStepMenuOptions}
+          />
+        )}
       </div>
       <FieldError error={error} />
     </div>
