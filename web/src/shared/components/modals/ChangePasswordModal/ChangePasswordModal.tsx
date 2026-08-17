@@ -12,6 +12,7 @@ import { Icon } from '../../../defguard-ui/components/Icon';
 import type { IconKindValue } from '../../../defguard-ui/components/Icon/icon-types';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
+import { Snackbar } from '../../../defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { useAppForm, withForm } from '../../../form';
 import { formChangeLogic } from '../../../formLogic';
@@ -75,6 +76,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
   }, [isAdmin]);
 
   const onSuccess = useCallback(() => {
+    Snackbar.success(m.modal_change_password_success());
     closeModal(modalNameKey);
   }, []);
 

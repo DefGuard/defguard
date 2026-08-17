@@ -1320,6 +1320,7 @@ pub(crate) async fn change_password(
 
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
+        user.logout_all_sessions(&appstate.pool).await?;
         ldap_change_password(
             &mut user,
             &data.new_password,
