@@ -105,7 +105,7 @@ const navigationConfig: NavGroupProps[] = [
       },
       {
         id: 'mfa',
-        icon: 'connected-devices',
+        icon: 'mobile-lock',
         label: m.cmp_nav_item_mfa(),
         link: '/mfa',
       },

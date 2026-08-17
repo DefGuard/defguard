@@ -165,7 +165,7 @@ export const MfaFormPage = ({ flow }: Props) => {
             </form.AppField>
           </MarkedSection>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <MarkedSection icon="manage-keys">
+          <MarkedSection icon="access-settings">
             <MarkedSectionHeader
               title={m.mfa_flow_form_methods_title()}
               description={m.mfa_flow_form_methods_description()}
