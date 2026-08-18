@@ -22,7 +22,7 @@ use crate::tests::common::{
 const FAST_NOTIFICATION_DELAY: Duration = Duration::from_millis(50);
 /// Longer than any of these tests can run, so a pending notification can only disappear by
 /// being cancelled.
-const NEVER_ELAPSING_NOTIFICATION_DELAY: Duration = Duration::from_secs(600);
+const NEVER_ELAPSING_NOTIFICATION_DELAY: Duration = Duration::from_mins(10);
 /// How long to wait before concluding that no notification is going to be sent.
 const NO_NOTIFICATION_GRACE_PERIOD: Duration = Duration::from_millis(200);
 

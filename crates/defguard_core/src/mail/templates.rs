@@ -770,29 +770,26 @@ mod tests {
 
     #[test]
     fn test_formats_weeks() {
-        assert_eq!(format_timeout(Duration::from_secs(7 * 24 * 3600)), "1 week");
-        assert_eq!(
-            format_timeout(Duration::from_secs(14 * 24 * 3600)),
-            "2 weeks"
-        );
+        assert_eq!(format_timeout(Duration::from_hours(168)), "1 week");
+        assert_eq!(format_timeout(Duration::from_hours(336)), "2 weeks");
     }
 
     #[test]
     fn test_formats_days() {
-        assert_eq!(format_timeout(Duration::from_secs(24 * 3600)), "1 day");
-        assert_eq!(format_timeout(Duration::from_secs(2 * 24 * 3600)), "2 days");
+        assert_eq!(format_timeout(Duration::from_hours(24)), "1 day");
+        assert_eq!(format_timeout(Duration::from_hours(48)), "2 days");
     }
 
     #[test]
     fn test_formats_hours() {
-        assert_eq!(format_timeout(Duration::from_secs(3600)), "1 hour");
-        assert_eq!(format_timeout(Duration::from_secs(23 * 3600)), "23 hours");
+        assert_eq!(format_timeout(Duration::from_hours(1)), "1 hour");
+        assert_eq!(format_timeout(Duration::from_hours(23)), "23 hours");
     }
 
     #[test]
     fn test_formats_minutes() {
-        assert_eq!(format_timeout(Duration::from_secs(60)), "1 minute");
-        assert_eq!(format_timeout(Duration::from_secs(30 * 60)), "30 minutes");
+        assert_eq!(format_timeout(Duration::from_mins(1)), "1 minute");
+        assert_eq!(format_timeout(Duration::from_mins(30)), "30 minutes");
     }
 
     #[test]

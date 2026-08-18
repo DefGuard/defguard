@@ -918,7 +918,7 @@ async fn test_group_client_traffic_policies_are_saved_and_validated(
         .patch("/api/v1/settings_enterprise")
         .json(&json!({
             "group_client_traffic_policies": {
-                "none": [999999],
+                "none": [999_999],
                 "disable_all_traffic": [],
                 "force_all_traffic": []
             }

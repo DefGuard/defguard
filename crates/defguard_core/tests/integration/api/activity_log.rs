@@ -400,7 +400,7 @@ async fn test_activity_log_module_sort_is_alphabetical(
             event: EventType::UserLogout,
             module,
             device: "integration-test".to_owned(),
-            description: Some(marker.to_string()),
+            description: Some(marker.clone()),
             metadata: None,
         }
         .save(&db)

@@ -4527,3 +4527,85 @@ async fn test_sync_failure_marks_desynced_and_recovers(
         "instance should be back in sync after recovery"
     );
 }
+
+#[sqlx::test]
+async fn test_disabled_user_created_as_disabled_ad_account(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_uses_ad = true;
+    settings.ldap_sync_account_status = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = true;
+    ldap_conn.config.ldap_sync_account_status = true;
+
+    let mut user = make_test_user(
+        "disabled_ad_user",
+        Some("disabled_ad_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    user.is_active = false;
+    let mut user = user.save(&pool).await.unwrap();
+    let user_dn = ldap_conn.config.user_dn_for_user(&user);
+
+    ldap_conn
+        .update_users_state(vec![&mut user], &pool, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let events = ldap_conn.test_client.get_events();
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, LdapEvent::ObjectAdded { dn, .. } if *dn == user_dn)),
+        "Disabled user should be created in AD, got events: {events:?}"
+    );
+
+    let disabled_uac = uac_with_active(UAC_NORMAL_ACCOUNT, false).to_string();
+    assert!(
+        events.iter().any(|event| matches!(
+            event,
+            LdapEvent::ObjectModified { new_dn, mods, .. }
+                if *new_dn == user_dn && mods.iter().any(|modification| matches!(
+                    modification,
+                    Mod::Replace(attr, values)
+                        if attr == "userAccountControl" && values.contains(&disabled_uac)
+                ))
+        )),
+        "Created AD account should have the ACCOUNTDISABLE bit set, got events: {events:?}"
+    );
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_sync_account_status = false;
+    update_current_settings(&pool, settings).await.unwrap();
+    ldap_conn.config.ldap_sync_account_status = false;
+    ldap_conn.test_client.clear_events();
+
+    let mut other_user = make_test_user(
+        "disabled_plain_user",
+        Some("disabled_plain_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    other_user.is_active = false;
+    let mut other_user = other_user.save(&pool).await.unwrap();
+
+    ldap_conn
+        .update_users_state(vec![&mut other_user], &pool, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    assert!(
+        ldap_conn.test_client.get_events().is_empty(),
+        "Disabled user must not be created in LDAP without account status sync, got events: {:?}",
+        ldap_conn.test_client.get_events()
+    );
+}

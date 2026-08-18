@@ -327,7 +327,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
     let webhook = WebHook {
         id: 1,
         url: "http://x".into(),
-        description: "".into(),
+        description: String::new(),
         token: "t".into(),
         enabled: true,
         on_user_created: false,

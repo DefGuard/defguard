@@ -77,7 +77,7 @@ async fn test_enrollment_email_reflects_configured_timeouts(
         context,
         url,
         token,
-        Duration::from_secs(168 * 3600),
+        Duration::from_hours(168),
     )
     .await
     .unwrap();
@@ -223,7 +223,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
         context,
         url,
         token,
-        Duration::from_secs(24 * 3600),
+        Duration::from_hours(24),
     )
     .await
     .unwrap();
