@@ -12,7 +12,7 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
         proxy::Proxy,
         settings::set_settings,
-        vpn_client_mfa_session::{Step, StepsSnapshot},
+        vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
         vpn_client_session::VpnClientMfaMethod,
         wireguard::ServiceLocationMode,
     },
@@ -1337,15 +1337,16 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Success {
                     location: location.clone(),
                     device: device.clone(),
-                    snapshot: StepsSnapshot {
-                        flow_id: 1,
-                        steps: vec![Step {
-                            methods: vec![VpnClientMfaMethod::MobileApprove],
-                            satisfied: Some(VpnClientMfaMethod::MobileApprove),
-                        }],
+                    attribution: MfaAttribution {
+                        snapshot: StepsSnapshot {
+                            flow_id: 1,
+                            steps: vec![Step {
+                                methods: vec![VpnClientMfaMethod::MobileApprove],
+                                satisfied: Some(VpnClientMfaMethod::MobileApprove),
+                            }],
+                        },
+                        flow_name: Some("flow".to_owned()),
                     },
-                    flow_id: 1,
-                    flow_name: Some("flow".to_owned()),
                     mobile_auth_device_name: Some("pixel-7".to_owned()),
                 })),
                 Some(location.clone()),

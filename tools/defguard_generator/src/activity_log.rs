@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{
         Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
         group::Group,
-        vpn_client_mfa_session::{Step, StepsSnapshot},
+        vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
         vpn_client_session::VpnClientMfaMethod,
     },
 };
@@ -1069,9 +1069,10 @@ fn build_vpn_event(
                 serde_json::to_value(VpnClientMfaMetadata {
                     location,
                     device,
-                    snapshot,
-                    flow_id: 1,
-                    flow_name: Some("Default Internal MFA".to_owned()),
+                    attribution: MfaAttribution {
+                        snapshot,
+                        flow_name: Some("Default Internal MFA".to_owned()),
+                    },
                     mobile_auth_device_name: None,
                 })
                 .ok(),

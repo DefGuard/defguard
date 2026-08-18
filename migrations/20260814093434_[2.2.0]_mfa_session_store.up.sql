@@ -16,7 +16,7 @@ CREATE TABLE vpn_client_mfa_session (
     current_step    integer NOT NULL DEFAULT 0,
     ephemeral_state jsonb NULL,              -- per-step attempt state; cleared on advance
     failed_attempts integer NOT NULL DEFAULT 0,
-    created_at      timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at      timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
     expires_at      timestamp without time zone NOT NULL
 );
 

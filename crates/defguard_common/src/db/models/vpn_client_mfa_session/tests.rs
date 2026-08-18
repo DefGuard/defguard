@@ -66,19 +66,19 @@ async fn create_device(pool: &sqlx::PgPool, user_id: Id) -> Device<Id> {
     .unwrap()
 }
 
-async fn start_session(pool: &sqlx::PgPool) -> (VpnClientMfaSession, StartOutcome) {
+async fn start_session(pool: &sqlx::PgPool) -> (VpnClientMfaSession<Id>, StartOutcome) {
     start_session_with_ttl(pool, Duration::from_mins(10)).await
 }
 
 async fn start_session_with_ttl(
     pool: &sqlx::PgPool,
     ttl: Duration,
-) -> (VpnClientMfaSession, StartOutcome) {
+) -> (VpnClientMfaSession<Id>, StartOutcome) {
     let location = create_location(pool).await;
     let user = create_user(pool).await;
     let device = create_device(pool, user.id).await;
     let mut tx = pool.begin().await.unwrap();
-    let result = VpnClientMfaSession::start(
+    let result = VpnClientMfaSession::<Id>::start(
         &mut tx,
         location.id,
         device.id,
@@ -96,8 +96,8 @@ async fn start_session_with_ttl(
     result
 }
 
-async fn refetch(pool: &sqlx::PgPool, token: &str) -> VpnClientMfaSession {
-    VpnClientMfaSession::find_active_by_token(pool, token)
+async fn refetch(pool: &sqlx::PgPool, token: &str) -> VpnClientMfaSession<Id> {
+    VpnClientMfaSession::<Id>::find_active_by_token(pool, token)
         .await
         .unwrap()
         .expect("expected active session")
@@ -112,7 +112,7 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
     let steps = vec![vec![VpnClientMfaMethod::Totp]];
 
     let mut tx = pool.begin().await.unwrap();
-    let (first, first_outcome) = VpnClientMfaSession::start(
+    let (first, first_outcome) = VpnClientMfaSession::<Id>::start(
         &mut tx,
         location.id,
         device.id,
@@ -130,14 +130,14 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
     assert_eq!(first.token_hash, hash_token(&first_outcome.token));
     assert_ne!(first.token_hash, first_outcome.token);
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &first_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_outcome.token)
             .await
             .unwrap()
             .is_some()
     );
 
     let mut tx = pool.begin().await.unwrap();
-    let (_second, second_outcome) = VpnClientMfaSession::start(
+    let (_second, second_outcome) = VpnClientMfaSession::<Id>::start(
         &mut tx,
         location.id,
         device.id,
@@ -156,13 +156,13 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
     );
     // The superseded token no longer validates; the new one does.
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &first_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_outcome.token)
             .await
             .unwrap()
             .is_none()
     );
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &second_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &second_outcome.token)
             .await
             .unwrap()
             .is_some()
@@ -178,7 +178,7 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
     let steps = vec![vec![VpnClientMfaMethod::Totp]];
 
     let mut tx = pool.begin().await.unwrap();
-    let (first, _) = VpnClientMfaSession::start(
+    let (first, _) = VpnClientMfaSession::<Id>::start(
         &mut tx,
         location.id,
         device.id,
@@ -192,7 +192,7 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
     tx.commit().await.unwrap();
 
     let mut tx = pool.begin().await.unwrap();
-    let (_, outcome) = VpnClientMfaSession::start(
+    let (_, outcome) = VpnClientMfaSession::<Id>::start(
         &mut tx,
         location.id,
         device.id,
@@ -219,7 +219,7 @@ async fn test_find_active_by_token_rejects_expired(_: PgPoolOptions, options: Pg
     let device = create_device(&pool, user.id).await;
 
     let mut tx = pool.begin().await.unwrap();
-    let (_session, outcome) = VpnClientMfaSession::start(
+    let (_session, outcome) = VpnClientMfaSession::<Id>::start(
         &mut tx,
         location.id,
         device.id,
@@ -233,7 +233,7 @@ async fn test_find_active_by_token_rejects_expired(_: PgPoolOptions, options: Pg
     tx.commit().await.unwrap();
 
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
             .await
             .unwrap()
             .is_none()
@@ -244,7 +244,7 @@ async fn test_find_active_by_token_rejects_expired(_: PgPoolOptions, options: Pg
 async fn test_find_active_by_token_rejects_unknown(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, "nonexistent-token")
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, "nonexistent-token")
             .await
             .unwrap()
             .is_none()
@@ -321,7 +321,7 @@ async fn test_advance_does_not_extend_expiry(_: PgPoolOptions, options: PgConnec
 }
 
 #[sqlx::test]
-async fn test_record_failure_caps_at_five(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_increment_failed_attempts_caps_at_five(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (session, outcome) = start_session(&pool).await;
 
@@ -476,13 +476,13 @@ async fn test_reap_expired_deletes_only_expired(_: PgPoolOptions, options: PgCon
     let reaped = reap_expired(&pool).await.unwrap();
     assert_eq!(reaped, 1);
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &active_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &active_outcome.token)
             .await
             .unwrap()
             .is_some()
     );
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &expired_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &expired_outcome.token)
             .await
             .unwrap()
             .is_none()
@@ -501,7 +501,7 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
     let mut conn_b = pool.acquire().await.unwrap();
 
     let (a, b) = tokio::join!(
-        VpnClientMfaSession::start(
+        VpnClientMfaSession::<Id>::start(
             &mut conn_a,
             location.id,
             device.id,
@@ -510,7 +510,7 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
             steps.clone(),
             Duration::from_mins(10),
         ),
-        VpnClientMfaSession::start(
+        VpnClientMfaSession::<Id>::start(
             &mut conn_b,
             location.id,
             device.id,
@@ -534,11 +534,11 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
     assert_eq!(count, Some(1));
 
     // Exactly one of the two minted tokens survives; the other was superseded.
-    let a_live = VpnClientMfaSession::find_active_by_token(&pool, &a_outcome.token)
+    let a_live = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &a_outcome.token)
         .await
         .unwrap()
         .is_some();
-    let b_live = VpnClientMfaSession::find_active_by_token(&pool, &b_outcome.token)
+    let b_live = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &b_outcome.token)
         .await
         .unwrap()
         .is_some();
@@ -561,7 +561,7 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
     let mut conn_b = pool.acquire().await.unwrap();
 
     let (a, b) = tokio::join!(
-        VpnClientMfaSession::start(
+        VpnClientMfaSession::<Id>::start(
             &mut conn_a,
             location_a.id,
             device.id,
@@ -570,7 +570,7 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
             steps.clone(),
             Duration::from_mins(10),
         ),
-        VpnClientMfaSession::start(
+        VpnClientMfaSession::<Id>::start(
             &mut conn_b,
             location_b.id,
             device.id,
@@ -584,13 +584,13 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
 
     // Uniqueness is per (location, device), so both rows stay live.
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &a_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &a_outcome.token)
             .await
             .unwrap()
             .is_some()
     );
     assert!(
-        VpnClientMfaSession::find_active_by_token(&pool, &b_outcome.token)
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &b_outcome.token)
             .await
             .unwrap()
             .is_some()

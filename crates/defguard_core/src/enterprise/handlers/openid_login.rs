@@ -172,6 +172,39 @@ pub(crate) fn extract_state_data(state: &str) -> Option<String> {
     }
 }
 
+/// The OIDC MFA `state` payload: the opaque in-progress session token plus the `step_attempt_id`
+/// the authorize URL was issued for. Serialized as `<token>.<step_attempt_id>`.
+///
+/// The enrollment flow shares `extract_state_data` but carries no nonce and no dot in its
+/// payload, so this type is specific to the MFA flow.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MfaOidcState {
+    pub token: String,
+    pub attempt_id: String,
+}
+
+impl MfaOidcState {
+    /// Build the dotted `<token>.<step_attempt_id>` payload.
+    #[must_use]
+    pub fn build(token: &str, attempt_id: &str) -> String {
+        format!("{token}.{attempt_id}")
+    }
+
+    /// Parse the dotted payload back into its parts. `None` when there is no separator or when
+    /// either part is empty.
+    #[must_use]
+    pub fn parse(payload: &str) -> Option<Self> {
+        let (token, attempt_id) = payload.split_once('.')?;
+        if token.is_empty() || attempt_id.is_empty() {
+            return None;
+        }
+        Some(Self {
+            token: token.to_owned(),
+            attempt_id: attempt_id.to_owned(),
+        })
+    }
+}
+
 /// Build OpenID Connect client.
 /// `url`: redirect/callback URL
 pub async fn make_oidc_client(
@@ -973,14 +1006,13 @@ mod test {
     fn test_state_round_trips_mfa_attempt_id() {
         // The MFA flow's state data is "<token>.<step_attempt_id>". The dotted payload must
         // survive build_state -> extract_state_data and split back into its two fields.
-        let data = "opaque-token.attempt-id-123";
-        let state = build_state(Some(data.to_owned()));
+        let data = MfaOidcState::build("opaque-token", "attempt-id-123");
+        let state = build_state(Some(data.clone()));
         let extracted = extract_state_data(state.secret());
-        assert_eq!(extracted.as_deref(), Some(data));
-        let extracted = extracted.unwrap();
-        let (token, attempt_id) = extracted.split_once('.').unwrap();
-        assert_eq!(token, "opaque-token");
-        assert_eq!(attempt_id, "attempt-id-123");
+        assert_eq!(extracted.as_deref(), Some(data.as_str()));
+        let parsed = MfaOidcState::parse(&extracted.unwrap()).unwrap();
+        assert_eq!(parsed.token, "opaque-token");
+        assert_eq!(parsed.attempt_id, "attempt-id-123");
 
         // An enrollment-shaped state carries no attempt id and must round-trip unchanged.
         let enrollment = "enrollment-token";

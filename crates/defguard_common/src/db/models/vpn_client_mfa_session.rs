@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
+use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{
@@ -11,7 +12,7 @@ use tracing::debug;
 
 use crate::{
     db::{
-        Id,
+        Id, NoId,
         models::{
             biometric_auth::BiometricChallenge, device::Device, user::User,
             vpn_client_session::VpnClientMfaMethod, wireguard::WireguardNetwork,
@@ -39,6 +40,15 @@ pub const MFA_FAILED_ATTEMPT_CAP: i32 = 5;
 pub struct StepsSnapshot {
     pub flow_id: Id,
     pub steps: Vec<Step>,
+}
+
+/// Attribution for a completed MFA session: the frozen step snapshot plus the governing flow's
+/// title. `flow_name` is resolved at collection and is `None` when the flow was deleted
+/// mid-session, which is a display concern rather than an error.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct MfaAttribution {
+    pub snapshot: StepsSnapshot,
+    pub flow_name: Option<String>,
 }
 
 /// A single step within a frozen flow snapshot.
@@ -95,15 +105,23 @@ struct AdvanceRow {
 }
 
 /// A durable in-progress VPN MFA session.
-#[derive(Clone, Debug)]
-pub struct VpnClientMfaSession {
-    pub id: Id,
+#[derive(Clone, Debug, Model)]
+#[table(vpn_client_mfa_session)]
+pub struct VpnClientMfaSession<I = NoId> {
+    pub id: I,
     pub token_hash: String,
     pub location_id: Id,
     pub device_id: Id,
     pub user_id: Id,
+    /// `#[model(json)]` makes the derive emit a `"steps_snapshot: _"` type override so the
+    /// generated queries decode the `jsonb` column into `Json<StepsSnapshot>`, and binds it by
+    /// reference with a no-op cast so sqlx's compile-time type check (which maps `jsonb` to
+    /// `serde_json::Value`) is skipped.
+    #[model(json)]
     pub steps_snapshot: Json<StepsSnapshot>,
     pub current_step: i32,
+    /// Same `#[model(json)]` treatment as `steps_snapshot`, for a nullable `jsonb` column.
+    #[model(json)]
     pub ephemeral_state: Option<Json<EphemeralState>>,
     pub failed_attempts: i32,
     pub created_at: NaiveDateTime,
@@ -116,7 +134,7 @@ pub fn hash_token(token: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(token.as_bytes()))
 }
 
-impl VpnClientMfaSession {
+impl VpnClientMfaSession<Id> {
     /// Begin a new in-progress MFA session, superseding any existing session for the same
     /// `(location_id, device_id)`.
     ///
@@ -248,14 +266,6 @@ impl VpnClientMfaSession {
             device,
             user,
         }))
-    }
-
-    /// Remove this session row (authorize-time, abort-time, supersede-time).
-    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<()> {
-        query!("DELETE FROM vpn_client_mfa_session WHERE id = $1", self.id)
-            .execute(executor)
-            .await?;
-        Ok(())
     }
 
     /// The methods available on the current step.

@@ -10,7 +10,7 @@ use defguard_common::db::{
         mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlowSnapshot},
         oauth2client::OAuth2Client,
         proxy::Proxy,
-        vpn_client_mfa_session::StepsSnapshot,
+        vpn_client_mfa_session::MfaAttribution,
     },
 };
 use defguard_proto::{client_types::MfaMethod, enterprise::posture::DevicePostureData};
@@ -462,14 +462,8 @@ pub enum DesktopClientMfaEvent {
     Success {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
-        /// The complete challenge-and-response record: methods offered and method satisfied
-        /// per step, frozen at start and accumulated by each `advance`.
-        snapshot: StepsSnapshot,
-        /// The governing flow id (also carried inside `snapshot`); attribution-only.
-        flow_id: Id,
-        /// The governing flow's title, resolved at collection. `None` when the flow was
-        /// deleted mid-session, which is a display concern rather than an error.
-        flow_name: Option<String>,
+        /// The complete challenge-and-response record and the governing flow's title.
+        attribution: MfaAttribution,
         /// Name of the device used to approve the login when the mobile approve
         /// MFA method is used. `None` for all other methods.
         mobile_auth_device_name: Option<String>,

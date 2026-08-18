@@ -759,18 +759,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
-                    snapshot,
-                    flow_id,
-                    flow_name,
+                    attribution,
                     mobile_auth_device_name,
                 } => (
                     EventType::VpnClientMfaSuccess,
                     serde_json::to_value(VpnClientMfaMetadata {
                         location,
                         device,
-                        snapshot,
-                        flow_id,
-                        flow_name,
+                        attribution,
                         mobile_auth_device_name,
                     })
                     .ok(),

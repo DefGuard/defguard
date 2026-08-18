@@ -15,8 +15,8 @@ use defguard_common::{
             mfa_flow::MfaFlow,
             polling_token::PollingToken,
             vpn_client_mfa_session::{
-                MfaSessionContext, StepOutcome, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
-                hash_token,
+                MfaAttribution, MfaSessionContext, StepOutcome, VPN_MFA_SESSION_TIMEOUT,
+                VpnClientMfaSession, hash_token,
             },
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
         },
@@ -103,6 +103,26 @@ pub struct ClientMfaServer {
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
+/// Acquire a pooled connection, mapping a pool error to an internal status.
+async fn acquire_connection(pool: &PgPool) -> Result<PoolConnection<Postgres>, Status> {
+    pool.acquire().await.map_err(|_| {
+        error!("Failed to acquire DB connection");
+        Status::internal("unexpected error")
+    })
+}
+
+/// Remove a remote-MFA waiter from the map, dropping the entry so a never-finishing client or a
+/// dropped sender cannot leak a map entry.
+fn remove_remote_mfa_waiter(
+    waiters: &Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+    hash: &str,
+) {
+    waiters
+        .write()
+        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+        .remove(hash);
+}
+
 impl ClientMfaServer {
     fn build_authorized_gateway_network_info(
         network_device: WireguardNetworkDevice,
@@ -137,10 +157,7 @@ impl ClientMfaServer {
 
     /// Acquire a pooled connection, mapping a pool error to an internal status.
     pub(crate) async fn acquire_conn(&self) -> Result<PoolConnection<Postgres>, Status> {
-        self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })
+        acquire_connection(&self.pool).await
     }
 
     /// Allows Edge to verify if token is valid and active.
@@ -149,13 +166,14 @@ impl ClientMfaServer {
         &mut self,
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
-        let token_valid = VpnClientMfaSession::find_active_by_token(&self.pool, &request.token)
-            .await
-            .map_err(|err| {
-                error!("Failed to validate MFA token: {err}");
-                Status::internal("unexpected error")
-            })?
-            .is_some();
+        let token_valid =
+            VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
+                .await
+                .map_err(|err| {
+                    error!("Failed to validate MFA token: {err}");
+                    Status::internal("unexpected error")
+                })?
+                .is_some();
         Ok(ClientMfaTokenValidationResponse { token_valid })
     }
 
@@ -467,7 +485,7 @@ impl ClientMfaServer {
             .map(|challenge| challenge.challenge.clone());
 
         // Start the durable in-progress session, freezing the license-filtered first step.
-        let (session, outcome) = VpnClientMfaSession::start(
+        let (session, outcome) = VpnClientMfaSession::<Id>::start(
             &mut conn,
             location.id,
             device.id,
@@ -534,10 +552,7 @@ impl ClientMfaServer {
         user_info: &UserInfo,
     ) -> Result<(), Status> {
         // acquire connection
-        let mut conn = pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })?;
+        let mut conn = acquire_connection(pool).await?;
 
         // fetch allowed group names for a given location
         let allowed_groups = location
@@ -592,7 +607,7 @@ impl ClientMfaServer {
 
         // Register a waiter only for a token that maps to a live in-progress session, so an
         // unauthenticated caller cannot grow the waiter map without bound.
-        if VpnClientMfaSession::find_active_by_token(&self.pool, &request.token)
+        if VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
             .await
             .map_err(|err| {
                 error!("Failed to find MFA session: {err}");
@@ -631,18 +646,12 @@ impl ClientMfaServer {
                 }
                 Ok(Err(err)) => {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
-                    waiters
-                        .write()
-                        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                        .remove(&hash);
+                    remove_remote_mfa_waiter(&waiters, &hash);
                     error!("Remote MFA response channel failed: {err:?}");
                 }
                 Err(_) => {
                     // Drop the waiter so a client that never finishes cannot leak map entries.
-                    waiters
-                        .write()
-                        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                        .remove(&hash);
+                    remove_remote_mfa_waiter(&waiters, &hash);
                     warn!("Remote MFA process with request_id {request_id} timed out");
                 }
             }
@@ -653,7 +662,7 @@ impl ClientMfaServer {
 
     /// Record a proof-verification failure, deleting the session once the per-step cap is
     /// reached so a subsequent finish fails closed.
-    async fn record_mfa_failure(&self, session: &VpnClientMfaSession) -> Result<(), Status> {
+    async fn record_mfa_failure(&self, session: VpnClientMfaSession<Id>) -> Result<(), Status> {
         let mut conn = self.acquire_conn().await?;
         let at_cap = session
             .increment_failed_attempts(&mut conn)
@@ -680,12 +689,13 @@ impl ClientMfaServer {
         debug!("Finishing desktop client login");
 
         // Fetch the durable in-progress session by the opaque token.
-        let Some(session) = VpnClientMfaSession::find_active_by_token(&self.pool, &request.token)
-            .await
-            .map_err(|err| {
-                error!("Failed to find MFA session: {err}");
-                Status::internal("unexpected error")
-            })?
+        let Some(session) =
+            VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
+                .await
+                .map_err(|err| {
+                    error!("Failed to find MFA session: {err}");
+                    Status::internal("unexpected error")
+                })?
         else {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
@@ -782,7 +792,7 @@ impl ClientMfaServer {
                                 },
                             )),
                         })?;
-                        self.record_mfa_failure(&session).await?;
+                        self.record_mfa_failure(session).await?;
                         return Err(Status::unauthenticated("unauthorized"));
                     }
                 }
@@ -818,7 +828,7 @@ impl ClientMfaServer {
                                 },
                             )),
                         })?;
-                        self.record_mfa_failure(&session).await?;
+                        self.record_mfa_failure(session).await?;
                         return Err(Status::unauthenticated("unauthorized"));
                     }
                 }
@@ -854,7 +864,7 @@ impl ClientMfaServer {
                             },
                         )),
                     })?;
-                    self.record_mfa_failure(&session).await?;
+                    self.record_mfa_failure(session).await?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
@@ -889,7 +899,7 @@ impl ClientMfaServer {
                             },
                         )),
                     })?;
-                    self.record_mfa_failure(&session).await?;
+                    self.record_mfa_failure(session).await?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
@@ -1003,9 +1013,10 @@ impl ClientMfaServer {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
-                    flow_id: snapshot.flow_id,
-                    snapshot,
-                    flow_name,
+                    attribution: MfaAttribution {
+                        snapshot,
+                        flow_name,
+                    },
                     mobile_auth_device_name,
                 },
             )),
@@ -1540,7 +1551,7 @@ mod tests {
             polling_token::PollingToken,
             settings::initialize_current_settings,
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-            vpn_client_mfa_session::{MFA_FAILED_ATTEMPT_CAP, VpnClientMfaSession},
+            vpn_client_mfa_session::{MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VpnClientMfaSession},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::ServiceLocationMode,
         },
@@ -2946,8 +2957,11 @@ mod tests {
         match event.event {
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
                 DesktopClientMfaEvent::Success {
-                    snapshot,
-                    flow_name,
+                    attribution:
+                        MfaAttribution {
+                            snapshot,
+                            flow_name,
+                        },
                     ..
                 } => {
                     assert_eq!(flow_name.as_deref(), Some("Default Internal MFA"));
@@ -2977,7 +2991,7 @@ mod tests {
 
         // The in-progress session is gone.
         assert!(
-            VpnClientMfaSession::find_active_by_token(&pool, &token)
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
                 .await
                 .unwrap()
                 .is_none()
@@ -3042,7 +3056,7 @@ mod tests {
 
         // The session is deleted once the cap is reached.
         assert!(
-            VpnClientMfaSession::find_active_by_token(&pool, &token)
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
                 .await
                 .unwrap()
                 .is_none()
@@ -3068,7 +3082,7 @@ mod tests {
         let user = create_user(pool).await;
         let device = create_device(pool, user.id).await;
         let mut tx = pool.begin().await.unwrap();
-        let (_, outcome) = VpnClientMfaSession::start(
+        let (_, outcome) = VpnClientMfaSession::<Id>::start(
             &mut tx,
             location.id,
             device.id,
@@ -3153,7 +3167,7 @@ mod tests {
             ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
         };
         assert!(
-            VpnClientMfaSession::find_active_by_token(&pool, &first_token)
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_token)
                 .await
                 .unwrap()
                 .is_some()
@@ -3170,13 +3184,13 @@ mod tests {
 
         // The first token no longer validates; the second one does.
         assert!(
-            VpnClientMfaSession::find_active_by_token(&pool, &first_token)
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_token)
                 .await
                 .unwrap()
                 .is_none()
         );
         assert!(
-            VpnClientMfaSession::find_active_by_token(&pool, &second_token)
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &second_token)
                 .await
                 .unwrap()
                 .is_some()
@@ -3292,7 +3306,7 @@ mod tests {
 
         // Build a state that encodes the token and the session's step_attempt_id, as the
         // OIDC redirect does for the MFA flow.
-        let session = VpnClientMfaSession::find_active_by_token(&pool, &token)
+        let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
             .await
             .unwrap()
             .expect("expected an active session");
@@ -3319,7 +3333,7 @@ mod tests {
 
         // The mismatched session is deleted.
         assert!(
-            VpnClientMfaSession::find_active_by_token(&pool, &token)
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
                 .await
                 .unwrap()
                 .is_none()

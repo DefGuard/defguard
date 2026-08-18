@@ -14,6 +14,7 @@ enum ModelType {
     Any,
     Enum,
     Ip,
+    Json,
     List,
     Option,
     OptionRef,
@@ -33,6 +34,8 @@ impl From<&Ident> for ModelType {
             Self::Enum
         } else if value == "ip" {
             Self::Ip
+        } else if value == "json" {
+            Self::Json
         } else if value == "list" {
             Self::List
         } else if value == "option" {
@@ -181,7 +184,7 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             ModelType::Secret => format!("\"{name}\" \"{name}?: SecretString\""),
             ModelType::Ip => format!("\"{name}\" \"{name}: IpAddr\""),
             ModelType::Option | ModelType::OptionRef => format!("\"{name}\" \"{name}?: _\""),
-            ModelType::Enum | ModelType::Ref | ModelType::List => {
+            ModelType::Enum | ModelType::Ref | ModelType::List | ModelType::Json => {
                 format!("\"{name}\" \"{name}: _\"")
             }
         });
@@ -207,7 +210,7 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             ModelType::Secret => quote! { &self.#name as &Option<SecretString> },
             // FIXME: hard-coded struct name
             ModelType::Ip => quote! { &self.#name as &IpAddr },
-            ModelType::List => {
+            ModelType::List | ModelType::Json => {
                 let ty = &field.ty;
                 quote! { &self.#name as &#ty }
             }

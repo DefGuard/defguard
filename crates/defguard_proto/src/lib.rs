@@ -157,6 +157,40 @@ impl From<Status> for CoreError {
     }
 }
 
+impl CoreError {
+    /// An `invalid_argument` error carrying a caller-facing message.
+    pub fn invalid_argument(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::InvalidArgument.into(),
+            message: message.into(),
+        }
+    }
+
+    /// An `internal` error carrying a caller-facing message.
+    pub fn internal(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::Internal.into(),
+            message: message.into(),
+        }
+    }
+
+    /// A `not_found` error carrying a caller-facing message.
+    pub fn not_found(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::NotFound.into(),
+            message: message.into(),
+        }
+    }
+
+    /// A `failed_precondition` error carrying a caller-facing message.
+    pub fn failed_precondition(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::FailedPrecondition.into(),
+            message: message.into(),
+        }
+    }
+}
+
 impl From<Device<Id>> for client_types::Device {
     fn from(device: Device<Id>) -> Self {
         Self {
