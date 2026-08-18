@@ -1,6 +1,7 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Reorder } from 'motion/react';
+import { useCallback } from 'react';
 import { m } from '../../../paraglide/messages';
 import {
   MfaFlowMethod,
@@ -19,51 +20,57 @@ import { canUseBusinessFeature, licenseActionCheck } from '../../utils/license';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
+  MfaConfigurationMethodGroup,
   MfaConfigurationProps,
   MfaConfigurationStepData,
-  MfaMethodGroup,
 } from './types';
 
+const getDisabledHelper = (reason: MfaMethodAvailabilityReasonValue) => {
+  switch (reason) {
+    case MfaMethodAvailabilityReason.Licensed:
+      return m.mfa_flow_method_business_required();
+    case MfaMethodAvailabilityReason.SmtpNotConfigured:
+      return m.mfa_flow_method_smtp_required();
+    case MfaMethodAvailabilityReason.OidcProviderMissing:
+      return m.mfa_flow_error_oidc_provider_missing();
+    case MfaMethodAvailabilityReason.Available:
+      return undefined;
+  }
+};
+
+const methodLabels: Record<MfaFlowMethodValue, string> = {
+  [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
+  [MfaFlowMethod.Totp]: m.mfa_flow_method_authenticator_app(),
+  [MfaFlowMethod.OpenId]: m.mfa_flow_method_external_provider(),
+  [MfaFlowMethod.Email]: m.mfa_flow_method_email_code(),
+  [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
+};
+
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
-  const { data: methodAvailability } = useQuery(getMfaMethodAvailabilityQueryOptions);
+  const { data: methodData } = useQuery(getMfaMethodAvailabilityQueryOptions);
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const methodAvailability = methodData?.methodAvailability;
+  const methods = methodData?.methods ?? [];
   const businessLicenseCheck =
     licenseInfo === undefined ? undefined : canUseBusinessFeature(licenseInfo);
   const additionalStepRequiresBusiness =
     steps.length > 0 && businessLicenseCheck?.result === false;
-  const availableMethods = methodAvailability?.map(({ method }) => method) ?? [];
-  const methodLabels: Record<MfaFlowMethodValue, string> = {
-    [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
-    [MfaFlowMethod.Totp]: m.mfa_flow_method_authenticator_app(),
-    [MfaFlowMethod.OpenId]: m.mfa_flow_method_external_provider(),
-    [MfaFlowMethod.Email]: m.mfa_flow_method_email_code(),
-    [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
-  };
-  /** Maps a backend availability reason to menu guidance. */
-  const getDisabledHelper = (reason: MfaMethodAvailabilityReasonValue) => {
-    switch (reason) {
-      case MfaMethodAvailabilityReason.Licensed:
-        return m.mfa_flow_method_business_required();
-      case MfaMethodAvailabilityReason.SmtpNotConfigured:
-        return m.mfa_flow_method_smtp_required();
-      case MfaMethodAvailabilityReason.OidcProviderMissing:
-        return m.mfa_flow_error_oidc_provider_missing();
-      case MfaMethodAvailabilityReason.Available:
-        return undefined;
-    }
-  };
-  /** Builds one selectable MFA method menu item. */
-  const buildOption = (method: MfaFlowMethodValue, onClick: () => void) => {
-    const availability = methodAvailability?.find((item) => item.method === method);
-    return {
-      text: methodLabels[method],
-      onClick,
-      disabled: availability?.available !== true,
-      disabledHelper: availability ? getDisabledHelper(availability.reason) : undefined,
-    };
-  };
-  /** Groups locked premium methods separately from methods available in the current plan. */
-  const buildMethodGroups = (methods: MfaFlowMethodValue[]): MfaMethodGroup[] => {
+
+  const buildOption = useCallback(
+    (method: MfaFlowMethodValue, onClick: () => void) => {
+      const availability = methodAvailability?.find((item) => item.method === method);
+      return {
+        text: methodLabels[method],
+        onClick,
+        disabled: availability?.available !== true,
+        disabledHelper: availability ? getDisabledHelper(availability.reason) : undefined,
+      };
+    },
+    [methodAvailability],
+  );
+  const buildMethodGroups = (
+    methods: MfaFlowMethodValue[],
+  ): MfaConfigurationMethodGroup[] => {
     const licensedMethods = methods.filter(
       (method) =>
         methodAvailability?.find((item) => item.method === method)?.reason ===
@@ -88,7 +95,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
     ];
   };
 
-  const addStepMenuOptions = buildMethodGroups(availableMethods).map((group) => ({
+  const addStepMenuOptions = buildMethodGroups(methods).map((group) => ({
     ...group,
     items: group.items.map((method) =>
       buildOption(method, () => {
@@ -107,44 +114,47 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
       (steps.length > 0 && businessLicenseCheck === undefined),
   };
 
-  const deleteStep = (id: MfaConfigurationStepData['id']) => {
-    onChange(steps.filter((step) => step.id !== id));
-  };
+  const deleteStep = useCallback(
+    (id: MfaConfigurationStepData['id']) => {
+      onChange(steps.filter((step) => step.id !== id));
+    },
+    [onChange, steps],
+  );
 
-  const addMethod = (
-    stepId: MfaConfigurationStepData['id'],
-    method: MfaFlowMethodValue,
-  ) => {
-    onChange(
-      steps.map((step) =>
-        step.id === stepId ? { ...step, methods: [...step.methods, method] } : step,
-      ),
-    );
-  };
+  const addMethod = useCallback(
+    (stepId: MfaConfigurationStepData['id'], method: MfaFlowMethodValue) => {
+      onChange(
+        steps.map((step) =>
+          step.id === stepId ? { ...step, methods: [...step.methods, method] } : step,
+        ),
+      );
+    },
+    [onChange, steps],
+  );
 
-  const deleteMethod = (
-    stepId: MfaConfigurationStepData['id'],
-    method: MfaFlowMethodValue,
-  ) => {
-    const step = steps.find((item) => item.id === stepId);
-    if (!step) return;
+  const deleteMethod = useCallback(
+    (stepId: MfaConfigurationStepData['id'], method: MfaFlowMethodValue) => {
+      const step = steps.find((item) => item.id === stepId);
+      if (!step) return;
 
-    if (step.methods.length === 1) {
-      deleteStep(stepId);
-      return;
-    }
+      if (step.methods.length === 1) {
+        deleteStep(stepId);
+        return;
+      }
 
-    onChange(
-      steps.map((item) =>
-        item.id === stepId
-          ? {
-              ...item,
-              methods: item.methods.filter((itemMethod) => itemMethod !== method),
-            }
-          : item,
-      ),
-    );
-  };
+      onChange(
+        steps.map((item) =>
+          item.id === stepId
+            ? {
+                ...item,
+                methods: item.methods.filter((itemMethod) => itemMethod !== method),
+              }
+            : item,
+        ),
+      );
+    },
+    [deleteStep, onChange, steps],
+  );
 
   return (
     <div className="mfa-configuration">
@@ -155,7 +165,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
             step={step}
             stepNumber={index + 1}
             methodGroups={buildMethodGroups(
-              availableMethods.filter((method) => !step.methods.includes(method)),
+              methods.filter((method) => !step.methods.includes(method)),
             )}
             methodLabels={methodLabels}
             onDeleteStep={deleteStep}

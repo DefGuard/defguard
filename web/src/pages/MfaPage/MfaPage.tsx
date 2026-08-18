@@ -13,7 +13,6 @@ import { getLicenseInfoQueryOptions, getMfaFlowsQueryOptions } from '../../share
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { MfaFlowsTable } from './MfaFlowsTable';
 
-/** Loads and renders either the configured MFA flows or the first-use empty state. */
 const MfaPageContent = () => {
   const navigate = useNavigate();
   const { data: flows } = useSuspenseQuery(getMfaFlowsQueryOptions);

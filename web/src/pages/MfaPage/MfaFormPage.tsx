@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
+import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -82,16 +83,21 @@ export const MfaFormPage = ({ flow }: Props) => {
       Snackbar.error(getSaveErrorMessage(error));
     },
   });
+  const defaultValues = useMemo(
+    () =>
+      flow
+        ? {
+            title: flow.title,
+            steps: flow.steps.map(({ id, methods }) => ({ id, methods })),
+          }
+        : {
+            title: '',
+            steps: [] as MfaConfigurationStepData[],
+          },
+    [flow],
+  );
   const form = useAppForm({
-    defaultValues: flow
-      ? {
-          title: flow.title,
-          steps: flow.steps.map(({ id, methods }) => ({ id, methods })),
-        }
-      : {
-          title: '',
-          steps: [] as MfaConfigurationStepData[],
-        },
+    defaultValues,
     validationLogic: formChangeLogic,
     validators: {
       onChange: formSchema,
