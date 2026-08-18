@@ -34,20 +34,29 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("OIDC MFA method is not supported"));
         }
 
-        let token = extract_state_data(&request.state).ok_or_else(|| {
-            error!(
-                "Failed to extract state data from state: {:?}",
-                request.state
-            );
+        let state_data = extract_state_data(&request.state).ok_or_else(|| {
+            error!("Failed to extract state data from state");
+            Status::invalid_argument("invalid state data")
+        })?;
+
+        // The MFA flow's state carries "<token>.<step_attempt_id>". A state with no attempt id
+        // (for example, an OIDC login in flight across the upgrade) is rejected rather than
+        // silently accepted.
+        let (token, attempt_id) = state_data.split_once('.').ok_or_else(|| {
+            debug!("OIDC MFA state carries no attempt id");
             Status::invalid_argument("invalid state data")
         })?;
         if token.is_empty() {
             debug!("Empty token provided in request");
             return Err(Status::invalid_argument("empty token provided"));
         }
+        if attempt_id.is_empty() {
+            debug!("OIDC MFA state carries an empty attempt id");
+            return Err(Status::invalid_argument("invalid state data"));
+        }
 
         // Fetch the durable in-progress session by the opaque token.
-        let Some(session) = VpnClientMfaSession::find_active_by_token(&self.pool, &token)
+        let Some(session) = VpnClientMfaSession::find_active_by_token(&self.pool, token)
             .await
             .map_err(|err| {
                 error!("Failed to find MFA session: {err}");
@@ -78,7 +87,6 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("no MFA attempt in progress"));
         };
         let method: MfaMethod = ephemeral.selected_method.into();
-        let step_attempt_id = ephemeral.step_attempt_id.clone();
         let openid_auth_completed = ephemeral.openid_auth_completed;
 
         if openid_auth_completed {
@@ -182,15 +190,20 @@ impl ClientMfaServer {
             }
         }
 
-        // Mark the OIDC attempt complete. A stale step_attempt_id is a no-op.
+        // Mark the OIDC attempt complete, gated on the attempt id the state carried. A stale or
+        // absent attempt is a no-op (returns false) and must be rejected, not silently accepted.
         let mut conn = self.acquire_conn().await?;
-        session
-            .mark_oidc_completed(&mut conn, &step_attempt_id)
+        let marked = session
+            .mark_oidc_completed(&mut conn, attempt_id)
             .await
             .map_err(|err| {
                 error!("Failed to mark OIDC attempt complete: {err}");
                 Status::internal("unexpected error")
             })?;
+        if !marked {
+            debug!("OIDC MFA callback arrived for a superseded or absent attempt");
+            return Err(Status::invalid_argument("stale OIDC MFA attempt"));
+        }
 
         Ok(())
     }

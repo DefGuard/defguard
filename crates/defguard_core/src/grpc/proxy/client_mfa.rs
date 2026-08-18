@@ -3290,8 +3290,19 @@ mod tests {
             ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
         };
 
-        // Build a state that encodes the token, as the OIDC redirect would.
-        let state = build_state(Some(token.clone()));
+        // Build a state that encodes the token and the session's step_attempt_id, as the
+        // OIDC redirect does for the MFA flow.
+        let session = VpnClientMfaSession::find_active_by_token(&pool, &token)
+            .await
+            .unwrap()
+            .expect("expected an active session");
+        let attempt_id = session
+            .ephemeral_state
+            .as_ref()
+            .expect("expected an attempt in progress")
+            .step_attempt_id
+            .clone();
+        let state = build_state(Some(format!("{token}.{attempt_id}")));
         let status = server
             .auth_mfa_session_with_oidc(
                 ClientMfaOidcAuthenticateRequest {

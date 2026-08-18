@@ -13,7 +13,9 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Certificates, Settings, proxy::Proxy},
+        models::{
+            Certificates, Settings, proxy::Proxy, vpn_client_mfa_session::VpnClientMfaSession,
+        },
     },
     types::AuthFlowType,
 };
@@ -79,6 +81,57 @@ use crate::{
 };
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
+
+/// Compute the OIDC `state` payload for an `AuthInfo` request.
+///
+/// The MFA flow's payload is the opaque session token plus the session's current
+/// `step_attempt_id` (`<token>.<step_attempt_id>`), so the OIDC callback can bind to the attempt
+/// it was issued for rather than a superseded one. The enrollment and legacy flows have no such
+/// nonce and their payload is returned unchanged.
+async fn build_auth_info_state(
+    pool: &PgPool,
+    auth_flow_type: ProtoAuthFlowType,
+    state: Option<String>,
+) -> Result<Option<String>, CoreError> {
+    if auth_flow_type != ProtoAuthFlowType::Mfa {
+        return Ok(state);
+    }
+
+    let Some(token) = state.as_deref() else {
+        error!("OIDC MFA AuthInfo request is missing the session token");
+        return Err(CoreError {
+            status_code: Code::InvalidArgument as i32,
+            message: "missing MFA session token".into(),
+        });
+    };
+
+    let Some(session) = VpnClientMfaSession::find_active_by_token(pool, token)
+        .await
+        .map_err(|err| {
+            error!("Failed to find MFA session: {err}");
+            CoreError {
+                status_code: Code::Internal as i32,
+                message: "failed to find MFA session".into(),
+            }
+        })?
+    else {
+        error!("OIDC MFA AuthInfo request references an unknown or expired session");
+        return Err(CoreError {
+            status_code: Code::InvalidArgument as i32,
+            message: "MFA session not found".into(),
+        });
+    };
+
+    let Some(ephemeral) = session.ephemeral_state.as_ref() else {
+        error!("OIDC MFA AuthInfo request references a session with no attempt in progress");
+        return Err(CoreError {
+            status_code: Code::InvalidArgument as i32,
+            message: "no MFA attempt in progress".into(),
+        });
+    };
+
+    Ok(Some(format!("{token}.{}", ephemeral.step_attempt_id)))
+}
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
@@ -795,7 +848,8 @@ impl ProxyHandler {
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
                             if is_business_license_active() {
-                                let redirect_url = match request.auth_flow_type() {
+                                let auth_flow_type = request.auth_flow_type();
+                                let redirect_url = match auth_flow_type {
                                     ProtoAuthFlowType::Enrollment => {
                                         let settings = Settings::get_current_settings();
                                         settings.edge_callback_url(AuthFlowType::Enrollment)
@@ -818,35 +872,59 @@ impl ProxyHandler {
                                     {
                                         match make_oidc_client(redirect_url, &provider).await {
                                             Ok((_client_id, client)) => {
-                                                let mut authorize_url_builder = client
-                                                    .authorize_url(
-                                                        CoreAuthenticationFlow::AuthorizationCode,
-                                                        || build_state(request.state),
-                                                        Nonce::new_random,
-                                                    )
-                                                    .add_scope(Scope::new("email".to_owned()))
-                                                    .add_scope(Scope::new("profile".to_owned()));
-
-                                                if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
-                                                    .iter()
-                                                    .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                                match build_auth_info_state(
+                                                    &pool,
+                                                    auth_flow_type,
+                                                    request.state,
+                                                )
+                                                .await
                                                 {
-                                                    authorize_url_builder = authorize_url_builder
-                                                        .add_prompt(
-                                                            openidconnect::core::CoreAuthPrompt::SelectAccount,
-                                                        );
-                                                }
-                                                let (url, csrf_token, nonce) =
-                                                    authorize_url_builder.url();
+                                                    Ok(state_data) => {
+                                                        let mut authorize_url_builder = client
+                                                            .authorize_url(
+                                                                CoreAuthenticationFlow::AuthorizationCode,
+                                                                || build_state(state_data),
+                                                                Nonce::new_random,
+                                                            )
+                                                            .add_scope(Scope::new("email".to_owned()))
+                                                            .add_scope(Scope::new("profile".to_owned()));
 
-                                                Some(core_response::Payload::AuthInfo(
-                                                    AuthInfoResponse {
-                                                        url: url.into(),
-                                                        csrf_token: csrf_token.secret().to_owned(),
-                                                        nonce: nonce.secret().to_owned(),
-                                                        button_display_name: provider.display_name,
-                                                    },
-                                                ))
+                                                        if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+                                                            .iter()
+                                                            .all(|p| {
+                                                                p.eq_ignore_ascii_case(
+                                                                    &provider.name,
+                                                                )
+                                                            })
+                                                        {
+                                                            authorize_url_builder = authorize_url_builder
+                                                                .add_prompt(
+                                                                    openidconnect::core::CoreAuthPrompt::SelectAccount,
+                                                                );
+                                                        }
+                                                        let (url, csrf_token, nonce) =
+                                                            authorize_url_builder.url();
+
+                                                        Some(core_response::Payload::AuthInfo(
+                                                            AuthInfoResponse {
+                                                                url: url.into(),
+                                                                csrf_token: csrf_token
+                                                                    .secret()
+                                                                    .to_owned(),
+                                                                nonce: nonce.secret().to_owned(),
+                                                                button_display_name: provider
+                                                                    .display_name,
+                                                            },
+                                                        ))
+                                                    }
+                                                    Err(err) => {
+                                                        error!(
+                                                            "Failed to build OIDC state: {}",
+                                                            err.message
+                                                        );
+                                                        Some(core_response::Payload::CoreError(err))
+                                                    }
+                                                }
                                             }
                                             Err(err) => {
                                                 error!(
