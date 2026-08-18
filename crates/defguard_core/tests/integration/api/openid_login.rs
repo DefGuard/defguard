@@ -25,6 +25,16 @@ struct UrlResponse {
     url: String,
 }
 
+#[derive(Deserialize)]
+struct CurrentProviderResponse {
+    provider: CurrentProvider,
+}
+
+#[derive(Deserialize)]
+struct CurrentProvider {
+    disable_password_management: bool,
+}
+
 #[sqlx::test]
 async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -108,6 +118,72 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn test_modify_openid_provider_persists_disable_password_management(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let client = make_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    let mut provider_data = AddProviderData {
+        name: "test".to_owned(),
+        base_url: "https://accounts.google.com".to_owned(),
+        kind: OpenIdProviderKind::Google,
+        client_id: "client_id".to_owned(),
+        client_secret: "client_secret".to_owned(),
+        display_name: Some("display_name".to_owned()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
+        okta_dirsync_client_id: None,
+        okta_private_jwk: None,
+        directory_sync_group_match: None,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
+        jumpcloud_api_key: None,
+        prefetch_users: false,
+        disable_password_management: false,
+        directory_sync_user_groups: None,
+    };
+
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Toggle the flag and update the provider via PUT.
+    provider_data.disable_password_management = true;
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Read back the current provider and assert the flag was persisted.
+    let response = client.get("/api/v1/openid/provider/current").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: CurrentProviderResponse = response.json().await;
+    assert!(
+        body.provider.disable_password_management,
+        "disable_password_management should be persisted as true after update"
+    );
 }
 
 // FIXME: this test sometimes fails because of test_openid_providers.

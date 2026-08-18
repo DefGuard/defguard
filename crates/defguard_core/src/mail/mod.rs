@@ -152,6 +152,13 @@ impl Mail {
         &self.subject
     }
 
+    /// Getter for the plain text body. Used by tests to assert rendered content.
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) fn text(&self) -> &str {
+        &self.text
+    }
+
     /// Add to context.
     pub fn add_to_context<K, V>(&mut self, key: K, value: &V)
     where

@@ -33,6 +33,66 @@ fn dg25_8_server_side_template_injection() {
     assert!(tera.render("text", &Context::new()).is_err());
 }
 
+/// Override the enrollment token/session timeouts and reload the global settings.
+async fn set_enrollment_timeouts(pool: &PgPool, token_hours: i32, session_minutes: i32) {
+    sqlx::query!(
+        "UPDATE settings \
+         SET enrollment_token_timeout_hours = $1, \
+             enrollment_session_timeout_minutes = $2",
+        token_hours,
+        session_minutes,
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+
+    initialize_current_settings(pool).await.unwrap();
+}
+
+/// Regression test for https://github.com/DefGuard/defguard/issues/3518
+///
+/// The enrollment email must reflect the configured enrollment token and session timeouts
+/// instead of the hardcoded defaults ("24 hours" / "10 minutes").
+#[sqlx::test]
+async fn test_enrollment_email_reflects_configured_timeouts(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool).await.unwrap();
+
+    // Configure non-default timeouts: token valid for 1 week, session for 30 minutes.
+    // `build_new_account_mail` reads the session timeout from the global settings set here,
+    // while the token timeout is per-enrollment and passed explicitly.
+    set_enrollment_timeouts(&pool, 168, 30).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let url = Url::parse("http://localhost:8001").unwrap();
+    let context = Context::new();
+    let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
+
+    let mail = templates::build_new_account_mail(
+        "user@example.com",
+        &mut conn,
+        context,
+        url,
+        token,
+        Duration::from_secs(168 * 3600),
+    )
+    .await
+    .unwrap();
+
+    let text = mail.text();
+    assert!(
+        text.contains("1 week"),
+        "enrollment email should show the configured token timeout, got: {text}"
+    );
+    assert!(
+        text.contains("30 minutes"),
+        "enrollment email should show the configured session timeout, got: {text}"
+    );
+}
+
 /// Delay, so send_and_forget() can process the message.
 async fn delay() {
     sleep(Duration::from_secs(2)).await;
@@ -163,6 +223,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
         context,
         url,
         token,
+        Duration::from_secs(24 * 3600),
     )
     .await
     .unwrap();

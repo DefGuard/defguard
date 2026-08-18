@@ -61,6 +61,7 @@ pub async fn start_user_enrollment(
             base_message_context,
             enrollment_service_url,
             &enrollment.id,
+            enrollment.validity_duration(),
         )
         .await;
         match result {
@@ -200,6 +201,7 @@ pub async fn send_enrollment_invitation(
         base_message_context,
         enrollment_service_url,
         token_id,
+        token.validity_duration(),
     )
     .await
     {
