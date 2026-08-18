@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use chrono::{DateTime, TimeDelta};
+use chrono::{DateTime, TimeDelta, Timelike};
 use defguard_common::{
     VERSION,
     db::{
@@ -260,47 +260,87 @@ impl GatewayHandler {
         }
     }
 
-    /// Send Gateway disconnected notification.
-    /// Sends notification only if last notification time is bigger than specified in config.
-    async fn send_disconnect_notification(&self) {
+    /// Schedule a notification for the gateway's current outage.
+    fn schedule_disconnect_notification(&self) {
         let settings = Settings::get_current_settings();
         if !settings.gateway_disconnect_notifications_enabled {
             return;
         }
 
-        // Send email only if disconnection time is before the connection time.
-        if let (Some(connected_at), Some(disconnected_at)) =
-            (self.gateway.connected_at, self.gateway.disconnected_at)
-            && disconnected_at > connected_at
-        {
-            info!("{} disconnected; email notification not sent", self.gateway);
-            return;
-        }
-
-        debug!("Sending Gateway disconnect email notification");
-        let name = match Gateway::find_by_id(&self.pool, self.gateway.id).await {
-            Ok(Some(gateway)) => gateway.name,
-            _ => self.gateway.name.clone(),
-        };
-        let pool = self.pool.clone();
-        let url = format!("{}:{}", self.gateway.address, self.gateway.port);
-
-        let Ok(Some(network)) =
-            WireguardNetwork::find_by_id(&self.pool, self.gateway.location_id).await
+        let Ok(threshold_minutes) =
+            u64::try_from(settings.gateway_disconnect_notifications_inactivity_threshold)
         else {
-            error!(
-                "Failed to fetch network ID {} from database",
-                self.gateway.location_id
-            );
+            error!("Cannot schedule Gateway disconnect notification with a negative threshold");
+            return;
+        };
+        let Some(disconnected_at) = self.gateway.disconnected_at else {
+            error!("Cannot schedule Gateway disconnect notification without an outage timestamp");
+            return;
+        };
+        let Some(disconnected_at) =
+            disconnected_at.with_nanosecond((disconnected_at.nanosecond() / 1_000) * 1_000)
+        else {
+            error!("Failed to normalize Gateway disconnection timestamp");
             return;
         };
 
-        // TODO: return result instead of logging.
-        if let Err(err) = send_gateway_disconnected_email(name, network.name, &url, &pool).await {
-            error!("Failed to send Gateway disconnect notification: {err}");
-        } else {
-            info!("Sent email notification about Gateway being disconnected");
-        }
+        debug!(
+            "Scheduling Gateway disconnect email notification for gateway {}",
+            self.gateway.id
+        );
+        let gateway_id = self.gateway.id;
+        let pool = self.pool.clone();
+        let delay = Duration::from_secs(threshold_minutes.saturating_mul(60));
+
+        tokio::spawn(async move {
+            tokio::time::sleep(delay).await;
+
+            if !Settings::get_current_settings().gateway_disconnect_notifications_enabled {
+                return;
+            }
+
+            let gateway = match Gateway::find_by_id(&pool, gateway_id).await {
+                Ok(Some(gateway)) => gateway,
+                Ok(None) => return,
+                Err(err) => {
+                    error!("Failed to reload Gateway id={gateway_id}: {err}");
+                    return;
+                }
+            };
+            if gateway.is_connected() || gateway.disconnected_at != Some(disconnected_at) {
+                debug!(
+                    "Gateway id={gateway_id} reconnected or started a new outage; not sending a \
+                    disconnect notification"
+                );
+                return;
+            }
+
+            let network = match WireguardNetwork::find_by_id(&pool, gateway.location_id).await {
+                Ok(Some(network)) => network,
+                Ok(None) => {
+                    error!(
+                        "Failed to fetch network ID {} from database",
+                        gateway.location_id
+                    );
+                    return;
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to fetch network ID {} from database: {err}",
+                        gateway.location_id
+                    );
+                    return;
+                }
+            };
+            let url = format!("{}:{}", gateway.address, gateway.port);
+            if let Err(err) =
+                send_gateway_disconnected_email(gateway.name, network.name, &url, &pool).await
+            {
+                error!("Failed to send Gateway disconnect notification: {err}");
+            } else {
+                info!("Sent email notification about Gateway being disconnected");
+            }
+        });
     }
 
     /// Send Gateway reconnected notification.
@@ -356,10 +396,6 @@ impl GatewayHandler {
 
     async fn handle_disconnection_error(&mut self) {
         let was_connected = self.gateway.is_connected();
-        if self.gateway.is_connected() {
-            self.send_disconnect_notification().await;
-        }
-
         if was_connected && self.mark_disconnected().await {
             let _ = self
                 .connection_events_tx
@@ -367,6 +403,7 @@ impl GatewayHandler {
                     gateway_id: self.gateway.id,
                     gateway_name: self.gateway.name.clone(),
                 });
+            self.schedule_disconnect_notification();
         }
     }
 
