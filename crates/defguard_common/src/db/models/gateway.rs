@@ -1,6 +1,6 @@
 use std::fmt;
 
-use chrono::{NaiveDateTime, Timelike, Utc};
+use chrono::{NaiveDateTime, SubsecRound, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as, query_scalar};
@@ -87,10 +87,7 @@ impl Gateway {
         // FIXME: this is a workaround for reducing timestamp precision.
         // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
         // It avoids issues when comparing to objects fetched from DB.
-        let modified_at = Utc::now().naive_utc();
-        let modified_at = modified_at
-            .with_nanosecond((modified_at.nanosecond() / 1_000) * 1_000)
-            .expect("failed to truncate timestamp precision");
+        let modified_at = Utc::now().naive_utc().trunc_subsecs(6);
 
         Self {
             id: NoId,

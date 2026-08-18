@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use chrono::{DateTime, TimeDelta, Timelike};
+use chrono::{DateTime, SubsecRound, TimeDelta};
 use defguard_common::{
     VERSION,
     db::{
@@ -277,12 +277,7 @@ impl GatewayHandler {
             error!("Cannot schedule Gateway disconnect notification without an outage timestamp");
             return;
         };
-        let Some(disconnected_at) =
-            disconnected_at.with_nanosecond((disconnected_at.nanosecond() / 1_000) * 1_000)
-        else {
-            error!("Failed to normalize Gateway disconnection timestamp");
-            return;
-        };
+        let disconnected_at = disconnected_at.trunc_subsecs(6);
 
         debug!(
             "Scheduling Gateway disconnect email notification for gateway {}",
