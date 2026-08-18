@@ -298,7 +298,6 @@ impl GatewayHandler {
             if !Settings::get_current_settings().gateway_disconnect_notifications_enabled {
                 return;
             }
-
             let gateway = match Gateway::find_by_id(&pool, gateway_id).await {
                 Ok(Some(gateway)) => gateway,
                 Ok(None) => return,
@@ -307,9 +306,12 @@ impl GatewayHandler {
                     return;
                 }
             };
-            if gateway.is_connected() || gateway.disconnected_at != Some(disconnected_at) {
+            if !gateway.enabled
+                || gateway.is_connected()
+                || gateway.disconnected_at != Some(disconnected_at)
+            {
                 debug!(
-                    "Gateway id={gateway_id} reconnected or started a new outage; not sending a \
+                    "Gateway id={gateway_id} was disabled, reconnected or started a new outage; not sending a \
                     disconnect notification"
                 );
                 return;
