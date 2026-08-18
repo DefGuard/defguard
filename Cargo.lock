@@ -1706,6 +1706,7 @@ dependencies = [
  "defguard_grpc_tls",
  "defguard_proto",
  "defguard_version",
+ "ed25519-dalek",
  "hyper-rustls",
  "hyper-util",
  "ipnetwork",
