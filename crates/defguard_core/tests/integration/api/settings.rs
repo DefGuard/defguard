@@ -299,7 +299,7 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
 
     // configure LDAP fields (without SMTP)
     let patch: SettingsPatch = serde_json::from_str(&format!(
-        r#"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"#
+        r"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"
     ))
     .unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;

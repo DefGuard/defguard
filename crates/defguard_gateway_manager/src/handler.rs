@@ -297,15 +297,14 @@ impl GatewayHandler {
         // A threshold of 0 keeps the notification immediate, which is what the settings form
         // allows as its minimum value.
         let threshold = settings.gateway_disconnect_notifications_inactivity_threshold;
-        let threshold_minutes = match u64::try_from(threshold) {
-            Ok(minutes) => minutes,
-            Err(_) => {
-                warn!(
-                    "Gateway disconnect notifications inactivity threshold {threshold} is \
-                    negative; treating it as 0 (immediate)"
-                );
-                0
-            }
+        let threshold_minutes = if let Ok(minutes) = u64::try_from(threshold) {
+            minutes
+        } else {
+            warn!(
+                "Gateway disconnect notifications inactivity threshold {threshold} is \
+                negative; treating it as 0 (immediate)"
+            );
+            0
         };
         let delay = self.disconnect_notification_delay(Duration::from_secs(60 * threshold_minutes));
 
