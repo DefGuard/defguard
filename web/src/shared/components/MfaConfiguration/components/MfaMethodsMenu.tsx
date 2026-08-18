@@ -26,9 +26,9 @@ type PlainVariantProps = {
   label: string;
 };
 
-type LocationMfaMethodsMenuProps = ButtonVariantProps | PlainVariantProps;
+type MfaMethodsMenuProps = ButtonVariantProps | PlainVariantProps;
 
-export const LocationMfaMethodsMenu = (props: LocationMfaMethodsMenuProps) => {
+export const MfaMethodsMenu = (props: MfaMethodsMenuProps) => {
   if (props.kind === 'button') {
     const { kind, options, ...buttonProps } = props;
     return <ButtonMenu menuItems={options} {...buttonProps} />;
@@ -37,6 +37,7 @@ export const LocationMfaMethodsMenu = (props: LocationMfaMethodsMenuProps) => {
   return <PlainButton options={props.options} label={props.label} />;
 };
 
+/** Renders the compact add-method menu trigger used inside a step. */
 const PlainButton = ({
   options,
   label,
@@ -68,14 +69,18 @@ const PlainButton = ({
     escapeKey: true,
     outsidePress: (event) => !(event.target as HTMLElement).closest('.menu'),
   });
-
   const { getFloatingProps, getReferenceProps } = useInteractions([click, dismiss]);
 
   return (
     <>
-      <div className="plain-button" ref={refs.setReference} {...getReferenceProps()}>
-        <p>{label}</p>
-      </div>
+      <button
+        type="button"
+        className="plain-button"
+        ref={refs.setReference}
+        {...getReferenceProps()}
+      >
+        <span>{label}</span>
+      </button>
       {isOpen && (
         <FloatingPortal>
           <Menu

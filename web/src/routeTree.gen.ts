@@ -50,6 +50,7 @@ import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
 import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
 import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_authorized/_default/settings/index'
+import { Route as AuthorizedDefaultMfaIndexRouteImport } from './routes/_authorized/_default/mfa/index'
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
@@ -62,6 +63,7 @@ import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './route
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
 import { Route as AuthorizedDefaultSettingsCertsRouteImport } from './routes/_authorized/_default/settings/certs'
 import { Route as AuthorizedDefaultSettingsCaRouteImport } from './routes/_authorized/_default/settings/ca'
+import { Route as AuthorizedDefaultMfaAddFlowRouteImport } from './routes/_authorized/_default/mfa/add-flow'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
 import { Route as AuthorizedDefaultAclPostureChecksRouteImport } from './routes/_authorized/_default/acl/posture-checks'
 import { Route as AuthorizedDefaultAclEditRuleRouteImport } from './routes/_authorized/_default/acl/edit-rule'
@@ -72,6 +74,7 @@ import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_autho
 import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_authorized/_default/acl/add-rule'
 import { Route as AuthorizedDefaultAclAddDestinationRouteImport } from './routes/_authorized/_default/acl/add-destination'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
+import { Route as AuthorizedDefaultMfaFlowIdEditRouteImport } from './routes/_authorized/_default/mfa-flow/$id/edit'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 import { Route as AuthorizedDefaultGatewayGatewayIdEditRouteImport } from './routes/_authorized/_default/gateway/$gatewayId/edit'
 import { Route as AuthorizedDefaultEdgeEdgeIdEditRouteImport } from './routes/_authorized/_default/edge/$edgeId/edit'
@@ -294,6 +297,12 @@ const AuthorizedDefaultSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultMfaIndexRoute =
+  AuthorizedDefaultMfaIndexRouteImport.update({
+    id: '/mfa/',
+    path: '/mfa/',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsIndexRoute =
   AuthorizedDefaultLocationsIndexRouteImport.update({
     id: '/locations/',
@@ -366,6 +375,12 @@ const AuthorizedDefaultSettingsCaRoute =
     path: '/settings/ca',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultMfaAddFlowRoute =
+  AuthorizedDefaultMfaAddFlowRouteImport.update({
+    id: '/mfa/add-flow',
+    path: '/mfa/add-flow',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclRulesRoute =
   AuthorizedDefaultAclRulesRouteImport.update({
     id: '/acl/rules',
@@ -424,6 +439,12 @@ const AuthorizedDefaultAclAddAliasRoute =
   AuthorizedDefaultAclAddAliasRouteImport.update({
     id: '/acl/add-alias',
     path: '/acl/add-alias',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultMfaFlowIdEditRoute =
+  AuthorizedDefaultMfaFlowIdEditRouteImport.update({
+    id: '/mfa-flow/$id/edit',
+    path: '/mfa-flow/$id/edit',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
 const AuthorizedDefaultLocationsLocationIdEditRoute =
@@ -499,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/mfa/add-flow': typeof AuthorizedDefaultMfaAddFlowRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -511,11 +533,13 @@ export interface FileRoutesByFullPath {
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
+  '/mfa/': typeof AuthorizedDefaultMfaIndexRoute
   '/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/mfa-flow/$id/edit': typeof AuthorizedDefaultMfaFlowIdEditRoute
   '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -565,6 +589,7 @@ export interface FileRoutesByTo {
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/mfa/add-flow': typeof AuthorizedDefaultMfaAddFlowRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -577,11 +602,13 @@ export interface FileRoutesByTo {
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
+  '/mfa': typeof AuthorizedDefaultMfaIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/mfa-flow/$id/edit': typeof AuthorizedDefaultMfaFlowIdEditRoute
   '/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRoutesById {
@@ -635,6 +662,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/_authorized/_default/mfa/add-flow': typeof AuthorizedDefaultMfaAddFlowRoute
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -647,11 +675,13 @@ export interface FileRoutesById {
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
+  '/_authorized/_default/mfa/': typeof AuthorizedDefaultMfaIndexRoute
   '/_authorized/_default/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/_authorized/_default/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/_authorized/_default/gateway/$gatewayId/edit': typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/_authorized/_default/mfa-flow/$id/edit': typeof AuthorizedDefaultMfaFlowIdEditRoute
   '/_authorized/_default/acl/posture-checks/$postureCheckId/edit': typeof AuthorizedDefaultAclPostureChecksPostureCheckIdEditRoute
 }
 export interface FileRouteTypes {
@@ -704,6 +734,7 @@ export interface FileRouteTypes {
     | '/acl/edit-rule'
     | '/acl/posture-checks'
     | '/acl/rules'
+    | '/mfa/add-flow'
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
@@ -716,11 +747,13 @@ export interface FileRouteTypes {
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations/'
+    | '/mfa/'
     | '/settings/'
     | '/vpn-overview/'
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/mfa-flow/$id/edit'
     | '/acl/posture-checks/$postureCheckId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -770,6 +803,7 @@ export interface FileRouteTypes {
     | '/acl/edit-rule'
     | '/acl/posture-checks'
     | '/acl/rules'
+    | '/mfa/add-flow'
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
@@ -782,11 +816,13 @@ export interface FileRouteTypes {
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
+    | '/mfa'
     | '/settings'
     | '/vpn-overview'
     | '/edge/$edgeId/edit'
     | '/gateway/$gatewayId/edit'
     | '/locations/$locationId/edit'
+    | '/mfa-flow/$id/edit'
     | '/acl/posture-checks/$postureCheckId/edit'
   id:
     | '__root__'
@@ -839,6 +875,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/edit-rule'
     | '/_authorized/_default/acl/posture-checks'
     | '/_authorized/_default/acl/rules'
+    | '/_authorized/_default/mfa/add-flow'
     | '/_authorized/_default/settings/ca'
     | '/_authorized/_default/settings/certs'
     | '/_authorized/_default/settings/client'
@@ -851,11 +888,13 @@ export interface FileRouteTypes {
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
     | '/_authorized/_default/locations/'
+    | '/_authorized/_default/mfa/'
     | '/_authorized/_default/settings/'
     | '/_authorized/_default/vpn-overview/'
     | '/_authorized/_default/edge/$edgeId/edit'
     | '/_authorized/_default/gateway/$gatewayId/edit'
     | '/_authorized/_default/locations/$locationId/edit'
+    | '/_authorized/_default/mfa-flow/$id/edit'
     | '/_authorized/_default/acl/posture-checks/$postureCheckId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -1164,6 +1203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/mfa/': {
+      id: '/_authorized/_default/mfa/'
+      path: '/mfa'
+      fullPath: '/mfa/'
+      preLoaderRoute: typeof AuthorizedDefaultMfaIndexRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/': {
       id: '/_authorized/_default/locations/'
       path: '/locations'
@@ -1248,6 +1294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsCaRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/mfa/add-flow': {
+      id: '/_authorized/_default/mfa/add-flow'
+      path: '/mfa/add-flow'
+      fullPath: '/mfa/add-flow'
+      preLoaderRoute: typeof AuthorizedDefaultMfaAddFlowRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/rules': {
       id: '/_authorized/_default/acl/rules'
       path: '/acl/rules'
@@ -1318,6 +1371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclAddAliasRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/mfa-flow/$id/edit': {
+      id: '/_authorized/_default/mfa-flow/$id/edit'
+      path: '/mfa-flow/$id/edit'
+      fullPath: '/mfa-flow/$id/edit'
+      preLoaderRoute: typeof AuthorizedDefaultMfaFlowIdEditRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/$locationId/edit': {
       id: '/_authorized/_default/locations/$locationId/edit'
       path: '/locations/$locationId/edit'
@@ -1384,6 +1444,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclEditRuleRoute: typeof AuthorizedDefaultAclEditRuleRoute
   AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRouteWithChildren
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
+  AuthorizedDefaultMfaAddFlowRoute: typeof AuthorizedDefaultMfaAddFlowRoute
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
@@ -1396,11 +1457,13 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
+  AuthorizedDefaultMfaIndexRoute: typeof AuthorizedDefaultMfaIndexRoute
   AuthorizedDefaultSettingsIndexRoute: typeof AuthorizedDefaultSettingsIndexRoute
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
   AuthorizedDefaultEdgeEdgeIdEditRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   AuthorizedDefaultGatewayGatewayIdEditRoute: typeof AuthorizedDefaultGatewayGatewayIdEditRoute
   AuthorizedDefaultLocationsLocationIdEditRoute: typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  AuthorizedDefaultMfaFlowIdEditRoute: typeof AuthorizedDefaultMfaFlowIdEditRoute
 }
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
@@ -1426,6 +1489,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultAclPostureChecksRoute:
     AuthorizedDefaultAclPostureChecksRouteWithChildren,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
+  AuthorizedDefaultMfaAddFlowRoute: AuthorizedDefaultMfaAddFlowRoute,
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
@@ -1442,6 +1506,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,
   AuthorizedDefaultLocationsIndexRoute: AuthorizedDefaultLocationsIndexRoute,
+  AuthorizedDefaultMfaIndexRoute: AuthorizedDefaultMfaIndexRoute,
   AuthorizedDefaultSettingsIndexRoute: AuthorizedDefaultSettingsIndexRoute,
   AuthorizedDefaultVpnOverviewIndexRoute:
     AuthorizedDefaultVpnOverviewIndexRoute,
@@ -1450,6 +1515,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultGatewayGatewayIdEditRoute,
   AuthorizedDefaultLocationsLocationIdEditRoute:
     AuthorizedDefaultLocationsLocationIdEditRoute,
+  AuthorizedDefaultMfaFlowIdEditRoute: AuthorizedDefaultMfaFlowIdEditRoute,
 }
 
 const AuthorizedDefaultRouteWithChildren =
