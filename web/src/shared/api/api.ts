@@ -46,6 +46,7 @@ import type {
   CreateAdminRequest,
   CreateCARequest,
   CreateGroupRequest,
+  CreateMfaFlowRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
@@ -89,6 +90,9 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  MfaFlowDetailResponse,
+  MfaFlowListItemResponse,
+  MfaMethodAvailabilityResponse,
   MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
@@ -120,6 +124,7 @@ import type {
   TestDirectorySyncResponse,
   TotpInitResponse,
   UpdateInfo,
+  UpdateMfaFlowRequest,
   UploadCARequest,
   User,
   UserChangePasswordRequest,
@@ -525,6 +530,17 @@ const api = {
       ),
     getCA: () => client.get<GetCAResponse>('/core/cert/ca'),
     getCerts: () => client.get<GetCertsResponse>('/core/cert/certs'),
+  },
+  mfaFlow: {
+    list: () => client.get<MfaFlowListItemResponse[]>('/mfa-flow'),
+    methodAvailability: () =>
+      client.get<MfaMethodAvailabilityResponse[]>('/mfa-flow/method-availability'),
+    create: (data: CreateMfaFlowRequest) =>
+      client.post<MfaFlowDetailResponse>('/mfa-flow', data),
+    get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
+    update: (id: number, data: UpdateMfaFlowRequest) =>
+      client.put<MfaFlowDetailResponse>(`/mfa-flow/${id}`, data),
+    delete: (id: number) => client.delete(`/mfa-flow/${id}`),
   },
   acl: {
     destination: {

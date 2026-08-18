@@ -496,6 +496,7 @@ export const LicenseFeature = {
   DevicePosture: 'DevicePosture',
   AclAllowedIps: 'AclAllowedIps',
   ComponentHa: 'ComponentHa',
+  MfaFlow: 'MfaFlow',
 } as const;
 
 export type LicenseFeatureValue = (typeof LicenseFeature)[keyof typeof LicenseFeature];
@@ -1412,6 +1413,83 @@ export interface AclCount {
 
 export interface CountResponse {
   count: number;
+}
+
+export const MfaFlowMethod = {
+  Totp: 'totp',
+  Email: 'email',
+  OpenId: 'oidc',
+  Biometric: 'biometric',
+  MobileApprove: 'mobileapprove',
+} as const;
+
+export type MfaFlowMethodValue = (typeof MfaFlowMethod)[keyof typeof MfaFlowMethod];
+
+export const MfaMethodAvailabilityReason = {
+  Available: 'available',
+  Licensed: 'licensed',
+  SmtpNotConfigured: 'smtp_not_configured',
+  OidcProviderMissing: 'oidc_provider_missing',
+} as const;
+
+export type MfaMethodAvailabilityReasonValue =
+  (typeof MfaMethodAvailabilityReason)[keyof typeof MfaMethodAvailabilityReason];
+
+export interface MfaMethodAvailabilityResponse {
+  method: MfaFlowMethodValue;
+  available: boolean;
+  reason: MfaMethodAvailabilityReasonValue;
+}
+
+export interface CreateMfaFlowStep {
+  methods: MfaFlowMethodValue[];
+}
+
+export interface CreateMfaFlowRequest {
+  title: string;
+  steps: CreateMfaFlowStep[];
+}
+
+export interface UpdateMfaFlowStep {
+  id?: number;
+  methods: MfaFlowMethodValue[];
+}
+
+export interface UpdateMfaFlowRequest {
+  title: string;
+  steps: UpdateMfaFlowStep[];
+}
+
+export interface MfaFlowStep {
+  id: number;
+  position: number;
+  methods: MfaFlowMethodValue[];
+}
+
+export interface MfaFlowDetailResponse {
+  id: number;
+  title: string;
+  steps: MfaFlowStep[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MfaFlowListItemResponse {
+  id: number;
+  title: string;
+  step_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MfaFlowErrorField {
+  field: string;
+  code: string;
+}
+
+export interface MfaFlowErrorResponse {
+  error: string;
+  fields: MfaFlowErrorField[];
 }
 
 export interface AclDestination {

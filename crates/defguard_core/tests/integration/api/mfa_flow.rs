@@ -55,6 +55,60 @@ async fn test_mfa_flow_single_step_no_license(_: PgPoolOptions, options: PgConne
     set_cached_license(saved);
 }
 
+/// A free instance may create one flow, while subsequent flows require Business.
+#[sqlx::test]
+async fn test_additional_mfa_flow_requires_business(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    let saved = get_cached_license().clone();
+    let first_flow = json!({
+        "title": "Free Flow",
+        "steps": [{ "methods": ["totp"] }]
+    });
+    let second_flow = json!({
+        "title": "Business Flow",
+        "steps": [{ "methods": ["biometric"] }]
+    });
+
+    set_cached_license(None);
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&first_flow)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    client.drain_all_events();
+
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&second_flow)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["error"], "license_required");
+    assert_eq!(body["fields"][0]["field"], "flow");
+    assert_eq!(
+        body["fields"][0]["code"],
+        "additional_flow_business_license_required"
+    );
+    assert!(
+        client.drain_all_events().is_empty(),
+        "refused request must not emit an audit event"
+    );
+
+    set_cached_license(saved.clone());
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&second_flow)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    set_cached_license(saved);
+}
+
 /// Multi-step flow (2+ steps) requires a business license.
 #[sqlx::test]
 async fn test_mfa_flow_multi_step_requires_business(_: PgPoolOptions, options: PgConnectOptions) {

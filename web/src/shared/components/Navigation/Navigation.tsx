@@ -103,6 +103,13 @@ const navigationConfig: NavGroupProps[] = [
         licenseTier: LicenseTier.Enterprise,
         licenseFeature: LicenseFeature.DevicePosture,
       },
+      {
+        id: 'mfa',
+        icon: 'mobile-lock',
+        label: m.cmp_nav_item_mfa(),
+        licenseTier: LicenseTier.Business,
+        link: '/mfa',
+      },
     ],
   },
   {

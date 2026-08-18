@@ -46,6 +46,21 @@ export const getLocationsDisplayQueryOptions = queryOptions({
   select: (resp) => resourceDisplayMap(resp.data),
 });
 
+export const getMfaFlowsQueryOptions = queryOptions({
+  queryFn: api.mfaFlow.list,
+  queryKey: ['mfa-flow'],
+  select: (response) => response.data,
+});
+
+export const getMfaMethodAvailabilityQueryOptions = queryOptions({
+  queryFn: api.mfaFlow.methodAvailability,
+  queryKey: ['mfa-flow', 'method-availability'],
+  select: (response) => ({
+    methodAvailability: response.data,
+    methods: response.data.map(({ method }) => method),
+  }),
+});
+
 export const getEdgesQueryOptions = queryOptions({
   queryFn: api.edge.getEdges,
   queryKey: ['edge'],
