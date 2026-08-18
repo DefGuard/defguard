@@ -202,7 +202,7 @@ async fn test_out_of_order_updates_for_existing_db_session_are_discarded(
         user.id,
         device.id,
         Some(first_handshake),
-        None,
+        false,
         None,
     )
     .await;

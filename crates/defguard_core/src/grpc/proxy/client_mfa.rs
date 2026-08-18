@@ -35,7 +35,7 @@ use defguard_proto::{
         core_response::Payload,
     },
 };
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgConnection, PgPool, Postgres, pool::PoolConnection};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -133,6 +133,14 @@ impl ClientMfaServer {
     /// Emit given event to the channel.
     pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         Ok(self.bidi_event_tx.send(event)?)
+    }
+
+    /// Acquire a pooled connection, mapping a pool error to an internal status.
+    pub(crate) async fn acquire_conn(&self) -> Result<PoolConnection<Postgres>, Status> {
+        self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })
     }
 
     /// Allows Edge to verify if token is valid and active.
@@ -302,10 +310,7 @@ impl ClientMfaServer {
         // Resolve the MFA flow that applies to this user at this location. The legacy adapter
         // drives only the first step, so license-filter its methods and validate the client's
         // selected method against them.
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })?;
+        let mut conn = self.acquire_conn().await?;
         let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
             .await
             .map_err(|err| {
@@ -649,10 +654,7 @@ impl ClientMfaServer {
     /// Record a proof-verification failure, deleting the session once the per-step cap is
     /// reached so a subsequent finish fails closed.
     async fn record_mfa_failure(&self, session: &VpnClientMfaSession) -> Result<(), Status> {
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })?;
+        let mut conn = self.acquire_conn().await?;
         let at_cap = session
             .increment_failed_attempts(&mut conn)
             .await
@@ -938,7 +940,7 @@ impl ClientMfaServer {
         // Advance the single step BEFORE authorizing, so the satisfied method is recorded into
         // the snapshot and the step outcome is verified (code-review finding: `Complete` must be
         // confirmed before minting a session).
-        let advance = session.advance(&mut transaction).await.map_err(|err| {
+        let (advance, snapshot) = session.advance(&mut transaction).await.map_err(|err| {
             error!("Failed to advance MFA session: {err}");
             Status::internal("unexpected error")
         })?;
@@ -946,20 +948,6 @@ impl ClientMfaServer {
             error!("MFA session did not complete after its single step: {advance:?}");
             return Err(Status::internal("unexpected error"));
         }
-
-        // Read the completed snapshot (now carrying the satisfied method) before it is deleted.
-        let snapshot = VpnClientMfaSession::find_active_by_token(&mut *transaction, &request.token)
-            .await
-            .map_err(|err| {
-                error!("Failed to re-read MFA session snapshot: {err}");
-                Status::internal("unexpected error")
-            })?
-            .ok_or_else(|| {
-                error!("MFA session disappeared after advancing its single step");
-                Status::internal("unexpected error")
-            })?
-            .steps_snapshot
-            .0;
 
         // Resolve the flow name for attribution. A flow deleted mid-session simply leaves the
         // name unresolved; that is a display concern, not an error.

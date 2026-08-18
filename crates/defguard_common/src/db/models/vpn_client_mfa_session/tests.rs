@@ -24,8 +24,12 @@ fn next_suffix() -> String {
 }
 
 async fn create_location(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+    create_location_with_address(pool, "10.0.6.1/24").await
+}
+
+async fn create_location_with_address(pool: &sqlx::PgPool, address: &str) -> WireguardNetwork<Id> {
     WireguardNetwork::default()
-        .try_set_address("10.0.6.1/24")
+        .try_set_address(address)
         .unwrap()
         .save(pool)
         .await
@@ -267,7 +271,7 @@ async fn test_advance_clears_ephemeral_state(_: PgPoolOptions, options: PgConnec
 
     let session = refetch(&pool, &outcome.token).await;
     let mut tx = pool.begin().await.unwrap();
-    let result = session.advance(&mut tx).await.unwrap();
+    let (result, _) = session.advance(&mut tx).await.unwrap();
     tx.commit().await.unwrap();
     assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
 
@@ -291,7 +295,7 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
 
     let session = refetch(&pool, &outcome.token).await;
     let mut tx = pool.begin().await.unwrap();
-    let result = session.advance(&mut tx).await.unwrap();
+    let (result, _) = session.advance(&mut tx).await.unwrap();
     tx.commit().await.unwrap();
     assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
 
@@ -482,5 +486,113 @@ async fn test_reap_expired_deletes_only_expired(_: PgPoolOptions, options: PgCon
             .await
             .unwrap()
             .is_none()
+    );
+}
+
+#[sqlx::test]
+async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let location = create_location(&pool).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    let steps = vec![vec![VpnClientMfaMethod::Totp]];
+
+    let mut conn_a = pool.acquire().await.unwrap();
+    let mut conn_b = pool.acquire().await.unwrap();
+
+    let (a, b) = tokio::join!(
+        VpnClientMfaSession::start(
+            &mut conn_a,
+            location.id,
+            device.id,
+            user.id,
+            1,
+            steps.clone(),
+            Duration::from_mins(10),
+        ),
+        VpnClientMfaSession::start(
+            &mut conn_b,
+            location.id,
+            device.id,
+            user.id,
+            1,
+            steps.clone(),
+            Duration::from_mins(10),
+        ),
+    );
+    let ((_, a_outcome), (_, b_outcome)) = (a.unwrap(), b.unwrap());
+
+    // Exactly one live row for this (location, device), regardless of interleaving.
+    let count = sqlx::query_scalar!(
+        "SELECT count(*) FROM vpn_client_mfa_session WHERE location_id = $1 AND device_id = $2",
+        location.id,
+        device.id,
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(count, Some(1));
+
+    // Exactly one of the two minted tokens survives; the other was superseded.
+    let a_live = VpnClientMfaSession::find_active_by_token(&pool, &a_outcome.token)
+        .await
+        .unwrap()
+        .is_some();
+    let b_live = VpnClientMfaSession::find_active_by_token(&pool, &b_outcome.token)
+        .await
+        .unwrap()
+        .is_some();
+    assert_ne!(
+        a_live, b_live,
+        "exactly one token must survive concurrent start"
+    );
+}
+
+#[sqlx::test]
+async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    let location_a = create_location_with_address(&pool, "10.0.6.1/24").await;
+    let location_b = create_location_with_address(&pool, "10.0.7.1/24").await;
+    let steps = vec![vec![VpnClientMfaMethod::Totp]];
+
+    let mut conn_a = pool.acquire().await.unwrap();
+    let mut conn_b = pool.acquire().await.unwrap();
+
+    let (a, b) = tokio::join!(
+        VpnClientMfaSession::start(
+            &mut conn_a,
+            location_a.id,
+            device.id,
+            user.id,
+            1,
+            steps.clone(),
+            Duration::from_mins(10),
+        ),
+        VpnClientMfaSession::start(
+            &mut conn_b,
+            location_b.id,
+            device.id,
+            user.id,
+            1,
+            steps.clone(),
+            Duration::from_mins(10),
+        ),
+    );
+    let ((_, a_outcome), (_, b_outcome)) = (a.unwrap(), b.unwrap());
+
+    // Uniqueness is per (location, device), so both rows stay live.
+    assert!(
+        VpnClientMfaSession::find_active_by_token(&pool, &a_outcome.token)
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        VpnClientMfaSession::find_active_by_token(&pool, &b_outcome.token)
+            .await
+            .unwrap()
+            .is_some()
     );
 }

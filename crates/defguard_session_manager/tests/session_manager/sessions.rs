@@ -275,7 +275,7 @@ async fn test_existing_new_session_becomes_connected_on_stats(
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let existing_session =
-        create_session(&pool, location.id, user.id, device.id, None, None, None).await;
+        create_session(&pool, location.id, user.id, device.id, None, false, None).await;
     assert_eq!(existing_session.state, VpnClientSessionState::New);
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
@@ -321,7 +321,7 @@ async fn test_never_connected_posture_new_session_disconnects_after_threshold(
         user.id,
         device.id,
         None,
-        None,
+        false,
         Some("posture-psk-before-timeout"),
     )
     .await;
@@ -381,7 +381,7 @@ async fn test_inactive_posture_connected_session_disconnects_and_clears_authoriz
         user.id,
         device.id,
         Some(stale_handshake),
-        None,
+        false,
         Some("posture-psk-before-disconnect"),
     )
     .await;
@@ -636,7 +636,7 @@ async fn test_existing_session_in_db_is_reused_instead_of_creating_duplicate(
         user.id,
         device.id,
         Some(base_time - TimeDelta::seconds(5)),
-        None,
+        false,
         None,
     )
     .await;

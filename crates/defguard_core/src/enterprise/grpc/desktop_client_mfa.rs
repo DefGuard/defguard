@@ -183,10 +183,7 @@ impl ClientMfaServer {
         }
 
         // Mark the OIDC attempt complete. A stale step_attempt_id is a no-op.
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })?;
+        let mut conn = self.acquire_conn().await?;
         session
             .mark_oidc_completed(&mut conn, &step_attempt_id)
             .await
@@ -200,10 +197,7 @@ impl ClientMfaServer {
 
     /// Delete a durable MFA session, mapping database errors to a gRPC status.
     async fn delete_mfa_session(&self, session: &VpnClientMfaSession) -> Result<(), Status> {
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            Status::internal("unexpected error")
-        })?;
+        let mut conn = self.acquire_conn().await?;
         session.delete(&mut *conn).await.map_err(|err| {
             error!("Failed to delete MFA session: {err}");
             Status::internal("unexpected error")

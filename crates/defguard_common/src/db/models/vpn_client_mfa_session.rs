@@ -33,8 +33,8 @@ pub const MFA_FAILED_ATTEMPT_CAP: i32 = 5;
 
 /// Point-in-time snapshot of the resolved MFA flow, frozen at `start`.
 ///
-/// `flow_id` is attribution-only: written once and copied to the authorized
-/// `vpn_client_session` at delivery, never re-read to drive the flow.
+/// `flow_id` is attribution-only: written once and recorded in the immutable
+/// authorization activity-log entry at delivery, never re-read to drive the flow.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StepsSnapshot {
     pub flow_id: Id,
@@ -88,7 +88,14 @@ pub enum StepOutcome {
     Complete,
 }
 
+/// Row shape returned by `advance`: the new step index and the updated snapshot.
+struct AdvanceRow {
+    current_step: i32,
+    steps_snapshot: Json<StepsSnapshot>,
+}
+
 /// A durable in-progress VPN MFA session.
+#[derive(Clone, Debug)]
 pub struct VpnClientMfaSession {
     pub id: Id,
     pub token_hash: String,
@@ -200,8 +207,8 @@ impl VpnClientMfaSession {
 
     /// Look up an active session by raw token, hashing internally.
     ///
-    /// Returns `Ok(None)` for an unknown token, an expired session, and a stale row whose
-    /// snapshot fails to deserialize. Database errors are returned to the caller, which owns
+    /// Returns `Ok(None)` for an unknown token and an expired session. A row whose snapshot
+    /// fails to deserialize surfaces as an error, as do other database errors; the caller owns
     /// the decision of how to surface them.
     pub async fn find_active_by_token<'e, E: PgExecutor<'e>>(
         executor: E,
@@ -215,7 +222,7 @@ impl VpnClientMfaSession {
              ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, \
              created_at, expires_at \
              FROM vpn_client_mfa_session \
-             WHERE token_hash = $1 AND expires_at > now()",
+             WHERE token_hash = $1 AND expires_at > (now() AT TIME ZONE 'UTC')",
             hash,
         )
         .fetch_optional(executor)
@@ -301,16 +308,8 @@ impl VpnClientMfaSession {
         conn: &mut PgConnection,
         step_attempt_id: &str,
     ) -> sqlx::Result<bool> {
-        let result = query!(
-            "UPDATE vpn_client_mfa_session \
-             SET ephemeral_state = jsonb_set(ephemeral_state, '{openid_auth_completed}', 'true'::jsonb) \
-             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
-            self.id,
-            step_attempt_id,
-        )
-        .execute(&mut *conn)
-        .await?;
-        Ok(result.rows_affected() > 0)
+        self.mark_flag(conn, step_attempt_id, "openid_auth_completed")
+            .await
     }
 
     /// Mark the current attempt's mobile approval complete.
@@ -322,11 +321,24 @@ impl VpnClientMfaSession {
         conn: &mut PgConnection,
         step_attempt_id: &str,
     ) -> sqlx::Result<bool> {
+        self.mark_flag(conn, step_attempt_id, "mobile_approved")
+            .await
+    }
+
+    /// Set a named completion flag on the current attempt, gated on a matching
+    /// `step_attempt_id`. Returns `true` if the flag was set (0 rows otherwise).
+    async fn mark_flag(
+        &self,
+        conn: &mut PgConnection,
+        step_attempt_id: &str,
+        flag: &str,
+    ) -> sqlx::Result<bool> {
         let result = query!(
             "UPDATE vpn_client_mfa_session \
-             SET ephemeral_state = jsonb_set(ephemeral_state, '{mobile_approved}', 'true'::jsonb) \
-             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
+             SET ephemeral_state = jsonb_set(ephemeral_state, ARRAY[$2]::text[], 'true'::jsonb) \
+             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $3",
             self.id,
+            flag,
             step_attempt_id,
         )
         .execute(&mut *conn)
@@ -341,9 +353,15 @@ impl VpnClientMfaSession {
     /// clear land in one statement so the proof cannot be lost between them. A NULL
     /// `ephemeral_state` leaves `satisfied` unset rather than erroring.
     ///
-    /// Does not extend `expires_at` (fixed window).
-    pub async fn advance(&self, conn: &mut PgConnection) -> sqlx::Result<StepOutcome> {
-        let next_step = query_scalar!(
+    /// Returns the new step outcome and the updated snapshot, so the caller can read the
+    /// just-recorded `satisfied` method without a second query. Does not extend `expires_at`
+    /// (fixed window).
+    pub async fn advance(
+        &self,
+        conn: &mut PgConnection,
+    ) -> sqlx::Result<(StepOutcome, StepsSnapshot)> {
+        let row = query_as!(
+            AdvanceRow,
             "UPDATE vpn_client_mfa_session \
              SET steps_snapshot = CASE \
                  WHEN ephemeral_state IS NOT NULL THEN jsonb_set( \
@@ -357,22 +375,22 @@ impl VpnClientMfaSession {
              current_step = current_step + 1, \
              failed_attempts = 0 \
              WHERE id = $1 \
-             RETURNING current_step",
+             RETURNING current_step, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\"",
             self.id,
         )
         .fetch_one(&mut *conn)
         .await?;
 
         let total_steps = self.steps_snapshot.0.steps.len() as i32;
-        let outcome = if next_step >= total_steps {
+        let outcome = if row.current_step >= total_steps {
             StepOutcome::Complete
         } else {
             StepOutcome::Advanced {
-                next_step: next_step as usize,
+                next_step: row.current_step as usize,
             }
         };
 
-        Ok(outcome)
+        Ok((outcome, row.steps_snapshot.0))
     }
 
     /// Increment the per-step proof-failure counter.
@@ -395,9 +413,10 @@ impl VpnClientMfaSession {
 
 /// Delete every session whose fixed window has elapsed. Silent hygiene, not correctness.
 pub async fn reap_expired(pool: &PgPool) -> sqlx::Result<u64> {
-    let result = query!("DELETE FROM vpn_client_mfa_session WHERE expires_at < now()")
-        .execute(pool)
-        .await?;
+    let result =
+        query!("DELETE FROM vpn_client_mfa_session WHERE expires_at < (now() AT TIME ZONE 'UTC')")
+            .execute(pool)
+            .await?;
     let count = result.rows_affected();
     debug!("Reaped {count} expired MFA session(s)");
     Ok(count)

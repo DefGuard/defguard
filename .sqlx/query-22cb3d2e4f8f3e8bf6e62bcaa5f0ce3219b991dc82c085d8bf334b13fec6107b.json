@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM vpn_client_mfa_session WHERE expires_at < (now() AT TIME ZONE 'UTC')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "22cb3d2e4f8f3e8bf6e62bcaa5f0ce3219b991dc82c085d8bf334b13fec6107b"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vpn_client_mfa_session SET steps_snapshot = CASE WHEN ephemeral_state IS NOT NULL THEN jsonb_set( steps_snapshot, ARRAY['steps', current_step::text, 'satisfied'], ephemeral_state->'selected_method' ) ELSE steps_snapshot END, ephemeral_state = NULL, current_step = current_step + 1, failed_attempts = 0 WHERE id = $1 RETURNING current_step, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "current_step",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "steps_snapshot: Json<StepsSnapshot>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "75a46ab478156cbde2e8667fdf8bdbbc14436b8ed6ad5914a90fe36851f50e93"
+}

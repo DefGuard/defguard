@@ -11,7 +11,7 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             gateway::Gateway,
-            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
             wireguard::ServiceLocationMode,
         },
@@ -323,7 +323,7 @@ pub(crate) async fn create_session(
     user_id: Id,
     device_id: Id,
     connected_at: Option<NaiveDateTime>,
-    mfa_method: Option<VpnClientMfaMethod>,
+    is_mfa_session: bool,
     preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
     let mut session = VpnClientSession::new(
@@ -331,7 +331,7 @@ pub(crate) async fn create_session(
         user_id,
         device_id,
         connected_at,
-        mfa_method.is_some(),
+        is_mfa_session,
     );
     session.preshared_key = preshared_key.map(str::to_owned);
     session
