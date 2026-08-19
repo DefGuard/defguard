@@ -1,7 +1,7 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Reorder } from 'motion/react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { m } from '../../../paraglide/messages';
 import {
   MfaFlowMethod,
@@ -47,6 +47,7 @@ const methodLabels: Record<MfaFlowMethodValue, string> = {
 };
 
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
+  const stepsTrackRef = useRef<HTMLUListElement>(null);
   const { data: methodData } = useQuery(getMfaMethodAvailabilityQueryOptions);
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const methodAvailability = methodData?.methodAvailability;
@@ -158,12 +159,19 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
 
   return (
     <div className="mfa-configuration">
-      <Reorder.Group axis="y" values={steps} onReorder={onChange} className="steps-track">
+      <Reorder.Group
+        ref={stepsTrackRef}
+        axis="y"
+        values={steps}
+        onReorder={onChange}
+        className="steps-track"
+      >
         {steps.map((step, index) => (
           <MfaConfigurationStep
             key={step.id}
             step={step}
             stepNumber={index + 1}
+            dragConstraints={stepsTrackRef}
             methodGroups={buildMethodGroups(
               methods.filter((method) => !step.methods.includes(method)),
             )}

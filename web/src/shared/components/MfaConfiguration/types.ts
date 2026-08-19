@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import type { MfaFlowMethodValue } from '../../api/types';
 import type { MenuItemProps } from '../../defguard-ui/components/Menu/types';
 
@@ -17,6 +18,7 @@ export type MfaConfigurationMethodGroup = {
 export type MfaConfigurationStepProps = {
   step: MfaConfigurationStepData;
   stepNumber: number;
+  dragConstraints: RefObject<HTMLUListElement | null>;
   methodGroups: MfaConfigurationMethodGroup[];
   methodLabels: Record<MfaFlowMethodValue, string>;
   onDeleteStep: (id: MfaConfigurationStepData['id']) => void;

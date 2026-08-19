@@ -10,6 +10,7 @@ import { MfaMethodsMenu } from './MfaMethodsMenu';
 export const MfaConfigurationStep = ({
   step,
   stepNumber,
+  dragConstraints,
   methodGroups,
   methodLabels,
   onDeleteStep,
@@ -30,6 +31,8 @@ export const MfaConfigurationStep = ({
       value={step}
       dragListener={false}
       dragControls={dragControls}
+      dragConstraints={dragConstraints}
+      dragElastic={false}
       layout="position"
       className="mfa-step-card"
       data-testid={`step-${step.id}`}
