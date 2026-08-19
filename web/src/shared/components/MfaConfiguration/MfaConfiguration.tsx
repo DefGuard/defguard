@@ -9,14 +9,14 @@ import {
   MfaMethodAvailabilityReason,
   type MfaMethodAvailabilityReasonValue,
 } from '../../api/types';
-import { Button } from '../../defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../defguard-ui/components/Button/types';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
+import { InfoBanner } from '../../defguard-ui/components/InfoBanner/InfoBanner';
 import {
   getLicenseInfoQueryOptions,
   getMfaMethodAvailabilityQueryOptions,
 } from '../../query';
-import { canUseBusinessFeature, licenseActionCheck } from '../../utils/license';
+import { canUseBusinessFeature } from '../../utils/license';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
@@ -176,10 +176,11 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         ))}
       </Reorder.Group>
       <div className="actions">
-        {additionalStepRequiresBusiness && businessLicenseCheck ? (
-          <Button
-            {...addStepButtonProps}
-            onClick={() => licenseActionCheck(businessLicenseCheck, () => {})}
+        {additionalStepRequiresBusiness ? (
+          <InfoBanner
+            icon="check-circle"
+            variant="action"
+            text={m.mfa_flow_additional_steps_business_required()}
           />
         ) : (
           <MfaMethodsMenu
