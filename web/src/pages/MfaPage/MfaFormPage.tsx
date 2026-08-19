@@ -32,7 +32,7 @@ const formSchema = z.object({
     .array(
       z.object({
         id: z.union([z.string(), z.number()]),
-        methods: z.array(z.enum(MfaFlowMethod)).min(1),
+        methods: z.array(z.enum(MfaFlowMethod)).min(1, m.mfa_flow_method_required()),
       }),
     )
     .min(1, m.mfa_flow_step_required()),

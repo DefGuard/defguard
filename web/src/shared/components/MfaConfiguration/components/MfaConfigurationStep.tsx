@@ -1,6 +1,7 @@
 import { Reorder, useDragControls } from 'motion/react';
 import { m } from '../../../../paraglide/messages';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
+import { FieldError } from '../../../defguard-ui/components/FieldError/FieldError';
 import { Helper } from '../../../defguard-ui/components/Helper/Helper';
 import { Icon } from '../../../defguard-ui/components/Icon';
 import { ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
@@ -89,6 +90,9 @@ export const MfaConfigurationStep = ({
           </Helper>
         </div>
       )}
+      <FieldError
+        error={step.methods.length === 0 ? m.mfa_flow_method_required() : undefined}
+      />
     </Reorder.Item>
   );
 };

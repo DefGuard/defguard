@@ -135,14 +135,6 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
 
   const deleteMethod = useCallback(
     (stepId: MfaConfigurationStepData['id'], method: MfaFlowMethodValue) => {
-      const step = steps.find((item) => item.id === stepId);
-      if (!step) return;
-
-      if (step.methods.length === 1) {
-        deleteStep(stepId);
-        return;
-      }
-
       onChange(
         steps.map((item) =>
           item.id === stepId
@@ -154,7 +146,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         ),
       );
     },
-    [deleteStep, onChange, steps],
+    [onChange, steps],
   );
 
   return (
@@ -198,7 +190,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
           />
         )}
       </div>
-      <FieldError error={error} />
+      <FieldError error={steps.length === 0 ? error : undefined} />
     </div>
   );
 };

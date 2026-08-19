@@ -24,6 +24,7 @@
   "mfa_flow_step_title": "Step {number}",
   "mfa_flow_step_add": "Add MFA step",
   "mfa_flow_step_required": "Add at least one MFA step.",
+  "mfa_flow_method_required": "Please select at least one method.",
   "mfa_flow_step_helper": "All factors in a step must be verified. Steps are completed in order.",
   "mfa_flow_step_reorder": "Reorder step {number}",
   "mfa_flow_step_remove": "Remove step {number}",
