@@ -65,7 +65,11 @@ const ModalContent = ({ data }: { data: ModalData }) => {
       data.onSuccess?.(result);
     },
     onError: (e: AxiosError<ApiError>) => {
-      data.onError?.(e.response?.data?.msg ?? m.error_unknown(), e.response?.data?.code);
+      data.onError?.(
+        e.response?.data?.msg ?? m.error_unknown(),
+        e.response?.data?.code,
+        e,
+      );
       console.error(e);
     },
   });

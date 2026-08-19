@@ -10,6 +10,8 @@
   "mfa_flow_delete_body": "Are you sure you want to delete MFA flow **{name}**? This action cannot be undone.",
   "mfa_flow_deleted": "MFA flow deleted successfully.",
   "mfa_flow_delete_failed": "Failed to delete MFA flow.",
+  "mfa_flow_delete_location_requires_flow": "This is the only MFA flow assigned to {locations}. Assign another flow before deleting it.",
+  "mfa_flow_delete_flow_is_default": "This is the default MFA flow for {locations}. Select another default flow before deleting it.",
   "mfa_flow_breadcrumb_create": "Create new MFA flow",
   "mfa_flow_breadcrumb_edit": "Edit MFA flow",
   "mfa_flow_form_title_create": "Create new workflow",
