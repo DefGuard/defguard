@@ -154,14 +154,14 @@ export const MfaFormPage = ({ flow }: Props) => {
             </Link>
           ) : (
             <Link key="create-mfa-flow" to="/mfa/add-flow">
-              {m.mfa_flow_breadcrumb_create()}
+              {m.mfa_flow_create()}
             </Link>
           ),
         ]}
         onBack={() => navigate({ to: '/mfa' })}
         headerProps={{
           icon: 'activity-notes',
-          title: isEdit ? m.mfa_flow_form_title_edit() : m.mfa_flow_form_title_create(),
+          title: isEdit ? m.mfa_flow_form_title_edit() : m.mfa_flow_create(),
           subtitle: m.mfa_flow_form_subtitle(),
         }}
       >
@@ -169,7 +169,7 @@ export const MfaFormPage = ({ flow }: Props) => {
           <MarkedSection icon="settings">
             <MarkedSectionHeader title={m.mfa_flow_form_general_settings()} />
             <form.AppField name="title">
-              {(field) => <field.FormInput required label={m.mfa_flow_form_name()} />}
+              {(field) => <field.FormInput required label={m.mfa_flow_form_title()} />}
             </form.AppField>
           </MarkedSection>
           <Divider spacing={ThemeSpacing.Xl2} />
