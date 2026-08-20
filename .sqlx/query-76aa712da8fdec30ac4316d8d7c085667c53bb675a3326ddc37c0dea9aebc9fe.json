@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO vpn_client_mfa_session (token_hash, location_id, device_id, user_id, steps_snapshot, current_step, ephemeral_state, failed_attempts, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, 0, NULL, 0, $6, $7) ON CONFLICT (location_id, device_id) DO UPDATE SET token_hash = EXCLUDED.token_hash, user_id = EXCLUDED.user_id, steps_snapshot = EXCLUDED.steps_snapshot, current_step = EXCLUDED.current_step, ephemeral_state = EXCLUDED.ephemeral_state, failed_attempts = EXCLUDED.failed_attempts, created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at RETURNING id, token_hash, location_id, device_id, user_id, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, created_at, expires_at",
+  "query": "INSERT INTO vpn_client_mfa_session (token_hash, location_id, device_id, user_id, steps_snapshot, current_step, ephemeral_state, failed_attempts, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, 0, $6, 0, $7, $8) ON CONFLICT (location_id, device_id) DO UPDATE SET token_hash = EXCLUDED.token_hash, user_id = EXCLUDED.user_id, steps_snapshot = EXCLUDED.steps_snapshot, current_step = EXCLUDED.current_step, ephemeral_state = EXCLUDED.ephemeral_state, failed_attempts = EXCLUDED.failed_attempts, created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at RETURNING id, token_hash, location_id, device_id, user_id, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, created_at, expires_at",
   "describe": {
     "columns": [
       {
@@ -66,6 +66,7 @@
         "Int8",
         "Int8",
         "Jsonb",
+        "Jsonb",
         "Timestamp",
         "Timestamp"
       ]
@@ -84,5 +85,5 @@
       false
     ]
   },
-  "hash": "83af672d09cda9c3de0ec43c91b5f7f8d0ad08ba3c3724b9e16a25c4af85ffab"
+  "hash": "76aa712da8fdec30ac4316d8d7c085667c53bb675a3326ddc37c0dea9aebc9fe"
 }

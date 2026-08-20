@@ -21,6 +21,7 @@ CREATE TABLE vpn_client_mfa_session (
 );
 
 -- The (location_id, device_id) identity is enforced by construction: a concurrent double-Start
--- cannot leave two live rows, because `start` supersedes via a single-statement upsert.
+-- cannot leave two live rows, because `start` supersedes via a DELETE plus an ON CONFLICT upsert
+-- in a single transaction, which also writes the first attempt's ephemeral_state.
 CREATE UNIQUE INDEX vpn_client_mfa_session_location_device_unique
     ON vpn_client_mfa_session (location_id, device_id);

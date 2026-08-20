@@ -9,6 +9,7 @@ use super::*;
 use crate::db::{
     Id,
     models::{
+        biometric_auth::BiometricChallenge,
         device::{Device, DeviceType},
         user::User,
         vpn_client_session::VpnClientMfaMethod,
@@ -88,6 +89,8 @@ async fn start_session_with_ttl(
             vec![VpnClientMfaMethod::Totp],
             vec![VpnClientMfaMethod::Email],
         ],
+        VpnClientMfaMethod::Totp,
+        None,
         ttl,
     )
     .await
@@ -119,6 +122,8 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
         user.id,
         1,
         steps.clone(),
+        VpnClientMfaMethod::Totp,
+        None,
         Duration::from_mins(10),
     )
     .await
@@ -144,6 +149,8 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
         user.id,
         1,
         steps,
+        VpnClientMfaMethod::Totp,
+        None,
         Duration::from_mins(10),
     )
     .await
@@ -185,6 +192,8 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
         user.id,
         1,
         steps.clone(),
+        VpnClientMfaMethod::Totp,
+        None,
         Duration::from_mins(10),
     )
     .await
@@ -199,6 +208,8 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
         user.id,
         1,
         steps,
+        VpnClientMfaMethod::Totp,
+        None,
         Duration::from_mins(10),
     )
     .await
@@ -209,6 +220,86 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
         outcome.superseded_token_hash.as_deref(),
         Some(first.token_hash.as_str())
     );
+}
+
+/// `start` must commit the first attempt with the row it mints. If the attempt were a second
+/// write, a concurrent `start` taking the `ON CONFLICT DO UPDATE` branch (which preserves the
+/// row id) could have the losing caller's attempt land on the winner's row.
+#[sqlx::test]
+async fn test_start_mints_first_attempt_with_row(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let location = create_location(&pool).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    let steps = vec![vec![VpnClientMfaMethod::MobileApprove]];
+    let challenge = BiometricChallenge::new();
+
+    let mut tx = pool.begin().await.unwrap();
+    let (session, outcome) = VpnClientMfaSession::<Id>::start(
+        &mut tx,
+        location.id,
+        device.id,
+        user.id,
+        1,
+        steps.clone(),
+        VpnClientMfaMethod::MobileApprove,
+        Some(challenge.clone()),
+        Duration::from_mins(10),
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    // The row comes back already armed: no follow-up write is needed to begin the attempt.
+    let state = session
+        .ephemeral_state
+        .clone()
+        .expect("start must return a session carrying its first attempt")
+        .0;
+    assert_eq!(state.step_attempt_id, outcome.step_attempt_id);
+    assert_eq!(state.selected_method, VpnClientMfaMethod::MobileApprove);
+    assert_eq!(
+        state.biometric_challenge.as_ref().map(|c| &c.challenge),
+        Some(&challenge.challenge)
+    );
+    assert!(!state.openid_auth_completed);
+    assert!(!state.mobile_approved);
+
+    // What was returned is what was persisted.
+    let persisted = refetch(&pool, &outcome.token)
+        .await
+        .ephemeral_state
+        .unwrap()
+        .0;
+    assert_eq!(persisted, state);
+
+    // Superseding rewrites the attempt in that same write, so the surviving token is always
+    // paired with the attempt its own `start` minted.
+    let mut tx = pool.begin().await.unwrap();
+    let (_second, second_outcome) = VpnClientMfaSession::<Id>::start(
+        &mut tx,
+        location.id,
+        device.id,
+        user.id,
+        1,
+        steps,
+        VpnClientMfaMethod::Totp,
+        None,
+        Duration::from_mins(10),
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let persisted = refetch(&pool, &second_outcome.token)
+        .await
+        .ephemeral_state
+        .unwrap()
+        .0;
+    assert_ne!(second_outcome.step_attempt_id, outcome.step_attempt_id);
+    assert_eq!(persisted.step_attempt_id, second_outcome.step_attempt_id);
+    assert_eq!(persisted.selected_method, VpnClientMfaMethod::Totp);
+    assert!(persisted.biometric_challenge.is_none());
 }
 
 #[sqlx::test]
@@ -226,6 +317,8 @@ async fn test_find_active_by_token_rejects_expired(_: PgPoolOptions, options: Pg
         user.id,
         1,
         vec![vec![VpnClientMfaMethod::Totp]],
+        VpnClientMfaMethod::Totp,
+        None,
         Duration::ZERO,
     )
     .await
@@ -508,6 +601,8 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
             user.id,
             1,
             steps.clone(),
+            VpnClientMfaMethod::Totp,
+            None,
             Duration::from_mins(10),
         ),
         VpnClientMfaSession::<Id>::start(
@@ -517,6 +612,8 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
             user.id,
             1,
             steps.clone(),
+            VpnClientMfaMethod::Totp,
+            None,
             Duration::from_mins(10),
         ),
     );
@@ -568,6 +665,8 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
             user.id,
             1,
             steps.clone(),
+            VpnClientMfaMethod::Totp,
+            None,
             Duration::from_mins(10),
         ),
         VpnClientMfaSession::<Id>::start(
@@ -577,6 +676,8 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
             user.id,
             1,
             steps.clone(),
+            VpnClientMfaMethod::Totp,
+            None,
             Duration::from_mins(10),
         ),
     );

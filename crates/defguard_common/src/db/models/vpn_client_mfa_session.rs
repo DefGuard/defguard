@@ -74,10 +74,11 @@ pub struct EphemeralState {
     pub biometric_challenge: Option<BiometricChallenge>,
 }
 
-/// Result of `start`, carrying the raw token (returned exactly once) and the hash of any
-/// session that was superseded.
+/// Result of `start`, carrying the raw token (returned exactly once), the id of the first
+/// attempt minted alongside the row, and the hash of any session that was superseded.
 pub struct StartOutcome {
     pub token: String,
+    pub step_attempt_id: String,
     pub superseded_token_hash: Option<String>,
 }
 
@@ -134,12 +135,41 @@ pub fn hash_token(token: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(token.as_bytes()))
 }
 
+/// Mint a fresh attempt on the current step, returning its `step_attempt_id` and the JSON the
+/// `ephemeral_state` column stores. Shared by `start` (which writes it in the same statement
+/// that mints the row) and `begin_attempt` (which overwrites a prior attempt in place).
+fn new_attempt_state(
+    method: VpnClientMfaMethod,
+    challenge: Option<BiometricChallenge>,
+) -> sqlx::Result<(String, serde_json::Value)> {
+    let step_attempt_id = gen_alphanumeric(32);
+    let state = EphemeralState {
+        step_attempt_id: step_attempt_id.clone(),
+        selected_method: method,
+        openid_auth_completed: false,
+        mobile_approved: false,
+        biometric_challenge: challenge,
+    };
+    let state_json =
+        serde_json::to_value(&state).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+
+    Ok((step_attempt_id, state_json))
+}
+
 impl VpnClientMfaSession<Id> {
     /// Begin a new in-progress MFA session, superseding any existing session for the same
     /// `(location_id, device_id)`.
     ///
+    /// The first attempt is minted here rather than by a follow-up `begin_attempt`: `method`
+    /// and `challenge` are written by the same statement that mints the row, so the session is
+    /// born with its attempt. Splitting the two writes left a window in which a concurrent
+    /// `start` could take the `ON CONFLICT DO UPDATE` branch (which preserves the row id) and
+    /// have the losing caller's `begin_attempt` land on the winner's row, handing that client a
+    /// token whose attempt carries a method it never selected.
+    ///
     /// `ttl` is a parameter (rather than a read of `VPN_MFA_SESSION_TIMEOUT`) so expiry can be
     /// exercised in tests without a 10-minute wait.
+    #[allow(clippy::too_many_arguments)]
     pub async fn start(
         conn: &mut PgConnection,
         location_id: Id,
@@ -147,6 +177,8 @@ impl VpnClientMfaSession<Id> {
         user_id: Id,
         flow_id: Id,
         steps: Vec<Vec<VpnClientMfaMethod>>,
+        method: VpnClientMfaMethod,
+        challenge: Option<BiometricChallenge>,
         ttl: Duration,
     ) -> sqlx::Result<(Self, StartOutcome)> {
         let token = gen_alphanumeric(32);
@@ -163,13 +195,20 @@ impl VpnClientMfaSession<Id> {
         };
         let snapshot_json =
             serde_json::to_value(&snapshot).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let (step_attempt_id, state_json) = new_attempt_state(method, challenge)?;
         let created_at = Utc::now().naive_utc();
         let expires_at = created_at + TimeDelta::seconds(ttl.as_secs() as i64);
 
         // Supersede any existing session for this (location, device), capturing its token hash so
         // the caller can cancel its waiter. The DELETE and the upsert run in one transaction so a
         // concurrent reader never observes the gap between them. The unique index plus the
-        // `ON CONFLICT` upsert below closes the concurrent double-`Start` race (last-writer-wins).
+        // `ON CONFLICT` upsert below closes the concurrent double-`Start` race (last-writer-wins),
+        // and because the upsert also writes `ephemeral_state`, the winner's attempt is committed
+        // with its row rather than by a second write a loser could interleave with.
+        //
+        // This is deliberately a transaction rather than one data-modifying CTE: in
+        // `WITH d AS (DELETE ...) INSERT ...` the index insert is checked before the delete
+        // becomes visible, so the upsert can still raise a unique violation.
         let mut tx = conn.begin().await?;
 
         let superseded_token_hash = query_scalar!(
@@ -186,7 +225,7 @@ impl VpnClientMfaSession<Id> {
             Self,
             "INSERT INTO vpn_client_mfa_session \
                 (token_hash, location_id, device_id, user_id, steps_snapshot, current_step, ephemeral_state, failed_attempts, created_at, expires_at) \
-             VALUES ($1, $2, $3, $4, $5, 0, NULL, 0, $6, $7) \
+             VALUES ($1, $2, $3, $4, $5, 0, $6, 0, $7, $8) \
              ON CONFLICT (location_id, device_id) DO UPDATE SET \
                 token_hash = EXCLUDED.token_hash, \
                 user_id = EXCLUDED.user_id, \
@@ -206,6 +245,7 @@ impl VpnClientMfaSession<Id> {
             device_id,
             user_id,
             snapshot_json,
+            state_json,
             created_at,
             expires_at,
         )
@@ -218,6 +258,7 @@ impl VpnClientMfaSession<Id> {
             session,
             StartOutcome {
                 token,
+                step_attempt_id,
                 superseded_token_hash,
             },
         ))
@@ -282,22 +323,16 @@ impl VpnClientMfaSession<Id> {
     ///
     /// Returns the fresh `step_attempt_id`, which every async completion (OIDC callback,
     /// mobile approve) must carry and match.
+    ///
+    /// The *first* attempt of a session is not minted here: `start` writes it inline, so this is
+    /// for re-issuing an attempt on the current step and for arming each subsequent step.
     pub async fn begin_attempt(
         &self,
         conn: &mut PgConnection,
         method: VpnClientMfaMethod,
         challenge: Option<BiometricChallenge>,
     ) -> sqlx::Result<String> {
-        let step_attempt_id = gen_alphanumeric(32);
-        let state = EphemeralState {
-            step_attempt_id: step_attempt_id.clone(),
-            selected_method: method,
-            openid_auth_completed: false,
-            mobile_approved: false,
-            biometric_challenge: challenge,
-        };
-        let state_json =
-            serde_json::to_value(&state).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let (step_attempt_id, state_json) = new_attempt_state(method, challenge)?;
 
         query!(
             "UPDATE vpn_client_mfa_session SET ephemeral_state = $2 WHERE id = $1",

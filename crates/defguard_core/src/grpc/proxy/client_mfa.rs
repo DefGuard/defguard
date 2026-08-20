@@ -484,14 +484,19 @@ impl ClientMfaServer {
             .as_ref()
             .map(|challenge| challenge.challenge.clone());
 
-        // Start the durable in-progress session, freezing the license-filtered first step.
-        let (session, outcome) = VpnClientMfaSession::<Id>::start(
+        // Start the durable in-progress session, freezing the license-filtered first step. The
+        // first attempt (selected method and challenge) is written by the same statement that
+        // mints the row, so a concurrent start cannot leave this client's token pointing at an
+        // attempt another caller selected.
+        let (_session, outcome) = VpnClientMfaSession::<Id>::start(
             &mut conn,
             location.id,
             device.id,
             user.id,
             flow.id,
             vec![first_step_methods],
+            selected_method.into(),
+            biometric_challenge,
             VPN_MFA_SESSION_TIMEOUT,
         )
         .await
@@ -499,15 +504,6 @@ impl ClientMfaServer {
             error!("Failed to start MFA session: {err}");
             Status::internal("unexpected error")
         })?;
-
-        // Begin the first attempt, recording the selected method and challenge.
-        session
-            .begin_attempt(&mut conn, selected_method.into(), biometric_challenge)
-            .await
-            .map_err(|err| {
-                error!("Failed to begin MFA attempt: {err}");
-                Status::internal("unexpected error")
-            })?;
 
         // Cancel the superseded session's waiter (best-effort hygiene) and emit the supersede
         // event.
@@ -3089,6 +3085,8 @@ mod tests {
             user.id,
             1,
             vec![vec![VpnClientMfaMethod::Totp]],
+            VpnClientMfaMethod::Totp,
+            None,
             ttl,
         )
         .await
