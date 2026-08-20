@@ -252,30 +252,7 @@ impl MfaEngine {
         };
         let challenge = initiate(&self.pool, &ctx, method)
             .await
-            .map_err(|err| match err {
-                InitiateError::EmailCode(e) => {
-                    error!("Failed to generate email MFA code: {e}");
-                    Status::internal("MFA code")
-                }
-                InitiateError::Database(e) => {
-                    error!("Database error: {e}");
-                    Status::internal("database error")
-                }
-                InitiateError::Mail(e) => {
-                    error!(
-                        "Failed to send email MFA code for user {}: {e}",
-                        user.username
-                    );
-                    Status::internal("unexpected error")
-                }
-                InitiateError::BiometricNotConfigured => {
-                    Status::invalid_argument("Select MFA method is not available for the device.")
-                }
-                InitiateError::InvalidPublicKey(e) => {
-                    error!("Start biometric MFA failed. Challenge creation failed. Reason: {e}");
-                    Status::invalid_argument("Invalid public key")
-                }
-            })?;
+            .map_err(|err| Self::map_initiate_error(err, &user.username))?;
         let response_challenge = challenge
             .as_ref()
             .map(|challenge| challenge.challenge.clone());
@@ -308,14 +285,117 @@ impl MfaEngine {
         })
     }
 
-    /// Initiate the current step. Not reachable from any handler until the proxy's step-start route
-    /// lands; the full state machine is implemented when that route is wired.
+    /// Map an [`InitiateError`] to a gRPC status, preserving the legacy error vocabulary.
+    fn map_initiate_error(err: InitiateError, username: &str) -> Status {
+        match err {
+            InitiateError::EmailCode(e) => {
+                error!("Failed to generate email MFA code: {e}");
+                Status::internal("MFA code")
+            }
+            InitiateError::Database(e) => {
+                error!("Database error: {e}");
+                Status::internal("database error")
+            }
+            InitiateError::Mail(e) => {
+                error!("Failed to send email MFA code for user {username}: {e}");
+                Status::internal("unexpected error")
+            }
+            InitiateError::BiometricNotConfigured => {
+                Status::invalid_argument("Select MFA method is not available for the device.")
+            }
+            InitiateError::InvalidPublicKey(e) => {
+                error!("Start biometric MFA failed. Challenge creation failed. Reason: {e}");
+                Status::invalid_argument("Invalid public key")
+            }
+        }
+    }
+
+    /// Initiate the current step: send the email code or mint the challenge and bind it to a
+    /// fresh attempt. A re-call for the already-initiated method returns the existing attempt id
+    /// without re-sending.
     pub async fn step_start(
         &self,
-        _token: String,
-        _method: VpnClientMfaMethod,
+        token: String,
+        method: VpnClientMfaMethod,
     ) -> Result<StepStarted, Status> {
-        Err(Status::unimplemented("step start is not available"))
+        let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &token)
+            .await
+            .map_err(|err| {
+                error!("Failed to find MFA session: {err}");
+                Status::internal("unexpected error")
+            })?
+        else {
+            error!("Client login session not found");
+            return Err(Status::invalid_argument("login session not found"));
+        };
+
+        if !session.current_step_methods().contains(&method) {
+            return Err(Status::invalid_argument(
+                "MFA method is not in the current step",
+            ));
+        }
+
+        // Idempotent re-call: return the existing attempt for this method without re-running
+        // initiate (no second email or push).
+        if let Some(ephemeral) = session.ephemeral_state.as_ref() {
+            let ephemeral = &ephemeral.0;
+            if ephemeral.selected_method == method {
+                return Ok(StepStarted {
+                    step_attempt_id: ephemeral.step_attempt_id.clone(),
+                    challenge: ephemeral
+                        .biometric_challenge
+                        .as_ref()
+                        .map(|challenge| challenge.challenge.clone()),
+                });
+            }
+        }
+
+        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
+            error!("Failed to load MFA session context: {err}");
+            Status::internal("unexpected error")
+        })?
+        else {
+            error!("MFA session references a missing location, device, or user");
+            return Err(Status::internal("unexpected error"));
+        };
+
+        let smtp_configured = Settings::get_current_settings().smtp_configured();
+        if !method
+            // oidc_configured is moot here: the session's steps are TOTP or Email only.
+            .is_configured(&self.pool, &ctx.user, ctx.device.id, smtp_configured, false)
+            .await
+            .map_err(|err| {
+                error!("Failed to check MFA method configuration: {err}");
+                Status::internal("unexpected error")
+            })?
+        {
+            return Err(Status::failed_precondition(
+                "MFA method is not configured for this user",
+            ));
+        }
+
+        let challenge = initiate(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| Self::map_initiate_error(err, &ctx.user.username))?;
+
+        let mut conn = self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })?;
+        let step_attempt_id = session
+            .begin_attempt(&mut conn, method, challenge.clone())
+            .await
+            .map_err(|err| {
+                error!("Failed to begin MFA attempt: {err}");
+                Status::internal("unexpected error")
+            })?;
+
+        Ok(StepStarted {
+            step_attempt_id,
+            challenge: challenge
+                .as_ref()
+                .map(|challenge| challenge.challenge.clone()),
+        })
     }
 
     /// Verify a proof, advance the step cursor, and - once the flow completes - authorize the
