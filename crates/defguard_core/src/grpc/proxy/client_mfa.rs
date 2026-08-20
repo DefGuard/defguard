@@ -11,7 +11,7 @@ use defguard_common::{
         Id,
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
-            device::{DeviceNetworkInfo, WireguardNetworkDevice},
+            device::WireguardNetworkDevice,
             mfa_flow::MfaFlow,
             polling_token::PollingToken,
             vpn_client_mfa_session::{
@@ -36,16 +36,11 @@ use defguard_proto::{
     },
 };
 use sqlx::{PgConnection, PgPool, Postgres, pool::PoolConnection};
-use thiserror::Error;
 use tokio::{
-    sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedSender, error::SendError},
-        oneshot,
-    },
+    sync::{broadcast::Sender, mpsc::UnboundedSender, oneshot},
     time,
 };
-use tonic::{Code, Status};
+use tonic::Status;
 
 use crate::{
     enterprise::{
@@ -57,6 +52,7 @@ use crate::{
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
     mail::templates::mfa_code_mail,
     mfa_engine::{
+        authorize::{build_authorized_gateway_network_info, create_new_session, emit_event},
         method::{Verdict, VerifyError, verify},
         types::Proof,
     },
@@ -65,30 +61,11 @@ use crate::{
 // How much time the user has to approve remote MFA with mobile device
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
 
-#[derive(Debug, Error)]
-pub enum ClientMfaServerError {
-    #[error("gRPC event channel error: {0}")]
-    BidiEventChannelError(#[from] SendError<BidiStreamEvent>),
-}
-
-impl From<ClientMfaServerError> for Status {
-    fn from(value: ClientMfaServerError) -> Self {
-        Self::new(Code::Internal, value.to_string())
-    }
-}
-
-pub enum SessionDisconnectReason {
-    /// Closed because a new authorization is creating a replacement session.
-    Superseded,
-    /// Closed for any other reason (normal teardown).
-    Disconnected,
-}
-
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     gateway_tx: Sender<GatewayCommand>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    pub(crate) bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 /// Acquire a pooled connection, mapping a pool error to an internal status.
@@ -112,17 +89,6 @@ fn remove_remote_mfa_waiter(
 }
 
 impl ClientMfaServer {
-    fn build_authorized_gateway_network_info(
-        network_device: WireguardNetworkDevice,
-        preshared_key: String,
-    ) -> DeviceNetworkInfo {
-        DeviceNetworkInfo::from_authorized_vpn_session(
-            network_device.wireguard_network_id,
-            network_device.wireguard_ips,
-            preshared_key,
-        )
-    }
-
     #[must_use]
     pub fn new(
         pool: PgPool,
@@ -136,11 +102,6 @@ impl ClientMfaServer {
             remote_mfa_responses,
             bidi_event_tx,
         }
-    }
-
-    /// Emit given event to the channel.
-    pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
-        Ok(self.bidi_event_tx.send(event)?)
     }
 
     /// Acquire a pooled connection, mapping a pool error to an internal status.
@@ -251,17 +212,20 @@ impl ClientMfaServer {
             match posture_result {
                 PostureResult::Fail(reasons) => {
                     let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
-                    if let Err(err) = self.emit_event(BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::PostureCheckFailed {
-                                device: device.clone(),
-                                location: location.clone(),
-                                device_posture_data: request.posture_data.clone(),
-                                failed_checks: failed_checks.clone(),
-                            },
-                        )),
-                    }) {
+                    if let Err(err) = emit_event(
+                        &self.bidi_event_tx,
+                        BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::PostureCheckFailed {
+                                    device: device.clone(),
+                                    location: location.clone(),
+                                    device_posture_data: request.posture_data.clone(),
+                                    failed_checks: failed_checks.clone(),
+                                },
+                            )),
+                        },
+                    ) {
                         error!("Failed to emit DevicePostureCheckFailed event: {err}");
                     }
                     self.revoke_rejected_posture_sessions(&location, &user, &device, ip)
@@ -269,16 +233,19 @@ impl ClientMfaServer {
                     return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
                 }
                 PostureResult::Pass => {
-                    if let Err(err) = self.emit_event(BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::PostureCheckPassed {
-                                device: device.clone(),
-                                location: location.clone(),
-                                device_posture_data: request.posture_data.clone(),
-                            },
-                        )),
-                    }) {
+                    if let Err(err) = emit_event(
+                        &self.bidi_event_tx,
+                        BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::PostureCheckPassed {
+                                    device: device.clone(),
+                                    location: location.clone(),
+                                    device_posture_data: request.posture_data.clone(),
+                                },
+                            )),
+                        },
+                    ) {
                         error!("Failed to emit DevicePostureCheckPassed event: {err}");
                     }
                 }
@@ -506,15 +473,18 @@ impl ClientMfaServer {
 
             let context =
                 BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
-            self.emit_event(BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::MfaLoginSuperseded {
-                        location: location.clone(),
-                        device: device.clone(),
-                    },
-                )),
-            })?;
+            emit_event(
+                &self.bidi_event_tx,
+                BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::MfaLoginSuperseded {
+                            location: location.clone(),
+                            device: device.clone(),
+                        },
+                    )),
+                },
+            )?;
         }
 
         info!(
@@ -752,51 +722,61 @@ impl ClientMfaServer {
                 }
             }
             Ok(Verdict::NotYet) => {
-                self.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location,
-                            device,
-                            method: method.into(),
-                            message: "tried to finish OIDC MFA login but they haven't completed \
-                                OIDC authentication yet"
-                                .to_owned(),
-                        },
-                    )),
-                })?;
-                return Err(Status::failed_precondition(
-                    "OIDC authentication not completed yet",
-                ));
-            }
-            Ok(Verdict::Failed { message }) => {
-                self.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location,
-                            device,
-                            method: method.into(),
-                            message: message.to_owned(),
-                        },
-                    )),
-                })?;
-                self.record_mfa_failure(session).await?;
-                return Err(Status::unauthenticated("unauthorized"));
-            }
-            Err(VerifyError::MalformedProof { status, event }) => {
-                if let Some(event_message) = event {
-                    self.emit_event(BidiStreamEvent {
+                emit_event(
+                    &self.bidi_event_tx,
+                    BidiStreamEvent {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location,
                                 device,
                                 method: method.into(),
-                                message: event_message.to_owned(),
+                                message:
+                                    "tried to finish OIDC MFA login but they haven't completed \
+                                OIDC authentication yet"
+                                        .to_owned(),
                             },
                         )),
-                    })?;
+                    },
+                )?;
+                return Err(Status::failed_precondition(
+                    "OIDC authentication not completed yet",
+                ));
+            }
+            Ok(Verdict::Failed { message }) => {
+                emit_event(
+                    &self.bidi_event_tx,
+                    BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::Failed {
+                                location,
+                                device,
+                                method: method.into(),
+                                message: message.to_owned(),
+                            },
+                        )),
+                    },
+                )?;
+                self.record_mfa_failure(session).await?;
+                return Err(Status::unauthenticated("unauthorized"));
+            }
+            Err(VerifyError::MalformedProof { status, event }) => {
+                if let Some(event_message) = event {
+                    emit_event(
+                        &self.bidi_event_tx,
+                        BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location,
+                                    device,
+                                    method: method.into(),
+                                    message: event_message.to_owned(),
+                                },
+                            )),
+                        },
+                    )?;
                 }
                 return Err(Status::invalid_argument(status));
             }
@@ -855,15 +835,16 @@ impl ClientMfaServer {
         let key = WireguardNetwork::genkey();
 
         // create new VPN client session
-        let vpn_client_session = self
-            .create_new_session(
-                &mut transaction,
-                &location,
-                &user,
-                &device,
-                true,
-                key.public.clone(),
-            )
+        let vpn_client_session = create_new_session(
+            &self.gateway_tx,
+            &self.bidi_event_tx,
+            &mut transaction,
+            &location,
+            &user,
+            &device,
+            true,
+            key.public.clone(),
+        )
             .await
             .map_err(|err| {
                 error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
@@ -872,7 +853,7 @@ impl ClientMfaServer {
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
         let gateway_network_info =
-            Self::build_authorized_gateway_network_info(network_device, key.public.clone());
+            build_authorized_gateway_network_info(network_device, key.public.clone());
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
@@ -889,20 +870,23 @@ impl ClientMfaServer {
             location.name,
             MfaMethod::from(method).as_str_name()
         );
-        self.emit_event(BidiStreamEvent {
-            context,
-            event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                DesktopClientMfaEvent::Success {
-                    location,
-                    device,
-                    attribution: MfaAttribution {
-                        snapshot,
-                        flow_name,
+        emit_event(
+            &self.bidi_event_tx,
+            BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::Success {
+                        location,
+                        device,
+                        attribution: MfaAttribution {
+                            snapshot,
+                            flow_name,
+                        },
+                        mobile_auth_device_name,
                     },
-                    mobile_auth_device_name,
-                },
-            )),
-        })?;
+                )),
+            },
+        )?;
 
         let response = ClientMfaFinishResponse {
             #[allow(deprecated)]
@@ -1085,17 +1069,20 @@ impl ClientMfaServer {
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
             let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
-            if let Err(err) = self.emit_event(BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::PostureCheckFailed {
-                        device: device.clone(),
-                        location: location.clone(),
-                        device_posture_data: request.device_posture_data.clone(),
-                        failed_checks: failed_checks.clone(),
-                    },
-                )),
-            }) {
+            if let Err(err) = emit_event(
+                &self.bidi_event_tx,
+                BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::PostureCheckFailed {
+                            device: device.clone(),
+                            location: location.clone(),
+                            device_posture_data: request.device_posture_data.clone(),
+                            failed_checks: failed_checks.clone(),
+                        },
+                    )),
+                },
+            ) {
                 error!("Failed to emit DevicePostureCheckFailed event: {err}");
             }
 
@@ -1105,16 +1092,19 @@ impl ClientMfaServer {
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 
-        if let Err(err) = self.emit_event(BidiStreamEvent {
-            context,
-            event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                DesktopClientMfaEvent::PostureCheckPassed {
-                    device: device.clone(),
-                    location: location.clone(),
-                    device_posture_data: request.device_posture_data.clone(),
-                },
-            )),
-        }) {
+        if let Err(err) = emit_event(
+            &self.bidi_event_tx,
+            BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::PostureCheckPassed {
+                        device: device.clone(),
+                        location: location.clone(),
+                        device_posture_data: request.device_posture_data.clone(),
+                    },
+                )),
+            },
+        ) {
             error!("Failed to emit DevicePostureCheckPassed event: {err}");
         }
 
@@ -1136,9 +1126,11 @@ impl ClientMfaServer {
         };
 
         let gateway_network_info =
-            Self::build_authorized_gateway_network_info(network_device, key.public.clone());
+            build_authorized_gateway_network_info(network_device, key.public.clone());
 
-        self.create_new_session(
+        create_new_session(
+            &self.gateway_tx,
+            &self.bidi_event_tx,
             &mut transaction,
             &location,
             &user,
@@ -1195,7 +1187,7 @@ impl ClientMfaServer {
             error!("Error sending WireGuard event: {err}");
         }
         for event in disconnect_events {
-            if let Err(err) = self.emit_event(event) {
+            if let Err(err) = emit_event(&self.bidi_event_tx, event) {
                 error!("Failed to emit VPN session disconnect event: {err}");
             }
         }
@@ -1264,133 +1256,6 @@ impl ClientMfaServer {
         }
 
         Ok(events)
-    }
-
-    /// Helper used to close all existing active sessions while creating a new MFA session
-    /// and send relevant gateway updates
-    async fn create_new_session(
-        &self,
-        conn: &mut PgConnection,
-        location: &WireguardNetwork<Id>,
-        user: &User<Id>,
-        device: &Device<Id>,
-        is_mfa_session: bool,
-        preshared_key: String,
-    ) -> Result<VpnClientSession<Id>, Status> {
-        debug!(
-            "Creating new VPN session for device {device} of user {user} in location {location}."
-        );
-
-        // find all active sessions for a given device and location
-        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
-            &mut *conn,
-            location.id,
-            device.id,
-        )
-        .await
-        .map_err(|err| {
-            error!(
-                "Failed to fetch active VPN sessions for device {device} in location {location}: {err}"
-            );
-            Status::internal("unexpected error")
-        })?;
-        if !active_sessions.is_empty() {
-            info!(
-                "Found {} active sessions for device {device} in location {location}. Disconnecting them before creating a new MFA session",
-                active_sessions.len()
-            );
-        }
-
-        // disconnect all active sessions
-        for session in active_sessions {
-            debug!("Disconnecting previous active MFA VPN session {session:?}.");
-            self.disconnect_session(
-                &mut *conn,
-                session,
-                location,
-                user,
-                device,
-                SessionDisconnectReason::Superseded,
-            )
-            .await?;
-        }
-
-        // create new MFA session
-        let mut session =
-            VpnClientSession::new(location.id, user.id, device.id, None, is_mfa_session);
-        session.preshared_key = Some(preshared_key);
-        session.save(conn).await.map_err(|err| {
-            error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
-            Status::internal("unexpected error")
-        })
-    }
-
-    /// Update session state as disconnected and send relevant gateway update
-    async fn disconnect_session(
-        &self,
-        conn: &mut PgConnection,
-        mut session: VpnClientSession<Id>,
-        location: &WireguardNetwork<Id>,
-        user: &User<Id>,
-        device: &Device<Id>,
-        reason: SessionDisconnectReason,
-    ) -> Result<(), Status> {
-        let is_connected = session.state == VpnClientSessionState::Connected;
-        let is_mfa_session = session.is_mfa_session;
-        let requires_gateway_update = is_mfa_session
-            || location.has_postures(&mut *conn).await.map_err(|err| {
-                error!("Failed to fetch postures for location {location}: {err}");
-                Status::internal("unexpected error")
-            })?;
-
-        // update session state in DB
-        let disconnect_timestamp = Utc::now().naive_utc();
-        session.disconnected_at = Some(disconnect_timestamp);
-        session.state = VpnClientSessionState::Disconnected;
-        session.save(&mut *conn).await.map_err(|err| {
-            error!("Failed to update VPN session {session:?}: {err}");
-            Status::internal("unexpected error")
-        })?;
-
-        // gateway update is only needed to remove peers that were authorized at runtime - MFA and posture-check sessions
-        // this is needed to remove peers for both Connected and New sessions
-        if requires_gateway_update {
-            let gateway_event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
-            self.gateway_tx.send(gateway_event).map_err(|err| {
-                error!("Error sending WireGuard event: {err}");
-                Status::internal("unexpected error")
-            })?;
-        }
-
-        // only emit disconnect events if a session has actually been connected
-        if is_connected {
-            let context = BidiRequestContext {
-                timestamp: disconnect_timestamp,
-                user_id: user.id,
-                username: user.username.clone(),
-                ip: None,
-                device_name: format!("{device}"),
-            };
-            let event = match reason {
-                SessionDisconnectReason::Superseded => DesktopClientMfaEvent::SessionSuperseded {
-                    location: location.clone(),
-                    device: device.clone(),
-                    is_mfa_session,
-                },
-                SessionDisconnectReason::Disconnected => DesktopClientMfaEvent::Disconnected {
-                    location: location.clone(),
-                    device: device.clone(),
-                    is_mfa_session,
-                },
-            };
-            self.emit_event(BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(event)),
-            })
-            .map_err(Status::from)?;
-        }
-
-        Ok(())
     }
 }
 
@@ -1470,6 +1335,7 @@ mod tests {
         },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
         grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
+        mfa_engine::authorize::create_new_session,
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -2433,20 +2299,22 @@ mod tests {
         .await
         .expect("failed to create existing MFA session");
 
-        let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
+        let (gateway_tx, mut gateway_rx) = broadcast::channel(8);
+        let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        server
-            .create_new_session(
-                &mut conn,
-                &location,
-                &user,
-                &device,
-                true,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
-            )
-            .await
-            .expect("should replace connected MFA session");
+        create_new_session(
+            &gateway_tx,
+            &bidi_event_tx,
+            &mut conn,
+            &location,
+            &user,
+            &device,
+            true,
+            REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+        )
+        .await
+        .expect("should replace connected MFA session");
 
         let gateway_event = gateway_rx
             .try_recv()
@@ -2502,20 +2370,22 @@ mod tests {
             .await
             .expect("failed to create existing new MFA session");
 
-        let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
+        let (gateway_tx, mut gateway_rx) = broadcast::channel(8);
+        let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        server
-            .create_new_session(
-                &mut conn,
-                &location,
-                &user,
-                &device,
-                true,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
-            )
-            .await
-            .expect("should replace new MFA session");
+        create_new_session(
+            &gateway_tx,
+            &bidi_event_tx,
+            &mut conn,
+            &location,
+            &user,
+            &device,
+            true,
+            REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+        )
+        .await
+        .expect("should replace new MFA session");
 
         let gateway_event = gateway_rx
             .try_recv()
@@ -2632,30 +2502,23 @@ mod tests {
 
         let (gateway_tx, mut gateway_rx) = broadcast::channel(4);
         let (bidi_event_tx, _bidi_event_rx) = mpsc::unbounded_channel();
-        let server = ClientMfaServer::new(
-            pool.clone(),
-            gateway_tx,
-            bidi_event_tx,
-            Arc::new(RwLock::new(
-                HashMap::<String, oneshot::Sender<String>>::new(),
-            )),
-        );
         let mut conn = pool
             .acquire()
             .await
             .expect("failed to acquire database connection");
 
-        let new_session = server
-            .create_new_session(
-                &mut conn,
-                &location,
-                &user,
-                &device,
-                true,
-                NEW_MFA_PRESHARED_KEY.to_owned(),
-            )
-            .await
-            .expect("failed to create replacement MFA session");
+        let new_session = create_new_session(
+            &gateway_tx,
+            &bidi_event_tx,
+            &mut conn,
+            &location,
+            &user,
+            &device,
+            true,
+            NEW_MFA_PRESHARED_KEY.to_owned(),
+        )
+        .await
+        .expect("failed to create replacement MFA session");
 
         let previous_session = VpnClientSession::find_by_id(&pool, previous_session.id)
             .await

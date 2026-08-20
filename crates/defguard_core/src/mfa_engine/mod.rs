@@ -5,5 +5,6 @@
 //! store. The gRPC handlers in `grpc::proxy::client_mfa` stay thin adapters that convert the
 //! frozen proto messages to and from the domain types here; the engine never sees a proto message.
 
+pub mod authorize;
 pub mod method;
 pub mod types;
