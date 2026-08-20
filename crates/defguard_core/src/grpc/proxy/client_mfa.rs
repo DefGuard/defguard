@@ -23,7 +23,7 @@ use defguard_common::{
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-        ClientMfaStartResponse, MfaMethod,
+        ClientMfaStartResponse, ClientMfaStepStartRequest, ClientMfaStepStartResponse, MfaMethod,
     },
     enterprise::posture::DevicePostureCheckRequest,
     proxy::{
@@ -614,6 +614,23 @@ impl ClientMfaServer {
         Ok(response)
     }
 
+    /// Start a step of a multi-step MFA login: convert the proto request to the domain method and
+    /// delegate to the engine.
+    #[instrument(skip_all)]
+    pub async fn client_mfa_step_start(
+        &mut self,
+        request: ClientMfaStepStartRequest,
+    ) -> Result<ClientMfaStepStartResponse, Status> {
+        let method = MfaMethod::try_from(request.method)
+            .map(VpnClientMfaMethod::from)
+            .map_err(|err| {
+                error!("Invalid MFA method selected ({}): {err}", request.method);
+                Status::invalid_argument("invalid MFA method selected")
+            })?;
+        let step_started = self.engine.step_start(request.token, method).await?;
+        Ok(ClientMfaStepStartResponse::from(step_started))
+    }
+
     /// Handles a `PostureCheck` request from the proxy bidi stream.
     ///
     /// Validates the posture data, and on success creates a new `VpnClientSession`
@@ -998,7 +1015,9 @@ mod tests {
         setup_pool,
     };
     use defguard_proto::{
-        client_types::{ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod},
+        client_types::{
+            ClientMfaFinishRequest, ClientMfaStartRequest, ClientMfaStepStartRequest, MfaMethod,
+        },
         enterprise::posture::{
             BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check,
         },
@@ -2566,6 +2585,27 @@ mod tests {
             .await
             .unwrap();
         assert!(resp.token_valid);
+    }
+
+    #[sqlx::test]
+    async fn test_client_mfa_step_start_returns_well_formed_response(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+
+        let token = start_mfa_session_direct(&pool, VPN_MFA_SESSION_TIMEOUT).await;
+
+        let response = server
+            .client_mfa_step_start(ClientMfaStepStartRequest {
+                token,
+                method: MfaMethod::Totp as i32,
+            })
+            .await
+            .expect("step start should succeed");
+        assert!(!response.step_attempt_id.is_empty());
+        assert!(response.challenge.is_none());
     }
 
     #[sqlx::test]
