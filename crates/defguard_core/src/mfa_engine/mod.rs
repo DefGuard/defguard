@@ -15,13 +15,13 @@ use defguard_common::db::{
         device::WireguardNetworkDevice,
         mfa_flow::MfaFlow,
         vpn_client_mfa_session::{
-            MfaAttribution, MfaSessionContext, StepOutcome, VPN_MFA_SESSION_TIMEOUT,
+            MfaAttribution, MfaSessionContext, StepOutcome, StepsSnapshot, VPN_MFA_SESSION_TIMEOUT,
             VpnClientMfaSession,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
 };
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
@@ -566,6 +566,44 @@ impl MfaEngine {
             ));
         }
 
+        let outcome = self
+            .collect(
+                &mut transaction,
+                session,
+                snapshot,
+                &location,
+                &device,
+                &user,
+                context,
+                method,
+                mobile_auth_device_name,
+            )
+            .await?;
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction while finishing desktop client login.");
+            Status::internal("unexpected error")
+        })?;
+
+        Ok((outcome, method))
+    }
+
+    /// Collect the completed flow: mint the preshared key, authorize the peer, emit the success
+    /// event, and delete the in-progress session. This is the single place a preshared key is
+    /// minted or a peer is authorized.
+    #[allow(clippy::too_many_arguments)]
+    async fn collect(
+        &self,
+        transaction: &mut PgConnection,
+        session: VpnClientMfaSession<Id>,
+        snapshot: StepsSnapshot,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+        user: &User<Id>,
+        context: BidiRequestContext,
+        method: VpnClientMfaMethod,
+        mobile_auth_device_name: Option<String>,
+    ) -> Result<FinishOutcome, Status> {
         let Ok(Some(network_device)) =
             WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
         else {
@@ -586,10 +624,10 @@ impl MfaEngine {
         let vpn_client_session = create_new_session(
             &self.gateway_tx,
             &self.bidi_event_tx,
-            &mut transaction,
-            &location,
-            &user,
-            &device,
+            &mut *transaction,
+            location,
+            user,
+            device,
             true,
             key.public.clone(),
         )
@@ -621,8 +659,8 @@ impl MfaEngine {
                 context,
                 event: BidiStreamEventType::DesktopClientMfa(Box::new(
                     DesktopClientMfaEvent::Success {
-                        location,
-                        device,
+                        location: location.clone(),
+                        device: device.clone(),
                         attribution: MfaAttribution {
                             snapshot,
                             flow_name,
@@ -639,17 +677,9 @@ impl MfaEngine {
             Status::internal("unexpected error")
         })?;
 
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction while finishing desktop client login.");
-            Status::internal("unexpected error")
-        })?;
-
-        Ok((
-            FinishOutcome::Completed {
-                preshared_key: key.public.clone(),
-            },
-            method,
-        ))
+        Ok(FinishOutcome::Completed {
+            preshared_key: key.public.clone(),
+        })
     }
 
     /// Record a proof-verification failure, deleting the session once the per-step cap is reached
