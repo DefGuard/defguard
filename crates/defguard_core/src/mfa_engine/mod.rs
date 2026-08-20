@@ -547,21 +547,31 @@ impl MfaEngine {
             Status::internal("unexpected error")
         })?;
 
+        // Advance the satisfied step. A non-final advance returns `Advanced` without authorizing
+        // or deleting the session; the flow continues on the next `step_start` + `finish`.
+        let (advance, snapshot) = session.advance(&mut transaction).await.map_err(|err| {
+            error!("Failed to advance MFA session: {err}");
+            Status::internal("unexpected error")
+        })?;
+        if let StepOutcome::Advanced { next_step } = advance {
+            transaction.commit().await.map_err(|_| {
+                error!("Failed to commit transaction while advancing MFA flow.");
+                Status::internal("unexpected error")
+            })?;
+            return Ok((
+                FinishOutcome::Advanced {
+                    next_step: next_step as u32,
+                },
+                method,
+            ));
+        }
+
         let Ok(Some(network_device)) =
             WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
         else {
             error!("Failed to fetch network config for device {device} and location {location}");
             return Err(Status::internal("unexpected error"));
         };
-
-        let (advance, snapshot) = session.advance(&mut transaction).await.map_err(|err| {
-            error!("Failed to advance MFA session: {err}");
-            Status::internal("unexpected error")
-        })?;
-        if advance != StepOutcome::Complete {
-            error!("MFA session did not complete after its single step: {advance:?}");
-            return Err(Status::internal("unexpected error"));
-        }
 
         let flow_name = MfaFlow::find_by_id(&mut *transaction, snapshot.flow_id)
             .await
