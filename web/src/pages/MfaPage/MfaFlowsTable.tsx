@@ -90,8 +90,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
     () => [
       columnHelper.accessor('title', {
         header: m.mfa_flows_table_title(),
-        minSize: 306,
-        meta: { flex: true },
+        minSize: 350,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -103,7 +102,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         size: 140,
         enableColumnFilter: true,
         filterFn: filterByStepCount,
-        meta: { filterOptions: stepCountOptions },
+        meta: { flex: true, filterOptions: stepCountOptions },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
