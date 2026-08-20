@@ -17,6 +17,7 @@ pub struct StartPlan {
 ///
 /// `challenge` is `Some` only when the step's method requires one (biometric or mobile
 /// approve), where the client needs it to sign the proof.
+#[derive(Debug)]
 pub struct StartOutcome {
     pub token: String,
     pub challenge: Option<String>,
@@ -77,6 +78,7 @@ impl From<StepStarted> for ClientMfaStepStartResponse {
 }
 
 /// Why a step of the submitted plan was refused at `start`.
+#[derive(Debug, PartialEq, Eq)]
 pub enum StartRejectionReason {
     /// The chosen method is not in this step's allowed set.
     MethodNotInStep,
@@ -87,6 +89,7 @@ pub enum StartRejectionReason {
 }
 
 /// A sparse per-step rejection: only failing steps are returned.
+#[derive(Debug)]
 pub struct StepRejection {
     pub step: u32,
     pub reason: StartRejectionReason,
@@ -115,6 +118,7 @@ impl From<StepRejection> for MfaStepRejection {
 
 /// Result of the multi-step `start`: the session was accepted, or the plan was refused with
 /// sparse rejections. A refused plan creates no session, token, or event.
+#[derive(Debug)]
 pub enum StartResult {
     Accepted(StartOutcome),
     Rejected(Vec<StepRejection>),
