@@ -250,7 +250,7 @@ async fn test_start_mints_first_attempt_with_row(_: PgPoolOptions, options: PgCo
     .unwrap();
     tx.commit().await.unwrap();
 
-    // The row comes back already armed: no follow-up write is needed to begin the attempt.
+    // The row comes back already initialized: no follow-up write is needed to begin the attempt.
     let state = session
         .ephemeral_state
         .clone()
@@ -364,7 +364,16 @@ async fn test_advance_clears_ephemeral_state(_: PgPoolOptions, options: PgConnec
 
     let session = refetch(&pool, &outcome.token).await;
     let mut tx = pool.begin().await.unwrap();
-    let (result, _) = session.advance(&mut tx).await.unwrap();
+    let (result, _) = session
+        .advance(
+            &mut tx,
+            session.current_step,
+            None,
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .unwrap()
+        .expect("advance should match the current step");
     tx.commit().await.unwrap();
     assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
 
@@ -388,7 +397,16 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
 
     let session = refetch(&pool, &outcome.token).await;
     let mut tx = pool.begin().await.unwrap();
-    let (result, _) = session.advance(&mut tx).await.unwrap();
+    let (result, _) = session
+        .advance(
+            &mut tx,
+            session.current_step,
+            None,
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .unwrap()
+        .expect("advance should match the current step");
     tx.commit().await.unwrap();
     assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
 
@@ -404,13 +422,72 @@ async fn test_advance_does_not_extend_expiry(_: PgPoolOptions, options: PgConnec
     let original_expiry = session.expires_at;
 
     let mut tx = pool.begin().await.unwrap();
-    session.advance(&mut tx).await.unwrap();
+    session
+        .advance(
+            &mut tx,
+            session.current_step,
+            None,
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .unwrap()
+        .expect("advance should match the current step");
     tx.commit().await.unwrap();
 
     assert_eq!(
         refetch(&pool, &outcome.token).await.expires_at,
         original_expiry
     );
+}
+
+#[sqlx::test]
+async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (session, outcome) = start_session(&pool).await;
+
+    // A wrong attempt id matches zero rows, so a proof bound to a superseded attempt cannot
+    // advance the step.
+    let mut tx = pool.begin().await.unwrap();
+    let wrong_attempt = session
+        .advance(
+            &mut tx,
+            session.current_step,
+            Some("not-the-attempt-id"),
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    assert!(wrong_attempt.is_none());
+
+    // The correct attempt id advances the step.
+    let mut tx = pool.begin().await.unwrap();
+    let advanced = session
+        .advance(
+            &mut tx,
+            session.current_step,
+            Some(&outcome.step_attempt_id),
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    assert!(advanced.is_some());
+
+    // A second advance from the now-stale step matches zero rows, so a duplicate proof cannot
+    // skip a step.
+    let mut tx = pool.begin().await.unwrap();
+    let stale = session
+        .advance(
+            &mut tx,
+            session.current_step,
+            None,
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    assert!(stale.is_none());
 }
 
 #[sqlx::test]

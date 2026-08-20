@@ -22,7 +22,6 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{proxy::client_mfa::ClientMfaServer, utils::parse_client_ip_agent},
-    mfa_engine::authorize::emit_event,
 };
 
 impl ClientMfaServer {
@@ -128,20 +127,17 @@ impl ClientMfaServer {
             Ok(url) => url,
             Err(status) => {
                 self.delete_mfa_session(session).await?;
-                emit_event(
-                    &self.bidi_event_tx,
-                    BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
-                                method,
-                                message: "provided invalid callback URL".to_owned(),
-                            },
-                        )),
-                    },
-                )?;
+                self.emit_event(BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: location.clone(),
+                            device: device.clone(),
+                            method,
+                            message: "provided invalid callback URL".to_owned(),
+                        },
+                    )),
+                })?;
                 return Err(status);
             }
         };
@@ -164,8 +160,7 @@ impl ClientMfaServer {
                 if claims_user.id != user.id {
                     info!("User {claims_user} tried to use OIDC MFA for another user: {user}");
                     self.delete_mfa_session(session).await?;
-                    emit_event(
-                        &self.bidi_event_tx,
+                    self.emit_event(
                         BidiStreamEvent {
                             context,
                             event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -190,20 +185,17 @@ impl ClientMfaServer {
             Err(err) => {
                 info!("Failed to verify OIDC code: {err}");
                 self.delete_mfa_session(session).await?;
-                emit_event(
-                    &self.bidi_event_tx,
-                    BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
-                                method,
-                                message: format!("failed to verify OIDC code: {err}"),
-                            },
-                        )),
-                    },
-                )?;
+                self.emit_event(BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: location.clone(),
+                            device: device.clone(),
+                            method,
+                            message: format!("failed to verify OIDC code: {err}"),
+                        },
+                    )),
+                })?;
                 return Err(Status::unauthenticated("unauthorized"));
             }
         }

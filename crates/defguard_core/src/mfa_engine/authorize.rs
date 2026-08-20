@@ -16,7 +16,6 @@ use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
 };
-use tonic::{Code, Status};
 
 use crate::events::{
     BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
@@ -28,10 +27,15 @@ pub enum ClientMfaServerError {
     BidiEventChannelError(#[from] SendError<BidiStreamEvent>),
 }
 
-impl From<ClientMfaServerError> for Status {
-    fn from(value: ClientMfaServerError) -> Self {
-        Self::new(Code::Internal, value.to_string())
-    }
+/// Error surfaced by the authorize free functions (`create_new_session` / `disconnect_session`).
+#[derive(Debug, Error)]
+pub enum AuthorizeError {
+    #[error(transparent)]
+    Db(#[from] sqlx::Error),
+    #[error(transparent)]
+    Event(#[from] ClientMfaServerError),
+    #[error("gateway event channel error: {0}")]
+    Gateway(Box<tokio::sync::broadcast::error::SendError<GatewayCommand>>),
 }
 
 pub enum SessionDisconnectReason {
@@ -41,12 +45,29 @@ pub enum SessionDisconnectReason {
     Disconnected,
 }
 
-/// Emit a bidi-stream event to the proxy.
-pub fn emit_event(
-    bidi_event_tx: &UnboundedSender<BidiStreamEvent>,
-    event: BidiStreamEvent,
-) -> Result<(), ClientMfaServerError> {
-    Ok(bidi_event_tx.send(event)?)
+/// The two outbound channels the MFA engine and the posture path push to. Bundling them keeps
+/// the pair from travelling as two loose parameters through the authorize free functions.
+pub struct EventChannels {
+    pub gateway_tx: Sender<GatewayCommand>,
+    pub bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+}
+
+impl EventChannels {
+    #[must_use]
+    pub fn new(
+        gateway_tx: Sender<GatewayCommand>,
+        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    ) -> Self {
+        Self {
+            gateway_tx,
+            bidi_event_tx,
+        }
+    }
+
+    /// Emit a bidi-stream event to the proxy.
+    pub fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
+        Ok(self.bidi_event_tx.send(event)?)
+    }
 }
 
 /// Build the gateway network info handed to the gateway when a device is authorized.
@@ -64,15 +85,14 @@ pub fn build_authorized_gateway_network_info(
 /// Close all active sessions for a device and location, then create a fresh authorized session
 /// carrying `preshared_key`.
 pub async fn create_new_session(
-    gateway_tx: &Sender<GatewayCommand>,
-    bidi_event_tx: &UnboundedSender<BidiStreamEvent>,
+    channels: &EventChannels,
     conn: &mut PgConnection,
     location: &WireguardNetwork<Id>,
     user: &User<Id>,
     device: &Device<Id>,
     is_mfa_session: bool,
     preshared_key: String,
-) -> Result<VpnClientSession<Id>, Status> {
+) -> Result<VpnClientSession<Id>, AuthorizeError> {
     debug!("Creating new VPN session for device {device} of user {user} in location {location}.");
 
     let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
@@ -85,7 +105,7 @@ pub async fn create_new_session(
         error!(
             "Failed to fetch active VPN sessions for device {device} in location {location}: {err}"
         );
-        Status::internal("unexpected error")
+        AuthorizeError::Db(err)
     })?;
     if !active_sessions.is_empty() {
         info!(
@@ -95,10 +115,12 @@ pub async fn create_new_session(
     }
 
     for session in active_sessions {
-        debug!("Disconnecting previous active MFA VPN session {session:?}.");
+        debug!(
+            "Disconnecting previous active MFA VPN session {}",
+            session.id
+        );
         disconnect_session(
-            gateway_tx,
-            bidi_event_tx,
+            channels,
             &mut *conn,
             session,
             location,
@@ -113,45 +135,44 @@ pub async fn create_new_session(
     session.preshared_key = Some(preshared_key);
     session.save(conn).await.map_err(|err| {
         error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
-        Status::internal("unexpected error")
+        AuthorizeError::Db(err)
     })
 }
 
 /// Mark a session disconnected, sending the gateway deauthorization and (for a connected session)
 /// the disconnect audit event.
 pub async fn disconnect_session(
-    gateway_tx: &Sender<GatewayCommand>,
-    bidi_event_tx: &UnboundedSender<BidiStreamEvent>,
+    channels: &EventChannels,
     conn: &mut PgConnection,
     mut session: VpnClientSession<Id>,
     location: &WireguardNetwork<Id>,
     user: &User<Id>,
     device: &Device<Id>,
     reason: SessionDisconnectReason,
-) -> Result<(), Status> {
+) -> Result<(), AuthorizeError> {
     let is_connected = session.state == VpnClientSessionState::Connected;
     let is_mfa_session = session.is_mfa_session;
     let requires_gateway_update = is_mfa_session
         || location.has_postures(&mut *conn).await.map_err(|err| {
             error!("Failed to fetch postures for location {location}: {err}");
-            Status::internal("unexpected error")
+            AuthorizeError::Db(err)
         })?;
 
     let disconnect_timestamp = Utc::now().naive_utc();
     session.disconnected_at = Some(disconnect_timestamp);
     session.state = VpnClientSessionState::Disconnected;
     session.save(&mut *conn).await.map_err(|err| {
-        error!("Failed to update VPN session {session:?}: {err}");
-        Status::internal("unexpected error")
+        error!("Failed to update VPN session {}: {err}", session.id);
+        AuthorizeError::Db(err)
     })?;
 
     // The gateway update is only needed to remove peers authorized at runtime (MFA and
     // posture-check sessions), for both connected and new sessions.
     if requires_gateway_update {
         let gateway_event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
-        gateway_tx.send(gateway_event).map_err(|err| {
+        channels.gateway_tx.send(gateway_event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
-            Status::internal("unexpected error")
+            AuthorizeError::Gateway(Box::new(err))
         })?;
     }
 
@@ -176,14 +197,10 @@ pub async fn disconnect_session(
                 is_mfa_session,
             },
         };
-        emit_event(
-            bidi_event_tx,
-            BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(event)),
-            },
-        )
-        .map_err(Status::from)?;
+        channels.emit_event(BidiStreamEvent {
+            context,
+            event: BidiStreamEventType::DesktopClientMfa(Box::new(event)),
+        })?;
     }
 
     Ok(())

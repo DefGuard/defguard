@@ -28,14 +28,11 @@ pub enum Verdict {
 pub enum VerifyError {
     /// A required proof field was absent. Maps to `invalid_argument` and skips the counter.
     /// `event` is the audit message to emit, `None` when the method does not audit this case.
-    #[error("{status}")]
+    #[error("{message}")]
     MalformedProof {
-        status: &'static str,
+        message: &'static str,
         event: Option<&'static str>,
     },
-    /// The mobile-approve signing device is not owned by the user.
-    #[error("mobile approve device is not owned by the user")]
-    DeviceNotOwned,
     /// The session's ephemeral state holds no challenge for a method that requires one.
     #[error("session holds no challenge for this method")]
     MissingChallenge,
@@ -106,7 +103,7 @@ pub async fn verify(
     match ephemeral.selected_method {
         VpnClientMfaMethod::Totp => {
             let code = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                status: "TOTP code not provided",
+                message: "TOTP code not provided",
                 event: Some("TOTP code not provided in request"),
             })?;
             if ctx.user.verify_totp_code(code) {
@@ -119,7 +116,7 @@ pub async fn verify(
         }
         VpnClientMfaMethod::Email => {
             let code = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                status: "email MFA code not provided",
+                message: "email MFA code not provided",
                 event: Some("email MFA code not provided in request"),
             })?;
             if ctx.user.verify_email_mfa_code(code) {
@@ -136,7 +133,7 @@ pub async fn verify(
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
             let signed_challenge = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                status: "Challenge not found in request",
+                message: "Challenge not found in request",
                 event: None,
             })?;
             match challenge.verify(signed_challenge.as_str(), None) {
@@ -159,7 +156,7 @@ pub async fn verify(
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
             let signature = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                status: "Signature not found in request",
+                message: "Signature not found in request",
                 event: None,
             })?;
             let auth_device_pub_key =
@@ -167,11 +164,16 @@ pub async fn verify(
                     .auth_pub_key
                     .as_ref()
                     .ok_or(VerifyError::MalformedProof {
-                        status: "Authorization device key missing in request",
+                        message: "Authorization device key missing in request",
                         event: None,
                     })?;
             if !BiometricAuth::verify_owner(pool, ctx.user.id, auth_device_pub_key).await? {
-                return Err(VerifyError::DeviceNotOwned);
+                // A signing device not owned by the user is indistinguishable from a wrong
+                // signature, so the "does this pubkey belong to user X" oracle cannot be probed
+                // and the attempt is still charged by the caller.
+                return Ok(Verdict::Failed {
+                    message: "Signed challenge rejected",
+                });
             }
             match challenge.verify(signature.as_str(), Some(auth_device_pub_key.clone())) {
                 Ok(()) => Ok(Verdict::Proved),

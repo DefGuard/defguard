@@ -12,7 +12,7 @@ use defguard_common::{
         models::{
             Device, User, WireguardNetwork,
             device::WireguardNetworkDevice,
-            mfa_flow::MfaFlow,
+            mfa_flow::{MfaFlow, MfaFlowStep},
             polling_token::PollingToken,
             vpn_client_mfa_session::{VpnClientMfaSession, hash_token},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
@@ -23,7 +23,9 @@ use defguard_common::{
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-        ClientMfaStartResponse, ClientMfaStepStartRequest, ClientMfaStepStartResponse, MfaMethod,
+        ClientMfaStartResponse, ClientMfaStepStartRequest, ClientMfaStepStartResponse, MfaAdvanced,
+        MfaCompleted, MfaMethod, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
+        mfa_step_result,
     },
     enterprise::posture::DevicePostureCheckRequest,
     proxy::{
@@ -37,7 +39,7 @@ use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender, oneshot},
     time,
 };
-use tonic::Status;
+use tonic::{Code, Status};
 
 use crate::{
     enterprise::{
@@ -48,8 +50,16 @@ use crate::{
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
     mfa_engine::{
         MfaEngine,
-        authorize::{build_authorized_gateway_network_info, create_new_session, emit_event},
-        types::{FinishOutcome, Proof, StartOutcome, StartResult},
+        authorize::{
+            AuthorizeError, ClientMfaServerError, EventChannels,
+            build_authorized_gateway_network_info, create_new_session,
+        },
+        error::{FinishError, StartError, StepError},
+        method::InitiateError,
+        types::{
+            FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
+            StepStarted,
+        },
     },
 };
 
@@ -58,9 +68,8 @@ const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    gateway_tx: Sender<GatewayCommand>,
+    channels: EventChannels,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-    pub(crate) bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     engine: MfaEngine,
 }
 
@@ -84,6 +93,134 @@ fn remove_remote_mfa_waiter(
         .remove(hash);
 }
 
+impl From<ClientMfaServerError> for Status {
+    fn from(value: ClientMfaServerError) -> Self {
+        Self::new(Code::Internal, value.to_string())
+    }
+}
+
+impl From<AuthorizeError> for Status {
+    fn from(err: AuthorizeError) -> Self {
+        match err {
+            AuthorizeError::Db(_) | AuthorizeError::Gateway(_) => {
+                Status::internal("unexpected error")
+            }
+            AuthorizeError::Event(e) => Status::from(e),
+        }
+    }
+}
+
+impl From<InitiateError> for Status {
+    fn from(err: InitiateError) -> Self {
+        match err {
+            InitiateError::EmailCode(_) => Status::internal("MFA code"),
+            InitiateError::Database(_) => Status::internal("database error"),
+            InitiateError::Mail(_) => Status::internal("unexpected error"),
+            InitiateError::BiometricNotConfigured => {
+                Status::invalid_argument("Select MFA method is not available for the device.")
+            }
+            InitiateError::InvalidPublicKey(_) => Status::invalid_argument("Invalid public key"),
+        }
+    }
+}
+
+// The engine's domain types carry no proto. These conversions are the adapter layer: they live
+// here, next to the handlers that use them, so `mfa_engine` stays exercisable without a transport.
+
+impl From<FinishOutcome> for MfaStepResult {
+    fn from(value: FinishOutcome) -> Self {
+        let outcome = match value {
+            FinishOutcome::Advanced { next_step } => {
+                mfa_step_result::Outcome::Advanced(MfaAdvanced { next_step })
+            }
+            FinishOutcome::Completed { preshared_key } => {
+                mfa_step_result::Outcome::Completed(MfaCompleted { preshared_key })
+            }
+        };
+        MfaStepResult {
+            outcome: Some(outcome),
+        }
+    }
+}
+
+impl From<StepStarted> for ClientMfaStepStartResponse {
+    fn from(value: StepStarted) -> Self {
+        Self {
+            step_attempt_id: value.step_attempt_id,
+            challenge: value.challenge,
+        }
+    }
+}
+
+impl From<StartRejectionReason> for MfaStartRejectionReason {
+    fn from(value: StartRejectionReason) -> Self {
+        match value {
+            StartRejectionReason::MethodNotInStep => Self::MfaStartRejectionMethodNotInStep,
+            StartRejectionReason::StepEmptyAfterLicense => {
+                Self::MfaStartRejectionStepEmptyAfterLicense
+            }
+            StartRejectionReason::StepUnavailable => Self::MfaStartRejectionStepUnavailable,
+        }
+    }
+}
+
+impl From<StepRejection> for MfaStepRejection {
+    fn from(value: StepRejection) -> Self {
+        Self {
+            step: value.step,
+            reason: MfaStartRejectionReason::from(value.reason) as i32,
+        }
+    }
+}
+
+// These three impls are the ticket-03 status table. The message always comes from the variant's
+// `Display` (the `#[error(...)]` attribute in `mfa_engine::error`), so the contract string exists
+// in exactly one place; the only per-variant decision made here is the gRPC code. Changing a
+// `Display` string therefore changes the client-visible contract - it is not a cosmetic edit.
+
+impl From<StartError> for Status {
+    fn from(err: StartError) -> Self {
+        let code = match err {
+            StartError::MultiStepNotAvailable => Code::FailedPrecondition,
+            StartError::PlanLengthMismatch
+            | StartError::MethodNotAvailable
+            | StartError::BiometricNotConfigured => Code::InvalidArgument,
+            StartError::Internal => Code::Internal,
+            StartError::Initiate(e) => return Status::from(e),
+        };
+        Status::new(code, err.to_string())
+    }
+}
+
+impl From<StepError> for Status {
+    fn from(err: StepError) -> Self {
+        let code = match err {
+            StepError::SessionNotFound | StepError::MethodNotInStep => Code::InvalidArgument,
+            StepError::MethodNotConfigured => Code::FailedPrecondition,
+            StepError::Internal => Code::Internal,
+            StepError::Initiate(e) => return Status::from(e),
+        };
+        Status::new(code, err.to_string())
+    }
+}
+
+impl From<FinishError> for Status {
+    fn from(err: FinishError) -> Self {
+        let code = match err {
+            FinishError::SessionNotFound
+            | FinishError::UninitializedStep
+            | FinishError::StaleAttempt
+            | FinishError::MissingChallenge
+            | FinishError::MalformedProof { .. } => Code::InvalidArgument,
+            FinishError::OidcNotCompleted => Code::FailedPrecondition,
+            FinishError::Unauthorized => Code::Unauthenticated,
+            FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
+            FinishError::Event(e) => return Status::from(e),
+        };
+        Status::new(code, err.to_string())
+    }
+}
+
 impl ClientMfaServer {
     #[must_use]
     pub fn new(
@@ -95,11 +232,15 @@ impl ClientMfaServer {
         let engine = MfaEngine::new(pool.clone(), gateway_tx.clone(), bidi_event_tx.clone());
         Self {
             pool,
-            gateway_tx,
+            channels: EventChannels::new(gateway_tx, bidi_event_tx),
             remote_mfa_responses,
-            bidi_event_tx,
             engine,
         }
+    }
+
+    /// Emit a bidi-stream event to the proxy.
+    pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
+        self.channels.emit_event(event)
     }
 
     /// Acquire a pooled connection, mapping a pool error to an internal status.
@@ -210,20 +351,17 @@ impl ClientMfaServer {
             match posture_result {
                 PostureResult::Fail(reasons) => {
                     let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
-                    if let Err(err) = emit_event(
-                        &self.bidi_event_tx,
-                        BidiStreamEvent {
-                            context,
-                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                                DesktopClientMfaEvent::PostureCheckFailed {
-                                    device: device.clone(),
-                                    location: location.clone(),
-                                    device_posture_data: request.posture_data.clone(),
-                                    failed_checks: failed_checks.clone(),
-                                },
-                            )),
-                        },
-                    ) {
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckFailed {
+                                device: device.clone(),
+                                location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
+                                failed_checks: failed_checks.clone(),
+                            },
+                        )),
+                    }) {
                         error!("Failed to emit DevicePostureCheckFailed event: {err}");
                     }
                     self.revoke_rejected_posture_sessions(&location, &user, &device, ip)
@@ -231,19 +369,16 @@ impl ClientMfaServer {
                     return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
                 }
                 PostureResult::Pass => {
-                    if let Err(err) = emit_event(
-                        &self.bidi_event_tx,
-                        BidiStreamEvent {
-                            context,
-                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                                DesktopClientMfaEvent::PostureCheckPassed {
-                                    device: device.clone(),
-                                    location: location.clone(),
-                                    device_posture_data: request.posture_data.clone(),
-                                },
-                            )),
-                        },
-                    ) {
+                    if let Err(err) = self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::PostureCheckPassed {
+                                device: device.clone(),
+                                location: location.clone(),
+                                device_posture_data: request.posture_data.clone(),
+                            },
+                        )),
+                    }) {
                         error!("Failed to emit DevicePostureCheckPassed event: {err}");
                     }
                 }
@@ -291,22 +426,13 @@ impl ClientMfaServer {
             // Resolve the MFA flow that applies to this user at this location. The legacy adapter
             // drives only the first step, so license-filter its methods and validate the client's
             // selected method against them.
-            let mut conn = self.acquire_conn().await?;
-            let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
-                .await
-                .map_err(|err| {
-                    error!("Failed to resolve MFA flow: {err}");
-                    Status::internal("unexpected error")
-                })?
-            else {
-                error!(
-                    "Location {location} has no MFA flow that applies to user {}",
-                    user.username
-                );
-                return Err(Status::failed_precondition(
+            let (flow, steps) = self
+                .resolve_mfa_flow(
+                    &location,
+                    &user,
                     "location MFA configuration is not supported by this client",
-                ));
-            };
+                )
+                .await?;
 
             let Some(first_step) = steps.first() else {
                 error!("Resolved MFA flow has no steps");
@@ -362,22 +488,13 @@ impl ClientMfaServer {
                 })
                 .collect::<Result<_, _>>()?;
 
-            let mut conn = self.acquire_conn().await?;
-            let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
-                .await
-                .map_err(|err| {
-                    error!("Failed to resolve MFA flow: {err}");
-                    Status::internal("unexpected error")
-                })?
-            else {
-                error!(
-                    "Location {location} has no MFA flow that applies to user {}",
-                    user.username
-                );
-                return Err(Status::failed_precondition(
+            let (flow, steps) = self
+                .resolve_mfa_flow(
+                    &location,
+                    &user,
                     "no MFA flow applies to this user and location",
-                ));
-            };
+                )
+                .await?;
 
             let step_methods: Vec<Vec<VpnClientMfaMethod>> =
                 steps.into_iter().map(|step| step.methods).collect();
@@ -399,6 +516,10 @@ impl ClientMfaServer {
                         .await
                 }
                 StartResult::Rejected(rejections) => {
+                    info!(
+                        "MFA plan rejected for user {} at location {}: {rejections:?}",
+                        user.username, location.name
+                    );
                     Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
                         token: String::new(),
                         challenge: None,
@@ -429,18 +550,15 @@ impl ClientMfaServer {
 
             let context =
                 BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
-            emit_event(
-                &self.bidi_event_tx,
-                BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::MfaLoginSuperseded {
-                            location: location.clone(),
-                            device: device.clone(),
-                        },
-                    )),
-                },
-            )?;
+            self.emit_event(BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::MfaLoginSuperseded {
+                        location: location.clone(),
+                        device: device.clone(),
+                    },
+                )),
+            })?;
         }
 
         info!(
@@ -453,6 +571,32 @@ impl ClientMfaServer {
             challenge: start_outcome.challenge,
             rejections: Vec::new(),
         }))
+    }
+
+    /// Resolve the MFA flow applying to `user` at `location`, mapping both the no-flow and the
+    /// DB-error cases to their gRPC statuses. The two start paths differ only in the message used
+    /// when no flow applies.
+    async fn resolve_mfa_flow(
+        &self,
+        location: &WireguardNetwork<Id>,
+        user: &User<Id>,
+        no_flow_message: &'static str,
+    ) -> Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>), Status> {
+        let mut conn = self.acquire_conn().await?;
+        match MfaFlow::resolve_for_user(&mut conn, location.id, user.id).await {
+            Ok(Some((flow, steps))) => Ok((flow, steps)),
+            Ok(None) => {
+                error!(
+                    "Location {location} has no MFA flow that applies to user {}",
+                    user.username
+                );
+                Err(Status::failed_precondition(no_flow_message))
+            }
+            Err(err) => {
+                error!("Failed to resolve MFA flow: {err}");
+                Err(Status::internal("unexpected error"))
+            }
+        }
     }
 
     /// Checks whether the user and device are allowed to access a location.
@@ -582,13 +726,29 @@ impl ClientMfaServer {
         let proof = Proof {
             code: request.code.clone(),
             auth_pub_key: request.auth_pub_key.clone(),
+            step_attempt_id: request.step_attempt_id.clone(),
         };
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 
         let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
+
+        // The parked remote-MFA waiter is session-scoped: resolve it only once the flow
+        // completes. An intermediate step (`Advanced`) must not terminate it, and a pre-2.2
+        // client that reads an empty preshared key as success must never receive one over that
+        // path (D1).
         let preshared_key = match &outcome {
-            FinishOutcome::Completed { preshared_key } => preshared_key.clone(),
-            FinishOutcome::Advanced { .. } | FinishOutcome::AwaitingExternal => String::new(),
+            FinishOutcome::Completed { preshared_key } => {
+                if let Some(tx) = self
+                    .remote_mfa_responses
+                    .write()
+                    .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                    .remove(&hash_token(&request.token))
+                {
+                    let _ = tx.send(preshared_key.clone());
+                }
+                preshared_key.clone()
+            }
+            FinishOutcome::Advanced { .. } => String::new(),
         };
 
         let response = ClientMfaFinishResponse {
@@ -600,17 +760,6 @@ impl ClientMfaServer {
             },
             result: Some(outcome.into()),
         };
-
-        // If there is a desktop client websocket waiting for the preshared key, send it.
-        // The waiter is keyed by the token hash, matching the durable session's lookup key.
-        if let Some(tx) = self
-            .remote_mfa_responses
-            .write()
-            .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-            .remove(&hash_token(&request.token))
-        {
-            let _ = tx.send(preshared_key);
-        }
 
         Ok(response)
     }
@@ -777,20 +926,17 @@ impl ClientMfaServer {
         // Posture check failed - return payload with reasons
         if let PostureResult::Fail(reasons) = posture_result {
             let failed_checks = reasons.iter().map(ToString::to_string).collect::<Vec<_>>();
-            if let Err(err) = emit_event(
-                &self.bidi_event_tx,
-                BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::PostureCheckFailed {
-                            device: device.clone(),
-                            location: location.clone(),
-                            device_posture_data: request.device_posture_data.clone(),
-                            failed_checks: failed_checks.clone(),
-                        },
-                    )),
-                },
-            ) {
+            if let Err(err) = self.emit_event(BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::PostureCheckFailed {
+                        device: device.clone(),
+                        location: location.clone(),
+                        device_posture_data: request.device_posture_data.clone(),
+                        failed_checks: failed_checks.clone(),
+                    },
+                )),
+            }) {
                 error!("Failed to emit DevicePostureCheckFailed event: {err}");
             }
 
@@ -800,19 +946,16 @@ impl ClientMfaServer {
             return Ok(PostureCheckOutcome::Rejected { failed_checks });
         }
 
-        if let Err(err) = emit_event(
-            &self.bidi_event_tx,
-            BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::PostureCheckPassed {
-                        device: device.clone(),
-                        location: location.clone(),
-                        device_posture_data: request.device_posture_data.clone(),
-                    },
-                )),
-            },
-        ) {
+        if let Err(err) = self.emit_event(BidiStreamEvent {
+            context,
+            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                DesktopClientMfaEvent::PostureCheckPassed {
+                    device: device.clone(),
+                    location: location.clone(),
+                    device_posture_data: request.device_posture_data.clone(),
+                },
+            )),
+        }) {
             error!("Failed to emit DevicePostureCheckPassed event: {err}");
         }
 
@@ -837,8 +980,7 @@ impl ClientMfaServer {
             build_authorized_gateway_network_info(network_device, key.public.clone());
 
         create_new_session(
-            &self.gateway_tx,
-            &self.bidi_event_tx,
+            &self.channels,
             &mut transaction,
             &location,
             &user,
@@ -855,7 +997,7 @@ impl ClientMfaServer {
 
         let event =
             GatewayCommand::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.gateway_tx.send(event).map_err(|err| {
+        self.channels.gateway_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;
@@ -891,11 +1033,11 @@ impl ClientMfaServer {
         })?;
 
         let event = GatewayCommand::VpnSessionDeauthorized(location.id, device.clone());
-        if let Err(err) = self.gateway_tx.send(event) {
+        if let Err(err) = self.channels.gateway_tx.send(event) {
             error!("Error sending WireGuard event: {err}");
         }
         for event in disconnect_events {
-            if let Err(err) = emit_event(&self.bidi_event_tx, event) {
+            if let Err(err) = self.emit_event(event) {
                 error!("Failed to emit VPN session disconnect event: {err}");
             }
         }
@@ -1045,7 +1187,7 @@ mod tests {
         },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
         grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
-        mfa_engine::authorize::create_new_session,
+        mfa_engine::authorize::{EventChannels, create_new_session},
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -2013,9 +2155,9 @@ mod tests {
         let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
+        let channels = EventChannels::new(gateway_tx, bidi_event_tx);
         create_new_session(
-            &gateway_tx,
-            &bidi_event_tx,
+            &channels,
             &mut conn,
             &location,
             &user,
@@ -2084,9 +2226,9 @@ mod tests {
         let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
+        let channels = EventChannels::new(gateway_tx, bidi_event_tx);
         create_new_session(
-            &gateway_tx,
-            &bidi_event_tx,
+            &channels,
             &mut conn,
             &location,
             &user,
@@ -2217,9 +2359,9 @@ mod tests {
             .await
             .expect("failed to acquire database connection");
 
+        let channels = EventChannels::new(gateway_tx, bidi_event_tx);
         let new_session = create_new_session(
-            &gateway_tx,
-            &bidi_event_tx,
+            &channels,
             &mut conn,
             &location,
             &user,
@@ -2401,6 +2543,7 @@ mod tests {
                     token: token.clone(),
                     code: Some(code),
                     auth_pub_key: None,
+                    step_attempt_id: None,
                 },
                 device_info(),
             )
@@ -2505,6 +2648,7 @@ mod tests {
                         token: token.clone(),
                         code: Some("000000".to_owned()),
                         auth_pub_key: None,
+                        step_attempt_id: None,
                     },
                     device_info(),
                 )
@@ -2594,19 +2738,45 @@ mod tests {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        let mut user = create_user(&pool).await;
+        user.enable_totp(&pool)
+            .await
+            .expect("failed to enable TOTP");
+        let device = create_device(&pool, user.id).await;
+
+        let mut tx = pool.begin().await.unwrap();
+        let (_, started) = VpnClientMfaSession::<Id>::start(
+            &mut tx,
+            location.id,
+            device.id,
+            user.id,
+            1,
+            vec![vec![VpnClientMfaMethod::Totp]],
+            VpnClientMfaMethod::Totp,
+            None,
+            VPN_MFA_SESSION_TIMEOUT,
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+
         let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
-
-        let token = start_mfa_session_direct(&pool, VPN_MFA_SESSION_TIMEOUT).await;
-
         let response = server
             .client_mfa_step_start(ClientMfaStepStartRequest {
-                token,
+                token: started.token,
                 method: MfaMethod::Totp as i32,
             })
             .await
             .expect("step start should succeed");
         assert!(!response.step_attempt_id.is_empty());
         assert!(response.challenge.is_none());
+        // Step 0 is born initialized, so this is a re-call: it must supersede the attempt minted
+        // by `start` rather than hand the same one back (ticket 05 §4).
+        assert_ne!(response.step_attempt_id, started.step_attempt_id);
     }
 
     #[sqlx::test]
@@ -2824,6 +2994,7 @@ mod tests {
                     token: token.clone(),
                     code: Some(code),
                     auth_pub_key: None,
+                    step_attempt_id: None,
                 },
                 device_info(),
             )

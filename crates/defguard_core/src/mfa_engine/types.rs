@@ -1,15 +1,8 @@
-use defguard_common::db::{Id, models::vpn_client_session::VpnClientMfaMethod};
-use defguard_proto::client_types::{
-    ClientMfaStepStartResponse, MfaAdvanced, MfaAwaitingExternal, MfaCompleted,
-    MfaStartRejectionReason, MfaStepRejection, MfaStepResult, mfa_step_result,
-};
-
-/// A resolved MFA flow frozen at `start`: the governing flow's id plus the ordered, per-step
-/// allowed method sets as resolved for the user.
-pub struct StartPlan {
-    pub flow_id: Id,
-    pub steps: Vec<Vec<VpnClientMfaMethod>>,
-}
+//! Domain types for the MFA engine.
+//!
+//! These are proto-free by design: the conversions to and from the frozen proto messages live in
+//! the gRPC handler (`grpc::proxy::client_mfa`), so the engine can be exercised - and reasoned
+//! about - without a transport.
 
 /// Result of `start`, carrying the raw token (returned exactly once), the optional step-0
 /// challenge, and the hash of any session that was superseded so the handler can cancel its
@@ -24,12 +17,24 @@ pub struct StartOutcome {
     pub superseded_token_hash: Option<String>,
 }
 
-/// A proof submitted to `finish`: the optional code and optional auth public key. `code` carries
-/// the TOTP / email code or a signed-challenge signature; `auth_pub_key` carries the mobile
-/// approve signing device.
+/// A proof submitted to `finish`.
+///
+/// - `code` carries the TOTP code, the email code, or a signed challenge.
+/// - `auth_pub_key` carries the mobile-approve signing device.
+/// - `step_attempt_id` binds the proof to a specific attempt so a stale or duplicate proof cannot
+///   advance the step. Pre-2.2 clients omit it and the legacy single-step path keeps working with
+///   `None`, where the binding falls back to the step cursor alone.
+///
+/// `code` is deliberately one untyped field rather than a per-method enum. `ClientMfaFinishRequest`
+/// carries no method (that is why initializing a step is mandatory - see ticket 05 §5), so at the
+/// point a `Proof` is built, nothing here knows which kind of credential it holds; the meaning is
+/// fixed later by `ephemeral_state.selected_method`, which only `verify` reads. An enum would
+/// force the handler to guess the method, which is strictly worse than carrying it untyped.
+/// Splitting these fields properly needs the proto to name the method, which it does not.
 pub struct Proof {
     pub code: Option<String>,
     pub auth_pub_key: Option<String>,
+    pub step_attempt_id: Option<String>,
 }
 
 /// Result of `step_start`: the minted attempt id plus an optional biometric / mobile-approve
@@ -47,36 +52,6 @@ pub enum FinishOutcome {
     Advanced { next_step: u32 },
     /// The final step completed; the flow was collected and a preshared key minted.
     Completed { preshared_key: String },
-    /// An out-of-band step has not resolved yet; the client keeps polling.
-    AwaitingExternal,
-}
-
-impl From<FinishOutcome> for MfaStepResult {
-    fn from(value: FinishOutcome) -> Self {
-        let outcome = match value {
-            FinishOutcome::Advanced { next_step } => {
-                mfa_step_result::Outcome::Advanced(MfaAdvanced { next_step })
-            }
-            FinishOutcome::Completed { preshared_key } => {
-                mfa_step_result::Outcome::Completed(MfaCompleted { preshared_key })
-            }
-            FinishOutcome::AwaitingExternal => {
-                mfa_step_result::Outcome::AwaitingExternal(MfaAwaitingExternal {})
-            }
-        };
-        MfaStepResult {
-            outcome: Some(outcome),
-        }
-    }
-}
-
-impl From<StepStarted> for ClientMfaStepStartResponse {
-    fn from(value: StepStarted) -> Self {
-        Self {
-            step_attempt_id: value.step_attempt_id,
-            challenge: value.challenge,
-        }
-    }
 }
 
 /// Why a step of the submitted plan was refused at `start`.
@@ -95,27 +70,6 @@ pub enum StartRejectionReason {
 pub struct StepRejection {
     pub step: u32,
     pub reason: StartRejectionReason,
-}
-
-impl From<StartRejectionReason> for MfaStartRejectionReason {
-    fn from(value: StartRejectionReason) -> Self {
-        match value {
-            StartRejectionReason::MethodNotInStep => Self::MfaStartRejectionMethodNotInStep,
-            StartRejectionReason::StepEmptyAfterLicense => {
-                Self::MfaStartRejectionStepEmptyAfterLicense
-            }
-            StartRejectionReason::StepUnavailable => Self::MfaStartRejectionStepUnavailable,
-        }
-    }
-}
-
-impl From<StepRejection> for MfaStepRejection {
-    fn from(value: StepRejection) -> Self {
-        Self {
-            step: value.step,
-            reason: MfaStartRejectionReason::from(value.reason) as i32,
-        }
-    }
 }
 
 /// Result of the multi-step `start`: the session was accepted, or the plan was refused with
