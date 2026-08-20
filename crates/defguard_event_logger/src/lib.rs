@@ -754,6 +754,9 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 } => Some(format!(
                     "VPN session for {device} in location {location} superseded by new authorization"
                 )),
+                DesktopClientMfaEvent::MfaLoginSuperseded { device, location } => Some(format!(
+                    "MFA login for {device} in location {location} superseded by a new login attempt"
+                )),
             };
             let (event_type, metadata) = match *event {
                 DesktopClientMfaEvent::Success {
@@ -836,6 +839,10 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         )
                     }
                 }
+                DesktopClientMfaEvent::MfaLoginSuperseded { location, device } => (
+                    EventType::VpnClientMfaLoginSuperseded,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
             };
             let module = bidi_event_module(&event_type);
             (module, event_type, description, metadata)

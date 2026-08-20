@@ -525,10 +525,9 @@ impl ClientMfaServer {
             self.emit_event(BidiStreamEvent {
                 context,
                 event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::SessionSuperseded {
+                    DesktopClientMfaEvent::MfaLoginSuperseded {
                         location: location.clone(),
                         device: device.clone(),
-                        is_mfa_session: true,
                     },
                 )),
             })?;
@@ -3151,7 +3150,7 @@ mod tests {
         let device = create_device(&pool, user.id).await;
         attach_device_to_location(&pool, location.id, device.id).await;
 
-        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+        let (mut server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
         let request = || ClientMfaStartRequest {
             location_id: location.id,
@@ -3199,6 +3198,23 @@ mod tests {
                 .unwrap()
                 .is_some()
         );
+
+        let event = event_rx
+            .try_recv()
+            .expect("expected an audit event for the superseded login");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::MfaLoginSuperseded {
+                    location: event_location,
+                    device: event_device,
+                } => {
+                    assert_eq!(event_location.id, location.id);
+                    assert_eq!(event_device.id, device.id);
+                }
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
+        }
     }
 
     /// Malformed device info is rejected before anything is written. Were it parsed after the

@@ -36,6 +36,7 @@
   "activity_event_vpn_client_mfa_failed": "VPN client MFA failed",
   "activity_event_vpn_client_session_superseded": "VPN client session superseded",
   "activity_event_vpn_client_mfa_session_superseded": "VPN client MFA session superseded",
+  "activity_event_vpn_client_mfa_login_superseded": "VPN client MFA login superseded",
   "activity_event_enrollment_token_added": "Enrollment token added",
   "activity_event_enrollment_started": "Enrollment started",
   "activity_event_enrollment_device_added": "Enrollment device added",
