@@ -10,7 +10,7 @@ use std::net::IpAddr;
 use defguard_common::db::{
     Id,
     models::{
-        Device, User, WireguardNetwork,
+        Device, Settings, User, WireguardNetwork,
         biometric_auth::BiometricAuth,
         device::WireguardNetworkDevice,
         mfa_flow::MfaFlow,
@@ -26,13 +26,16 @@ use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
 use crate::{
-    enterprise::db::models::openid_provider::OpenIdProvider,
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::GatewayCommand,
     mfa_engine::{
         authorize::{build_authorized_gateway_network_info, create_new_session, emit_event},
         method::{InitiateError, Verdict, VerifyError, initiate, verify},
-        types::{FinishOutcome, Proof, StartOutcome, StepStarted},
+        types::{
+            FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
+            StepStarted,
+        },
     },
 };
 
@@ -66,7 +69,7 @@ impl MfaEngine {
     }
 
     /// Begin a single-step login: validate the selected method against the user's configuration,
-    /// arm step 0 (send the email code or mint the challenge), and persist the durable session.
+    /// initiate step 0 (send the email code or mint the challenge), and persist the durable session.
     pub async fn start(
         &self,
         location: &WireguardNetwork<Id>,
@@ -76,7 +79,7 @@ impl MfaEngine {
         steps: Vec<Vec<VpnClientMfaMethod>>,
         selected_method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, Status> {
-        // Reject a selected method the user has not set up. Every arm mirrors the exact error
+        // Reject a selected method the user has not set up. Every branch mirrors the exact error
         // vocabulary of the legacy single-step path.
         match selected_method {
             VpnClientMfaMethod::Biometric => {
@@ -118,7 +121,7 @@ impl MfaEngine {
             }
             VpnClientMfaMethod::Oidc => {
                 // No license check here: the caller's first-step filter already drops OIDC unless
-                // the business license is active, so reaching this arm means the gate passed.
+                // the business license is active, so reaching this branch means the gate passed.
                 if OpenIdProvider::get_current(&self.pool)
                     .await
                     .map_err(|err| {
@@ -135,41 +138,144 @@ impl MfaEngine {
             }
         }
 
-        // Arm step 0: send the email code or mint the biometric / mobile-approve challenge.
+        self.start_session(location, device, user, flow_id, steps, selected_method)
+            .await
+    }
+
+    /// Begin a multi-step login: validate the submitted plan against the resolved flow and the
+    /// user's configuration, then initiate step 0 and persist the durable session. A refused plan
+    /// returns sparse rejections and creates no session, token, or event.
+    pub async fn start_multi_step(
+        &self,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+        user: &User<Id>,
+        flow_id: Id,
+        steps: Vec<Vec<VpnClientMfaMethod>>,
+        selected_methods: Vec<VpnClientMfaMethod>,
+    ) -> Result<StartResult, Status> {
+        let business = is_business_license_active();
+
+        // A multi-step flow (2+ steps) requires a business license; fail closed.
+        if steps.len() > 1 && !business {
+            return Err(Status::failed_precondition(
+                "multi-step MFA is not available for this location",
+            ));
+        }
+        if selected_methods.len() != steps.len() {
+            return Err(Status::invalid_argument(
+                "MFA plan length does not match the location's flow",
+            ));
+        }
+
+        // Freeze the license-filtered snapshot: OIDC is a business-tier method.
+        let filtered_steps: Vec<Vec<VpnClientMfaMethod>> = steps
+            .iter()
+            .map(|step| {
+                step.iter()
+                    .copied()
+                    .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
+                    .collect()
+            })
+            .collect();
+
+        let smtp_configured = Settings::get_current_settings().smtp_configured();
+        let mut rejections = Vec::new();
+        for (index, (chosen, allowed)) in selected_methods
+            .iter()
+            .zip(filtered_steps.iter())
+            .enumerate()
+        {
+            let chosen = *chosen;
+            if allowed.is_empty() {
+                rejections.push(StepRejection {
+                    step: index as u32,
+                    reason: StartRejectionReason::StepEmptyAfterLicense,
+                });
+            } else if !allowed.contains(&chosen) {
+                rejections.push(StepRejection {
+                    step: index as u32,
+                    reason: StartRejectionReason::MethodNotInStep,
+                });
+            } else if !matches!(chosen, VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email)
+                || !chosen
+                    // TODO: oidc_configured is hardcoded false because the method boundary above
+                    // rejects OIDC before this check. Compute it from the business license and
+                    // the current OpenID provider once OIDC is allowed as a multi-step method.
+                    .is_configured(&self.pool, user, device.id, smtp_configured, false)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to check MFA method configuration: {err}");
+                        Status::internal("unexpected error")
+                    })?
+            {
+                rejections.push(StepRejection {
+                    step: index as u32,
+                    reason: StartRejectionReason::StepUnavailable,
+                });
+            }
+        }
+
+        if !rejections.is_empty() {
+            return Ok(StartResult::Rejected(rejections));
+        }
+
+        let outcome = self
+            .start_session(
+                location,
+                device,
+                user,
+                flow_id,
+                filtered_steps,
+                selected_methods[0],
+            )
+            .await?;
+        Ok(StartResult::Accepted(outcome))
+    }
+
+    /// Initiate step 0 and persist the durable session, shared by the single-step and multi-step
+    /// paths.
+    async fn start_session(
+        &self,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+        user: &User<Id>,
+        flow_id: Id,
+        steps: Vec<Vec<VpnClientMfaMethod>>,
+        method: VpnClientMfaMethod,
+    ) -> Result<StartOutcome, Status> {
+        // Initiate step 0: send the email code or mint the biometric / mobile-approve challenge.
         let ctx = MfaSessionContext {
             location: location.clone(),
             device: device.clone(),
             user: user.clone(),
         };
-        let challenge =
-            initiate(&self.pool, &ctx, selected_method)
-                .await
-                .map_err(|err| match err {
-                    InitiateError::EmailCode(e) => {
-                        error!("Failed to generate email MFA code: {e}");
-                        Status::internal("MFA code")
-                    }
-                    InitiateError::Database(e) => {
-                        error!("Database error: {e}");
-                        Status::internal("database error")
-                    }
-                    InitiateError::Mail(e) => {
-                        error!(
-                            "Failed to send email MFA code for user {}: {e}",
-                            user.username
-                        );
-                        Status::internal("unexpected error")
-                    }
-                    InitiateError::BiometricNotConfigured => Status::invalid_argument(
-                        "Select MFA method is not available for the device.",
-                    ),
-                    InitiateError::InvalidPublicKey(e) => {
-                        error!(
-                            "Start biometric MFA failed. Challenge creation failed. Reason: {e}"
-                        );
-                        Status::invalid_argument("Invalid public key")
-                    }
-                })?;
+        let challenge = initiate(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| match err {
+                InitiateError::EmailCode(e) => {
+                    error!("Failed to generate email MFA code: {e}");
+                    Status::internal("MFA code")
+                }
+                InitiateError::Database(e) => {
+                    error!("Database error: {e}");
+                    Status::internal("database error")
+                }
+                InitiateError::Mail(e) => {
+                    error!(
+                        "Failed to send email MFA code for user {}: {e}",
+                        user.username
+                    );
+                    Status::internal("unexpected error")
+                }
+                InitiateError::BiometricNotConfigured => {
+                    Status::invalid_argument("Select MFA method is not available for the device.")
+                }
+                InitiateError::InvalidPublicKey(e) => {
+                    error!("Start biometric MFA failed. Challenge creation failed. Reason: {e}");
+                    Status::invalid_argument("Invalid public key")
+                }
+            })?;
         let response_challenge = challenge
             .as_ref()
             .map(|challenge| challenge.challenge.clone());
@@ -185,7 +291,7 @@ impl MfaEngine {
             user.id,
             flow_id,
             steps,
-            selected_method,
+            method,
             challenge,
             VPN_MFA_SESSION_TIMEOUT,
         )
@@ -202,7 +308,7 @@ impl MfaEngine {
         })
     }
 
-    /// Arm the current step. Not reachable from any handler until the proxy's step-start route
+    /// Initiate the current step. Not reachable from any handler until the proxy's step-start route
     /// lands; the full state machine is implemented when that route is wired.
     pub async fn step_start(
         &self,

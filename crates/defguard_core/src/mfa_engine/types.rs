@@ -1,11 +1,11 @@
 use defguard_common::db::{Id, models::vpn_client_session::VpnClientMfaMethod};
 use defguard_proto::client_types::{
-    ClientMfaStepStartResponse, MfaAdvanced, MfaAwaitingExternal, MfaCompleted, MfaStepResult,
-    mfa_step_result,
+    ClientMfaStepStartResponse, MfaAdvanced, MfaAwaitingExternal, MfaCompleted,
+    MfaStartRejectionReason, MfaStepRejection, MfaStepResult, mfa_step_result,
 };
 
 /// A resolved MFA flow frozen at `start`: the governing flow's id plus the ordered, per-step
-/// method sets (already license-filtered by the caller).
+/// allowed method sets as resolved for the user.
 pub struct StartPlan {
     pub flow_id: Id,
     pub steps: Vec<Vec<VpnClientMfaMethod>>,
@@ -15,7 +15,7 @@ pub struct StartPlan {
 /// challenge, and the hash of any session that was superseded so the handler can cancel its
 /// waiter.
 ///
-/// `challenge` is `Some` only when the armed step's method requires one (biometric or mobile
+/// `challenge` is `Some` only when the step's method requires one (biometric or mobile
 /// approve), where the client needs it to sign the proof.
 pub struct StartOutcome {
     pub token: String,
@@ -74,4 +74,48 @@ impl From<StepStarted> for ClientMfaStepStartResponse {
             challenge: value.challenge,
         }
     }
+}
+
+/// Why a step of the submitted plan was refused at `start`.
+pub enum StartRejectionReason {
+    /// The chosen method is not in this step's allowed set.
+    MethodNotInStep,
+    /// The step has no methods left once the license filter is applied.
+    StepEmptyAfterLicense,
+    /// The user cannot satisfy the step. Deliberately opaque.
+    StepUnavailable,
+}
+
+/// A sparse per-step rejection: only failing steps are returned.
+pub struct StepRejection {
+    pub step: u32,
+    pub reason: StartRejectionReason,
+}
+
+impl From<StartRejectionReason> for MfaStartRejectionReason {
+    fn from(value: StartRejectionReason) -> Self {
+        match value {
+            StartRejectionReason::MethodNotInStep => Self::MfaStartRejectionMethodNotInStep,
+            StartRejectionReason::StepEmptyAfterLicense => {
+                Self::MfaStartRejectionStepEmptyAfterLicense
+            }
+            StartRejectionReason::StepUnavailable => Self::MfaStartRejectionStepUnavailable,
+        }
+    }
+}
+
+impl From<StepRejection> for MfaStepRejection {
+    fn from(value: StepRejection) -> Self {
+        Self {
+            step: value.step,
+            reason: MfaStartRejectionReason::from(value.reason) as i32,
+        }
+    }
+}
+
+/// Result of the multi-step `start`: the session was accepted, or the plan was refused with
+/// sparse rejections. A refused plan creates no session, token, or event.
+pub enum StartResult {
+    Accepted(StartOutcome),
+    Rejected(Vec<StepRejection>),
 }
