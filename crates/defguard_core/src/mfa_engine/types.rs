@@ -34,6 +34,7 @@ pub struct Proof {
 
 /// Result of `step_start`: the minted attempt id plus an optional biometric / mobile-approve
 /// challenge.
+#[derive(Debug)]
 pub struct StepStarted {
     pub step_attempt_id: String,
     pub challenge: Option<String>,

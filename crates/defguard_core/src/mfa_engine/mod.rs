@@ -679,7 +679,9 @@ mod tests {
                 device::WireguardNetworkDevice,
                 mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
                 settings::initialize_current_settings,
-                vpn_client_mfa_session::{VpnClientMfaSession, hash_token},
+                vpn_client_mfa_session::{
+                    VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, hash_token,
+                },
                 vpn_client_session::VpnClientMfaMethod,
                 wireguard::ServiceLocationMode,
             },
@@ -1148,5 +1150,148 @@ mod tests {
         assert_eq!(rejections[0].reason, StartRejectionReason::StepUnavailable);
         assert!(event_rx.try_recv().is_err());
         assert_eq!(session_count(&pool, location.id, device.id).await, 0);
+    }
+
+    async fn start_two_step_session(
+        pool: &PgPool,
+        user_id: Id,
+    ) -> (VpnClientMfaSession<Id>, String) {
+        let location = create_mfa_location(pool).await;
+        let device = create_device(pool, user_id).await;
+        attach_device_to_location(pool, location.id, device.id).await;
+        let mut tx = pool.begin().await.unwrap();
+        let (session, outcome) = VpnClientMfaSession::<Id>::start(
+            &mut tx,
+            location.id,
+            device.id,
+            user_id,
+            1,
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+            VpnClientMfaMethod::Totp,
+            None,
+            VPN_MFA_SESSION_TIMEOUT,
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        (session, outcome.token)
+    }
+
+    async fn advance_session(pool: &PgPool, session: &VpnClientMfaSession<Id>) {
+        let mut conn = pool.acquire().await.unwrap();
+        session.advance(&mut conn).await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_step_start_mints_an_id(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let _smtp = configure_working_smtp(&pool).await;
+
+        let mut user = create_user(&pool).await;
+        user.new_email_secret(&pool)
+            .await
+            .expect("failed to generate email secret");
+        user.enable_email_mfa(&pool)
+            .await
+            .expect("failed to enable email MFA");
+        let (session, token) = start_two_step_session(&pool, user.id).await;
+        advance_session(&pool, &session).await;
+
+        let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+        let started = engine
+            .step_start(token, VpnClientMfaMethod::Email)
+            .await
+            .expect("step start should succeed");
+        assert!(!started.step_attempt_id.is_empty());
+        assert!(started.challenge.is_none());
+    }
+
+    #[sqlx::test]
+    async fn test_step_start_recall_is_idempotent(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let smtp = configure_working_smtp(&pool).await;
+
+        let mut user = create_user(&pool).await;
+        user.new_email_secret(&pool)
+            .await
+            .expect("failed to generate email secret");
+        user.enable_email_mfa(&pool)
+            .await
+            .expect("failed to enable email MFA");
+        let (session, token) = start_two_step_session(&pool, user.id).await;
+        advance_session(&pool, &session).await;
+
+        let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+        let first = engine
+            .step_start(token.clone(), VpnClientMfaMethod::Email)
+            .await
+            .expect("first step start should succeed");
+        let second = engine
+            .step_start(token, VpnClientMfaMethod::Email)
+            .await
+            .expect("second step start should succeed");
+
+        assert_eq!(first.step_attempt_id, second.step_attempt_id);
+        smtp.wait_for_count(1).await;
+        assert_eq!(
+            smtp.message_count(),
+            1,
+            "a re-call must not re-send the email"
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_step_start_rejects_method_not_in_step(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+
+        let user = create_user(&pool).await;
+        let (_session, token) = start_two_step_session(&pool, user.id).await;
+
+        let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+        let err = engine
+            .step_start(token, VpnClientMfaMethod::Email)
+            .await
+            .expect_err("a method outside the current step must be rejected");
+        assert_eq!(err.code(), Code::InvalidArgument);
+        assert_eq!(err.message(), "MFA method is not in the current step");
+    }
+
+    #[sqlx::test]
+    async fn test_step_start_rejects_unconfigured_method(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+
+        // Email is not configured (email_mfa_enabled is false by default).
+        let user = create_user(&pool).await;
+        let (session, token) = start_two_step_session(&pool, user.id).await;
+        advance_session(&pool, &session).await;
+
+        let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+        let err = engine
+            .step_start(token, VpnClientMfaMethod::Email)
+            .await
+            .expect_err("an unconfigured method must be rejected");
+        assert_eq!(err.code(), Code::FailedPrecondition);
+        assert_eq!(err.message(), "MFA method is not configured for this user");
     }
 }
