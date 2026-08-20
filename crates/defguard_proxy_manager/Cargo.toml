@@ -35,8 +35,8 @@ tracing.workspace = true
 defguard_common = { workspace = true, features = ["test-support"] }
 base32.workspace = true
 base64.workspace = true
-ed25519-dalek = { version = "2.2", features = ["rand_core"] }
-hyper-util = "0.1"
+ed25519-dalek.workspace = true
+hyper-util.workspace = true
 ipnetwork.workspace = true
 jsonwebkey = { workspace = true }
 jsonwebtoken.workspace = true

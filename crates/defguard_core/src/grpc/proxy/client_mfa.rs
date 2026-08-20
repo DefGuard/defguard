@@ -2676,8 +2676,8 @@ mod tests {
 
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-    fn next_suffix() -> String {
-        COUNTER.fetch_add(1, Ordering::Relaxed).to_string()
+    fn next_suffix() -> usize {
+        COUNTER.fetch_add(1, Ordering::Relaxed)
     }
 
     async fn create_user(pool: &PgPool) -> User<Id> {
