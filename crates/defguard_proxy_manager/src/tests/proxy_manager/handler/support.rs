@@ -98,8 +98,18 @@ pub(crate) fn assert_device_config_response(response: &CoreResponse) -> &DeviceC
 /// Assert that a `CoreResponse` carries a `CoreError` payload and return the
 /// tonic status code.
 pub(crate) fn assert_error_response(response: &CoreResponse) -> Code {
+    assert_error_response_with_message(response).0
+}
+
+/// Like [`assert_error_response`], but also returns the error message.
+///
+/// Needed wherever several distinct rejection reasons share a status code: asserting the code
+/// alone would pass no matter which of them fired.
+pub(crate) fn assert_error_response_with_message(response: &CoreResponse) -> (Code, String) {
     match &response.payload {
-        Some(core_response::Payload::CoreError(err)) => Code::from_i32(err.status_code),
+        Some(core_response::Payload::CoreError(err)) => {
+            (Code::from_i32(err.status_code), err.message.clone())
+        }
         other => panic!(
             "expected CoreError response, got: {:?}",
             other.as_ref().map(discriminant)

@@ -15,10 +15,11 @@ use defguard_proto::{
 use openidconnect::{AuthorizationCode, Nonce};
 use tonic::Status;
 
-#[cfg(not(test))]
-use crate::enterprise::is_business_license_active;
 use crate::{
-    enterprise::handlers::openid_login::{MfaOidcState, extract_state_data, user_from_claims},
+    enterprise::{
+        handlers::openid_login::{MfaOidcState, extract_state_data, user_from_claims},
+        is_business_license_active,
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{proxy::client_mfa::ClientMfaServer, utils::parse_client_ip_agent},
 };
@@ -31,7 +32,6 @@ impl ClientMfaServer {
         info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Received OIDC MFA authentication request");
-        #[cfg(not(test))]
         if !is_business_license_active() {
             error!("OIDC MFA method requires enterprise feature to be enabled");
             return Err(Status::invalid_argument("OIDC MFA method is not supported"));

@@ -1192,6 +1192,19 @@ mod test {
         pool: &PgPool,
         target: DirectorySyncTarget,
     ) -> (User<Id>, Group<Id>) {
+        // Group sync is a business feature and its licence gate is compiled into test builds,
+        // so without a licence `sync_user_groups_if_configured` returns without syncing.
+        set_cached_license(Some(License::new(
+            "test".to_owned(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Business,
+            SupportType::Basic,
+            vec![],
+        )));
+
         let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());
         Settings::initialize_runtime_defaults(pool).await.unwrap();
         initialize_current_settings(pool).await.unwrap();

@@ -47,11 +47,10 @@ use tokio::{
 };
 use tonic::{Code, Status};
 
-#[cfg(not(test))]
-use crate::enterprise::is_business_license_active;
 use crate::{
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
+        is_business_license_active,
         posture::{PostureCheckError, PostureResult, validate_posture},
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
@@ -61,21 +60,6 @@ use crate::{
 
 // How much time the user has to approve remote MFA with mobile device
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
-
-/// Whether the OIDC MFA method is available.
-///
-/// Under test the enterprise gate is bypassed so OIDC paths can run without a license.
-#[must_use]
-fn oidc_mfa_enabled() -> bool {
-    #[cfg(not(test))]
-    {
-        is_business_license_active()
-    }
-    #[cfg(test)]
-    {
-        true
-    }
-}
 
 #[derive(Debug, Error)]
 pub enum ClientMfaServerError {
@@ -360,7 +344,8 @@ impl ClientMfaServer {
             .methods
             .iter()
             .copied()
-            .filter(|method| *method != VpnClientMfaMethod::Oidc || oidc_mfa_enabled())
+            // OIDC MFA is a business feature, so an unlicensed deployment must not offer it.
+            .filter(|method| *method != VpnClientMfaMethod::Oidc || is_business_license_active())
             .collect();
 
         let selected_client_method: VpnClientMfaMethod = selected_method.into();
@@ -443,13 +428,9 @@ impl ClientMfaServer {
                 })?;
             }
             MfaMethod::Oidc => {
-                if !oidc_mfa_enabled() {
-                    error!("OIDC MFA method requires enterprise feature to be enabled");
-                    return Err(Status::invalid_argument(
-                        "selected MFA method is not available",
-                    ));
-                }
-
+                // No license check here: `first_step_methods` above drops OIDC unless
+                // `oidc_mfa_enabled()`, and a method absent from it is already rejected, so
+                // reaching this arm means the gate passed.
                 if OpenIdProvider::get_current(&self.pool)
                     .await
                     .map_err(|err| {

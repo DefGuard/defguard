@@ -8,11 +8,12 @@ use tokio::{task, time::timeout};
 use tonic::Code;
 
 use super::support::{
-    assert_error_response, assert_vpn_session_exists, biometric_pub_key, clear_test_license,
-    complete_proxy_handshake, create_external_mfa_network, create_mfa_network, create_network,
-    create_user_with_device, expect_bidi_mfa_success, generate_totp_code, make_device_info,
-    register_biometric_key, send_mfa_finish, send_mfa_finish_no_recv, send_mfa_finish_raw,
-    send_mfa_finish_signed, send_mfa_start, send_mfa_start_with_challenge, send_token_validation,
+    assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
+    biometric_pub_key, clear_test_license, complete_proxy_handshake, create_external_mfa_network,
+    create_mfa_network, create_network, create_user_with_device, expect_bidi_mfa_success,
+    generate_totp_code, make_device_info, register_biometric_key, send_mfa_finish,
+    send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_finish_signed, send_mfa_start,
+    send_mfa_start_with_challenge, send_token_validation, set_test_license_business,
     setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
@@ -518,21 +519,27 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
     context.finish().await.expect_server_finished().await;
 }
 
+/// Without a business license, OIDC is removed from the flow's available methods, so selecting
+/// it is rejected as unsupported by the location.
+///
+/// This is written as a differential test on purpose. Every rejection on this path returns
+/// `InvalidArgument`, so asserting the code alone proves nothing: it passes just as well when
+/// the license gate is not enforced at all. The licensed run pins that down - it must fail for
+/// a *different* reason (the unconfigured OIDC provider), which it can only do if the gate
+/// changed the outcome.
 #[sqlx::test]
 async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    clear_test_license();
-
-    // External MFA location + OIDC method but no business license
+    // External MFA location + OIDC method, no OIDC provider configured
     let network = create_external_mfa_network(&context.pool).await;
     let (mut user, device) = create_user_with_device(&context.pool).await;
     // email MFA is irrelevant for OIDC path but user still needs to exist
     setup_user_email_mfa(&context.pool, &mut user).await;
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 1,
+    let request = |id: u64| CoreRequest {
+        id,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
@@ -544,11 +551,25 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
                 selected_methods: Vec::new(),
             },
         )),
-    });
+    };
 
+    // Unlicensed: the license gate filters OIDC out of the first step, so the method is not
+    // among those the location offers.
+    clear_test_license();
+    context.mock_proxy().send_request(request(1));
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let code = assert_error_response(&response);
+    let (code, message) = assert_error_response_with_message(&response);
     assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "selected MFA method is not supported by location");
+
+    // Licensed: OIDC survives the filter, so the request gets past the gate and fails further
+    // in, on the provider that was never configured.
+    set_test_license_business();
+    context.mock_proxy().send_request(request(2));
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "selected MFA method is not available");
 
     context.finish().await.expect_server_finished().await;
 }
