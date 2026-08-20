@@ -1147,7 +1147,23 @@ impl ProxyHandler {
                                 }
                             }
                         }
-                        Some(core_request::Payload::ClientMfaStepStart(_)) => unimplemented!(),
+                        // rpc ClientMfaStepStart (ClientMfaStepStartRequest) returns (ClientMfaStepStartResponse)
+                        Some(core_request::Payload::ClientMfaStepStart(request)) => {
+                            match self
+                                .services
+                                .client_mfa
+                                .client_mfa_step_start(request)
+                                .await
+                            {
+                                Ok(response) => {
+                                    Some(core_response::Payload::ClientMfaStepStart(response))
+                                }
+                                Err(err) => {
+                                    error!("client MFA step start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                     };
 
                     if let Some(payload) = payload {

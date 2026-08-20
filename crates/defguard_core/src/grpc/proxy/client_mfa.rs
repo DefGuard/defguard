@@ -586,8 +586,9 @@ impl ClientMfaServer {
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 
         let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
-        let FinishOutcome::Completed { preshared_key } = outcome else {
-            return Err(Status::internal("unexpected error"));
+        let preshared_key = match &outcome {
+            FinishOutcome::Completed { preshared_key } => preshared_key.clone(),
+            FinishOutcome::Advanced { .. } | FinishOutcome::AwaitingExternal => String::new(),
         };
 
         let response = ClientMfaFinishResponse {
@@ -597,7 +598,7 @@ impl ClientMfaServer {
                 VpnClientMfaMethod::MobileApprove => Some(request.token.clone()),
                 _ => None,
             },
-            result: None,
+            result: Some(outcome.into()),
         };
 
         // If there is a desktop client websocket waiting for the preshared key, send it.
