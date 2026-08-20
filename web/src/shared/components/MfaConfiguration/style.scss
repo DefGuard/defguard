@@ -98,6 +98,12 @@
             margin-left: auto;
             display: flex;
             align-items: center;
+            column-gap: var(--spacing-xl);
+
+            > .mobile-only-label {
+              font: var(--t-body-sm-500);
+              color: var(--fg-disabled);
+            }
           }
         }
       }

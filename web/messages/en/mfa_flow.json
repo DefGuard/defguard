@@ -39,6 +39,7 @@
   "mfa_flow_methods_available_in_plan": "Available in your plan",
   "mfa_flow_methods_available_in_higher_plans": "Available in higher plans",
   "mfa_flow_method_biometric": "Biometrics",
+  "mfa_flow_method_mobile_only": "Mobile only",
   "mfa_flow_form_action_create": "Create MFA flow",
   "mfa_flow_created": "MFA flow created successfully.",
   "mfa_flow_updated": "MFA flow updated successfully.",

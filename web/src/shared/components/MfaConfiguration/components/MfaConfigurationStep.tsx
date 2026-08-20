@@ -1,5 +1,6 @@
 import { Reorder, useDragControls } from 'motion/react';
 import { m } from '../../../../paraglide/messages';
+import { MfaFlowMethod } from '../../../api/types';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
 import { FieldError } from '../../../defguard-ui/components/FieldError/FieldError';
 import { Helper } from '../../../defguard-ui/components/Helper/Helper';
@@ -65,6 +66,11 @@ export const MfaConfigurationStep = ({
               <Icon icon="check-filled" size={16} staticColor={ThemeVariable.FgSuccess} />
               <p>{methodLabels[method]}</p>
               <div className="right">
+                {method === MfaFlowMethod.Biometric && (
+                  <span className="mobile-only-label">
+                    {m.mfa_flow_method_mobile_only()}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="dispose-button"

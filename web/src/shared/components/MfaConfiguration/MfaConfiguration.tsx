@@ -60,11 +60,18 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
   const buildOption = useCallback(
     (method: MfaFlowMethodValue, onClick: () => void) => {
       const availability = methodAvailability?.find((item) => item.method === method);
+      const unavailableText = availability
+        ? getDisabledHelper(availability.reason)
+        : undefined;
       return {
         text: methodLabels[method],
         onClick,
         disabled: availability?.available !== true,
-        disabledHelper: availability ? getDisabledHelper(availability.reason) : undefined,
+        helper: unavailableText
+          ? { text: unavailableText, icon: 'lock-closed' as const }
+          : method === MfaFlowMethod.Biometric
+            ? { text: m.mfa_flow_method_mobile_only(), icon: 'mobile' as const }
+            : undefined,
       };
     },
     [methodAvailability],
