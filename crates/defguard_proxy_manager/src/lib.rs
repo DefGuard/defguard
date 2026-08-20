@@ -16,7 +16,6 @@ use defguard_core::{
     events::{
         ApiEvent, BidiStreamEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent,
     },
-    grpc::proxy::client_mfa::ClientLoginSession,
     version::IncompatibleComponents,
 };
 use defguard_proto::proxy::{CoreResponse, HttpsCerts, PublicSettings, core_response};
@@ -200,7 +199,6 @@ impl ProxyManager {
         &self,
         proxy: &Proxy<Id>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         handler_tx_map: HandlerTxMap,
         shutdown_rx: Arc<Mutex<oneshot::Receiver<bool>>>,
         proxy_cookie_key: Key,
@@ -224,7 +222,6 @@ impl ProxyManager {
                 self.pool.clone(),
                 &self.tx,
                 remote_mfa_responses,
-                sessions,
                 shutdown_rx,
                 proxy_cookie_key,
                 handler_tx_map,
@@ -242,7 +239,6 @@ impl ProxyManager {
             self.pool.clone(),
             &self.tx,
             remote_mfa_responses,
-            sessions,
             shutdown_rx,
             proxy_cookie_key,
             handler_tx_map,
@@ -255,7 +251,6 @@ impl ProxyManager {
     pub async fn run(mut self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();
-        let sessions = Arc::default();
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         // Prime the cache to avoid race with connection loop.
         refresh_certs(&self.pool, &certs_tx).await;
@@ -281,7 +276,6 @@ impl ProxyManager {
                 self.build_handler(
                     proxy,
                     Arc::clone(&remote_mfa_responses),
-                    Arc::clone(&sessions),
                     Arc::clone(&handler_tx_map),
                     Arc::new(Mutex::new(shutdown_rx)),
                     self.proxy_cookie_key.clone(),
@@ -328,7 +322,6 @@ impl ProxyManager {
                                 match self.build_handler(
                                     &proxy_model,
                                     Arc::clone(&remote_mfa_responses),
-                                    Arc::clone(&sessions),
                                     Arc::clone(&handler_tx_map),
                                     Arc::new(Mutex::new(shutdown_rx)),
                                     self.proxy_cookie_key.clone(),

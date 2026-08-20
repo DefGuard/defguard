@@ -1,6 +1,7 @@
 use base64::{Engine, engine::general_purpose, prelude::BASE64_STANDARD};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as};
 use thiserror::Error;
 
@@ -123,7 +124,7 @@ impl BiometricAuth<Id> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct BiometricChallenge {
     pub auth_pub_key: Option<String>,
     pub challenge: String,

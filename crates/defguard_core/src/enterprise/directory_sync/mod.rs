@@ -21,12 +21,11 @@ use super::{
     },
     ldap::utils::ldap_update_users_state,
 };
-#[cfg(not(test))]
-use crate::enterprise::is_business_license_active;
 use crate::{
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
         handlers::openid_login::prune_username,
+        is_business_license_active,
         ldap::{
             model::ldap_sync_allowed_for_user,
             utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
@@ -438,7 +437,6 @@ async fn sync_user_groups<T: DirectorySync>(
 pub(crate) async fn test_directory_sync_connection(
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
-    #[cfg(not(test))]
     if !is_business_license_active() {
         debug!("Enterprise is not enabled, skipping testing directory sync connection");
         return Ok(());
@@ -465,7 +463,6 @@ pub async fn sync_user_groups_if_configured(
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), DirectorySyncError> {
-    #[cfg(not(test))]
     if !is_business_license_active() {
         debug!("Enterprise is not enabled, skipping syncing user groups");
         return Ok(());
@@ -1258,7 +1255,6 @@ pub(crate) async fn do_directory_sync(
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), DirectorySyncError> {
-    #[cfg(not(test))]
     if !is_business_license_active() {
         debug!("Enterprise is not enabled, skipping performing directory sync");
         return Ok(());

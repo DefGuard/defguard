@@ -159,7 +159,7 @@ async fn generate_stats_for_location(
                     device.user_id,
                     device.id,
                     Some(session_start),
-                    None,
+                    false,
                 );
 
                 // mark all but the first session as disconnected

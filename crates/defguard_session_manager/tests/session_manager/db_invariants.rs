@@ -19,8 +19,8 @@ async fn insert_session(
     let connected_at = (state == "connected").then(|| Utc::now().naive_utc());
 
     query_scalar(
-        "INSERT INTO vpn_client_session (location_id, user_id, device_id, connected_at, mfa_method, state, preshared_key) \
-         VALUES ($1, $2, $3, $4, NULL, $5::vpn_client_session_state, NULL) \
+        "INSERT INTO vpn_client_session (location_id, user_id, device_id, connected_at, is_mfa_session, state, preshared_key) \
+         VALUES ($1, $2, $3, $4, false, $5::vpn_client_session_state, NULL) \
          RETURNING id",
     )
     .bind(location_id)

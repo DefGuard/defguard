@@ -120,6 +120,7 @@ fn model_attr_parses_every_supported_property() {
     let cases = [
         ("enum", ModelType::Enum),
         ("ip", ModelType::Ip),
+        ("json", ModelType::Json),
         ("option", ModelType::Option),
         ("option_ref", ModelType::OptionRef),
         ("ref", ModelType::Ref),
@@ -308,6 +309,16 @@ fn each_model_type_produces_its_own_column_alias() {
 }
 
 #[test]
+fn json_type_emits_wildcard_select_alias() {
+    let queries = queries("struct T { id: Id, #[model(json)] data: Json<Foo> }");
+    assert_eq!(queries[ALL], "SELECT id, \"data\" \"data: _\" FROM \"t\"");
+    assert_eq!(
+        queries[INSERT],
+        "INSERT INTO \"t\" (\"data\") VALUES ($1) RETURNING id"
+    );
+}
+
+#[test]
 fn derived_queries_share_the_select_prefix() {
     let queries = queries("struct T { id: Id, a: A }");
 
@@ -393,6 +404,14 @@ fn bind_args_cast_according_to_model_type() {
     assert_eq!(
         bind_arg("#[model(ip)] value: IpAddr"),
         quote!(&self.value as &IpAddr).to_string()
+    );
+    assert_eq!(
+        bind_arg("#[model(list)] value: Vec<Kind>"),
+        quote!(&self.value as &Vec<Kind>).to_string()
+    );
+    assert_eq!(
+        bind_arg("#[model(json)] value: Json<Foo>"),
+        quote!(&self.value as &Json<Foo>).to_string()
     );
     assert_eq!(
         bind_arg("#[model(secret)] value: Option<SecretString>"),

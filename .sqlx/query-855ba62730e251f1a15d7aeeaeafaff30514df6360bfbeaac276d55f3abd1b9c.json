@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session s LEFT JOIN LATERAL ( SELECT latest_handshake FROM vpn_session_stats WHERE session_id = s.id ORDER BY latest_handshake DESC LIMIT 1 ) ss ON true WHERE location_id = $1 AND state = 'connected' AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
+  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, is_mfa_session, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND state = 'new' AND (NOW() - created_at) > $2 * interval '1 second'",
   "describe": {
     "columns": [
       {
@@ -40,21 +40,8 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa_method: VpnClientMfaMethod",
-        "type_info": {
-          "Custom": {
-            "name": "vpn_client_mfa_method",
-            "kind": {
-              "Enum": [
-                "totp",
-                "email",
-                "oidc",
-                "biometric",
-                "mobileapprove"
-              ]
-            }
-          }
-        }
+        "name": "is_mfa_session",
+        "type_info": "Bool"
       },
       {
         "ordinal": 8,
@@ -92,10 +79,10 @@
       false,
       true,
       true,
-      true,
+      false,
       false,
       true
     ]
   },
-  "hash": "a2a31a9e9d53d830f658131eab155413d1dd6ce5a24b87b9fc4060dd1ae704be"
+  "hash": "855ba62730e251f1a15d7aeeaeafaff30514df6360bfbeaac276d55f3abd1b9c"
 }

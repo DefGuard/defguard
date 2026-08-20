@@ -3,7 +3,10 @@ use chrono::{Duration, Utc};
 use defguard_common::db::{
     Id, NoId,
     models::{
-        Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork, group::Group,
+        Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
+        group::Group,
+        vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
+        vpn_client_session::VpnClientMfaMethod,
     },
 };
 use defguard_core::{
@@ -1049,6 +1052,14 @@ fn build_vpn_event(
         ),
         EventType::VpnClientMfaSuccess => {
             let method = random_client_mfa_method(rng);
+            let satisfied: VpnClientMfaMethod = method.into();
+            let snapshot = StepsSnapshot {
+                flow_id: 1,
+                steps: vec![Step {
+                    methods: vec![satisfied],
+                    satisfied: Some(satisfied),
+                }],
+            };
             (
                 get_vpn_event_description(&VpnEvent::ClientMfaSuccess {
                     location: location.clone(),
@@ -1058,7 +1069,10 @@ fn build_vpn_event(
                 serde_json::to_value(VpnClientMfaMetadata {
                     location,
                     device,
-                    method,
+                    attribution: MfaAttribution {
+                        snapshot,
+                        flow_name: Some("Default Internal MFA".to_owned()),
+                    },
                     mobile_auth_device_name: None,
                 })
                 .ok(),

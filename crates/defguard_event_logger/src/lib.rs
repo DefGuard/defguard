@@ -705,14 +705,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
-                    method,
                     mobile_auth_device_name,
+                    ..
                 } => Some(match mobile_auth_device_name {
                     Some(auth_device) => format!(
-                        "Device {device} completed MFA authorization for location {location} using {method} (approved on {auth_device})"
+                        "Device {device} completed MFA authorization for location {location} (approved on {auth_device})"
                     ),
                     None => format!(
-                        "Device {device} completed MFA authorization for location {location} using {method}"
+                        "Device {device} completed MFA authorization for location {location}"
                     ),
                 }),
                 DesktopClientMfaEvent::Failed {
@@ -754,19 +754,22 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 } => Some(format!(
                     "VPN session for {device} in location {location} superseded by new authorization"
                 )),
+                DesktopClientMfaEvent::MfaLoginSuperseded { device, location } => Some(format!(
+                    "MFA login for {device} in location {location} superseded by a new login attempt"
+                )),
             };
             let (event_type, metadata) = match *event {
                 DesktopClientMfaEvent::Success {
                     location,
                     device,
-                    method,
+                    attribution,
                     mobile_auth_device_name,
                 } => (
                     EventType::VpnClientMfaSuccess,
                     serde_json::to_value(VpnClientMfaMetadata {
                         location,
                         device,
-                        method,
+                        attribution,
                         mobile_auth_device_name,
                     })
                     .ok(),
@@ -836,6 +839,10 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         )
                     }
                 }
+                DesktopClientMfaEvent::MfaLoginSuperseded { location, device } => (
+                    EventType::VpnClientMfaLoginSuperseded,
+                    serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                ),
             };
             let module = bidi_event_module(&event_type);
             (module, event_type, description, metadata)

@@ -77,8 +77,7 @@ pub struct VpnClientSession<I = NoId> {
     pub created_at: NaiveDateTime,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
-    #[model(option)]
-    pub mfa_method: Option<VpnClientMfaMethod>,
+    pub is_mfa_session: bool,
     #[model(enum)]
     pub state: VpnClientSessionState,
     pub preshared_key: Option<String>,
@@ -91,7 +90,7 @@ impl VpnClientSession {
         user_id: Id,
         device_id: Id,
         connected_at: Option<NaiveDateTime>,
-        mfa_method: Option<VpnClientMfaMethod>,
+        is_mfa_session: bool,
     ) -> Self {
         // determine session state
         let state = if connected_at.is_some() {
@@ -108,7 +107,7 @@ impl VpnClientSession {
             created_at: Utc::now().naive_utc(),
             connected_at,
             disconnected_at: None,
-            mfa_method,
+            is_mfa_session,
             state,
             preshared_key: None,
         }
@@ -127,7 +126,7 @@ impl VpnClientSession<Id> {
         query_as!(
             Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
 			ORDER BY created_at DESC, id DESC \
@@ -165,7 +164,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session s \
 			LEFT JOIN LATERAL ( \
 				SELECT latest_handshake \
@@ -189,7 +188,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND state = 'new' \
             AND (NOW() - created_at) > $2 * interval '1 second'",
@@ -207,7 +206,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
 			ORDER BY created_at DESC, id DESC",

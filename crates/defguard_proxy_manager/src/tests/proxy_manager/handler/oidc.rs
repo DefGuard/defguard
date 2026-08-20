@@ -1,9 +1,16 @@
 #![allow(deprecated)]
-use defguard_common::db::models::settings::{Settings, update_current_settings};
+use base64::{Engine, prelude::BASE64_STANDARD};
+use defguard_common::db::{
+    Id,
+    models::{
+        settings::{Settings, update_current_settings},
+        vpn_client_mfa_session::VpnClientMfaSession,
+    },
+};
 use defguard_core::{
     db::models::enrollment::Token,
     enterprise::{
-        handlers::openid_login::build_state,
+        handlers::openid_login::{MfaOidcState, build_state},
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::update_counts,
     },
@@ -17,6 +24,7 @@ use defguard_proto::{
         core_response,
     },
 };
+use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 
@@ -175,11 +183,33 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
     let _provider = create_oidc_provider(&context.pool, &mock).await;
     set_public_proxy_url(&context.pool, &mock.base_url).await;
 
+    // The MFA flow requires an active session whose token rides in `state`. Start one for the
+    // external (OIDC) network so `start_client_mfa_login` accepts the Oidc method.
+    let network = create_external_mfa_network(&context.pool).await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let (_id, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+
     context.mock_proxy().send_request(CoreRequest {
         id: 50,
         device_info: None,
         payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
-            state: None,
+            state: Some(mfa_token.clone()),
             auth_flow_type: AuthFlowType::Mfa as i32,
             ..Default::default()
         })),
@@ -212,6 +242,24 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
         "expected non-empty csrf_token"
     );
     assert!(!auth_info.nonce.is_empty(), "expected non-empty nonce");
+
+    // The authorize URL's `state` must carry "<csrf>.<token>.<step_attempt_id>". The csrf
+    // prefix is the browser's CSRF nonce; the tail is what the callback parses back out.
+    let url = Url::parse(&auth_info.url).expect("failed to parse authorize URL");
+    let state_param = url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .map(|(_, value)| value.into_owned())
+        .expect("authorize URL must carry a state parameter");
+    let decoded = BASE64_STANDARD
+        .decode(state_param.as_bytes())
+        .expect("state must be base64");
+    let decoded = String::from_utf8(decoded).expect("state must be UTF-8");
+    let (csrf, tail) = decoded
+        .split_once('.')
+        .expect("state must be <csrf>.<payload>");
+    assert!(!csrf.is_empty(), "state must carry a csrf prefix");
+    assert_eq!(tail, MfaOidcState::build(&mfa_token, &attempt_id));
 
     clear_test_license();
     context.finish().await.expect_server_finished().await;
@@ -416,8 +464,21 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     .await;
 
     // ---- Step 2: ClientMfaOidcAuthenticate ----
-    // Build the `state` field by encoding the mfa_token inside it.
-    let state = build_state(Some(mfa_token.clone())).secret().clone();
+    // Build the `state` field the way the authorize-URL builder does for the MFA flow:
+    // encode "<mfa_token>.<step_attempt_id>".
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+    let state = build_state(Some(MfaOidcState::build(&mfa_token, &attempt_id)))
+        .secret()
+        .clone();
 
     let raw_nonce = "mfa-oidc-nonce";
     let code = make_oidc_code(&user.email, &user.email, raw_nonce);
@@ -455,6 +516,160 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     // Verify BidiStreamEvent::DesktopClientMfa(Success) was emitted.
     let location_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
     assert_eq!(location_id, network.id);
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A callback whose state-carried `step_attempt_id` does not match the live row is rejected.
+///
+/// The genuine end-to-end case - a callback from an attempt superseded by a re-issue on the SAME
+/// token - is not reachable until #3045 adds re-attempts; no production path re-issues an attempt
+/// on a live token yet. This test constructs a stale id against a live row instead, so the gap is
+/// covered explicitly rather than left looking tested.
+#[sqlx::test]
+async fn test_mfa_oidc_rejects_stale_attempt_id(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (user, device) = create_user_with_device(&context.pool).await;
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let (_id, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+
+    // Build a state carrying a stale attempt id that does not match the live row.
+    let state = build_state(Some(MfaOidcState::build(&mfa_token, "stale-attempt-id")))
+        .secret()
+        .clone();
+
+    let raw_nonce = "mfa-oidc-stale-nonce";
+    let oidc_code = make_oidc_code(&user.email, &user.email, raw_nonce);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 31,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaOidcAuthenticate(
+            ClientMfaOidcAuthenticateRequest {
+                code: oidc_code,
+                state,
+                nonce: raw_nonce.to_owned(),
+            },
+        )),
+    });
+
+    // The handler must reject the stale attempt rather than silently ignore it.
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let error_code = assert_error_response(&response);
+    assert_eq!(
+        error_code,
+        tonic::Code::InvalidArgument,
+        "expected InvalidArgument for a stale attempt id"
+    );
+
+    // The live attempt is untouched: the mark was a no-op, so the session is still pending OIDC.
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected the session to remain live");
+    assert!(
+        !session
+            .ephemeral_state
+            .as_ref()
+            .expect("expected an attempt in progress")
+            .openid_auth_completed,
+        "stale callback must not mark the attempt complete"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A callback carrying a stale `step_attempt_id` must not destroy the live attempt, even when the
+/// callback would otherwise fail on a path that deletes the session.
+///
+/// Every abort path in the handler (wrong method, bad callback URL, wrong account, bad code)
+/// deletes the row. The attempt-id check therefore has to run before all of them: otherwise a late
+/// callback from a superseded attempt tears down the attempt that replaced it. This drives an
+/// unverifiable OIDC code so the request would reach the delete-on-failure branch, and asserts the
+/// session is still live afterwards.
+#[sqlx::test]
+async fn test_mfa_oidc_stale_attempt_id_does_not_delete_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let (_id, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+
+    let state = build_state(Some(MfaOidcState::build(&mfa_token, "stale-attempt-id")))
+        .secret()
+        .clone();
+
+    // A code for an account that does not exist: verification fails, and that failure path is one
+    // of the branches that deletes the session.
+    let raw_nonce = "mfa-oidc-stale-delete-nonce";
+    let oidc_code = make_oidc_code("no-such-sub", "no-such-user@example.com", raw_nonce);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 32,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaOidcAuthenticate(
+            ClientMfaOidcAuthenticateRequest {
+                code: oidc_code,
+                state,
+                nonce: raw_nonce.to_owned(),
+            },
+        )),
+    });
+
+    // Rejected for the stale attempt id, not for the bad code: the binding is checked first.
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let error_code = assert_error_response(&response);
+    assert_eq!(
+        error_code,
+        tonic::Code::InvalidArgument,
+        "expected InvalidArgument for a stale attempt id"
+    );
+
+    // The decisive assertion: the live session survived a failing callback bound to a dead attempt.
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("a stale callback must not delete the live session");
+    assert!(
+        !session
+            .ephemeral_state
+            .as_ref()
+            .expect("expected an attempt in progress")
+            .openid_auth_completed,
+        "stale callback must not mark the attempt complete"
+    );
 
     clear_test_license();
     context.finish().await.expect_server_finished().await;

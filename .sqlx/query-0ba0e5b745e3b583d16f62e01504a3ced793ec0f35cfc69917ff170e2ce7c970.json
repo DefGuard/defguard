@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC LIMIT 1",
+  "query": "SELECT id, \"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"is_mfa_session\",\"state\" \"state: _\",\"preshared_key\" FROM \"vpn_client_session\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -40,25 +40,12 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa_method: VpnClientMfaMethod",
-        "type_info": {
-          "Custom": {
-            "name": "vpn_client_mfa_method",
-            "kind": {
-              "Enum": [
-                "totp",
-                "email",
-                "oidc",
-                "biometric",
-                "mobileapprove"
-              ]
-            }
-          }
-        }
+        "name": "is_mfa_session",
+        "type_info": "Bool"
       },
       {
         "ordinal": 8,
-        "name": "state: VpnClientSessionState",
+        "name": "state: _",
         "type_info": {
           "Custom": {
             "name": "vpn_client_session_state",
@@ -92,10 +79,10 @@
       false,
       true,
       true,
-      true,
+      false,
       false,
       true
     ]
   },
-  "hash": "e87af2b4e3fd79709a28381e04690aee96054585a87e6673a5efa275795dc060"
+  "hash": "0ba0e5b745e3b583d16f62e01504a3ced793ec0f35cfc69917ff170e2ce7c970"
 }

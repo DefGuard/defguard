@@ -31,6 +31,22 @@ mod test {
         grpc::proto::enterprise::license::LicenseLimits,
     };
 
+    /// Install a Business-tier licence with no limits.
+    ///
+    /// Tests needing specific limits build their own licence instead.
+    fn set_business_license() {
+        set_cached_license(Some(License::new(
+            "test".to_owned(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Business,
+            SupportType::Basic,
+            vec![],
+        )));
+    }
+
     async fn do_test_directory_sync(pool: &PgPool, gateway_tx: &broadcast::Sender<GatewayCommand>) {
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
         let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
@@ -69,6 +85,12 @@ mod test {
         target: DirectorySyncTarget,
         prefetch_users: bool,
     ) -> OpenIdProvider<Id> {
+        // Directory sync is a business feature and its licence gate is compiled into test
+        // builds, so without a licence every entry point below returns `Ok(())` without doing
+        // any work. Seed one here; a test wanting the unlicensed path calls
+        // `set_cached_license(None)` afterwards.
+        set_business_license();
+
         Settings::initialize_runtime_defaults(pool).await.unwrap();
         initialize_current_settings(pool).await.unwrap();
 

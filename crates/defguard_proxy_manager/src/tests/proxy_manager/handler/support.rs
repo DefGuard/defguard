@@ -5,11 +5,13 @@ use std::{
     time::SystemTime,
 };
 
+use base64::{Engine, prelude::BASE64_STANDARD};
 use defguard_common::{
     db::{
         Id, NoId,
         models::{
             Device, DeviceType, User, WireguardNetwork,
+            biometric_auth::BiometricAuth,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             polling_token::PollingToken,
             settings::{Settings, update_current_settings},
@@ -47,6 +49,7 @@ use defguard_proto::{
         core_request, core_response,
     },
 };
+use ed25519_dalek::{Signer, SigningKey};
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
@@ -95,8 +98,18 @@ pub(crate) fn assert_device_config_response(response: &CoreResponse) -> &DeviceC
 /// Assert that a `CoreResponse` carries a `CoreError` payload and return the
 /// tonic status code.
 pub(crate) fn assert_error_response(response: &CoreResponse) -> Code {
+    assert_error_response_with_message(response).0
+}
+
+/// Like [`assert_error_response`], but also returns the error message.
+///
+/// Needed wherever several distinct rejection reasons share a status code: asserting the code
+/// alone would pass no matter which of them fired.
+pub(crate) fn assert_error_response_with_message(response: &CoreResponse) -> (Code, String) {
     match &response.payload {
-        Some(core_response::Payload::CoreError(err)) => Code::from_i32(err.status_code),
+        Some(core_response::Payload::CoreError(err)) => {
+            (Code::from_i32(err.status_code), err.message.clone())
+        }
         other => panic!(
             "expected CoreError response, got: {:?}",
             other.as_ref().map(discriminant)
@@ -650,11 +663,29 @@ pub(crate) async fn send_mfa_start(
     pubkey: &str,
     method: MfaMethod,
 ) -> (u64, String) {
+    let (id, token, _challenge) =
+        send_mfa_start_with_challenge(context, location_id, pubkey, method).await;
+    (id, token)
+}
+
+/// Send `ClientMfaStart` and return `(request id, token, challenge)`.
+///
+/// The challenge is `None` for methods that do not issue one (TOTP, email, OIDC); the biometric
+/// and mobile-approve flows return the string the client must sign.
+///
+/// Requires `device_info` because the handler calls `parse_client_ip_agent`, same as
+/// [`send_mfa_finish`].
+pub(crate) async fn send_mfa_start_with_challenge(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    method: MfaMethod,
+) -> (u64, String, Option<String>) {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id,
@@ -667,8 +698,8 @@ pub(crate) async fn send_mfa_start(
         )),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let token = match &response.payload {
-        Some(core_response::Payload::ClientMfaStart(r)) => r.token.clone(),
+    let (token, challenge) = match &response.payload {
+        Some(core_response::Payload::ClientMfaStart(r)) => (r.token.clone(), r.challenge.clone()),
         Some(core_response::Payload::CoreError(e)) => panic!(
             "send_mfa_start: got CoreError status={} msg={}",
             e.status_code, e.message
@@ -678,7 +709,31 @@ pub(crate) async fn send_mfa_start(
             other.as_ref().map(discriminant)
         ),
     };
-    (id, token)
+    (id, token, challenge)
+}
+
+/// Register an ed25519 biometric-auth key for `device_id` and return the signing key.
+///
+/// Both legacy signature flows verify a challenge against a key the device enrolled up front, so
+/// a test has to plant one before it can produce a signature the handler will accept.
+pub(crate) async fn register_biometric_key(pool: &PgPool, device_id: Id) -> SigningKey {
+    let signing_key = SigningKey::generate(&mut rand::rngs::OsRng);
+    let pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().as_bytes());
+    BiometricAuth::new(device_id, pub_key)
+        .save(pool)
+        .await
+        .expect("failed to save biometric auth key");
+    signing_key
+}
+
+/// Base64 public key matching [`register_biometric_key`]'s signing key.
+pub(crate) fn biometric_pub_key(signing_key: &SigningKey) -> String {
+    BASE64_STANDARD.encode(signing_key.verifying_key().as_bytes())
+}
+
+/// Sign a challenge the way the client does: ed25519 over the raw challenge bytes, base64-encoded.
+pub(crate) fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> String {
+    BASE64_STANDARD.encode(signing_key.sign(challenge.as_bytes()).to_bytes())
 }
 
 /// Send `ClientMfaFinish` and return `(response, preshared_key)`.
@@ -690,6 +745,19 @@ pub(crate) async fn send_mfa_finish(
     token: &str,
     code: Option<&str>,
 ) -> (CoreResponse, String) {
+    send_mfa_finish_signed(context, token, code, None).await
+}
+
+/// Send `ClientMfaFinish` carrying an `auth_pub_key` and return `(response, preshared_key)`.
+///
+/// Mobile approve needs the approving device's key alongside the signature; biometric passes
+/// `None` because the challenge already remembers its owner. Panics if the handler errors.
+pub(crate) async fn send_mfa_finish_signed(
+    context: &mut HandlerTestContext,
+    token: &str,
+    code: Option<&str>,
+    auth_pub_key: Option<&str>,
+) -> (CoreResponse, String) {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
@@ -699,7 +767,7 @@ pub(crate) async fn send_mfa_finish(
             ClientMfaFinishRequest {
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
-                auth_pub_key: None,
+                auth_pub_key: auth_pub_key.map(str::to_owned),
             },
         )),
     });

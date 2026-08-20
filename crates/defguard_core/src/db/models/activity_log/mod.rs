@@ -89,6 +89,7 @@ pub enum EventType {
     VpnClientMfaFailed,
     VpnClientSessionSuperseded,
     VpnClientMfaSessionSuperseded,
+    VpnClientMfaLoginSuperseded,
     // Enrollment events
     EnrollmentTokenAdded,
     EnrollmentStarted,

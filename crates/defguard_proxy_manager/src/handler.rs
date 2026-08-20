@@ -13,7 +13,9 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Certificates, Settings, proxy::Proxy},
+        models::{
+            Certificates, Settings, proxy::Proxy, vpn_client_mfa_session::VpnClientMfaSession,
+        },
     },
     types::AuthFlowType,
 };
@@ -25,7 +27,8 @@ use defguard_core::{
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+            MfaOidcState, SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client,
+            user_from_claims,
         },
         is_business_license_active,
         ldap::utils::ldap_update_user_state,
@@ -34,9 +37,7 @@ use defguard_core::{
     events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent},
     grpc::{
         GatewayCommand,
-        proxy::client_mfa::{
-            ClientLoginSession, ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome,
-        },
+        proxy::client_mfa::{ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome},
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -52,7 +53,10 @@ use defguard_proto::{
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
 };
-use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
+use openidconnect::{
+    AuthorizationCode, EndpointMaybeSet, EndpointNotSet, EndpointSet, Nonce, Scope,
+    core::{CoreAuthenticationFlow, CoreClient},
+};
 use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
@@ -81,6 +85,89 @@ use crate::{
 };
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
+
+/// Compute the OIDC `state` payload for an `AuthInfo` request.
+///
+/// The MFA flow's payload is the opaque session token plus the session's current
+/// `step_attempt_id` (`<token>.<step_attempt_id>`), so the OIDC callback can bind to the attempt
+/// it was issued for rather than a superseded one. The enrollment and legacy flows have no such
+/// nonce and their payload is returned unchanged.
+async fn build_auth_info_state(
+    pool: &PgPool,
+    auth_flow_type: ProtoAuthFlowType,
+    state: Option<String>,
+) -> Result<Option<String>, CoreError> {
+    if auth_flow_type != ProtoAuthFlowType::Mfa {
+        return Ok(state);
+    }
+
+    let Some(token) = state.as_deref() else {
+        debug!("OIDC MFA AuthInfo request is missing the session token");
+        return Err(CoreError::invalid_argument("missing MFA session token"));
+    };
+
+    let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(pool, token)
+        .await
+        .map_err(|err| {
+            error!("Failed to find MFA session: {err}");
+            CoreError::internal("failed to find MFA session")
+        })?
+    else {
+        debug!("OIDC MFA AuthInfo request references an unknown or expired session");
+        return Err(CoreError::invalid_argument("MFA session not found"));
+    };
+
+    let Some(ephemeral) = session.ephemeral_state.as_ref() else {
+        debug!("OIDC MFA AuthInfo request references a session with no attempt in progress");
+        return Err(CoreError::invalid_argument("no MFA attempt in progress"));
+    };
+
+    Ok(Some(MfaOidcState::build(token, &ephemeral.step_attempt_id)))
+}
+
+/// The concrete OpenID Connect client `make_oidc_client` builds for the Core auth flow.
+type CoreOidcClient = CoreClient<
+    EndpointSet,
+    EndpointNotSet,
+    EndpointNotSet,
+    EndpointNotSet,
+    EndpointMaybeSet,
+    EndpointMaybeSet,
+>;
+
+/// Build the `AuthInfo` payload for a successfully built state: construct the authorize URL from
+/// the client, the provider, and the state data, and wrap the resulting CSRF token, nonce, and
+/// provider display name.
+fn build_auth_info_payload(
+    client: &CoreOidcClient,
+    provider: &OpenIdProvider<Id>,
+    state_data: Option<String>,
+) -> core_response::Payload {
+    let mut authorize_url_builder = client
+        .authorize_url(
+            CoreAuthenticationFlow::AuthorizationCode,
+            || build_state(state_data),
+            Nonce::new_random,
+        )
+        .add_scope(Scope::new("email".to_owned()))
+        .add_scope(Scope::new("profile".to_owned()));
+
+    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+        .iter()
+        .all(|p| p.eq_ignore_ascii_case(&provider.name))
+    {
+        authorize_url_builder =
+            authorize_url_builder.add_prompt(openidconnect::core::CoreAuthPrompt::SelectAccount);
+    }
+    let (url, csrf_token, nonce) = authorize_url_builder.url();
+
+    core_response::Payload::AuthInfo(AuthInfoResponse {
+        url: url.into(),
+        csrf_token: csrf_token.secret().to_owned(),
+        nonce: nonce.secret().to_owned(),
+        button_display_name: provider.display_name.clone(),
+    })
+}
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
@@ -135,14 +222,13 @@ impl ProxyHandler {
         url: Url,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
     ) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
+        let services = ProxyServices::new(&pool, tx, remote_mfa_responses);
 
         Self {
             pool,
@@ -167,7 +253,6 @@ impl ProxyHandler {
         pool: PgPool,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
@@ -179,7 +264,6 @@ impl ProxyHandler {
             url,
             tx,
             remote_mfa_responses,
-            sessions,
             shutdown_signal,
             proxy_id,
             proxy_cookie_key,
@@ -800,7 +884,8 @@ impl ProxyHandler {
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
                             if is_business_license_active() {
-                                let redirect_url = match request.auth_flow_type() {
+                                let auth_flow_type = request.auth_flow_type();
+                                let redirect_url = match auth_flow_type {
                                     ProtoAuthFlowType::Enrollment => {
                                         let settings = Settings::get_current_settings();
                                         settings.edge_callback_url(AuthFlowType::Enrollment)
@@ -823,66 +908,57 @@ impl ProxyHandler {
                                     {
                                         match make_oidc_client(redirect_url, &provider).await {
                                             Ok((_client_id, client)) => {
-                                                let mut authorize_url_builder = client
-                                                    .authorize_url(
-                                                        CoreAuthenticationFlow::AuthorizationCode,
-                                                        || build_state(request.state),
-                                                        Nonce::new_random,
-                                                    )
-                                                    .add_scope(Scope::new("email".to_owned()))
-                                                    .add_scope(Scope::new("profile".to_owned()));
-
-                                                if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
-                                                    .iter()
-                                                    .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                                match build_auth_info_state(
+                                                    &pool,
+                                                    auth_flow_type,
+                                                    request.state,
+                                                )
+                                                .await
                                                 {
-                                                    authorize_url_builder = authorize_url_builder
-                                                        .add_prompt(
-                                                            openidconnect::core::CoreAuthPrompt::SelectAccount,
+                                                    Ok(state_data) => {
+                                                        Some(build_auth_info_payload(
+                                                            &client, &provider, state_data,
+                                                        ))
+                                                    }
+                                                    Err(err) => {
+                                                        error!(
+                                                            "Failed to build OIDC state: {}",
+                                                            err.message
                                                         );
+                                                        Some(core_response::Payload::CoreError(err))
+                                                    }
                                                 }
-                                                let (url, csrf_token, nonce) =
-                                                    authorize_url_builder.url();
-
-                                                Some(core_response::Payload::AuthInfo(
-                                                    AuthInfoResponse {
-                                                        url: url.into(),
-                                                        csrf_token: csrf_token.secret().to_owned(),
-                                                        nonce: nonce.secret().to_owned(),
-                                                        button_display_name: provider.display_name,
-                                                    },
-                                                ))
                                             }
                                             Err(err) => {
                                                 error!(
                                                     "Failed to setup external OIDC provider client: {err}"
                                                 );
-                                                Some(core_response::Payload::CoreError(CoreError {
-                                                    status_code: Code::Internal as i32,
-                                                    message: "failed to build OIDC client".into(),
-                                                }))
+                                                Some(core_response::Payload::CoreError(
+                                                    CoreError::internal(
+                                                        "failed to build OIDC client",
+                                                    ),
+                                                ))
                                             }
                                         }
                                     } else {
                                         error!("Failed to get current OpenID provider");
-                                        Some(core_response::Payload::CoreError(CoreError {
-                                            status_code: Code::NotFound as i32,
-                                            message: "failed to get current OpenID provider".into(),
-                                        }))
+                                        Some(core_response::Payload::CoreError(
+                                            CoreError::not_found(
+                                                "failed to get current OpenID provider",
+                                            ),
+                                        ))
                                     }
                                 } else {
                                     error!("Invalid redirect URL in authentication info request");
-                                    Some(core_response::Payload::CoreError(CoreError {
-                                        status_code: Code::Internal as i32,
-                                        message: "invalid redirect URL".into(),
-                                    }))
+                                    Some(core_response::Payload::CoreError(CoreError::internal(
+                                        "invalid redirect URL",
+                                    )))
                                 }
                             } else {
                                 warn!("Enterprise license required");
-                                Some(core_response::Payload::CoreError(CoreError {
-                                    status_code: Code::FailedPrecondition as i32,
-                                    message: "no valid license".into(),
-                                }))
+                                Some(core_response::Payload::CoreError(
+                                    CoreError::failed_precondition("no valid license"),
+                                ))
                             }
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {
@@ -993,10 +1069,9 @@ impl ProxyHandler {
                                         "Proxy requested an OpenID authentication info for a \
                                         callback URL that couldn't be built. Details: {err}"
                                     );
-                                    Some(core_response::Payload::CoreError(CoreError {
-                                        status_code: Code::Internal as i32,
-                                        message: "invalid callback URL".into(),
-                                    }))
+                                    Some(core_response::Payload::CoreError(CoreError::internal(
+                                        "invalid callback URL",
+                                    )))
                                 }
                             }
                         }
@@ -1103,7 +1178,6 @@ impl ProxyHandler {
         url: Url,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
@@ -1115,7 +1189,6 @@ impl ProxyHandler {
             url,
             tx,
             remote_mfa_responses,
-            sessions,
             shutdown_signal,
             proxy_id,
             proxy_cookie_key,
@@ -1270,7 +1343,6 @@ impl ProxyServices {
         pool: &PgPool,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
@@ -1285,7 +1357,6 @@ impl ProxyServices {
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
             remote_mfa_responses,
-            sessions,
         );
         let polling = PollingServer::new(pool.clone());
 

@@ -10,6 +10,7 @@ use defguard_common::db::{
         proxy::Proxy,
         settings::{LdapSyncStatus, OpenIdUsernameHandling, smtp::SmtpEncryption},
         user::User,
+        vpn_client_mfa_session::MfaAttribution,
     },
 };
 
@@ -194,7 +195,10 @@ pub struct VpnClientMetadata {
 pub struct VpnClientMfaMetadata {
     pub location: WireguardNetwork<Id>,
     pub device: Device<Id>,
-    pub method: ClientMFAMethod,
+    /// The complete challenge-and-response record plus the governing flow title. Flattened so
+    /// the serialized activity-log shape stays `{ snapshot, flow_name }`.
+    #[serde(flatten)]
+    pub attribution: MfaAttribution,
     /// Name of the device used to approve the login when the mobile approve MFA
     /// method is used. Omitted for all other methods.
     #[serde(skip_serializing_if = "Option::is_none")]

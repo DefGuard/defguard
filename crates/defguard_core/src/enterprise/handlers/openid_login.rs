@@ -172,6 +172,39 @@ pub(crate) fn extract_state_data(state: &str) -> Option<String> {
     }
 }
 
+/// The OIDC MFA `state` payload: the opaque in-progress session token plus the `step_attempt_id`
+/// the authorize URL was issued for. Serialized as `<token>.<step_attempt_id>`.
+///
+/// The enrollment flow shares `extract_state_data` but carries no nonce and no dot in its
+/// payload, so this type is specific to the MFA flow.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MfaOidcState {
+    pub token: String,
+    pub attempt_id: String,
+}
+
+impl MfaOidcState {
+    /// Build the dotted `<token>.<step_attempt_id>` payload.
+    #[must_use]
+    pub fn build(token: &str, attempt_id: &str) -> String {
+        format!("{token}.{attempt_id}")
+    }
+
+    /// Parse the dotted payload back into its parts. `None` when there is no separator or when
+    /// either part is empty.
+    #[must_use]
+    pub fn parse(payload: &str) -> Option<Self> {
+        let (token, attempt_id) = payload.split_once('.')?;
+        if token.is_empty() || attempt_id.is_empty() {
+            return None;
+        }
+        Some(Self {
+            token: token.to_owned(),
+            attempt_id: attempt_id.to_owned(),
+        })
+    }
+}
+
 /// Build OpenID Connect client.
 /// `url`: redirect/callback URL
 pub async fn make_oidc_client(
@@ -970,6 +1003,27 @@ mod test {
     }
 
     #[test]
+    fn test_state_round_trips_mfa_attempt_id() {
+        // The MFA flow's state data is "<token>.<step_attempt_id>". The dotted payload must
+        // survive build_state -> extract_state_data and split back into its two fields.
+        let data = MfaOidcState::build("opaque-token", "attempt-id-123");
+        let state = build_state(Some(data.clone()));
+        let extracted = extract_state_data(state.secret());
+        assert_eq!(extracted.as_deref(), Some(data.as_str()));
+        let parsed = MfaOidcState::parse(&extracted.unwrap()).unwrap();
+        assert_eq!(parsed.token, "opaque-token");
+        assert_eq!(parsed.attempt_id, "attempt-id-123");
+
+        // An enrollment-shaped state carries no attempt id and must round-trip unchanged.
+        let enrollment = "enrollment-token";
+        let state = build_state(Some(enrollment.to_owned()));
+        assert_eq!(
+            extract_state_data(state.secret()),
+            Some(enrollment.to_owned())
+        );
+    }
+
+    #[test]
     fn test_reached_user_license_limit_reached() {
         set_counts(Counts::new(2, 0, 0, 0));
         let license = License::new(
@@ -1138,6 +1192,19 @@ mod test {
         pool: &PgPool,
         target: DirectorySyncTarget,
     ) -> (User<Id>, Group<Id>) {
+        // Group sync is a business feature and its licence gate is compiled into test builds,
+        // so without a licence `sync_user_groups_if_configured` returns without syncing.
+        set_cached_license(Some(License::new(
+            "test".to_owned(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Business,
+            SupportType::Basic,
+            vec![],
+        )));
+
         let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());
         Settings::initialize_runtime_defaults(pool).await.unwrap();
         initialize_current_settings(pool).await.unwrap();

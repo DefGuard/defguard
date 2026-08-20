@@ -11,7 +11,7 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             gateway::Gateway,
-            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
             wireguard::ServiceLocationMode,
         },
@@ -269,7 +269,7 @@ pub(crate) async fn authorize_device_in_location(
         user_id,
         device_id,
         Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
-        Some(VpnClientMfaMethod::Totp),
+        true,
     );
     session.preshared_key = Some(preshared_key.to_owned());
     session.state = VpnClientSessionState::Connected;
@@ -323,11 +323,16 @@ pub(crate) async fn create_session(
     user_id: Id,
     device_id: Id,
     connected_at: Option<NaiveDateTime>,
-    mfa_method: Option<VpnClientMfaMethod>,
+    is_mfa_session: bool,
     preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
-    let mut session =
-        VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method);
+    let mut session = VpnClientSession::new(
+        location_id,
+        user_id,
+        device_id,
+        connected_at,
+        is_mfa_session,
+    );
     session.preshared_key = preshared_key.map(str::to_owned);
     session
         .save(pool)

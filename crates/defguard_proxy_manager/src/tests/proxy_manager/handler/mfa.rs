@@ -8,11 +8,13 @@ use tokio::{task, time::timeout};
 use tonic::Code;
 
 use super::support::{
-    assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
-    create_external_mfa_network, create_mfa_network, create_network, create_user_with_device,
-    expect_bidi_mfa_success, generate_totp_code, make_device_info, send_mfa_finish,
-    send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_start, send_token_validation,
-    setup_user_email_mfa, setup_user_totp_mfa,
+    assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
+    biometric_pub_key, clear_test_license, complete_proxy_handshake, create_external_mfa_network,
+    create_mfa_network, create_network, create_user_with_device, expect_bidi_mfa_success,
+    generate_totp_code, make_device_info, register_biometric_key, send_mfa_finish,
+    send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_finish_signed, send_mfa_start,
+    send_mfa_start_with_challenge, send_token_validation, set_test_license_business,
+    setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
 
@@ -30,7 +32,7 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -64,7 +66,7 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: nonexistent_location_id,
@@ -160,6 +162,116 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     context.finish().await.expect_server_finished().await;
 }
 
+/// The legacy single-step biometric flow completes end-to-end against the DB-backed session.
+///
+/// `start` issues a challenge bound to the device's enrolled key; `finish` returns the signature
+/// as `code` and the handler verifies it against that key.
+#[sqlx::test]
+async fn test_mfa_finish_succeeds_with_biometric_signature(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+
+    let (_, token, challenge) = send_mfa_start_with_challenge(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Biometric,
+    )
+    .await;
+    let challenge = challenge.expect("biometric start must return a challenge to sign");
+
+    // Subscribe before finish so the handler's gateway_tx.send() has a receiver.
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let (_, psk) = send_mfa_finish(&mut context, &token, Some(&signature)).await;
+    assert!(
+        !psk.is_empty(),
+        "PSK must not be empty after successful biometric MFA"
+    );
+
+    let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(session.preshared_key.is_some());
+
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+        .await
+        .expect("timed out waiting for GatewayCommand::VpnSessionAuthorized")
+        .expect("gateway command channel closed");
+    let gateway_loc_id = match event {
+        GatewayCommand::VpnSessionAuthorized(loc_id, _, _) => loc_id,
+        other => panic!("expected VpnSessionAuthorized, got: {other:?}"),
+    };
+    assert_eq!(gateway_loc_id, network.id);
+
+    let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
+    assert_eq!(event_loc_id, network.id);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// The legacy single-step mobile-approve flow completes end-to-end against the DB-backed session.
+///
+/// This is the fused path: the approving device's key rides in `auth_pub_key` on `finish` and the
+/// handler verifies the signature and authorizes in one call. The durable-mark route, where an
+/// out-of-band approval is collected by a later `finish` poll, arrives with #3046.
+#[sqlx::test]
+async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (_, token, challenge) = send_mfa_start_with_challenge(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::MobileApprove,
+    )
+    .await;
+    let challenge = challenge.expect("mobile approve start must return a challenge to sign");
+
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let (_, psk) =
+        send_mfa_finish_signed(&mut context, &token, Some(&signature), Some(&auth_pub_key)).await;
+    assert!(
+        !psk.is_empty(),
+        "PSK must not be empty after successful mobile-approve MFA"
+    );
+
+    let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(session.preshared_key.is_some());
+
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+        .await
+        .expect("timed out waiting for GatewayCommand::VpnSessionAuthorized")
+        .expect("gateway command channel closed");
+    let gateway_loc_id = match event {
+        GatewayCommand::VpnSessionAuthorized(loc_id, _, _) => loc_id,
+        other => panic!("expected VpnSessionAuthorized, got: {other:?}"),
+    };
+    assert_eq!(gateway_loc_id, network.id);
+
+    let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
+    assert_eq!(event_loc_id, network.id);
+
+    context.finish().await.expect_server_finished().await;
+}
+
 #[sqlx::test]
 async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -209,7 +321,7 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -244,7 +356,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -407,22 +519,28 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
     context.finish().await.expect_server_finished().await;
 }
 
+/// Without a business license, OIDC is removed from the flow's available methods, so selecting
+/// it is rejected as unsupported by the location.
+///
+/// This is written as a differential test on purpose. Every rejection on this path returns
+/// `InvalidArgument`, so asserting the code alone proves nothing: it passes just as well when
+/// the license gate is not enforced at all. The licensed run pins that down - it must fail for
+/// a *different* reason (the unconfigured OIDC provider), which it can only do if the gate
+/// changed the outcome.
 #[sqlx::test]
 async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    clear_test_license();
-
-    // External MFA location + OIDC method but no business license
+    // External MFA location + OIDC method, no OIDC provider configured
     let network = create_external_mfa_network(&context.pool).await;
     let (mut user, device) = create_user_with_device(&context.pool).await;
     // email MFA is irrelevant for OIDC path but user still needs to exist
     setup_user_email_mfa(&context.pool, &mut user).await;
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 1,
-        device_info: None,
+    let request = |id: u64| CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -433,11 +551,25 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
                 selected_methods: Vec::new(),
             },
         )),
-    });
+    };
 
+    // Unlicensed: the license gate filters OIDC out of the first step, so the method is not
+    // among those the location offers.
+    clear_test_license();
+    context.mock_proxy().send_request(request(1));
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let code = assert_error_response(&response);
+    let (code, message) = assert_error_response_with_message(&response);
     assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "selected MFA method is not supported by location");
+
+    // Licensed: OIDC survives the filter, so the request gets past the gate and fails further
+    // in, on the provider that was never configured.
+    set_test_license_business();
+    context.mock_proxy().send_request(request(2));
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "selected MFA method is not available");
 
     context.finish().await.expect_server_finished().await;
 }

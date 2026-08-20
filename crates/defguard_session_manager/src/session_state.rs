@@ -307,7 +307,7 @@ impl ActiveSessionsMap {
                         location,
                         user,
                         device,
-                        is_mfa_session: db_session.mfa_method.is_some(),
+                        is_mfa_session: db_session.is_mfa_session,
                     })
                 } else {
                     None
@@ -395,7 +395,7 @@ impl ActiveSessionsMap {
             user.id,
             device_id,
             Some(stats_update.latest_handshake),
-            None,
+            false,
         )
         .save(transaction)
         .await?;

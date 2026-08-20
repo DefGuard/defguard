@@ -12,6 +12,7 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
         proxy::Proxy,
         settings::set_settings,
+        vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
         vpn_client_session::VpnClientMfaMethod,
         wireguard::ServiceLocationMode,
     },
@@ -202,6 +203,40 @@ fn test_maps_replaced_bidi_events_from_non_mfa_sessions_to_standard_superseded_l
 
     assert_eq!(result.event, EventType::VpnClientSessionSuperseded);
     assert_eq!(result.module, ActivityLogModule::Vpn);
+}
+
+/// A superseded in-progress MFA login is not a superseded VPN session: nothing was authorized,
+/// so the entry must not claim a session existed or that an authorization replaced it.
+#[test]
+fn test_maps_superseded_mfa_login_to_its_own_event_and_description() {
+    let event = BidiStreamEvent {
+        context: sample_bidi_context(),
+        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+            DesktopClientMfaEvent::MfaLoginSuperseded {
+                location: sample_location(),
+                device: sample_device(),
+            },
+        )),
+    };
+
+    let result = map_to_activity_log_event(EventLoggerMessage::from_bidi_event(event));
+
+    assert_eq!(result.event, EventType::VpnClientMfaLoginSuperseded);
+    assert_eq!(result.module, ActivityLogModule::Vpn);
+
+    let description = result.description.expect("expected a description");
+    assert!(
+        description.contains("MFA login"),
+        "description should name the login, got: {description}"
+    );
+    assert!(
+        !description.contains("VPN session"),
+        "description must not claim a VPN session was superseded, got: {description}"
+    );
+    assert!(
+        !description.contains("authorization"),
+        "description must not claim an authorization occurred, got: {description}"
+    );
 }
 
 // Helper struct for testing mapping of all existing events
@@ -1336,7 +1371,16 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Success {
                     location: location.clone(),
                     device: device.clone(),
-                    method: defguard_core::events::ClientMFAMethod::MobileApprove,
+                    attribution: MfaAttribution {
+                        snapshot: StepsSnapshot {
+                            flow_id: 1,
+                            steps: vec![Step {
+                                methods: vec![VpnClientMfaMethod::MobileApprove],
+                                satisfied: Some(VpnClientMfaMethod::MobileApprove),
+                            }],
+                        },
+                        flow_name: Some("flow".to_owned()),
+                    },
                     mobile_auth_device_name: Some("pixel-7".to_owned()),
                 })),
                 Some(location.clone()),
@@ -1390,6 +1434,21 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                 Some(location.clone()),
             ),
             event_type: EventType::VpnClientMfaSessionSuperseded,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("superseded"),
+        },
+        EventTestCase {
+            name: "MfaLoginSuperseded",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::MfaLoginSuperseded {
+                        location: location.clone(),
+                        device: device.clone(),
+                    },
+                )),
+                Some(location.clone()),
+            ),
+            event_type: EventType::VpnClientMfaLoginSuperseded,
             module: ActivityLogModule::Vpn,
             description_contains: Some("superseded"),
         },
