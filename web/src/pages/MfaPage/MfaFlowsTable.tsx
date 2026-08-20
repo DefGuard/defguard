@@ -38,7 +38,7 @@ type Props = {
 
 const columnHelper = createColumnHelper<MfaFlowListItemResponse>();
 
-export const getMfaFlowDeleteErrorMessage = (error: unknown): string => {
+const getMfaFlowDeleteErrorMessage = (error: unknown): string => {
   if (!isAxiosError<MfaFlowErrorResponse>(error)) return m.mfa_flow_delete_failed();
 
   const field = error.response?.data.fields?.[0];
