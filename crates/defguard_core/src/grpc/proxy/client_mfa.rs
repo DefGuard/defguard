@@ -443,8 +443,7 @@ impl ClientMfaServer {
                 })?;
             }
             MfaMethod::Oidc => {
-                #[cfg(not(test))]
-                if !is_business_license_active() {
+                if !oidc_mfa_enabled() {
                     error!("OIDC MFA method requires enterprise feature to be enabled");
                     return Err(Status::invalid_argument(
                         "selected MFA method is not available",
@@ -1552,7 +1551,10 @@ mod tests {
             polling_token::PollingToken,
             settings::initialize_current_settings,
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-            vpn_client_mfa_session::{MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VpnClientMfaSession},
+            vpn_client_mfa_session::{
+                MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VPN_MFA_SESSION_TIMEOUT,
+                VpnClientMfaSession,
+            },
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::ServiceLocationMode,
         },
@@ -3123,7 +3125,7 @@ mod tests {
         assert!(!resp.token_valid);
 
         // Active token.
-        let active = start_mfa_session_direct(&pool, Duration::from_mins(10)).await;
+        let active = start_mfa_session_direct(&pool, VPN_MFA_SESSION_TIMEOUT).await;
         let resp = server
             .validate_mfa_token(ClientMfaTokenValidationRequest { token: active })
             .await
