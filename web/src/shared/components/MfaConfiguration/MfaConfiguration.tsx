@@ -1,7 +1,7 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Reorder } from 'motion/react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { m } from '../../../paraglide/messages';
 import {
   MfaFlowMethod,
@@ -9,14 +9,14 @@ import {
   MfaMethodAvailabilityReason,
   type MfaMethodAvailabilityReasonValue,
 } from '../../api/types';
-import { Button } from '../../defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../defguard-ui/components/Button/types';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
+import { InfoBanner } from '../../defguard-ui/components/InfoBanner/InfoBanner';
 import {
   getLicenseInfoQueryOptions,
   getMfaMethodAvailabilityQueryOptions,
 } from '../../query';
-import { canUseBusinessFeature, licenseActionCheck } from '../../utils/license';
+import { canUseBusinessFeature } from '../../utils/license';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
@@ -47,6 +47,7 @@ const methodLabels: Record<MfaFlowMethodValue, string> = {
 };
 
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
+  const stepsTrackRef = useRef<HTMLUListElement>(null);
   const { data: methodData } = useQuery(getMfaMethodAvailabilityQueryOptions);
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const methodAvailability = methodData?.methodAvailability;
@@ -59,11 +60,18 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
   const buildOption = useCallback(
     (method: MfaFlowMethodValue, onClick: () => void) => {
       const availability = methodAvailability?.find((item) => item.method === method);
+      const unavailableText = availability
+        ? getDisabledHelper(availability.reason)
+        : undefined;
       return {
         text: methodLabels[method],
         onClick,
         disabled: availability?.available !== true,
-        disabledHelper: availability ? getDisabledHelper(availability.reason) : undefined,
+        helper: unavailableText
+          ? { text: unavailableText, icon: 'lock-closed' as const }
+          : method === MfaFlowMethod.Biometric
+            ? { text: m.mfa_flow_method_mobile_only(), icon: 'mobile' as const }
+            : undefined,
       };
     },
     [methodAvailability],
@@ -134,14 +142,6 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
 
   const deleteMethod = useCallback(
     (stepId: MfaConfigurationStepData['id'], method: MfaFlowMethodValue) => {
-      const step = steps.find((item) => item.id === stepId);
-      if (!step) return;
-
-      if (step.methods.length === 1) {
-        deleteStep(stepId);
-        return;
-      }
-
       onChange(
         steps.map((item) =>
           item.id === stepId
@@ -153,17 +153,24 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         ),
       );
     },
-    [deleteStep, onChange, steps],
+    [onChange, steps],
   );
 
   return (
     <div className="mfa-configuration">
-      <Reorder.Group axis="y" values={steps} onReorder={onChange} className="steps-track">
+      <Reorder.Group
+        ref={stepsTrackRef}
+        axis="y"
+        values={steps}
+        onReorder={onChange}
+        className="steps-track"
+      >
         {steps.map((step, index) => (
           <MfaConfigurationStep
             key={step.id}
             step={step}
             stepNumber={index + 1}
+            dragConstraints={stepsTrackRef}
             methodGroups={buildMethodGroups(
               methods.filter((method) => !step.methods.includes(method)),
             )}
@@ -176,10 +183,11 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         ))}
       </Reorder.Group>
       <div className="actions">
-        {additionalStepRequiresBusiness && businessLicenseCheck ? (
-          <Button
-            {...addStepButtonProps}
-            onClick={() => licenseActionCheck(businessLicenseCheck, () => {})}
+        {additionalStepRequiresBusiness ? (
+          <InfoBanner
+            icon="check-circle"
+            variant="action"
+            text={m.mfa_flow_additional_steps_business_required()}
           />
         ) : (
           <MfaMethodsMenu
@@ -189,7 +197,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
           />
         )}
       </div>
-      <FieldError error={error} />
+      <FieldError error={steps.length === 0 ? error : undefined} />
     </div>
   );
 };

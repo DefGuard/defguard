@@ -1,6 +1,7 @@
 import {
   autoUpdate,
   FloatingPortal,
+  flip,
   offset,
   shift,
   size,
@@ -53,6 +54,7 @@ const PlainButton = ({
     open: isOpen,
     middleware: [
       offset(4),
+      flip(),
       shift(),
       size({
         apply({ rects, elements, availableHeight }) {

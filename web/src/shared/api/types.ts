@@ -1485,6 +1485,7 @@ export interface MfaFlowListItemResponse {
 export interface MfaFlowErrorField {
   field: string;
   code: string;
+  locations?: string[];
 }
 
 export interface MfaFlowErrorResponse {

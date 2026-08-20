@@ -1,6 +1,8 @@
 import { Reorder, useDragControls } from 'motion/react';
 import { m } from '../../../../paraglide/messages';
+import { MfaFlowMethod } from '../../../api/types';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
+import { FieldError } from '../../../defguard-ui/components/FieldError/FieldError';
 import { Helper } from '../../../defguard-ui/components/Helper/Helper';
 import { Icon } from '../../../defguard-ui/components/Icon';
 import { ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
@@ -10,6 +12,7 @@ import { MfaMethodsMenu } from './MfaMethodsMenu';
 export const MfaConfigurationStep = ({
   step,
   stepNumber,
+  dragConstraints,
   methodGroups,
   methodLabels,
   onDeleteStep,
@@ -30,6 +33,8 @@ export const MfaConfigurationStep = ({
       value={step}
       dragListener={false}
       dragControls={dragControls}
+      dragConstraints={dragConstraints}
+      dragElastic={false}
       layout="position"
       className="mfa-step-card"
       data-testid={`step-${step.id}`}
@@ -61,6 +66,11 @@ export const MfaConfigurationStep = ({
               <Icon icon="check-filled" size={16} staticColor={ThemeVariable.FgSuccess} />
               <p>{methodLabels[method]}</p>
               <div className="right">
+                {method === MfaFlowMethod.Biometric && (
+                  <span className="mobile-only-label">
+                    {m.mfa_flow_method_mobile_only()}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="dispose-button"
@@ -86,6 +96,9 @@ export const MfaConfigurationStep = ({
           </Helper>
         </div>
       )}
+      <FieldError
+        error={step.methods.length === 0 ? m.mfa_flow_method_required() : undefined}
+      />
     </Reorder.Item>
   );
 };

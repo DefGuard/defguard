@@ -7,10 +7,14 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { isAxiosError } from 'axios';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { MfaFlowListItemResponse } from '../../shared/api/types';
+import type {
+  MfaFlowErrorResponse,
+  MfaFlowListItemResponse,
+} from '../../shared/api/types';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -33,6 +37,23 @@ type Props = {
 };
 
 const columnHelper = createColumnHelper<MfaFlowListItemResponse>();
+
+const getMfaFlowDeleteErrorMessage = (error: unknown): string => {
+  if (!isAxiosError<MfaFlowErrorResponse>(error)) return m.mfa_flow_delete_failed();
+
+  const field = error.response?.data.fields?.[0];
+  const locations = field?.locations?.join(', ');
+  if (!field || !locations) return m.mfa_flow_delete_failed();
+
+  switch (field.code) {
+    case 'location_requires_flow':
+      return m.mfa_flow_delete_location_requires_flow({ locations });
+    case 'flow_is_default':
+      return m.mfa_flow_delete_flow_is_default({ locations });
+    default:
+      return m.mfa_flow_delete_failed();
+  }
+};
 
 /** Matches rows whose step count is one of the selected values. */
 const filterByStepCount: FilterFn<MfaFlowListItemResponse> = (
@@ -69,8 +90,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
     () => [
       columnHelper.accessor('title', {
         header: m.mfa_flows_table_title(),
-        minSize: 306,
-        meta: { flex: true },
+        minSize: 350,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -82,7 +102,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         size: 140,
         enableColumnFilter: true,
         filterFn: filterByStepCount,
-        meta: { filterOptions: stepCountOptions },
+        meta: { flex: true, filterOptions: stepCountOptions },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -125,7 +145,8 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
                       invalidateKeys: [['mfa-flow']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
                       onSuccess: () => Snackbar.default(m.mfa_flow_deleted()),
-                      onError: () => Snackbar.error(m.mfa_flow_delete_failed()),
+                      onError: (_message, _code, error) =>
+                        Snackbar.error(getMfaFlowDeleteErrorMessage(error)),
                     });
                   },
                 },

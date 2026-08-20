@@ -28,7 +28,7 @@ export interface OpenConfirmActionModal {
   submitProps?: ButtonProps;
   contentContainerProps?: HTMLProps<HTMLDivElement>;
   onSuccess?: (result: unknown) => void;
-  onError?: (message: string, code?: WebErrorCode) => void;
+  onError?: (message: string, code?: WebErrorCode, error?: unknown) => void;
 }
 
 export interface OpenEditDeviceModal {
