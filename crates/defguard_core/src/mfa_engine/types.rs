@@ -41,6 +41,7 @@ pub struct StepStarted {
 }
 
 /// Outcome of `finish`.
+#[derive(Debug, PartialEq)]
 pub enum FinishOutcome {
     /// The step just submitted advanced the flow to `next_step` (0-indexed).
     Advanced { next_step: u32 },

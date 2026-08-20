@@ -708,7 +708,10 @@ impl MfaEngine {
 
 #[cfg(test)]
 mod tests {
-    use std::net::{IpAddr, Ipv4Addr};
+    use std::{
+        net::{IpAddr, Ipv4Addr},
+        time::SystemTime,
+    };
 
     use chrono::{TimeDelta, Utc};
     use defguard_common::{
@@ -719,16 +722,19 @@ mod tests {
                 device::WireguardNetworkDevice,
                 mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
                 settings::initialize_current_settings,
+                user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
                 vpn_client_mfa_session::{
-                    VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, hash_token,
+                    MFA_FAILED_ATTEMPT_CAP, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
+                    hash_token,
                 },
-                vpn_client_session::VpnClientMfaMethod,
+                vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
                 wireguard::ServiceLocationMode,
             },
             setup_pool,
         },
         testing::smtp::configure_working_smtp,
     };
+    use defguard_proto::client_types::MfaMethod;
     use ipnetwork::IpNetwork;
     use sqlx::{
         PgPool,
@@ -736,6 +742,7 @@ mod tests {
     };
     use tokio::sync::{broadcast, mpsc};
     use tonic::Code;
+    use totp_lite::{Sha1, totp_custom};
 
     use super::MfaEngine;
     use crate::{
@@ -743,9 +750,9 @@ mod tests {
             license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{Counts, set_counts},
         },
-        events::BidiStreamEvent,
+        events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
         grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
-        mfa_engine::types::{StartRejectionReason, StartResult},
+        mfa_engine::types::{FinishOutcome, Proof, StartRejectionReason, StartResult},
     };
 
     fn set_test_license_business() {
@@ -1333,5 +1340,239 @@ mod tests {
             .expect_err("an unconfigured method must be rejected");
         assert_eq!(err.code(), Code::FailedPrecondition);
         assert_eq!(err.message(), "MFA method is not configured for this user");
+    }
+
+    async fn setup_user_totp_and_email(pool: &PgPool, user: &mut User<Id>) {
+        user.new_totp_secret(pool).await.expect("new_totp_secret");
+        user.enable_totp(pool).await.expect("enable_totp");
+        user.new_email_secret(pool).await.expect("new_email_secret");
+        user.enable_email_mfa(pool).await.expect("enable_email_mfa");
+    }
+
+    fn totp_code(user: &User<Id>) -> String {
+        let secret = user.totp_secret.as_ref().expect("totp_secret must be set");
+        let ts = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("system time before epoch")
+            .as_secs();
+        totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, secret, ts)
+    }
+
+    fn email_code(user: &User<Id>) -> String {
+        user.generate_email_mfa_code()
+            .expect("email_mfa_secret must be set")
+    }
+
+    fn test_ip() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 7))
+    }
+
+    #[sqlx::test]
+    async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnectOptions) {
+        set_test_license_business();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let _smtp = configure_working_smtp(&pool).await;
+
+        let location = create_mfa_location(&pool).await;
+        create_and_assign_flow(
+            &pool,
+            location.id,
+            vec![
+                vec![VpnClientMfaMethod::Totp],
+                vec![VpnClientMfaMethod::Email],
+            ],
+        )
+        .await;
+        let mut user = create_user(&pool).await;
+        setup_user_totp_and_email(&pool, &mut user).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (flow_id, step_methods) = resolve_flow(&pool, location.id, user.id).await;
+        let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
+
+        let result = engine
+            .start_multi_step(
+                &location,
+                &device,
+                &user,
+                flow_id,
+                step_methods,
+                vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email],
+            )
+            .await
+            .expect("start should succeed");
+        let StartResult::Accepted(outcome) = result else {
+            panic!("expected an accepted plan")
+        };
+        let token = outcome.token;
+
+        // Step 0 (TOTP) is not final: finish returns Advanced without authorizing.
+        let (outcome, _) = engine
+            .finish(
+                token.clone(),
+                Proof {
+                    code: Some(totp_code(&user)),
+                    auth_pub_key: None,
+                },
+                test_ip(),
+            )
+            .await
+            .expect("finish of step 0 should succeed");
+        assert_eq!(outcome, FinishOutcome::Advanced { next_step: 1 });
+        assert!(
+            VpnClientSession::get_all_active_device_sessions_in_location(
+                &pool,
+                location.id,
+                device.id
+            )
+            .await
+            .unwrap()
+            .is_empty(),
+            "no session may be authorized before the final step"
+        );
+        assert!(event_rx.try_recv().is_err());
+
+        // Arm and finish step 1 (Email): this completes the flow.
+        engine
+            .step_start(token.clone(), VpnClientMfaMethod::Email)
+            .await
+            .expect("step_start should succeed");
+        let (outcome, _) = engine
+            .finish(
+                token.clone(),
+                Proof {
+                    code: Some(email_code(&user)),
+                    auth_pub_key: None,
+                },
+                test_ip(),
+            )
+            .await
+            .expect("finish of step 1 should succeed");
+        let FinishOutcome::Completed { preshared_key } = outcome else {
+            panic!("expected a completed flow")
+        };
+        assert!(!preshared_key.is_empty());
+
+        let sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            location.id,
+            device.id,
+        )
+        .await
+        .unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert!(sessions[0].is_mfa_session);
+        assert!(
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+                .await
+                .unwrap()
+                .is_none(),
+            "the in-progress session must be deleted on completion"
+        );
+
+        // A single Success event with the ordered satisfied methods.
+        let event = event_rx.try_recv().expect("expected a success event");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::Success { attribution, .. } => {
+                    assert_eq!(attribution.snapshot.steps.len(), 2);
+                    assert_eq!(
+                        attribution.snapshot.steps[0].satisfied,
+                        Some(VpnClientMfaMethod::Totp)
+                    );
+                    assert_eq!(
+                        attribution.snapshot.steps[1].satisfied,
+                        Some(VpnClientMfaMethod::Email)
+                    );
+                }
+                other => panic!("unexpected event: {other:?}"),
+            },
+            other => panic!("unexpected stream event: {other:?}"),
+        }
+    }
+
+    #[sqlx::test]
+    async fn test_finish_cap_deletes_session_and_emits_failed(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+
+        let user = create_user(&pool).await;
+        let (_session, token) = start_two_step_session(&pool, user.id).await;
+
+        let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
+        for _ in 0..MFA_FAILED_ATTEMPT_CAP {
+            let err = engine
+                .finish(
+                    token.clone(),
+                    Proof {
+                        code: Some("000000".to_owned()),
+                        auth_pub_key: None,
+                    },
+                    test_ip(),
+                )
+                .await
+                .expect_err("a wrong code must be rejected");
+            assert_eq!(err.code(), Code::Unauthenticated);
+        }
+
+        assert!(
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+                .await
+                .unwrap()
+                .is_none(),
+            "the session must be deleted at the attempt cap"
+        );
+
+        for _ in 0..MFA_FAILED_ATTEMPT_CAP {
+            let event = event_rx.try_recv().expect("expected a failed event");
+            match event.event {
+                BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                    DesktopClientMfaEvent::Failed {
+                        method, message, ..
+                    } => {
+                        assert_eq!(method, MfaMethod::Totp);
+                        assert_eq!(message, "invalid TOTP code");
+                    }
+                    other => panic!("unexpected event: {other:?}"),
+                },
+                other => panic!("unexpected stream event: {other:?}"),
+            }
+        }
+    }
+
+    #[sqlx::test]
+    async fn test_finish_on_unarmed_step(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+
+        let user = create_user(&pool).await;
+        let (session, token) = start_two_step_session(&pool, user.id).await;
+        advance_session(&pool, &session).await;
+
+        let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+        let err = engine
+            .finish(
+                token,
+                Proof {
+                    code: Some("000000".to_owned()),
+                    auth_pub_key: None,
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("finish on an unarmed step must be rejected");
+        assert_eq!(err.code(), Code::InvalidArgument);
+        assert_eq!(err.message(), "no MFA attempt in progress");
     }
 }
