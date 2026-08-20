@@ -221,6 +221,14 @@ impl ClientMfaServer {
         // validate user is allowed to connect to a given location
         Self::validate_location_access(&self.pool, &location, &device, &user_info).await?;
 
+        // Parse the caller's device info before anything is written. This is pure request
+        // validation with no database dependency, and rejecting it later would return an error
+        // to the client while leaving a live session row behind (and, on the supersede path,
+        // having already torn down the caller's previous session). It sits after the entity
+        // lookups so their more specific `not found` errors keep precedence, and before the
+        // posture block, which is the first thing here that can write.
+        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+
         // Evaluate postures if necessary.
         let has_postures = location.has_postures(&self.pool).await.map_err(|err| {
             error!(
@@ -249,7 +257,6 @@ impl ClientMfaServer {
                 }
             };
 
-            let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
             let context =
                 BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
 
@@ -513,7 +520,6 @@ impl ClientMfaServer {
                 .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
                 .remove(&superseded_token_hash);
 
-            let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
             let context =
                 BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
             self.emit_event(BidiStreamEvent {
@@ -3193,6 +3199,75 @@ mod tests {
                 .unwrap()
                 .is_some()
         );
+    }
+
+    /// Malformed device info is rejected before anything is written. Were it parsed after the
+    /// session was persisted, the failing request would leave a live orphan row behind and,
+    /// worse, would already have superseded the caller's previous session.
+    #[sqlx::test]
+    async fn test_start_client_mfa_login_rejects_bad_device_info_without_persisting(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        create_and_assign_mfa_flow(&pool, location.id).await;
+        let mut user = create_user(&pool).await;
+        user.enable_totp(&pool)
+            .await
+            .expect("failed to enable TOTP");
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+
+        let request = || ClientMfaStartRequest {
+            location_id: location.id,
+            pubkey: device.wireguard_pubkey.clone(),
+            #[allow(deprecated)]
+            method: MfaMethod::Totp as i32,
+            posture_data: None,
+            selected_methods: Vec::new(),
+        };
+
+        let established = server
+            .start_client_mfa_login(request(), device_info())
+            .await
+            .expect("first start should succeed");
+        let established_token = match established {
+            ClientMfaStartOutcome::Approved(response) => response.token,
+            ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
+        };
+
+        // A start carrying no device info must fail.
+        assert!(
+            server
+                .start_client_mfa_login(request(), None)
+                .await
+                .is_err(),
+            "start without device info should be rejected"
+        );
+
+        // The established session is untouched, and no orphan row was left behind.
+        assert!(
+            VpnClientMfaSession::<Id>::find_active_by_token(&pool, &established_token)
+                .await
+                .unwrap()
+                .is_some()
+        );
+        let rows = sqlx::query_scalar!(
+            "SELECT count(*) FROM vpn_client_mfa_session WHERE location_id = $1 AND device_id = $2",
+            location.id,
+            device.id,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(rows, Some(1));
     }
 
     #[sqlx::test]

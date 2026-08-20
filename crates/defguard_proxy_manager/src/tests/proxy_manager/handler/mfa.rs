@@ -31,7 +31,7 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -65,7 +65,7 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: nonexistent_location_id,
@@ -320,7 +320,7 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -355,7 +355,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
@@ -533,7 +533,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,

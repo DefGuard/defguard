@@ -662,6 +662,9 @@ pub(crate) async fn send_mfa_start(
 ///
 /// The challenge is `None` for methods that do not issue one (TOTP, email, OIDC); the biometric
 /// and mobile-approve flows return the string the client must sign.
+///
+/// Requires `device_info` because the handler calls `parse_client_ip_agent`, same as
+/// [`send_mfa_finish`].
 pub(crate) async fn send_mfa_start_with_challenge(
     context: &mut HandlerTestContext,
     location_id: Id,
@@ -672,7 +675,7 @@ pub(crate) async fn send_mfa_start_with_challenge(
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
-        device_info: None,
+        device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id,
