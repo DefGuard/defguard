@@ -49,7 +49,7 @@ use crate::{
     mfa_engine::{
         MfaEngine,
         authorize::{build_authorized_gateway_network_info, create_new_session, emit_event},
-        types::{FinishOutcome, Proof},
+        types::{FinishOutcome, Proof, StartOutcome, StartResult},
     },
 };
 
@@ -258,88 +258,167 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // extract user selected method from request
-        #[allow(deprecated)]
-        let selected_method = MfaMethod::try_from(request.method).map_err(|err| {
-            error!("Invalid MFA method selected ({}): {err}", request.method);
-            Status::invalid_argument("invalid MFA method selected")
-        })?;
+        // A non-empty `selected_methods` is the capability proof that the client speaks the
+        // multi-step protocol; an empty list falls back to the deprecated single-method field.
+        if request.selected_methods.is_empty() {
+            // Legacy single-step path.
+            #[allow(deprecated)]
+            let selected_method = MfaMethod::try_from(request.method).map_err(|err| {
+                error!("Invalid MFA method selected ({}): {err}", request.method);
+                Status::invalid_argument("invalid MFA method selected")
+            })?;
 
-        // Reject locations whose flow configuration cannot be expressed as a legacy
-        // single-factor mode (multi-flow, multi-step, or a subset of the internal method set).
-        // Fail closed rather than silently driving only the first step.
-        if MfaFlow::derive_legacy_mode(&self.pool, location.id)
-            .await
-            .map_err(|err| {
-                error!("Failed to derive legacy MFA mode: {err}");
-                Status::internal("unexpected error")
-            })?
-            .is_none()
-        {
-            error!(
-                "Location {location} has an MFA flow configuration that cannot be enforced by \
-                this client"
-            );
-            return Err(Status::failed_precondition(
-                "Defguard client version is too old to connect to this location. Please update your client.",
-            ));
+            // Reject locations whose flow configuration cannot be expressed as a legacy
+            // single-factor mode (multi-flow, multi-step, or a subset of the internal method set).
+            // Fail closed rather than silently driving only the first step.
+            if MfaFlow::derive_legacy_mode(&self.pool, location.id)
+                .await
+                .map_err(|err| {
+                    error!("Failed to derive legacy MFA mode: {err}");
+                    Status::internal("unexpected error")
+                })?
+                .is_none()
+            {
+                error!(
+                    "Location {location} has an MFA flow configuration that cannot be enforced by \
+                    this client"
+                );
+                return Err(Status::failed_precondition(
+                    "Defguard client version is too old to connect to this location. Please update your client.",
+                ));
+            }
+
+            // Resolve the MFA flow that applies to this user at this location. The legacy adapter
+            // drives only the first step, so license-filter its methods and validate the client's
+            // selected method against them.
+            let mut conn = self.acquire_conn().await?;
+            let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
+                .await
+                .map_err(|err| {
+                    error!("Failed to resolve MFA flow: {err}");
+                    Status::internal("unexpected error")
+                })?
+            else {
+                error!(
+                    "Location {location} has no MFA flow that applies to user {}",
+                    user.username
+                );
+                return Err(Status::failed_precondition(
+                    "location MFA configuration is not supported by this client",
+                ));
+            };
+
+            let Some(first_step) = steps.first() else {
+                error!("Resolved MFA flow has no steps");
+                return Err(Status::internal("unexpected error"));
+            };
+            let first_step_methods: Vec<VpnClientMfaMethod> = first_step
+                .methods
+                .iter()
+                .copied()
+                // OIDC MFA is a business feature, so an unlicensed deployment must not offer it.
+                .filter(|method| {
+                    *method != VpnClientMfaMethod::Oidc || is_business_license_active()
+                })
+                .collect();
+
+            let selected_client_method: VpnClientMfaMethod = selected_method.into();
+            if !first_step_methods.contains(&selected_client_method) {
+                error!(
+                    "Selected MFA method ({selected_method}) is not supported by location \
+                    {location}"
+                );
+                return Err(Status::invalid_argument(
+                    "selected MFA method is not supported by location",
+                ));
+            }
+
+            let start_outcome = self
+                .engine
+                .start(
+                    &location,
+                    &device,
+                    &user,
+                    flow.id,
+                    vec![first_step_methods],
+                    selected_client_method,
+                )
+                .await?;
+
+            self.finish_start(start_outcome, &user, ip, &device, &location)
+                .await
+        } else {
+            // Multi-step path.
+            let selected_methods: Vec<VpnClientMfaMethod> = request
+                .selected_methods
+                .iter()
+                .map(|&method| {
+                    MfaMethod::try_from(method)
+                        .map(VpnClientMfaMethod::from)
+                        .map_err(|err| {
+                            error!("Invalid MFA method selected ({method}): {err}");
+                            Status::invalid_argument("invalid MFA method selected")
+                        })
+                })
+                .collect::<Result<_, _>>()?;
+
+            let mut conn = self.acquire_conn().await?;
+            let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
+                .await
+                .map_err(|err| {
+                    error!("Failed to resolve MFA flow: {err}");
+                    Status::internal("unexpected error")
+                })?
+            else {
+                error!(
+                    "Location {location} has no MFA flow that applies to user {}",
+                    user.username
+                );
+                return Err(Status::failed_precondition(
+                    "no MFA flow applies to this user and location",
+                ));
+            };
+
+            let step_methods: Vec<Vec<VpnClientMfaMethod>> =
+                steps.into_iter().map(|step| step.methods).collect();
+
+            match self
+                .engine
+                .start_multi_step(
+                    &location,
+                    &device,
+                    &user,
+                    flow.id,
+                    step_methods,
+                    selected_methods,
+                )
+                .await?
+            {
+                StartResult::Accepted(start_outcome) => {
+                    self.finish_start(start_outcome, &user, ip, &device, &location)
+                        .await
+                }
+                StartResult::Rejected(rejections) => {
+                    Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
+                        token: String::new(),
+                        challenge: None,
+                        rejections: rejections.into_iter().map(Into::into).collect(),
+                    }))
+                }
+            }
         }
+    }
 
-        // Resolve the MFA flow that applies to this user at this location. The legacy adapter
-        // drives only the first step, so license-filter its methods and validate the client's
-        // selected method against them.
-        let mut conn = self.acquire_conn().await?;
-        let Some((flow, steps)) = MfaFlow::resolve_for_user(&mut conn, location.id, user.id)
-            .await
-            .map_err(|err| {
-                error!("Failed to resolve MFA flow: {err}");
-                Status::internal("unexpected error")
-            })?
-        else {
-            error!(
-                "Location {location} has no MFA flow that applies to user {}",
-                user.username
-            );
-            return Err(Status::failed_precondition(
-                "location MFA configuration is not supported by this client",
-            ));
-        };
-
-        let Some(first_step) = steps.first() else {
-            error!("Resolved MFA flow has no steps");
-            return Err(Status::internal("unexpected error"));
-        };
-        let first_step_methods: Vec<VpnClientMfaMethod> = first_step
-            .methods
-            .iter()
-            .copied()
-            // OIDC MFA is a business feature, so an unlicensed deployment must not offer it.
-            .filter(|method| *method != VpnClientMfaMethod::Oidc || is_business_license_active())
-            .collect();
-
-        let selected_client_method: VpnClientMfaMethod = selected_method.into();
-        if !first_step_methods.contains(&selected_client_method) {
-            error!(
-                "Selected MFA method ({selected_method}) is not supported by location \
-                {location}"
-            );
-            return Err(Status::invalid_argument(
-                "selected MFA method is not supported by location",
-            ));
-        }
-
-        let start_outcome = self
-            .engine
-            .start(
-                &location,
-                &device,
-                &user,
-                flow.id,
-                vec![first_step_methods],
-                selected_client_method,
-            )
-            .await?;
-
+    /// Handle an accepted start: cancel the superseded waiter, emit the supersede event, and
+    /// build the response.
+    async fn finish_start(
+        &self,
+        start_outcome: StartOutcome,
+        user: &User<Id>,
+        ip: IpAddr,
+        device: &Device<Id>,
+        location: &WireguardNetwork<Id>,
+    ) -> Result<ClientMfaStartOutcome, Status> {
         // Cancel the superseded session's waiter (best-effort hygiene) and emit the supersede
         // event.
         if let Some(superseded_token_hash) = start_outcome.superseded_token_hash {
