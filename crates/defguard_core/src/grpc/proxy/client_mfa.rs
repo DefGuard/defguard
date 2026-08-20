@@ -10,14 +10,11 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
+            Device, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             mfa_flow::MfaFlow,
             polling_token::PollingToken,
-            vpn_client_mfa_session::{
-                MfaAttribution, MfaSessionContext, StepOutcome, VPN_MFA_SESSION_TIMEOUT,
-                VpnClientMfaSession, hash_token,
-            },
+            vpn_client_mfa_session::{VpnClientMfaSession, hash_token},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
         },
     },
@@ -44,17 +41,15 @@ use tonic::Status;
 
 use crate::{
     enterprise::{
-        db::models::openid_provider::OpenIdProvider,
         is_business_license_active,
         posture::{PostureCheckError, PostureResult, validate_posture},
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
-    mail::templates::mfa_code_mail,
     mfa_engine::{
+        MfaEngine,
         authorize::{build_authorized_gateway_network_info, create_new_session, emit_event},
-        method::{Verdict, VerifyError, verify},
-        types::Proof,
+        types::{FinishOutcome, Proof},
     },
 };
 
@@ -66,6 +61,7 @@ pub struct ClientMfaServer {
     gateway_tx: Sender<GatewayCommand>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     pub(crate) bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    engine: MfaEngine,
 }
 
 /// Acquire a pooled connection, mapping a pool error to an internal status.
@@ -96,11 +92,13 @@ impl ClientMfaServer {
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     ) -> Self {
+        let engine = MfaEngine::new(pool.clone(), gateway_tx.clone(), bidi_event_tx.clone());
         Self {
             pool,
             gateway_tx,
             remote_mfa_responses,
             bidi_event_tx,
+            engine,
         }
     }
 
@@ -330,142 +328,21 @@ impl ClientMfaServer {
             ));
         }
 
-        let mut selected_mobile_auth: Option<BiometricAuth<Id>> = None;
-
-        // check if selected method is configured
-        match selected_method {
-            MfaMethod::Biometric => {
-                if let Some(found) = BiometricAuth::find_by_device_id(&self.pool, device.id)
-                    .await
-                    .map_err(|_| Status::internal("unexpected_error"))?
-                {
-                    selected_mobile_auth = Some(found);
-                } else {
-                    return Err(Status::invalid_argument(
-                        "Select MFA method is not available for the device.",
-                    ));
-                }
-            }
-            // just check if the account has any devices with biometric auth present
-            MfaMethod::MobileApprove => {
-                let result = BiometricAuth::find_by_user_id(&self.pool, user.id)
-                    .await
-                    .map_err(|_| Status::internal("unexpected error"))?;
-                if result.is_empty() {
-                    return Err(Status::invalid_argument(
-                        "selected MFA method is not available",
-                    ));
-                }
-            }
-            MfaMethod::Totp => {
-                if !user.totp_enabled {
-                    error!("TOTP not enabled for user {}", user.username);
-                    return Err(Status::invalid_argument(
-                        "selected MFA method is not available",
-                    ));
-                }
-            }
-            MfaMethod::Email => {
-                if !user.email_mfa_enabled {
-                    error!("Email MFA not enabled for user {}", user.username);
-                    return Err(Status::invalid_argument(
-                        "selected MFA method is not available",
-                    ));
-                }
-                // Generate the code and send it via email.
-                let code = user.generate_email_mfa_code().map_err(|err| {
-                    error!("Failed to generate email MFA code: {err}");
-                    Status::internal("MFA code")
-                })?;
-                let mut transaction = self.pool.begin().await.map_err(|err| {
-                    error!("Database error: {err}");
-                    Status::internal("database error")
-                })?;
-                mfa_code_mail(
-                    &user.email,
-                    &mut transaction,
-                    &user.first_name,
-                    &code,
-                    None,
-                    true,
-                )
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to send email MFA code for user {}: {err}",
-                        user.username
-                    );
-                    Status::internal("unexpected error")
-                })?;
-            }
-            MfaMethod::Oidc => {
-                // No license check here: `first_step_methods` above drops OIDC unless
-                // `oidc_mfa_enabled()`, and a method absent from it is already rejected, so
-                // reaching this arm means the gate passed.
-                if OpenIdProvider::get_current(&self.pool)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to get current OpenID provider: {err}",);
-                        Status::internal("unexpected error")
-                    })?
-                    .is_none()
-                {
-                    error!("OIDC provider is not configured");
-                    return Err(Status::invalid_argument(
-                        "selected MFA method is not available",
-                    ));
-                }
-            }
-        }
-
-        let biometric_challenge: Option<BiometricChallenge> = match selected_method {
-            MfaMethod::Biometric => match selected_mobile_auth {
-                Some(mobile_auth) => {
-                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key)
-                        .map_err(|e| {
-                            error!(
-                                "Start biometric MFA failed. Challenge creation failed. Reason: {e}"
-                            );
-                            Status::invalid_argument("Invalid public key")
-                        })?;
-                    Some(challenge)
-                }
-                None => {
-                    return Err(Status::internal("unexpected error"));
-                }
-            },
-            MfaMethod::MobileApprove => Some(BiometricChallenge::new()),
-            _ => None,
-        };
-
-        let response_challenge = biometric_challenge
-            .as_ref()
-            .map(|challenge| challenge.challenge.clone());
-
-        // Start the durable in-progress session, freezing the license-filtered first step. The
-        // first attempt (selected method and challenge) is written by the same statement that
-        // mints the row, so a concurrent start cannot leave this client's token pointing at an
-        // attempt another caller selected.
-        let (_session, outcome) = VpnClientMfaSession::<Id>::start(
-            &mut conn,
-            location.id,
-            device.id,
-            user.id,
-            flow.id,
-            vec![first_step_methods],
-            selected_method.into(),
-            biometric_challenge,
-            VPN_MFA_SESSION_TIMEOUT,
-        )
-        .await
-        .map_err(|err| {
-            error!("Failed to start MFA session: {err}");
-            Status::internal("unexpected error")
-        })?;
+        let start_outcome = self
+            .engine
+            .start(
+                &location,
+                &device,
+                &user,
+                flow.id,
+                vec![first_step_methods],
+                selected_client_method,
+            )
+            .await?;
 
         // Cancel the superseded session's waiter (best-effort hygiene) and emit the supersede
         // event.
-        if let Some(superseded_token_hash) = outcome.superseded_token_hash {
+        if let Some(superseded_token_hash) = start_outcome.superseded_token_hash {
             self.remote_mfa_responses
                 .write()
                 .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
@@ -493,8 +370,8 @@ impl ClientMfaServer {
         );
 
         Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
-            token: outcome.token,
-            challenge: response_challenge,
+            token: start_outcome.token,
+            challenge: start_outcome.challenge,
             rejections: Vec::new(),
         }))
     }
@@ -615,26 +492,6 @@ impl ClientMfaServer {
         Ok(())
     }
 
-    /// Record a proof-verification failure, deleting the session once the per-step cap is
-    /// reached so a subsequent finish fails closed.
-    async fn record_mfa_failure(&self, session: VpnClientMfaSession<Id>) -> Result<(), Status> {
-        let mut conn = self.acquire_conn().await?;
-        let at_cap = session
-            .increment_failed_attempts(&mut conn)
-            .await
-            .map_err(|err| {
-                error!("Failed to record MFA failure: {err}");
-                Status::internal("unexpected error")
-            })?;
-        if at_cap {
-            session.delete(&mut *conn).await.map_err(|err| {
-                error!("Failed to delete MFA session: {err}");
-                Status::internal("unexpected error")
-            })?;
-        }
-        Ok(())
-    }
-
     #[instrument(skip_all)]
     pub async fn finish_client_mfa_login(
         &mut self,
@@ -643,272 +500,26 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login");
 
-        // Fetch the durable in-progress session by the opaque token.
-        let Some(session) =
-            VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
-                .await
-                .map_err(|err| {
-                    error!("Failed to find MFA session: {err}");
-                    Status::internal("unexpected error")
-                })?
-        else {
-            error!("Client login session not found");
-            return Err(Status::invalid_argument("login session not found"));
-        };
-
-        // Fetch the related objects for event context and authorization.
-        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
-            error!("Failed to load MFA session context: {err}");
-            Status::internal("unexpected error")
-        })?
-        else {
-            error!("MFA session references a missing location, device, or user");
-            return Err(Status::internal("unexpected error"));
-        };
-
-        // The attempt recorded at start holds the selected method and challenge.
-        let Some(ephemeral_state) = session.ephemeral_state.as_ref() else {
-            error!("No MFA attempt in progress");
-            return Err(Status::invalid_argument("no MFA attempt in progress"));
-        };
-        let ephemeral = ephemeral_state.0.clone();
-
         let proof = Proof {
             code: request.code.clone(),
             auth_pub_key: request.auth_pub_key.clone(),
         };
-
-        // Prepare event context.
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
-        let context = BidiRequestContext::new(
-            ctx.user.id,
-            ctx.user.username.clone(),
-            ip,
-            format!("{}", ctx.device),
-        );
 
-        // Verify the proof against the armed method. The seam is read-only; every mutation below
-        // (failure accounting, advance, delete) is owned by this handler.
-        let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
-
-        let MfaSessionContext {
-            location,
-            device,
-            user,
-        } = ctx;
-        let method: VpnClientMfaMethod = ephemeral.selected_method;
-
-        // name of the device used to approve a mobile approve login; populated below
-        let mut mobile_auth_device_name: Option<String> = None;
-
-        match verdict {
-            Ok(Verdict::Proved) => {
-                if method == VpnClientMfaMethod::MobileApprove {
-                    let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
-                        error!("Mobile approve auth pub key missing after successful verification");
-                        Status::internal("unexpected error")
-                    })?;
-                    mobile_auth_device_name =
-                        BiometricAuth::find_device(&self.pool, user.id, auth_pub_key)
-                            .await
-                            .map_err(|err| {
-                                error!(
-                                    "Failed to find mobile approve device for user {}: {err}",
-                                    user.id
-                                );
-                                Status::internal("unexpected error")
-                            })?
-                            .map(|auth_device| auth_device.name);
-                }
-            }
-            Ok(Verdict::NotYet) => {
-                emit_event(
-                    &self.bidi_event_tx,
-                    BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location,
-                                device,
-                                method: method.into(),
-                                message:
-                                    "tried to finish OIDC MFA login but they haven't completed \
-                                OIDC authentication yet"
-                                        .to_owned(),
-                            },
-                        )),
-                    },
-                )?;
-                return Err(Status::failed_precondition(
-                    "OIDC authentication not completed yet",
-                ));
-            }
-            Ok(Verdict::Failed { message }) => {
-                emit_event(
-                    &self.bidi_event_tx,
-                    BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location,
-                                device,
-                                method: method.into(),
-                                message: message.to_owned(),
-                            },
-                        )),
-                    },
-                )?;
-                self.record_mfa_failure(session).await?;
-                return Err(Status::unauthenticated("unauthorized"));
-            }
-            Err(VerifyError::MalformedProof { status, event }) => {
-                if let Some(event_message) = event {
-                    emit_event(
-                        &self.bidi_event_tx,
-                        BidiStreamEvent {
-                            context,
-                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                                DesktopClientMfaEvent::Failed {
-                                    location,
-                                    device,
-                                    method: method.into(),
-                                    message: event_message.to_owned(),
-                                },
-                            )),
-                        },
-                    )?;
-                }
-                return Err(Status::invalid_argument(status));
-            }
-            Err(VerifyError::DeviceNotOwned) => {
-                return Err(Status::invalid_argument("Arguments invalid"));
-            }
-            Err(VerifyError::MissingChallenge) => {
-                if method == VpnClientMfaMethod::Biometric {
-                    return Err(Status::internal("Challenge not found in MFA session"));
-                }
-                return Err(Status::invalid_argument("Challenge not found in session"));
-            }
-            Err(VerifyError::Db(err)) => {
-                error!("Failed to verify MFA proof: {err}");
-                return Err(Status::internal("unexpected error"));
-            }
-        }
-
-        // begin transaction
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction");
-            Status::internal("unexpected error")
-        })?;
-
-        // fetch device config for the location
-        let Ok(Some(network_device)) =
-            WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
-        else {
-            error!("Failed to fetch network config for device {device} and location {location}");
+        let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
+        let FinishOutcome::Completed { preshared_key } = outcome else {
             return Err(Status::internal("unexpected error"));
         };
 
-        // Advance the single step BEFORE authorizing, so the satisfied method is recorded into
-        // the snapshot and the step outcome is verified (code-review finding: `Complete` must be
-        // confirmed before minting a session).
-        let (advance, snapshot) = session.advance(&mut transaction).await.map_err(|err| {
-            error!("Failed to advance MFA session: {err}");
-            Status::internal("unexpected error")
-        })?;
-        if advance != StepOutcome::Complete {
-            error!("MFA session did not complete after its single step: {advance:?}");
-            return Err(Status::internal("unexpected error"));
-        }
-
-        // Resolve the flow name for attribution. A flow deleted mid-session simply leaves the
-        // name unresolved; that is a display concern, not an error.
-        let flow_name = MfaFlow::find_by_id(&mut *transaction, snapshot.flow_id)
-            .await
-            .map_err(|err| {
-                error!("Failed to resolve MFA flow for attribution: {err}");
-                Status::internal("unexpected error")
-            })?
-            .map(|flow| flow.title);
-
-        // generate PSK
-        let key = WireguardNetwork::genkey();
-
-        // create new VPN client session
-        let vpn_client_session = create_new_session(
-            &self.gateway_tx,
-            &self.bidi_event_tx,
-            &mut transaction,
-            &location,
-            &user,
-            &device,
-            true,
-            key.public.clone(),
-        )
-            .await
-            .map_err(|err| {
-                error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
-                Status::internal("unexpected error")
-            })?;
-        debug!("Created new VPN client session: {vpn_client_session:?}");
-
-        let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public.clone());
-
-        // send gateway event
-        debug!("Sending `peer_create` message to gateway");
-        let event =
-            GatewayCommand::VpnSessionAuthorized(location.id, device.clone(), gateway_network_info);
-        self.gateway_tx.send(event).map_err(|err| {
-            error!("Error sending WireGuard event: {err}");
-            Status::internal("unexpected error")
-        })?;
-
-        info!(
-            "Desktop client login finished for {} at location {} with method {}",
-            user.username,
-            location.name,
-            MfaMethod::from(method).as_str_name()
-        );
-        emit_event(
-            &self.bidi_event_tx,
-            BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                    DesktopClientMfaEvent::Success {
-                        location,
-                        device,
-                        attribution: MfaAttribution {
-                            snapshot,
-                            flow_name,
-                        },
-                        mobile_auth_device_name,
-                    },
-                )),
-            },
-        )?;
-
         let response = ClientMfaFinishResponse {
             #[allow(deprecated)]
-            preshared_key: key.public.clone(),
+            preshared_key: preshared_key.clone(),
             token: match method {
                 VpnClientMfaMethod::MobileApprove => Some(request.token.clone()),
                 _ => None,
             },
             result: None,
         };
-
-        // Delete the in-progress session atomically with the authorization.
-        session.delete(&mut *transaction).await.map_err(|err| {
-            error!("Failed to delete MFA session: {err}");
-            Status::internal("unexpected error")
-        })?;
-
-        // commit transaction
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction while finishing desktop client login.");
-            Status::internal("unexpected error")
-        })?;
 
         // If there is a desktop client websocket waiting for the preshared key, send it.
         // The waiter is keyed by the token hash, matching the durable session's lookup key.
@@ -918,7 +529,7 @@ impl ClientMfaServer {
             .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
             .remove(&hash_token(&request.token))
         {
-            let _ = tx.send(key.public.clone());
+            let _ = tx.send(preshared_key);
         }
 
         Ok(response)
