@@ -322,6 +322,16 @@ pub async fn user_from_claims(
             user
         }
         None => {
+            if token_claims.email_verified() == Some(false) {
+                warn!(
+                    "OpenID login: provider reported the email address {} as unverified; refusing \
+                    to merge the identity into an existing account",
+                    email.as_str()
+                );
+                return Err(WebError::Authorization(
+                    "Provider did not verify the email address".into(),
+                ));
+            }
             if let Some(mut user) = User::find_by_email(pool, email).await? {
                 if !user.is_active {
                     debug!("User {} tried to log in, but is disabled", user.username);
