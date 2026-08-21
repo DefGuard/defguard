@@ -86,7 +86,7 @@ pub struct WireguardNetworkData {
     pub allowed_ips_from_acl: bool,
     pub mfa_enabled: bool,
     pub service_location_mode: ServiceLocationMode,
-    pub posture_checks: Option<Vec<i64>>,
+    pub posture_checks: Vec<Id>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -337,23 +337,27 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    // assign posture checks
-    if let Some(ref posture_checks) = data.posture_checks {
-        debug!("Assigning posture checks {posture_checks:?} to {network}");
-        if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) && !posture_checks.is_empty()
-        {
-            error!(
-                "Cannot assign posture checks to new location {network}: Enterprise license required."
-            );
-            return Ok(WebError::Forbidden(
-                "Cannot assign posture checks to new location: Enterprise license required.",
-            )
-            .into());
-        }
-        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
-            .await?;
-        info!("Assigned posture checks {posture_checks:?} to new location {network}");
+    debug!(
+        "Assigning posture checks {:?} to {network}",
+        data.posture_checks
+    );
+    if !has_enterprise_access(Some(LicenseFeature::DevicePosture))
+        && !data.posture_checks.is_empty()
+    {
+        error!(
+            "Cannot assign posture checks to new location {network}: Enterprise license required."
+        );
+        return Ok(WebError::Forbidden(
+            "Cannot assign posture checks to new location: Enterprise license required.",
+        )
+        .into());
     }
+    DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
+        .await?;
+    info!(
+        "Assigned posture checks {:?} to new location {network}",
+        data.posture_checks
+    );
 
     transaction.commit().await?;
 
@@ -470,17 +474,16 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
-    if let Some(posture_checks) = &data.posture_checks {
-        if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) && !posture_checks.is_empty()
-        {
-            return Ok(WebError::Forbidden(
-                "Cannot assign posture checks to location: Enterprise license required.",
-            )
-            .into());
-        }
-        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
-            .await?;
+    if !has_enterprise_access(Some(LicenseFeature::DevicePosture))
+        && !data.posture_checks.is_empty()
+    {
+        return Ok(WebError::Forbidden(
+            "Cannot assign posture checks to location: Enterprise license required.",
+        )
+        .into());
     }
+    DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
+        .await?;
 
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 

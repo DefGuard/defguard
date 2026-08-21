@@ -84,7 +84,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         allowed_ips_from_acl: false,
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -344,7 +344,6 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
 }
 
 /// Build a location payload with overridable name, address and mode fields.
-/// `posture_checks` is intentionally absent — add it explicitly where it matters.
 fn location_payload(
     name: &str,
     address: &str,
@@ -368,7 +367,8 @@ fn location_payload(
         "acl_default_allow": false,
         "allowed_ips_from_acl": false,
         "mfa_enabled": mfa_enabled,
-        "service_location_mode": service_location_mode
+        "service_location_mode": service_location_mode,
+        "posture_checks": []
     })
 }
 
@@ -854,10 +854,7 @@ async fn test_modify_network_rejects_service_location_with_mfa(
 }
 
 #[sqlx::test]
-async fn test_modify_network_updates_posture_checks_only_when_supplied(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_modify_network_replaces_posture_checks(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, _client_state) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
@@ -892,7 +889,7 @@ async fn test_modify_network_updates_posture_checks_only_when_supplied(
         vec![replacement_posture]
     );
 
-    // a payload with the field omitted or explicitly null keeps assignments for compatibility
+    // an empty list clears assignments
     let response = client
         .put(format!("/api/v1/network/{}", location.id))
         .json(&location_payload(
@@ -901,33 +898,6 @@ async fn test_modify_network_updates_posture_checks_only_when_supplied(
             false,
             "disabled",
         ))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(
-        fetch_location_postures(&client, location.id).await,
-        vec![replacement_posture]
-    );
-
-    let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
-    payload["posture_checks"] = json!(null);
-    let response = client
-        .put(format!("/api/v1/network/{}", location.id))
-        .json(&payload)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(
-        fetch_location_postures(&client, location.id).await,
-        vec![replacement_posture]
-    );
-
-    // an explicit empty list clears assignments
-    let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
-    payload["posture_checks"] = json!([]);
-    let response = client
-        .put(format!("/api/v1/network/{}", location.id))
-        .json(&payload)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1057,7 +1027,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         allowed_ips_from_acl: false,
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
     };
 
     let response = client
@@ -1119,7 +1089,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         allowed_ips_from_acl: false,
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
     };
 
     let response = client

@@ -1115,7 +1115,7 @@ async fn test_create_network_without_groups_rejected(_: PgPoolOptions, options: 
         allowed_ips_from_acl: false,
         mfa_enabled: false, // mfa_enabled
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
     };
 
     // allow_all_groups=false with no groups should be rejected
@@ -1170,7 +1170,7 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
         allowed_ips_from_acl: false,
         mfa_enabled: false, // mfa_enabled
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
     };
     let response = client
         .post("/api/v1/network")

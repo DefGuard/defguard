@@ -839,7 +839,7 @@ export interface EditNetworkLocation
   > {
   allowed_ips: string;
   address: string;
-  posture_checks?: number[];
+  posture_checks: number[];
 }
 
 export interface EditNetworkLocationRequest {

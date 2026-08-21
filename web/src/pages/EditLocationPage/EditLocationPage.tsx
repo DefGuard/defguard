@@ -252,6 +252,7 @@ const buildLocationSubmissionData = (
     acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
     peer_disconnect_threshold:
       normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
+    posture_checks: location.posture_checks ?? [],
   };
 };
 
