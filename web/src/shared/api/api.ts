@@ -89,6 +89,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  MfaFlowAssignment,
   MfaFlowDetailResponse,
   MfaFlowListItemResponse,
   MfaMethodAvailabilityResponse,
@@ -535,6 +536,8 @@ const api = {
     create: (data: CreateMfaFlowRequest) =>
       client.post<MfaFlowDetailResponse>('/mfa-flow', data),
     get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
+    getLocationAssignments: (locationId: number) =>
+      client.get<MfaFlowAssignment[]>(`/location/${locationId}/mfa-flows`),
     update: (id: number, data: UpdateMfaFlowRequest) =>
       client.put<MfaFlowDetailResponse>(`/mfa-flow/${id}`, data),
     delete: (id: number) => client.delete(`/mfa-flow/${id}`),

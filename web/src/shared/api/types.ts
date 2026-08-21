@@ -840,6 +840,7 @@ export interface EditNetworkLocation
   allowed_ips: string;
   address: string;
   posture_checks: number[];
+  mfa_flows: MfaFlowAssignment[];
 }
 
 export interface EditNetworkLocationRequest {
@@ -1461,6 +1462,12 @@ export interface MfaFlowStep {
   id: number;
   position: number;
   methods: MfaFlowMethodValue[];
+}
+
+export interface MfaFlowAssignment {
+  flow_id: number;
+  is_default: boolean;
+  group_ids: number[];
 }
 
 export interface MfaFlowDetailResponse {

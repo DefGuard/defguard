@@ -10,9 +10,9 @@ use defguard_common::db::{
     models::{
         Settings, WireguardNetwork,
         mfa_flow::{
-            LocationMfaFlowAssignment, LocationMfaFlowItem, MfaFlow, MfaFlowAssignmentError,
-            MfaFlowDeleteError, MfaFlowSnapshot, MfaFlowStep, MfaFlowUpdateError,
-            MfaFlowValidationField, MfaFlowWithStepCount, validate_flow_input,
+            LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentError, MfaFlowDeleteError,
+            MfaFlowSnapshot, MfaFlowStep, MfaFlowUpdateError, MfaFlowValidationField,
+            MfaFlowWithStepCount, validate_flow_input,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -130,44 +130,8 @@ pub struct UpdateMfaFlowStep {
     pub methods: Vec<VpnClientMfaMethod>,
 }
 
-/// Request body for assigning flows to a location.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
-pub struct AssignMfaFlowsRequest {
-    pub assignments: Vec<AssignMfaFlowEntry>,
-}
-
-/// A single entry in an assignment list.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
-pub struct AssignMfaFlowEntry {
-    pub flow_id: Id,
-    pub is_default: bool,
-    #[serde(default)]
-    pub group_ids: Vec<Id>,
-}
-
-/// Assignment item returned by `GET /location/{id}/mfa-flows`.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
-pub struct LocationMfaFlowResponse {
-    pub id: Id,
-    pub title: String,
-    pub step_count: i64,
-    pub group_names: Vec<String>,
-    pub position: i32,
-    pub is_default: bool,
-}
-
-impl From<LocationMfaFlowItem> for LocationMfaFlowResponse {
-    fn from(item: LocationMfaFlowItem) -> Self {
-        Self {
-            id: item.id,
-            title: item.title,
-            step_count: item.step_count,
-            group_names: item.group_names,
-            position: item.position,
-            is_default: item.is_default,
-        }
-    }
-}
+/// A single MFA flow assignment, used by location read and save requests.
+pub type AssignMfaFlowEntry = LocationMfaFlowAssignment;
 
 // Helpers
 
@@ -270,7 +234,9 @@ fn check_method_prerequisites(
 /// recognise the new variant. The `None` form gates strictly on the Enterprise
 /// tier, which is the correct behaviour for this feature.
 #[must_use]
-fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<ApiResponse> {
+pub(crate) fn check_assignment_license_gates(
+    assignments: &[AssignMfaFlowEntry],
+) -> Option<ApiResponse> {
     let scoped = assignments.iter().position(|a| !a.group_ids.is_empty());
     if let Some(index) = scoped
         && !has_enterprise_access(None)
@@ -317,6 +283,42 @@ fn non_default_group_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> S
 }
 
 /// Build a `400` response with structured `fields[]` errors.
+pub(crate) fn assignment_error_response(
+    assignments: &[AssignMfaFlowEntry],
+    error: MfaFlowAssignmentError,
+) -> Result<ApiResponse, WebError> {
+    let (field, code) = match error {
+        MfaFlowAssignmentError::NoDefaultDesignated => {
+            ("mfa_flows".to_owned(), "no_default_designated")
+        }
+        MfaFlowAssignmentError::MultipleDefaultsDesignated => {
+            ("mfa_flows".to_owned(), "multiple_defaults_designated")
+        }
+        MfaFlowAssignmentError::DefaultHasGroups => {
+            ("mfa_flows".to_owned(), "default_must_have_no_groups")
+        }
+        MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
+            non_default_group_field(assignments, flow_id),
+            "non_default_must_have_groups",
+        ),
+        MfaFlowAssignmentError::DuplicateFlow(flow_id) => {
+            (assignment_field(assignments, flow_id), "duplicate")
+        }
+        MfaFlowAssignmentError::UnknownFlow(flow_id) => {
+            (assignment_field(assignments, flow_id), "unknown_flow")
+        }
+        MfaFlowAssignmentError::UnknownGroup(group_id) => {
+            (group_field(assignments, group_id), "unknown_group")
+        }
+        MfaFlowAssignmentError::Sqlx(error) => return Err(WebError::from(error)),
+    };
+
+    Ok(validation_error_response(vec![MfaFlowValidationField {
+        field,
+        code: code.into(),
+    }]))
+}
+
 fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse {
     let fields: Vec<Value> = errors
         .iter()
@@ -706,7 +708,7 @@ pub async fn delete_mfa_flow(
         ("id" = i64, Path, description = "ID of the location.")
     ),
     responses(
-        (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
+        (status = 200, description = "MFA flow assignments for the location.", body = [AssignMfaFlowEntry]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
         (status = 500, description = "Unable to list assigned flows.", body = ApiErrorResponse)
@@ -736,114 +738,9 @@ pub async fn get_location_mfa_flows(
         return Err(WebError::ObjectNotFound(format!("Location {id} not found")));
     }
 
-    let items = MfaFlow::for_location(&appstate.pool, id).await?;
-    let response: Vec<LocationMfaFlowResponse> = items.into_iter().map(Into::into).collect();
+    let assignments = MfaFlow::assignments_for_location(&appstate.pool, id).await?;
 
-    Ok(ApiResponse::json(response, StatusCode::OK))
-}
-
-/// Assign MFA flows to a location (full replace)
-#[utoipa::path(
-    put,
-    path = "/api/v1/location/{id}/mfa-flows",
-    tag = "mfa flow",
-    params(
-        ("id" = i64, Path, description = "ID of the location.")
-    ),
-    request_body = AssignMfaFlowsRequest,
-    responses(
-        (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
-        (status = 400, description = "Invalid assignment: `no_default_designated`, `multiple_defaults_designated`, `default_must_have_no_groups`, or `non_default_must_have_groups`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "mfa_flows", "code": "no_default_designated"}]})),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
-        (status = 403, description = "Requires admin privileges, or group scoping without an enterprise license (`enterprise_license_required`).", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "assignments[0].group_ids", "code": "enterprise_license_required"}]})),
-        (status = 500, description = "Unable to assign flows.", body = ApiErrorResponse)
-    ),
-    security(
-        ("cookie" = []),
-        ("api_token" = [])
-    )
-)]
-pub async fn set_location_mfa_flows(
-    _admin: AdminRole,
-    session: SessionInfo,
-    context: ApiRequestContext,
-    Path(location_id): Path<Id>,
-    State(appstate): State<AppState>,
-    Json(data): Json<AssignMfaFlowsRequest>,
-) -> ApiResult {
-    debug!(
-        "User {} assigning MFA flows to location {location_id}",
-        session.user.username
-    );
-
-    // The location has to exist before we can replace its assignments, and its name is needed for
-    // the audit event.
-    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
-        .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
-
-    let assignments: Vec<LocationMfaFlowAssignment> = data
-        .assignments
-        .iter()
-        .map(|a| LocationMfaFlowAssignment {
-            flow_id: a.flow_id,
-            is_default: a.is_default,
-            group_ids: a.group_ids.clone(),
-        })
-        .collect();
-
-    if let Some(resp) = check_assignment_license_gates(&data.assignments) {
-        return Ok(resp);
-    }
-
-    let mut tx = appstate.pool.begin().await?;
-    if let Err(e) = MfaFlow::assign_to_location(&mut tx, location_id, &assignments).await {
-        let (field, code) = match e {
-            MfaFlowAssignmentError::NoDefaultDesignated => {
-                ("mfa_flows".to_owned(), "no_default_designated")
-            }
-            MfaFlowAssignmentError::MultipleDefaultsDesignated => {
-                ("mfa_flows".to_owned(), "multiple_defaults_designated")
-            }
-            MfaFlowAssignmentError::DefaultHasGroups => {
-                ("mfa_flows".to_owned(), "default_must_have_no_groups")
-            }
-            MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
-                non_default_group_field(&data.assignments, flow_id),
-                "non_default_must_have_groups",
-            ),
-            MfaFlowAssignmentError::DuplicateFlow(flow_id) => {
-                (assignment_field(&data.assignments, flow_id), "duplicate")
-            }
-            MfaFlowAssignmentError::UnknownFlow(flow_id) => {
-                (assignment_field(&data.assignments, flow_id), "unknown_flow")
-            }
-            MfaFlowAssignmentError::UnknownGroup(group_id) => {
-                (group_field(&data.assignments, group_id), "unknown_group")
-            }
-            MfaFlowAssignmentError::Sqlx(e) => return Err(WebError::from(e)),
-        };
-
-        return Ok(validation_error_response(vec![MfaFlowValidationField {
-            field,
-            code: code.into(),
-        }]));
-    }
-    tx.commit().await?;
-
-    let items = MfaFlow::for_location(&appstate.pool, location_id).await?;
-    let response: Vec<LocationMfaFlowResponse> = items.into_iter().map(Into::into).collect();
-
-    appstate.emit_event(ApiEvent {
-        context,
-        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
-            location_id,
-            location_name: location.name,
-            assignments: LocationMfaFlowAssignment::snapshot(&assignments),
-        }),
-    })?;
-
-    Ok(ApiResponse::json(response, StatusCode::OK))
+    Ok(ApiResponse::json(assignments, StatusCode::OK))
 }
 
 /// Method availability entry returned by the catalogue endpoint.

@@ -49,7 +49,7 @@ pub struct MfaFlowSnapshot {
     pub steps: Vec<MfaFlowStep<Id>>,
 }
 
-/// Assignment of an MFA flow to a location, enriched for API consumption.
+/// Assignment of an MFA flow to a location, enriched for internal consumers.
 #[derive(Clone, Debug, Serialize)]
 pub struct LocationMfaFlowItem {
     pub id: Id,
@@ -61,7 +61,7 @@ pub struct LocationMfaFlowItem {
 }
 
 /// Input for a single flow assignment to a location.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct LocationMfaFlowAssignment {
     pub flow_id: Id,
     pub is_default: bool,
@@ -542,6 +542,30 @@ impl MfaFlow<Id> {
              LEFT JOIN \"group\" g ON g.id = lmfg.group_id \
              WHERE lmf.location_id = $1 \
              GROUP BY mf.id, mf.title, s.step_count, lmf.position, lmf.is_default \
+             ORDER BY lmf.position",
+            location_id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Returns the assignments for a location in the shape accepted by location save requests.
+    pub async fn assignments_for_location<'e, E: PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+    ) -> sqlx::Result<Vec<LocationMfaFlowAssignment>> {
+        query_as!(
+            LocationMfaFlowAssignment,
+            "SELECT lmf.flow_id, lmf.is_default, \
+             COALESCE(array_agg(lmfg.group_id ORDER BY lmfg.group_id) \
+                      FILTER (WHERE lmfg.group_id IS NOT NULL), '{}') \
+                      AS \"group_ids!: Vec<Id>\" \
+             FROM location_mfa_flow lmf \
+             LEFT JOIN location_mfa_flow_group lmfg \
+                 ON lmfg.location_id = lmf.location_id \
+                 AND lmfg.flow_id = lmf.flow_id \
+             WHERE lmf.location_id = $1 \
+             GROUP BY lmf.flow_id, lmf.position, lmf.is_default \
              ORDER BY lmf.position",
             location_id
         )

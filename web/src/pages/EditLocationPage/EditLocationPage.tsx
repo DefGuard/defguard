@@ -53,6 +53,11 @@ export const EditLocationPage = () => {
     from: '/_authorized/_default/locations/$locationId/edit',
   });
   const { data: location } = useSuspenseQuery(getLocationQueryOptions(Number(paramsId)));
+  const { data: mfaFlows } = useSuspenseQuery({
+    queryKey: ['location', location.id, 'mfa-flows'],
+    queryFn: () =>
+      api.mfaFlow.getLocationAssignments(location.id).then((response) => response.data),
+  });
 
   return (
     <EditPage
@@ -62,7 +67,7 @@ export const EditLocationPage = () => {
         title: m.location_edit_title({ name: location.name }),
       }}
     >
-      <EditLocationForm location={location} />
+      <EditLocationForm location={location} mfaFlows={mfaFlows} />
     </EditPage>
   );
 };
@@ -253,6 +258,7 @@ const buildLocationSubmissionData = (
     peer_disconnect_threshold:
       normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
     posture_checks: location.posture_checks ?? [],
+    mfa_flows: [],
   };
 };
 
@@ -345,7 +351,13 @@ const getDisconnectRelevantChangedFields = (
   return Array.from(changedFields);
 };
 
-const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
+const EditLocationForm = ({
+  location,
+  mfaFlows,
+}: {
+  location: NetworkLocation;
+  mfaFlows: EditNetworkLocation['mfa_flows'];
+}) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
@@ -525,6 +537,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       data: {
         ...buildLocationSubmissionData(value, location),
         posture_checks: pendingPostureChecks,
+        mfa_flows: mfaFlows,
       },
     });
   };

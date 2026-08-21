@@ -11,7 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            mfa_flow::MfaFlow,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -42,7 +42,11 @@ use crate::{
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
-    handlers::{gateway::GatewayInfo, network_devices::DeviceWireGuardConfig},
+    handlers::{
+        gateway::GatewayInfo,
+        mfa_flow::{AssignMfaFlowEntry, assignment_error_response, check_assignment_license_gates},
+        network_devices::DeviceWireGuardConfig,
+    },
     location_management::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
@@ -87,6 +91,7 @@ pub struct WireguardNetworkData {
     pub mfa_enabled: bool,
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Vec<Id>,
+    pub mfa_flows: Vec<AssignMfaFlowEntry>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -175,17 +180,6 @@ impl WireguardNetworkData {
         Err(WebError::BadRequest(format!(
             "peer_disconnect_threshold must be at least {MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA} when location MFA is enabled"
         )))
-    }
-
-    /// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
-    ///
-    /// Thin wrapper over [`validate_mfa_flows_exist`] for the create/modify request path.
-    pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
-        &self,
-        executor: E,
-        location_id: Option<Id>,
-    ) -> Result<Option<ApiResponse>, WebError> {
-        validate_mfa_flows_exist(executor, self.mfa_enabled, location_id).await
     }
 
     /// Rejects service-location mode combined with location MFA: core cannot serve it and the
@@ -303,7 +297,7 @@ pub(crate) async fn create_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    if let Some(resp) = data.validate_mfa_flows_exist(&appstate.pool, None).await? {
+    if let Some(resp) = check_assignment_license_gates(&data.mfa_flows) {
         return Ok(resp);
     }
 
@@ -359,6 +353,21 @@ pub(crate) async fn create_network(
         data.posture_checks
     );
 
+    let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
+    if let Err(error) =
+        MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
+    {
+        return Ok(assignment_error_response(&data.mfa_flows, error)?);
+    }
+    if data.mfa_enabled {
+        if !MfaFlow::any_exist(&mut *transaction).await? {
+            return Ok(no_flows_exist_response());
+        }
+        if !MfaFlow::has_default_assignment(&mut *transaction, network.id).await? {
+            return Ok(no_flows_assigned_response());
+        }
+    }
+
     transaction.commit().await?;
 
     appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
@@ -368,6 +377,14 @@ pub(crate) async fn create_network(
         session.user.username
     );
 
+    appstate.emit_event(ApiEvent {
+        context: context.clone(),
+        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+            location_id: network.id,
+            location_name: network.name.clone(),
+            assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
+        }),
+    })?;
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::VpnLocationAdded {
@@ -438,10 +455,7 @@ pub(crate) async fn modify_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    if let Some(resp) = data
-        .validate_mfa_flows_exist(&appstate.pool, Some(network_id))
-        .await?
-    {
+    if let Some(resp) = check_assignment_license_gates(&data.mfa_flows) {
         return Ok(resp);
     }
 
@@ -485,6 +499,21 @@ pub(crate) async fn modify_network(
     DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
         .await?;
 
+    let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
+    if let Err(error) =
+        MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
+    {
+        return Ok(assignment_error_response(&data.mfa_flows, error)?);
+    }
+    if data.mfa_enabled {
+        if !MfaFlow::any_exist(&mut *transaction).await? {
+            return Ok(no_flows_exist_response());
+        }
+        if !MfaFlow::has_default_assignment(&mut *transaction, network.id).await? {
+            return Ok(no_flows_assigned_response());
+        }
+    }
+
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
@@ -501,6 +530,14 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context: context.clone(),
+        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+            location_id: network.id,
+            location_name: network.name.clone(),
+            assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
+        }),
+    })?;
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::VpnLocationModified {

@@ -85,6 +85,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -368,7 +369,8 @@ fn location_payload(
         "allowed_ips_from_acl": false,
         "mfa_enabled": mfa_enabled,
         "service_location_mode": service_location_mode,
-        "posture_checks": []
+        "posture_checks": [],
+        "mfa_flows": []
     })
 }
 
@@ -1028,6 +1030,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
 
     let response = client
@@ -1090,6 +1093,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
 
     let response = client
