@@ -770,6 +770,7 @@ pub(crate) async fn send_mfa_finish_signed(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: auth_pub_key.map(str::to_owned),
+                step_attempt_id: None,
             },
         )),
     });
@@ -810,6 +811,7 @@ pub(crate) async fn send_mfa_finish_no_recv(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: None,
+                step_attempt_id: None,
             },
         )),
     });
@@ -835,6 +837,7 @@ pub(crate) async fn send_mfa_finish_raw(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: None,
+                step_attempt_id: None,
             },
         )),
     });

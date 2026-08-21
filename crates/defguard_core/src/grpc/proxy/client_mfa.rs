@@ -2934,6 +2934,7 @@ mod tests {
                     token: token.clone(),
                     code: Some(code),
                     auth_pub_key: None,
+                    step_attempt_id: None,
                 },
                 device_info(),
             )
@@ -3038,6 +3039,7 @@ mod tests {
                         token: token.clone(),
                         code: Some("000000".to_owned()),
                         auth_pub_key: None,
+                        step_attempt_id: None,
                     },
                     device_info(),
                 )
@@ -3336,6 +3338,7 @@ mod tests {
                     token: token.clone(),
                     code: Some(code),
                     auth_pub_key: None,
+                    step_attempt_id: None,
                 },
                 device_info(),
             )
