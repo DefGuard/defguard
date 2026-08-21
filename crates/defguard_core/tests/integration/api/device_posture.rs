@@ -3,8 +3,8 @@ use defguard_core::{
     enterprise::{
         db::models::device_posture::{DevicePosture, DevicePostureSnapshot},
         handlers::device_posture::{
-            ApiDevicePosture, ApiOsRule, AssignLocationsData, AssignPosturesData,
-            DevicePostureVersionMetadata, EditDevicePosture,
+            ApiDevicePosture, ApiOsRule, AssignLocationsData, DevicePostureVersionMetadata,
+            EditDevicePosture,
         },
         license::{get_cached_license, set_cached_license},
         posture::version_list::{
@@ -16,6 +16,7 @@ use defguard_core::{
     grpc::GatewayCommand,
 };
 use reqwest::StatusCode;
+use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::{
@@ -34,7 +35,7 @@ fn make_edit(name: &str) -> EditDevicePosture {
     }
 }
 
-use crate::api::common::{client::TestClient, make_network};
+use crate::api::common::{client::TestClient, make_network, update_location_posture_checks};
 
 /// Set up a test client with enterprise license and admin session ready.
 /// All device posture tests that don't test license gating should use this.
@@ -1021,25 +1022,16 @@ async fn test_device_posture_set_postures_for_location(
     client.drain_all_events();
 
     // assign both postures to the location
-    let response = client
-        .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: vec![p1.id, p2.id],
-        })
-        .send()
-        .await;
+    let response =
+        update_location_posture_checks(&client, location_id, json!(vec![p1.id, p2.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
-    let result: Vec<i64> = response.json().await;
-    assert_eq!(result.len(), 2);
-    assert!(result.contains(&p1.id));
-    assert!(result.contains(&p2.id));
-
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1);
-    assert!(matches!(
-        events[0].0,
-        ApiEventType::LocationPosturesAssigned { .. }
-    ));
+    assert_eq!(events.len(), 2);
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event.0, ApiEventType::VpnLocationModified { .. }))
+    );
 
     // GET on each posture shows the location
     for posture in [&p1, &p2] {
@@ -1063,16 +1055,8 @@ async fn test_device_posture_set_postures_for_location(
     assert_eq!(posture_checks.len(), 2);
 
     // reassign with empty list — all postures removed
-    let response = client
-        .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: Vec::new(),
-        })
-        .send()
-        .await;
+    let response = update_location_posture_checks(&client, location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
-    let result: Vec<i64> = response.json().await;
-    assert!(result.is_empty());
     client.drain_all_events();
 
     // GET on postures now shows no locations
@@ -1101,21 +1085,17 @@ async fn test_assigning_first_posture_refreshes_gateway_with_no_direct_peers(
     drain_gateway_events(&mut gateway_rx);
     client.drain_all_events();
 
-    let response = client
-        .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: vec![posture.id],
-        })
-        .send()
-        .await;
+    let response =
+        update_location_posture_checks(&client, location_id, json!(vec![posture.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     expect_network_modified_peers(&mut gateway_rx, location_id, &[]);
     let events = client.drain_all_events();
-    assert!(matches!(
-        events[0].0,
-        ApiEventType::LocationPosturesAssigned { .. }
-    ));
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event.0, ApiEventType::VpnLocationModified { .. }))
+    );
 }
 
 #[sqlx::test]
@@ -1133,32 +1113,22 @@ async fn test_removing_last_posture_refreshes_gateway_with_direct_peers(
     drain_gateway_events(&mut gateway_rx);
     client.drain_all_events();
 
-    let response = client
-        .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: vec![posture.id],
-        })
-        .send()
-        .await;
+    let response =
+        update_location_posture_checks(&client, location_id, json!(vec![posture.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
     expect_network_modified_peers(&mut gateway_rx, location_id, &[]);
     client.drain_all_events();
 
-    let response = client
-        .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: Vec::new(),
-        })
-        .send()
-        .await;
+    let response = update_location_posture_checks(&client, location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     expect_network_modified_peers(&mut gateway_rx, location_id, &[device_pubkey]);
     let events = client.drain_all_events();
-    assert!(matches!(
-        events[0].0,
-        ApiEventType::LocationPosturesAssigned { .. }
-    ));
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event.0, ApiEventType::VpnLocationModified { .. }))
+    );
 }
 
 #[sqlx::test]
@@ -1222,13 +1192,8 @@ async fn test_deleting_assigned_posture_refreshes_gateway_with_direct_peers(
     drain_gateway_events(&mut gateway_rx);
     client.drain_all_events();
 
-    let response = client
-        .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: vec![posture.id],
-        })
-        .send()
-        .await;
+    let response =
+        update_location_posture_checks(&client, location_id, json!(vec![posture.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
     expect_network_modified_peers(&mut gateway_rx, location_id, &[]);
     client.drain_all_events();
@@ -1261,13 +1226,7 @@ async fn test_device_posture_assignment_not_found(_: PgPoolOptions, options: PgC
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     client.assert_event_queue_is_empty();
 
-    let response = client
-        .put("/api/v1/network/999/postures")
-        .json(&AssignPosturesData {
-            postures: Vec::new(),
-        })
-        .send()
-        .await;
+    let response = update_location_posture_checks(&client, 999, json!([])).await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     client.assert_event_queue_is_empty();
 }
@@ -1293,7 +1252,9 @@ async fn make_service_location(client: &TestClient, name: &str) -> i64 {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "prelogon"
+            "service_location_mode": "prelogon",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -1320,23 +1281,16 @@ async fn test_set_postures_for_service_location_allowed(
     client.drain_all_events();
 
     // assigning posture checks to a service location is allowed
-    let response = client
-        .put(format!("/api/v1/network/{service_location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: vec![posture.id],
-        })
-        .send()
-        .await;
+    let response =
+        update_location_posture_checks(&client, service_location_id, json!(vec![posture.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
-    let result: Vec<i64> = response.json().await;
-    assert_eq!(result, vec![posture.id]);
-
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1);
-    assert!(matches!(
-        events[0].0,
-        ApiEventType::LocationPosturesAssigned { .. }
-    ));
+    assert_eq!(events.len(), 2);
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event.0, ApiEventType::VpnLocationModified { .. }))
+    );
 
     // the assignment is visible on the posture
     let response = client
@@ -1347,13 +1301,7 @@ async fn test_set_postures_for_service_location_allowed(
     assert_eq!(fetched.locations, vec![service_location_id]);
 
     // clearing (empty list) is still allowed on a service location
-    let response = client
-        .put(format!("/api/v1/network/{service_location_id}/postures"))
-        .json(&AssignPosturesData {
-            postures: Vec::new(),
-        })
-        .send()
-        .await;
+    let response = update_location_posture_checks(&client, service_location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
     client.drain_all_events();
 

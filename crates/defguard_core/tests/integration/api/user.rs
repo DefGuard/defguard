@@ -1459,6 +1459,11 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create network
     make_network(&client, "network").await;
+    expected_events.push(ApiEventType::LocationMfaFlowsAssigned {
+        location_id: 1,
+        location_name: "network".into(),
+        assignments: Vec::new(),
+    });
     expected_events.push(ApiEventType::VpnLocationAdded {
         location: get_db_location(&state.pool, 1).await,
     });
