@@ -488,16 +488,22 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
-    if !has_enterprise_access(Some(LicenseFeature::DevicePosture))
-        && !data.posture_checks.is_empty()
-    {
-        return Ok(WebError::Forbidden(
-            "Cannot assign posture checks to location: Enterprise license required.",
-        )
-        .into());
-    }
-    DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
-        .await?;
+    let posture_checks = if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
+        data.posture_checks.clone()
+    } else {
+        let current =
+            DevicePostureLocation::find_by_location(&mut *transaction, network.id).await?;
+        if data.posture_checks != current {
+            warn!(
+                location_id = network.id,
+                requested_posture_checks = ?data.posture_checks,
+                current_posture_checks = ?current,
+                "Ignoring posture check assignment update because the Enterprise license is inactive"
+            );
+        }
+        current
+    };
+    DevicePostureLocation::set_for_location(&mut transaction, network.id, &posture_checks).await?;
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
     if let Err(error) =

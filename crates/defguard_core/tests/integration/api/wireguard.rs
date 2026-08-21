@@ -920,6 +920,45 @@ async fn test_modify_network_replaces_posture_checks(_: PgPoolOptions, options: 
 }
 
 #[sqlx::test]
+async fn test_modify_network_preserves_posture_checks_without_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let posture = make_posture_check(&client, "Posture").await;
+    let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
+    payload["posture_checks"] = json!([posture]);
+    let response = client.post("/api/v1/network").json(&payload).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "renamed-location",
+            "10.1.1.1/24",
+            false,
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let modified: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(modified.name, "renamed-location");
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![posture]
+    );
+    set_cached_license(license);
+}
+
+#[sqlx::test]
 async fn test_posture_checks_allowed_on_service_locations(
     _: PgPoolOptions,
     options: PgConnectOptions,
