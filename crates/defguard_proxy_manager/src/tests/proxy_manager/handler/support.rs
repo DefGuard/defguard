@@ -765,9 +765,22 @@ pub(crate) async fn set_public_proxy_url(pool: &PgPool, url: &str) {
 }
 
 /// Build the authorization code expected by `MockOidcProvider`'s `/token`
-/// endpoint.  Format: `"{sub}:{email}:{nonce}"`.
+/// endpoint. Format: `"{sub}:{email}:{nonce}:{email_verified}"`. The email is
+/// marked as verified.
 pub(crate) fn make_oidc_code(sub: &str, email: &str, nonce: &str) -> String {
-    format!("{sub}:{email}:{nonce}")
+    make_oidc_code_with_email_verified(sub, email, nonce, true)
+}
+
+/// Build an authorization code whose `email_verified` claim is controlled by
+/// `verified`.
+pub(crate) fn make_oidc_code_with_email_verified(
+    sub: &str,
+    email: &str,
+    nonce: &str,
+    verified: bool,
+) -> String {
+    let verified = if verified { "true" } else { "false" };
+    format!("{sub}:{email}:{nonce}:{verified}")
 }
 
 /// Send an `ActivateUser` request through the handler and return the raw

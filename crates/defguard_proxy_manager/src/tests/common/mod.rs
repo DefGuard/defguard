@@ -762,8 +762,10 @@ struct OidcProviderState {
 /// * `POST /token`                             – exchange authorization code for ID token
 ///
 /// ### Code format
-/// The authorization code must be `"{sub}:{email}:{nonce}"`.  The `/token`
-/// handler parses those three components and embeds them in the signed JWT.
+/// The authorization code must be `"{sub}:{email}:{nonce}:{email_verified}"`.
+/// The `/token` handler parses those components and embeds them in the signed
+/// JWT. `email_verified` is `"true"` or `"false"`; omitting it drops the
+/// claim from the token.
 pub(crate) struct MockOidcProvider {
     /// HTTP base URL of the mock server, e.g. `http://127.0.0.1:45321`.
     pub(crate) base_url: String,
@@ -871,25 +873,32 @@ async fn oidc_jwks(State(state): State<OidcProviderState>) -> Json<serde_json::V
     }))
 }
 
-/// Parses the authorization code as `"{sub}:{email}:{nonce}"` and returns a
-/// signed RS256 ID token JWT.
+/// Parses the authorization code as `"{sub}:{email}:{nonce}:{email_verified}"`
+/// and returns a signed RS256 ID token JWT. The final segment is optional and
+/// may be "true" or "false"; when it is absent the `email_verified` claim is
+/// omitted.
 async fn oidc_token(
     State(state): State<OidcProviderState>,
     Form(params): Form<HashMap<String, String>>,
 ) -> Json<serde_json::Value> {
     let code = params.get("code").cloned().unwrap_or_default();
-    // code format: "{sub}:{email}:{nonce}"
-    let mut parts = code.splitn(3, ':');
+    // code format: "{sub}:{email}:{nonce}:{email_verified}"
+    let mut parts = code.splitn(4, ':');
     let sub = parts.next().unwrap_or("unknown-sub").to_owned();
     let email = parts.next().unwrap_or("unknown@example.com").to_owned();
     let nonce = parts.next().unwrap_or("").to_owned();
+    let email_verified = match parts.next() {
+        Some("true") => Some(true),
+        Some("false") => Some(false),
+        _ => None,
+    };
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
 
-    let claims = serde_json::json!({
+    let mut claims = serde_json::json!({
         "iss": state.base_url,
         "sub": sub,
         "aud": state.client_id,
@@ -901,6 +910,9 @@ async fn oidc_token(
         "family_name": "OidcUser",
         "name": "Test OidcUser",
     });
+    if let Some(email_verified) = email_verified {
+        claims["email_verified"] = serde_json::json!(email_verified);
+    }
 
     let mut header = Header::new(Algorithm::RS256);
     header.kid = None;
