@@ -340,8 +340,7 @@ mod tests {
                 .await
                 .unwrap()
         );
-        // An unlinked user is refused: MFA re-verifies an existing link rather than creating one,
-        // so the account must be linked through web login or enrollment first.
+        // An unlinked user is refused even when OIDC is configured.
         user.openid_sub = None;
         assert!(
             !VpnClientMfaMethod::Oidc

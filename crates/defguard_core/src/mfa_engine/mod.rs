@@ -2,8 +2,8 @@
 //!
 //! The engine owns the step cursor and attempt lifecycle over the durable
 //! [`VpnClientMfaSession`](defguard_common::db::models::vpn_client_mfa_session::VpnClientMfaSession)
-//! store. The gRPC handlers in `grpc::proxy::client_mfa` stay thin adapters that convert the
-//! frozen proto messages to and from the domain types here; the engine never sees a proto message.
+//! store. The gRPC handlers in `grpc::proxy::client_mfa` are thin adapters converting proto
+//! messages to and from the domain types here; the engine never sees a proto message.
 
 use std::net::IpAddr;
 
@@ -46,13 +46,12 @@ pub mod types;
 
 /// The connect-time MFA engine.
 ///
-/// Holds only the pool and the outbound channels it needs to run a flow to completion: it mints
-/// the session, verifies proofs, advances the step cursor, and - at the final step - authorizes
-/// the peer, sends the gateway command, and emits the audit events.
+/// Mints the session, verifies proofs, advances the step cursor, and - at the final step -
+/// authorizes the peer, sends the gateway command, and emits the audit events.
 ///
-/// License gating happens only at `start`: it freezes the license-filtered step snapshot, and an
-/// in-flight flow is allowed to run to completion even if the license lapses mid-flow (deliberate;
-/// see ticket 01). `step_start` and `finish` therefore carry no license gate.
+/// License gating happens only at `start`, which freezes the license-filtered step snapshot;
+/// `step_start` and `finish` carry no license gate, so an in-flight flow runs to completion even if
+/// the license lapses mid-flow.
 pub struct MfaEngine {
     pool: PgPool,
     channels: EventChannels,
@@ -61,12 +60,10 @@ pub struct MfaEngine {
 /// The side effects of a completed flow, built inside the transaction but dispatched by the
 /// caller **after** it commits.
 ///
-/// Authorizing the peer on the gateway and recording the success event cannot be rolled back. If
-/// they were dispatched inside the transaction and the commit then failed, the gateway would hold
-/// an authorized peer and the audit log would claim success while the `VpnClientSession` row
-/// vanished - an authorized tunnel with no record of it. Dispatching after the commit fails the
-/// other way instead: the database is the record, and a failed dispatch surfaces as an error
-/// rather than as silent access.
+/// Neither the gateway authorization nor the success event can be rolled back. Dispatched inside
+/// the transaction, a failed commit would leave the gateway holding an authorized peer with no
+/// session row to show for it. Dispatched after, a failure surfaces as an error rather than as
+/// silent access.
 struct CompletedFlow {
     outcome: FinishOutcome,
     gateway_command: GatewayCommand,
@@ -102,8 +99,8 @@ impl MfaEngine {
         //
         // Email needs `smtp_configured` too: `initiate` hands the code to `send_and_forget`, so a
         // send failure has no way back to the client and an unusable mailer must be caught here.
-        //
-        // OIDC needs no license check - the caller's first-step filter drops it when unlicensed.
+        // OIDC needs no license check here - the caller's first-step filter drops it when
+        // unlicensed.
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_configured().await.map_err(|err| {
             error!("Failed to get current OpenID provider: {err}");
@@ -257,7 +254,6 @@ impl MfaEngine {
         steps: Vec<Vec<VpnClientMfaMethod>>,
         method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
-        // Initiate step 0: send the email code or mint the biometric / mobile-approve challenge.
         let ctx = MfaSessionContext {
             location: location.clone(),
             device: device.clone(),
@@ -300,8 +296,8 @@ impl MfaEngine {
     }
 
     /// Whether OIDC is configured for this deployment: a business license plus a configured
-    /// OpenID provider. Shared by `start_multi_step` and `step_start` so both paths agree with
-    /// the descriptor builder's source for `oidc_configured`.
+    /// OpenID provider. Must stay in step with the descriptor builder's source for
+    /// `oidc_configured`.
     async fn oidc_configured(&self) -> sqlx::Result<bool> {
         if !is_business_license_active() {
             return Ok(false);
@@ -312,15 +308,13 @@ impl MfaEngine {
     /// Initiate the current step: send the email code or mint the challenge and bind it to a
     /// fresh attempt.
     ///
-    /// Every call runs the same fixed sequence regardless of the step's state - there is no
-    /// branch for an already-initialized step. A re-call is therefore a legal switch (to a
-    /// different method) or a retry (the same method), and both re-run `initiate` and mint a
-    /// fresh attempt id: that is what makes "resend the code" work. The abandoned attempt's side
-    /// effects are not cancelled; stale callbacks no-op on the superseded attempt id.
+    /// There is no branch for an already-initialized step: a re-call is a legal switch to a
+    /// different method or a retry of the same one, and either way it re-runs `initiate` and mints
+    /// a fresh attempt id, which is what makes "resend the code" work. The abandoned attempt's
+    /// side effects are not cancelled; stale callbacks no-op on the superseded attempt id.
     ///
     /// A re-call does not touch `failed_attempts` - that counter bounds wrong proofs, not
-    /// initialization. Bounding re-initiation (and so the mail/push it triggers) is tracked
-    /// separately in DefGuard/defguard#3585.
+    /// initialization. Bounding re-initiation is tracked in DefGuard/defguard#3585.
     pub async fn step_start(
         &self,
         token: String,
@@ -533,8 +527,7 @@ impl MfaEngine {
         })?;
 
         // Advance the satisfied step, bound to the exact step and attempt the proof was minted
-        // for. A stale or duplicate advance matches zero rows (someone else already advanced
-        // this step, or the proof is for a superseded attempt); a non-final advance returns
+        // for, so a stale or duplicate advance matches zero rows. A non-final advance returns
         // `Advanced` without authorizing or deleting the session.
         let current_step = session.current_step;
         let step_attempt_id = proof.step_attempt_id.as_deref();
@@ -602,9 +595,8 @@ impl MfaEngine {
     /// in-progress MFA session. This is the single place a preshared key is minted or a peer is
     /// authorized.
     ///
-    /// Everything here is transactional. The two side effects that are not - the gateway command
-    /// and the success event - are returned in [`CompletedFlow`] for the caller to dispatch once
-    /// the transaction has committed.
+    /// Everything here is transactional. The gateway command and the success event are not, so
+    /// they are returned in [`CompletedFlow`] for the caller to dispatch after the commit.
     async fn complete_flow(
         &self,
         transaction: &mut PgConnection,
@@ -723,8 +715,8 @@ impl MfaEngine {
     }
 }
 
-/// Log an [`InitiateError`] with the context it needs, so the caller can then wrap it into a
-/// typed error (`StartError` or `StepError`) without duplicating the logging.
+/// Log an [`InitiateError`] with the context it needs, so `start` and `step_start` can each wrap it
+/// into their own error type without duplicating the logging.
 fn log_initiate_error(err: &InitiateError, username: &str) {
     match err {
         InitiateError::EmailCode(e) => error!("Failed to generate email MFA code: {e}"),
@@ -1234,8 +1226,8 @@ mod tests {
         assert_eq!(session_count(&pool, location.id, device.id).await, 0);
     }
 
-    /// A single-step plan using a non-TOTP/Email method must not be rejected by the MVP method
-    /// boundary, which is multi-step only.
+    /// The TOTP/Email method restriction applies only to multi-step flows, so it must not reject a
+    /// single-step plan.
     #[sqlx::test]
     async fn test_start_multi_step_single_step_non_boundary_method_accepted(
         _: PgPoolOptions,
@@ -1382,9 +1374,8 @@ mod tests {
             .await
             .expect("second step start should succeed");
 
-        // Ticket 05 s4: a same-method re-call is a retry, not a no-op. It supersedes the prior
-        // attempt and re-runs `initiate`, which is what makes "resend the code" work. Bounding
-        // re-initiation is tracked separately in DefGuard/defguard#3585.
+        // A same-method re-call is a retry, not a no-op: it supersedes the prior attempt and
+        // re-runs `initiate`, which is what makes "resend the code" work.
         assert_ne!(
             first.step_attempt_id, second.step_attempt_id,
             "a re-call must mint a fresh attempt id"
@@ -1600,13 +1591,12 @@ mod tests {
         }
     }
 
-    /// Regression test for the step-skip vulnerability: a proof for step 0 must never be able to
-    /// satisfy step 1 as well.
+    /// A proof for step 0 must never be able to satisfy step 1 as well.
     ///
-    /// The original attack was a `[TOTP, Email]` flow where the attacker held only the TOTP
-    /// secret and replayed one valid TOTP code twice. Both calls verified against the same
-    /// ephemeral state, both advanced the cursor, the second saw `current_step == total_steps`
-    /// and authorized the peer - with the Email step never proved.
+    /// The attack it rules out: in a `[TOTP, Email]` flow, an attacker holding only the TOTP secret
+    /// replays one valid code twice. Both calls verify against the same ephemeral state, both
+    /// advance the cursor, and the second sees `current_step == total_steps` and authorizes the
+    /// peer with the Email step never proved.
     #[sqlx::test]
     async fn test_finish_replayed_proof_cannot_skip_a_step(
         _: PgPoolOptions,

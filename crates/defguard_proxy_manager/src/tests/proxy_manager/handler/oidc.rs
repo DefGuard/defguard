@@ -527,8 +527,8 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
 /// An MFA callback presenting an unrecognised provider identity is refused and leaves no trace.
 ///
-/// The `sub` is unlinked but the email matches a real account. MFA resolves by `sub` alone, so the
-/// bystander must be untouched - the rejection lands after resolution, so a write would survive.
+/// The `sub` is unlinked but the email matches a real account, which MFA must not resolve to. The
+/// rejection lands after identity resolution, so a write there would survive it.
 #[sqlx::test]
 async fn test_mfa_oidc_unknown_identity_does_not_link_account(
     _: PgPoolOptions,

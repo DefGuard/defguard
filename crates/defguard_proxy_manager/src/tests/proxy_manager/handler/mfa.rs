@@ -387,7 +387,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
 ///
 /// `test_mfa_start_returns_token_for_email_mfa` is the same request with SMTP configured, so the
 /// pair pins SMTP as the discriminator rather than another `InvalidArgument` on the path. `Start`
-/// is the only chance to report it: `initiate` sends via `send_and_forget`.
+/// is the only chance to report it, since `initiate` sends via `send_and_forget`.
 #[sqlx::test]
 async fn test_mfa_start_rejects_email_when_smtp_not_configured(
     _: PgPoolOptions,

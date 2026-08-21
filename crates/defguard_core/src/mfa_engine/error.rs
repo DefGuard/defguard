@@ -1,8 +1,7 @@
 //! Domain error types for the MFA engine.
 //!
-//! The engine is a proto-free domain module: its public API returns these typed enums, and only
-//! the gRPC handlers convert them to `tonic::Status` (see `grpc::proxy::client_mfa`). The
-//! `From` impls there are the ticket-03 status table, byte-identical.
+//! The engine is proto-free: its public API returns these typed enums, and only the gRPC handlers
+//! convert them to `tonic::Status` (see `grpc::proxy::client_mfa`).
 
 use thiserror::Error;
 
@@ -14,19 +13,15 @@ pub enum StartError {
     /// A multi-step (2+ step) flow requires a business license.
     #[error("multi-step MFA is not available for this location")]
     MultiStepNotAvailable,
-    /// The submitted plan length does not match the resolved flow.
     #[error("MFA plan length does not match the location's flow")]
     PlanLengthMismatch,
-    /// The selected method is not set up for this user/device (legacy vocabulary).
+    /// The selected method is not set up for this user or device.
     #[error("selected MFA method is not available")]
     MethodNotAvailable,
-    /// Biometric is not configured for the device.
     #[error("Select MFA method is not available for the device.")]
     BiometricNotConfigured,
-    /// An internal failure.
     #[error("unexpected error")]
     Internal,
-    /// A step-initiation failure, mapped from [`InitiateError`].
     #[error(transparent)]
     Initiate(#[from] InitiateError),
 }

@@ -27,7 +27,7 @@ pub enum ClientMfaServerError {
     BidiEventChannelError(#[from] SendError<BidiStreamEvent>),
 }
 
-/// Error surfaced by the authorize free functions (`create_new_session` / `disconnect_session`).
+/// Error surfaced by [`create_new_session`] and [`disconnect_session`].
 #[derive(Debug, Error)]
 pub enum AuthorizeError {
     #[error(transparent)]
@@ -45,8 +45,7 @@ pub enum SessionDisconnectReason {
     Disconnected,
 }
 
-/// The two outbound channels the MFA engine and the posture path push to. Bundling them keeps
-/// the pair from travelling as two loose parameters through the authorize free functions.
+/// The two outbound channels the MFA engine and the posture path push to.
 pub struct EventChannels {
     pub gateway_tx: Sender<GatewayCommand>,
     pub bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -64,13 +63,11 @@ impl EventChannels {
         }
     }
 
-    /// Emit a bidi-stream event to the proxy.
     pub fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         Ok(self.bidi_event_tx.send(event)?)
     }
 }
 
-/// Build the gateway network info handed to the gateway when a device is authorized.
 pub fn build_authorized_gateway_network_info(
     network_device: WireguardNetworkDevice,
     preshared_key: String,
@@ -176,7 +173,6 @@ pub async fn disconnect_session(
         })?;
     }
 
-    // Only emit a disconnect event if the session was actually connected.
     if is_connected {
         let context = BidiRequestContext {
             timestamp: disconnect_timestamp,

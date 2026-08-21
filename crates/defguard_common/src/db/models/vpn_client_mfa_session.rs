@@ -55,9 +55,8 @@ pub struct MfaAttribution {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Step {
     pub methods: Vec<VpnClientMfaMethod>,
-    /// The method that satisfied this step, written by `advance` from the method its caller
-    /// actually verified - not re-read from `ephemeral_state`, which a concurrent `begin_attempt`
-    /// could have replaced in the meantime.
+    /// The method that satisfied this step, recorded by `advance` from the method its caller
+    /// verified.
     #[serde(default)]
     pub satisfied: Option<VpnClientMfaMethod>,
 }
@@ -399,11 +398,9 @@ impl VpnClientMfaSession<Id> {
     /// clear land in one statement so the proof cannot be lost between them. A NULL
     /// `ephemeral_state` leaves `satisfied` unset rather than erroring.
     ///
-    /// The write is guarded by `current_step` (always) and by the submitted
-    /// `step_attempt_id` (when the client supplied one), so a stale or duplicate advance
-    /// matches zero rows rather than skipping a step. Returns `Ok(None)` when the guard
-    /// does not match - someone else already advanced this step, or the proof is for a
-    /// superseded attempt. Does not extend `expires_at` (fixed window).
+    /// The write is guarded by `current_step`, and by `step_attempt_id` when the client supplied
+    /// one, so a stale or duplicate advance matches zero rows rather than skipping a step and
+    /// returns `Ok(None)`. Does not extend `expires_at` (fixed window).
     pub async fn advance(
         &self,
         conn: &mut PgConnection,
@@ -411,16 +408,15 @@ impl VpnClientMfaSession<Id> {
         step_attempt_id: Option<&str>,
         satisfied_method: VpnClientMfaMethod,
     ) -> sqlx::Result<Option<(StepOutcome, StepsSnapshot)>> {
-        // Record the method the caller actually verified, rather than re-reading
-        // `ephemeral_state->'selected_method'` here. A concurrent `begin_attempt` can overwrite
-        // that field between the verification and this statement, which would attribute the step
-        // to a method the user never proved - a lie in the authorization audit trail.
+        // Record the method the caller actually verified rather than re-reading
+        // `ephemeral_state->'selected_method'`: a concurrent `begin_attempt` can overwrite that
+        // field between the verification and this statement, attributing the step to a method the
+        // user never proved.
         let satisfied = serde_json::to_value(satisfied_method)
             .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
-        // One statement, not two: this `WHERE` clause is the security guard that stops a proof
-        // advancing a step it was not minted for, and a second copy of it is a second thing to
-        // get wrong. `$3` is NULL for a pre-2.2 client that cannot send an attempt id, which
-        // degrades to the step-only binding.
+        // The `WHERE` clause is the guard that stops a proof advancing a step it was not minted
+        // for. `$3` is NULL for a pre-2.2 client that cannot send an attempt id, which degrades to
+        // the step-only binding.
         let row = query_as!(
             AdvanceRow,
             "UPDATE vpn_client_mfa_session \

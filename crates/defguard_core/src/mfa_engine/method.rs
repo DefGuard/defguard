@@ -40,7 +40,7 @@ pub enum VerifyError {
     Db(#[from] sqlx::Error),
 }
 
-/// An error surfaced by [`initiate`] while initiating a step.
+/// An error surfaced by [`initiate`].
 #[derive(Debug, Error)]
 pub enum InitiateError {
     #[error("failed to generate email MFA code")]
@@ -57,8 +57,8 @@ pub enum InitiateError {
 
 /// Initiate a step: send the email code or mint the biometric / mobile-approve challenge.
 ///
-/// Returns `None` for methods that need no challenge. This is the non-idempotent half of the
-/// seam; the caller is responsible for binding the returned challenge to a fresh attempt.
+/// Returns `None` for methods that need no challenge. The caller binds the returned challenge to a
+/// fresh attempt.
 pub async fn initiate(
     pool: &PgPool,
     ctx: &MfaSessionContext,
@@ -92,8 +92,8 @@ pub async fn initiate(
 
 /// Verify a proof against the current step's selected method.
 ///
-/// Read-only: this reads `ctx` and `ephemeral` and performs crypto checks; it never mutates the
-/// session. The caller owns every mutation (failure accounting, advance, delete).
+/// Read-only: never mutates the session. The caller owns every mutation (failure accounting,
+/// advance, delete).
 pub async fn verify(
     pool: &PgPool,
     ctx: &MfaSessionContext,

@@ -144,9 +144,9 @@ impl ClientMfaServer {
             }
         };
 
-        // `LookupOnly`: MFA re-verifies an existing link and must neither link nor create. The
-        // identity check below runs *after* this call, so a write here would survive a rejected
-        // MFA. Account creation is unreachable, hence no `ApiEvent` channel.
+        // MFA re-verifies an existing link and must neither link nor create: the identity check
+        // below runs *after* this call, so a write here would survive a rejected MFA. Account
+        // creation is unreachable, hence no `ApiEvent` channel.
         match user_from_claims(
             &self.pool,
             Nonce::new(request.nonce.clone()),

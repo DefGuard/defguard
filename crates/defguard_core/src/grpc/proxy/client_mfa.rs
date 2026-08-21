@@ -124,8 +124,8 @@ impl From<InitiateError> for Status {
     }
 }
 
-// The engine's domain types carry no proto. These conversions are the adapter layer: they live
-// here, next to the handlers that use them, so `mfa_engine` stays exercisable without a transport.
+// The engine's domain types carry no proto, so the conversions live here rather than in
+// `mfa_engine`.
 
 impl From<FinishOutcome> for MfaStepResult {
     fn from(value: FinishOutcome) -> Self {
@@ -173,10 +173,9 @@ impl From<StepRejection> for MfaStepRejection {
     }
 }
 
-// These three impls are the ticket-03 status table. The message always comes from the variant's
-// `Display` (the `#[error(...)]` attribute in `mfa_engine::error`), so the contract string exists
-// in exactly one place; the only per-variant decision made here is the gRPC code. Changing a
-// `Display` string therefore changes the client-visible contract - it is not a cosmetic edit.
+// The status message always comes from the variant's `Display` (the `#[error(...)]` attribute in
+// `mfa_engine::error`), so each client-visible string exists in exactly one place and the only
+// decision made here is the gRPC code. Editing a `Display` string changes the client contract.
 
 impl From<StartError> for Status {
     fn from(err: StartError) -> Self {
@@ -238,7 +237,6 @@ impl ClientMfaServer {
         }
     }
 
-    /// Emit a bidi-stream event to the proxy.
     pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         self.channels.emit_event(event)
     }
@@ -309,12 +307,10 @@ impl ClientMfaServer {
         // validate user is allowed to connect to a given location
         Self::validate_location_access(&self.pool, &location, &device, &user_info).await?;
 
-        // Parse the caller's device info before anything is written. This is pure request
-        // validation with no database dependency, and rejecting it later would return an error
-        // to the client while leaving a live session row behind (and, on the supersede path,
-        // having already torn down the caller's previous session). It sits after the entity
-        // lookups so their more specific `not found` errors keep precedence, and before the
-        // posture block, which is the first thing here that can write.
+        // Parse the caller's device info before the posture block, the first thing here that can
+        // write. Rejecting it later would leave a live session row behind, and on the supersede
+        // path would already have torn down the caller's previous session. It stays after the
+        // entity lookups so their more specific `not found` errors keep precedence.
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 
         // Evaluate postures if necessary.
@@ -423,9 +419,8 @@ impl ClientMfaServer {
                 ));
             }
 
-            // Resolve the MFA flow that applies to this user at this location. The legacy adapter
-            // drives only the first step, so license-filter its methods and validate the client's
-            // selected method against them.
+            // The legacy adapter drives only the first step, so license-filter that step's methods
+            // and validate the client's selected method against them.
             let (flow, steps) = self
                 .resolve_mfa_flow(
                     &location,
@@ -530,8 +525,8 @@ impl ClientMfaServer {
         }
     }
 
-    /// Handle an accepted start: cancel the superseded waiter, emit the supersede event, and
-    /// build the response.
+    /// Handle an accepted start: cancel the superseded waiter, emit the supersede event, and build
+    /// the response.
     async fn finish_start(
         &self,
         start_outcome: StartOutcome,
@@ -540,8 +535,6 @@ impl ClientMfaServer {
         device: &Device<Id>,
         location: &WireguardNetwork<Id>,
     ) -> Result<ClientMfaStartOutcome, Status> {
-        // Cancel the superseded session's waiter (best-effort hygiene) and emit the supersede
-        // event.
         if let Some(superseded_token_hash) = start_outcome.superseded_token_hash {
             self.remote_mfa_responses
                 .write()
@@ -573,9 +566,8 @@ impl ClientMfaServer {
         }))
     }
 
-    /// Resolve the MFA flow applying to `user` at `location`, mapping both the no-flow and the
-    /// DB-error cases to their gRPC statuses. The two start paths differ only in the message used
-    /// when no flow applies.
+    /// Resolve the MFA flow applying to `user` at `location`. The two start paths differ only in
+    /// the message reported when no flow applies, hence `no_flow_message`.
     async fn resolve_mfa_flow(
         &self,
         location: &WireguardNetwork<Id>,
@@ -732,10 +724,9 @@ impl ClientMfaServer {
 
         let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
 
-        // The parked remote-MFA waiter is session-scoped: resolve it only once the flow
-        // completes. An intermediate step (`Advanced`) must not terminate it, and a pre-2.2
-        // client that reads an empty preshared key as success must never receive one over that
-        // path (D1).
+        // The parked remote-MFA waiter is session-scoped, so resolve it only once the flow
+        // completes. An intermediate step (`Advanced`) must not terminate it: a pre-2.2 client
+        // reads an empty preshared key as success.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
                 if let Some(tx) = self
@@ -764,8 +755,6 @@ impl ClientMfaServer {
         Ok(response)
     }
 
-    /// Start a step of a multi-step MFA login: convert the proto request to the domain method and
-    /// delegate to the engine.
     #[instrument(skip_all)]
     pub async fn client_mfa_step_start(
         &mut self,
@@ -2775,7 +2764,7 @@ mod tests {
         assert!(!response.step_attempt_id.is_empty());
         assert!(response.challenge.is_none());
         // Step 0 is born initialized, so this is a re-call: it must supersede the attempt minted
-        // by `start` rather than hand the same one back (ticket 05 §4).
+        // by `start` rather than hand the same one back.
         assert_ne!(response.step_attempt_id, started.step_attempt_id);
     }
 
