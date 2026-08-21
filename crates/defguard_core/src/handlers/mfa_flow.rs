@@ -130,8 +130,22 @@ pub struct UpdateMfaFlowStep {
     pub methods: Vec<VpnClientMfaMethod>,
 }
 
-/// A single MFA flow assignment, used by location read and save requests.
-pub type AssignMfaFlowEntry = LocationMfaFlowAssignment;
+/// A group scoped to a location MFA flow assignment.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct LocationMfaFlowGroupResponse {
+    pub id: Id,
+    pub name: String,
+}
+
+/// An MFA flow assignment rendered in the context of one location.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct LocationMfaFlowResponse {
+    pub id: Id,
+    pub title: String,
+    pub steps: Vec<MfaFlowStepResponse>,
+    pub is_default: bool,
+    pub groups: Vec<LocationMfaFlowGroupResponse>,
+}
 
 // Helpers
 
@@ -235,7 +249,7 @@ fn check_method_prerequisites(
 /// tier, which is the correct behaviour for this feature.
 #[must_use]
 pub(crate) fn check_assignment_license_gates(
-    assignments: &[AssignMfaFlowEntry],
+    assignments: &[LocationMfaFlowAssignment],
 ) -> Option<ApiResponse> {
     let scoped = assignments.iter().position(|a| !a.group_ids.is_empty());
     if let Some(index) = scoped
@@ -254,9 +268,9 @@ pub(crate) fn check_assignment_license_gates(
 /// Errors point at the row the admin submitted rather than at the list as a whole. When no entry
 /// matches, the path degrades to the bare `assignments` list, which is the best available anchor.
 fn assignment_field_path(
-    assignments: &[AssignMfaFlowEntry],
+    assignments: &[LocationMfaFlowAssignment],
     suffix: &str,
-    predicate: impl Fn(&AssignMfaFlowEntry) -> bool,
+    predicate: impl Fn(&LocationMfaFlowAssignment) -> bool,
 ) -> String {
     assignments.iter().position(predicate).map_or_else(
         || "assignments".to_owned(),
@@ -265,12 +279,12 @@ fn assignment_field_path(
 }
 
 /// Field path for the assignment entry referencing `flow_id`.
-fn assignment_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
+fn assignment_field(assignments: &[LocationMfaFlowAssignment], flow_id: Id) -> String {
     assignment_field_path(assignments, "flow_id", |a| a.flow_id == flow_id)
 }
 
 /// Field path for the assignment entry referencing `group_id`.
-fn group_field(assignments: &[AssignMfaFlowEntry], group_id: Id) -> String {
+fn group_field(assignments: &[LocationMfaFlowAssignment], group_id: Id) -> String {
     assignment_field_path(assignments, "group_ids", |a| {
         a.group_ids.contains(&group_id)
     })
@@ -278,13 +292,13 @@ fn group_field(assignments: &[AssignMfaFlowEntry], group_id: Id) -> String {
 
 /// Field path for the assignment entry whose empty group set made it inert, pointing at the
 /// `group_ids` the admin must populate rather than at the flow as a whole.
-fn non_default_group_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
+fn non_default_group_field(assignments: &[LocationMfaFlowAssignment], flow_id: Id) -> String {
     assignment_field_path(assignments, "group_ids", |a| a.flow_id == flow_id)
 }
 
 /// Build a `400` response with structured `fields[]` errors.
 pub(crate) fn assignment_error_response(
-    assignments: &[AssignMfaFlowEntry],
+    assignments: &[LocationMfaFlowAssignment],
     error: MfaFlowAssignmentError,
 ) -> Result<ApiResponse, WebError> {
     let (field, code) = match error {
@@ -708,7 +722,7 @@ pub async fn delete_mfa_flow(
         ("id" = i64, Path, description = "ID of the location.")
     ),
     responses(
-        (status = 200, description = "MFA flow assignments for the location.", body = [AssignMfaFlowEntry]),
+        (status = 200, description = "MFA flow assignments for the location.", body = [LocationMfaFlowResponse]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
         (status = 500, description = "Unable to list assigned flows.", body = ApiErrorResponse)
@@ -738,9 +752,26 @@ pub async fn get_location_mfa_flows(
         return Err(WebError::ObjectNotFound(format!("Location {id} not found")));
     }
 
-    let assignments = MfaFlow::assignments_for_location(&appstate.pool, id).await?;
+    let assignments = MfaFlow::for_location(&appstate.pool, id).await?;
+    let mut response = Vec::with_capacity(assignments.len());
+    for assignment in assignments {
+        let steps = MfaFlowStep::find_by_flow(&appstate.pool, assignment.id).await?;
+        let groups = assignment
+            .group_ids
+            .into_iter()
+            .zip(assignment.group_names)
+            .map(|(id, name)| LocationMfaFlowGroupResponse { id, name })
+            .collect();
+        response.push(LocationMfaFlowResponse {
+            id: assignment.id,
+            title: assignment.title,
+            steps: steps.into_iter().map(Into::into).collect(),
+            is_default: assignment.is_default,
+            groups,
+        });
+    }
 
-    Ok(ApiResponse::json(assignments, StatusCode::OK))
+    Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
 /// Method availability entry returned by the catalogue endpoint.

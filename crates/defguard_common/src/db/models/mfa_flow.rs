@@ -55,6 +55,7 @@ pub struct LocationMfaFlowItem {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
+    pub group_ids: Vec<Id>,
     pub group_names: Vec<String>,
     pub position: i32,
     pub is_default: bool,
@@ -525,7 +526,10 @@ impl MfaFlow<Id> {
             LocationMfaFlowItem,
             "SELECT mf.id, mf.title, \
              COALESCE(s.step_count, 0) AS \"step_count!: i64\", \
-             COALESCE(array_agg(g.name ORDER BY g.name) \
+             COALESCE(array_agg(lmfg.group_id ORDER BY lmfg.group_id) \
+                      FILTER (WHERE lmfg.group_id IS NOT NULL), '{}') \
+                      AS \"group_ids!: Vec<Id>\", \
+             COALESCE(array_agg(g.name ORDER BY lmfg.group_id) \
                       FILTER (WHERE g.name IS NOT NULL), '{}') \
                       AS \"group_names!: Vec<String>\", \
              lmf.position, lmf.is_default \
@@ -542,30 +546,6 @@ impl MfaFlow<Id> {
              LEFT JOIN \"group\" g ON g.id = lmfg.group_id \
              WHERE lmf.location_id = $1 \
              GROUP BY mf.id, mf.title, s.step_count, lmf.position, lmf.is_default \
-             ORDER BY lmf.position",
-            location_id
-        )
-        .fetch_all(executor)
-        .await
-    }
-
-    /// Returns the assignments for a location in the shape accepted by location save requests.
-    pub async fn assignments_for_location<'e, E: PgExecutor<'e>>(
-        executor: E,
-        location_id: Id,
-    ) -> sqlx::Result<Vec<LocationMfaFlowAssignment>> {
-        query_as!(
-            LocationMfaFlowAssignment,
-            "SELECT lmf.flow_id, lmf.is_default, \
-             COALESCE(array_agg(lmfg.group_id ORDER BY lmfg.group_id) \
-                      FILTER (WHERE lmfg.group_id IS NOT NULL), '{}') \
-                      AS \"group_ids!: Vec<Id>\" \
-             FROM location_mfa_flow lmf \
-             LEFT JOIN location_mfa_flow_group lmfg \
-                 ON lmfg.location_id = lmf.location_id \
-                 AND lmfg.flow_id = lmf.flow_id \
-             WHERE lmf.location_id = $1 \
-             GROUP BY lmf.flow_id, lmf.position, lmf.is_default \
              ORDER BY lmf.position",
             location_id
         )

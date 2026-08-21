@@ -235,7 +235,6 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         device_posture::update_device_posture,
         device_posture::duplicate_device_posture,
         device_posture::set_locations_for_posture,
-        device_posture::set_postures_for_location,
         // SNAT
         snat::list_snat_bindings,
         snat::create_snat_binding,

@@ -10,6 +10,7 @@ import api from '../../shared/api/api';
 import {
   type EditNetworkLocation,
   LicenseFeature,
+  type LocationMfaFlowResponse,
   LocationServiceMode,
   type NetworkLocation,
 } from '../../shared/api/types';
@@ -356,7 +357,7 @@ const EditLocationForm = ({
   mfaFlows,
 }: {
   location: NetworkLocation;
-  mfaFlows: EditNetworkLocation['mfa_flows'];
+  mfaFlows: LocationMfaFlowResponse[];
 }) => {
   const navigate = useNavigate();
 
@@ -537,7 +538,11 @@ const EditLocationForm = ({
       data: {
         ...buildLocationSubmissionData(value, location),
         posture_checks: pendingPostureChecks,
-        mfa_flows: mfaFlows,
+        mfa_flows: mfaFlows.map((flow) => ({
+          flow_id: flow.id,
+          is_default: flow.is_default,
+          group_ids: flow.groups.map((group) => group.id),
+        })),
       },
     });
   };

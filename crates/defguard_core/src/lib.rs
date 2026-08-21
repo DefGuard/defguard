@@ -122,7 +122,7 @@ use crate::{
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_posture, get_device_posture_versions, list_device_postures,
-                set_locations_for_posture, set_postures_for_location, update_device_posture,
+                set_locations_for_posture, update_device_posture,
             },
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
@@ -702,7 +702,6 @@ pub fn build_webapp(
                 "/network/{location_id}/snat",
                 get(list_snat_bindings).post(create_snat_binding),
             )
-            .route("/network/{id}/postures", put(set_postures_for_location))
             .route(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),

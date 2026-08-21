@@ -1470,6 +1470,19 @@ export interface MfaFlowAssignment {
   group_ids: number[];
 }
 
+export interface LocationMfaFlowGroup {
+  id: number;
+  name: string;
+}
+
+export interface LocationMfaFlowResponse {
+  id: number;
+  title: string;
+  steps: Pick<MfaFlowStep, 'methods'>[];
+  is_default: boolean;
+  groups: LocationMfaFlowGroup[];
+}
+
 export interface MfaFlowDetailResponse {
   id: number;
   title: string;

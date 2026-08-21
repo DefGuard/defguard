@@ -44,7 +44,7 @@ use crate::{
     grpc::GatewayCommand,
     handlers::{
         gateway::GatewayInfo,
-        mfa_flow::{AssignMfaFlowEntry, assignment_error_response, check_assignment_license_gates},
+        mfa_flow::{assignment_error_response, check_assignment_license_gates},
         network_devices::DeviceWireGuardConfig,
     },
     location_management::{
@@ -91,7 +91,7 @@ pub struct WireguardNetworkData {
     pub mfa_enabled: bool,
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Vec<Id>,
-    pub mfa_flows: Vec<AssignMfaFlowEntry>,
+    pub mfa_flows: Vec<LocationMfaFlowAssignment>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
