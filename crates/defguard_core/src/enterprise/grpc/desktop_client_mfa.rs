@@ -17,7 +17,9 @@ use tonic::Status;
 
 use crate::{
     enterprise::{
-        handlers::openid_login::{MfaOidcState, extract_state_data, user_from_claims},
+        handlers::openid_login::{
+            ClaimsUserResolution, MfaOidcState, extract_state_data, user_from_claims,
+        },
         is_business_license_active,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
@@ -142,8 +144,9 @@ impl ClientMfaServer {
             }
         };
 
-        // This path only re-verifies an already-existing user's identity via OpenID
-        // for MFA, so it never creates a new account, hence no `ApiEvent` channel.
+        // MFA re-verifies an existing link and must neither link nor create: the identity check
+        // below runs *after* this call, so a write here would survive a rejected MFA. Account
+        // creation is unreachable, hence no `ApiEvent` channel.
         match user_from_claims(
             &self.pool,
             Nonce::new(request.nonce.clone()),
@@ -152,6 +155,7 @@ impl ClientMfaServer {
             Some(ip),
             Some(&user_agent),
             None,
+            ClaimsUserResolution::LookupOnly,
         )
         .await
         {
@@ -160,17 +164,21 @@ impl ClientMfaServer {
                 if claims_user.id != user.id {
                     info!("User {claims_user} tried to use OIDC MFA for another user: {user}");
                     self.delete_mfa_session(session).await?;
-                    self.emit_event(BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location: location.clone(),
-                                device: device.clone(),
-                                method,
-                                message: format!("user {claims_user} tried to use OIDC MFA for another user: {user}")
-                            },
-                        )),
-                    })?;
+                    self.emit_event(
+                        BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                    method,
+                                    message: format!(
+                                        "user {claims_user} tried to use OIDC MFA for another user: {user}"
+                                    ),
+                                },
+                            )),
+                        },
+                    )?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
                 info!(

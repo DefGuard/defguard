@@ -55,8 +55,8 @@ pub struct MfaAttribution {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Step {
     pub methods: Vec<VpnClientMfaMethod>,
-    /// The method that satisfied this step, written by `advance` from the step's
-    /// `ephemeral_state.selected_method` before that state is cleared.
+    /// The method that satisfied this step, recorded by `advance` from the method its caller
+    /// verified.
     #[serde(default)]
     pub satisfied: Option<VpnClientMfaMethod>,
 }
@@ -325,7 +325,7 @@ impl VpnClientMfaSession<Id> {
     /// mobile approve) must carry and match.
     ///
     /// The *first* attempt of a session is not minted here: `start` writes it inline, so this is
-    /// for re-issuing an attempt on the current step and for arming each subsequent step.
+    /// for re-issuing an attempt on the current step and for initializing each subsequent step.
     pub async fn begin_attempt(
         &self,
         conn: &mut PgConnection,
@@ -398,13 +398,25 @@ impl VpnClientMfaSession<Id> {
     /// clear land in one statement so the proof cannot be lost between them. A NULL
     /// `ephemeral_state` leaves `satisfied` unset rather than erroring.
     ///
-    /// Returns the new step outcome and the updated snapshot, so the caller can read the
-    /// just-recorded `satisfied` method without a second query. Does not extend `expires_at`
-    /// (fixed window).
+    /// The write is guarded by `current_step`, and by `step_attempt_id` when the client supplied
+    /// one, so a stale or duplicate advance matches zero rows rather than skipping a step and
+    /// returns `Ok(None)`. Does not extend `expires_at` (fixed window).
     pub async fn advance(
         &self,
         conn: &mut PgConnection,
-    ) -> sqlx::Result<(StepOutcome, StepsSnapshot)> {
+        current_step: i32,
+        step_attempt_id: Option<&str>,
+        satisfied_method: VpnClientMfaMethod,
+    ) -> sqlx::Result<Option<(StepOutcome, StepsSnapshot)>> {
+        // Record the method the caller actually verified rather than re-reading
+        // `ephemeral_state->'selected_method'`: a concurrent `begin_attempt` can overwrite that
+        // field between the verification and this statement, attributing the step to a method the
+        // user never proved.
+        let satisfied = serde_json::to_value(satisfied_method)
+            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        // The `WHERE` clause is the guard that stops a proof advancing a step it was not minted
+        // for. `$3` is NULL for a pre-2.2 client that cannot send an attempt id, which degrades to
+        // the step-only binding.
         let row = query_as!(
             AdvanceRow,
             "UPDATE vpn_client_mfa_session \
@@ -412,19 +424,27 @@ impl VpnClientMfaSession<Id> {
                  WHEN ephemeral_state IS NOT NULL THEN jsonb_set( \
                      steps_snapshot, \
                      ARRAY['steps', current_step::text, 'satisfied'], \
-                     ephemeral_state->'selected_method' \
+                     $4 \
                  ) \
                  ELSE steps_snapshot \
              END, \
              ephemeral_state = NULL, \
              current_step = current_step + 1, \
              failed_attempts = 0 \
-             WHERE id = $1 \
+             WHERE id = $1 AND current_step = $2 \
+               AND ($3::text IS NULL OR ephemeral_state->>'step_attempt_id' = $3) \
              RETURNING current_step, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\"",
             self.id,
+            current_step,
+            step_attempt_id,
+            satisfied,
         )
-        .fetch_one(&mut *conn)
+        .fetch_optional(&mut *conn)
         .await?;
+
+        let Some(row) = row else {
+            return Ok(None);
+        };
 
         let total_steps = self.steps_snapshot.0.steps.len() as i32;
         let outcome = if row.current_step >= total_steps {
@@ -435,7 +455,7 @@ impl VpnClientMfaSession<Id> {
             }
         };
 
-        Ok((outcome, row.steps_snapshot.0))
+        Ok(Some((outcome, row.steps_snapshot.0)))
     }
 
     /// Increment the per-step proof-failure counter.

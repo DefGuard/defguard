@@ -27,8 +27,8 @@ use defguard_core::{
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            MfaOidcState, SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client,
-            user_from_claims,
+            ClaimsUserResolution, MfaOidcState, SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state,
+            make_oidc_client, user_from_claims,
         },
         is_business_license_active,
         ldap::utils::ldap_update_user_state,
@@ -975,6 +975,8 @@ impl ProxyHandler {
                                         None,
                                         None,
                                         Some(&self.services.event_tx),
+                                        // Enrollment provisions the account.
+                                        ClaimsUserResolution::GetOrCreate,
                                     )
                                     .await
                                     {
@@ -1147,7 +1149,23 @@ impl ProxyHandler {
                                 }
                             }
                         }
-                        Some(core_request::Payload::ClientMfaStepStart(_)) => unimplemented!(),
+                        // rpc ClientMfaStepStart (ClientMfaStepStartRequest) returns (ClientMfaStepStartResponse)
+                        Some(core_request::Payload::ClientMfaStepStart(request)) => {
+                            match self
+                                .services
+                                .client_mfa
+                                .client_mfa_step_start(request)
+                                .await
+                            {
+                                Ok(response) => {
+                                    Some(core_response::Payload::ClientMfaStepStart(response))
+                                }
+                                Err(err) => {
+                                    error!("client MFA step start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                     };
 
                     if let Some(payload) = payload {

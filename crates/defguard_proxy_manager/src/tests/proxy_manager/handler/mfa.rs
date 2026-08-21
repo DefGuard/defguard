@@ -1,6 +1,11 @@
-use defguard_common::{db::Id, gateway_event::GatewayCommand};
+use defguard_common::{
+    db::{Id, models::vpn_client_session::VpnClientSession},
+    gateway_event::GatewayCommand,
+};
 use defguard_proto::{
-    client_types::{ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod},
+    client_types::{
+        ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod, MfaStepResult, mfa_step_result,
+    },
     proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -10,11 +15,12 @@ use tonic::Code;
 use super::support::{
     assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
     biometric_pub_key, clear_test_license, complete_proxy_handshake, create_external_mfa_network,
-    create_mfa_network, create_network, create_user_with_device, expect_bidi_mfa_success,
-    generate_totp_code, make_device_info, register_biometric_key, send_mfa_finish,
-    send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_finish_signed, send_mfa_start,
-    send_mfa_start_with_challenge, send_token_validation, set_test_license_business,
-    setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
+    create_mfa_network, create_multi_step_mfa_network, create_network, create_user_with_device,
+    expect_bidi_mfa_success, generate_totp_code, make_device_info, register_biometric_key,
+    send_mfa_finish, send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_finish_signed,
+    send_mfa_start, send_mfa_start_multi_step, send_mfa_start_with_challenge, send_mfa_step_start,
+    send_token_validation, set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa,
+    sign_challenge,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
 
@@ -298,6 +304,7 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
                 token: token.clone(),
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
+                step_attempt_id: None,
             },
         )),
     });
@@ -372,6 +379,54 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
     assert_eq!(code, Code::InvalidArgument);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Email MFA needs a working SMTP server, not just the per-user flag.
+///
+/// `test_mfa_start_returns_token_for_email_mfa` is the same request with SMTP configured, so the
+/// pair pins SMTP as the discriminator rather than another `InvalidArgument` on the path. `Start`
+/// is the only chance to report it, since `initiate` sends via `send_and_forget`.
+#[sqlx::test]
+async fn test_mfa_start_rejects_email_when_smtp_not_configured(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+
+    // Enable email MFA on the user directly: `setup_user_email_mfa` would also configure SMTP,
+    // which is the condition under test.
+    user.new_email_secret(&context.pool)
+        .await
+        .expect("new_email_secret");
+    user.enable_email_mfa(&context.pool)
+        .await
+        .expect("enable_email_mfa");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaStart(
+            ClientMfaStartRequest {
+                location_id: network.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                #[allow(deprecated)]
+                method: MfaMethod::Email as i32,
+                posture_data: None,
+                selected_methods: Vec::new(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "selected MFA method is not available");
 
     context.finish().await.expect_server_finished().await;
 }
@@ -746,6 +801,103 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     // New session must exist in the DB.
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    setup_user_email_mfa(&context.pool, &mut user).await;
+
+    // Start the TOTP -> Email flow.
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Totp, MfaMethod::Email],
+    )
+    .await;
+    assert!(!token.is_empty());
+
+    // Subscribe to the gateway broadcast before finishing so the collect path's
+    // gateway send has a live receiver.
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    // Step 0 (TOTP) advances without authorizing.
+    let totp = generate_totp_code(&user);
+    let response = send_mfa_finish_raw(&mut context, &token, Some(&totp)).await;
+    let next_step = match &response.payload {
+        Some(core_response::Payload::ClientMfaFinish(r)) => match &r.result {
+            Some(MfaStepResult {
+                outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
+            }) => advanced.next_step,
+            _ => panic!("expected Advanced outcome"),
+        },
+        _ => panic!("expected ClientMfaFinish response"),
+    };
+    assert_eq!(next_step, 1);
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to fetch sessions")
+        .is_empty(),
+        "no session may be authorized before the final step"
+    );
+
+    // Step 1 (Email) completes the flow.
+    let step_started = send_mfa_step_start(&mut context, &token, MfaMethod::Email).await;
+    assert!(!step_started.step_attempt_id.is_empty());
+
+    let email = user
+        .generate_email_mfa_code()
+        .expect("email_mfa_secret must be set");
+    let response = send_mfa_finish_raw(&mut context, &token, Some(&email)).await;
+    let preshared_key = match &response.payload {
+        Some(core_response::Payload::ClientMfaFinish(r)) => match &r.result {
+            Some(MfaStepResult {
+                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
+            }) => completed.preshared_key.clone(),
+            _ => panic!("expected Completed outcome"),
+        },
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "second finish got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        _ => panic!("expected ClientMfaFinish response"),
+    };
+    assert!(!preshared_key.is_empty());
+
+    let sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+        &context.pool,
+        network.id,
+        device.id,
+    )
+    .await
+    .expect("failed to fetch sessions");
+    assert_eq!(sessions.len(), 1);
+    assert!(sessions[0].is_mfa_session);
+
+    // The gateway authorization and the success event are emitted on completion.
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+        .await
+        .expect("timed out waiting for VpnSessionAuthorized")
+        .expect("gateway command channel closed");
+    assert!(
+        matches!(event, GatewayCommand::VpnSessionAuthorized(..)),
+        "expected VpnSessionAuthorized, got: {event:?}"
+    );
+    expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
 
     context.finish().await.expect_server_finished().await;
 }

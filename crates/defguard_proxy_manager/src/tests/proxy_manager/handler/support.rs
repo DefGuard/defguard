@@ -40,8 +40,8 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{
         ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
-        CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
-        EnrollmentStartRequest, MfaMethod,
+        ClientMfaStepStartRequest, ClientMfaStepStartResponse, CodeMfaSetupFinishRequest,
+        CodeMfaSetupStartRequest, DeviceConfigResponse, EnrollmentStartRequest, MfaMethod,
     },
     proxy::{
         ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
@@ -619,6 +619,13 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
         .expect("generate_email_mfa_code")
 }
 
+/// Link `user` to the identity the mock presents, which OIDC MFA requires before offering the
+/// method. `sub` is the email because that is what [`make_oidc_code`] is called with here.
+pub(crate) async fn link_user_oidc_identity(pool: &PgPool, user: &mut User<Id>) {
+    user.openid_sub = Some(user.email.clone());
+    user.save(pool).await.expect("failed to link OIDC identity");
+}
+
 /// Enable TOTP for `user` and persist the secret.  Call `generate_totp_code`
 /// just before `send_mfa_finish` to produce a fresh code from the stored secret.
 pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
@@ -712,6 +719,79 @@ pub(crate) async fn send_mfa_start_with_challenge(
     (id, token, challenge)
 }
 
+/// Send `ClientMfaStart` with an explicit multi-step plan and return `(request id, token)`.
+///
+/// Non-empty `selected_methods` selects the multi-step path; the deprecated `method` field is
+/// ignored. Panics if the handler returns an error.
+pub(crate) async fn send_mfa_start_multi_step(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    selected_methods: &[MfaMethod],
+) -> (u64, String) {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaStart(
+            ClientMfaStartRequest {
+                location_id,
+                pubkey: pubkey.to_owned(),
+                #[allow(deprecated)]
+                method: MfaMethod::Totp as i32,
+                posture_data: None,
+                selected_methods: selected_methods.iter().map(|m| *m as i32).collect(),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let token = match &response.payload {
+        Some(core_response::Payload::ClientMfaStart(r)) => r.token.clone(),
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "send_mfa_start_multi_step: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "send_mfa_start_multi_step: expected ClientMfaStart response, got: {:?}",
+            other.as_ref().map(discriminant)
+        ),
+    };
+    (id, token)
+}
+
+/// Send `ClientMfaStepStart` and return the response. Panics if the handler returns an error.
+pub(crate) async fn send_mfa_step_start(
+    context: &mut HandlerTestContext,
+    token: &str,
+    method: MfaMethod,
+) -> ClientMfaStepStartResponse {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: None,
+        payload: Some(core_request::Payload::ClientMfaStepStart(
+            ClientMfaStepStartRequest {
+                token: token.to_owned(),
+                method: method as i32,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    match response.payload {
+        Some(core_response::Payload::ClientMfaStepStart(r)) => r,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "send_mfa_step_start: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "send_mfa_step_start: expected ClientMfaStepStart response, got: {:?}",
+            other.as_ref().map(discriminant)
+        ),
+    }
+}
+
 /// Register an ed25519 biometric-auth key for `device_id` and return the signing key.
 ///
 /// Both legacy signature flows verify a challenge against a key the device enrolled up front, so
@@ -768,6 +848,7 @@ pub(crate) async fn send_mfa_finish_signed(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: auth_pub_key.map(str::to_owned),
+                step_attempt_id: None,
             },
         )),
     });
@@ -808,6 +889,7 @@ pub(crate) async fn send_mfa_finish_no_recv(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: None,
+                step_attempt_id: None,
             },
         )),
     });
@@ -833,6 +915,7 @@ pub(crate) async fn send_mfa_finish_raw(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: None,
+                step_attempt_id: None,
             },
         )),
     });
