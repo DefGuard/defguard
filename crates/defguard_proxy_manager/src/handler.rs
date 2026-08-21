@@ -27,8 +27,8 @@ use defguard_core::{
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            MfaOidcState, SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client,
-            user_from_claims,
+            ClaimsUserResolution, MfaOidcState, SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state,
+            make_oidc_client, user_from_claims,
         },
         is_business_license_active,
         ldap::utils::ldap_update_user_state,
@@ -975,6 +975,8 @@ impl ProxyHandler {
                                         None,
                                         None,
                                         Some(&self.services.event_tx),
+                                        // Enrollment provisions the account.
+                                        ClaimsUserResolution::GetOrCreate,
                                     )
                                     .await
                                     {

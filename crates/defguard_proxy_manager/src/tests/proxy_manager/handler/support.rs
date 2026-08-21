@@ -619,6 +619,13 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
         .expect("generate_email_mfa_code")
 }
 
+/// Link `user` to the identity the mock presents, which OIDC MFA requires before offering the
+/// method. `sub` is the email because that is what [`make_oidc_code`] is called with here.
+pub(crate) async fn link_user_oidc_identity(pool: &PgPool, user: &mut User<Id>) {
+    user.openid_sub = Some(user.email.clone());
+    user.save(pool).await.expect("failed to link OIDC identity");
+}
+
 /// Enable TOTP for `user` and persist the secret.  Call `generate_totp_code`
 /// just before `send_mfa_finish` to produce a fresh code from the stored secret.
 pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {

@@ -97,73 +97,43 @@ impl MfaEngine {
         steps: Vec<Vec<VpnClientMfaMethod>>,
         selected_method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
-        // Reject a selected method the user has not set up.
+        // Reject a selected method the user has not set up. `is_configured` is shared with
+        // `start_multi_step` and `step_start` so the paths cannot disagree.
         //
-        // This deliberately does *not* call `VpnClientMfaMethod::is_configured`, which the
-        // multi-step paths (`start_multi_step`, `step_start`) use. Two predicates for one
-        // question looks like an accident; it is not. This is the path every deployed 2.0/2.1
-        // client takes, and `is_configured` is stricter in two places that would change what
-        // those clients see:
+        // Email needs `smtp_configured` too: `initiate` hands the code to `send_and_forget`, so a
+        // send failure has no way back to the client and an unusable mailer must be caught here.
         //
-        // - Email: `is_configured` also requires `smtp_configured`, so a deployment with broken
-        //   SMTP would start rejecting at `Start` with "selected MFA method is not available"
-        //   instead of failing later in `initiate`.
-        // - OIDC: `is_configured` also requires `user.openid_sub`, so a user who has not yet
-        //   linked an OIDC identity would be refused here rather than at the callback.
-        //
-        // Both may well be the better behaviour, but changing them is a user-visible change to
-        // the legacy flow and belongs in its own change with its own release note - not smuggled
-        // in as a refactor. Every branch below mirrors the legacy error vocabulary exactly.
-        match selected_method {
-            VpnClientMfaMethod::Biometric => {
-                if BiometricAuth::find_by_device_id(&self.pool, device.id)
-                    .await
-                    .map_err(|_| StartError::Internal)?
-                    .is_none()
-                {
-                    error!("Biometric MFA is not configured for device {}", device.id);
-                    return Err(StartError::BiometricNotConfigured);
-                }
+        // OIDC needs no license check - the caller's first-step filter drops it when unlicensed.
+        let smtp_configured = Settings::get_current_settings().smtp_configured();
+        let oidc_configured = self.oidc_configured().await.map_err(|err| {
+            error!("Failed to get current OpenID provider: {err}");
+            StartError::Internal
+        })?;
+        if !selected_method
+            .is_configured(
+                &self.pool,
+                user,
+                device.id,
+                smtp_configured,
+                oidc_configured,
+            )
+            .await
+            .map_err(|err| {
+                error!("Failed to check MFA method configuration: {err}");
+                StartError::Internal
+            })?
+        {
+            // Biometric reports a device-scoped message, the rest a generic one. Which method
+            // gets which string is client-visible.
+            if selected_method == VpnClientMfaMethod::Biometric {
+                error!("Biometric MFA is not configured for device {}", device.id);
+                return Err(StartError::BiometricNotConfigured);
             }
-            VpnClientMfaMethod::MobileApprove => {
-                let result = BiometricAuth::find_by_user_id(&self.pool, user.id)
-                    .await
-                    .map_err(|_| StartError::Internal)?;
-                if result.is_empty() {
-                    error!(
-                        "Mobile approve is not configured for user {}",
-                        user.username
-                    );
-                    return Err(StartError::MethodNotAvailable);
-                }
-            }
-            VpnClientMfaMethod::Totp => {
-                if !user.totp_enabled {
-                    error!("TOTP not enabled for user {}", user.username);
-                    return Err(StartError::MethodNotAvailable);
-                }
-            }
-            VpnClientMfaMethod::Email => {
-                if !user.email_mfa_enabled {
-                    error!("Email MFA not enabled for user {}", user.username);
-                    return Err(StartError::MethodNotAvailable);
-                }
-            }
-            VpnClientMfaMethod::Oidc => {
-                // No license check here: the caller's first-step filter already drops OIDC unless
-                // the business license is active, so reaching this branch means the gate passed.
-                if OpenIdProvider::get_current(&self.pool)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to get current OpenID provider: {err}",);
-                        StartError::Internal
-                    })?
-                    .is_none()
-                {
-                    error!("OIDC provider is not configured");
-                    return Err(StartError::MethodNotAvailable);
-                }
-            }
+            error!(
+                "MFA method {selected_method:?} is not configured for user {}",
+                user.username
+            );
+            return Err(StartError::MethodNotAvailable);
         }
 
         self.start_session(location, device, user, flow_id, steps, selected_method)

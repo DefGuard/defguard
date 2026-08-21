@@ -383,6 +383,54 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
     context.finish().await.expect_server_finished().await;
 }
 
+/// Email MFA needs a working SMTP server, not just the per-user flag.
+///
+/// `test_mfa_start_returns_token_for_email_mfa` is the same request with SMTP configured, so the
+/// pair pins SMTP as the discriminator rather than another `InvalidArgument` on the path. `Start`
+/// is the only chance to report it: `initiate` sends via `send_and_forget`.
+#[sqlx::test]
+async fn test_mfa_start_rejects_email_when_smtp_not_configured(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+
+    // Enable email MFA on the user directly: `setup_user_email_mfa` would also configure SMTP,
+    // which is the condition under test.
+    user.new_email_secret(&context.pool)
+        .await
+        .expect("new_email_secret");
+    user.enable_email_mfa(&context.pool)
+        .await
+        .expect("enable_email_mfa");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaStart(
+            ClientMfaStartRequest {
+                location_id: network.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                #[allow(deprecated)]
+                method: MfaMethod::Email as i32,
+                posture_data: None,
+                selected_methods: Vec::new(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "selected MFA method is not available");
+
+    context.finish().await.expect_server_finished().await;
+}
+
 #[sqlx::test]
 async fn test_mfa_start_returns_token_for_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;

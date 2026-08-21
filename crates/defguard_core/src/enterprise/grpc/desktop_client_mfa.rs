@@ -17,7 +17,9 @@ use tonic::Status;
 
 use crate::{
     enterprise::{
-        handlers::openid_login::{MfaOidcState, extract_state_data, user_from_claims},
+        handlers::openid_login::{
+            ClaimsUserResolution, MfaOidcState, extract_state_data, user_from_claims,
+        },
         is_business_license_active,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
@@ -142,8 +144,9 @@ impl ClientMfaServer {
             }
         };
 
-        // This path only re-verifies an already-existing user's identity via OpenID
-        // for MFA, so it never creates a new account, hence no `ApiEvent` channel.
+        // `LookupOnly`: MFA re-verifies an existing link and must neither link nor create. The
+        // identity check below runs *after* this call, so a write here would survive a rejected
+        // MFA. Account creation is unreachable, hence no `ApiEvent` channel.
         match user_from_claims(
             &self.pool,
             Nonce::new(request.nonce.clone()),
@@ -152,6 +155,7 @@ impl ClientMfaServer {
             Some(ip),
             Some(&user_agent),
             None,
+            ClaimsUserResolution::LookupOnly,
         )
         .await
         {

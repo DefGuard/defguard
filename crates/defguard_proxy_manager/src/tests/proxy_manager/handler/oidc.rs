@@ -3,6 +3,7 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 use defguard_common::db::{
     Id,
     models::{
+        User,
         settings::{Settings, update_current_settings},
         vpn_client_mfa_session::VpnClientMfaSession,
     },
@@ -27,12 +28,13 @@ use defguard_proto::{
 use reqwest::Url;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
+use tonic::Code;
 
 use super::support::{
     assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
     create_external_mfa_network, create_oidc_provider, create_user, create_user_with_device,
-    expect_bidi_mfa_success, make_device_info, make_oidc_code, send_mfa_finish, send_mfa_start,
-    set_public_proxy_url, set_test_license_business,
+    expect_bidi_mfa_success, link_user_oidc_identity, make_device_info, make_oidc_code,
+    send_mfa_finish, send_mfa_start, set_public_proxy_url, set_test_license_business,
 };
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
@@ -186,7 +188,8 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
     // The MFA flow requires an active session whose token rides in `state`. Start one for the
     // external (OIDC) network so `start_client_mfa_login` accepts the Oidc method.
     let network = create_external_mfa_network(&context.pool).await;
-    let (_user, device) = create_user_with_device(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
     let (_id, mfa_token) = send_mfa_start(
         &mut context,
         network.id,
@@ -445,7 +448,8 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     // External MFA network is required for OIDC MFA method.
     let network = create_external_mfa_network(&context.pool).await;
-    let (user, device) = create_user_with_device(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
 
     let mock = MockOidcProvider::start().await;
     let _provider = create_oidc_provider(&context.pool, &mock).await;
@@ -521,6 +525,87 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     context.finish().await.expect_server_finished().await;
 }
 
+/// An MFA callback presenting an unrecognised provider identity is refused and leaves no trace.
+///
+/// The `sub` is unlinked but the email matches a real account. MFA resolves by `sub` alone, so the
+/// bystander must be untouched - the rejection lands after resolution, so a write would survive.
+#[sqlx::test]
+async fn test_mfa_oidc_unknown_identity_does_not_link_account(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+
+    // A second account, never linked to any provider identity, whose email the callback presents.
+    let bystander = create_user(&context.pool).await;
+    assert!(bystander.openid_sub.is_none());
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let (_, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+    let state = build_state(Some(MfaOidcState::build(&mfa_token, &attempt_id)))
+        .secret()
+        .clone();
+
+    let raw_nonce = "mfa-oidc-unknown-identity-nonce";
+    // An unknown `sub`, carrying the bystander's email.
+    let code = make_oidc_code("unlinked-provider-sub", &bystander.email, raw_nonce);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 32,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaOidcAuthenticate(
+            ClientMfaOidcAuthenticateRequest {
+                code,
+                state,
+                nonce: raw_nonce.to_owned(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(code, Code::Unauthenticated);
+
+    // The bystander is still unlinked: the refused callback wrote nothing.
+    let bystander = User::find_by_id(&context.pool, bystander.id)
+        .await
+        .expect("failed to reload bystander")
+        .expect("bystander should still exist");
+    assert!(
+        bystander.openid_sub.is_none(),
+        "a refused MFA callback linked an account to the provider identity"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
 /// A callback whose state-carried `step_attempt_id` does not match the live row is rejected.
 ///
 /// The genuine end-to-end case - a callback from an attempt superseded by a re-issue on the SAME
@@ -534,7 +619,8 @@ async fn test_mfa_oidc_rejects_stale_attempt_id(_: PgPoolOptions, options: PgCon
     set_test_license_business();
 
     let network = create_external_mfa_network(&context.pool).await;
-    let (user, device) = create_user_with_device(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
 
     let mock = MockOidcProvider::start().await;
     let _provider = create_oidc_provider(&context.pool, &mock).await;
@@ -613,7 +699,8 @@ async fn test_mfa_oidc_stale_attempt_id_does_not_delete_session(
     set_test_license_business();
 
     let network = create_external_mfa_network(&context.pool).await;
-    let (_user, device) = create_user_with_device(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
 
     let mock = MockOidcProvider::start().await;
     let _provider = create_oidc_provider(&context.pool, &mock).await;

@@ -237,13 +237,23 @@ pub async fn make_oidc_client(
     Ok((client_id, core_client))
 }
 
+/// What [`user_from_claims`] does when no user is linked to the identity's `sub`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClaimsUserResolution {
+    /// Link the account matching the `email` claim, or create one. Writes to the database, and
+    /// trusts the claim without consulting `email_verified`.
+    GetOrCreate,
+    /// Refuse. For flows that re-verify an existing link and must not write.
+    LookupOnly,
+}
+
 /// Get or create `User` from OpenID claims.
 ///
-/// `ip_addr`/`user_agent`/`event_tx` are only used to emit an activity log event
-/// when account creation is blocked by the license user limit. Pass `None` for
-/// `event_tx` only if this call can never create a new account (e.g. the desktop
-/// client MFA flow, which merely re-verifies an existing user's identity);
-/// any caller that can create accounts should supply a real `ApiEvent` sender.
+/// A `GetOrCreate` write is committed on `pool`, not in the caller's transaction, so it survives
+/// the caller rejecting the request.
+///
+/// `ip_addr`/`user_agent`/`event_tx` are only used to emit an activity log event when account
+/// creation is blocked by the license user limit; `LookupOnly` callers can pass `None`.
 pub async fn user_from_claims(
     pool: &PgPool,
     nonce: Nonce,
@@ -252,6 +262,7 @@ pub async fn user_from_claims(
     ip_addr: Option<IpAddr>,
     user_agent: Option<&str>,
     event_tx: Option<&UnboundedSender<ApiEvent>>,
+    resolution: ClaimsUserResolution,
 ) -> Result<User<Id>, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound("OpenID provider not set".into()));
@@ -355,6 +366,15 @@ pub async fn user_from_claims(
             user
         }
         None => {
+            if resolution == ClaimsUserResolution::LookupOnly {
+                debug!(
+                    "No user is linked to this provider identity, and this flow does not link \
+                    accounts"
+                );
+                return Err(WebError::Authorization(
+                    "No account is linked to this OpenID identity".into(),
+                ));
+            }
             if let Some(mut user) = User::find_by_email(pool, email).await? {
                 if !user.is_active {
                     debug!("User {} tried to log in, but is disabled", user.username);
@@ -749,6 +769,8 @@ pub async fn auth_callback(
         Some(ip_addr),
         Some(user_agent.as_str()),
         Some(&appstate.event_tx),
+        // Web login is where a user first becomes linked to the provider.
+        ClaimsUserResolution::GetOrCreate,
     )
     .await?;
 
