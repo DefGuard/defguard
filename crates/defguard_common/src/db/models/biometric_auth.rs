@@ -2,7 +2,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use ed25519_dalek::{PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH, Signature, Verifier, VerifyingKey};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query_as, query_scalar};
+use sqlx::{PgExecutor, query, query_as, query_scalar};
 use thiserror::Error;
 
 use crate::{
@@ -77,14 +77,29 @@ impl BiometricAuth<Id> {
         E: PgExecutor<'e>,
     {
         query_scalar!(
-            "SELECT d.name \
-            FROM biometric_auth b JOIN device d ON b.device_id = d.id \
+            "SELECT d.name FROM biometric_auth b JOIN device d ON b.device_id = d.id \
             WHERE d.user_id = $1 AND b.pub_key = $2",
             user_id,
             pub_key
         )
         .fetch_optional(executor)
         .await
+    }
+
+    // FIXME: this method is probably superfluous: already covered by `find_device_name()`.
+    pub async fn verify_owner<'e, E>(executor: E, user_id: Id, pub_key: &str) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        let q_result = query!(
+            "SELECT b.id FROM biometric_auth as b JOIN device d ON b.device_id = d.id \
+            WHERE d.user_id = $1 AND b.pub_key = $2",
+            user_id,
+            pub_key
+        )
+        .fetch_optional(executor)
+        .await?;
+        Ok(q_result.is_some())
     }
 
     pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> sqlx::Result<Vec<Self>>

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id FROM biometric_auth as b JOIN device d ON b.device_id = d.id WHERE d.user_id = $1 AND b.pub_key = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fc63c581cfb32138100410208cb68dfad796a246e90d3faac2e136e476314696"
+}

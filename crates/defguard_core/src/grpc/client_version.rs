@@ -172,6 +172,7 @@ impl ClientFeature {
 /// Returns `true` when a location should be omitted from a device's config because the location's
 /// MFA configuration has no legacy equivalent and either the device's client version does not
 /// support multi-step MFA or multi-step MFA is unavailable without an active business license.
+#[must_use]
 pub fn should_omit_location_for_device(
     location_mfa_mode: Option<LocationMfaMode>,
     device_info: Option<&DeviceInfo>,

@@ -122,15 +122,13 @@ impl Wizard {
         .fetch_one(executor)
         .await?;
 
-        let active_wizard;
-
-        if has_auto_adopt_flags {
-            active_wizard = ActiveWizard::AutoAdoption;
+        let active_wizard = if has_auto_adopt_flags {
+            ActiveWizard::AutoAdoption
         } else if is_fresh_instance {
-            active_wizard = ActiveWizard::Initial;
+            ActiveWizard::Initial
         } else {
-            active_wizard = ActiveWizard::Migration;
-        }
+            ActiveWizard::Migration
+        };
 
         wizard.active_wizard = active_wizard;
 

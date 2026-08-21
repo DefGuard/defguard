@@ -42,9 +42,12 @@ impl VpnClientMfaMethod {
     /// including license tier and provider presence), so this predicate stays model-level.
     ///
     /// Per-user setup reads `User::totp_enabled` (TOTP), `User::email_mfa_enabled` (email),
-    /// `User::openid_sub` (OIDC identity), the `webauthn` table (FIDO2 security keys), and the
-    /// `biometric_auth` table - keyed on the device for biometric and on any of the user's devices
-    /// for mobile-approve.
+    /// `User::openid_sub` (OIDC), and the `biometric_auth` table - keyed on the device for
+    /// biometric and on any of the user's devices for mobile-approve.
+    ///
+    /// OIDC requires `openid_sub` because MFA re-verifies an existing link rather than creating
+    /// one: linking happens at web login or enrollment, so a user must pass through one of those
+    /// before OIDC is offered as an MFA method.
     pub async fn is_configured<'e, E: PgExecutor<'e>>(
         self,
         executor: E,
@@ -330,7 +333,7 @@ mod tests {
                 .unwrap()
         );
 
-        // OIDC: identity + oidc_configured -> configured.
+        // OIDC: a linked identity + oidc_configured -> configured.
         user.openid_sub = Some("oidc-sub".to_owned());
         assert!(
             VpnClientMfaMethod::Oidc
@@ -345,7 +348,7 @@ mod tests {
                 .await
                 .unwrap()
         );
-        // OIDC identity absent -> unconfigured even when oidc_configured.
+        // An unlinked user is refused even when OIDC is configured.
         user.openid_sub = None;
         assert!(
             !VpnClientMfaMethod::Oidc
