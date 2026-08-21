@@ -854,7 +854,7 @@ async fn test_modify_network_rejects_service_location_with_mfa(
 }
 
 #[sqlx::test]
-async fn test_modify_network_without_posture_checks_keeps_assignments(
+async fn test_modify_network_updates_posture_checks_only_when_supplied(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -864,6 +864,7 @@ async fn test_modify_network_without_posture_checks_keeps_assignments(
     set_enterprise_license();
 
     let posture = make_posture_check(&client, "Posture").await;
+    let replacement_posture = make_posture_check(&client, "Replacement posture").await;
 
     let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
     payload["posture_checks"] = json!([posture]);
@@ -875,15 +876,12 @@ async fn test_modify_network_without_posture_checks_keeps_assignments(
         vec![posture]
     );
 
-    // a payload with the field omitted must leave the assignment alone
+    // an explicit list replaces the current assignments with the location save
+    let mut payload = location_payload("renamed-location", "10.1.1.1/24", false, "disabled");
+    payload["posture_checks"] = json!([replacement_posture]);
     let response = client
         .put(format!("/api/v1/network/{}", location.id))
-        .json(&location_payload(
-            "renamed-location",
-            "10.1.1.1/24",
-            false,
-            "disabled",
-        ))
+        .json(&payload)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -891,10 +889,26 @@ async fn test_modify_network_without_posture_checks_keeps_assignments(
     assert_eq!(modified.name, "renamed-location");
     assert_eq!(
         fetch_location_postures(&client, location.id).await,
-        vec![posture]
+        vec![replacement_posture]
     );
 
-    // an explicit `null` behaves the same way
+    // a payload with the field omitted or explicitly null keeps assignments for compatibility
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "location",
+            "10.1.1.1/24",
+            false,
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![replacement_posture]
+    );
+
     let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
     payload["posture_checks"] = json!(null);
     let response = client
@@ -905,7 +919,22 @@ async fn test_modify_network_without_posture_checks_keeps_assignments(
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         fetch_location_postures(&client, location.id).await,
-        vec![posture]
+        vec![replacement_posture]
+    );
+
+    // an explicit empty list clears assignments
+    let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
+    payload["posture_checks"] = json!([]);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        fetch_location_postures(&client, location.id)
+            .await
+            .is_empty()
     );
 }
 

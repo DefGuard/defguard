@@ -470,6 +470,18 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
+    if let Some(posture_checks) = &data.posture_checks {
+        if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) && !posture_checks.is_empty()
+        {
+            return Ok(WebError::Forbidden(
+                "Cannot assign posture checks to location: Enterprise license required.",
+            )
+            .into());
+        }
+        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
+            .await?;
+    }
+
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;

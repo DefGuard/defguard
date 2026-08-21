@@ -32,7 +32,6 @@ import type {
   ApiDevicePosture,
   ApiToken,
   ApplicationInfo,
-  AssignPosturesData,
   AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
@@ -472,8 +471,6 @@ const api = {
       fetchPage<ApiDevicePosture>('/device-posture', params),
     setLocationsForDevicePosture: (id: number, locations: number[]) =>
       client.put<number[]>(`/device-posture/${id}/locations`, { locations }),
-    setLocationPostures: (locationId: number, data: AssignPosturesData) =>
-      client.put<number[]>(`/network/${locationId}/postures`, data),
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),

@@ -3,7 +3,7 @@ import './style.scss';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -371,16 +371,22 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   });
   const serviceLocationLocked =
     isPresent(canUseServiceLocations) && !canUseServiceLocations;
+  const [pendingPostureChecks, setPendingPostureChecks] = useState(
+    location.posture_checks ?? [],
+  );
   const postureChecksSectionState = useMemo(
     () =>
       getPostureChecksSectionState({
-        assignedPostureChecksCount: location.posture_checks?.length ?? 0,
+        assignedPostureChecksCount: pendingPostureChecks.length,
         canUseEnterprise: canUseDevicePosture,
         postureChecksCount: postureChecks.length,
       }),
-    [canUseDevicePosture, location.posture_checks?.length, postureChecks.length],
+    [canUseDevicePosture, pendingPostureChecks.length, postureChecks.length],
   );
   const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
+  const hasPendingPostureCheckChanges =
+    pendingPostureChecks.length !== (location.posture_checks?.length ?? 0) ||
+    pendingPostureChecks.some((id) => !location.posture_checks?.includes(id));
 
   const postureCheckOptions = useMemo(
     () =>
@@ -464,26 +470,10 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const { mutateAsync: setLocationPosturesAsync, isPending: isUpdatingLocationPostures } =
-    useMutation({
-      mutationFn: (data: { postures: number[] }) =>
-        api.devicePosture.setLocationPostures(location.id, data),
-      meta: {
-        invalidate: [['device-posture'], ['network'], ['activity-log']],
-      },
-      onError: () => {
-        Snackbar.error(m.location_posture_checks_update_failed());
-      },
-    });
-
   const handlePostureSelection = (values: (string | number)[]) => {
-    const next = values.filter((value): value is number => typeof value === 'number');
-    confirmLocationPostureChange({
-      current: location.posture_checks ?? [],
-      next,
-      options: postureCheckOptions,
-      actionPromise: () => setLocationPosturesAsync({ postures: next }),
-    });
+    setPendingPostureChecks(
+      values.filter((value): value is number => typeof value === 'number'),
+    );
   };
 
   const openPostureChecksSelection = () => {
@@ -499,7 +489,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         unknown
       >,
       searchPlaceholder: m.controls_search(),
-      selected: new Set(location.posture_checks),
+      selected: new Set(pendingPostureChecks),
       visibleItemsLimit: 4,
       onSubmit: handlePostureSelection,
     });
@@ -531,7 +521,10 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const submitLocationChanges = async (value: FormFields) => {
     await editLocation({
       id: location.id,
-      data: buildLocationSubmissionData(value, location),
+      data: {
+        ...buildLocationSubmissionData(value, location),
+        posture_checks: pendingPostureChecks,
+      },
     });
   };
 
@@ -573,6 +566,17 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             variant: 'critical',
           },
         });
+        return;
+      }
+
+      if (
+        confirmLocationPostureChange({
+          current: location.posture_checks ?? [],
+          next: pendingPostureChecks,
+          options: postureCheckOptions,
+          actionPromise: () => submitLocationChanges(value),
+        })
+      ) {
         return;
       }
 
@@ -914,7 +918,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <div className="posture-checks-assigned-state">
               <SelectMultiple
                 options={postureCheckOptions}
-                selected={new Set(location.posture_checks)}
+                selected={new Set(pendingPostureChecks)}
                 modalTitle={m.location_posture_checks_select()}
                 editText={m.location_posture_checks_edit()}
                 editIcon={IconKind.Edit}
@@ -937,7 +941,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <Button
               variant="outlined"
               iconLeft={IconKind.ConnectedDevices}
-              loading={isUpdatingLocationPostures}
               text={m.posture_checks_wizard_title()}
               onClick={openPostureChecksSelection}
             />
@@ -956,7 +959,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         <form.Subscribe
           selector={(form) => ({
             isSubmitting: form.isSubmitting,
-            isDefault: form.isPristine || form.isDefaultValue,
+            isDefault:
+              (form.isPristine || form.isDefaultValue) && !hasPendingPostureCheckChanges,
           })}
         >
           {({ isDefault, isSubmitting }) => (
