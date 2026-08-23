@@ -225,7 +225,7 @@ async fn test_mfa_flow_email_requires_smtp(_: PgPoolOptions, options: PgConnectO
 
 /// Group-scoped assignments require an enterprise license.
 #[sqlx::test]
-async fn test_mfa_flow_group_scoping_requires_enterprise(
+async fn test_mfa_flow_group_scoping_is_saved_for_later_enforcement(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -296,19 +296,9 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
         ]
     });
 
-    // Drain the create/location events so the refusal assertion below is exact.
+    // Group scoping can be saved on Business. Enforcement decides whether a
+    // location can be delivered to a particular device.
     let _ = client.drain_all_events();
-
-    // Business license → 403 (group scoping needs enterprise), and no audit event on refusal.
-    let response = update_location_mfa_flows(&client, location_id, assignment_body.clone()).await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    assert!(
-        client.drain_all_events().is_empty(),
-        "refused request must not emit an audit event"
-    );
-
-    // Enterprise license → 200
-    set_enterprise_license();
     let response = update_location_mfa_flows(&client, location_id, assignment_body).await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -946,9 +936,13 @@ async fn test_mfa_enabled_disable_preserves_assignments(
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+    let mut body = network_body("mfa-lifecycle", false, flow_id);
+    body["mfa_flows"] = json!([]);
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
-        .json(&network_body("mfa-lifecycle", false, flow_id))
+        .json(&body)
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -969,6 +963,7 @@ async fn test_mfa_enabled_disable_preserves_assignments(
     assert_eq!(assignments[0]["is_default"].as_bool(), Some(true));
 
     // Re-enable: the same policy must be in force, resolving the same flow for a user.
+    set_cached_license(license);
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
         .json(&network_body("mfa-lifecycle", true, flow_id))

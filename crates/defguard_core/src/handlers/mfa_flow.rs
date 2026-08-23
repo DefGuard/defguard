@@ -25,10 +25,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{
-        db::models::openid_provider::OpenIdProvider, has_enterprise_access,
-        is_business_license_active,
-    },
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
@@ -237,30 +234,6 @@ fn check_method_prerequisites(
     } else {
         Some(validation_error_response(errors))
     }
-}
-
-/// Check licence gates for flow assignment: group scoping requires Enterprise.
-///
-/// Uses `has_enterprise_access(None)` (raw Enterprise tier) rather than
-/// `has_enterprise_access(Some(LicenseFeature::MfaFlowGroupScoping))` because
-/// adding a `LicenseFeature` variant would require coordination outside this
-/// repo: the proto enum in the `proto` repo and license issuance must both
-/// recognise the new variant. The `None` form gates strictly on the Enterprise
-/// tier, which is the correct behaviour for this feature.
-#[must_use]
-pub(crate) fn check_assignment_license_gates(
-    assignments: &[LocationMfaFlowAssignment],
-) -> Option<ApiResponse> {
-    let scoped = assignments.iter().position(|a| !a.group_ids.is_empty());
-    if let Some(index) = scoped
-        && !has_enterprise_access(None)
-    {
-        return Some(license_error_response(
-            format!("assignments[{index}].group_ids"),
-            "enterprise_license_required",
-        ));
-    }
-    None
 }
 
 /// Field path for the first assignment entry matching `predicate`, suffixed with `suffix`.

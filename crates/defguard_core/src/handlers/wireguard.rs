@@ -36,15 +36,14 @@ use crate::{
         },
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
-        has_enterprise_access,
+        has_enterprise_access, is_business_license_active,
         license::{LicenseFeature, get_cached_license},
         limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
     handlers::{
-        gateway::GatewayInfo,
-        mfa_flow::{assignment_error_response, check_assignment_license_gates},
+        gateway::GatewayInfo, mfa_flow::assignment_error_response,
         network_devices::DeviceWireGuardConfig,
     },
     location_management::{
@@ -297,9 +296,6 @@ pub(crate) async fn create_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    if let Some(resp) = check_assignment_license_gates(&data.mfa_flows) {
-        return Ok(resp);
-    }
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -455,9 +451,6 @@ pub(crate) async fn modify_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    if let Some(resp) = check_assignment_license_gates(&data.mfa_flows) {
-        return Ok(resp);
-    }
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
@@ -488,29 +481,31 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
-    let posture_checks = if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
-        data.posture_checks.clone()
+    if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
+        DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
+            .await?;
     } else {
-        let current =
-            DevicePostureLocation::find_by_location(&mut *transaction, network.id).await?;
-        if data.posture_checks != current {
-            warn!(
-                location_id = network.id,
-                requested_posture_checks = ?data.posture_checks,
-                current_posture_checks = ?current,
-                "Ignoring posture check assignment update because the Enterprise license is inactive"
-            );
-        }
-        current
-    };
-    DevicePostureLocation::set_for_location(&mut transaction, network.id, &posture_checks).await?;
-
-    let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
-    if let Err(error) =
-        MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
-    {
-        return Ok(assignment_error_response(&data.mfa_flows, error)?);
+        warn!(
+            location_id = network.id,
+            "Ignoring posture check assignments because the Enterprise license is inactive"
+        );
     }
+
+    let mfa_assignments_updated = is_business_license_active();
+    let mfa_assignments: Vec<LocationMfaFlowAssignment> = if mfa_assignments_updated {
+        if let Err(error) =
+            MfaFlow::assign_to_location(&mut transaction, network.id, &data.mfa_flows).await
+        {
+            return Ok(assignment_error_response(&data.mfa_flows, error)?);
+        }
+        data.mfa_flows.clone()
+    } else {
+        warn!(
+            location_id = network.id,
+            "Ignoring MFA flow assignments because the paid license is inactive"
+        );
+        Vec::new()
+    };
     if data.mfa_enabled {
         if !MfaFlow::any_exist(&mut *transaction).await? {
             return Ok(no_flows_exist_response());
@@ -536,14 +531,16 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
-    appstate.emit_event(ApiEvent {
-        context: context.clone(),
-        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
-            location_id: network.id,
-            location_name: network.name.clone(),
-            assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
-        }),
-    })?;
+    if mfa_assignments_updated {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+                location_id: network.id,
+                location_name: network.name.clone(),
+                assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
+            }),
+        })?;
+    }
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::VpnLocationModified {
