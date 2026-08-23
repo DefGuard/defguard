@@ -11,7 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowStep},
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -19,7 +19,8 @@ use defguard_common::{
 };
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
+use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::{
@@ -232,15 +233,21 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-enum MfaFlowAssignmentLicenseError {
+#[derive(Debug, Error)]
+enum MfaFlowAssignmentValidationError {
+    #[error("MFA flow group assignments require an Enterprise license")]
     EnterpriseRequired,
+    #[error("Multiple or multi-step MFA flows require a Business license")]
     BusinessRequired,
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
 }
 
 /// Validates whether the current license permits the requested MFA flow assignments.
-fn validate_mfa_flow_assignments(
+async fn validate_mfa_flow_assignments(
+    conn: &mut PgConnection,
     assignments: &[LocationMfaFlowAssignment],
-) -> Result<(), MfaFlowAssignmentLicenseError> {
+) -> Result<(), MfaFlowAssignmentValidationError> {
     // Enterprise can make all assignments.
     if has_enterprise_access(None) {
         return Ok(());
@@ -248,7 +255,7 @@ fn validate_mfa_flow_assignments(
 
     // Business and Free can't assign groups.
     if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        return Err(MfaFlowAssignmentLicenseError::EnterpriseRequired);
+        return Err(MfaFlowAssignmentValidationError::EnterpriseRequired);
     }
 
     // Business can assign multiple and multi-step flows.
@@ -258,23 +265,29 @@ fn validate_mfa_flow_assignments(
 
     // Free can't assign multiple flows.
     if assignments.len() > 1 {
-        return Err(MfaFlowAssignmentLicenseError::BusinessRequired);
+        return Err(MfaFlowAssignmentValidationError::BusinessRequired);
     }
 
     // Free can't assign multi-step flows.
-    if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        // TODO(jck): check if the flow is multi-step
+    if let Some(assignment) = assignments.first() {
+        let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
+        if steps.len() > 1 {
+            return Err(MfaFlowAssignmentValidationError::BusinessRequired);
+        }
     }
 
     Ok(())
 }
 
-fn mfa_flow_assignment_license_error_response(error: MfaFlowAssignmentLicenseError) -> ApiResponse {
+fn mfa_flow_assignment_validation_error_response(
+    error: MfaFlowAssignmentValidationError,
+) -> Result<ApiResponse, WebError> {
     let code = match error {
-        MfaFlowAssignmentLicenseError::EnterpriseRequired => "enterprise_license_required",
-        MfaFlowAssignmentLicenseError::BusinessRequired => "business_license_required",
+        MfaFlowAssignmentValidationError::EnterpriseRequired => "enterprise_license_required",
+        MfaFlowAssignmentValidationError::BusinessRequired => "business_license_required",
+        MfaFlowAssignmentValidationError::Database(error) => return Err(WebError::from(error)),
     };
-    license_error_response("mfa_flows".into(), code)
+    Ok(license_error_response("mfa_flows".into(), code))
 }
 
 /// Create a network
@@ -391,8 +404,8 @@ pub(crate) async fn create_network(
     );
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
-    if let Err(error) = validate_mfa_flow_assignments(&mfa_assignments) {
-        return Ok(mfa_flow_assignment_license_error_response(error));
+    if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await {
+        return Ok(mfa_flow_assignment_validation_error_response(error)?);
     }
     if let Err(error) =
         MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
