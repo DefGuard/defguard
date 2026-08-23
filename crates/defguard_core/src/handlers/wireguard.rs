@@ -433,7 +433,7 @@ pub(crate) async fn modify_network(
         session.user.username
     );
 
-    // check if tries to modify service location without active enterprise
+    // check if tries to configure service location without active enterprise
     if data.service_location_mode != ServiceLocationMode::Disabled
         && !has_enterprise_access(Some(LicenseFeature::ServiceLocations))
     {
@@ -481,6 +481,7 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
+	// Don't error out on no license - otherwise users won't be able to update other location fields.
     if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
         DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
             .await?;
@@ -491,8 +492,8 @@ pub(crate) async fn modify_network(
         );
     }
 
-    let mfa_assignments_updated = is_business_license_active();
-    let mfa_assignments: Vec<LocationMfaFlowAssignment> = if mfa_assignments_updated {
+    let update_mfa_assignments = is_business_license_active();
+    let mfa_assignments: Vec<LocationMfaFlowAssignment> = if update_mfa_assignments {
         if let Err(error) =
             MfaFlow::assign_to_location(&mut transaction, network.id, &data.mfa_flows).await
         {
@@ -531,7 +532,7 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
-    if mfa_assignments_updated {
+    if update_mfa_assignments {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(ApiEventType::LocationMfaFlowsAssigned {

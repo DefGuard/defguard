@@ -49,7 +49,7 @@ pub struct MfaFlowSnapshot {
     pub steps: Vec<MfaFlowStep<Id>>,
 }
 
-/// Assignment of an MFA flow to a location, enriched for internal consumers.
+/// MFA flow assignment with location metadata.
 #[derive(Clone, Debug, Serialize)]
 pub struct LocationMfaFlowItem {
     pub id: Id,
