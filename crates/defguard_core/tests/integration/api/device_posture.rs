@@ -1292,7 +1292,14 @@ async fn test_set_postures_for_service_location_allowed(
         update_location_posture_checks(&client, service_location_id, json!(vec![posture.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 2);
+    assert_eq!(events.len(), 3);
+    assert!(events.iter().any(|event| matches!(
+        &event.0,
+        ApiEventType::LocationPosturesAssigned {
+            location,
+            posture_ids,
+        } if location.id == service_location_id && posture_ids == &[posture.id]
+    )));
     assert!(
         events
             .iter()
