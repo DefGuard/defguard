@@ -586,7 +586,7 @@ async fn make_mfa_flow(client: &TestClient) -> i64 {
 /// Assign a flow as a location's default so the location can be MFA-enabled.
 async fn assign_default_mfa_flow(client: &TestClient, location_id: i64, flow_id: i64) {
     let response = update_location_mfa_flows(
-        &client,
+        client,
         location_id,
         json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }),
     )

@@ -405,12 +405,12 @@ pub(crate) async fn create_network(
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
     if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await {
-        return Ok(mfa_flow_assignment_validation_error_response(error)?);
+        return mfa_flow_assignment_validation_error_response(error);
     }
     if let Err(error) =
         MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
     {
-        return Ok(assignment_error_response(&data.mfa_flows, error)?);
+        return assignment_error_response(&data.mfa_flows, error);
     }
     if data.mfa_enabled {
         if !MfaFlow::any_exist(&mut *transaction).await? {
@@ -580,7 +580,7 @@ pub(crate) async fn modify_network(
         if let Err(error) =
             MfaFlow::assign_to_location(&mut transaction, network.id, &data.mfa_flows).await
         {
-            return Ok(assignment_error_response(&data.mfa_flows, error)?);
+            return assignment_error_response(&data.mfa_flows, error);
         }
         data.mfa_flows.clone()
     } else {
