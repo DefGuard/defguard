@@ -11,7 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentError},
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -231,6 +231,35 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
+/// Validates if given MFA flow can be assigned
+fn validate_mfaflow_assignments(
+    assignments: &[LocationMfaFlowAssignment],
+) -> Result<(), MfaFlowAssignmentError> {
+    // enterprise can make all assignments
+    if has_enterprise_access(None) {
+        return Ok(());
+    }
+    // business and free can't assign groups
+    if assignments.iter().any(|a| !a.group_ids.is_empty()) {
+        return Err(MfaFlowAssignmentError::NotValidForCurrentLicenseTier);
+    }
+    if is_business_license_active() {
+        return Ok(());
+    }
+
+    // free license can't assign multiple flows
+    if assignments.len() > 1 {
+        return Err(MfaFlowAssignmentError::NotValidForCurrentLicenseTier);
+    }
+
+    // free license can't assign multi-step flows
+    if assignments.iter().any(|a| !a.group_ids.is_empty()) {
+        // TODO(jck): check if the flow is multi-step
+    }
+
+    Ok(())
+}
+
 /// Create a network
 #[utoipa::path(
     post,
@@ -345,6 +374,9 @@ pub(crate) async fn create_network(
     );
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
+    if let Err(error) = validate_mfaflow_assignments(&mfa_assignments) {
+        return Ok(assignment_error_response(&data.mfa_flows, error)?);
+    }
     if let Err(error) =
         MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
     {
@@ -562,6 +594,7 @@ pub(crate) async fn modify_network(
             }),
         })?;
     }
+    // TODO: also check new-old assignments equality before emitting
     if update_mfa_assignments {
         appstate.emit_event(ApiEvent {
             context: context.clone(),

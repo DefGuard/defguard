@@ -114,6 +114,8 @@ pub enum MfaFlowAssignmentError {
     UnknownFlow(Id),
     #[error("Group {0} does not exist")]
     UnknownGroup(Id),
+    #[error("MFA flow assignments not valid for this license tier")]
+    NotValidForCurrentLicenseTier,
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
 }

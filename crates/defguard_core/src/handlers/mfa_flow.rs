@@ -284,6 +284,9 @@ pub(crate) fn assignment_error_response(
         MfaFlowAssignmentError::DefaultHasGroups => {
             ("mfa_flows".to_owned(), "default_must_have_no_groups")
         }
+        MfaFlowAssignmentError::NotValidForCurrentLicenseTier => {
+            ("mfa_flows".to_owned(), "not_allowed_by_license")
+        }
         MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
             non_default_group_field(assignments, flow_id),
             "non_default_must_have_groups",
