@@ -25,16 +25,69 @@ use defguard_core::{
 use ipnetwork::IpNetwork;
 use matches::assert_matches;
 use reqwest::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-    authenticate_admin, client::TestClient, fetch_user_details, make_network, make_test_client,
-    setup_pool, update_location_mfa_flows, update_location_posture_checks,
+    authenticate_admin,
+    client::{TestClient, TestResponse},
+    fetch_user_details, make_network, make_test_client, setup_pool, update_location_mfa_flows,
+    update_location_posture_checks,
 };
 
 const INVALID_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 119;
 const MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 120;
+
+async fn create_mfa_flow(client: &TestClient, title: &str, steps: Value) -> Id {
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": title, "steps": steps}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    response.json::<Value>().await["id"].as_i64().unwrap()
+}
+
+async fn create_network_with_mfa_flows(
+    client: &TestClient,
+    name: &str,
+    address: &str,
+    mfa_flows: Value,
+) -> TestResponse {
+    client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": name,
+            "address": address,
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": address,
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": false,
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": mfa_flows,
+        }))
+        .send()
+        .await
+}
+
+async fn assert_assignment_license_error(response: TestResponse, code: &str) {
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body: Value = response.json().await;
+    assert_eq!(body["error"], "license_required");
+    assert_eq!(body["fields"][0]["field"], "mfa_flows");
+    assert_eq!(body["fields"][0]["code"], code);
+}
 
 #[sqlx::test]
 async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
@@ -198,6 +251,137 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     set_cached_license(license);
+}
+
+#[sqlx::test]
+async fn test_create_network_mfa_assignment_license_gates(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+    let business_license = get_cached_license().clone();
+
+    let single_step_flow =
+        create_mfa_flow(&client, "Single-step flow", json!([{"methods": ["totp"]}])).await;
+    let second_single_step_flow = create_mfa_flow(
+        &client,
+        "Second single-step flow",
+        json!([{"methods": ["biometric"]}]),
+    )
+    .await;
+    let multi_step_flow = create_mfa_flow(
+        &client,
+        "Multi-step flow",
+        json!([
+            {"methods": ["totp"]},
+            {"methods": ["biometric"]}
+        ]),
+    )
+    .await;
+    let admin_group_id = Group::find_by_name(&pool, "admin")
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+
+    set_cached_license(None);
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "free-single-step",
+        "10.10.1.1/24",
+        json!([{
+            "flow_id": single_step_flow,
+            "is_default": true,
+            "group_ids": []
+        }]),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "free-multi-step",
+        "10.10.2.1/24",
+        json!([{
+            "flow_id": multi_step_flow,
+            "is_default": true,
+            "group_ids": []
+        }]),
+    )
+    .await;
+    assert_assignment_license_error(response, "business_license_required").await;
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "free-multiple-flows",
+        "10.10.3.1/24",
+        json!([
+            {
+                "flow_id": single_step_flow,
+                "is_default": true,
+                "group_ids": []
+            },
+            {
+                "flow_id": second_single_step_flow,
+                "is_default": false,
+                "group_ids": []
+            }
+        ]),
+    )
+    .await;
+    assert_assignment_license_error(response, "business_license_required").await;
+
+    set_cached_license(business_license.clone());
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "business-multi-step",
+        "10.10.4.1/24",
+        json!([{
+            "flow_id": multi_step_flow,
+            "is_default": true,
+            "group_ids": []
+        }]),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let scoped_assignments = json!([
+        {
+            "flow_id": single_step_flow,
+            "is_default": true,
+            "group_ids": []
+        },
+        {
+            "flow_id": second_single_step_flow,
+            "is_default": false,
+            "group_ids": [admin_group_id]
+        }
+    ]);
+    let response = create_network_with_mfa_flows(
+        &client,
+        "business-group-scoping",
+        "10.10.5.1/24",
+        scoped_assignments.clone(),
+    )
+    .await;
+    assert_assignment_license_error(response, "enterprise_license_required").await;
+
+    set_enterprise_license();
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "enterprise-group-scoping",
+        "10.10.6.1/24",
+        scoped_assignments,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    set_cached_license(business_license);
 }
 
 #[sqlx::test]
