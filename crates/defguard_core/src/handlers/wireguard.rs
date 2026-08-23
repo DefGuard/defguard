@@ -481,7 +481,7 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
-	// Don't error out on no license - otherwise users won't be able to update other location fields.
+    // Don't error out on no license - otherwise users won't be able to update other location fields.
     if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
         DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
             .await?;
