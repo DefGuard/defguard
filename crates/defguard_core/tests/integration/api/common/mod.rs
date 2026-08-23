@@ -205,7 +205,6 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     make_network(client, "network2").await;
 }
 
-/// Create test network with a given name.
 /// Save a complete MFA assignment list through the location update endpoint.
 pub(crate) async fn update_location_mfa_flows(
     client: &TestClient,
@@ -288,6 +287,7 @@ async fn update_location_assignments(
         .await
 }
 
+/// Create a test network with a given name.
 pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestResponse {
     let response = client
         .post("/api/v1/network")

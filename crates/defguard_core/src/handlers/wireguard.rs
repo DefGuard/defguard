@@ -124,16 +124,11 @@ pub fn no_flows_assigned_response() -> ApiResponse {
     )
 }
 
-/// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
+/// Validate enabling MFA on an already-persisted location.
 ///
-/// The check is per-location: an existing location (`Some(id)`) must carry a designated default
-/// assignment, and a brand-new location (`None`, the create path) can never have one, so creating
-/// with `mfa_enabled` is refused here too. The global `no_flows_exist` check runs first so a fresh
-/// instance reports the more actionable "create a flow" error. Returns a structured `400` response
-/// (not a `WebError`) so the body is parsed in one step.
-///
-/// Shared by `create_network`, `modify_network` and the auto-adoption wizard, which sets
-/// `mfa_enabled` on an already-persisted location, so the three entry points cannot drift.
+/// Used by the auto-adoption wizard after it creates a location. The normal location create and
+/// update handlers validate assignments inside their transactions. Returns a structured `400`
+/// response (not a `WebError`) when no MFA flow or no default assignment exists.
 pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
     executor: E,
     mfa_enabled: bool,
@@ -975,7 +970,7 @@ pub(crate) struct AddDeviceResult {
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
                         "keepalive_interval": 5,
-			            "mfa_enabled": false,
+                        "mfa_enabled": false,
                         "service_location_mode": "disabled"
                     }
                 ],
