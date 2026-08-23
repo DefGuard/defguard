@@ -152,7 +152,7 @@ pub struct LocationMfaFlowResponse {
 /// The status stays `403` rather than the `400` the impl spec tabulates: a licence refusal is not
 /// a malformed request, and the rest of the codebase answers licence gates with `403`. The
 /// top-level `error` discriminator distinguishes it from `validation_failed`.
-fn license_error_response(field: String, code: &str) -> ApiResponse {
+pub(crate) fn license_error_response(field: String, code: &str) -> ApiResponse {
     ApiResponse::new(
         json!({
             "error": "license_required",
@@ -283,9 +283,6 @@ pub(crate) fn assignment_error_response(
         }
         MfaFlowAssignmentError::DefaultHasGroups => {
             ("mfa_flows".to_owned(), "default_must_have_no_groups")
-        }
-        MfaFlowAssignmentError::NotValidForCurrentLicenseTier => {
-            ("mfa_flows".to_owned(), "not_allowed_by_license")
         }
         MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
             non_default_group_field(assignments, flow_id),

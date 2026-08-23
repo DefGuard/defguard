@@ -11,7 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentError},
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -43,7 +43,8 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
     handlers::{
-        gateway::GatewayInfo, mfa_flow::assignment_error_response,
+        gateway::GatewayInfo,
+        mfa_flow::{assignment_error_response, license_error_response},
         network_devices::DeviceWireGuardConfig,
     },
     location_management::{
@@ -231,33 +232,49 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-/// Validates if given MFA flow can be assigned
-fn validate_mfaflow_assignments(
+enum MfaFlowAssignmentLicenseError {
+    EnterpriseRequired,
+    BusinessRequired,
+}
+
+/// Validates whether the current license permits the requested MFA flow assignments.
+fn validate_mfa_flow_assignments(
     assignments: &[LocationMfaFlowAssignment],
-) -> Result<(), MfaFlowAssignmentError> {
-    // enterprise can make all assignments
+) -> Result<(), MfaFlowAssignmentLicenseError> {
+    // Enterprise can make all assignments.
     if has_enterprise_access(None) {
         return Ok(());
     }
-    // business and free can't assign groups
+
+    // Business and Free can't assign groups.
     if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        return Err(MfaFlowAssignmentError::NotValidForCurrentLicenseTier);
+        return Err(MfaFlowAssignmentLicenseError::EnterpriseRequired);
     }
+
+    // Business can assign multiple and multi-step flows.
     if is_business_license_active() {
         return Ok(());
     }
 
-    // free license can't assign multiple flows
+    // Free can't assign multiple flows.
     if assignments.len() > 1 {
-        return Err(MfaFlowAssignmentError::NotValidForCurrentLicenseTier);
+        return Err(MfaFlowAssignmentLicenseError::BusinessRequired);
     }
 
-    // free license can't assign multi-step flows
+    // Free can't assign multi-step flows.
     if assignments.iter().any(|a| !a.group_ids.is_empty()) {
         // TODO(jck): check if the flow is multi-step
     }
 
     Ok(())
+}
+
+fn mfa_flow_assignment_license_error_response(error: MfaFlowAssignmentLicenseError) -> ApiResponse {
+    let code = match error {
+        MfaFlowAssignmentLicenseError::EnterpriseRequired => "enterprise_license_required",
+        MfaFlowAssignmentLicenseError::BusinessRequired => "business_license_required",
+    };
+    license_error_response("mfa_flows".into(), code)
 }
 
 /// Create a network
@@ -374,8 +391,8 @@ pub(crate) async fn create_network(
     );
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
-    if let Err(error) = validate_mfaflow_assignments(&mfa_assignments) {
-        return Ok(assignment_error_response(&data.mfa_flows, error)?);
+    if let Err(error) = validate_mfa_flow_assignments(&mfa_assignments) {
+        return Ok(mfa_flow_assignment_license_error_response(error));
     }
     if let Err(error) =
         MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
