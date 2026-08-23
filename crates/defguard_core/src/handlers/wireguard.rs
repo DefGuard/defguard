@@ -377,14 +377,16 @@ pub(crate) async fn create_network(
             }),
         })?;
     }
-    appstate.emit_event(ApiEvent {
-        context: context.clone(),
-        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
-            location_id: network.id,
-            location_name: network.name.clone(),
-            assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
-        }),
-    })?;
+    if !mfa_assignments.is_empty() {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+                location_id: network.id,
+                location_name: network.name.clone(),
+                assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
+            }),
+        })?;
+    }
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::VpnLocationAdded {

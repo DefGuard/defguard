@@ -2218,8 +2218,8 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
     let events = client.drain_all_events();
     assert_eq!(
         events.len(),
-        2,
-        "location save must emit assignment and location events"
+        1,
+        "location save must emit only a location event"
     );
     let (event_type, _user_id, _username) = events
         .iter()
