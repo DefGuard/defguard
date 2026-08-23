@@ -44,6 +44,8 @@ test.describe('Gateway Adoption', () => {
         acl_default_allow: false,
         allowed_ips_from_acl: false,
         mfa_enabled: false,
+        posture_checks: [],
+        mfa_flows: [],
         service_location_mode: 'disabled',
       },
     });
