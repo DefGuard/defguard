@@ -368,6 +368,15 @@ pub(crate) async fn create_network(
         session.user.username
     );
 
+    if !data.posture_checks.is_empty() {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationPosturesAssigned {
+                location: network.clone(),
+                posture_ids: data.posture_checks.clone(),
+            }),
+        })?;
+    }
     appstate.emit_event(ApiEvent {
         context: context.clone(),
         event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
@@ -477,15 +486,26 @@ pub(crate) async fn modify_network(
         .await?;
 
     // Don't error out on no license - otherwise users won't be able to update other location fields.
-    if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
-        DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
-            .await?;
+    let postures_changed = if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
+        let mut current_postures =
+            DevicePostureLocation::find_by_location(&mut *transaction, network.id).await?;
+        let mut requested_postures = data.posture_checks.clone();
+
+        current_postures.sort_unstable();
+        requested_postures.sort_unstable();
+
+        if current_postures != requested_postures {
+            DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
+                .await?;
+        }
+        current_postures != requested_postures
     } else {
         warn!(
             location_id = network.id,
             "Ignoring posture check assignments because the Enterprise license is inactive"
         );
-    }
+        false
+    };
 
     let update_mfa_assignments = is_business_license_active();
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = if update_mfa_assignments {
@@ -527,6 +547,15 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
+    if postures_changed {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationPosturesAssigned {
+                location: network.clone(),
+                posture_ids: data.posture_checks.clone(),
+            }),
+        })?;
+    }
     if update_mfa_assignments {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
