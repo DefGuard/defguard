@@ -495,8 +495,12 @@ pub(crate) async fn modify_network(
         requested_postures.sort_unstable();
 
         if current_postures != requested_postures {
-            DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
-                .await?;
+            DevicePostureLocation::set_for_location(
+                &mut transaction,
+                network.id,
+                &data.posture_checks,
+            )
+            .await?;
         }
         current_postures != requested_postures
     } else {

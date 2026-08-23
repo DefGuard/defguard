@@ -1026,7 +1026,14 @@ async fn test_device_posture_set_postures_for_location(
         update_location_posture_checks(&client, location_id, json!(vec![p1.id, p2.id])).await;
     assert_eq!(response.status(), StatusCode::OK);
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 2);
+    assert_eq!(events.len(), 3);
+    assert!(events.iter().any(|event| matches!(
+        &event.0,
+        ApiEventType::LocationPosturesAssigned {
+            location,
+            posture_ids,
+        } if location.id == location_id && posture_ids == &[p1.id, p2.id]
+    )));
     assert!(
         events
             .iter()
