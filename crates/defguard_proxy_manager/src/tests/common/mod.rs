@@ -875,8 +875,8 @@ async fn oidc_jwks(State(state): State<OidcProviderState>) -> Json<serde_json::V
 
 /// Parses the authorization code as `"{sub}:{email}:{nonce}:{email_verified}"`
 /// and returns a signed RS256 ID token JWT. The final segment is optional and
-/// may be "true" or "false"; when it is absent the `email_verified` claim is
-/// omitted.
+/// may be `"true"` or `"false"`; when it is absent the `email_verified` claim is
+/// omitted. The nonce must not contain a colon.
 async fn oidc_token(
     State(state): State<OidcProviderState>,
     Form(params): Form<HashMap<String, String>>,
@@ -890,7 +890,10 @@ async fn oidc_token(
     let email_verified = match parts.next() {
         Some("true") => Some(true),
         Some("false") => Some(false),
-        _ => None,
+        None => None,
+        Some(other) => {
+            panic!("unexpected email_verified segment in authorization code: {other:?}")
+        }
     };
 
     let now = SystemTime::now()
