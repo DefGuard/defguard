@@ -1113,7 +1113,7 @@ impl EnrollmentServer {
         if user.is_enrolled() {
             return Err(Status::permission_denied("User is already enrolled"));
         }
-        
+
         // enable corresponding MFA
         let mfa_method: MFAMethod = match method {
             MfaMethod::Email => {
