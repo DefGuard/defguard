@@ -234,7 +234,7 @@ pub struct ImportedNetworkData {
 }
 
 #[derive(Debug, Error)]
-enum MfaFlowAssignmentError {
+enum MfaFlowAssignmentLicenseError {
     #[error("MFA flow group assignments require an Enterprise license")]
     GroupAssignmentNotAllowed,
     #[error("Multi-step MFA flows require a Business license")]
@@ -247,7 +247,7 @@ enum MfaFlowAssignmentError {
 async fn validate_mfa_flow_assignments(
     conn: &mut PgConnection,
     assignments: &[LocationMfaFlowAssignment],
-) -> Result<(), MfaFlowAssignmentError> {
+) -> Result<(), MfaFlowAssignmentLicenseError> {
     // Enterprise can make all assignments.
     if has_enterprise_access(None) {
         return Ok(());
@@ -255,7 +255,7 @@ async fn validate_mfa_flow_assignments(
 
     // Business and Free can't assign groups.
     if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        return Err(MfaFlowAssignmentError::GroupAssignmentNotAllowed);
+        return Err(MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed);
     }
 
     // Business can assign multiple and multi-step flows.
@@ -267,7 +267,7 @@ async fn validate_mfa_flow_assignments(
     if let Some(assignment) = assignments.first() {
         let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
         if steps.len() > 1 {
-            return Err(MfaFlowAssignmentError::MultipleStepsNotAllowed);
+            return Err(MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed);
         }
     }
 
@@ -275,12 +275,12 @@ async fn validate_mfa_flow_assignments(
 }
 
 fn assignment_license_error_response(
-    error: MfaFlowAssignmentError,
+    error: MfaFlowAssignmentLicenseError,
 ) -> Result<ApiResponse, WebError> {
     let code = match error {
-        MfaFlowAssignmentError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
-        MfaFlowAssignmentError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
-        MfaFlowAssignmentError::Database(error) => return Err(WebError::from(error)),
+        MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
+        MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
+        MfaFlowAssignmentLicenseError::Database(error) => return Err(WebError::from(error)),
     };
     Ok(license_error_response("mfa_flows".into(), code))
 }
@@ -571,6 +571,9 @@ pub(crate) async fn modify_network(
         false
     };
 
+    // Only changed assignments need license validation; keeping the same assignments must not
+    // block unrelated location updates after a license downgrade. Flow order is significant, but
+    // group order is not, so normalize group IDs before comparing.
     let current_mfa_assignments = normalize_mfa_flow_assignments(
         MfaFlow::for_location(&mut *transaction, network.id)
             .await?

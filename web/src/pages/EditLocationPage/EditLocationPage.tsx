@@ -536,13 +536,13 @@ const EditLocationForm = ({
     [location],
   );
 
-  // Reuses the same save request for direct submits and confirmed warning actions.
   const mfaFlowAssignments = mfaFlows.map((flow) => ({
     flow_id: flow.id,
     is_default: flow.is_default,
     group_ids: flow.groups.map((group) => group.id),
   }));
 
+  // Reuses the same save request for direct submits and confirmed warning actions.
   const submitLocationChanges = async (value: FormFields) => {
     await editLocation({
       id: location.id,
