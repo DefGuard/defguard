@@ -322,9 +322,7 @@ pub async fn user_from_claims(
             user
         }
         None => {
-            // `email` decides which account this identity links to, or which identity a new
-            // account claims, and emails are unique. Only an explicit `false` is rejected:
-            // many providers omit `email_verified` altogether.
+            // Only an explicit `false` is rejected. Some providers omit `email_verified`.
             match token_claims.email_verified() {
                 Some(false) => {
                     warn!(
@@ -336,7 +334,7 @@ pub async fn user_from_claims(
                         "Provider did not verify the email address".into(),
                     ));
                 }
-                None => warn!(
+                None => debug!(
                     "OpenID login: provider sent no email_verified claim for {}, so the address \
                     cannot be confirmed as belonging to this identity",
                     email.as_str()
