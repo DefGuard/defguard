@@ -322,6 +322,25 @@ pub async fn user_from_claims(
             user
         }
         None => {
+            // Only an explicit `false` is rejected. Some providers omit `email_verified`.
+            match token_claims.email_verified() {
+                Some(false) => {
+                    warn!(
+                        "OpenID login: provider reported email address {} as unverified, \
+                        refusing to link or create an account",
+                        email.as_str()
+                    );
+                    return Err(WebError::Authorization(
+                        "Provider did not verify the email address".into(),
+                    ));
+                }
+                None => debug!(
+                    "OpenID login: provider sent no email_verified claim for {}, so the address \
+                    cannot be confirmed as belonging to this identity",
+                    email.as_str()
+                ),
+                Some(true) => {}
+            }
             if let Some(mut user) = User::find_by_email(pool, email).await? {
                 if !user.is_active {
                     debug!("User {} tried to log in, but is disabled", user.username);

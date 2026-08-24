@@ -1,5 +1,8 @@
 #![allow(deprecated)]
-use defguard_common::db::models::settings::{Settings, update_current_settings};
+use defguard_common::db::models::{
+    User,
+    settings::{Settings, update_current_settings},
+};
 use defguard_core::{
     db::models::enrollment::Token,
     enterprise::{
@@ -21,10 +24,11 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 
 use super::support::{
-    assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
-    create_external_mfa_network, create_oidc_provider, create_user, create_user_with_device,
-    expect_bidi_mfa_success, make_device_info, make_oidc_code, send_mfa_finish, send_mfa_start,
-    set_public_proxy_url, set_test_license_business,
+    EmailVerified, assert_error_response, assert_error_response_details, assert_vpn_session_exists,
+    clear_test_license, complete_proxy_handshake, create_external_mfa_network,
+    create_oidc_provider, create_user, create_user_with_device, expect_bidi_mfa_success,
+    make_device_info, make_oidc_code, make_oidc_code_with_email_verified, send_mfa_finish,
+    send_mfa_start, set_public_proxy_url, set_test_license_business,
 };
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
@@ -522,6 +526,189 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
     assert_eq!(
         token.user_id, user.id,
         "enrollment token must belong to the pre-existing user"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// When the provider marks the email as unverified, the callback must not merge
+/// the identity into a pre-existing account: it returns `PermissionDenied` and
+/// leaves the target user's `openid_sub` unset.
+#[sqlx::test]
+async fn test_auth_callback_unverified_email_does_not_merge_into_existing_account(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    // Target account: pre-existing and never used OIDC, so `openid_sub` is NULL.
+    let target = create_user(&context.pool).await;
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    // The attacker's `sub` is unknown, the email matches the target, and the
+    // provider reports it unverified.
+    let raw_nonce = "test-nonce-unverified-email";
+    let code = make_oidc_code_with_email_verified(
+        "attacker-sub",
+        &target.email,
+        raw_nonce,
+        EmailVerified::Unverified,
+    );
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 12,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code,
+            nonce: raw_nonce.to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (status, message) = assert_error_response_details(&response);
+    assert_eq!(
+        status,
+        tonic::Code::PermissionDenied,
+        "expected PermissionDenied when the provider reports the email unverified"
+    );
+    assert!(
+        message.contains("did not verify the email address"),
+        "expected the unverified-email rejection, got: {message}"
+    );
+
+    // The target account must not be bound to the attacker's identity.
+    let target = User::find_by_email(&context.pool, &target.email)
+        .await
+        .expect("db query failed for target user")
+        .expect("target user should still exist");
+    assert!(
+        target.openid_sub.is_none(),
+        "unverified email must not set openid_sub on the existing account"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Many providers omit `email_verified` altogether, so an absent claim must stay
+/// permissive: the identity still links to the account matching its email. Pins the
+/// compatibility decision behind rejecting only an explicit `false`.
+#[sqlx::test]
+async fn test_auth_callback_absent_email_verified_claim_still_links_account(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let user = create_user(&context.pool).await;
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let raw_nonce = "test-nonce-absent-email-verified";
+    let code = make_oidc_code_with_email_verified(
+        "absent-claim-sub",
+        &user.email,
+        raw_nonce,
+        EmailVerified::Absent,
+    );
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 14,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code,
+            nonce: raw_nonce.to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let auth_cb = match &response.payload {
+        Some(core_response::Payload::AuthCallback(r)) => r,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "an absent email_verified claim must not block login: status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "expected AuthCallback response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    };
+
+    let token = Token::find_by_id(&context.pool, &auth_cb.token)
+        .await
+        .expect("db query failed for enrollment token");
+    assert_eq!(
+        token.user_id, user.id,
+        "enrollment token must belong to the matched user"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Emails are unique, so an account created from an unverified address claims that
+/// identity for good. With no account to merge into, the callback must still fail
+/// and create nothing.
+#[sqlx::test]
+async fn test_auth_callback_unverified_email_does_not_create_account(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    // No account holds this address, so this exercises the creation path.
+    let email = "no-such-user@example.com";
+    let raw_nonce = "test-nonce-unverified-email-no-account";
+    let code = make_oidc_code_with_email_verified(
+        "attacker-sub",
+        email,
+        raw_nonce,
+        EmailVerified::Unverified,
+    );
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 13,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code,
+            nonce: raw_nonce.to_owned(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (status, message) = assert_error_response_details(&response);
+    assert_eq!(
+        status,
+        tonic::Code::PermissionDenied,
+        "expected PermissionDenied when the provider reports the email unverified"
+    );
+    assert!(
+        message.contains("did not verify the email address"),
+        "expected the unverified-email rejection, got: {message}"
+    );
+
+    assert!(
+        User::find_by_email(&context.pool, email)
+            .await
+            .expect("db query failed for the claimed email")
+            .is_none(),
+        "unverified email must not create an account"
     );
 
     clear_test_license();
