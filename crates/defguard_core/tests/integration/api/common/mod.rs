@@ -209,10 +209,9 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
 pub(crate) async fn update_location_mfa_flows(
     client: &TestClient,
     location_id: Id,
-    mfa_flows: Value,
+    assignments: Value,
 ) -> TestResponse {
-    let mfa_flows = mfa_flows.get("assignments").cloned().unwrap_or(mfa_flows);
-    update_location_assignments(client, location_id, "mfa_flows", mfa_flows).await
+    update_location_assignments(client, location_id, "mfa_flows", assignments).await
 }
 
 /// Save a complete posture-check assignment list through the location update endpoint.

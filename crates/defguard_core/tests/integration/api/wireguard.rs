@@ -588,7 +588,7 @@ async fn assign_default_mfa_flow(client: &TestClient, location_id: i64, flow_id:
     let response = update_location_mfa_flows(
         client,
         location_id,
-        json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }),
+        json!([{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -672,16 +672,15 @@ async fn test_enable_mfa_after_clear_refused_without_flows(
     let response = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Clearing is allowed on the MFA-disabled location.
-    let response =
-        update_location_mfa_flows(&client, location_id, json!({"assignments": []})).await;
+    let response = update_location_mfa_flows(&client, location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Delete the now-unassigned flow so no flows exist globally.

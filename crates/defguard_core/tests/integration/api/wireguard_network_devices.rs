@@ -482,7 +482,7 @@ async fn test_network_device_config_skips_mfa_location(
     let response = update_location_mfa_flows(
         &client,
         location.id,
-        json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }),
+        json!([{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);

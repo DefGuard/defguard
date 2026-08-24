@@ -97,7 +97,6 @@
   "location_access_edit_groups": "Edit groups",
   "location_posture_checks_edit": "Edit posture check",
   "location_posture_checks_select": "Select posture check",
-  "location_posture_checks_update_failed": "Failed to update posture checks",
   "location_posture_checks_empty_state_before_link": "You don't have any posture checks yet. Create at least one in the",
   "location_posture_checks_empty_state_after_link": "section before assigning it to this location.",
   "location_access_select_allowed_groups": "Select allowed groups",

@@ -281,20 +281,18 @@ async fn test_mfa_flow_group_scoping_is_saved_for_later_enforcement(
         .unwrap();
 
     // Default assignment (empty group_ids) + scoped assignment (non-empty)
-    let assignment_body = json!({
-        "assignments": [
-            {
-                "flow_id": flow1_id,
-                "is_default": true,
-                "group_ids": []
-            },
-            {
-                "flow_id": flow2_id,
-                "is_default": false,
-                "group_ids": [admin_group_id]
-            }
-        ]
-    });
+    let assignment_body = json!([
+        {
+            "flow_id": flow1_id,
+            "is_default": true,
+            "group_ids": []
+        },
+        {
+            "flow_id": flow2_id,
+            "is_default": false,
+            "group_ids": [admin_group_id]
+        }
+    ]);
 
     // Group scoping can be saved on Business. Enforcement decides whether a
     // location can be delivered to a particular device.
@@ -503,7 +501,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     let response = update_location_mfa_flows(
         &client,
         999999,
-        json!({"assignments": [{"flow_id": flow_id, "is_default": true, "group_ids": []}]}),
+        json!([{"flow_id": flow_id, "is_default": true, "group_ids": []}]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
@@ -512,10 +510,10 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     let response = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
             {"flow_id": flow_id, "is_default": false, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -528,9 +526,9 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     let response = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": 999999, "is_default": true, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -591,10 +589,10 @@ async fn test_location_mfa_flows_non_default_without_groups(
     let response = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow1_id, "is_default": false, "group_ids": []},
             {"flow_id": flow2_id, "is_default": true, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -639,9 +637,9 @@ async fn test_location_mfa_flows_clear_disabled_location(
     let response = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -670,8 +668,7 @@ async fn test_location_mfa_flows_clear_disabled_location(
             && assignments[0].group_ids.is_empty()
     );
 
-    let response =
-        update_location_mfa_flows(&client, location_id, json!({"assignments": []})).await;
+    let response = update_location_mfa_flows(&client, location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let events = client.drain_all_events();
@@ -921,9 +918,9 @@ async fn test_mfa_enabled_disable_preserves_assignments(
     let resp = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -1014,9 +1011,9 @@ async fn test_mfa_flow_delete_location_requires_flow(_: PgPoolOptions, options: 
     let resp = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -1099,10 +1096,10 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
     let resp = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow1_id, "is_default": true, "group_ids": []},
             {"flow_id": flow2_id, "is_default": false, "group_ids": [admin_group_id]},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -1267,9 +1264,9 @@ async fn test_location_mfa_flows_no_default_designated(
     let resp = update_location_mfa_flows(
         &client,
         location_id,
-        json!({"assignments": [
+        json!([
             {"flow_id": flow_id, "is_default": false, "group_ids": []},
-        ]}),
+        ]),
     )
     .await;
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);

@@ -450,9 +450,7 @@ async fn test_delete_openid_provider_reports_affected_locations(
     let response = update_location_mfa_flows(
         &client,
         location_id,
-        json!({
-            "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]
-        }),
+        json!([{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]),
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);

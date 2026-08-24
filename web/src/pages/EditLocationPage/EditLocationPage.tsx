@@ -12,6 +12,7 @@ import {
   LicenseFeature,
   type LocationMfaFlowResponse,
   LocationServiceMode,
+  type MfaFlowAssignment,
   type NetworkLocation,
 } from '../../shared/api/types';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
@@ -38,7 +39,11 @@ import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
+import {
+  getLicenseInfoQueryOptions,
+  getLocationMfaFlowsQueryOptions,
+  getLocationQueryOptions,
+} from '../../shared/query';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
@@ -54,11 +59,9 @@ export const EditLocationPage = () => {
     from: '/_authorized/_default/locations/$locationId/edit',
   });
   const { data: location } = useSuspenseQuery(getLocationQueryOptions(Number(paramsId)));
-  const { data: mfaFlows } = useSuspenseQuery({
-    queryKey: ['location', location.id, 'mfa-flows'],
-    queryFn: () =>
-      api.mfaFlow.getLocationAssignments(location.id).then((response) => response.data),
-  });
+  const { data: mfaFlows } = useSuspenseQuery(
+    getLocationMfaFlowsQueryOptions(location.id),
+  );
 
   return (
     <EditPage
@@ -244,6 +247,8 @@ const areEqualStringArrays = (left: string[], right: string[]) =>
 const buildLocationSubmissionData = (
   value: FormFields,
   location: NetworkLocation,
+  postureChecks: number[],
+  mfaFlows: MfaFlowAssignment[],
 ): EditNetworkLocation => {
   const normalizedValue = cloneDeep(value);
 
@@ -258,8 +263,8 @@ const buildLocationSubmissionData = (
     acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
     peer_disconnect_threshold:
       normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
-    posture_checks: location.posture_checks ?? [],
-    mfa_flows: [],
+    posture_checks: postureChecks,
+    mfa_flows: mfaFlows,
   };
 };
 
@@ -532,18 +537,21 @@ const EditLocationForm = ({
   );
 
   // Reuses the same save request for direct submits and confirmed warning actions.
+  const mfaFlowAssignments = mfaFlows.map((flow) => ({
+    flow_id: flow.id,
+    is_default: flow.is_default,
+    group_ids: flow.groups.map((group) => group.id),
+  }));
+
   const submitLocationChanges = async (value: FormFields) => {
     await editLocation({
       id: location.id,
-      data: {
-        ...buildLocationSubmissionData(value, location),
-        posture_checks: pendingPostureChecks,
-        mfa_flows: mfaFlows.map((flow) => ({
-          flow_id: flow.id,
-          is_default: flow.is_default,
-          group_ids: flow.groups.map((group) => group.id),
-        })),
-      },
+      data: buildLocationSubmissionData(
+        value,
+        location,
+        pendingPostureChecks,
+        mfaFlowAssignments,
+      ),
     });
   };
 
@@ -566,9 +574,21 @@ const EditLocationForm = ({
 
       const changedFields = getDisconnectRelevantChangedFields(
         getDisconnectRelevantLocationData(
-          buildLocationSubmissionData(defaultValues, location),
+          buildLocationSubmissionData(
+            defaultValues,
+            location,
+            location.posture_checks ?? [],
+            mfaFlowAssignments,
+          ),
         ),
-        getDisconnectRelevantLocationData(buildLocationSubmissionData(value, location)),
+        getDisconnectRelevantLocationData(
+          buildLocationSubmissionData(
+            value,
+            location,
+            pendingPostureChecks,
+            mfaFlowAssignments,
+          ),
+        ),
       );
 
       if (changedFields.length > 0) {
