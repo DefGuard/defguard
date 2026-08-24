@@ -1115,7 +1115,7 @@ impl EnrollmentServer {
         }
 
         // enable corresponding MFA
-        let mfa_method: MFAMethod = match method {
+        let mfa_method = match method {
             MfaMethod::Email => {
                 if !user.verify_email_mfa_code(&request.code) {
                     return Err(Status::invalid_argument("Email code invalid".to_owned()));
