@@ -131,8 +131,8 @@ pub fn no_flows_assigned_response() -> ApiResponse {
 /// Used by the auto-adoption wizard after it creates a location. The normal location create and
 /// update handlers validate assignments inside their transactions. Returns a structured `400`
 /// response (not a `WebError`) when no MFA flow or no default assignment exists.
-pub async fn validate_mfa_flows_exist(
-    executor: &mut PgConnection,
+pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
+    executor: E,
     mfa_enabled: bool,
     location_id: Option<Id>,
 ) -> Result<Option<ApiResponse>, WebError> {
@@ -140,13 +140,13 @@ pub async fn validate_mfa_flows_exist(
         return Ok(None);
     }
 
-    if !MfaFlow::any_exist(&mut *executor).await? {
+    if !MfaFlow::any_exist(executor).await? {
         error!("Unable to enable MFA for location: no MFA flows are configured");
         return Ok(Some(no_flows_exist_response()));
     }
 
     let has_default = match location_id {
-        Some(id) => MfaFlow::has_default_assignment(&mut *executor, id).await?,
+        Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
         None => false,
     };
     if !has_default {
@@ -575,7 +575,7 @@ pub(crate) async fn modify_network(
             "Ignoring MFA flow assignments because the paid license is inactive"
         );
         if let Some(response) =
-            validate_mfa_flows_exist(&mut *transaction, data.mfa_enabled, Some(network.id)).await?
+            validate_mfa_flows_exist(&appstate.pool, data.mfa_enabled, Some(network.id)).await?
         {
             return Ok(response);
         }

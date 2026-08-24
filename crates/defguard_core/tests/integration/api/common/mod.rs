@@ -243,9 +243,9 @@ async fn update_location_assignments(
     data.remove("id");
     data.remove("gateways");
     data.remove("has_devices");
-    for field in ["address", "allowed_ips"] {
+    for array_field in ["address", "allowed_ips"] {
         let value = data
-            .get_mut(field)
+            .get_mut(array_field)
             .and_then(Value::as_array_mut)
             .expect("location field must be an array");
         let joined = value
@@ -253,7 +253,7 @@ async fn update_location_assignments(
             .map(|item| item.as_str().expect("location field item must be a string"))
             .collect::<Vec<_>>()
             .join(",");
-        *data.get_mut(field).expect("field must exist") = Value::String(joined);
+        *data.get_mut(array_field).expect("field must exist") = Value::String(joined);
     }
     let response = client
         .get(format!("/api/v1/location/{location_id}/mfa-flows"))
