@@ -380,10 +380,32 @@ async fn test_create_network_mfa_assignment_license_gates(
         &client,
         "enterprise-group-scoping",
         "10.10.6.1/24",
-        scoped_assignments,
+        scoped_assignments.clone(),
     )
     .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let location_id = response.json::<Value>().await["id"].as_i64().unwrap();
+
+    set_cached_license(business_license.clone());
+
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
+            {
+                "flow_id": second_single_step_flow,
+                "is_default": true,
+                "group_ids": []
+            },
+            {
+                "flow_id": single_step_flow,
+                "is_default": false,
+                "group_ids": [admin_group_id]
+            }
+        ]),
+    )
+    .await;
+    assert_assignment_license_error(response, "group_assignment_not_allowed").await;
 
     set_cached_license(business_license);
 }

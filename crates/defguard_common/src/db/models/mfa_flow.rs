@@ -62,7 +62,7 @@ pub struct LocationMfaFlowItem {
 }
 
 /// Input for a single flow assignment to a location.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, ToSchema)]
 pub struct LocationMfaFlowAssignment {
     pub flow_id: Id,
     pub is_default: bool,

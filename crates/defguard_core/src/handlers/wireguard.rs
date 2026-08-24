@@ -274,7 +274,7 @@ async fn validate_mfa_flow_assignments(
     Ok(())
 }
 
-fn mfa_flow_assignment_validation_error_response(
+fn assignment_license_error_response(
     error: MfaFlowAssignmentError,
 ) -> Result<ApiResponse, WebError> {
     let code = match error {
@@ -283,6 +283,16 @@ fn mfa_flow_assignment_validation_error_response(
         MfaFlowAssignmentError::Database(error) => return Err(WebError::from(error)),
     };
     Ok(license_error_response("mfa_flows".into(), code))
+}
+
+/// Prepare assignments for equality check.
+fn normalize_mfa_flow_assignments(
+    mut assignments: Vec<LocationMfaFlowAssignment>,
+) -> Vec<LocationMfaFlowAssignment> {
+    for assignment in &mut assignments {
+        assignment.group_ids.sort_unstable();
+    }
+    assignments
 }
 
 /// Create a network
@@ -400,7 +410,7 @@ pub(crate) async fn create_network(
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
     if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await {
-        return mfa_flow_assignment_validation_error_response(error);
+        return assignment_license_error_response(error);
     }
     if let Err(error) =
         MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
@@ -561,26 +571,35 @@ pub(crate) async fn modify_network(
         false
     };
 
-    let update_mfa_assignments = is_business_license_active();
-    let mfa_assignments: Vec<LocationMfaFlowAssignment> = if update_mfa_assignments {
+    let current_mfa_assignments = normalize_mfa_flow_assignments(
+        MfaFlow::for_location(&mut *transaction, network.id)
+            .await?
+            .into_iter()
+            .map(|assignment| LocationMfaFlowAssignment {
+                flow_id: assignment.id,
+                is_default: assignment.is_default,
+                group_ids: assignment.group_ids,
+            })
+            .collect(),
+    );
+    let mfa_assignments = normalize_mfa_flow_assignments(data.mfa_flows.clone());
+    let mfa_assignments_changed = current_mfa_assignments != mfa_assignments;
+
+    if mfa_assignments_changed {
+        if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await
+        {
+            return assignment_license_error_response(error);
+        }
         if let Err(error) =
-            MfaFlow::assign_to_location(&mut transaction, network.id, &data.mfa_flows).await
+            MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
         {
             return assignment_error_response(&data.mfa_flows, error);
         }
-        data.mfa_flows.clone()
-    } else {
-        warn!(
-            location_id = network.id,
-            "Ignoring MFA flow assignments because the paid license is inactive"
-        );
-        if let Some(response) =
-            validate_mfa_flows_exist(&appstate.pool, data.mfa_enabled, Some(network.id)).await?
-        {
-            return Ok(response);
-        }
-        Vec::new()
-    };
+    } else if let Some(response) =
+        validate_mfa_flows_exist(&appstate.pool, data.mfa_enabled, Some(network.id)).await?
+    {
+        return Ok(response);
+    }
 
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
@@ -607,8 +626,7 @@ pub(crate) async fn modify_network(
             }),
         })?;
     }
-    // TODO: also check new-old assignments equality before emitting
-    if update_mfa_assignments {
+    if mfa_assignments_changed {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
