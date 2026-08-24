@@ -247,7 +247,7 @@ enum MfaFlowAssignmentError {
 async fn validate_mfa_flow_assignments(
     conn: &mut PgConnection,
     assignments: &[LocationMfaFlowAssignment],
-) -> Result<(), MfaFlowAssignmenError> {
+) -> Result<(), MfaFlowAssignmentError> {
     // Enterprise can make all assignments.
     if has_enterprise_access(None) {
         return Ok(());
@@ -255,7 +255,7 @@ async fn validate_mfa_flow_assignments(
 
     // Business and Free can't assign groups.
     if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        return Err(MfaFlowAssignmenError::GroupAssignmentNotAllowed);
+        return Err(MfaFlowAssignmentError::GroupAssignmentNotAllowed);
     }
 
     // Business can assign multiple and multi-step flows.
@@ -267,7 +267,7 @@ async fn validate_mfa_flow_assignments(
     if let Some(assignment) = assignments.first() {
         let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
         if steps.len() > 1 {
-            return Err(MfaFlowAssignmenError::MultipleStepsNotAllowed);
+            return Err(MfaFlowAssignmentError::MultipleStepsNotAllowed);
         }
     }
 
@@ -275,12 +275,12 @@ async fn validate_mfa_flow_assignments(
 }
 
 fn mfa_flow_assignment_validation_error_response(
-    error: MfaFlowAssignmenError,
+    error: MfaFlowAssignmentError,
 ) -> Result<ApiResponse, WebError> {
     let code = match error {
-        MfaFlowAssignmenError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
-        MfaFlowAssignmenError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
-        MfaFlowAssignmenError::Database(error) => return Err(WebError::from(error)),
+        MfaFlowAssignmentError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
+        MfaFlowAssignmentError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
+        MfaFlowAssignmentError::Database(error) => return Err(WebError::from(error)),
     };
     Ok(license_error_response("mfa_flows".into(), code))
 }
