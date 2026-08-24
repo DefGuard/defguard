@@ -234,11 +234,11 @@ pub struct ImportedNetworkData {
 }
 
 #[derive(Debug, Error)]
-enum MfaFlowAssignmentValidationError {
+enum MfaFlowAssignmentError {
     #[error("MFA flow group assignments require an Enterprise license")]
-    EnterpriseRequired,
-    #[error("Multiple or multi-step MFA flows require a Business license")]
-    BusinessRequired,
+    GroupAssignmentNotAllowed,
+    #[error("Multi-step MFA flows require a Business license")]
+    MultipleStepsNotAllowed,
     #[error(transparent)]
     Database(#[from] sqlx::Error),
 }
@@ -247,7 +247,7 @@ enum MfaFlowAssignmentValidationError {
 async fn validate_mfa_flow_assignments(
     conn: &mut PgConnection,
     assignments: &[LocationMfaFlowAssignment],
-) -> Result<(), MfaFlowAssignmentValidationError> {
+) -> Result<(), MfaFlowAssignmenError> {
     // Enterprise can make all assignments.
     if has_enterprise_access(None) {
         return Ok(());
@@ -255,7 +255,7 @@ async fn validate_mfa_flow_assignments(
 
     // Business and Free can't assign groups.
     if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        return Err(MfaFlowAssignmentValidationError::EnterpriseRequired);
+        return Err(MfaFlowAssignmenError::GroupAssignmentNotAllowed);
     }
 
     // Business can assign multiple and multi-step flows.
@@ -263,16 +263,11 @@ async fn validate_mfa_flow_assignments(
         return Ok(());
     }
 
-    // Free can't assign multiple flows.
-    if assignments.len() > 1 {
-        return Err(MfaFlowAssignmentValidationError::BusinessRequired);
-    }
-
     // Free can't assign multi-step flows.
     if let Some(assignment) = assignments.first() {
         let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
         if steps.len() > 1 {
-            return Err(MfaFlowAssignmentValidationError::BusinessRequired);
+            return Err(MfaFlowAssignmenError::MultipleStepsNotAllowed);
         }
     }
 
@@ -280,12 +275,12 @@ async fn validate_mfa_flow_assignments(
 }
 
 fn mfa_flow_assignment_validation_error_response(
-    error: MfaFlowAssignmentValidationError,
+    error: MfaFlowAssignmenError,
 ) -> Result<ApiResponse, WebError> {
     let code = match error {
-        MfaFlowAssignmentValidationError::EnterpriseRequired => "enterprise_license_required",
-        MfaFlowAssignmentValidationError::BusinessRequired => "business_license_required",
-        MfaFlowAssignmentValidationError::Database(error) => return Err(WebError::from(error)),
+        MfaFlowAssignmenError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
+        MfaFlowAssignmenError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
+        MfaFlowAssignmenError::Database(error) => return Err(WebError::from(error)),
     };
     Ok(license_error_response("mfa_flows".into(), code))
 }
