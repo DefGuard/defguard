@@ -225,7 +225,7 @@ async fn test_mfa_flow_email_requires_smtp(_: PgPoolOptions, options: PgConnectO
 
 /// Group-scoped assignments require an enterprise license.
 #[sqlx::test]
-async fn test_mfa_flow_group_scoping_is_saved_for_later_enforcement(
+async fn test_mfa_flow_group_scoping_requires_enterprise(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -294,8 +294,7 @@ async fn test_mfa_flow_group_scoping_is_saved_for_later_enforcement(
         }
     ]);
 
-    // Group scoping can be saved on Business. Enforcement decides whether a
-    // location can be delivered to a particular device.
+    set_enterprise_license();
     let _ = client.drain_all_events();
     let response = update_location_mfa_flows(&client, location_id, assignment_body).await;
     assert_eq!(response.status(), StatusCode::OK);

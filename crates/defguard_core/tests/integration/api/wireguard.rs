@@ -744,7 +744,7 @@ async fn test_enable_mfa_after_clear_refused_without_flows(
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body: serde_json::Value = response.json().await;
-    assert_eq!(body["fields"][0]["code"], "no_default_designated");
+    assert_eq!(body["fields"][0]["code"], "no_flows_exist");
 }
 
 /// Enabling MFA on a location that has no default flow assigned is refused with
@@ -789,8 +789,8 @@ async fn test_enable_mfa_without_assignment_refused(_: PgPoolOptions, options: P
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body: serde_json::Value = response.json().await;
     assert_eq!(body["error"], "validation_failed");
-    assert_eq!(body["fields"][0]["field"], "mfa_flows");
-    assert_eq!(body["fields"][0]["code"], "no_default_designated");
+    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
+    assert_eq!(body["fields"][0]["code"], "no_flows_assigned");
 }
 
 /// Create a posture check and return its ID.
@@ -2476,8 +2476,8 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
     let events = client.drain_all_events();
     assert_eq!(
         events.len(),
-        2,
-        "location save must emit assignment and location events"
+        1,
+        "location save must emit only a location event"
     );
     let (event_type, _user_id, _username) = events
         .iter()
@@ -2528,8 +2528,8 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
     let events = client.drain_all_events();
     assert_eq!(
         events.len(),
-        2,
-        "location save must emit assignment and location events"
+        1,
+        "location save must emit only a location event"
     );
     let (event_type, _user_id, _username) = events
         .iter()

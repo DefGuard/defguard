@@ -571,9 +571,9 @@ pub(crate) async fn modify_network(
         false
     };
 
-    // Only changed assignments need license validation; keeping the same assignments must not
-    // block unrelated location updates after a license downgrade. Flow order is significant, but
-    // group order is not, so normalize group IDs before comparing.
+    // Only changed assignments can be written with a Business license; otherwise, preserve the
+    // existing assignments so a license downgrade does not block unrelated location updates. Flow
+    // order is significant, but group order is not, so normalize group IDs before comparing.
     let current_mfa_assignments = normalize_mfa_flow_assignments(
         MfaFlow::for_location(&mut *transaction, network.id)
             .await?
@@ -587,8 +587,9 @@ pub(crate) async fn modify_network(
     );
     let mfa_assignments = normalize_mfa_flow_assignments(data.mfa_flows.clone());
     let mfa_assignments_changed = current_mfa_assignments != mfa_assignments;
+    let mfa_assignments_updated = mfa_assignments_changed && is_business_license_active();
 
-    if mfa_assignments_changed {
+    if mfa_assignments_updated {
         if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await
         {
             return assignment_license_error_response(error);
@@ -629,7 +630,7 @@ pub(crate) async fn modify_network(
             }),
         })?;
     }
-    if mfa_assignments_changed {
+    if mfa_assignments_updated {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
