@@ -131,8 +131,8 @@ pub fn no_flows_assigned_response() -> ApiResponse {
 /// Used by the auto-adoption wizard after it creates a location. The normal location create and
 /// update handlers validate assignments inside their transactions. Returns a structured `400`
 /// response (not a `WebError`) when no MFA flow or no default assignment exists.
-pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
-    executor: E,
+pub async fn validate_mfa_flows_exist(
+    executor: &mut PgConnection,
     mfa_enabled: bool,
     location_id: Option<Id>,
 ) -> Result<Option<ApiResponse>, WebError> {
@@ -140,13 +140,13 @@ pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
         return Ok(None);
     }
 
-    if !MfaFlow::any_exist(executor).await? {
+    if !MfaFlow::any_exist(&mut *executor).await? {
         error!("Unable to enable MFA for location: no MFA flows are configured");
         return Ok(Some(no_flows_exist_response()));
     }
 
     let has_default = match location_id {
-        Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
+        Some(id) => MfaFlow::has_default_assignment(&mut *executor, id).await?,
         None => false,
     };
     if !has_default {
@@ -407,15 +407,6 @@ pub(crate) async fn create_network(
     {
         return assignment_error_response(&data.mfa_flows, error);
     }
-    if data.mfa_enabled {
-        if !MfaFlow::any_exist(&mut *transaction).await? {
-            return Ok(no_flows_exist_response());
-        }
-        if !MfaFlow::has_default_assignment(&mut *transaction, network.id).await? {
-            return Ok(no_flows_assigned_response());
-        }
-    }
-
     transaction.commit().await?;
 
     appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
@@ -583,16 +574,13 @@ pub(crate) async fn modify_network(
             location_id = network.id,
             "Ignoring MFA flow assignments because the paid license is inactive"
         );
+        if let Some(response) =
+            validate_mfa_flows_exist(&mut *transaction, data.mfa_enabled, Some(network.id)).await?
+        {
+            return Ok(response);
+        }
         Vec::new()
     };
-    if data.mfa_enabled {
-        if !MfaFlow::any_exist(&mut *transaction).await? {
-            return Ok(no_flows_exist_response());
-        }
-        if !MfaFlow::has_default_assignment(&mut *transaction, network.id).await? {
-            return Ok(no_flows_assigned_response());
-        }
-    }
 
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 

@@ -312,7 +312,7 @@ async fn test_create_network_mfa_assignment_license_gates(
         }]),
     )
     .await;
-    assert_assignment_license_error(response, "business_license_required").await;
+    assert_assignment_license_error(response, "multiple_steps_not_allowed").await;
 
     let response = create_network_with_mfa_flows(
         &client,
@@ -332,7 +332,11 @@ async fn test_create_network_mfa_assignment_license_gates(
         ]),
     )
     .await;
-    assert_assignment_license_error(response, "business_license_required").await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response.json::<Value>().await["fields"][0]["code"],
+        "non_default_must_have_groups"
+    );
 
     set_cached_license(business_license.clone());
 
@@ -368,7 +372,7 @@ async fn test_create_network_mfa_assignment_license_gates(
         scoped_assignments.clone(),
     )
     .await;
-    assert_assignment_license_error(response, "enterprise_license_required").await;
+    assert_assignment_license_error(response, "group_assignment_not_allowed").await;
 
     set_enterprise_license();
 
