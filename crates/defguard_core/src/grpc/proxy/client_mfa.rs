@@ -24,8 +24,8 @@ use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
         ClientMfaStartResponse, ClientMfaStepStartRequest, ClientMfaStepStartResponse, MfaAdvanced,
-        MfaCompleted, MfaMethod, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
-        mfa_step_result,
+        MfaAwaitingExternal, MfaCompleted, MfaMethod, MfaStartRejectionReason, MfaStepRejection,
+        MfaStepResult, mfa_step_result,
     },
     enterprise::posture::DevicePostureCheckRequest,
     proxy::{
@@ -126,7 +126,6 @@ impl From<InitiateError> for Status {
 
 // The engine's domain types carry no proto, so the conversions live here rather than in
 // `mfa_engine`.
-
 impl From<FinishOutcome> for MfaStepResult {
     fn from(value: FinishOutcome) -> Self {
         let outcome = match value {
@@ -135,6 +134,9 @@ impl From<FinishOutcome> for MfaStepResult {
             }
             FinishOutcome::Completed { preshared_key } => {
                 mfa_step_result::Outcome::Completed(MfaCompleted { preshared_key })
+            }
+            FinishOutcome::AwaitingExternal => {
+                mfa_step_result::Outcome::AwaitingExternal(MfaAwaitingExternal {})
             }
         };
         MfaStepResult {
@@ -739,7 +741,7 @@ impl ClientMfaServer {
                 }
                 preshared_key.clone()
             }
-            FinishOutcome::Advanced { .. } => String::new(),
+            FinishOutcome::Advanced { .. } | FinishOutcome::AwaitingExternal => String::new(),
         };
 
         let response = ClientMfaFinishResponse {

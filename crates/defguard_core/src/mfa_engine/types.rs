@@ -43,6 +43,8 @@ pub enum FinishOutcome {
     Advanced { next_step: u32 },
     /// The final step completed and a preshared key was minted.
     Completed { preshared_key: String },
+    /// Still waiting for external confirmation (OIDC or mobile auth) to be completed.
+    AwaitingExternal,
 }
 
 /// Why a step of the submitted plan was refused at `start`.
