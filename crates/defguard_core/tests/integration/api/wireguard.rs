@@ -369,6 +369,12 @@ async fn test_create_network_mfa_assignment_license_gates(
     )
     .await;
     assert_assignment_license_error(response, "group_assignment_not_allowed").await;
+    assert!(
+        WireguardNetwork::find_by_name(&pool, "business-group-scoping")
+            .await
+            .unwrap()
+            .is_none()
+    );
 
     set_enterprise_license();
 
