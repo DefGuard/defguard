@@ -239,12 +239,14 @@ enum MfaFlowAssignmentLicenseError {
     GroupAssignmentNotAllowed,
     #[error("Multi-step MFA flows require a Business license")]
     MultipleStepsNotAllowed,
+    #[error("Multiple MFA flows can only be assigned with Business license")]
+    MultipleMfaFlowsNotAllowed,
     #[error(transparent)]
     Database(#[from] sqlx::Error),
 }
 
 /// Validates whether the current license permits the requested MFA flow assignments.
-async fn validate_mfa_flow_assignments(
+async fn validate_mfa_flow_assignments_license(
     conn: &mut PgConnection,
     assignments: &[LocationMfaFlowAssignment],
 ) -> Result<(), MfaFlowAssignmentLicenseError> {
@@ -271,6 +273,11 @@ async fn validate_mfa_flow_assignments(
         }
     }
 
+    // Free can't assign multiple flows.
+    if assignments.len() > 1 {
+        return Err(MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed);
+    }
+
     Ok(())
 }
 
@@ -280,6 +287,7 @@ fn assignment_license_error_response(
     let code = match error {
         MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
         MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
+        MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed => "multiple_mfa_flows_not_allowed",
         MfaFlowAssignmentLicenseError::Database(error) => return Err(WebError::from(error)),
     };
     Ok(license_error_response("mfa_flows".into(), code))
@@ -409,7 +417,9 @@ pub(crate) async fn create_network(
     );
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
-    if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await {
+    if let Err(error) =
+        validate_mfa_flow_assignments_license(&mut transaction, &mfa_assignments).await
+    {
         return assignment_license_error_response(error);
     }
     if let Err(error) =
@@ -590,7 +600,8 @@ pub(crate) async fn modify_network(
     let mfa_assignments_updated = mfa_assignments_changed && is_business_license_active();
 
     if mfa_assignments_updated {
-        if let Err(error) = validate_mfa_flow_assignments(&mut transaction, &mfa_assignments).await
+        if let Err(error) =
+            validate_mfa_flow_assignments_license(&mut transaction, &mfa_assignments).await
         {
             return assignment_license_error_response(error);
         }
