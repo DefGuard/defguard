@@ -60,7 +60,7 @@ pub enum MailError {
 
 use self::{
     mail_context::MailContext,
-    qr::qr_png,
+    qr::{mobile_activation_qr_data, qr_png},
     templates::{DEFAULT_LANG, TemplateError},
 };
 
@@ -528,11 +528,15 @@ impl MailMessage {
         match self {
             Self::NewAccount => {
                 mail.add_png_image("new_account_1", NEW_ACCOUNT_1);
+            }
+            Self::DesktopStart => {
                 mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
                 mail.add_png_image("google_play", GOOGLE_PLAY);
                 mail.add_png_image("apple", APPLE);
                 if let Some(Value::String(url)) = context.get("url")
-                    && let Ok(qr) = qr_png(url.as_bytes())
+                    && let Some(Value::String(token)) = context.get("token")
+                    && let Ok(data) = mobile_activation_qr_data(url, token)
+                    && let Ok(qr) = qr_png(data.as_bytes())
                 {
                     mail.add_png_image("qr", &qr);
                 }

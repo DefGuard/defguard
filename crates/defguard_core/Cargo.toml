@@ -22,9 +22,9 @@ defguard_static_ip = { workspace = true }
 lettre.workspace = true
 pulldown-cmark.workspace = true
 css-inline = "0.21"
-image = "0.25" # match with qrforge
+image = "0.25" # match with qrcode
 mrml = "6.0"
-qrforge = { version = "0.1", default-features = false, features = ["image"] }
+qrcode = { version = "0.14", default-features = false, features = ["image"] }
 
 # external dependencies
 anyhow = { workspace = true }
