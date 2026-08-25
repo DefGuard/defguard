@@ -100,7 +100,9 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -217,7 +219,9 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -326,7 +330,9 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -453,7 +459,9 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;

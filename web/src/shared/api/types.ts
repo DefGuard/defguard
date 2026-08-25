@@ -839,6 +839,8 @@ export interface EditNetworkLocation
   > {
   allowed_ips: string;
   address: string;
+  posture_checks: number[];
+  mfa_flows: MfaFlowAssignment[];
 }
 
 export interface EditNetworkLocationRequest {
@@ -1017,10 +1019,6 @@ export interface ApiDevicePosture {
   allow_prerelease_client: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
-}
-
-export interface AssignPosturesData {
-  postures: number[];
 }
 
 export interface EditDevicePostureRequest {
@@ -1464,6 +1462,25 @@ export interface MfaFlowStep {
   id: number;
   position: number;
   methods: MfaFlowMethodValue[];
+}
+
+export interface MfaFlowAssignment {
+  flow_id: number;
+  is_default: boolean;
+  group_ids: number[];
+}
+
+export interface LocationMfaFlowGroup {
+  id: number;
+  name: string;
+}
+
+export interface LocationMfaFlowResponse {
+  id: number;
+  title: string;
+  steps: Pick<MfaFlowStep, 'methods'>[];
+  is_default: boolean;
+  groups: LocationMfaFlowGroup[];
 }
 
 export interface MfaFlowDetailResponse {

@@ -51,7 +51,7 @@ use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     mfa_flow::{
         create_mfa_flow, delete_mfa_flow, get_location_mfa_flows, get_method_availability,
-        get_mfa_flow, list_mfa_flows, set_location_mfa_flows, update_mfa_flow,
+        get_mfa_flow, list_mfa_flows, update_mfa_flow,
     },
     network_devices::{
         add_network_device, check_ip_availability, find_available_ips, get_network_device,
@@ -122,7 +122,7 @@ use crate::{
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_posture, get_device_posture_versions, list_device_postures,
-                set_locations_for_posture, set_postures_for_location, update_device_posture,
+                set_locations_for_posture, update_device_posture,
             },
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
@@ -585,10 +585,7 @@ pub fn build_webapp(
                 "/mfa-flow/method-availability",
                 get(get_method_availability),
             )
-            .route(
-                "/location/{id}/mfa-flows",
-                get(get_location_mfa_flows).put(set_location_mfa_flows),
-            ),
+            .route("/location/{id}/mfa-flows", get(get_location_mfa_flows)),
     );
 
     let api_router = api_router.nest(
@@ -706,7 +703,6 @@ pub fn build_webapp(
                 "/network/{location_id}/snat",
                 get(list_snat_bindings).post(create_snat_binding),
             )
-            .route("/network/{id}/postures", put(set_postures_for_location))
             .route(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),

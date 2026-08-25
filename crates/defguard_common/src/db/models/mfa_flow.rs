@@ -49,19 +49,20 @@ pub struct MfaFlowSnapshot {
     pub steps: Vec<MfaFlowStep<Id>>,
 }
 
-/// Assignment of an MFA flow to a location, enriched for API consumption.
+/// MFA flow assignment with location metadata.
 #[derive(Clone, Debug, Serialize)]
 pub struct LocationMfaFlowItem {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
+    pub group_ids: Vec<Id>,
     pub group_names: Vec<String>,
     pub position: i32,
     pub is_default: bool,
 }
 
 /// Input for a single flow assignment to a location.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, ToSchema)]
 pub struct LocationMfaFlowAssignment {
     pub flow_id: Id,
     pub is_default: bool,
@@ -115,6 +116,19 @@ pub enum MfaFlowAssignmentError {
     UnknownGroup(Id),
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
+}
+
+/// License-related errors that can occur during MFA flow assignment.
+#[derive(Debug, Error)]
+pub enum MfaFlowAssignmentLicenseError {
+    #[error("MFA flow group assignments require an Enterprise license")]
+    GroupAssignmentNotAllowed,
+    #[error("Multi-step MFA flows require a Business license")]
+    MultipleStepsNotAllowed,
+    #[error("Multiple MFA flows can only be assigned with Business license")]
+    MultipleMfaFlowsNotAllowed,
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
 }
 
 /// Errors that can occur when updating an MFA flow.
@@ -516,6 +530,44 @@ impl MfaFlow<Id> {
         Ok(())
     }
 
+    /// Validates whether the current license permits the requested MFA flow assignments.
+    pub async fn validate_mfa_flow_assignments_license(
+        conn: &mut PgConnection,
+        assignments: &[LocationMfaFlowAssignment],
+        has_enterprise_access: bool,
+        is_business_license_active: bool,
+    ) -> Result<(), MfaFlowAssignmentLicenseError> {
+        // Enterprise can make all assignments.
+        if has_enterprise_access {
+            return Ok(());
+        }
+
+        // Business and Free can't assign groups.
+        if assignments.iter().any(|a| !a.group_ids.is_empty()) {
+            return Err(MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed);
+        }
+
+        // Business can assign multiple and multi-step flows.
+        if is_business_license_active {
+            return Ok(());
+        }
+
+        // Free can't assign multi-step flows.
+        if let Some(assignment) = assignments.first() {
+            let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
+            if steps.len() > 1 {
+                return Err(MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed);
+            }
+        }
+
+        // Free can't assign multiple flows.
+        if assignments.len() > 1 {
+            return Err(MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed);
+        }
+
+        Ok(())
+    }
+
     /// Returns the enriched assignment list for a location, ordered by position.
     pub async fn for_location<'e, E: PgExecutor<'e>>(
         executor: E,
@@ -525,7 +577,10 @@ impl MfaFlow<Id> {
             LocationMfaFlowItem,
             "SELECT mf.id, mf.title, \
              COALESCE(s.step_count, 0) AS \"step_count!: i64\", \
-             COALESCE(array_agg(g.name ORDER BY g.name) \
+             COALESCE(array_agg(lmfg.group_id ORDER BY lmfg.group_id) \
+                      FILTER (WHERE lmfg.group_id IS NOT NULL), '{}') \
+                      AS \"group_ids!: Vec<Id>\", \
+             COALESCE(array_agg(g.name ORDER BY lmfg.group_id) \
                       FILTER (WHERE g.name IS NOT NULL), '{}') \
                       AS \"group_names!: Vec<String>\", \
              lmf.position, lmf.is_default \

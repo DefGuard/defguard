@@ -35,7 +35,7 @@ use defguard_core::{
     handlers::{Auth, user::UserDetails},
 };
 use reqwest::{StatusCode, header::HeaderName};
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
@@ -205,7 +205,88 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     make_network(client, "network2").await;
 }
 
-/// Create test network with a given name.
+/// Save a complete MFA assignment list through the location update endpoint.
+pub(crate) async fn update_location_mfa_flows(
+    client: &TestClient,
+    location_id: Id,
+    assignments: Value,
+) -> TestResponse {
+    update_location_assignments(client, location_id, "mfa_flows", assignments).await
+}
+
+/// Save a complete posture-check assignment list through the location update endpoint.
+pub(crate) async fn update_location_posture_checks(
+    client: &TestClient,
+    location_id: Id,
+    posture_checks: Value,
+) -> TestResponse {
+    update_location_assignments(client, location_id, "posture_checks", posture_checks).await
+}
+
+async fn update_location_assignments(
+    client: &TestClient,
+    location_id: Id,
+    field: &str,
+    assignments: Value,
+) -> TestResponse {
+    let response = client
+        .get(format!("/api/v1/network/{location_id}"))
+        .send()
+        .await;
+    if response.status() != StatusCode::OK {
+        return response;
+    }
+    let mut location: Value = response.json().await;
+    let data = location
+        .as_object_mut()
+        .expect("location must be an object");
+    data.remove("id");
+    data.remove("gateways");
+    data.remove("has_devices");
+    for array_field in ["address", "allowed_ips"] {
+        let value = data
+            .get_mut(array_field)
+            .and_then(Value::as_array_mut)
+            .expect("location field must be an array");
+        let joined = value
+            .iter()
+            .map(|item| item.as_str().expect("location field item must be a string"))
+            .collect::<Vec<_>>()
+            .join(",");
+        *data.get_mut(array_field).expect("field must exist") = Value::String(joined);
+    }
+    let response = client
+        .get(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let flows: Vec<Value> = response.json().await;
+    let mfa_flows = flows
+        .into_iter()
+        .map(|flow| {
+            json!({
+                "flow_id": flow["id"],
+                "is_default": flow["is_default"],
+                "group_ids": flow["groups"]
+                    .as_array()
+                    .expect("flow groups must be an array")
+                    .iter()
+                    .map(|group| group["id"].clone())
+                    .collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    data.insert("mfa_flows".into(), Value::Array(mfa_flows));
+    data.insert(field.into(), assignments);
+
+    client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&location)
+        .send()
+        .await
+}
+
+/// Create a test network with a given name.
 pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestResponse {
     let response = client
         .post("/api/v1/network")
@@ -226,7 +307,9 @@ pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestRespons
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;

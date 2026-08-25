@@ -174,7 +174,9 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -227,7 +229,9 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -288,7 +292,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -326,7 +332,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -363,7 +371,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -401,7 +411,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -454,7 +466,9 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -489,7 +503,9 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -760,7 +776,9 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -875,7 +893,9 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -991,7 +1011,9 @@ async fn test_delete_only_allowed_group_rejected(_: PgPoolOptions, options: PgCo
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -1064,7 +1086,9 @@ async fn test_delete_allowed_group_when_location_keeps_other_groups(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -1115,7 +1139,8 @@ async fn test_create_network_without_groups_rejected(_: PgPoolOptions, options: 
         allowed_ips_from_acl: false,
         mfa_enabled: false, // mfa_enabled
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
 
     // allow_all_groups=false with no groups should be rejected
@@ -1170,7 +1195,8 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
         allowed_ips_from_acl: false,
         mfa_enabled: false, // mfa_enabled
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
     let response = client
         .post("/api/v1/network")

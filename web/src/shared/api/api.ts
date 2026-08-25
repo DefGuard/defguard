@@ -32,7 +32,6 @@ import type {
   ApiDevicePosture,
   ApiToken,
   ApplicationInfo,
-  AssignPosturesData,
   AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
@@ -84,6 +83,7 @@ import type {
   LocationConnectedUserDevicesRequest,
   LocationConnectedUsersRequest,
   LocationDevicesResponse,
+  LocationMfaFlowResponse,
   LocationStats,
   LocationStatsRequest,
   LoginRequest,
@@ -472,8 +472,6 @@ const api = {
       fetchPage<ApiDevicePosture>('/device-posture', params),
     setLocationsForDevicePosture: (id: number, locations: number[]) =>
       client.put<number[]>(`/device-posture/${id}/locations`, { locations }),
-    setLocationPostures: (locationId: number, data: AssignPosturesData) =>
-      client.put<number[]>(`/network/${locationId}/postures`, data),
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
@@ -538,6 +536,8 @@ const api = {
     create: (data: CreateMfaFlowRequest) =>
       client.post<MfaFlowDetailResponse>('/mfa-flow', data),
     get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
+    getLocationAssignments: (locationId: number) =>
+      client.get<LocationMfaFlowResponse[]>(`/location/${locationId}/mfa-flows`),
     update: (id: number, data: UpdateMfaFlowRequest) =>
       client.put<MfaFlowDetailResponse>(`/mfa-flow/${id}`, data),
     delete: (id: number) => client.delete(`/mfa-flow/${id}`),
