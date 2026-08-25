@@ -118,6 +118,19 @@ pub enum MfaFlowAssignmentError {
     Sqlx(#[from] sqlx::Error),
 }
 
+/// License-related errors that can occur during MFA flow assignment.
+#[derive(Debug, Error)]
+pub enum MfaFlowAssignmentLicenseError {
+    #[error("MFA flow group assignments require an Enterprise license")]
+    GroupAssignmentNotAllowed,
+    #[error("Multi-step MFA flows require a Business license")]
+    MultipleStepsNotAllowed,
+    #[error("Multiple MFA flows can only be assigned with Business license")]
+    MultipleMfaFlowsNotAllowed,
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
+}
+
 /// Errors that can occur when updating an MFA flow.
 #[derive(Debug, Error)]
 pub enum MfaFlowUpdateError {
@@ -512,6 +525,44 @@ impl MfaFlow<Id> {
                 .execute(&mut *conn)
                 .await?;
             }
+        }
+
+        Ok(())
+    }
+
+    /// Validates whether the current license permits the requested MFA flow assignments.
+    pub async fn validate_mfa_flow_assignments_license(
+        conn: &mut PgConnection,
+        assignments: &[LocationMfaFlowAssignment],
+        has_enterprise_access: bool,
+        is_business_license_active: bool,
+    ) -> Result<(), MfaFlowAssignmentLicenseError> {
+        // Enterprise can make all assignments.
+        if has_enterprise_access {
+            return Ok(());
+        }
+
+        // Business and Free can't assign groups.
+        if assignments.iter().any(|a| !a.group_ids.is_empty()) {
+            return Err(MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed);
+        }
+
+        // Business can assign multiple and multi-step flows.
+        if is_business_license_active {
+            return Ok(());
+        }
+
+        // Free can't assign multi-step flows.
+        if let Some(assignment) = assignments.first() {
+            let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
+            if steps.len() > 1 {
+                return Err(MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed);
+            }
+        }
+
+        // Free can't assign multiple flows.
+        if assignments.len() > 1 {
+            return Err(MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed);
         }
 
         Ok(())

@@ -11,7 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowStep},
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentLicenseError},
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -19,8 +19,7 @@ use defguard_common::{
 };
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
-use sqlx::{PgConnection, PgPool};
-use thiserror::Error;
+use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use super::{
@@ -233,61 +232,15 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-#[derive(Debug, Error)]
-enum MfaFlowAssignmentLicenseError {
-    #[error("MFA flow group assignments require an Enterprise license")]
-    GroupAssignmentNotAllowed,
-    #[error("Multi-step MFA flows require a Business license")]
-    MultipleStepsNotAllowed,
-    #[error("Multiple MFA flows can only be assigned with Business license")]
-    MultipleMfaFlowsNotAllowed,
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
-}
-
-/// Validates whether the current license permits the requested MFA flow assignments.
-async fn validate_mfa_flow_assignments_license(
-    conn: &mut PgConnection,
-    assignments: &[LocationMfaFlowAssignment],
-) -> Result<(), MfaFlowAssignmentLicenseError> {
-    // Enterprise can make all assignments.
-    if has_enterprise_access(None) {
-        return Ok(());
-    }
-
-    // Business and Free can't assign groups.
-    if assignments.iter().any(|a| !a.group_ids.is_empty()) {
-        return Err(MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed);
-    }
-
-    // Business can assign multiple and multi-step flows.
-    if is_business_license_active() {
-        return Ok(());
-    }
-
-    // Free can't assign multi-step flows.
-    if let Some(assignment) = assignments.first() {
-        let steps = MfaFlowStep::find_by_flow(&mut *conn, assignment.flow_id).await?;
-        if steps.len() > 1 {
-            return Err(MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed);
-        }
-    }
-
-    // Free can't assign multiple flows.
-    if assignments.len() > 1 {
-        return Err(MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed);
-    }
-
-    Ok(())
-}
-
 fn assignment_license_error_response(
     error: MfaFlowAssignmentLicenseError,
 ) -> Result<ApiResponse, WebError> {
     let code = match error {
         MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
         MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
-        MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed => "multiple_mfa_flows_not_allowed",
+        MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed => {
+            "multiple_mfa_flows_not_allowed"
+        }
         MfaFlowAssignmentLicenseError::Database(error) => return Err(WebError::from(error)),
     };
     Ok(license_error_response("mfa_flows".into(), code))
@@ -417,8 +370,13 @@ pub(crate) async fn create_network(
     );
 
     let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
-    if let Err(error) =
-        validate_mfa_flow_assignments_license(&mut transaction, &mfa_assignments).await
+    if let Err(error) = MfaFlow::validate_mfa_flow_assignments_license(
+        &mut transaction,
+        &mfa_assignments,
+        has_enterprise_access(None),
+        is_business_license_active(),
+    )
+    .await
     {
         return assignment_license_error_response(error);
     }
@@ -599,12 +557,17 @@ pub(crate) async fn modify_network(
     let mfa_assignments_changed = current_mfa_assignments != mfa_assignments;
     let mfa_assignments_updated = mfa_assignments_changed && is_business_license_active();
     if mfa_assignments_changed && !mfa_assignments_updated {
-        warn!("Omitting MFA flow update because of license limits");
+        warn!("Ignoring MFA flow assignments because of license limits");
     }
 
     if mfa_assignments_updated {
-        if let Err(error) =
-            validate_mfa_flow_assignments_license(&mut transaction, &mfa_assignments).await
+        if let Err(error) = MfaFlow::validate_mfa_flow_assignments_license(
+            &mut transaction,
+            &mfa_assignments,
+            has_enterprise_access(None),
+            is_business_license_active(),
+        )
+        .await
         {
             return assignment_license_error_response(error);
         }
