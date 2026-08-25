@@ -555,13 +555,8 @@ pub(crate) async fn modify_network(
     );
     let mfa_assignments = normalize_mfa_flow_assignments(data.mfa_flows.clone());
     let mfa_assignments_changed = current_mfa_assignments != mfa_assignments;
-    let mfa_assignments_updated = mfa_assignments_changed && is_business_license_active();
-    if mfa_assignments_changed && !mfa_assignments_updated {
-        warn!("Ignoring MFA flow assignments because of license limits");
-    }
-
-    if mfa_assignments_updated {
-        if let Err(error) = MfaFlow::validate_mfa_flow_assignments_license(
+    let mfa_assignments_updated = if mfa_assignments_changed {
+        match MfaFlow::validate_mfa_flow_assignments_license(
             &mut transaction,
             &mfa_assignments,
             has_enterprise_access(None),
@@ -569,8 +564,25 @@ pub(crate) async fn modify_network(
         )
         .await
         {
-            return assignment_license_error_response(error);
+            Ok(()) => true,
+            Err(MfaFlowAssignmentLicenseError::Database(error)) => return Err(error.into()),
+            Err(error) if is_business_license_active() => {
+                return assignment_license_error_response(error);
+            }
+            Err(error) => {
+                warn!(
+                    location_id = network.id,
+                    error = %error,
+                    "Ignoring MFA flow assignments because of license limits"
+                );
+                false
+            }
         }
+    } else {
+        false
+    };
+
+    if mfa_assignments_updated {
         if let Err(error) =
             MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
         {
