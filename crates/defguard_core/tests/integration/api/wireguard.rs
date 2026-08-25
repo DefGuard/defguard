@@ -332,11 +332,7 @@ async fn test_create_network_mfa_assignment_license_gates(
         ]),
     )
     .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(
-        response.json::<Value>().await["fields"][0]["code"],
-        "non_default_must_have_groups"
-    );
+    assert_assignment_license_error(response, "multiple_mfa_flows_not_allowed").await;
 
     set_cached_license(business_license.clone());
 
