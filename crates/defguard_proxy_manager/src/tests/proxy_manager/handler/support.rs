@@ -584,6 +584,20 @@ pub(crate) async fn configure_oidc_provider(pool: &PgPool) {
 /// `derive_legacy_mode` yields `None` (no legacy equivalent). Use this to test
 /// omission of multi-step locations for legacy clients.
 pub(crate) async fn create_multi_step_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    create_multi_step_mfa_network_with_steps(
+        pool,
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Email],
+        ],
+    )
+    .await
+}
+
+pub(crate) async fn create_multi_step_mfa_network_with_steps(
+    pool: &PgPool,
+    steps: Vec<Vec<VpnClientMfaMethod>>,
+) -> WireguardNetwork<Id> {
     static NET_CTR: AtomicU16 = AtomicU16::new(0);
     let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
     let network = WireguardNetwork::new(
@@ -610,10 +624,7 @@ pub(crate) async fn create_multi_step_mfa_network(pool: &PgPool) -> WireguardNet
     let (flow, _steps) = MfaFlow::create(
         &mut conn,
         format!("test-multi-step-mfa-flow-{network_number}"),
-        vec![
-            vec![VpnClientMfaMethod::Totp],
-            vec![VpnClientMfaMethod::Email],
-        ],
+        steps,
     )
     .await
     .expect("failed to create test multi-step mfa flow");
@@ -868,6 +879,17 @@ pub(crate) async fn send_mfa_finish_signed(
     code: Option<&str>,
     auth_pub_key: Option<&str>,
 ) -> (CoreResponse, String) {
+    send_mfa_finish_signed_with_attempt_id(context, token, code, auth_pub_key, None).await
+}
+
+/// Send `ClientMfaFinish` carrying an optional attempt ID and return `(response, preshared_key)`.
+pub(crate) async fn send_mfa_finish_signed_with_attempt_id(
+    context: &mut HandlerTestContext,
+    token: &str,
+    code: Option<&str>,
+    auth_pub_key: Option<&str>,
+    step_attempt_id: Option<&str>,
+) -> (CoreResponse, String) {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
@@ -878,7 +900,7 @@ pub(crate) async fn send_mfa_finish_signed(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: auth_pub_key.map(str::to_owned),
-                step_attempt_id: None,
+                step_attempt_id: step_attempt_id.map(str::to_owned),
             },
         )),
     });

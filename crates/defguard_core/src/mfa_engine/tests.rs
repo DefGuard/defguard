@@ -330,7 +330,7 @@ async fn test_start_multi_step_supersedes_prior_session(
 }
 
 #[sqlx::test]
-async fn test_start_multi_step_rejects_out_of_boundary_method(
+async fn test_start_and_step_start_reject_unconfigured_biometric_method(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -366,7 +366,7 @@ async fn test_start_multi_step_rejects_out_of_boundary_method(
             &device,
             &user,
             flow_id,
-            step_methods,
+            step_methods.clone(),
             vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Biometric],
         )
         .await
@@ -382,6 +382,58 @@ async fn test_start_multi_step_rejects_out_of_boundary_method(
         "a rejection must not emit an event"
     );
     assert_eq!(session_count(&pool, location.id, device.id).await, 0);
+
+    let mut transaction = pool.begin().await.expect("failed to begin transaction");
+    let (_, outcome) = VpnClientMfaSession::<Id>::start(
+        &mut transaction,
+        location.id,
+        device.id,
+        user.id,
+        flow_id,
+        step_methods,
+        VpnClientMfaMethod::Totp,
+        None,
+        VPN_MFA_SESSION_TIMEOUT,
+    )
+    .await
+    .expect("failed to create test MFA session");
+    transaction
+        .commit()
+        .await
+        .expect("failed to commit test MFA session");
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
+        .await
+        .expect("failed to load test MFA session")
+        .expect("test MFA session must exist");
+    let mut connection = pool
+        .acquire()
+        .await
+        .expect("failed to acquire database connection");
+    session
+        .advance(
+            &mut connection,
+            session.current_step,
+            None,
+            VpnClientMfaMethod::Totp,
+        )
+        .await
+        .expect("failed to advance test MFA session")
+        .expect("test MFA session must advance");
+
+    let error = engine
+        .step_start(outcome.token, VpnClientMfaMethod::Biometric)
+        .await
+        .expect_err("StepStart must reject the same unconfigured method");
+    let status = Status::from(error);
+    assert_eq!(status.code(), Code::FailedPrecondition);
+    assert_eq!(
+        status.message(),
+        "MFA method is not configured for this user"
+    );
+    assert!(
+        event_rx.try_recv().is_err(),
+        "a rejected StepStart must not emit an event"
+    );
 }
 
 #[sqlx::test]

@@ -20,11 +20,13 @@ use tonic::Code;
 use super::support::{
     assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
     clear_test_license, complete_proxy_handshake, configure_oidc_provider,
-    create_external_mfa_network, create_mfa_network, create_multi_step_mfa_network, create_network,
-    create_user_with_device, expect_bidi_mfa_success, generate_totp_code, link_user_oidc_identity,
-    make_device_info, send_mfa_finish, send_mfa_finish_raw, send_mfa_finish_with_attempt_id_raw,
-    send_mfa_start, send_mfa_start_multi_step, send_mfa_step_start, send_token_validation,
-    set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa,
+    create_external_mfa_network, create_mfa_network, create_multi_step_mfa_network,
+    create_multi_step_mfa_network_with_steps, create_network, create_user_with_device,
+    expect_bidi_mfa_success, generate_totp_code, link_user_oidc_identity, make_device_info,
+    register_biometric_key, send_mfa_finish, send_mfa_finish_raw,
+    send_mfa_finish_signed_with_attempt_id, send_mfa_finish_with_attempt_id_raw, send_mfa_start,
+    send_mfa_start_multi_step, send_mfa_step_start, send_token_validation,
+    set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
 
@@ -716,6 +718,108 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
         _ => panic!("expected completed response"),
     };
     assert!(!preshared_key.is_empty());
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    assert_eq!(
+        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
+        network.id
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::Totp.into()],
+            vec![MfaMethod::Biometric.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Totp, MfaMethod::Biometric],
+    )
+    .await;
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let response =
+        send_mfa_finish_raw(&mut context, &token, Some(&generate_totp_code(&user))).await;
+    match response.payload {
+        Some(core_response::Payload::ClientMfaFinish(result)) => {
+            assert!(result.preshared_key.is_empty());
+            assert!(matches!(
+                result.result,
+                Some(MfaStepResult {
+                    outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
+                }) if advanced.next_step == 1
+            ));
+        }
+        _ => panic!("expected Advanced biometric flow response"),
+    }
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "no VPN session may exist before the final biometric step"
+    );
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "no gateway authorization may occur before the final step"
+    );
+
+    let step_started = send_mfa_step_start(&mut context, &token, MfaMethod::Biometric).await;
+    let challenge = step_started
+        .challenge
+        .expect("biometric StepStart must return a challenge");
+    assert!(!challenge.is_empty());
+    let signature = sign_challenge(&signing_key, &challenge);
+
+    let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
+        &mut context,
+        &token,
+        Some(&signature),
+        None,
+        Some(&step_started.step_attempt_id),
+    )
+    .await;
+    match response.payload {
+        Some(core_response::Payload::ClientMfaFinish(result)) => {
+            assert!(matches!(
+                result.result.as_ref(),
+                Some(MfaStepResult {
+                    outcome: Some(mfa_step_result::Outcome::Completed(completed)),
+                }) if !completed.preshared_key.is_empty()
+                    && completed.preshared_key == result.preshared_key
+                    && completed.preshared_key == preshared_key
+            ));
+        }
+        _ => panic!("expected completed biometric response"),
+    }
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
