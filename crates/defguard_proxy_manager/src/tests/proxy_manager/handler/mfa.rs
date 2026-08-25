@@ -1,5 +1,10 @@
 use defguard_common::{
-    db::{Id, models::vpn_client_session::VpnClientSession},
+    db::{
+        Id,
+        models::{
+            vpn_client_mfa_session::VpnClientMfaSession, vpn_client_session::VpnClientSession,
+        },
+    },
     gateway_event::GatewayCommand,
 };
 use defguard_proto::{
@@ -14,11 +19,12 @@ use tonic::Code;
 
 use super::support::{
     assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
-    clear_test_license, complete_proxy_handshake, create_external_mfa_network, create_mfa_network,
-    create_multi_step_mfa_network, create_network, create_user_with_device,
-    expect_bidi_mfa_success, generate_totp_code, make_device_info, send_mfa_finish,
-    send_mfa_finish_raw, send_mfa_start, send_mfa_start_multi_step, send_mfa_step_start,
-    send_token_validation, set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa,
+    clear_test_license, complete_proxy_handshake, configure_oidc_provider,
+    create_external_mfa_network, create_mfa_network, create_multi_step_mfa_network, create_network,
+    create_user_with_device, expect_bidi_mfa_success, generate_totp_code, link_user_oidc_identity,
+    make_device_info, send_mfa_finish, send_mfa_finish_raw, send_mfa_finish_with_attempt_id_raw,
+    send_mfa_start, send_mfa_start_multi_step, send_mfa_step_start, send_token_validation,
+    set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
 
@@ -604,6 +610,124 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
         "expected VpnSessionAuthorized, got: {event:?}"
     );
     expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    configure_oidc_provider(&context.pool).await;
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Oidc],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::Oidc).await;
+    let attempt_id = started.step_attempt_id;
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let stale_response =
+        send_mfa_finish_with_attempt_id_raw(&mut context, &token, "superseded-attempt").await;
+    let (code, message) = assert_error_response_with_message(&stale_response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "stale MFA attempt");
+
+    let session_before = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to load OIDC MFA session")
+        .expect("OIDC MFA session must remain active");
+    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
+    match &response.payload {
+        #[allow(deprecated)]
+        Some(core_response::Payload::ClientMfaFinish(result)) => {
+            assert!(result.preshared_key.is_empty());
+            assert!(matches!(
+                result.result,
+                Some(MfaStepResult {
+                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
+                })
+            ));
+        }
+        _ => panic!("expected AwaitingExternal response"),
+    }
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "awaiting must not authorize"
+    );
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "awaiting must not audit a failure"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "awaiting must not create a VPN session"
+    );
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to reload OIDC MFA session")
+        .expect("OIDC MFA session must remain active");
+    assert_eq!(session.failed_attempts, session_before.failed_attempts);
+    assert_eq!(session.expires_at, session_before.expires_at);
+
+    let mut conn = context
+        .pool
+        .acquire()
+        .await
+        .expect("failed to acquire connection");
+    assert!(
+        session
+            .mark_oidc_completed(&mut conn, &attempt_id)
+            .await
+            .expect("failed to mark OIDC MFA complete")
+    );
+
+    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
+    let preshared_key = match &response.payload {
+        #[allow(deprecated)]
+        Some(core_response::Payload::ClientMfaFinish(result)) => match &result.result {
+            Some(MfaStepResult {
+                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
+            }) => {
+                assert_eq!(result.preshared_key, completed.preshared_key);
+                completed.preshared_key.clone()
+            }
+            other => panic!("expected Completed outcome, got {other:?}"),
+        },
+        _ => panic!("expected completed response"),
+    };
+    assert!(!preshared_key.is_empty());
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    assert_eq!(
+        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
+        network.id
+    );
 
     context.finish().await.expect_server_finished().await;
 }

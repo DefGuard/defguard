@@ -952,6 +952,29 @@ pub(crate) async fn send_mfa_finish_raw(
     context.mock_proxy_mut().recv_outbound().await
 }
 
+/// Send `ClientMfaFinish` with a 2.2 step attempt ID and return the raw response.
+pub(crate) async fn send_mfa_finish_with_attempt_id_raw(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+) -> CoreResponse {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.to_owned(),
+                code: None,
+                auth_pub_key: None,
+                step_attempt_id: Some(step_attempt_id.to_owned()),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
 /// Send `ClientMfaTokenValidation` and return `token_valid`.
 pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, token: &str) -> bool {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
