@@ -598,6 +598,9 @@ pub(crate) async fn modify_network(
     let mfa_assignments = normalize_mfa_flow_assignments(data.mfa_flows.clone());
     let mfa_assignments_changed = current_mfa_assignments != mfa_assignments;
     let mfa_assignments_updated = mfa_assignments_changed && is_business_license_active();
+    if mfa_assignments_changed && !mfa_assignments_updated {
+        warn!("Omitting MFA flow update because of license limits");
+    }
 
     if mfa_assignments_updated {
         if let Err(error) =
