@@ -1551,7 +1551,7 @@ dependencies = [
  "pgp",
  "prost",
  "pulldown-cmark",
- "qrforge",
+ "qrcode",
  "rand 0.8.7",
  "regex",
  "reqwest",
@@ -5066,10 +5066,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "qrforge"
-version = "0.1.1"
+name = "qrcode"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "532d8e082f339eadd546d04e61d809be4b3ca469a75ce86016f89bc5482d5ebb"
+checksum = "d68782463e408eb1e668cf6152704bd856c78c5b6417adaee3203d8f4c1fc9ec"
 dependencies = [
  "image",
 ]
