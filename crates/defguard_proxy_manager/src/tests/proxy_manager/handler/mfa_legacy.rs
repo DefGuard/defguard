@@ -1,18 +1,30 @@
 //! Pins the deprecated single-step MFA wire contract for pre-2.2 clients.
 
-use defguard_common::gateway_event::GatewayCommand;
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            vpn_client_mfa_session::VpnClientMfaSession, vpn_client_session::VpnClientSession,
+        },
+    },
+    gateway_event::GatewayCommand,
+};
+use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
 use defguard_proto::{
     client_types::MfaMethod,
     proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{task, time::timeout};
+use tonic::Code;
 
 use super::support::{
-    assert_vpn_session_exists, biometric_pub_key, complete_proxy_handshake, create_mfa_network,
-    create_user_with_device, expect_bidi_mfa_success, generate_totp_code, register_biometric_key,
-    send_mfa_finish, send_mfa_finish_no_recv, send_mfa_finish_signed, send_mfa_start,
-    send_mfa_start_with_challenge, setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
+    assert_error_response_with_message, assert_vpn_session_exists, biometric_pub_key,
+    complete_proxy_handshake, configure_oidc_provider, create_external_mfa_network,
+    create_mfa_network, create_user_with_device, expect_bidi_mfa_success, generate_totp_code,
+    link_user_oidc_identity, register_biometric_key, send_mfa_finish, send_mfa_finish_no_recv,
+    send_mfa_finish_raw, send_mfa_finish_signed, send_mfa_start, send_mfa_start_with_challenge,
+    set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
 
@@ -231,6 +243,118 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     // Verify BidiStreamEvent::DesktopClientMfa(Success) was sent
     let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
     assert_eq!(event_loc_id, network.id);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// The callback itself is covered by the core OIDC handler. This pins the legacy Start/Finish
+/// contract around its durable completion mark without needing an external identity provider.
+#[sqlx::test]
+async fn test_mfa_finish_succeeds_after_oidc_completion(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    configure_oidc_provider(&context.pool).await;
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let (_, token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let response = send_mfa_finish_raw(&mut context, &token, None).await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::FailedPrecondition);
+    assert_eq!(message, "OIDC authentication not completed yet");
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "OIDC poll must not authorize"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "OIDC poll must not create a VPN session"
+    );
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to load OIDC MFA session")
+        .expect("OIDC MFA session must remain active");
+    assert_eq!(
+        session.failed_attempts, 0,
+        "OIDC poll must not charge the cap"
+    );
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("OIDC MFA attempt must remain initialized")
+        .step_attempt_id
+        .clone();
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("legacy OIDC poll must emit its failure audit");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Failed {
+                method, message, ..
+            } => {
+                assert_eq!(method, MfaMethod::Oidc);
+                assert_eq!(
+                    message,
+                    "tried to finish OIDC MFA login but they haven't completed OIDC authentication yet"
+                );
+            }
+            other => panic!("expected MFA failure audit, got {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got {other:?}"),
+    }
+
+    let mut conn = context
+        .pool
+        .acquire()
+        .await
+        .expect("failed to acquire connection");
+    assert!(
+        session
+            .mark_oidc_completed(&mut conn, &attempt_id)
+            .await
+            .expect("failed to mark OIDC MFA complete"),
+        "current OIDC attempt must be marked complete"
+    );
+
+    let (_, preshared_key) = send_mfa_finish(&mut context, &token, None).await;
+    assert!(
+        !preshared_key.is_empty(),
+        "legacy OIDC finish must return a PSK"
+    );
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    assert_eq!(
+        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
+        network.id
+    );
 
     context.finish().await.expect_server_finished().await;
 }

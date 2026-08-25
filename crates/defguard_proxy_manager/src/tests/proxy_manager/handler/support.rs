@@ -550,6 +550,36 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     network
 }
 
+/// Configure the minimum provider record required for OIDC MFA availability checks.
+pub(crate) async fn configure_oidc_provider(pool: &PgPool) {
+    OpenIdProvider::new(
+        "Test".to_owned(),
+        "https://idp.example.com".to_owned(),
+        OpenIdProviderKind::Google,
+        "client_id".to_owned(),
+        "client_secret".to_owned(),
+        None,
+        None,
+        None,
+        None,
+        true,
+        60,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncTarget::All,
+        None,
+        None,
+        Vec::new(),
+        None,
+        false,
+        false,
+        None,
+    )
+    .save(pool)
+    .await
+    .expect("failed to configure OIDC provider");
+}
+
 /// Insert a WireGuard network whose MFA flow has two steps, so
 /// `derive_legacy_mode` yields `None` (no legacy equivalent). Use this to test
 /// omission of multi-step locations for legacy clients.
