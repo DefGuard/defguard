@@ -203,21 +203,19 @@ impl MfaEngine {
                     step: index as u32,
                     reason: StartRejectionReason::MethodNotInStep,
                 });
-            } else if (steps.len() > 1
-                && !matches!(chosen, VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email))
-                || !chosen
-                    .is_configured(
-                        &self.pool,
-                        user,
-                        device.id,
-                        smtp_configured,
-                        oidc_configured,
-                    )
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to check MFA method configuration: {err}");
-                        StartError::Internal
-                    })?
+            } else if !chosen
+                .is_configured(
+                    &self.pool,
+                    user,
+                    device.id,
+                    smtp_configured,
+                    oidc_configured,
+                )
+                .await
+                .map_err(|err| {
+                    error!("Failed to check MFA method configuration: {err}");
+                    StartError::Internal
+                })?
             {
                 rejections.push(StepRejection {
                     step: index as u32,
