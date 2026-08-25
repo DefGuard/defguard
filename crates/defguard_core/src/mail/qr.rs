@@ -12,9 +12,6 @@ pub(crate) enum QrError {
 
     #[error(transparent)]
     Image(#[from] image::ImageError),
-
-    #[error(transparent)]
-    Serialize(#[from] serde_json::Error),
 }
 
 #[derive(Serialize)]
@@ -40,7 +37,10 @@ pub(crate) fn qr_png(content: &[u8]) -> Result<Vec<u8>, QrError> {
     Ok(buffer.into_inner())
 }
 
-pub(crate) fn mobile_activation_qr_data(url: &str, token: &str) -> Result<String, QrError> {
+pub(crate) fn mobile_activation_qr_data(
+    url: &str,
+    token: &str,
+) -> Result<String, serde_json::Error> {
     let payload = serde_json::to_string(&MobileActivation { url, token })?;
 
     Ok(BASE64_STANDARD.encode(payload))
