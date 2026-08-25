@@ -197,13 +197,25 @@ pub struct AclRuleInfo<I = NoId> {
     pub destinations: Vec<AclAlias<Id>>,
 }
 
+/// Formats a destination address, omitting the netmask when it's a full host mask
+fn format_destination_address(addr: &IpNetwork) -> String {
+    if (addr.is_ipv4() && addr.prefix() == 32) || (addr.is_ipv6() && addr.prefix() == 128) {
+        addr.ip().to_string()
+    } else {
+        addr.to_string()
+    }
+}
+
 impl<I> AclRuleInfo<I> {
     /// Constructs a [`String`] of comma-separated addresses and address ranges.
     pub(crate) fn format_destination(&self) -> String {
         // process single addresses
         let addrs = match &self.addresses {
             d if d.is_empty() => String::new(),
-            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+            d => d
+                .iter()
+                .map(|a| format_destination_address(a) + ", ")
+                .collect::<String>(),
         };
         // process address ranges
         let ranges = match &self.address_ranges {
@@ -213,8 +225,7 @@ impl<I> AclRuleInfo<I> {
             }),
         };
 
-        // remove full mask from resulting string
-        let destination = (addrs + &ranges).replace("/32", "");
+        let destination = addrs + &ranges;
         if destination.is_empty() {
             destination
         } else {
@@ -1561,7 +1572,10 @@ impl AclAliasInfo {
         // process single addresses
         let addrs = match &self.addresses {
             d if d.is_empty() => String::new(),
-            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+            d => d
+                .iter()
+                .map(|a| format_destination_address(a) + ", ")
+                .collect::<String>(),
         };
         // process address ranges
         let ranges = match &self.address_ranges {
@@ -1571,9 +1585,7 @@ impl AclAliasInfo {
             }),
         };
 
-        // remove full mask from resulting string
-        // FIXME: This mask shouldn't be removed for IP v6 addresses.
-        let destination = (addrs + &ranges).replace("/32", "");
+        let destination = addrs + &ranges;
         if destination.is_empty() {
             destination
         } else {
