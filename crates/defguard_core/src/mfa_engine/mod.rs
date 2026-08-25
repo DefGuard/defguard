@@ -460,22 +460,32 @@ impl MfaEngine {
                             .map(|auth_device| auth_device.name);
                 }
             }
-            Ok(Verdict::NotYet) => {
-                self.channels.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location: ctx.location.clone(),
-                            device: ctx.device.clone(),
-                            method: method.into(),
-                            message: "tried to finish OIDC MFA login but they haven't \
+            Ok(Verdict::NotYet) => match proof.step_attempt_id.as_deref() {
+                // Preserve pre-2.2 behavior.
+                None => {
+                    self.channels.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::Failed {
+                                location: ctx.location.clone(),
+                                device: ctx.device.clone(),
+                                method: method.into(),
+                                message: "tried to finish OIDC MFA login but they haven't \
                                     completed OIDC authentication yet"
-                                .to_owned(),
-                        },
-                    )),
-                })?;
-                return Err(FinishError::OidcNotCompleted);
-            }
+                                    .to_owned(),
+                            },
+                        )),
+                    })?;
+                    return Err(FinishError::OidcNotCompleted);
+                }
+                Some(attempt_id) if attempt_id == ephemeral.step_attempt_id => {
+                    return Ok((FinishOutcome::AwaitingExternal, method));
+                }
+                Some(_) => {
+                    error!("Stale MFA attempt: the attempt is superseded");
+                    return Err(FinishError::StaleAttempt);
+                }
+            },
             Ok(Verdict::Failed { message }) => {
                 self.channels.emit_event(BidiStreamEvent {
                     context,
