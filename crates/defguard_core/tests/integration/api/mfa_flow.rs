@@ -934,8 +934,7 @@ async fn test_mfa_enabled_disable_preserves_assignments(
 
     let license = get_cached_license().clone();
     set_cached_license(None);
-    let mut body = network_body("mfa-lifecycle", false, flow_id);
-    body["mfa_flows"] = json!([]);
+    let body = network_body("mfa-lifecycle", false, flow_id);
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
         .json(&body)
