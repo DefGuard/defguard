@@ -528,9 +528,6 @@ impl MailMessage {
         match self {
             Self::NewAccount => {
                 mail.add_png_image("new_account_1", NEW_ACCOUNT_1);
-                mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
-                mail.add_png_image("google_play", GOOGLE_PLAY);
-                mail.add_png_image("apple", APPLE);
             }
             Self::DesktopStart => {
                 mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
