@@ -796,6 +796,6 @@ fn test_format_destination_address_round_trips_through_parsing() {
             .expect("test address should be a valid IpNetwork");
         let parsed = parse_destination_addresses(&format_destination_address(&addr))
             .expect("formatted address should be parsable");
-        assert_eq!(parsed.addrs, vec![addr]);
+        assert_eq!(parsed.addrs, [addr]);
     }
 }
