@@ -26,6 +26,8 @@ pub struct Proof {
     pub code: Option<String>,
     pub auth_pub_key: Option<String>,
     pub step_attempt_id: Option<String>,
+    /// FIDO2
+    pub auth_data: Option<Vec<u8>>,
 }
 
 /// Result of `step_start`: the minted attempt id plus an optional biometric / mobile-approve

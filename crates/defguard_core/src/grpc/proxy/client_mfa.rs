@@ -715,14 +715,16 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login");
 
+        let token = request.token.clone();
         let proof = Proof {
-            code: request.code.clone(),
-            auth_pub_key: request.auth_pub_key.clone(),
-            step_attempt_id: request.step_attempt_id.clone(),
+            code: request.code,
+            auth_pub_key: request.auth_pub_key,
+            step_attempt_id: request.step_attempt_id,
+            auth_data: request.auth_data,
         };
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 
-        let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
+        let (outcome, method) = self.engine.finish(token.clone(), proof, ip).await?;
 
         // The parked remote-MFA waiter is session-scoped, so resolve it only once the flow
         // completes. An intermediate step (`Advanced`) must not terminate it: a pre-2.2 client
@@ -733,7 +735,7 @@ impl ClientMfaServer {
                     .remote_mfa_responses
                     .write()
                     .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                    .remove(&hash_token(&request.token))
+                    .remove(&hash_token(&token))
                 {
                     let _ = tx.send(preshared_key.clone());
                 }
@@ -746,7 +748,7 @@ impl ClientMfaServer {
             #[allow(deprecated)]
             preshared_key: preshared_key.clone(),
             token: match method {
-                VpnClientMfaMethod::MobileApprove => Some(request.token.clone()),
+                VpnClientMfaMethod::MobileApprove => Some(token),
                 _ => None,
             },
             result: Some(outcome.into()),

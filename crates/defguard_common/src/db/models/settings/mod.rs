@@ -441,7 +441,7 @@ impl Settings {
     }
 
     /// Derive the WebAuthn relying party ID from `defguard_url`.
-    fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
+    pub fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
         let domain = url
             .domain()

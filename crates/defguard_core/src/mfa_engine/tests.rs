@@ -767,6 +767,7 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
                 code: Some(totp_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             test_ip(),
         )
@@ -794,6 +795,7 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
                 code: Some(email_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             test_ip(),
         )
@@ -899,6 +901,7 @@ async fn test_finish_replayed_proof_cannot_skip_a_step(
                 code: Some(code.clone()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             test_ip(),
         )
@@ -914,6 +917,7 @@ async fn test_finish_replayed_proof_cannot_skip_a_step(
                 code: Some(code),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             test_ip(),
         )
@@ -1000,6 +1004,7 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
                 code: Some(totp_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             test_ip(),
         )
@@ -1024,6 +1029,7 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
                 code: Some(email_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: Some(first.step_attempt_id),
+                auth_data: None,
             },
             test_ip(),
         )
@@ -1041,6 +1047,7 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
                 code: Some(email_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: Some(second.step_attempt_id),
+                auth_data: None,
             },
             test_ip(),
         )
@@ -1071,6 +1078,7 @@ async fn test_finish_cap_deletes_session_and_emits_failed(
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: None,
+                    auth_data: None,
                 },
                 test_ip(),
             )
@@ -1125,6 +1133,7 @@ async fn test_finish_on_uninitialized_step(_: PgPoolOptions, options: PgConnectO
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             test_ip(),
         )

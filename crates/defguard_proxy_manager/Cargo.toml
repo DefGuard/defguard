@@ -39,7 +39,7 @@ getrandom.workspace = true
 ed25519-dalek.workspace = true
 hyper-util.workspace = true
 ipnetwork.workspace = true
-jsonwebkey = { workspace = true }
+jsonwebkey.workspace = true
 jsonwebtoken.workspace = true
 rand.workspace = true
 rsa.workspace = true

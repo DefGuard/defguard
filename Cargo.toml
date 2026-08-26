@@ -56,6 +56,7 @@ chrono = { version = "0.4", default-features = false, features = [
 ] }
 claims = "0.8"
 clap = { version = "4.6", features = ["derive", "env"] }
+ctap-hid-fido2 = "3.5"
 ed25519-dalek = { version = "3.0", features = ["rand_core", "serde"] }
 getrandom = { version = "0.4", features = ["sys_rng"] }
 futures = "0.3"

@@ -299,10 +299,10 @@ impl MfaEngine {
     /// OpenID provider. Must stay in step with the descriptor builder's source for
     /// `oidc_configured`.
     async fn oidc_configured(&self) -> sqlx::Result<bool> {
-        if !is_business_license_active() {
-            Ok(false)
-        } else {
+        if is_business_license_active() {
             Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
+        } else {
+            Ok(false)
         }
     }
 
@@ -515,6 +515,10 @@ impl MfaEngine {
             }
             Err(VerifyError::Db(err)) => {
                 error!("Failed to verify MFA proof: {err}");
+                return Err(FinishError::Internal);
+            }
+            Err(VerifyError::MissingRPID) => {
+                error!("Failed to verify FIDO2: missing RP ID");
                 return Err(FinishError::Internal);
             }
         }

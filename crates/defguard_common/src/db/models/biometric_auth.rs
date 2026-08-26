@@ -149,9 +149,8 @@ impl BiometricChallenge {
 
     #[must_use]
     pub fn new() -> Self {
-        let challenge = gen_alphanumeric(44);
         Self {
-            challenge,
+            challenge: gen_alphanumeric(44),
             auth_pub_key: None,
         }
     }

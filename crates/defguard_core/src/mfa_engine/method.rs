@@ -1,8 +1,13 @@
+use ctap_hid_fido2::{
+    fidokey::get_assertion::get_assertion_params::Assertion, verifier::verify_assertion,
+};
 use defguard_common::db::models::{
+    Settings, WebAuthn,
     biometric_auth::{BiometricAuth, BiometricAuthError, BiometricChallenge},
     user::UserError,
     vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
     vpn_client_session::VpnClientMfaMethod,
+    webauthn::to_ctap_public_key,
 };
 use sqlx::PgPool;
 use thiserror::Error;
@@ -38,6 +43,8 @@ pub enum VerifyError {
     MissingChallenge,
     #[error(transparent)]
     Db(#[from] sqlx::Error),
+    #[error("Can't build RP ID - incorrect Defguard URL")]
+    MissingRPID,
 }
 
 /// An error surfaced by [`initiate`].
@@ -186,20 +193,57 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::Fido2 => {
+            let settings = Settings::get_current_settings();
+            let rp_id = settings
+                .webauthn_rp_id()
+                .map_err(|_| VerifyError::MissingRPID)?;
             let challenge = ephemeral
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
-            let signed_challenge = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                message: "Challenge not found in request",
+            let code = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
+                message: "RP ID hash not found in request",
                 event: None,
             })?;
-            match challenge.verify(signed_challenge) {
-                Ok(()) => Ok(Verdict::Proved),
-                Err(_) => Ok(Verdict::Failed {
-                    message: "Signed challenge rejected",
-                }),
+            let auth_pub_key = proof
+                .auth_pub_key
+                .as_ref()
+                .ok_or(VerifyError::MalformedProof {
+                    message: "Signature not found in request",
+                    event: None,
+                })?;
+            let auth_data = proof
+                .auth_data
+                .as_ref()
+                .ok_or(VerifyError::MalformedProof {
+                    message: "Auth data not found in request",
+                    event: None,
+                })?;
+
+            // Fetch WebAuthN passkeys and try to verify FIDO2 with them.
+            let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
+            for passkey in passkeys {
+                if let Some(public_key) = to_ctap_public_key(&passkey) {
+                    let assertion = Assertion {
+                        rpid_hash: code.as_bytes().to_vec(),
+                        signature: auth_pub_key.as_bytes().to_vec(),
+                        auth_data: auth_data.clone(),
+                        ..Default::default()
+                    };
+                    if verify_assertion(
+                        &rp_id,
+                        &public_key,
+                        challenge.challenge.as_bytes(),
+                        &assertion,
+                    ) {
+                        return Ok(Verdict::Proved);
+                    }
+                }
             }
+
+            Ok(Verdict::Failed {
+                message: "FIDO2 challenge failed",
+            })
         }
     }
 }

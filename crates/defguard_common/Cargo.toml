@@ -18,6 +18,7 @@ base64.workspace = true
 chrono.workspace = true
 claims.workspace = true
 clap.workspace = true
+ctap-hid-fido2.workspace = true
 ed25519-dalek.workspace = true
 getrandom.workspace = true
 humantime.workspace = true

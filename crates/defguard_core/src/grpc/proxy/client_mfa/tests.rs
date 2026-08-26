@@ -1393,6 +1393,7 @@ async fn test_finish_client_mfa_login_totp_authorizes_session(
                 code: Some(code),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             device_info(),
         )
@@ -1495,6 +1496,7 @@ async fn test_finish_client_mfa_login_failure_cap_deletes_session(
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: None,
+                    auth_data: None,
                 },
                 device_info(),
             )
@@ -1841,6 +1843,7 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
                 code: Some(code),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
             },
             device_info(),
         )
