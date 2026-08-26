@@ -1406,6 +1406,29 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("failed"),
         },
         EventTestCase {
+            name: "ClientMfaAborted",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Aborted {
+                    location: location.clone(),
+                    device: device.clone(),
+                    attribution: MfaAttribution {
+                        snapshot: StepsSnapshot {
+                            flow_id: 1,
+                            steps: vec![Step {
+                                methods: vec![VpnClientMfaMethod::Totp],
+                                satisfied: None,
+                            }],
+                        },
+                        flow_name: Some("flow".to_owned()),
+                    },
+                })),
+                Some(location.clone()),
+            ),
+            event_type: EventType::VpnClientMfaAborted,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("attempt limit reached"),
+        },
+        EventTestCase {
             name: "ClientMfaDisconnected",
             message: bidi_msg(
                 BidiStreamEventType::DesktopClientMfa(Box::new(

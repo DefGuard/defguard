@@ -84,6 +84,7 @@ impl EventLoggerMessage {
             BidiStreamEventType::DesktopClientMfa(mfa) => match mfa.as_ref() {
                 DesktopClientMfaEvent::Success { location, .. }
                 | DesktopClientMfaEvent::Failed { location, .. }
+                | DesktopClientMfaEvent::Aborted { location, .. }
                 | DesktopClientMfaEvent::Disconnected { location, .. }
                 | DesktopClientMfaEvent::PostureCheckPassed { location, .. }
                 | DesktopClientMfaEvent::PostureCheckFailed { location, .. }

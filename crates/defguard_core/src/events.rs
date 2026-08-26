@@ -474,6 +474,13 @@ pub enum DesktopClientMfaEvent {
         method: ClientMFAMethod,
         message: String,
     },
+    /// An MFA login exhausted its per-step attempt allowance before authorization.
+    Aborted {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        /// Frozen partial step record and governing flow title.
+        attribution: MfaAttribution,
+    },
     Disconnected {
         device: Device<Id>,
         location: WireguardNetwork<Id>,

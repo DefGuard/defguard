@@ -541,7 +541,9 @@ impl MfaEngine {
                         },
                     )),
                 })?;
-                let at_cap = self.record_failure(session).await?;
+                let at_cap = self
+                    .record_failure(session, proof.step_attempt_id.is_some(), &ctx, ip)
+                    .await?;
                 if at_cap && proof.step_attempt_id.is_some() {
                     return Err(FinishError::AttemptLimit);
                 }
@@ -743,27 +745,69 @@ impl MfaEngine {
 
     /// Record a proof-verification failure, deleting the session once the per-step cap is reached
     /// so a subsequent finish fails closed.
-    async fn record_failure(&self, session: VpnClientMfaSession<Id>) -> Result<bool, FinishError> {
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
+    async fn record_failure(
+        &self,
+        session: VpnClientMfaSession<Id>,
+        record_abort: bool,
+        ctx: &MfaSessionContext,
+        ip: IpAddr,
+    ) -> Result<bool, FinishError> {
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction while recording MFA failure");
             FinishError::Internal
         })?;
         let at_cap = session
-            .increment_failed_attempts(&mut conn)
+            .increment_failed_attempts(&mut transaction)
             .await
             .map_err(|err| {
                 error!("Failed to record MFA failure: {err}");
                 FinishError::Internal
             })?;
+        let abort_event = if at_cap && record_abort {
+            let flow_name = MfaFlow::find_by_id(&mut *transaction, session.steps_snapshot.flow_id)
+                .await
+                .map_err(|err| {
+                    error!("Failed to resolve MFA flow for abort attribution: {err}");
+                    FinishError::Internal
+                })?
+                .map(|flow| flow.title);
+            Some(BidiStreamEvent {
+                context: BidiRequestContext::new(
+                    ctx.user.id,
+                    ctx.user.username.clone(),
+                    ip,
+                    format!("{}", ctx.device),
+                ),
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::Aborted {
+                        location: ctx.location.clone(),
+                        device: ctx.device.clone(),
+                        attribution: MfaAttribution {
+                            snapshot: session.steps_snapshot.0.clone(),
+                            flow_name,
+                        },
+                    },
+                )),
+            })
+        } else {
+            None
+        };
         if at_cap {
             warn!(
                 "MFA session {} hit the failed-attempt cap of {MFA_FAILED_ATTEMPT_CAP}; deleting it",
                 session.id
             );
-            session.delete(&mut *conn).await.map_err(|err| {
+            session.delete(&mut *transaction).await.map_err(|err| {
                 error!("Failed to delete MFA session: {err}");
                 FinishError::Internal
             })?;
+        }
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit MFA failure record");
+            FinishError::Internal
+        })?;
+        if let Some(event) = abort_event {
+            self.channels.emit_event(event)?;
         }
         Ok(at_cap)
     }
