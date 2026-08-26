@@ -428,6 +428,34 @@ impl MfaEngine {
         };
         let ephemeral = ephemeral_state.0.clone();
 
+        let method = ephemeral.selected_method;
+
+        // Reject stale attempt.
+        if let Some(attempt_id) = proof.step_attempt_id.as_deref()
+            && attempt_id != ephemeral.step_attempt_id
+        {
+            error!("Stale MFA attempt: the attempt is superseded");
+            return Err(FinishError::StaleAttempt);
+        }
+
+        // Empty proof guard for legacy clients.
+        // Otherwise `verify` would return `AwaitingExternal`.
+        if method == VpnClientMfaMethod::MobileApprove
+            && proof.step_attempt_id.is_none()
+            && proof.code.is_none()
+            && proof.auth_pub_key.is_none()
+        {
+            if ephemeral.biometric_challenge.is_none() {
+                return Err(FinishError::MissingChallenge);
+            }
+            return Err(FinishError::MalformedProof {
+                message: "Signature not found in request",
+            });
+        }
+
+        let is_mobile_signature = method == VpnClientMfaMethod::MobileApprove
+            && proof.code.is_some()
+            && proof.auth_pub_key.is_some();
         let context = BidiRequestContext::new(
             ctx.user.id,
             ctx.user.username.clone(),
@@ -437,12 +465,32 @@ impl MfaEngine {
 
         let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
 
-        let method: VpnClientMfaMethod = ephemeral.selected_method;
-
         let mut mobile_auth_device_name: Option<String> = None;
         match verdict {
             Ok(Verdict::Proved) => {
-                if method == VpnClientMfaMethod::MobileApprove {
+                if is_mobile_signature && let Some(attempt_id) = proof.step_attempt_id.as_deref() {
+                    let mut transaction = self.pool.begin().await.map_err(|_| {
+                        error!("Failed to begin transaction while marking mobile approval");
+                        FinishError::Internal
+                    })?;
+                    if !session
+                        .mark_mobile_approved(&mut transaction, attempt_id)
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to mark mobile approval: {err}");
+                            FinishError::Internal
+                        })?
+                    {
+                        error!("Stale MFA attempt: the attempt is superseded");
+                        return Err(FinishError::StaleAttempt);
+                    }
+                    transaction.commit().await.map_err(|_| {
+                        error!("Failed to commit mobile approval mark");
+                        FinishError::Internal
+                    })?;
+                    return Ok((FinishOutcome::AwaitingExternal, method));
+                }
+                if method == VpnClientMfaMethod::MobileApprove && proof.step_attempt_id.is_none() {
                     let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
                         error!("Mobile approve auth pub key missing after successful verification");
                         FinishError::Internal
@@ -460,32 +508,26 @@ impl MfaEngine {
                             .map(|auth_device| auth_device.name);
                 }
             }
-            Ok(Verdict::NotYet) => match proof.step_attempt_id.as_deref() {
-                // Preserve pre-2.2 behavior.
-                None => {
-                    self.channels.emit_event(BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location: ctx.location.clone(),
-                                device: ctx.device.clone(),
-                                method: method.into(),
-                                message: "tried to finish OIDC MFA login but they haven't \
-                                    completed OIDC authentication yet"
-                                    .to_owned(),
-                            },
-                        )),
-                    })?;
-                    return Err(FinishError::OidcNotCompleted);
-                }
-                Some(attempt_id) if attempt_id == ephemeral.step_attempt_id => {
+            Ok(Verdict::NotYet) => {
+                if proof.step_attempt_id.is_some() {
                     return Ok((FinishOutcome::AwaitingExternal, method));
                 }
-                Some(_) => {
-                    error!("Stale MFA attempt: the attempt is superseded");
-                    return Err(FinishError::StaleAttempt);
-                }
-            },
+                // Preserve pre-2.2 OIDC behavior.
+                self.channels.emit_event(BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: ctx.location.clone(),
+                            device: ctx.device.clone(),
+                            method: method.into(),
+                            message: "tried to finish OIDC MFA login but they haven't \
+                                completed OIDC authentication yet"
+                                .to_owned(),
+                        },
+                    )),
+                })?;
+                return Err(FinishError::OidcNotCompleted);
+            }
             Ok(Verdict::Failed { message }) => {
                 self.channels.emit_event(BidiStreamEvent {
                     context,

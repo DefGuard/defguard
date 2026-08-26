@@ -135,11 +135,49 @@ async fn test_mfa_finish_succeeds_with_biometric_signature(
     context.finish().await.expect_server_finished().await;
 }
 
+#[sqlx::test]
+async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    register_biometric_key(&context.pool, device.id).await;
+
+    let (_, token, _) = send_mfa_start_with_challenge(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::MobileApprove,
+    )
+    .await;
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let response = send_mfa_finish_raw(&mut context, &token, None).await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "Signature not found in request");
+    assert!(gateway_rx.try_recv().is_err());
+    assert!(context.bidi_events_rx.try_recv().is_err());
+    assert!(
+        VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+            .await
+            .expect("failed to load mobile approval session")
+            .is_some()
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
 /// The legacy single-step mobile-approve flow completes end-to-end against the DB-backed session.
 ///
 /// This is the fused path: the approving device's key rides in `auth_pub_key` on `finish` and the
 /// handler verifies the signature and authorizes in one call. The durable-mark route, where an
-/// out-of-band approval is collected by a later `finish` poll, arrives with #3046.
+/// out-of-band approval is collected by a later `finish` poll, is covered by Chunk 2; only parked
+/// waiter wake and relay delivery remain for Chunk 3 and #3046.
 #[sqlx::test]
 async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     _: PgPoolOptions,
@@ -185,8 +223,20 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     };
     assert_eq!(gateway_loc_id, network.id);
 
-    let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
-    assert_eq!(event_loc_id, network.id);
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                mobile_auth_device_name,
+                ..
+            } => assert_eq!(mobile_auth_device_name, Some(device.name.clone())),
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
 
     context.finish().await.expect_server_finished().await;
 }
