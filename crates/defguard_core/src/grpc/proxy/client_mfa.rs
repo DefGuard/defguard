@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
     time::Duration,
 };
 
@@ -66,10 +66,25 @@ use crate::{
 // How much time the user has to approve remote MFA with mobile device
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
 
+/// A remote MFA waiter can learn only that an approval happened, never receive a credential.
+#[derive(Debug)]
+pub enum RemoteAuthSignal {
+    Approved,
+    Denied,
+}
+
+/// The parked relay's state. The legacy PSK is side state, not a channel payload.
+pub struct RemoteAuthWaiter {
+    signal_tx: oneshot::Sender<RemoteAuthSignal>,
+    legacy_preshared_key: Arc<Mutex<Option<String>>>,
+}
+
+pub type RemoteAuthWaiters = Arc<RwLock<HashMap<String, RemoteAuthWaiter>>>;
+
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     channels: EventChannels,
-    remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+    remote_mfa_responses: RemoteAuthWaiters,
     engine: MfaEngine,
 }
 
@@ -83,10 +98,7 @@ async fn acquire_connection(pool: &PgPool) -> Result<PoolConnection<Postgres>, S
 
 /// Remove a remote-MFA waiter from the map, dropping the entry so a never-finishing client or a
 /// dropped sender cannot leak a map entry.
-fn remove_remote_mfa_waiter(
-    waiters: &Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-    hash: &str,
-) {
+fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str) {
     waiters
         .write()
         .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
@@ -228,7 +240,7 @@ impl ClientMfaServer {
         pool: PgPool,
         gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
     ) -> Self {
         let engine = MfaEngine::new(pool.clone(), gateway_tx.clone(), bidi_event_tx.clone());
         Self {
@@ -669,17 +681,29 @@ impl ClientMfaServer {
         }
 
         let hash = hash_token(&request.token);
-        let (tx, rx) = oneshot::channel();
+        let (signal_tx, rx) = oneshot::channel();
+        let legacy_preshared_key = Arc::new(Mutex::new(None));
         self.remote_mfa_responses
             .write()
             .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-            .insert(hash.clone(), tx);
+            .insert(
+                hash.clone(),
+                RemoteAuthWaiter {
+                    signal_tx,
+                    legacy_preshared_key: legacy_preshared_key.clone(),
+                },
+            );
 
         let waiters = self.remote_mfa_responses.clone();
-        // Spawn a task that waits for remote MFA process to conclude to get the preshared key.
+        // The legacy path stores its key as waiter side state, never in the signal channel.
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
-                Ok(Ok(preshared_key)) => {
+                Ok(Ok(RemoteAuthSignal::Approved)) => {
+                    let preshared_key = legacy_preshared_key
+                        .lock()
+                        .expect("Failed to lock legacy remote MFA preshared key")
+                        .take()
+                        .unwrap_or_default();
                     let req = CoreResponse {
                         id: request_id,
                         payload: Some(Payload::AwaitRemoteMfaFinish(
@@ -690,8 +714,11 @@ impl ClientMfaServer {
                             },
                         )),
                     };
-                    // Once the key is here, send it back to proxy.
                     let _ = response_tx.send(req);
+                }
+                Ok(Ok(RemoteAuthSignal::Denied)) => {
+                    // The wire cannot represent denial yet, so it remains indistinguishable from timeout.
+                    remove_remote_mfa_waiter(&waiters, &hash);
                 }
                 Ok(Err(err)) => {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
@@ -731,13 +758,18 @@ impl ClientMfaServer {
         // reads an empty preshared key as success.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
-                if let Some(tx) = self
+                if let Some(waiter) = self
                     .remote_mfa_responses
                     .write()
                     .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
                     .remove(&hash_token(&request.token))
                 {
-                    let _ = tx.send(preshared_key.clone());
+                    *waiter
+                        .legacy_preshared_key
+                        .lock()
+                        .expect("Failed to lock legacy remote MFA preshared key") =
+                        Some(preshared_key.clone());
+                    let _ = waiter.signal_tx.send(RemoteAuthSignal::Approved);
                 }
                 preshared_key.clone()
             }
@@ -1120,10 +1152,9 @@ pub enum ClientMfaStartOutcome {
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::HashMap,
         net::{IpAddr, Ipv4Addr},
         sync::{
-            Arc, RwLock,
+            Arc,
             atomic::{AtomicUsize, Ordering},
         },
         time::{Duration, SystemTime},
@@ -1177,7 +1208,10 @@ mod tests {
             limits::{Counts, set_counts},
         },
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
+        grpc::{
+            GatewayCommand, proto::enterprise::license::LicenseLimits,
+            proxy::client_mfa::RemoteAuthWaiters,
+        },
         mfa_engine::authorize::{EventChannels, create_new_session},
     };
 
@@ -2262,8 +2296,7 @@ mod tests {
     ) {
         let (gateway_tx, gateway_rx) = broadcast::channel(8);
         let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
-        let remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>> =
-            Arc::default();
+        let remote_mfa_responses: RemoteAuthWaiters = Arc::default();
 
         (
             ClientMfaServer::new(pool, gateway_tx, bidi_event_tx, remote_mfa_responses),

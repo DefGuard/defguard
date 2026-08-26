@@ -37,7 +37,9 @@ use defguard_core::{
     events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent},
     grpc::{
         GatewayCommand,
-        proxy::client_mfa::{ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome},
+        proxy::client_mfa::{
+            ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome, RemoteAuthWaiters,
+        },
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -66,7 +68,7 @@ use tokio::{
         Mutex,
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
-        oneshot, watch,
+        watch,
     },
     time::sleep,
 };
@@ -221,7 +223,7 @@ impl ProxyHandler {
         pool: PgPool,
         url: Url,
         tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
@@ -252,7 +254,7 @@ impl ProxyHandler {
         proxy: &Proxy<Id>,
         pool: PgPool,
         tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
@@ -1195,7 +1197,7 @@ impl ProxyHandler {
         pool: PgPool,
         url: Url,
         tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
@@ -1357,11 +1359,7 @@ struct ProxyServices {
 }
 
 impl ProxyServices {
-    pub fn new(
-        pool: &PgPool,
-        tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-    ) -> Self {
+    pub fn new(pool: &PgPool, tx: &ProxyTxSet, remote_mfa_responses: RemoteAuthWaiters) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
             tx.wireguard.clone(),
