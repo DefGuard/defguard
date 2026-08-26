@@ -15,7 +15,8 @@ use defguard_common::{
             settings::initialize_current_settings,
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_mfa_session::{
-                MFA_FAILED_ATTEMPT_CAP, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, hash_token,
+                EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaSessionContext, VPN_MFA_SESSION_TIMEOUT,
+                VpnClientMfaSession, hash_token,
             },
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
             wireguard::ServiceLocationMode,
@@ -42,7 +43,10 @@ use crate::{
     },
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
-    mfa_engine::types::{FinishOutcome, Proof, StartRejectionReason, StartResult},
+    mfa_engine::{
+        method::{Verdict, verify},
+        types::{FinishOutcome, Proof, StartRejectionReason, StartResult},
+    },
 };
 
 fn set_test_license_business() {
@@ -191,6 +195,47 @@ async fn session_count(pool: &PgPool, location_id: Id, device_id: Id) -> i64 {
     .await
     .unwrap()
     .unwrap_or(0)
+}
+
+#[sqlx::test]
+async fn test_mobile_approve_empty_proof_reads_approval_flag(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let user = create_user(&pool).await;
+    let context = MfaSessionContext {
+        location: create_mfa_location(&pool).await,
+        device: create_device(&pool, user.id).await,
+        user,
+    };
+    let mut ephemeral = EphemeralState {
+        step_attempt_id: "attempt".to_owned(),
+        selected_method: VpnClientMfaMethod::MobileApprove,
+        openid_auth_completed: false,
+        mobile_approved: false,
+        biometric_challenge: None,
+    };
+    let proof = Proof {
+        code: None,
+        auth_pub_key: None,
+        step_attempt_id: None,
+    };
+
+    assert_eq!(
+        verify(&pool, &context, &ephemeral, &proof)
+            .await
+            .expect("empty mobile-approve proof must verify"),
+        Verdict::NotYet,
+    );
+
+    ephemeral.mobile_approved = true;
+    assert_eq!(
+        verify(&pool, &context, &ephemeral, &proof)
+            .await
+            .expect("approved mobile-approve proof must verify"),
+        Verdict::Proved,
+    );
 }
 
 #[sqlx::test]

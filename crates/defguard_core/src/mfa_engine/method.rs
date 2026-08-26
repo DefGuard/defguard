@@ -151,6 +151,16 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::MobileApprove => {
+            // Multi-step mobile approval uses the WebSocket as the fast path; the desktop
+            // can poll Finish with an empty proof as a fallback after disconnect or restart.
+            if proof.code.is_none() && proof.auth_pub_key.is_none() {
+                return Ok(if ephemeral.mobile_approved {
+                    Verdict::Proved
+                } else {
+                    Verdict::NotYet
+                });
+            }
+
             let challenge = ephemeral
                 .biometric_challenge
                 .as_ref()
