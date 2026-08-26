@@ -699,11 +699,14 @@ impl ClientMfaServer {
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
                 Ok(Ok(RemoteAuthSignal::Approved)) => {
-                    let preshared_key = legacy_preshared_key
+                    let Some(preshared_key) = legacy_preshared_key
                         .lock()
                         .expect("Failed to lock legacy remote MFA preshared key")
                         .take()
-                        .unwrap_or_default();
+                    else {
+                        // A non-legacy approval has no legacy key to return.
+                        return;
+                    };
                     let req = CoreResponse {
                         id: request_id,
                         payload: Some(Payload::AwaitRemoteMfaFinish(
@@ -744,6 +747,7 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login");
 
+        let is_legacy_mobile_approval = request.step_attempt_id.is_none();
         let proof = Proof {
             code: request.code.clone(),
             auth_pub_key: request.auth_pub_key.clone(),
@@ -752,6 +756,22 @@ impl ClientMfaServer {
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 
         let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
+
+        // A non-legacy mobile approval only marks the session. Signal a parked desktop after
+        // that durable mark succeeds.
+        if !is_legacy_mobile_approval
+            && request.code.is_some()
+            && request.auth_pub_key.is_some()
+            && method == VpnClientMfaMethod::MobileApprove
+            && outcome == FinishOutcome::AwaitingExternal
+            && let Some(waiter) = self
+                .remote_mfa_responses
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                .remove(&hash_token(&request.token))
+        {
+            let _ = waiter.signal_tx.send(RemoteAuthSignal::Approved);
+        }
 
         // The parked remote-MFA waiter is session-scoped, so resolve it only once the flow
         // completes. An intermediate step (`Advanced`) must not terminate it: a pre-2.2 client
@@ -1193,7 +1213,7 @@ mod tests {
         PgPool,
         postgres::{PgConnectOptions, PgPoolOptions},
     };
-    use tokio::sync::{broadcast, mpsc, oneshot};
+    use tokio::sync::{broadcast, mpsc};
     use tonic::Code;
     use totp_lite::{Sha1, totp_custom};
 

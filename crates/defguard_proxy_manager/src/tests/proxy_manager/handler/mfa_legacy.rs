@@ -175,9 +175,8 @@ async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
 /// The legacy single-step mobile-approve flow completes end-to-end against the DB-backed session.
 ///
 /// This is the fused path: the approving device's key rides in `auth_pub_key` on `finish` and the
-/// handler verifies the signature and authorizes in one call. The durable-mark route, where an
-/// out-of-band approval is collected by a later `finish` poll, is covered by Chunk 2; only parked
-/// waiter wake and relay delivery remain for Chunk 3 and #3046.
+/// handler verifies the signature and authorizes in one call. A non-legacy request instead marks
+/// the approval durably, then the connecting desktop completes through a later `finish` request.
 #[sqlx::test]
 async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     _: PgPoolOptions,
