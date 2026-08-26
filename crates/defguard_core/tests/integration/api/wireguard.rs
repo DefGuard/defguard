@@ -27,16 +27,69 @@ use defguard_core::{
 };
 use ipnetwork::IpNetwork;
 use reqwest::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-    authenticate_admin, client::TestClient, fetch_user_details, make_network, make_test_client,
-    setup_pool,
+    authenticate_admin,
+    client::{TestClient, TestResponse},
+    fetch_user_details, make_network, make_test_client, setup_pool, update_location_mfa_flows,
+    update_location_posture_checks,
 };
 
 const INVALID_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 119;
 const MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 120;
+
+async fn create_mfa_flow(client: &TestClient, title: &str, steps: Value) -> Id {
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": title, "steps": steps}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    response.json::<Value>().await["id"].as_i64().unwrap()
+}
+
+async fn create_network_with_mfa_flows(
+    client: &TestClient,
+    name: &str,
+    address: &str,
+    mfa_flows: Value,
+) -> TestResponse {
+    client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": name,
+            "address": address,
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": address,
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "allowed_ips_from_acl": false,
+            "mfa_enabled": false,
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": mfa_flows,
+        }))
+        .send()
+        .await
+}
+
+async fn assert_assignment_license_error(response: TestResponse, code: &str) {
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body: Value = response.json().await;
+    assert_eq!(body["error"], "license_required");
+    assert_eq!(body["fields"][0]["field"], "mfa_flows");
+    assert_eq!(body["fields"][0]["code"], code);
+}
 
 #[sqlx::test]
 async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
@@ -86,7 +139,8 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         allowed_ips_from_acl: false,
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -190,13 +244,174 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     set_cached_license(license);
+}
+
+#[sqlx::test]
+async fn test_create_network_mfa_assignment_license_gates(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+    let business_license = get_cached_license().clone();
+
+    let single_step_flow =
+        create_mfa_flow(&client, "Single-step flow", json!([{"methods": ["totp"]}])).await;
+    let second_single_step_flow = create_mfa_flow(
+        &client,
+        "Second single-step flow",
+        json!([{"methods": ["biometric"]}]),
+    )
+    .await;
+    let multi_step_flow = create_mfa_flow(
+        &client,
+        "Multi-step flow",
+        json!([
+            {"methods": ["totp"]},
+            {"methods": ["biometric"]}
+        ]),
+    )
+    .await;
+    let admin_group_id = Group::find_by_name(&pool, "admin")
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+
+    set_cached_license(None);
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "free-single-step",
+        "10.10.1.1/24",
+        json!([{
+            "flow_id": single_step_flow,
+            "is_default": true,
+            "group_ids": []
+        }]),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "free-multi-step",
+        "10.10.2.1/24",
+        json!([{
+            "flow_id": multi_step_flow,
+            "is_default": true,
+            "group_ids": []
+        }]),
+    )
+    .await;
+    assert_assignment_license_error(response, "multiple_steps_not_allowed").await;
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "free-multiple-flows",
+        "10.10.3.1/24",
+        json!([
+            {
+                "flow_id": single_step_flow,
+                "is_default": true,
+                "group_ids": []
+            },
+            {
+                "flow_id": second_single_step_flow,
+                "is_default": false,
+                "group_ids": []
+            }
+        ]),
+    )
+    .await;
+    assert_assignment_license_error(response, "multiple_mfa_flows_not_allowed").await;
+
+    set_cached_license(business_license.clone());
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "business-multi-step",
+        "10.10.4.1/24",
+        json!([{
+            "flow_id": multi_step_flow,
+            "is_default": true,
+            "group_ids": []
+        }]),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let scoped_assignments = json!([
+        {
+            "flow_id": single_step_flow,
+            "is_default": true,
+            "group_ids": []
+        },
+        {
+            "flow_id": second_single_step_flow,
+            "is_default": false,
+            "group_ids": [admin_group_id]
+        }
+    ]);
+    let response = create_network_with_mfa_flows(
+        &client,
+        "business-group-scoping",
+        "10.10.5.1/24",
+        scoped_assignments.clone(),
+    )
+    .await;
+    assert_assignment_license_error(response, "group_assignment_not_allowed").await;
+    assert!(
+        WireguardNetwork::find_by_name(&pool, "business-group-scoping")
+            .await
+            .unwrap()
+            .is_none()
+    );
+
+    set_enterprise_license();
+
+    let response = create_network_with_mfa_flows(
+        &client,
+        "enterprise-group-scoping",
+        "10.10.6.1/24",
+        scoped_assignments.clone(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location_id = response.json::<Value>().await["id"].as_i64().unwrap();
+
+    set_cached_license(business_license.clone());
+
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
+            {
+                "flow_id": second_single_step_flow,
+                "is_default": true,
+                "group_ids": []
+            },
+            {
+                "flow_id": single_step_flow,
+                "is_default": false,
+                "group_ids": [admin_group_id]
+            }
+        ]),
+    )
+    .await;
+    assert_assignment_license_error(response, "group_assignment_not_allowed").await;
+
+    set_cached_license(business_license);
 }
 
 #[sqlx::test]
@@ -264,7 +479,8 @@ async fn test_create_network_with_posture_checks_assigns_postures(
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
             "service_location_mode": "disabled",
-            "posture_checks": posture_ids
+            "posture_checks": posture_ids,
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -326,7 +542,8 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
             "service_location_mode": "disabled",
-            "posture_checks": [1]
+            "posture_checks": [1],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -346,7 +563,6 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
 }
 
 /// Build a location payload with overridable name, address and mode fields.
-/// `posture_checks` is intentionally absent — add it explicitly where it matters.
 fn location_payload(
     name: &str,
     address: &str,
@@ -370,7 +586,9 @@ fn location_payload(
         "acl_default_allow": false,
         "allowed_ips_from_acl": false,
         "mfa_enabled": mfa_enabled,
-        "service_location_mode": service_location_mode
+        "service_location_mode": service_location_mode,
+        "posture_checks": [],
+        "mfa_flows": []
     })
 }
 
@@ -397,11 +615,12 @@ async fn make_mfa_flow(client: &TestClient) -> i64 {
 
 /// Assign a flow as a location's default so the location can be MFA-enabled.
 async fn assign_default_mfa_flow(client: &TestClient, location_id: i64, flow_id: i64) {
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }))
-        .send()
-        .await;
+    let response = update_location_mfa_flows(
+        client,
+        location_id,
+        json!([{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::OK);
 }
 
@@ -432,7 +651,9 @@ async fn test_mfa_enabled_no_flows_structured_body(_: PgPoolOptions, options: Pg
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": true,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -440,8 +661,8 @@ async fn test_mfa_enabled_no_flows_structured_body(_: PgPoolOptions, options: Pg
 
     let body: serde_json::Value = response.json().await;
     assert_eq!(body["error"], "validation_failed");
-    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
-    assert_eq!(body["fields"][0]["code"], "no_flows_exist");
+    assert_eq!(body["fields"][0]["field"], "mfa_flows");
+    assert_eq!(body["fields"][0]["code"], "no_default_designated");
     assert!(
         body.get("msg").is_none(),
         "the refusal body must not be double-encoded via msg"
@@ -478,21 +699,18 @@ async fn test_enable_mfa_after_clear_refused_without_flows(
         .as_i64()
         .unwrap();
 
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Clearing is allowed on the MFA-disabled location.
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": []}))
-        .send()
-        .await;
+    let response = update_location_mfa_flows(&client, location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Delete the now-unassigned flow so no flows exist globally.
@@ -522,7 +740,9 @@ async fn test_enable_mfa_after_clear_refused_without_flows(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": true,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -564,7 +784,9 @@ async fn test_enable_mfa_without_assignment_refused(_: PgPoolOptions, options: P
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": true,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -856,16 +1078,14 @@ async fn test_modify_network_rejects_service_location_with_mfa(
 }
 
 #[sqlx::test]
-async fn test_modify_network_without_posture_checks_keeps_assignments(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_modify_network_replaces_posture_checks(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, _client_state) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
     set_enterprise_license();
 
     let posture = make_posture_check(&client, "Posture").await;
+    let replacement_posture = make_posture_check(&client, "Replacement posture").await;
 
     let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
     payload["posture_checks"] = json!([posture]);
@@ -877,7 +1097,60 @@ async fn test_modify_network_without_posture_checks_keeps_assignments(
         vec![posture]
     );
 
-    // a payload with the field omitted must leave the assignment alone
+    // an explicit list replaces the current assignments with the location save
+    let mut payload = location_payload("renamed-location", "10.1.1.1/24", false, "disabled");
+    payload["posture_checks"] = json!([replacement_posture]);
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let modified: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(modified.name, "renamed-location");
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        vec![replacement_posture]
+    );
+
+    // an empty list clears assignments
+    let response = client
+        .put(format!("/api/v1/network/{}", location.id))
+        .json(&location_payload(
+            "location",
+            "10.1.1.1/24",
+            false,
+            "disabled",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        fetch_location_postures(&client, location.id)
+            .await
+            .is_empty()
+    );
+}
+
+#[sqlx::test]
+async fn test_modify_network_preserves_posture_checks_without_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    set_enterprise_license();
+
+    let posture = make_posture_check(&client, "Posture").await;
+    let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
+    payload["posture_checks"] = json!([posture]);
+    let response = client.post("/api/v1/network").json(&payload).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+
+    let license = get_cached_license().clone();
+    set_cached_license(None);
     let response = client
         .put(format!("/api/v1/network/{}", location.id))
         .json(&location_payload(
@@ -895,20 +1168,7 @@ async fn test_modify_network_without_posture_checks_keeps_assignments(
         fetch_location_postures(&client, location.id).await,
         vec![posture]
     );
-
-    // an explicit `null` behaves the same way
-    let mut payload = location_payload("location", "10.1.1.1/24", false, "disabled");
-    payload["posture_checks"] = json!(null);
-    let response = client
-        .put(format!("/api/v1/network/{}", location.id))
-        .json(&payload)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(
-        fetch_location_postures(&client, location.id).await,
-        vec![posture]
-    );
+    set_cached_license(license);
 }
 
 #[sqlx::test]
@@ -946,14 +1206,11 @@ async fn test_posture_checks_allowed_on_service_locations(
     assert_eq!(response.status(), StatusCode::CREATED);
     let location: WireguardNetwork<Id> = response.json().await;
 
+    let mut payload = location_payload("regular-location", "10.2.2.1/24", false, "alwayson");
+    payload["posture_checks"] = json!([posture]);
     let response = client
         .put(format!("/api/v1/network/{}", location.id))
-        .json(&location_payload(
-            "regular-location",
-            "10.2.2.1/24",
-            false,
-            "alwayson",
-        ))
+        .json(&payload)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -967,7 +1224,7 @@ async fn test_posture_checks_allowed_on_service_locations(
         vec![posture]
     );
 
-    // dedicated assignment path: posture checks can be assigned to an existing service location
+    // posture checks can be assigned to an existing service location through the location save
     let response = client
         .post("/api/v1/network")
         .json(&location_payload(
@@ -986,14 +1243,12 @@ async fn test_posture_checks_allowed_on_service_locations(
             .is_empty()
     );
 
-    let response = client
-        .put(format!(
-            "/api/v1/network/{}/postures",
-            service_location_without_postures.id
-        ))
-        .json(&json!({ "postures": [posture] }))
-        .send()
-        .await;
+    let response = update_location_posture_checks(
+        &client,
+        service_location_without_postures.id,
+        json!([posture]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         fetch_location_postures(&client, service_location_without_postures.id).await,
@@ -1030,7 +1285,8 @@ async fn test_peer_disconnect_threshold_validation_create(
         allowed_ips_from_acl: false,
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
 
     let response = client
@@ -1060,7 +1316,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body: serde_json::Value = response.json().await;
-    assert_eq!(body["fields"][0]["code"], "no_flows_assigned");
+    assert_eq!(body["fields"][0]["code"], "no_default_designated");
 }
 
 #[sqlx::test]
@@ -1092,7 +1348,8 @@ async fn test_peer_disconnect_threshold_validation_modify(
         allowed_ips_from_acl: false,
         mfa_enabled: false,
         service_location_mode: ServiceLocationMode::Disabled,
-        posture_checks: None,
+        posture_checks: Vec::new(),
+        mfa_flows: Vec::new(),
     };
 
     let response = client
@@ -1105,6 +1362,13 @@ async fn test_peer_disconnect_threshold_validation_modify(
     // Give the location a default flow so the threshold checks below operate on a
     // MFA-enableable location.
     assign_default_mfa_flow(&client, 1, flow_id).await;
+    location_data.mfa_flows = vec![
+        defguard_common::db::models::mfa_flow::LocationMfaFlowAssignment {
+            flow_id,
+            is_default: true,
+            group_ids: Vec::new(),
+        },
+    ];
 
     let response = client
         .put("/api/v1/network/1")
@@ -1369,7 +1633,9 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
         "mfa_enabled": false,
-        "service_location_mode": "disabled"
+        "service_location_mode": "disabled",
+        "posture_checks": [],
+        "mfa_flows": []
     });
     let response = client
         .put(format!("/api/v1/network/{network_id}"))
@@ -1698,7 +1964,9 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
         "mfa_enabled": false,
-        "service_location_mode": "disabled"
+        "service_location_mode": "disabled",
+        "posture_checks": [],
+        "mfa_flows": []
     });
     let response = client
         .put(format!("/api/v1/network/{}", network_from_details.id))
@@ -1726,7 +1994,9 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
         "mfa_enabled": false,
-        "service_location_mode": "disabled"
+        "service_location_mode": "disabled",
+        "posture_checks": [],
+        "mfa_flows": []
     });
     let response = client
         .put(format!("/api/v1/network/{}", network_from_details.id))
@@ -1857,7 +2127,9 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -1947,7 +2219,9 @@ async fn test_add_device_for_disabled_user(_: PgPoolOptions, options: PgConnectO
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2013,7 +2287,9 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await
@@ -2041,7 +2317,9 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await
@@ -2069,7 +2347,9 @@ async fn test_user_device_configs_excludes_mfa_locations(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": true,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": [{"flow_id": flow_id, "is_default": true, "group_ids": []}]
         }))
         .send()
         .await;
@@ -2134,7 +2414,9 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2147,8 +2429,15 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
 
     // Verify API event was emitted for location creation
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1, "expected exactly 1 event after create");
-    let (event_type, _user_id, _username) = &events[0];
+    assert_eq!(
+        events.len(),
+        1,
+        "location save must emit only a location event"
+    );
+    let (event_type, _user_id, _username) = events
+        .iter()
+        .find(|event| matches!(event.0, ApiEventType::VpnLocationAdded { .. }))
+        .expect("missing location event");
     assert_matches!(
         event_type,
         ApiEventType::VpnLocationAdded { location: event_location }
@@ -2175,7 +2464,9 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2187,8 +2478,15 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
     );
 
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1, "expected exactly 1 event after edit off");
-    let (event_type, _user_id, _username) = &events[0];
+    assert_eq!(
+        events.len(),
+        1,
+        "location save must emit only a location event"
+    );
+    let (event_type, _user_id, _username) = events
+        .iter()
+        .find(|event| matches!(event.0, ApiEventType::VpnLocationModified { .. }))
+        .expect("missing location event");
     assert_matches!(
         event_type,
         ApiEventType::VpnLocationModified { before: before_loc, after: after_loc }
@@ -2218,7 +2516,9 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2230,8 +2530,15 @@ async fn test_location_allowed_ips_from_acl_flag(_: PgPoolOptions, options: PgCo
     );
 
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1, "expected exactly 1 event after edit on");
-    let (event_type, _user_id, _username) = &events[0];
+    assert_eq!(
+        events.len(),
+        1,
+        "location save must emit only a location event"
+    );
+    let (event_type, _user_id, _username) = events
+        .iter()
+        .find(|event| matches!(event.0, ApiEventType::VpnLocationModified { .. }))
+        .expect("missing location event");
     assert_matches!(
         event_type,
         ApiEventType::VpnLocationModified { before: before_loc, after: after_loc }
@@ -2359,7 +2666,9 @@ async fn test_config_allowed_ips_from_acl_merged(_: PgPoolOptions, options: PgCo
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2428,7 +2737,9 @@ async fn test_config_allowed_ips_from_acl_no_match(_: PgPoolOptions, options: Pg
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2535,7 +2846,9 @@ async fn test_config_allowed_ips_from_acl_toggle_off(_: PgPoolOptions, options: 
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2607,7 +2920,9 @@ async fn test_config_allowed_ips_from_acl_any_address_skipped(
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2687,7 +3002,9 @@ async fn test_config_allowed_ips_from_acl_no_license(_: PgPoolOptions, options: 
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -2758,7 +3075,9 @@ async fn test_config_allowed_ips_from_acl_disabled(_: PgPoolOptions, options: Pg
             "acl_default_allow": false,
             "allowed_ips_from_acl": true,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;

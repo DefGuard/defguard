@@ -18,7 +18,9 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{exceed_enterprise_limits, make_client, make_network, setup_pool};
+use super::common::{
+    exceed_enterprise_limits, make_client, make_network, setup_pool, update_location_mfa_flows,
+};
 use crate::api::PaginatedApiResponse;
 
 #[derive(Deserialize)]
@@ -445,13 +447,12 @@ async fn test_delete_openid_provider_reports_affected_locations(
         .unwrap();
 
     // Assign the OIDC flow as the location's default, so the location genuinely depends on it.
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({
-            "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]
-        }))
-        .send()
-        .await;
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Deletion proceeds and names the location whose flows are now unsatisfiable.

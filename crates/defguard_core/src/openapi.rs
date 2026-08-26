@@ -235,7 +235,6 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         device_posture::update_device_posture,
         device_posture::duplicate_device_posture,
         device_posture::set_locations_for_posture,
-        device_posture::set_postures_for_location,
         // SNAT
         snat::list_snat_bindings,
         snat::create_snat_binding,
@@ -271,7 +270,6 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         mfa_flow::update_mfa_flow,
         mfa_flow::delete_mfa_flow,
         mfa_flow::get_location_mfa_flows,
-        mfa_flow::set_location_mfa_flows,
         mfa_flow::get_method_availability,
         // support
         mail::send_support_data,

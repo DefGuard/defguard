@@ -11,7 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
-            mfa_flow::MfaFlow,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentLicenseError},
             wireguard::{MappedDevice, ServiceLocationMode},
         },
     },
@@ -36,13 +36,17 @@ use crate::{
         },
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
-        has_enterprise_access,
+        has_enterprise_access, is_business_license_active,
         license::{LicenseFeature, get_cached_license},
         limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
-    handlers::{gateway::GatewayInfo, network_devices::DeviceWireGuardConfig},
+    handlers::{
+        gateway::GatewayInfo,
+        mfa_flow::{assignment_error_response, license_error_response},
+        network_devices::DeviceWireGuardConfig,
+    },
     location_management::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
@@ -86,7 +90,8 @@ pub struct WireguardNetworkData {
     pub allowed_ips_from_acl: bool,
     pub mfa_enabled: bool,
     pub service_location_mode: ServiceLocationMode,
-    pub posture_checks: Option<Vec<i64>>,
+    pub posture_checks: Vec<Id>,
+    pub mfa_flows: Vec<LocationMfaFlowAssignment>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -120,16 +125,11 @@ pub fn no_flows_assigned_response() -> ApiResponse {
     )
 }
 
-/// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
+/// Validate enabling MFA on an already-persisted location.
 ///
-/// The check is per-location: an existing location (`Some(id)`) must carry a designated default
-/// assignment, and a brand-new location (`None`, the create path) can never have one, so creating
-/// with `mfa_enabled` is refused here too. The global `no_flows_exist` check runs first so a fresh
-/// instance reports the more actionable "create a flow" error. Returns a structured `400` response
-/// (not a `WebError`) so the body is parsed in one step.
-///
-/// Shared by `create_network`, `modify_network` and the auto-adoption wizard, which sets
-/// `mfa_enabled` on an already-persisted location, so the three entry points cannot drift.
+/// Used by the auto-adoption wizard after it creates a location. The normal location create and
+/// update handlers validate assignments inside their transactions. Returns a structured `400`
+/// response (not a `WebError`) when no MFA flow or no default assignment exists.
 pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
     executor: E,
     mfa_enabled: bool,
@@ -175,17 +175,6 @@ impl WireguardNetworkData {
         Err(WebError::BadRequest(format!(
             "peer_disconnect_threshold must be at least {MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA} when location MFA is enabled"
         )))
-    }
-
-    /// Rejects enabling MFA for a location while no MFA flow is assigned to it as its default.
-    ///
-    /// Thin wrapper over [`validate_mfa_flows_exist`] for the create/modify request path.
-    pub(crate) async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
-        &self,
-        executor: E,
-        location_id: Option<Id>,
-    ) -> Result<Option<ApiResponse>, WebError> {
-        validate_mfa_flows_exist(executor, self.mfa_enabled, location_id).await
     }
 
     /// Rejects service-location mode combined with location MFA: core cannot serve it and the
@@ -241,6 +230,30 @@ pub(crate) struct ImportNetworkData {
 pub struct ImportedNetworkData {
     pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
+}
+
+fn assignment_license_error_response(
+    error: MfaFlowAssignmentLicenseError,
+) -> Result<ApiResponse, WebError> {
+    let code = match error {
+        MfaFlowAssignmentLicenseError::GroupAssignmentNotAllowed => "group_assignment_not_allowed",
+        MfaFlowAssignmentLicenseError::MultipleStepsNotAllowed => "multiple_steps_not_allowed",
+        MfaFlowAssignmentLicenseError::MultipleMfaFlowsNotAllowed => {
+            "multiple_mfa_flows_not_allowed"
+        }
+        MfaFlowAssignmentLicenseError::Database(error) => return Err(WebError::from(error)),
+    };
+    Ok(license_error_response("mfa_flows".into(), code))
+}
+
+/// Prepare assignments for equality check.
+fn normalize_mfa_flow_assignments(
+    mut assignments: Vec<LocationMfaFlowAssignment>,
+) -> Vec<LocationMfaFlowAssignment> {
+    for assignment in &mut assignments {
+        assignment.group_ids.sort_unstable();
+    }
+    assignments
 }
 
 /// Create a network
@@ -303,9 +316,6 @@ pub(crate) async fn create_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    if let Some(resp) = data.validate_mfa_flows_exist(&appstate.pool, None).await? {
-        return Ok(resp);
-    }
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -337,24 +347,44 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    // assign posture checks
-    if let Some(ref posture_checks) = data.posture_checks {
-        debug!("Assigning posture checks {posture_checks:?} to {network}");
-        if !has_enterprise_access(Some(LicenseFeature::DevicePosture)) && !posture_checks.is_empty()
-        {
-            error!(
-                "Cannot assign posture checks to new location {network}: Enterprise license required."
-            );
-            return Ok(WebError::Forbidden(
-                "Cannot assign posture checks to new location: Enterprise license required.",
-            )
-            .into());
-        }
-        DevicePostureLocation::set_for_location(&mut transaction, network.id, posture_checks)
-            .await?;
-        info!("Assigned posture checks {posture_checks:?} to new location {network}");
+    debug!(
+        "Assigning posture checks {:?} to {network}",
+        data.posture_checks
+    );
+    if !has_enterprise_access(Some(LicenseFeature::DevicePosture))
+        && !data.posture_checks.is_empty()
+    {
+        error!(
+            "Cannot assign posture checks to new location {network}: Enterprise license required."
+        );
+        return Ok(WebError::Forbidden(
+            "Cannot assign posture checks to new location: Enterprise license required.",
+        )
+        .into());
     }
+    DevicePostureLocation::set_for_location(&mut transaction, network.id, &data.posture_checks)
+        .await?;
+    info!(
+        "Assigned posture checks {:?} to new location {network}",
+        data.posture_checks
+    );
 
+    let mfa_assignments: Vec<LocationMfaFlowAssignment> = data.mfa_flows.clone();
+    if let Err(error) = MfaFlow::validate_mfa_flow_assignments_license(
+        &mut transaction,
+        &mfa_assignments,
+        has_enterprise_access(None),
+        is_business_license_active(),
+    )
+    .await
+    {
+        return assignment_license_error_response(error);
+    }
+    if let Err(error) =
+        MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
+    {
+        return assignment_error_response(&data.mfa_flows, error);
+    }
     transaction.commit().await?;
 
     appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
@@ -364,6 +394,25 @@ pub(crate) async fn create_network(
         session.user.username
     );
 
+    if !data.posture_checks.is_empty() {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationPosturesAssigned {
+                location: network.clone(),
+                posture_ids: data.posture_checks.clone(),
+            }),
+        })?;
+    }
+    if !mfa_assignments.is_empty() {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+                location_id: network.id,
+                location_name: network.name.clone(),
+                assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
+            }),
+        })?;
+    }
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::VpnLocationAdded {
@@ -416,7 +465,7 @@ pub(crate) async fn modify_network(
         session.user.username
     );
 
-    // check if tries to modify service location without active enterprise
+    // check if tries to configure service location without active enterprise
     if data.service_location_mode != ServiceLocationMode::Disabled
         && !has_enterprise_access(Some(LicenseFeature::ServiceLocations))
     {
@@ -434,12 +483,6 @@ pub(crate) async fn modify_network(
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_allowed_groups()?;
-    if let Some(resp) = data
-        .validate_mfa_flows_exist(&appstate.pool, Some(network_id))
-        .await?
-    {
-        return Ok(resp);
-    }
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
@@ -470,6 +513,87 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
 
+    // Don't error out on no license - otherwise users won't be able to update other location fields.
+    let postures_changed = if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
+        let mut current_postures =
+            DevicePostureLocation::find_by_location(&mut *transaction, network.id).await?;
+        let mut requested_postures = data.posture_checks.clone();
+
+        current_postures.sort_unstable();
+        requested_postures.sort_unstable();
+
+        if current_postures != requested_postures {
+            DevicePostureLocation::set_for_location(
+                &mut transaction,
+                network.id,
+                &data.posture_checks,
+            )
+            .await?;
+        }
+        current_postures != requested_postures
+    } else {
+        warn!(
+            location_id = network.id,
+            "Ignoring posture check assignments because the Enterprise license is inactive"
+        );
+        false
+    };
+
+    // Only changed assignments can be written with a Business license; otherwise, preserve the
+    // existing assignments so a license downgrade does not block unrelated location updates. Flow
+    // order is significant, but group order is not, so normalize group IDs before comparing.
+    let current_mfa_assignments = normalize_mfa_flow_assignments(
+        MfaFlow::for_location(&mut *transaction, network.id)
+            .await?
+            .into_iter()
+            .map(|assignment| LocationMfaFlowAssignment {
+                flow_id: assignment.id,
+                is_default: assignment.is_default,
+                group_ids: assignment.group_ids,
+            })
+            .collect(),
+    );
+    let mfa_assignments = normalize_mfa_flow_assignments(data.mfa_flows.clone());
+    let mfa_assignments_changed = current_mfa_assignments != mfa_assignments;
+    let mfa_assignments_updated = if mfa_assignments_changed {
+        match MfaFlow::validate_mfa_flow_assignments_license(
+            &mut transaction,
+            &mfa_assignments,
+            has_enterprise_access(None),
+            is_business_license_active(),
+        )
+        .await
+        {
+            Ok(()) => true,
+            Err(MfaFlowAssignmentLicenseError::Database(error)) => return Err(error.into()),
+            Err(error) if is_business_license_active() => {
+                return assignment_license_error_response(error);
+            }
+            Err(error) => {
+                warn!(
+                    location_id = network.id,
+                    error = %error,
+                    "Ignoring MFA flow assignments because of license limits"
+                );
+                false
+            }
+        }
+    } else {
+        false
+    };
+
+    if mfa_assignments_updated {
+        if let Err(error) =
+            MfaFlow::assign_to_location(&mut transaction, network.id, &mfa_assignments).await
+        {
+            return assignment_error_response(&data.mfa_flows, error);
+        }
+    } else if let Some(response) =
+        validate_mfa_flows_exist(&appstate.pool, data.mfa_enabled, Some(network.id)).await?
+    {
+        return Ok(response);
+    }
+
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
@@ -486,6 +610,25 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
+    if postures_changed {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationPosturesAssigned {
+                location: network.clone(),
+                posture_ids: data.posture_checks.clone(),
+            }),
+        })?;
+    }
+    if mfa_assignments_updated {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
+                location_id: network.id,
+                location_name: network.name.clone(),
+                assignments: LocationMfaFlowAssignment::snapshot(&mfa_assignments),
+            }),
+        })?;
+    }
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::VpnLocationModified {
@@ -919,7 +1062,7 @@ pub(crate) struct AddDeviceResult {
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
                         "keepalive_interval": 5,
-			            "mfa_enabled": false,
+                        "mfa_enabled": false,
                         "service_location_mode": "disabled"
                     }
                 ],

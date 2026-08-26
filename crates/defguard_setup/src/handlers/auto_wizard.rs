@@ -23,7 +23,7 @@ use defguard_core::{
         apply_internal_url_settings as apply_core_internal_url_settings,
     },
     error::WebError,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult, wireguard::validate_mfa_flows_exist},
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -334,12 +334,8 @@ pub async fn set_mfa_settings(
     // location, so "enabled with no policy" is unrepresentable. This is the same check
     // `create_network` and `modify_network` apply, shared rather than reimplemented so the three
     // entry points cannot drift. Validated before saving, so a refusal writes nothing.
-    if let Some(response) = defguard_core::handlers::wireguard::validate_mfa_flows_exist(
-        &pool,
-        mfa_settings.mfa_enabled,
-        Some(first_network_id),
-    )
-    .await?
+    if let Some(response) =
+        validate_mfa_flows_exist(&pool, mfa_settings.mfa_enabled, Some(first_network_id)).await?
     {
         return Ok(response);
     }

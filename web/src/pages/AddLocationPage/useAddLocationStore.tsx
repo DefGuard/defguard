@@ -39,6 +39,7 @@ const defaults: StoreValues = {
   mfa_enabled: false,
   service_location_mode: LocationServiceMode.Disabled,
   posture_checks: [],
+  mfa_flows: [],
 };
 
 export const useAddLocationStore = create<StoreMethods & StoreValues>()(
