@@ -52,6 +52,8 @@ pub enum FinishError {
     OidcNotCompleted,
     #[error("unauthorized")]
     Unauthorized,
+    #[error("Too many failed MFA attempts. Please try connecting again.")]
+    AttemptLimit,
     #[error("stale MFA attempt")]
     StaleAttempt,
     #[error("Challenge not found in session")]

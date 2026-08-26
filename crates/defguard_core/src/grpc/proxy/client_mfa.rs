@@ -227,6 +227,7 @@ impl From<FinishError> for Status {
             | FinishError::MalformedProof { .. } => Code::InvalidArgument,
             FinishError::OidcNotCompleted => Code::FailedPrecondition,
             FinishError::Unauthorized => Code::Unauthenticated,
+            FinishError::AttemptLimit => Code::PermissionDenied,
             FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
             FinishError::Event(e) => return Status::from(e),
         };

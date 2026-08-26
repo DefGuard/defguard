@@ -541,7 +541,10 @@ impl MfaEngine {
                         },
                     )),
                 })?;
-                self.record_failure(session).await?;
+                let at_cap = self.record_failure(session).await?;
+                if at_cap && proof.step_attempt_id.is_some() {
+                    return Err(FinishError::AttemptLimit);
+                }
                 return Err(FinishError::Unauthorized);
             }
             Err(VerifyError::MalformedProof { message, event }) => {
@@ -740,7 +743,7 @@ impl MfaEngine {
 
     /// Record a proof-verification failure, deleting the session once the per-step cap is reached
     /// so a subsequent finish fails closed.
-    async fn record_failure(&self, session: VpnClientMfaSession<Id>) -> Result<(), FinishError> {
+    async fn record_failure(&self, session: VpnClientMfaSession<Id>) -> Result<bool, FinishError> {
         let mut conn = self.pool.acquire().await.map_err(|_| {
             error!("Failed to acquire DB connection");
             FinishError::Internal
@@ -762,7 +765,7 @@ impl MfaEngine {
                 FinishError::Internal
             })?;
         }
-        Ok(())
+        Ok(at_cap)
     }
 }
 
