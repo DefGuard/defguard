@@ -80,13 +80,15 @@ pub async fn initiate(
             .await?;
             Ok(None)
         }
-        VpnClientMfaMethod::Biometric | VpnClientMfaMethod::Fido2 => {
+        VpnClientMfaMethod::Biometric => {
             let Some(auth) = BiometricAuth::find_by_device_id(pool, ctx.device.id).await? else {
                 return Err(InitiateError::BiometricNotConfigured);
             };
             Ok(Some(BiometricChallenge::with_pubkey(auth.pub_key())?))
         }
-        VpnClientMfaMethod::MobileApprove => Ok(Some(BiometricChallenge::new())),
+        VpnClientMfaMethod::MobileApprove | VpnClientMfaMethod::Fido2 => {
+            Ok(Some(BiometricChallenge::new()))
+        }
     }
 }
 
@@ -127,7 +129,7 @@ pub async fn verify(
                 })
             }
         }
-        VpnClientMfaMethod::Biometric | VpnClientMfaMethod::Fido2 => {
+        VpnClientMfaMethod::Biometric => {
             let challenge = ephemeral
                 .biometric_challenge
                 .as_ref()
@@ -136,7 +138,7 @@ pub async fn verify(
                 message: "Challenge not found in request",
                 event: None,
             })?;
-            match challenge.verify(signed_challenge.as_str(), None) {
+            match challenge.verify(signed_challenge) {
                 Ok(()) => Ok(Verdict::Proved),
                 Err(_) => Ok(Verdict::Failed {
                     message: "Signed challenge rejected",
@@ -176,7 +178,23 @@ pub async fn verify(
                     message: "Signed challenge rejected",
                 });
             }
-            match challenge.verify(signature.as_str(), Some(auth_device_pub_key.clone())) {
+            match challenge.verify_for_owner(signature, auth_device_pub_key) {
+                Ok(()) => Ok(Verdict::Proved),
+                Err(_) => Ok(Verdict::Failed {
+                    message: "Signed challenge rejected",
+                }),
+            }
+        }
+        VpnClientMfaMethod::Fido2 => {
+            let challenge = ephemeral
+                .biometric_challenge
+                .as_ref()
+                .ok_or(VerifyError::MissingChallenge)?;
+            let signed_challenge = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
+                message: "Challenge not found in request",
+                event: None,
+            })?;
+            match challenge.verify(signed_challenge) {
                 Ok(()) => Ok(Verdict::Proved),
                 Err(_) => Ok(Verdict::Failed {
                     message: "Signed challenge rejected",

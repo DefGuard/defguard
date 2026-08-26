@@ -171,7 +171,7 @@ impl MfaEngine {
         }
 
         // Freeze the license-filtered snapshot: OIDC is a business-tier method.
-        let filtered_steps: Vec<Vec<VpnClientMfaMethod>> = steps
+        let filtered_steps = steps
             .iter()
             .map(|step| {
                 step.iter()
@@ -179,7 +179,7 @@ impl MfaEngine {
                     .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
                     .collect()
             })
-            .collect();
+            .collect::<Vec<Vec<_>>>();
 
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_configured().await.map_err(|err| {
@@ -300,9 +300,10 @@ impl MfaEngine {
     /// `oidc_configured`.
     async fn oidc_configured(&self) -> sqlx::Result<bool> {
         if !is_business_license_active() {
-            return Ok(false);
+            Ok(false)
+        } else {
+            Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
         }
-        Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
     }
 
     /// Initiate the current step: send the email code or mint the challenge and bind it to a
@@ -390,9 +391,7 @@ impl MfaEngine {
 
         Ok(StepStarted {
             step_attempt_id,
-            challenge: challenge
-                .as_ref()
-                .map(|challenge| challenge.challenge.clone()),
+            challenge: challenge.map(|challenge| challenge.challenge),
         })
     }
 
@@ -439,9 +438,9 @@ impl MfaEngine {
 
         let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
 
-        let method: VpnClientMfaMethod = ephemeral.selected_method;
+        let method = ephemeral.selected_method;
 
-        let mut mobile_auth_device_name: Option<String> = None;
+        let mut mobile_auth_device_name = None;
         match verdict {
             Ok(Verdict::Proved) => {
                 if method == VpnClientMfaMethod::MobileApprove {

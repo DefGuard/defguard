@@ -156,19 +156,21 @@ impl BiometricChallenge {
         }
     }
 
-    pub fn verify(
+    pub fn verify(&self, signed_challenge: &str) -> Result<(), BiometricAuthError> {
+        if let Some(verifying_key) = &self.auth_pub_key {
+            verify(signed_challenge, verifying_key, &self.challenge)
+        } else {
+            Err(BiometricAuthError::ChallengeNotOwned)
+        }
+    }
+
+    pub fn verify_for_owner(
         &self,
         signed_challenge: &str,
-        owner: Option<String>,
+        owner: &str,
     ) -> Result<(), BiometricAuthError> {
-        if let Some(auth_pub_key) = owner {
-            let verifying_key = decode_pub_key(auth_pub_key.as_str())?;
-            return verify(signed_challenge, &verifying_key, &self.challenge);
-        }
-        if let Some(verifying_key) = &self.auth_pub_key {
-            return verify(signed_challenge, verifying_key, &self.challenge);
-        }
-        Err(BiometricAuthError::ChallengeNotOwned)
+        let verifying_key = decode_pub_key(owner)?;
+        verify(signed_challenge, &verifying_key, &self.challenge)
     }
 }
 
