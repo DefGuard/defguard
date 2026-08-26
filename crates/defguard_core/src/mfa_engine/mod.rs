@@ -52,6 +52,7 @@ pub mod types;
 /// License gating happens only at `start`, which freezes the license-filtered step snapshot;
 /// `step_start` and `finish` carry no license gate, so an in-flight flow runs to completion even if
 /// the license lapses mid-flow.
+#[derive(Clone)]
 pub struct MfaEngine {
     pool: PgPool,
     channels: EventChannels,

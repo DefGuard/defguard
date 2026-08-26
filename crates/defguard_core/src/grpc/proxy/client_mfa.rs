@@ -663,23 +663,28 @@ impl ClientMfaServer {
         request: AwaitRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Awaiting remote MFA finish for request_id {request_id}");
 
         // Register a waiter only for a token that maps to a live in-progress session, so an
         // unauthenticated caller cannot grow the waiter map without bound.
-        if VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
-            .await
-            .map_err(|err| {
-                error!("Failed to find MFA session: {err}");
-                Status::internal("unexpected error")
-            })?
-            .is_none()
-        {
+        let Some(session) =
+            VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
+                .await
+                .map_err(|err| {
+                    error!("Failed to find MFA session: {err}");
+                    Status::internal("unexpected error")
+                })?
+        else {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
-        }
+        };
 
+        let parked_step_attempt_id = session
+            .ephemeral_state
+            .as_ref()
+            .map(|state| state.step_attempt_id.clone());
         let hash = hash_token(&request.token);
         let (signal_tx, rx) = oneshot::channel();
         let legacy_preshared_key = Arc::new(Mutex::new(None));
@@ -695,29 +700,65 @@ impl ClientMfaServer {
             );
 
         let waiters = self.remote_mfa_responses.clone();
+        let engine = self.engine.clone();
+        let token = request.token;
         // The legacy path stores its key as waiter side state, never in the signal channel.
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
                 Ok(Ok(RemoteAuthSignal::Approved)) => {
-                    let Some(preshared_key) = legacy_preshared_key
+                    if let Some(preshared_key) = legacy_preshared_key
                         .lock()
                         .expect("Failed to lock legacy remote MFA preshared key")
                         .take()
-                    else {
-                        // A non-legacy approval has no legacy key to return.
+                    {
+                        let req = CoreResponse {
+                            id: request_id,
+                            payload: Some(Payload::AwaitRemoteMfaFinish(
+                                AwaitRemoteMfaFinishResponse {
+                                    #[allow(deprecated)]
+                                    preshared_key,
+                                    result: None,
+                                },
+                            )),
+                        };
+                        let _ = response_tx.send(req);
                         return;
+                    }
+
+                    let (ip, _) = match parse_client_ip_agent(&info) {
+                        Ok(info) => info,
+                        Err(err) => {
+                            let _ = response_tx.send(CoreResponse {
+                                id: request_id,
+                                payload: Some(Payload::CoreError(Status::internal(err).into())),
+                            });
+                            return;
+                        }
                     };
-                    let req = CoreResponse {
-                        id: request_id,
-                        payload: Some(Payload::AwaitRemoteMfaFinish(
-                            AwaitRemoteMfaFinishResponse {
+                    let proof = Proof {
+                        code: None,
+                        auth_pub_key: None,
+                        step_attempt_id: parked_step_attempt_id,
+                    };
+                    let payload = match engine.finish(token, proof, ip).await {
+                        Ok((outcome, _)) => {
+                            let preshared_key = match &outcome {
+                                FinishOutcome::Completed { preshared_key } => preshared_key.clone(),
+                                FinishOutcome::Advanced { .. }
+                                | FinishOutcome::AwaitingExternal => String::new(),
+                            };
+                            Payload::AwaitRemoteMfaFinish(AwaitRemoteMfaFinishResponse {
                                 #[allow(deprecated)]
                                 preshared_key,
-                                result: None,
-                            },
-                        )),
+                                result: Some(outcome.into()),
+                            })
+                        }
+                        Err(err) => Payload::CoreError(Status::from(err).into()),
                     };
-                    let _ = response_tx.send(req);
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(payload),
+                    });
                 }
                 Ok(Ok(RemoteAuthSignal::Denied)) => {
                     // The wire cannot represent denial yet, so it remains indistinguishable from timeout.

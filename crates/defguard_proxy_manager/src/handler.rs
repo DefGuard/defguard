@@ -804,7 +804,12 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .client_mfa
-                                .await_remote_mfa_login(request, tx.clone(), received.id)
+                                .await_remote_mfa_login(
+                                    request,
+                                    tx.clone(),
+                                    received.id,
+                                    received.device_info,
+                                )
                                 .await
                             {
                                 Ok(()) => None,
