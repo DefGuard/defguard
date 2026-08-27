@@ -43,6 +43,7 @@ impl VpnClientMfaMethod {
     /// Per-user setup reads `User::totp_enabled` (TOTP), `User::email_mfa_enabled` (email),
     /// `User::openid_sub` (OIDC), and the `biometric_auth` table - keyed on the device for
     /// biometric and on any of the user's devices for mobile-approve.
+    /// `device_id` may be absent during initial enrollment, before the device is created.
     ///
     /// OIDC requires `openid_sub` because MFA re-verifies an existing link rather than creating
     /// one: linking happens at web login or enrollment, so a user must pass through one of those
@@ -51,7 +52,7 @@ impl VpnClientMfaMethod {
         self,
         executor: E,
         user: &User<Id>,
-        device_id: Id,
+        device_id: Option<Id>,
         smtp_configured: bool,
         oidc_configured: bool,
     ) -> sqlx::Result<bool> {
@@ -59,9 +60,14 @@ impl VpnClientMfaMethod {
             Self::Totp => user.totp_enabled,
             Self::Email => smtp_configured && user.email_mfa_enabled,
             Self::Oidc => oidc_configured && user.openid_sub.is_some(),
-            Self::Biometric => BiometricAuth::find_by_device_id(executor, device_id)
-                .await?
-                .is_some(),
+            Self::Biometric => {
+                let Some(device_id) = device_id else {
+                    return Ok(false);
+                };
+                BiometricAuth::find_by_device_id(executor, device_id)
+                    .await?
+                    .is_some()
+            }
             Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
                 .await?
                 .is_empty(),
@@ -271,31 +277,31 @@ mod tests {
         // Nothing set up: every method is unconfigured regardless of deployment availability.
         assert!(
             !VpnClientMfaMethod::Totp
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Email
-                .is_configured(&pool, &user, device.id, true, false)
+                .is_configured(&pool, &user, Some(device.id), true, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, true)
+                .is_configured(&pool, &user, Some(device.id), false, true)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Biometric
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::MobileApprove
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -304,7 +310,7 @@ mod tests {
         user.totp_enabled = true;
         assert!(
             VpnClientMfaMethod::Totp
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -313,14 +319,14 @@ mod tests {
         user.email_mfa_enabled = true;
         assert!(
             VpnClientMfaMethod::Email
-                .is_configured(&pool, &user, device.id, true, false)
+                .is_configured(&pool, &user, Some(device.id), true, false)
                 .await
                 .unwrap()
         );
         // Email set up but SMTP not configured -> unconfigured.
         assert!(
             !VpnClientMfaMethod::Email
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -329,14 +335,14 @@ mod tests {
         user.openid_sub = Some("oidc-sub".to_owned());
         assert!(
             VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, true)
+                .is_configured(&pool, &user, Some(device.id), false, true)
                 .await
                 .unwrap()
         );
         // OIDC identity present but oidc_configured false -> unconfigured.
         assert!(
             !VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -344,7 +350,7 @@ mod tests {
         user.openid_sub = None;
         assert!(
             !VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, true)
+                .is_configured(&pool, &user, Some(device.id), false, true)
                 .await
                 .unwrap()
         );
@@ -356,7 +362,7 @@ mod tests {
             .expect("failed to save biometric auth");
         assert!(
             VpnClientMfaMethod::Biometric
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -364,7 +370,7 @@ mod tests {
         // MobileApprove: the user has a device with a registered biometric auth -> configured.
         assert!(
             VpnClientMfaMethod::MobileApprove
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
