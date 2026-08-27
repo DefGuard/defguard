@@ -171,7 +171,7 @@ pub struct InstanceInfo {
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
     disable_tunnels: bool,
-    mfa_user_state: Vec<VpnClientMfaMethod>,
+    configured_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -195,19 +195,13 @@ impl InstanceInfo {
         let enterprise_settings = EnterpriseSettings::get(pool).await?;
         let smtp_configured = settings.smtp_configured();
         let oidc_configured = is_business_license_active() && openid_provider.is_some();
-        let mut mfa_user_state = Vec::with_capacity(5);
-        for method in [
-            VpnClientMfaMethod::Totp,
-            VpnClientMfaMethod::Email,
-            VpnClientMfaMethod::Oidc,
-            VpnClientMfaMethod::Biometric,
-            VpnClientMfaMethod::MobileApprove,
-        ] {
+        let mut configured_methods = Vec::with_capacity(VpnClientMfaMethod::ALL.len());
+        for method in VpnClientMfaMethod::ALL {
             if method
                 .is_configured(pool, user, device_id, smtp_configured, oidc_configured)
                 .await?
             {
-                mfa_user_state.push(method);
+                configured_methods.push(method);
             }
         }
         let client_traffic_policy = if is_business_license_active() {
@@ -235,7 +229,7 @@ impl InstanceInfo {
             enterprise_enabled: is_business_license_active(),
             openid_display_name,
             disable_tunnels: enterprise_settings.disable_tunnels,
-            mfa_user_state,
+            configured_methods,
         })
     }
 }
@@ -258,7 +252,7 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
             disable_tunnels: Some(instance.disable_tunnels),
             mfa_user_state: Some(MfaUserState {
                 configured_methods: instance
-                    .mfa_user_state
+                    .configured_methods
                     .into_iter()
                     .map(|method| MfaMethod::from(method) as i32)
                     .collect(),
