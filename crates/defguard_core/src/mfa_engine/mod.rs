@@ -472,8 +472,8 @@ impl MfaEngine {
         match verdict {
             Ok(Verdict::Proved) => {
                 if is_mobile_signature && let Some(attempt_id) = proof.step_attempt_id.as_deref() {
-                    let mut transaction = self.pool.begin().await.map_err(|_| {
-                        error!("Failed to begin transaction while marking mobile approval");
+                    let mut transaction = self.pool.begin().await.map_err(|err| {
+                        error!("Failed to begin transaction while marking mobile approval: {err}");
                         FinishError::Internal
                     })?;
                     if !session
@@ -487,8 +487,8 @@ impl MfaEngine {
                         error!("Stale MFA attempt: the attempt is superseded");
                         return Err(FinishError::StaleAttempt);
                     }
-                    transaction.commit().await.map_err(|_| {
-                        error!("Failed to commit mobile approval mark");
+                    transaction.commit().await.map_err(|err| {
+                        error!("Failed to commit mobile approval mark: {err}");
                         FinishError::Internal
                     })?;
                     return Ok((FinishOutcome::AwaitingExternal, method));
@@ -752,8 +752,8 @@ impl MfaEngine {
         ctx: &MfaSessionContext,
         ip: IpAddr,
     ) -> Result<bool, FinishError> {
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction while recording MFA failure");
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction while recording MFA failure: {err}");
             FinishError::Internal
         })?;
         let at_cap = session
@@ -802,8 +802,8 @@ impl MfaEngine {
                 FinishError::Internal
             })?;
         }
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit MFA failure record");
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit MFA failure record: {err}");
             FinishError::Internal
         })?;
         if let Some(event) = abort_event {
