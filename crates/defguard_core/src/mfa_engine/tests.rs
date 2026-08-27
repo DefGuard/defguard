@@ -523,6 +523,7 @@ async fn test_start_and_step_start_reject_unconfigured_biometric_method(
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .expect("failed to advance test MFA session")
@@ -854,6 +855,7 @@ async fn advance_session(pool: &PgPool, session: &VpnClientMfaSession<Id>) {
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap()

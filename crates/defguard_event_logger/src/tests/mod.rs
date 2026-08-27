@@ -1377,6 +1377,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                             steps: vec![Step {
                                 methods: vec![VpnClientMfaMethod::MobileApprove],
                                 satisfied: Some(VpnClientMfaMethod::MobileApprove),
+                                mobile_auth_device_name: Some("pixel-7".to_owned()),
                             }],
                         },
                         flow_name: Some("flow".to_owned()),
@@ -1417,6 +1418,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                             steps: vec![Step {
                                 methods: vec![VpnClientMfaMethod::Totp],
                                 satisfied: None,
+                                mobile_auth_device_name: None,
                             }],
                         },
                         flow_name: Some("flow".to_owned()),

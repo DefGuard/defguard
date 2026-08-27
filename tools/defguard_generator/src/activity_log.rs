@@ -1058,6 +1058,7 @@ fn build_vpn_event(
                 steps: vec![Step {
                     methods: vec![satisfied],
                     satisfied: Some(satisfied),
+                    mobile_auth_device_name: None,
                 }],
             };
             (

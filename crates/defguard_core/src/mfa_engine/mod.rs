@@ -591,7 +591,7 @@ impl MfaEngine {
             }
         }
 
-        let persisted_mobile_auth_device_name = ephemeral.mobile_auth_device_name;
+        let mobile_auth_device_name = mobile_auth_device_name.or(ephemeral.mobile_auth_device_name);
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
@@ -604,7 +604,13 @@ impl MfaEngine {
         let current_step = session.current_step;
         let step_attempt_id = proof.step_attempt_id.as_deref();
         let Some((advance, snapshot)) = session
-            .advance(&mut transaction, current_step, step_attempt_id, method)
+            .advance(
+                &mut transaction,
+                current_step,
+                step_attempt_id,
+                method,
+                mobile_auth_device_name.as_deref(),
+            )
             .await
             .map_err(|err| {
                 error!("Failed to advance MFA session: {err}");
@@ -628,14 +634,7 @@ impl MfaEngine {
         }
 
         let completed = self
-            .complete_flow(
-                &mut transaction,
-                session,
-                snapshot,
-                &ctx,
-                context,
-                mobile_auth_device_name.or(persisted_mobile_auth_device_name),
-            )
+            .complete_flow(&mut transaction, session, snapshot, &ctx, context)
             .await?;
 
         transaction.commit().await.map_err(|_| {
@@ -675,7 +674,6 @@ impl MfaEngine {
         snapshot: StepsSnapshot,
         ctx: &MfaSessionContext,
         context: BidiRequestContext,
-        mobile_auth_device_name: Option<String>,
     ) -> Result<CompletedFlow, FinishError> {
         let Ok(Some(network_device)) =
             WireguardNetworkDevice::find(&mut *transaction, ctx.device.id, ctx.location.id).await
@@ -727,6 +725,16 @@ impl MfaEngine {
             ctx.device.clone(),
             gateway_network_info,
         );
+
+        // A flow can have multiple mobile-approve steps. The last satisfied one wins because it
+        // is the final mobile approval in the sequential flow. Do not fall back when that step
+        // has no name: the event must describe that actual final mobile approval.
+        let mobile_auth_device_name = snapshot
+            .steps
+            .iter()
+            .rev()
+            .find(|step| step.satisfied == Some(VpnClientMfaMethod::MobileApprove))
+            .and_then(|step| step.mobile_auth_device_name.clone());
 
         let event = BidiStreamEvent {
             context,

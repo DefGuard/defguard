@@ -858,8 +858,11 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
     )
     .await;
     assert!(preshared_key.is_empty());
+    // New-protocol approvers only mark the session and receive AwaitingExternal, never Completed.
+    // This is a behavioral guarantee, not a regression test for the Completed-key blanking.
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(result)) => {
+            assert!(result.preshared_key.is_empty());
             assert!(matches!(
                 result.result,
                 Some(MfaStepResult {
@@ -905,6 +908,8 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
             Some(MfaStepResult {
                 outcome: Some(mfa_step_result::Outcome::Completed(completed)),
             }) => {
+                assert!(!result.preshared_key.is_empty());
+                assert!(!completed.preshared_key.is_empty());
                 assert_eq!(result.preshared_key, completed.preshared_key);
                 completed.preshared_key
             }
@@ -1067,9 +1072,6 @@ async fn test_new_protocol_mobile_approve_advances_non_final_step(
 
 #[sqlx::test]
 #[allow(deprecated)]
-// `advance` clears the `ephemeral_state` that stores the approving device name before the final
-// TOTP step emits the success event.
-#[ignore = "mobile approval device name is lost after advance clears ephemeral_state"]
 async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_event(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -1210,11 +1212,16 @@ async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_
         BidiStreamEventType::DesktopClientMfa(event) => match *event {
             DesktopClientMfaEvent::Success {
                 location,
+                attribution,
                 mobile_auth_device_name,
                 ..
             } => {
                 assert_eq!(location.id, network.id);
                 assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+                assert_eq!(
+                    attribution.snapshot.steps[0].mobile_auth_device_name,
+                    Some(device.name.clone())
+                );
             }
             other => panic!("expected MFA success event, got: {other:?}"),
         },
@@ -1303,6 +1310,8 @@ async fn test_parked_mobile_approval_completes_final_step(
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, 7003);
                 assert!(result.preshared_key.is_empty());
+                // New-protocol approvers only mark the session, return AwaitingExternal, and never
+                // receive Completed. This guarantee would still pass with Completed-key blanking removed.
                 assert!(matches!(
                     result.result,
                     Some(MfaStepResult {
@@ -1318,6 +1327,8 @@ async fn test_parked_mobile_approval_completes_final_step(
                 else {
                     panic!("expected completed parked result");
                 };
+                assert!(!result.preshared_key.is_empty());
+                assert!(!completed.preshared_key.is_empty());
                 assert_eq!(result.preshared_key, completed.preshared_key);
                 parked_key = Some(completed.preshared_key.clone());
             }

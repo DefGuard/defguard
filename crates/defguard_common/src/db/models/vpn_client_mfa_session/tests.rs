@@ -370,6 +370,7 @@ async fn test_advance_clears_ephemeral_state(_: PgPoolOptions, options: PgConnec
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap()
@@ -390,7 +391,7 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
 
     let mut tx = pool.begin().await.unwrap();
     session
-        .begin_attempt(&mut tx, VpnClientMfaMethod::Totp, None)
+        .begin_attempt(&mut tx, VpnClientMfaMethod::MobileApprove, None)
         .await
         .unwrap();
     tx.commit().await.unwrap();
@@ -402,7 +403,8 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
             &mut tx,
             session.current_step,
             None,
-            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::MobileApprove,
+            Some("phone"),
         )
         .await
         .unwrap()
@@ -411,8 +413,16 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
     assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
 
     let snapshot = &refetch(&pool, &outcome.token).await.steps_snapshot.0;
-    assert_eq!(snapshot.steps[0].satisfied, Some(VpnClientMfaMethod::Totp));
+    assert_eq!(
+        snapshot.steps[0].satisfied,
+        Some(VpnClientMfaMethod::MobileApprove)
+    );
+    assert_eq!(
+        snapshot.steps[0].mobile_auth_device_name.as_deref(),
+        Some("phone")
+    );
     assert_eq!(snapshot.steps[1].satisfied, None);
+    assert_eq!(snapshot.steps[1].mobile_auth_device_name, None);
 }
 
 #[sqlx::test]
@@ -428,6 +438,7 @@ async fn test_advance_does_not_extend_expiry(_: PgPoolOptions, options: PgConnec
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap()
@@ -454,6 +465,7 @@ async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgCon
             session.current_step,
             Some("not-the-attempt-id"),
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap();
@@ -468,6 +480,7 @@ async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgCon
             session.current_step,
             Some(&outcome.step_attempt_id),
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap();
@@ -483,6 +496,7 @@ async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgCon
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap();

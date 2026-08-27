@@ -59,6 +59,9 @@ pub struct Step {
     /// verified.
     #[serde(default)]
     pub satisfied: Option<VpnClientMfaMethod>,
+    /// The approving mobile device name, recorded by `advance` with the satisfied method.
+    #[serde(default)]
+    pub mobile_auth_device_name: Option<String>,
 }
 
 /// Per-step ephemeral attempt state, cleared to NULL on `advance`.
@@ -193,6 +196,7 @@ impl VpnClientMfaSession<Id> {
                 .map(|methods| Step {
                     methods,
                     satisfied: None,
+                    mobile_auth_device_name: None,
                 })
                 .collect(),
         };
@@ -408,10 +412,9 @@ impl VpnClientMfaSession<Id> {
 
     /// Advance to the next step, clearing `ephemeral_state` and resetting `failed_attempts`.
     ///
-    /// Records the closing step's proof into the snapshot first:
-    /// `steps[current_step].satisfied = ephemeral_state.selected_method`. The write and the
-    /// clear land in one statement so the proof cannot be lost between them. A NULL
-    /// `ephemeral_state` leaves `satisfied` unset rather than erroring.
+    /// Records the closing step's proof and approving mobile device name into the snapshot first.
+    /// The writes and clear land in one statement so the attribution cannot be lost between them.
+    /// A NULL `ephemeral_state` leaves the snapshot unchanged rather than erroring.
     ///
     /// The write is guarded by `current_step`, and by `step_attempt_id` when the client supplied
     /// one, so a stale or duplicate advance matches zero rows rather than skipping a step and
@@ -422,12 +425,15 @@ impl VpnClientMfaSession<Id> {
         current_step: i32,
         step_attempt_id: Option<&str>,
         satisfied_method: VpnClientMfaMethod,
+        mobile_auth_device_name: Option<&str>,
     ) -> sqlx::Result<Option<(StepOutcome, StepsSnapshot)>> {
         // Record the method the caller actually verified rather than re-reading
         // `ephemeral_state->'selected_method'`: a concurrent `begin_attempt` can overwrite that
         // field between the verification and this statement, attributing the step to a method the
         // user never proved.
         let satisfied = serde_json::to_value(satisfied_method)
+            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let mobile_auth_device_name = serde_json::to_value(mobile_auth_device_name)
             .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
         // The `WHERE` clause is the guard that stops a proof advancing a step it was not minted
         // for. `$3` is NULL for a pre-2.2 client that cannot send an attempt id, which degrades to
@@ -437,9 +443,16 @@ impl VpnClientMfaSession<Id> {
             "UPDATE vpn_client_mfa_session \
              SET steps_snapshot = CASE \
                  WHEN ephemeral_state IS NOT NULL THEN jsonb_set( \
-                     steps_snapshot, \
-                     ARRAY['steps', current_step::text, 'satisfied'], \
-                     $4 \
+                     jsonb_set( \
+                         steps_snapshot, \
+                         ARRAY['steps', current_step::text, 'satisfied'], \
+                         $4 \
+                     ), \
+                     ARRAY['steps', current_step::text, 'mobile_auth_device_name'], \
+                     CASE WHEN $5 = 'null'::jsonb \
+                         THEN COALESCE(ephemeral_state->'mobile_auth_device_name', 'null'::jsonb) \
+                         ELSE $5 \
+                     END \
                  ) \
                  ELSE steps_snapshot \
              END, \
@@ -453,6 +466,7 @@ impl VpnClientMfaSession<Id> {
             current_step,
             step_attempt_id,
             satisfied,
+            mobile_auth_device_name,
         )
         .fetch_optional(&mut *conn)
         .await?;
