@@ -44,6 +44,13 @@ pub mod error;
 pub mod method;
 pub mod types;
 
+pub(crate) fn is_mobile_approve_request(
+    method: VpnClientMfaMethod,
+    auth_pub_key: Option<&str>,
+) -> bool {
+    method == VpnClientMfaMethod::MobileApprove && auth_pub_key.is_some()
+}
+
 /// The connect-time MFA engine.
 ///
 /// Mints the session, verifies proofs, advances the step cursor, and - at the final step -
@@ -456,9 +463,7 @@ impl MfaEngine {
             });
         }
 
-        let is_mobile_signature = method == VpnClientMfaMethod::MobileApprove
-            && proof.code.is_some()
-            && proof.auth_pub_key.is_some();
+        let is_mobile_signature = is_mobile_approve_request(method, proof.auth_pub_key.as_deref());
         let context = BidiRequestContext::new(
             ctx.user.id,
             ctx.user.username.clone(),

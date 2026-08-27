@@ -11,7 +11,7 @@ use defguard_common::{
 };
 use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
 use defguard_proto::{
-    client_types::MfaMethod,
+    client_types::{ClientMfaFinishRequest, MfaMethod, MfaStepResult, mfa_step_result},
     proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -22,8 +22,8 @@ use super::support::{
     assert_error_response_with_message, assert_vpn_session_exists, biometric_pub_key,
     complete_proxy_handshake, configure_oidc_provider, create_external_mfa_network,
     create_mfa_network, create_user_with_device, expect_bidi_mfa_success, generate_totp_code,
-    link_user_oidc_identity, register_biometric_key, send_mfa_finish, send_mfa_finish_no_recv,
-    send_mfa_finish_raw, send_mfa_finish_signed, send_mfa_start, send_mfa_start_with_challenge,
+    link_user_oidc_identity, make_device_info, register_biometric_key, send_mfa_finish,
+    send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_start, send_mfa_start_with_challenge,
     set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
 };
 use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
@@ -178,6 +178,7 @@ async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
 /// handler verifies the signature and authorizes in one call. A non-legacy request instead marks
 /// the approval durably, then the connecting desktop completes through a later `finish` request.
 #[sqlx::test]
+#[allow(deprecated)]
 async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -201,16 +202,63 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
 
     let mut gateway_rx = context.gateway_tx.subscribe();
 
+    context.mock_proxy().send_request(CoreRequest {
+        id: AWAIT_ID,
+        device_info: None,
+        payload: Some(core_request::Payload::AwaitRemoteMfaFinish(
+            AwaitRemoteMfaFinishRequest {
+                token: token.clone(),
+            },
+        )),
+    });
+    task::yield_now().await;
+
     let signature = sign_challenge(&signing_key, &challenge);
-    let (_, psk) =
-        send_mfa_finish_signed(&mut context, &token, Some(&signature), Some(&auth_pub_key)).await;
+    context.mock_proxy().send_request(CoreRequest {
+        id: AWAIT_ID + 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.clone(),
+                code: Some(signature),
+                auth_pub_key: Some(auth_pub_key),
+                step_attempt_id: None,
+            },
+        )),
+    });
+
+    let first = context.mock_proxy_mut().recv_outbound().await;
+    let second = context.mock_proxy_mut().recv_outbound().await;
+    let mut parked_key = None;
+    for response in [&first, &second] {
+        match &response.payload {
+            Some(core_response::Payload::ClientMfaFinish(result)) => {
+                assert_eq!(response.id, AWAIT_ID + 1);
+                assert!(result.preshared_key.is_empty());
+                assert!(matches!(
+                    &result.result,
+                    Some(MfaStepResult {
+                        outcome: Some(mfa_step_result::Outcome::Completed(completed)),
+                    }) if completed.preshared_key.is_empty()
+                ));
+            }
+            Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
+                assert_eq!(response.id, AWAIT_ID);
+                assert!(!result.preshared_key.is_empty());
+                parked_key = Some(result.preshared_key.clone());
+            }
+            _ => panic!("unexpected response"),
+        }
+    }
     assert!(
-        !psk.is_empty(),
-        "PSK must not be empty after successful mobile-approve MFA"
+        !parked_key
+            .as_ref()
+            .expect("parked response must contain a key")
+            .is_empty()
     );
 
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
-    assert!(session.preshared_key.is_some());
+    assert_eq!(session.preshared_key.as_ref(), parked_key.as_ref());
 
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await

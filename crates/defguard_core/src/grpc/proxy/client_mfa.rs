@@ -55,6 +55,7 @@ use crate::{
             build_authorized_gateway_network_info, create_new_session,
         },
         error::{FinishError, StartError, StepError},
+        is_mobile_approve_request,
         method::InitiateError,
         types::{
             FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
@@ -799,12 +800,13 @@ impl ClientMfaServer {
 
         let (outcome, method) = self.engine.finish(request.token.clone(), proof, ip).await?;
 
+        let is_mobile_signature =
+            is_mobile_approve_request(method, request.auth_pub_key.as_deref());
+
         // A non-legacy mobile approval only marks the session. Signal a parked desktop after
         // that durable mark succeeds.
         if !is_legacy_mobile_approval
-            && request.code.is_some()
-            && request.auth_pub_key.is_some()
-            && method == VpnClientMfaMethod::MobileApprove
+            && is_mobile_signature
             && outcome == FinishOutcome::AwaitingExternal
             && let Some(waiter) = self
                 .remote_mfa_responses
@@ -833,19 +835,29 @@ impl ClientMfaServer {
                         Some(preshared_key.clone());
                     let _ = waiter.signal_tx.send(RemoteAuthSignal::Approved);
                 }
-                preshared_key.clone()
+                if is_mobile_signature {
+                    String::new()
+                } else {
+                    preshared_key.clone()
+                }
             }
             FinishOutcome::Advanced { .. } | FinishOutcome::AwaitingExternal => String::new(),
+        };
+        let response_outcome = match &outcome {
+            FinishOutcome::Completed { .. } if is_mobile_signature => FinishOutcome::Completed {
+                preshared_key: String::new(),
+            },
+            _ => outcome,
         };
 
         let response = ClientMfaFinishResponse {
             #[allow(deprecated)]
-            preshared_key: preshared_key.clone(),
+            preshared_key,
             token: match method {
                 VpnClientMfaMethod::MobileApprove => Some(request.token.clone()),
                 _ => None,
             },
-            result: Some(outcome.into()),
+            result: Some(response_outcome.into()),
         };
 
         Ok(response)
