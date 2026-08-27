@@ -10,7 +10,10 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, User, WireguardNetwork, wireguard::ServiceLocationMode},
+        models::{
+            Settings, User, WireguardNetwork, vpn_client_session::VpnClientMfaMethod,
+            wireguard::ServiceLocationMode,
+        },
     },
     types::UrlParseError,
 };
@@ -49,7 +52,10 @@ pub mod proto {
     }
 }
 
-use defguard_proto::worker::worker_service_server::WorkerServiceServer;
+use defguard_proto::{
+    client_types::{MfaMethod, MfaUserState},
+    worker::worker_service_server::WorkerServiceServer,
+};
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
 // gRPC header for passing auth token from clients
@@ -165,6 +171,7 @@ pub struct InstanceInfo {
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
     disable_tunnels: bool,
+    mfa_user_state: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -183,8 +190,26 @@ impl InstanceInfo {
         settings: &Settings,
         user: &User<Id>,
         openid_provider: Option<OpenIdProvider<Id>>,
+        device_id: Option<Id>,
     ) -> Result<Self, InstanceInfoBuildError> {
         let enterprise_settings = EnterpriseSettings::get(pool).await?;
+        let smtp_configured = settings.smtp_configured();
+        let oidc_configured = is_business_license_active() && openid_provider.is_some();
+        let mut mfa_user_state = Vec::with_capacity(5);
+        for method in [
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Oidc,
+            VpnClientMfaMethod::Biometric,
+            VpnClientMfaMethod::MobileApprove,
+        ] {
+            if method
+                .is_configured(pool, user, device_id, smtp_configured, oidc_configured)
+                .await?
+            {
+                mfa_user_state.push(method);
+            }
+        }
         let client_traffic_policy = if is_business_license_active() {
             let group_policies = GroupClientTrafficPolicy::find_by_user_id(pool, user.id)
                 .await?
@@ -210,6 +235,7 @@ impl InstanceInfo {
             enterprise_enabled: is_business_license_active(),
             openid_display_name,
             disable_tunnels: enterprise_settings.disable_tunnels,
+            mfa_user_state,
         })
     }
 }
@@ -230,7 +256,13 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
             disable_tunnels: Some(instance.disable_tunnels),
-            mfa_user_state: None,
+            mfa_user_state: Some(MfaUserState {
+                configured_methods: instance
+                    .mfa_user_state
+                    .into_iter()
+                    .map(|method| MfaMethod::from(method) as i32)
+                    .collect(),
+            }),
         }
     }
 }

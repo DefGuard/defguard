@@ -49,7 +49,11 @@ async fn test_new_device_creates_device_and_returns_configs(
     let _network = create_network(&context.pool).await;
 
     // Create user and enrollment token.
-    let user = create_user(&context.pool).await;
+    let mut user = create_user(&context.pool).await;
+    user.totp_enabled = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to enable TOTP for test user");
     // Pass Some(user.id) as admin_id so the enrollment welcome-page template
     // can render {{ admin_first_name }} etc. without failing.
     let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
@@ -79,6 +83,18 @@ async fn test_new_device_creates_device_and_returns_configs(
     assert!(
         !cfg.configs.is_empty(),
         "DeviceConfigResponse should contain at least one network config"
+    );
+    let instance = cfg
+        .instance
+        .as_ref()
+        .expect("DeviceConfigResponse should contain instance info");
+    assert_eq!(
+        instance
+            .mfa_user_state
+            .as_ref()
+            .expect("InstanceInfo should contain MFA user state")
+            .configured_methods,
+        vec![MfaMethod::Totp as i32]
     );
 
     // Verify the device was actually persisted in the DB.

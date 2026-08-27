@@ -111,7 +111,7 @@ impl MfaEngine {
             .is_configured(
                 &self.pool,
                 user,
-                device.id,
+                Some(device.id),
                 smtp_configured,
                 oidc_configured,
             )
@@ -208,7 +208,7 @@ impl MfaEngine {
                 .is_configured(
                     &self.pool,
                     user,
-                    device.id,
+                    Some(device.id),
                     smtp_configured,
                     oidc_configured,
                 )
@@ -355,7 +355,7 @@ impl MfaEngine {
             .is_configured(
                 &self.pool,
                 &ctx.user,
-                ctx.device.id,
+                Some(ctx.device.id),
                 smtp_configured,
                 oidc_configured,
             )

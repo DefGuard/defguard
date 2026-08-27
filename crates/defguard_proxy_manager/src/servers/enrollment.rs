@@ -218,12 +218,18 @@ impl EnrollmentServer {
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
             let smtp_configured = settings.smtp_configured();
-            let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
-                .await
-                .map_err(|err| {
-                    error!("Failed to create instance info: {err}");
-                    Status::internal("unexpected error")
-                })?;
+            let instance_info = InstanceInfo::build(
+                &self.pool,
+                &settings,
+                &user,
+                openid_provider,
+                enrollment.device_id,
+            )
+            .await
+            .map_err(|err| {
+                error!("Failed to create instance info: {err}");
+                Status::internal("unexpected error")
+            })?;
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -976,12 +982,18 @@ impl EnrollmentServer {
             })?;
         let oidc_configured = is_business_license_active() && openid_provider.is_some();
 
-        let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
-            .await
-            .map_err(|err| {
-                error!("Failed to create instance info: {err}");
-                Status::internal("unexpected error")
-            })?;
+        let instance_info = InstanceInfo::build(
+            &self.pool,
+            &settings,
+            &user,
+            openid_provider,
+            Some(device.id),
+        )
+        .await
+        .map_err(|err| {
+            error!("Failed to create instance info: {err}");
+            Status::internal("unexpected error")
+        })?;
 
         let supports_multi_step_mfa =
             ClientFeature::MultiStepMfa.is_supported_by_device(req_device_info.as_ref());
