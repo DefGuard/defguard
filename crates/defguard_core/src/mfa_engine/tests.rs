@@ -38,12 +38,16 @@ use totp_lite::{Sha1, totp_custom};
 use super::MfaEngine;
 use crate::{
     enterprise::{
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        },
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::{Counts, set_counts},
     },
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
     mfa_engine::{
+        error::{FinishError, StepError},
         method::{Verdict, verify},
         types::{FinishOutcome, Proof, StartRejectionReason, StartResult},
     },
@@ -195,6 +199,64 @@ async fn session_count(pool: &PgPool, location_id: Id, device_id: Id) -> i64 {
     .await
     .unwrap()
     .unwrap_or(0)
+}
+
+#[test]
+fn test_status_table_messages() {
+    for (status, code, message) in [
+        (
+            Status::from(FinishError::Unauthorized),
+            Code::Unauthenticated,
+            "unauthorized",
+        ),
+        (
+            Status::from(FinishError::SessionNotFound),
+            Code::InvalidArgument,
+            "login session not found",
+        ),
+        (
+            Status::from(FinishError::AttemptLimit),
+            Code::PermissionDenied,
+            "Too many failed MFA attempts. Please try connecting again.",
+        ),
+        (
+            Status::from(FinishError::StaleAttempt),
+            Code::InvalidArgument,
+            "stale MFA attempt",
+        ),
+        (
+            Status::from(FinishError::UninitializedStep),
+            Code::InvalidArgument,
+            "no MFA attempt in progress",
+        ),
+    ] {
+        assert_eq!(status.code(), code);
+        assert_eq!(status.message(), message);
+    }
+
+    for (status, code, message) in [
+        (
+            Status::from(StepError::SessionNotFound),
+            Code::InvalidArgument,
+            "login session not found",
+        ),
+        (
+            Status::from(StepError::MethodNotInStep),
+            Code::InvalidArgument,
+            "MFA method is not in the current step",
+        ),
+        (
+            Status::from(StepError::MethodNotConfigured),
+            Code::FailedPrecondition,
+            "MFA method is not configured for this user",
+        ),
+    ] {
+        assert_eq!(status.code(), code);
+        assert_eq!(status.message(), message);
+    }
+
+    // OIDC's unresolved new-protocol outcome and legal method switching return OK, not a status.
+    // License validation is frozen at Start, so the old StepStart license-loss row is obsolete.
 }
 
 #[sqlx::test]
@@ -479,6 +541,99 @@ async fn test_start_and_step_start_reject_unconfigured_biometric_method(
         event_rx.try_recv().is_err(),
         "a rejected StepStart must not emit an event"
     );
+}
+
+#[sqlx::test]
+async fn test_step_start_oidc_survives_license_lapse(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    OpenIdProvider::new(
+        "Test".to_owned(),
+        "https://idp.example.com".to_owned(),
+        OpenIdProviderKind::Google,
+        "client_id".to_owned(),
+        "client_secret".to_owned(),
+        None,
+        None,
+        None,
+        None,
+        true,
+        60,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncTarget::All,
+        None,
+        None,
+        Vec::new(),
+        None,
+        false,
+        false,
+        None,
+    )
+    .save(&pool)
+    .await
+    .expect("failed to configure OpenID provider");
+
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_flow(
+        &pool,
+        location.id,
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Oidc],
+        ],
+    )
+    .await;
+    let mut user = create_user(&pool).await;
+    user.new_totp_secret(&pool)
+        .await
+        .expect("failed to generate TOTP secret");
+    user.enable_totp(&pool)
+        .await
+        .expect("failed to enable TOTP");
+    user.openid_sub = Some("oidc-sub".to_owned());
+    user.save(&pool).await.expect("failed to link OIDC user");
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+
+    let (flow_id, steps) = resolve_flow(&pool, location.id, user.id).await;
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+    let StartResult::Accepted(start) = engine
+        .start_multi_step(
+            &location,
+            &device,
+            &user,
+            flow_id,
+            steps,
+            vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Oidc],
+        )
+        .await
+        .expect("licensed start should succeed")
+    else {
+        panic!("expected an accepted plan")
+    };
+    engine
+        .finish(
+            start.token.clone(),
+            Proof {
+                code: Some(totp_code(&user)),
+                auth_pub_key: None,
+                step_attempt_id: None,
+            },
+            test_ip(),
+        )
+        .await
+        .expect("TOTP step should advance");
+
+    clear_test_license();
+    let step = engine
+        .step_start(start.token, VpnClientMfaMethod::Oidc)
+        .await
+        .expect("OIDC step must survive a license lapse");
+    assert!(!step.step_attempt_id.is_empty());
 }
 
 #[sqlx::test]
@@ -774,6 +929,38 @@ async fn test_step_start_recall_mints_fresh_id_and_resends(
         2,
         "a re-call must re-send the email so the user can request a new code"
     );
+}
+
+#[sqlx::test]
+async fn test_mfa_actions_reject_missing_session(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool);
+
+    let status = Status::from(
+        engine
+            .step_start("missing-token".to_owned(), VpnClientMfaMethod::Totp)
+            .await
+            .expect_err("missing session must be rejected"),
+    );
+    assert_eq!(status.code(), Code::InvalidArgument);
+    assert_eq!(status.message(), "login session not found");
+
+    let status = Status::from(
+        engine
+            .finish(
+                "missing-token".to_owned(),
+                Proof {
+                    code: Some("000000".to_owned()),
+                    auth_pub_key: None,
+                    step_attempt_id: Some("attempt".to_owned()),
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("missing session must be rejected"),
+    );
+    assert_eq!(status.code(), Code::InvalidArgument);
+    assert_eq!(status.message(), "login session not found");
 }
 
 #[sqlx::test]

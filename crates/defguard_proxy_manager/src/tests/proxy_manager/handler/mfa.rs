@@ -7,6 +7,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
 };
+use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod, MfaStepResult, mfa_step_result,
@@ -155,11 +156,9 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let code = assert_error_response(&response);
-    assert!(
-        matches!(code, Code::InvalidArgument | Code::Unauthenticated),
-        "wrong TOTP code should return InvalidArgument or Unauthenticated, got: {code:?}"
-    );
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
 
     context.finish().await.expect_server_finished().await;
 }
@@ -353,12 +352,9 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
 
     // Send a clearly wrong code - use _raw so we can inspect the error response
     let response = send_mfa_finish_raw(&mut context, &token, Some("000000")).await;
-    let code = assert_error_response(&response);
-    // invalid code → InvalidArgument or Unauthenticated
-    assert!(
-        matches!(code, Code::InvalidArgument | Code::Unauthenticated),
-        "expected InvalidArgument or Unauthenticated, got: {code:?}"
-    );
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
 
     context.finish().await.expect_server_finished().await;
 }
@@ -691,6 +687,10 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
         .expect("OIDC MFA session must remain active");
     assert_eq!(session.failed_attempts, session_before.failed_attempts);
     assert_eq!(session.expires_at, session_before.expires_at);
+
+    let retried = send_mfa_step_start(&mut context, &token, MfaMethod::Oidc).await;
+    assert_ne!(retried.step_attempt_id, attempt_id);
+    let attempt_id = retried.step_attempt_id;
 
     let mut conn = context
         .pool
@@ -1330,6 +1330,34 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
         .challenge
         .expect("biometric StepStart must return a challenge");
     assert!(!challenge.is_empty());
+    let invalid_response = send_mfa_finish_signed_with_attempt_id_raw(
+        &mut context,
+        &token,
+        Some("invalid-signature"),
+        None,
+        Some(&step_started.step_attempt_id),
+    )
+    .await;
+    let (code, message) = assert_error_response_with_message(&invalid_response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("invalid signature must emit a failure audit event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Failed {
+                method, message, ..
+            } => {
+                assert_eq!(method, MfaMethod::Biometric.into());
+                assert_eq!(message, "Signed challenge rejected");
+            }
+            other => panic!("expected failed MFA audit event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA audit event, got: {other:?}"),
+    }
+
     let signature = sign_challenge(&signing_key, &challenge);
 
     let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
