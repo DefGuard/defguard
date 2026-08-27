@@ -1,0 +1,9 @@
+// Match the base selector's specificity so the MFA flow styles take precedence.
+.summary-tooltip.mfa-flow-steps-tooltip {
+  min-width: 200px;
+
+  .summary-item {
+    grid-template-columns: 60px minmax(0, 1fr);
+    column-gap: var(--spacing-md);
+  }
+}

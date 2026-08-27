@@ -1,0 +1,164 @@
+.location-mfa-assignments {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-lg);
+  align-items: flex-start;
+
+  .overrides-track {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+    width: 100%;
+
+    // Hide the empty track so it does not add a gap before the default.
+    &:empty {
+      display: none;
+    }
+  }
+
+  .assignment-row {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-2xl);
+    align-items: flex-start;
+    width: 100%;
+
+    position: relative;
+    z-index: 1;
+    user-select: none;
+
+    &:has(> .marker)::before {
+      content: '';
+      position: absolute;
+      top: calc(24px + var(--spacing-md));
+      bottom: 0;
+      left: 11.5px;
+      width: var(--border-1);
+      background-color: var(--border-default);
+    }
+
+    & > .marker {
+      flex: 0 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      width: 24px;
+      height: 24px;
+      background-color: var(--bg-muted);
+      border: var(--border-1) solid var(--border-default);
+      border-radius: var(--radius-md);
+      font: var(--t-body-xxs-500);
+      color: var(--fg-neutral);
+    }
+
+    & > .mfa-flow-assignment-card {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    &.default-flow > .mfa-flow-assignment-card {
+      background-color: var(--bg-faint);
+    }
+  }
+}
+
+.mfa-flow-assignment-card {
+  display: flex;
+  flex-flow: column;
+  row-gap: 0;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-default);
+  border-radius: var(--radius-lg);
+
+  .header {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+
+    .flow-title {
+      font: var(--t-body-sm-500);
+      color: var(--fg-action);
+      text-decoration: underline;
+      cursor: help;
+    }
+
+    .actions {
+      margin-left: auto;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      column-gap: var(--spacing-xl);
+    }
+  }
+
+  .drag-button,
+  .card-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .drag-button {
+    cursor: grab;
+
+    // Prevent scrolling during touch drag.
+    touch-action: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .chips {
+    display: flex;
+    flex-flow: row wrap;
+    gap: var(--spacing-sm);
+  }
+
+  .fold-chips {
+    align-self: flex-start;
+    margin-top: var(--spacing-md);
+    padding: 0;
+    background: none;
+    border: none;
+    font: var(--t-body-sm-400);
+    color: var(--fg-action);
+    cursor: pointer;
+  }
+}
+
+.location-mfa-overrides-header {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  column-gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+
+  & > .title {
+    font: var(--t-body-primary-600);
+    color: var(--fg-default);
+  }
+
+  & > .badge {
+    flex-shrink: 0;
+  }
+}
+
+.location-mfa-overrides-description {
+  font: var(--t-body-sm-400);
+  color: var(--fg-muted);
+  margin-bottom: var(--spacing-xl);
+}

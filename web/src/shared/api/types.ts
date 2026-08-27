@@ -820,6 +820,8 @@ export interface NetworkLocation {
   acl_default_allow: boolean;
   allowed_ips_from_acl: boolean;
   mfa_enabled: boolean;
+  /** Minimum license tier required by saved MFA assignments. `null` means disabled MFA or the Free tier. */
+  mfa_required_tier: LicenseTierValue | null;
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
   posture_checks?: number[];
@@ -836,6 +838,7 @@ export interface EditNetworkLocation
     | 'address'
     | 'has_devices'
     | 'posture_checks'
+    | 'mfa_required_tier'
   > {
   allowed_ips: string;
   address: string;
@@ -1464,6 +1467,9 @@ export interface MfaFlowStep {
   methods: MfaFlowMethodValue[];
 }
 
+/** MFA step methods used in summaries and tooltips. */
+export type MfaFlowStepMethods = Pick<MfaFlowStep, 'methods'>;
+
 export interface MfaFlowAssignment {
   flow_id: number;
   is_default: boolean;
@@ -1478,7 +1484,7 @@ export interface LocationMfaFlowGroup {
 export interface LocationMfaFlowResponse {
   id: number;
   title: string;
-  steps: Pick<MfaFlowStep, 'methods'>[];
+  steps: MfaFlowStepMethods[];
   is_default: boolean;
   groups: LocationMfaFlowGroup[];
 }
@@ -1495,6 +1501,7 @@ export interface MfaFlowListItemResponse {
   id: number;
   title: string;
   step_count: number;
+  steps: MfaFlowStep[];
   created_at: string;
   updated_at: string;
 }

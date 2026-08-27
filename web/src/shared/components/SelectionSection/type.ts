@@ -28,6 +28,8 @@ export interface SelectionSectionProps<T extends SelectionKey, M = unknown> {
   visibleItemsLimit?: number;
   orderItems?: (items: SelectionOption<T, M>[]) => SelectionOption<T, M>[];
   renderItem?: SelectionSectionCustomRender<T, M>;
+  // Set to false to hide the select-all and selected-only controls.
+  showActions?: boolean;
   enableDividers?: boolean;
   itemHeight?: number;
   itemGap?: number;

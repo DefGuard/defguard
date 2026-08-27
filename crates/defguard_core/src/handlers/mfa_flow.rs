@@ -37,18 +37,20 @@ pub struct MfaFlowListItemResponse {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
+    pub steps: Vec<MfaFlowStepResponse>,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
 }
 
-impl From<MfaFlowWithStepCount> for MfaFlowListItemResponse {
-    fn from(f: MfaFlowWithStepCount) -> Self {
+impl From<(MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)> for MfaFlowListItemResponse {
+    fn from((flow, steps): (MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)) -> Self {
         Self {
-            id: f.id,
-            title: f.title,
-            step_count: f.step_count,
-            created_at: f.created_at,
-            updated_at: f.updated_at,
+            id: flow.id,
+            title: flow.title,
+            step_count: flow.step_count,
+            steps: steps.into_iter().map(Into::into).collect(),
+            created_at: flow.created_at,
+            updated_at: flow.updated_at,
         }
     }
 }
@@ -378,7 +380,7 @@ async fn validate_flow_request(
     path = "/api/v1/mfa-flow",
     tag = "mfa flow",
     responses(
-        (status = 200, description = "List of MFA flows.", body = [MfaFlowListItemResponse]),
+        (status = 200, description = "List of MFA flows, each with its ordered steps.", body = [MfaFlowListItemResponse]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to list MFA flows.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -396,7 +398,17 @@ pub async fn list_mfa_flows(
     debug!("User {} listing MFA flows", session.user.username);
 
     let items = MfaFlow::list_with_step_count(&appstate.pool).await?;
-    let response: Vec<MfaFlowListItemResponse> = items.into_iter().map(Into::into).collect();
+    let mut steps_by_flow: HashMap<Id, Vec<MfaFlowStep<Id>>> = HashMap::new();
+    for step in MfaFlowStep::find_all(&appstate.pool).await? {
+        steps_by_flow.entry(step.flow_id).or_default().push(step);
+    }
+    let response: Vec<MfaFlowListItemResponse> = items
+        .into_iter()
+        .map(|item| {
+            let steps = steps_by_flow.remove(&item.id).unwrap_or_default();
+            (item, steps).into()
+        })
+        .collect();
 
     Ok(ApiResponse::json(response, StatusCode::OK))
 }

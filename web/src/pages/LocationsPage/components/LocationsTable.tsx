@@ -31,6 +31,7 @@ import { TableEditCell } from '../../../shared/defguard-ui/components/table/Tabl
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import {
@@ -40,7 +41,9 @@ import {
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
 import {
   canUseEnterpriseFeature,
+  type LicenseCheckResult,
   licenseActionCheck,
+  tierLicenseCheck,
 } from '../../../shared/utils/license';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 
@@ -87,9 +90,29 @@ export const LocationsTable = () => {
   );
 
   const columns = useMemo(() => {
-    const isServiceLocationLocked = (location: NetworkLocation) =>
-      location.service_location_mode !== LocationServiceMode.Disabled &&
-      !canUseEnterpriseFeature(license, LicenseFeature.ServiceLocations).result;
+    // Apply the same license gate as the server before opening the editor.
+    const editLock = (
+      location: NetworkLocation,
+    ): { check: LicenseCheckResult; message: string } | undefined => {
+      const serviceCheck = canUseEnterpriseFeature(
+        license,
+        LicenseFeature.ServiceLocations,
+      );
+      if (
+        location.service_location_mode !== LocationServiceMode.Disabled &&
+        !serviceCheck.result
+      ) {
+        return {
+          check: serviceCheck,
+          message: m.location_service_location_missing_license(),
+        };
+      }
+      const mfaCheck = tierLicenseCheck(license, location.mfa_required_tier);
+      if (isPresent(mfaCheck) && !mfaCheck.result) {
+        return { check: mfaCheck, message: m.location_mfa_missing_license() };
+      }
+      return undefined;
+    };
 
     const navigateToEdit = (location: NetworkLocation) => {
       navigate({
@@ -109,16 +132,19 @@ export const LocationsTable = () => {
         meta: {
           flex: true,
         },
-        cell: (info) => (
-          <TableCell>
-            {isServiceLocationLocked(info.row.original) && (
-              <Helper icon="lock-closed" color={null}>
-                <p>{m.location_service_location_missing_license()}</p>
-              </Helper>
-            )}
-            <span>{info.getValue()}</span>
-          </TableCell>
-        ),
+        cell: (info) => {
+          const lock = editLock(info.row.original);
+          return (
+            <TableCell>
+              {isPresent(lock) && (
+                <Helper icon="lock-closed" color={null}>
+                  <p>{lock.message}</p>
+                </Helper>
+              )}
+              <span>{info.getValue()}</span>
+            </TableCell>
+          );
+        },
       }),
       columnHelper.accessor('gateways', {
         header: m.location_col_gateway_status(),
@@ -258,7 +284,8 @@ export const LocationsTable = () => {
                       icon: 'edit',
                       text: m.controls_edit(),
                       onClick: () => {
-                        if (!isServiceLocationLocked(row)) {
+                        const lock = editLock(row);
+                        if (lock === undefined) {
                           navigateToEdit(row);
                           return;
                         }
@@ -270,13 +297,7 @@ export const LocationsTable = () => {
                           return;
                         }
 
-                        licenseActionCheck(
-                          canUseEnterpriseFeature(
-                            license,
-                            LicenseFeature.ServiceLocations,
-                          ),
-                          () => navigateToEdit(row),
-                        );
+                        licenseActionCheck(lock.check, () => navigateToEdit(row));
                       },
                     },
                     {

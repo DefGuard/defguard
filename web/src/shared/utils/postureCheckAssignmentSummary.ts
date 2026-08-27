@@ -1,11 +1,7 @@
 import { m } from '../../paraglide/messages';
 import type { ApiDevicePosture } from '../api/types';
+import type { SummarySection } from '../components/SummaryTooltip/type';
 import { policyOsVariantToText } from './policyPostures';
-
-export type PostureCheckAssignmentSummarySection = {
-  label: string;
-  lines: string[];
-};
 
 const getOsLine = (
   osType: 'windows' | 'macos' | 'linux' | 'ios' | 'android',
@@ -30,8 +26,8 @@ const getOsLine = (
 
 export const getPostureCheckAssignmentSummarySections = (
   postureCheck: ApiDevicePosture,
-): PostureCheckAssignmentSummarySection[] => {
-  const sections: PostureCheckAssignmentSummarySection[] = [];
+): SummarySection[] => {
+  const sections: SummarySection[] = [];
 
   postureCheck.os_rules.forEach((rule) => {
     switch (rule.os_type) {
