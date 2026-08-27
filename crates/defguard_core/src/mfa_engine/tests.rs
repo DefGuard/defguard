@@ -1550,7 +1550,7 @@ async fn test_finish_cap_emits_frozen_partial_abort_attribution(
 }
 
 #[sqlx::test]
-async fn test_finish_cap_deletes_session_and_emits_failed(
+async fn test_finish_legacy_cap_deletes_session_and_emits_abort(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1560,7 +1560,16 @@ async fn test_finish_cap_deletes_session_and_emits_failed(
         .expect("failed to init settings");
 
     let user = create_user(&pool).await;
-    let (_session, token) = start_two_step_session(&pool, user.id).await;
+    let (session, token, flow) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Legacy cap attribution flow",
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Email],
+        ],
+    )
+    .await;
 
     let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
     for _ in 0..MFA_FAILED_ATTEMPT_CAP {
@@ -1604,9 +1613,22 @@ async fn test_finish_cap_deletes_session_and_emits_failed(
             other => panic!("unexpected stream event: {other:?}"),
         }
     }
+    let event = event_rx.try_recv().expect("expected an abort event");
+    let BidiStreamEventType::DesktopClientMfa(event) = event.event else {
+        panic!("unexpected stream event");
+    };
+    let DesktopClientMfaEvent::Aborted { attribution, .. } = *event else {
+        panic!("expected MFA abort event");
+    };
+    assert_eq!(attribution.snapshot.flow_id, flow.id);
+    assert_eq!(
+        attribution.flow_name.as_deref(),
+        Some("Legacy cap attribution flow")
+    );
+    assert_eq!(attribution.snapshot, session.steps_snapshot.0);
     assert!(
         event_rx.try_recv().is_err(),
-        "legacy requests must not emit an abort"
+        "only one abort must be emitted"
     );
 }
 

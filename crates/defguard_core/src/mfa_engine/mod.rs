@@ -555,9 +555,7 @@ impl MfaEngine {
                         },
                     )),
                 })?;
-                let at_cap = self
-                    .record_failure(session, proof.step_attempt_id.is_some(), &ctx, ip)
-                    .await?;
+                let at_cap = self.record_failure(session, &ctx, ip).await?;
                 if at_cap && proof.step_attempt_id.is_some() {
                     return Err(FinishError::AttemptLimit);
                 }
@@ -770,7 +768,6 @@ impl MfaEngine {
     async fn record_failure(
         &self,
         session: VpnClientMfaSession<Id>,
-        record_abort: bool,
         ctx: &MfaSessionContext,
         ip: IpAddr,
     ) -> Result<bool, FinishError> {
@@ -785,7 +782,7 @@ impl MfaEngine {
                 error!("Failed to record MFA failure: {err}");
                 FinishError::Internal
             })?;
-        let abort_event = if at_cap && record_abort {
+        let abort_event = if at_cap {
             let flow_name = MfaFlow::find_by_id(&mut *transaction, session.steps_snapshot.flow_id)
                 .await
                 .map_err(|err| {
