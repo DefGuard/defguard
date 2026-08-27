@@ -1394,6 +1394,7 @@ async fn test_finish_client_mfa_login_totp_authorizes_session(
                 auth_pub_key: None,
                 step_attempt_id: None,
                 auth_data: None,
+                credential_id: None,
             },
             device_info(),
         )
@@ -1497,6 +1498,7 @@ async fn test_finish_client_mfa_login_failure_cap_deletes_session(
                     auth_pub_key: None,
                     step_attempt_id: None,
                     auth_data: None,
+                    credential_id: None,
                 },
                 device_info(),
             )
@@ -1844,6 +1846,7 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
                 auth_pub_key: None,
                 step_attempt_id: None,
                 auth_data: None,
+                credential_id: None,
             },
             device_info(),
         )

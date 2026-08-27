@@ -31,7 +31,7 @@ use crate::{
     mfa_engine::{
         authorize::{EventChannels, build_authorized_gateway_network_info, create_new_session},
         error::{FinishError, StartError, StepError},
-        method::{InitiateError, Verdict, VerifyError, initiate, verify},
+        method::{InitiateError, Verdict, VerifyError, initiate, offered_credential_ids, verify},
         types::{
             FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
             StepStarted,
@@ -204,7 +204,12 @@ impl MfaEngine {
                     reason: StartRejectionReason::MethodNotInStep,
                 });
             } else if (steps.len() > 1
-                && !matches!(chosen, VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email))
+                && !matches!(
+                    chosen,
+                    VpnClientMfaMethod::Totp
+                        | VpnClientMfaMethod::Email
+                        | VpnClientMfaMethod::Fido2
+                ))
                 || !chosen
                     .is_configured(
                         &self.pool,
@@ -266,6 +271,12 @@ impl MfaEngine {
         let response_challenge = challenge
             .as_ref()
             .map(|challenge| challenge.challenge.clone());
+        let credential_ids = offered_credential_ids(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| {
+                error!("Failed to load FIDO2 credentials: {err}");
+                StartError::Internal
+            })?;
 
         let mut conn = self.pool.acquire().await.map_err(|_| {
             error!("Failed to acquire DB connection");
@@ -291,6 +302,7 @@ impl MfaEngine {
         Ok(StartOutcome {
             token: outcome.token,
             challenge: response_challenge,
+            credential_ids,
             superseded_token_hash: outcome.superseded_token_hash,
         })
     }
@@ -376,6 +388,12 @@ impl MfaEngine {
             log_initiate_error(&err, &ctx.user.username);
             StepError::from(err)
         })?;
+        let credential_ids = offered_credential_ids(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| {
+                error!("Failed to load FIDO2 credentials: {err}");
+                StepError::Internal
+            })?;
 
         let mut conn = self.pool.acquire().await.map_err(|_| {
             error!("Failed to acquire DB connection");
@@ -392,6 +410,7 @@ impl MfaEngine {
         Ok(StepStarted {
             step_attempt_id,
             challenge: challenge.map(|challenge| challenge.challenge),
+            credential_ids,
         })
     }
 

@@ -54,7 +54,7 @@ async fn assign_three(
             LocationMfaFlowAssignment {
                 flow_id: default,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -295,7 +295,7 @@ async fn test_assign_to_location(_: PgPoolOptions, options: PgConnectOptions) {
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -349,7 +349,7 @@ async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConne
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -364,7 +364,7 @@ async fn test_assign_to_location_full_replace(_: PgPoolOptions, options: PgConne
         &[LocationMfaFlowAssignment {
             flow_id: flow2.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -394,7 +394,7 @@ async fn test_assign_no_default_rejected(_: PgPoolOptions, options: PgConnectOpt
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
             is_default: false,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await;
@@ -426,12 +426,12 @@ async fn test_assign_multiple_defaults_rejected(_: PgPoolOptions, options: PgCon
             LocationMfaFlowAssignment {
                 flow_id: flow1.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -496,7 +496,7 @@ async fn test_assign_clear_disabled_location(_: PgPoolOptions, options: PgConnec
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -558,12 +558,12 @@ async fn test_assign_non_default_without_groups_rejected(
             LocationMfaFlowAssignment {
                 flow_id: flow1.id,
                 is_default: false,
-                group_ids: vec![], // inert: empty group set
+                group_ids: Vec::new(), // inert: empty group set
             },
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -605,7 +605,7 @@ async fn test_has_default_assignment(_: PgPoolOptions, options: PgConnectOptions
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -654,7 +654,7 @@ async fn test_check_deletable_location_requires_flow(_: PgPoolOptions, options: 
         &[LocationMfaFlowAssignment {
             flow_id: flow1.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -713,7 +713,7 @@ async fn test_check_deletable_allows_disabled_location(
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -762,7 +762,7 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
             LocationMfaFlowAssignment {
                 flow_id: flow1.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
@@ -820,7 +820,7 @@ async fn test_delete_and_assign_do_not_race(_: PgPoolOptions, options: PgConnect
             &[LocationMfaFlowAssignment {
                 flow_id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             }],
         )
         .await;
@@ -907,7 +907,7 @@ async fn test_resolve_group_match(_: PgPoolOptions, options: PgConnectOptions) {
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -967,7 +967,7 @@ async fn test_resolve_fallback_to_default(_: PgPoolOptions, options: PgConnectOp
             LocationMfaFlowAssignment {
                 flow_id: flow2.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -1269,7 +1269,7 @@ async fn test_derive_legacy_internal(_: PgPoolOptions, options: PgConnectOptions
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1312,7 +1312,7 @@ async fn test_derive_legacy_external(_: PgPoolOptions, options: PgConnectOptions
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1346,7 +1346,7 @@ async fn test_derive_legacy_multi_step_omitted(_: PgPoolOptions, options: PgConn
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1389,7 +1389,7 @@ async fn test_derive_legacy_internal_subset_omitted(_: PgPoolOptions, options: P
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1457,7 +1457,7 @@ async fn test_derive_legacy_multi_flow_omitted(_: PgPoolOptions, options: PgConn
             LocationMfaFlowAssignment {
                 flow_id: flow_b.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             },
         ],
     )
@@ -1508,7 +1508,7 @@ async fn test_derive_legacy_disabled_with_assignments(_: PgPoolOptions, options:
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1553,7 +1553,7 @@ async fn test_validation_zero_steps(_: PgPoolOptions, options: PgConnectOptions)
 async fn test_validation_zero_method_step(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let _pool = pool;
-    let errors = validate_flow_input("Test", &[vec![], vec![VpnClientMfaMethod::Totp]]);
+    let errors = validate_flow_input("Test", &[Vec::new(), vec![VpnClientMfaMethod::Totp]]);
     assert!(
         errors
             .iter()
@@ -1678,7 +1678,7 @@ async fn test_all_with_oidc_in_flows_flow_shape_predicate(
         &[LocationMfaFlowAssignment {
             flow_id: oidc_flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1702,7 +1702,7 @@ async fn test_all_with_oidc_in_flows_flow_shape_predicate(
         &[LocationMfaFlowAssignment {
             flow_id: internal_flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1769,7 +1769,7 @@ async fn test_oidc_predicate_includes_mfa_disabled_location(
         &[LocationMfaFlowAssignment {
             flow_id: oidc_flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1822,7 +1822,7 @@ async fn test_all_with_oidc_in_flows_empty_when_no_oidc(
         &[LocationMfaFlowAssignment {
             flow_id: flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1871,7 +1871,7 @@ async fn test_internal_mfa_query_false_for_oidc_only(_: PgPoolOptions, options: 
         &[LocationMfaFlowAssignment {
             flow_id: oidc_flow.id,
             is_default: true,
-            group_ids: vec![],
+            group_ids: Vec::new(),
         }],
     )
     .await
@@ -1896,4 +1896,102 @@ async fn test_internal_mfa_query_false_for_oidc_only(_: PgPoolOptions, options: 
         !has_internal,
         "OIDC-only location must not trigger the internal MFA check"
     );
+}
+
+#[sqlx::test]
+async fn test_derive_legacy_internal_with_fido2(_: PgPoolOptions, options: PgConnectOptions) {
+    // FIDO2 alongside the internal set stays Internal: a client that cannot see
+    // FIDO2 can still pass the step with any of the other factors, so adding it
+    // must not lock legacy clients out of the location.
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut tx,
+        "Internal + FIDO2".into(),
+        vec![vec![
+            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::Email,
+            VpnClientMfaMethod::Biometric,
+            VpnClientMfaMethod::MobileApprove,
+            VpnClientMfaMethod::Fido2,
+        ]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.1.9.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: Vec::new(),
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, Some(LocationMfaMode::Internal));
+}
+
+#[sqlx::test]
+async fn test_derive_legacy_fido2_only_omitted(_: PgPoolOptions, options: PgConnectOptions) {
+    // A FIDO2-only step has no legacy equivalent: a client that cannot drive a
+    // security key has no way to pass it, so fail closed rather than advertise
+    // a mode it cannot satisfy.
+    let pool = setup_pool(options).await;
+
+    let mut tx = pool.begin().await.unwrap();
+    let (flow, _) = MfaFlow::create(
+        &mut tx,
+        "FIDO2 only".into(),
+        vec![vec![VpnClientMfaMethod::Fido2]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.1.10.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    network.mfa_enabled = true;
+    network.save(&pool).await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: Vec::new(),
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mode = MfaFlow::derive_legacy_mode(&pool, network.id)
+        .await
+        .unwrap();
+    assert_eq!(mode, None);
 }

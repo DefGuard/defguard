@@ -110,7 +110,7 @@ pub(crate) async fn make_base_client(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     );
 
     set_cached_license(Some(license));
@@ -400,7 +400,7 @@ pub(crate) fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 }
 

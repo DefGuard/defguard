@@ -489,7 +489,7 @@ mod test {
     #[sqlx::test]
     async fn test_no_networks_returns_false(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let groups: Vec<String> = vec![];
+        let groups: Vec<String> = Vec::new();
         let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
         assert!(!result);
     }
@@ -518,7 +518,7 @@ mod test {
         .await
         .unwrap();
 
-        let groups: Vec<String> = vec![];
+        let groups: Vec<String> = Vec::new();
         let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
         assert!(result);
     }
@@ -594,7 +594,7 @@ mod test {
             .unwrap();
         transaction.commit().await.unwrap();
 
-        let groups: Vec<String> = vec![];
+        let groups: Vec<String> = Vec::new();
         let result = has_non_mfa_location_access(&pool, &groups).await.unwrap();
         assert!(!result);
     }

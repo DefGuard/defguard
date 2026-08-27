@@ -148,6 +148,7 @@ impl From<StepStarted> for ClientMfaStepStartResponse {
         Self {
             step_attempt_id: value.step_attempt_id,
             challenge: value.challenge,
+            credential_ids: value.credential_ids,
         }
     }
 }
@@ -219,6 +220,16 @@ impl From<FinishError> for Status {
         Status::new(code, err.to_string())
     }
 }
+
+/// Sent when the location needs a protocol this client cannot speak - almost
+/// always multi-step MFA, which landed in 2.2.
+const LEGACY_CLIENT_MESSAGE: &str =
+    "Defguard client version is too old to connect to this location. Please update your client.";
+
+/// Sent when the location can only be passed with a security key, which the CLI
+/// cannot drive at any version.
+const FIDO2_ONLY_MESSAGE: &str = "This location requires a security key (FIDO2), which this client \
+     cannot use. Connect with the desktop client.";
 
 impl ClientMfaServer {
     #[must_use]
@@ -414,8 +425,25 @@ impl ClientMfaServer {
                     "Location {location} has an MFA flow configuration that cannot be enforced by \
                     this client"
                 );
+                // A flow this client cannot express is usually multi-step, and
+                // then updating really is the answer. A single step of methods
+                // no legacy client can drive is a different story - a CLI has
+                // no way to reach a security key, however new it is - so say
+                // that instead of sending the user after a pointless upgrade.
+                let (_, steps) = self
+                    .resolve_mfa_flow(&location, &user, LEGACY_CLIENT_MESSAGE)
+                    .await?;
+                let needs_method_this_client_lacks = steps.len() == 1
+                    && steps[0]
+                        .methods
+                        .iter()
+                        .all(|method| *method == VpnClientMfaMethod::Fido2);
                 return Err(Status::failed_precondition(
-                    "Defguard client version is too old to connect to this location. Please update your client.",
+                    if needs_method_this_client_lacks {
+                        FIDO2_ONLY_MESSAGE
+                    } else {
+                        LEGACY_CLIENT_MESSAGE
+                    },
                 ));
             }
 
@@ -433,7 +461,7 @@ impl ClientMfaServer {
                 error!("Resolved MFA flow has no steps");
                 return Err(Status::internal("unexpected error"));
             };
-            let first_step_methods: Vec<VpnClientMfaMethod> = first_step
+            let first_step_methods = first_step
                 .methods
                 .iter()
                 .copied()
@@ -441,7 +469,7 @@ impl ClientMfaServer {
                 .filter(|method| {
                     *method != VpnClientMfaMethod::Oidc || is_business_license_active()
                 })
-                .collect();
+                .collect::<Vec<_>>();
 
             let selected_client_method: VpnClientMfaMethod = selected_method.into();
             if !first_step_methods.contains(&selected_client_method) {
@@ -467,10 +495,9 @@ impl ClientMfaServer {
                 .await?;
 
             self.finish_start(start_outcome, &user, ip, &device, &location)
-                .await
         } else {
             // Multi-step path.
-            let selected_methods: Vec<VpnClientMfaMethod> = request
+            let selected_methods = request
                 .selected_methods
                 .iter()
                 .map(|&method| {
@@ -491,8 +518,7 @@ impl ClientMfaServer {
                 )
                 .await?;
 
-            let step_methods: Vec<Vec<VpnClientMfaMethod>> =
-                steps.into_iter().map(|step| step.methods).collect();
+            let step_methods = steps.into_iter().map(|step| step.methods).collect();
 
             match self
                 .engine
@@ -508,7 +534,6 @@ impl ClientMfaServer {
             {
                 StartResult::Accepted(start_outcome) => {
                     self.finish_start(start_outcome, &user, ip, &device, &location)
-                        .await
                 }
                 StartResult::Rejected(rejections) => {
                     info!(
@@ -519,6 +544,7 @@ impl ClientMfaServer {
                         token: String::new(),
                         challenge: None,
                         rejections: rejections.into_iter().map(Into::into).collect(),
+                        credential_ids: Vec::new(),
                     }))
                 }
             }
@@ -527,7 +553,7 @@ impl ClientMfaServer {
 
     /// Handle an accepted start: cancel the superseded waiter, emit the supersede event, and build
     /// the response.
-    async fn finish_start(
+    fn finish_start(
         &self,
         start_outcome: StartOutcome,
         user: &User<Id>,
@@ -563,6 +589,7 @@ impl ClientMfaServer {
             token: start_outcome.token,
             challenge: start_outcome.challenge,
             rejections: Vec::new(),
+            credential_ids: start_outcome.credential_ids,
         }))
     }
 
@@ -721,6 +748,7 @@ impl ClientMfaServer {
             auth_pub_key: request.auth_pub_key,
             step_attempt_id: request.step_attempt_id,
             auth_data: request.auth_data,
+            credential_id: request.credential_id,
         };
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 

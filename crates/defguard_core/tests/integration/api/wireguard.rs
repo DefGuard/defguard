@@ -222,7 +222,7 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     let response = client
@@ -2571,7 +2571,7 @@ fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 }
 

@@ -406,7 +406,7 @@ mod tests {
         ResultEntry::new(StructureTag {
             class: TagClass::Application,
             id,
-            payload: PL::C(vec![]),
+            payload: PL::C(Vec::new()),
         })
     }
 

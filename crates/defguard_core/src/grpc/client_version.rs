@@ -761,7 +761,7 @@ mod tests {
             version_date_limit: None,
             tier: LicenseTier::Business,
             support_type: SupportType::Basic,
-            features: vec![],
+            features: Vec::new(),
         }
     }
 

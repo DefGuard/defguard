@@ -129,7 +129,7 @@ pub(crate) fn set_test_license_business() {
         version_date_limit: None,
         tier: LicenseTier::Business,
         support_type: SupportType::Basic,
-        features: vec![],
+        features: Vec::new(),
     };
     set_cached_license(Some(license));
 }
@@ -145,7 +145,7 @@ pub(crate) fn set_test_license_enterprise() {
         version_date_limit: None,
         tier: LicenseTier::Enterprise,
         support_type: SupportType::Basic,
-        features: vec![],
+        features: Vec::new(),
     }));
 }
 
@@ -852,6 +852,7 @@ pub(crate) async fn send_mfa_finish_signed(
                 auth_pub_key: auth_pub_key.map(str::to_owned),
                 step_attempt_id: None,
                 auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -894,6 +895,7 @@ pub(crate) async fn send_mfa_finish_no_recv(
                 auth_pub_key: None,
                 step_attempt_id: None,
                 auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -921,6 +923,7 @@ pub(crate) async fn send_mfa_finish_raw(
                 auth_pub_key: None,
                 step_attempt_id: None,
                 auth_data: None,
+                credential_id: None,
             },
         )),
     });
