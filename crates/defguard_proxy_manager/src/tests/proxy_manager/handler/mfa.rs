@@ -1350,7 +1350,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
             DesktopClientMfaEvent::Failed {
                 method, message, ..
             } => {
-                assert_eq!(method, MfaMethod::Biometric.into());
+                assert_eq!(method, MfaMethod::Biometric);
                 assert_eq!(message, "Signed challenge rejected");
             }
             other => panic!("expected failed MFA audit event, got: {other:?}"),
