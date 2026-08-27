@@ -276,6 +276,7 @@ async fn test_mobile_approve_empty_proof_reads_approval_flag(
         selected_method: VpnClientMfaMethod::MobileApprove,
         openid_auth_completed: false,
         mobile_approved: false,
+        mobile_auth_device_name: None,
         biometric_challenge: None,
     };
     let proof = Proof {

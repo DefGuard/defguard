@@ -471,29 +471,10 @@ impl MfaEngine {
         let mut mobile_auth_device_name: Option<String> = None;
         match verdict {
             Ok(Verdict::Proved) => {
-                if is_mobile_signature && let Some(attempt_id) = proof.step_attempt_id.as_deref() {
-                    let mut transaction = self.pool.begin().await.map_err(|err| {
-                        error!("Failed to begin transaction while marking mobile approval: {err}");
-                        FinishError::Internal
-                    })?;
-                    if !session
-                        .mark_mobile_approved(&mut transaction, attempt_id)
-                        .await
-                        .map_err(|err| {
-                            error!("Failed to mark mobile approval: {err}");
-                            FinishError::Internal
-                        })?
-                    {
-                        error!("Stale MFA attempt: the attempt is superseded");
-                        return Err(FinishError::StaleAttempt);
-                    }
-                    transaction.commit().await.map_err(|err| {
-                        error!("Failed to commit mobile approval mark: {err}");
-                        FinishError::Internal
-                    })?;
-                    return Ok((FinishOutcome::AwaitingExternal, method));
-                }
-                if method == VpnClientMfaMethod::MobileApprove && proof.step_attempt_id.is_none() {
+                if is_mobile_signature
+                    || (method == VpnClientMfaMethod::MobileApprove
+                        && proof.step_attempt_id.is_none())
+                {
                     let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
                         error!("Mobile approve auth pub key missing after successful verification");
                         FinishError::Internal
@@ -509,6 +490,32 @@ impl MfaEngine {
                                 FinishError::Internal
                             })?
                             .map(|auth_device| auth_device.name);
+                }
+                if is_mobile_signature && let Some(attempt_id) = proof.step_attempt_id.as_deref() {
+                    let mut transaction = self.pool.begin().await.map_err(|err| {
+                        error!("Failed to begin transaction while marking mobile approval: {err}");
+                        FinishError::Internal
+                    })?;
+                    if !session
+                        .mark_mobile_approved(
+                            &mut transaction,
+                            attempt_id,
+                            mobile_auth_device_name.as_deref(),
+                        )
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to mark mobile approval: {err}");
+                            FinishError::Internal
+                        })?
+                    {
+                        error!("Stale MFA attempt: the attempt is superseded");
+                        return Err(FinishError::StaleAttempt);
+                    }
+                    transaction.commit().await.map_err(|err| {
+                        error!("Failed to commit mobile approval mark: {err}");
+                        FinishError::Internal
+                    })?;
+                    return Ok((FinishOutcome::AwaitingExternal, method));
                 }
             }
             Ok(Verdict::NotYet) => {
@@ -579,6 +586,8 @@ impl MfaEngine {
             }
         }
 
+        let persisted_mobile_auth_device_name = ephemeral.mobile_auth_device_name;
+
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
             FinishError::Internal
@@ -620,7 +629,7 @@ impl MfaEngine {
                 snapshot,
                 &ctx,
                 context,
-                mobile_auth_device_name,
+                mobile_auth_device_name.or(persisted_mobile_auth_device_name),
             )
             .await?;
 

@@ -71,6 +71,8 @@ pub struct EphemeralState {
     #[serde(default)]
     pub mobile_approved: bool,
     #[serde(default)]
+    pub mobile_auth_device_name: Option<String>,
+    #[serde(default)]
     pub biometric_challenge: Option<BiometricChallenge>,
 }
 
@@ -148,6 +150,7 @@ fn new_attempt_state(
         selected_method: method,
         openid_auth_completed: false,
         mobile_approved: false,
+        mobile_auth_device_name: None,
         biometric_challenge: challenge,
     };
     let state_json =
@@ -353,8 +356,12 @@ impl VpnClientMfaSession<Id> {
         conn: &mut PgConnection,
         step_attempt_id: &str,
     ) -> sqlx::Result<bool> {
-        self.mark_flag(conn, step_attempt_id, "openid_auth_completed")
-            .await
+        self.mark_attempt_state(
+            conn,
+            step_attempt_id,
+            serde_json::json!({ "openid_auth_completed": true }),
+        )
+        .await
     }
 
     /// Mark the current attempt's mobile approval complete.
@@ -365,26 +372,34 @@ impl VpnClientMfaSession<Id> {
         &self,
         conn: &mut PgConnection,
         step_attempt_id: &str,
+        mobile_auth_device_name: Option<&str>,
     ) -> sqlx::Result<bool> {
-        self.mark_flag(conn, step_attempt_id, "mobile_approved")
-            .await
+        self.mark_attempt_state(
+            conn,
+            step_attempt_id,
+            serde_json::json!({
+                "mobile_approved": true,
+                "mobile_auth_device_name": mobile_auth_device_name,
+            }),
+        )
+        .await
     }
 
-    /// Set a named completion flag on the current attempt, gated on a matching
-    /// `step_attempt_id`. Returns `true` if the flag was set (0 rows otherwise).
-    async fn mark_flag(
+    /// Merge a state patch into the current attempt, gated on a matching `step_attempt_id`.
+    /// Returns `true` if the patch applied (0 rows otherwise).
+    async fn mark_attempt_state(
         &self,
         conn: &mut PgConnection,
         step_attempt_id: &str,
-        flag: &str,
+        patch: serde_json::Value,
     ) -> sqlx::Result<bool> {
         let result = query!(
             "UPDATE vpn_client_mfa_session \
-             SET ephemeral_state = jsonb_set(ephemeral_state, ARRAY[$2]::text[], 'true'::jsonb) \
-             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $3",
+             SET ephemeral_state = ephemeral_state || $3 \
+             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
             self.id,
-            flag,
             step_attempt_id,
+            patch,
         )
         .execute(&mut *conn)
         .await?;

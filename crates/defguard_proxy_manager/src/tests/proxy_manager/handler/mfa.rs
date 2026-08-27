@@ -926,10 +926,24 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
             .expect("gateway command channel closed"),
         GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
     ));
-    assert_eq!(
-        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
-        network.id
-    );
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                location,
+                mobile_auth_device_name,
+                ..
+            } => {
+                assert_eq!(location.id, network.id);
+                assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+            }
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
 
     context.finish().await.expect_server_finished().await;
 }
@@ -1053,6 +1067,165 @@ async fn test_new_protocol_mobile_approve_advances_non_final_step(
 
 #[sqlx::test]
 #[allow(deprecated)]
+// `advance` clears the `ephemeral_state` that stores the approving device name before the final
+// TOTP step emits the success event.
+#[ignore = "mobile approval device name is lost after advance clears ephemeral_state"]
+async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_event(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::Totp.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::MobileApprove, MfaMethod::Totp],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
+    let challenge = started
+        .challenge
+        .expect("mobile approve StepStart must return a challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
+        &mut context,
+        &token,
+        Some(&signature),
+        Some(&auth_pub_key),
+        Some(&attempt_id),
+    )
+    .await;
+    assert!(preshared_key.is_empty());
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::ClientMfaFinish(result))
+            if matches!(
+                result.result,
+                Some(MfaStepResult {
+                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
+                })
+            )
+    ));
+    assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "mark must not emit an event"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "mark must not authorize"
+    );
+
+    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
+    match response.payload {
+        Some(core_response::Payload::ClientMfaFinish(result)) => assert!(matches!(
+            result.result,
+            Some(MfaStepResult {
+                outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
+            }) if advanced.next_step == 1
+        )),
+        Some(core_response::Payload::CoreError(error)) => panic!(
+            "expected Advanced response, got core error status={} msg={}",
+            error.status_code, error.message
+        ),
+        Some(_) => panic!("expected Advanced response payload"),
+        None => panic!("expected Advanced response payload"),
+    }
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "non-final approval must not authorize"
+    );
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "non-final poll must not authorize"
+    );
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "non-final poll must not emit an event"
+    );
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to load advanced mobile approval session")
+        .expect("session must remain active after a non-final step");
+    assert_eq!(session.current_step, 1);
+
+    send_mfa_step_start(&mut context, &token, MfaMethod::Totp).await;
+    let response =
+        send_mfa_finish_raw(&mut context, &token, Some(&generate_totp_code(&user))).await;
+    match response.payload {
+        Some(core_response::Payload::ClientMfaFinish(result)) => assert!(matches!(
+            result.result,
+            Some(MfaStepResult {
+                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
+            }) if !completed.preshared_key.is_empty() && completed.preshared_key == result.preshared_key
+        )),
+        _ => panic!("expected completed TOTP response"),
+    }
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                location,
+                mobile_auth_device_name,
+                ..
+            } => {
+                assert_eq!(location.id, network.id);
+                assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+            }
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+#[allow(deprecated)]
 async fn test_parked_mobile_approval_completes_final_step(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -1161,10 +1334,24 @@ async fn test_parked_mobile_approval_completes_final_step(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
         Ok(Ok(GatewayCommand::VpnSessionAuthorized(id, _, _))) if id == network.id
     ));
-    assert_eq!(
-        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
-        network.id
-    );
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                location,
+                mobile_auth_device_name,
+                ..
+            } => {
+                assert_eq!(location.id, network.id);
+                assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+            }
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
     context.finish().await.expect_server_finished().await;
 }
 

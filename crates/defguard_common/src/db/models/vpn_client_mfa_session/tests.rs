@@ -581,7 +581,7 @@ async fn test_mark_mobile_approved_ignores_stale_attempt(
     let mut tx = pool.begin().await.unwrap();
     assert!(
         !session
-            .mark_mobile_approved(&mut tx, "stale-id")
+            .mark_mobile_approved(&mut tx, "stale-id", Some("phone"))
             .await
             .unwrap()
     );
@@ -598,18 +598,17 @@ async fn test_mark_mobile_approved_ignores_stale_attempt(
     let mut tx = pool.begin().await.unwrap();
     assert!(
         session
-            .mark_mobile_approved(&mut tx, &attempt_id)
+            .mark_mobile_approved(&mut tx, &attempt_id, Some("phone"))
             .await
             .unwrap()
     );
     tx.commit().await.unwrap();
-    assert!(
-        refetch(&pool, &outcome.token)
-            .await
-            .ephemeral_state
-            .unwrap()
-            .mobile_approved
-    );
+    let state = refetch(&pool, &outcome.token)
+        .await
+        .ephemeral_state
+        .unwrap();
+    assert!(state.mobile_approved);
+    assert_eq!(state.mobile_auth_device_name.as_deref(), Some("phone"));
 }
 
 #[sqlx::test]
