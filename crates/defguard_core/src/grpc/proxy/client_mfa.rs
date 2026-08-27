@@ -71,7 +71,6 @@ const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
 #[derive(Debug)]
 pub enum RemoteAuthSignal {
     Approved,
-    Denied,
 }
 
 /// The parked relay's state. The legacy PSK is side state, not a channel payload.
@@ -761,10 +760,6 @@ impl ClientMfaServer {
                         id: request_id,
                         payload: Some(payload),
                     });
-                }
-                Ok(Ok(RemoteAuthSignal::Denied)) => {
-                    // The wire cannot represent denial yet, so it remains indistinguishable from timeout.
-                    remove_remote_mfa_waiter(&waiters, &hash);
                 }
                 Ok(Err(err)) => {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
