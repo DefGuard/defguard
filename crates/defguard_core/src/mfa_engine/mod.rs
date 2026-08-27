@@ -103,7 +103,7 @@ impl MfaEngine {
         // OIDC needs no license check here - the caller's first-step filter drops it when
         // unlicensed.
         let smtp_configured = Settings::get_current_settings().smtp_configured();
-        let oidc_configured = self.oidc_configured().await.map_err(|err| {
+        let oidc_configured = self.oidc_available().await.map_err(|err| {
             error!("Failed to get current OpenID provider: {err}");
             StartError::Internal
         })?;
@@ -183,7 +183,7 @@ impl MfaEngine {
             .collect();
 
         let smtp_configured = Settings::get_current_settings().smtp_configured();
-        let oidc_configured = self.oidc_configured().await.map_err(|err| {
+        let oidc_configured = self.oidc_available().await.map_err(|err| {
             error!("Failed to get current OpenID provider: {err}");
             StartError::Internal
         })?;
@@ -294,13 +294,15 @@ impl MfaEngine {
         })
     }
 
-    /// Whether OIDC is configured for this deployment: a business license plus a configured
-    /// OpenID provider. Must stay in step with the descriptor builder's source for
-    /// `oidc_configured`.
-    async fn oidc_configured(&self) -> sqlx::Result<bool> {
-        if !is_business_license_active() {
-            return Ok(false);
-        }
+    /// Whether OIDC is available when a flow starts: a business license plus a configured OpenID
+    /// provider. `start` freezes this decision into its snapshot.
+    async fn oidc_available(&self) -> sqlx::Result<bool> {
+        Ok(is_business_license_active() && self.oidc_provider_configured().await?)
+    }
+
+    /// Whether the configured provider remains available to an already-started flow. This does
+    /// not recheck the license: a session accepted at `start` completes through a license lapse.
+    async fn oidc_provider_configured(&self) -> sqlx::Result<bool> {
         Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
     }
 
@@ -345,7 +347,7 @@ impl MfaEngine {
         };
 
         let smtp_configured = Settings::get_current_settings().smtp_configured();
-        let oidc_configured = self.oidc_configured().await.map_err(|err| {
+        let oidc_configured = self.oidc_provider_configured().await.map_err(|err| {
             error!("Failed to get current OpenID provider: {err}");
             StepError::Internal
         })?;
@@ -648,8 +650,7 @@ impl MfaEngine {
     }
 
     /// Complete the flow: mint the preshared key, create the VPN client session, and delete the
-    /// in-progress MFA session. This is the single place a preshared key is minted or a peer is
-    /// authorized.
+    /// MFA session. This is the single place a preshared key is minted or a peer is authorized.
     ///
     /// Everything here is transactional. The gateway command and the success event are not, so
     /// they are returned in [`CompletedFlow`] for the caller to dispatch after the commit.
@@ -728,7 +729,6 @@ impl MfaEngine {
             )),
         };
 
-        // Delete the in-progress session atomically with the authorization.
         session.delete(&mut *transaction).await.map_err(|err| {
             error!("Failed to delete MFA session: {err}");
             FinishError::Internal
