@@ -931,9 +931,9 @@ impl Settings {
 
     #[allow(deprecated)]
     fn apply_from_config(&mut self, config: &DefGuardConfig) {
-        let minute = 60;
-        let hour = minute * 60;
-        let day = hour * 24;
+        const MINUTE: u64 = 60;
+        const HOUR: u64 = MINUTE * 60;
+        const DAY: u64 = HOUR * 24;
 
         if let Some(url) = &config.url {
             self.defguard_url = url.to_string();
@@ -967,32 +967,32 @@ impl Settings {
             self.mfa_code_timeout_seconds = mfa_code_timeout.as_secs() as i32;
         }
         if let Some(session_timeout) = config.session_timeout {
-            self.authentication_period_days = (session_timeout.as_secs() / day) as i32;
+            self.authentication_period_days = (session_timeout.as_secs() / DAY) as i32;
         }
         if let Some(disable_stats_purge) = config.disable_stats_purge {
             self.enable_stats_purge = !disable_stats_purge;
         }
         if let Some(stats_purge_frequency) = config.stats_purge_frequency {
-            self.stats_purge_frequency_hours = (stats_purge_frequency.as_secs() / hour) as i32;
+            self.stats_purge_frequency_hours = (stats_purge_frequency.as_secs() / HOUR) as i32;
         }
         if let Some(stats_purge_threshold) = config.stats_purge_threshold {
-            self.stats_purge_threshold_days = (stats_purge_threshold.as_secs() / day) as i32;
+            self.stats_purge_threshold_days = (stats_purge_threshold.as_secs() / DAY) as i32;
         }
         if let Some(enrollment_token_timeout) = config.enrollment_token_timeout {
             self.enrollment_token_timeout_hours =
-                (enrollment_token_timeout.as_secs() / hour) as i32;
+                (enrollment_token_timeout.as_secs() / HOUR) as i32;
         }
         if let Some(password_reset_token_timeout) = config.password_reset_token_timeout {
             self.password_reset_token_timeout_hours =
-                (password_reset_token_timeout.as_secs() / hour) as i32;
+                (password_reset_token_timeout.as_secs() / HOUR) as i32;
         }
         if let Some(enrollment_session_timeout) = config.enrollment_session_timeout {
             self.enrollment_session_timeout_minutes =
-                (enrollment_session_timeout.as_secs() / minute) as i32;
+                (enrollment_session_timeout.as_secs() / MINUTE) as i32;
         }
         if let Some(password_reset_session_timeout) = config.password_reset_session_timeout {
             self.password_reset_session_timeout_minutes =
-                (password_reset_session_timeout.as_secs() / minute) as i32;
+                (password_reset_session_timeout.as_secs() / MINUTE) as i32;
         }
     }
 
