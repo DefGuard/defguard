@@ -1,5 +1,9 @@
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 
+/// Name of a directory group whose member query always fails, so tests can simulate a
+/// provider API error in the middle of a sync.
+pub(crate) const FAILING_GROUP: &str = "failing-group";
+
 #[allow(dead_code)]
 pub(crate) struct TestProviderDirectorySync;
 
@@ -18,6 +22,10 @@ impl DirectorySync for TestProviderDirectorySync {
                 id: "3".into(),
                 name: "group3".into(),
             },
+            DirectoryGroup {
+                id: "4".into(),
+                name: FAILING_GROUP.into(),
+            },
         ])
     }
 
@@ -33,9 +41,15 @@ impl DirectorySync for TestProviderDirectorySync {
 
     async fn get_group_members(
         &self,
-        _group: &DirectoryGroup,
+        group: &DirectoryGroup,
         _all_users_helper: Option<&[DirectoryUser]>,
     ) -> Result<Vec<String>, DirectorySyncError> {
+        if group.name == FAILING_GROUP {
+            return Err(DirectorySyncError::RequestError(format!(
+                "Failed to make GET request to /groups/{}/members",
+                group.id
+            )));
+        }
         Ok(vec![
             "testuser@email.com".into(),
             "testuserdisabled@email.com".into(),
