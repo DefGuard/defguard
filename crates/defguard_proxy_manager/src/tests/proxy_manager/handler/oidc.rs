@@ -856,7 +856,7 @@ async fn test_auth_callback_blocked_by_license_limit_emits_user_import_blocked_e
         version_date_limit: None,
         tier: LicenseTier::Business,
         support_type: SupportType::Basic,
-        features: vec![],
+        features: Vec::new(),
     }));
 
     let mock = MockOidcProvider::start().await;

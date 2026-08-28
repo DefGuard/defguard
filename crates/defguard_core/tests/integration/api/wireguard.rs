@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    assert_matches,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+};
 
 use defguard_common::db::{
     Id,
@@ -23,7 +26,6 @@ use defguard_core::{
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -220,7 +222,7 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     let response = client
@@ -2569,7 +2571,7 @@ fn set_enterprise_license() {
         None,
         LicenseTier::Enterprise,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 }
 

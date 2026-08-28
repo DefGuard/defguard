@@ -364,7 +364,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
     let webhook = WebHook {
         id: 1,
         url: "http://x".into(),
-        description: "".into(),
+        description: String::new(),
         token: "t".into(),
         enabled: true,
         on_user_created: false,
@@ -1254,7 +1254,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                         flow_id: 2,
                         position: 1,
                         is_default: true,
-                        group_ids: vec![],
+                        group_ids: Vec::new(),
                     },
                 ],
             }),

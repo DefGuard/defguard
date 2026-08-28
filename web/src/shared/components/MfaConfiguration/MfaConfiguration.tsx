@@ -44,6 +44,7 @@ const methodLabels: Record<MfaFlowMethodValue, string> = {
   [MfaFlowMethod.OpenId]: m.mfa_flow_method_external_provider(),
   [MfaFlowMethod.Email]: m.mfa_flow_method_email_code(),
   [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
+  [MfaFlowMethod.Fido2]: m.mfa_flow_method_fido2(),
 };
 
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {

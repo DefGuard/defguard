@@ -441,7 +441,7 @@ impl Settings {
     }
 
     /// Derive the WebAuthn relying party ID from `defguard_url`.
-    fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
+    pub fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
         let domain = url
             .domain()
@@ -1171,23 +1171,17 @@ mod test {
         config.secret_key = Some(SecretString::from("a".repeat(64)));
         config.enrollment_url = Some(Url::parse("https://proxy.example.com").unwrap());
         config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(75)));
-        config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
-            10 * 24 * 3600,
-        )));
+        config.session_timeout = Some(Duration::from(std::time::Duration::from_hours(240)));
         config.disable_stats_purge = Some(true);
-        config.stats_purge_frequency =
-            Some(Duration::from(std::time::Duration::from_secs(5 * 3600)));
-        config.stats_purge_threshold = Some(Duration::from(std::time::Duration::from_secs(
-            12 * 24 * 3600,
-        )));
-        config.enrollment_token_timeout =
-            Some(Duration::from(std::time::Duration::from_secs(7 * 3600)));
+        config.stats_purge_frequency = Some(Duration::from(std::time::Duration::from_hours(5)));
+        config.stats_purge_threshold = Some(Duration::from(std::time::Duration::from_hours(288)));
+        config.enrollment_token_timeout = Some(Duration::from(std::time::Duration::from_hours(7)));
         config.password_reset_token_timeout =
-            Some(Duration::from(std::time::Duration::from_secs(9 * 3600)));
+            Some(Duration::from(std::time::Duration::from_hours(9)));
         config.enrollment_session_timeout =
-            Some(Duration::from(std::time::Duration::from_secs(15 * 60)));
+            Some(Duration::from(std::time::Duration::from_mins(15)));
         config.password_reset_session_timeout =
-            Some(Duration::from(std::time::Duration::from_secs(20 * 60)));
+            Some(Duration::from(std::time::Duration::from_mins(20)));
 
         settings.apply_from_config(&config);
 
@@ -1538,9 +1532,7 @@ mod test {
 
         let mut config = DefGuardConfig::new_test_config();
         config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(90)));
-        config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
-            2 * 24 * 3600,
-        )));
+        config.session_timeout = Some(Duration::from(std::time::Duration::from_hours(48)));
         config.disable_stats_purge = Some(true);
 
         settings.update_from_config(&pool, &config).await.unwrap();

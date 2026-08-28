@@ -8,7 +8,7 @@ use crate::db::{
     Id, NoId,
     models::{
         WireguardNetwork, biometric_auth::BiometricAuth, user::User,
-        vpn_session_stats::VpnSessionStats,
+        vpn_session_stats::VpnSessionStats, webauthn::WebAuthn,
     },
 };
 
@@ -30,6 +30,7 @@ pub enum VpnClientMfaMethod {
     Oidc,
     Biometric,
     MobileApprove,
+    Fido2,
 }
 
 impl VpnClientMfaMethod {
@@ -65,6 +66,7 @@ impl VpnClientMfaMethod {
             Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
                 .await?
                 .is_empty(),
+            Self::Fido2 => WebAuthn::exists_for_user(executor, user.id).await?,
         };
         Ok(configured)
     }
@@ -229,8 +231,8 @@ mod tests {
 
     use super::VpnClientMfaMethod;
     use crate::db::{
-        Id,
-        models::{Device, DeviceType, User, biometric_auth::BiometricAuth},
+        Id, NoId,
+        models::{Device, DeviceType, User, biometric_auth::BiometricAuth, webauthn::WebAuthn},
         setup_pool,
     };
 
@@ -295,6 +297,12 @@ mod tests {
         );
         assert!(
             !VpnClientMfaMethod::MobileApprove
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+        assert!(
+            !VpnClientMfaMethod::Fido2
                 .is_configured(&pool, &user, device.id, false, false)
                 .await
                 .unwrap()
@@ -364,6 +372,24 @@ mod tests {
         // MobileApprove: the user has a device with a registered biometric auth -> configured.
         assert!(
             VpnClientMfaMethod::MobileApprove
+                .is_configured(&pool, &user, device.id, false, false)
+                .await
+                .unwrap()
+        );
+
+        // FIDO2: the user has a registered security key -> configured. The passkey blob is never
+        // deserialized by the predicate, which only asks whether a key row exists.
+        WebAuthn {
+            id: NoId,
+            user_id: user.id,
+            name: "security-key".to_owned(),
+            passkey: Vec::new(),
+        }
+        .save(&pool)
+        .await
+        .expect("failed to save security key");
+        assert!(
+            VpnClientMfaMethod::Fido2
                 .is_configured(&pool, &user, device.id, false, false)
                 .await
                 .unwrap()

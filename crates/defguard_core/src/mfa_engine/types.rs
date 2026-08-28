@@ -10,6 +10,10 @@
 pub struct StartOutcome {
     pub token: String,
     pub challenge: Option<String>,
+    /// FIDO2 only: the credentials registered for this user, base64url. The
+    /// client offers them to the security key, which answers for the one it
+    /// holds.
+    pub credential_ids: Vec<String>,
     pub superseded_token_hash: Option<String>,
 }
 
@@ -26,6 +30,11 @@ pub struct Proof {
     pub code: Option<String>,
     pub auth_pub_key: Option<String>,
     pub step_attempt_id: Option<String>,
+    /// FIDO2
+    pub auth_data: Option<Vec<u8>>,
+    /// FIDO2: which of the offered credentials signed, base64url. Names the
+    /// security key in use, so verification goes straight to its public key.
+    pub credential_id: Option<String>,
 }
 
 /// Result of `step_start`: the minted attempt id plus an optional biometric / mobile-approve
@@ -34,6 +43,8 @@ pub struct Proof {
 pub struct StepStarted {
     pub step_attempt_id: String,
     pub challenge: Option<String>,
+    /// FIDO2 only: see [`StartOutcome::credential_ids`].
+    pub credential_ids: Vec<String>,
 }
 
 /// Outcome of `finish`.

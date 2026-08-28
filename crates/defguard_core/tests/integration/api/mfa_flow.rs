@@ -1,3 +1,5 @@
+use std::assert_matches;
+
 use defguard_common::db::{
     models::{
         Settings, User, mfa_flow::MfaFlow, settings::update_current_settings,
@@ -9,7 +11,6 @@ use defguard_core::{
     enterprise::license::{get_cached_license, set_cached_license},
     events::ApiEventType,
 };
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -705,7 +706,7 @@ async fn test_location_mfa_flows_clear_disabled_location(
     );
 }
 
-/// Method availability returns all five methods with correct availability.
+/// Method availability returns every method with correct availability.
 #[sqlx::test]
 async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -720,7 +721,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::OK);
     let items = response.json::<serde_json::Value>().await;
     let items = items.as_array().unwrap();
-    assert_eq!(items.len(), 5);
+    assert_eq!(items.len(), 6);
 
     let find = |method: &str| -> &serde_json::Value {
         items
@@ -742,6 +743,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     );
     assert_eq!(find("biometric")["available"].as_bool(), Some(true));
     assert_eq!(find("mobileapprove")["available"].as_bool(), Some(true));
+    assert_eq!(find("fido2")["available"].as_bool(), Some(true));
 
     set_cached_license(None);
     let response = client

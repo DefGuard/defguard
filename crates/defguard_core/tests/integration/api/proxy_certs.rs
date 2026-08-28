@@ -126,7 +126,7 @@ async fn make_test_client_with_proxy_rx(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     );
     set_cached_license(Some(license));
 

@@ -56,7 +56,7 @@ impl TestGrpcServer {
                 .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server_stream)))
                 .await
                 .map_err(|err| eprintln!("Unexpected test gRPC server error: {err}"))
-                .unwrap()
+                .unwrap();
         });
 
         Self {

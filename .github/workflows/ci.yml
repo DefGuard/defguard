@@ -77,7 +77,7 @@ jobs:
           scanners: "vuln"
 
       - name: Install protoc
-        run: apt-get update && apt-get -y install protobuf-compiler
+        run: apt-get update && apt-get -y install libudev-dev protobuf-compiler
 
       - name: Check format
         run: |
@@ -142,7 +142,7 @@ jobs:
         uses: mozilla-actions/sccache-action@1583d6b38d7be47f593cb472781bbb21cab4321e # v0.0.10
 
       - name: Install protoc
-        run: apt-get update && apt-get -y install protobuf-compiler
+        run: apt-get update && apt-get -y install libudev-dev protobuf-compiler
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@9e1e5806d4a4822de933115878265be9aaa786d9 # v2.82.2

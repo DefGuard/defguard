@@ -106,7 +106,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
@@ -390,7 +390,7 @@ async fn test_delete_openid_provider_reports_affected_locations(
         None,
         LicenseTier::Business,
         SupportType::Basic,
-        vec![],
+        Vec::new(),
     )));
 
     // The provider has to exist first: an OIDC flow cannot be saved without one.

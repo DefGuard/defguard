@@ -581,18 +581,8 @@ pub async fn webauthn_finish(
     .map_err(|_| {
         WebError::WebauthnRegistration("Failed to parse passkey registration request data".into())
     })?;
-    info!(
-        "Passkey registration request origin: {}",
-        ccdj.origin.to_string()
-    );
-    info!(
-        "Allowed origins: {:?}",
-        webauthn
-            .get_allowed_origins()
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-    );
+    info!("Passkey registration request origin: {}", ccdj.origin);
+    info!("Allowed origins: {:?}", webauthn.get_allowed_origins());
 
     let passkey = webauthn
         .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)

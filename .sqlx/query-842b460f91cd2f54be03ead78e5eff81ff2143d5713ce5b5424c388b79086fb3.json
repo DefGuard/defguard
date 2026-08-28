@@ -19,7 +19,8 @@
                       "email",
                       "oidc",
                       "biometric",
-                      "mobileapprove"
+                      "mobileapprove",
+                      "fido2"
                     ]
                   }
                 }
