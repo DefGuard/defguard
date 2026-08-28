@@ -1,14 +1,12 @@
 use std::{collections::HashMap, fmt, net::IpAddr, time::Duration};
 
-use base64::{Engine, prelude::BASE64_STANDARD};
 use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
-use rand::{RngCore, rngs::OsRng};
+use rand::rngs::OsRng;
 use rsa::{
     RsaPrivateKey,
     pkcs1::EncodeRsaPrivateKey,
     pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding},
 };
-use secrecy::ExposeSecret;
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::{FromRow, PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
@@ -21,11 +19,13 @@ use webauthn_rs::prelude::WebauthnBuilder;
 
 use self::smtp::{SmtpAuthentication, SmtpEncryption, SmtpSettings, SmtpSettingsPatch};
 use crate::{
-    config::DefGuardConfig, db::Id, global_value, rsa_jwk_thumbprint, secret::SecretStringWrapper,
-    types::AuthFlowType,
+    config::DefGuardConfig, db::Id, global_value, random::gen_alphanumeric, rsa_jwk_thumbprint,
+    secret::SecretStringWrapper, types::AuthFlowType,
 };
 
 pub mod smtp;
+
+const SECRET_KEY_MIN_LEN: usize = 64;
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 pub const OPENID_KEY_SIZE: usize = 2048;
@@ -192,6 +192,7 @@ pub struct Settings {
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
     #[schema(value_type = Option<String>)]
+    #[serde(skip)]
     pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
@@ -224,6 +225,7 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
+    #[serde(skip)]
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
@@ -237,7 +239,9 @@ pub struct Settings {
     pub public_proxy_url: String,
     pub default_admin_id: Option<Id>,
     // 1.6 config options
-    pub secret_key: Option<String>,
+    #[schema(value_type = Option<String>)]
+    #[serde(skip)]
+    secret_key: Option<SecretStringWrapper>,
     #[serde(skip)]
     pub openid_signing_key_der: Option<Vec<u8>>,
     pub enable_stats_purge: bool,
@@ -346,7 +350,11 @@ impl fmt::Debug for Settings {
 }
 
 impl Settings {
-    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsInitializationError> {
+    fn validate_secret_key(&self) -> Result<&str, SettingsInitializationError> {
+        let secret_key = self
+            .secret_key()
+            .ok_or(SettingsInitializationError::Missing("secret_key"))?;
+
         if secret_key.trim().len() != secret_key.len() {
             return Err(SettingsInitializationError::Invalid(
                 "secret_key",
@@ -354,21 +362,34 @@ impl Settings {
             ));
         }
 
-        if secret_key.len() < 64 {
+        if secret_key.len() < SECRET_KEY_MIN_LEN {
             return Err(SettingsInitializationError::Invalid(
                 "secret_key",
                 "must be at least 64 characters long",
             ));
         }
 
-        Ok(())
+        Ok(secret_key)
     }
 
-    /// Generates length 64 random base64 string.
-    fn generate_secret_key() -> String {
-        let mut bytes = [0_u8; 48];
-        OsRng.fill_bytes(&mut bytes);
-        BASE64_STANDARD.encode(bytes)
+    /// Secret key getter.
+    #[must_use]
+    pub fn secret_key(&self) -> Option<&str> {
+        self.secret_key
+            .as_ref()
+            .map(SecretStringWrapper::expose_secret)
+    }
+
+    /// Secret key setter.
+    pub fn set_secret_key(&mut self, secret_key: Option<String>) {
+        self.secret_key = secret_key.map(SecretStringWrapper::from);
+    }
+
+    /// Generate random secret key.
+    fn generate_secret_key(&mut self) {
+        self.secret_key = Some(SecretStringWrapper::from(gen_alphanumeric(
+            SECRET_KEY_MIN_LEN,
+        )));
     }
 
     /// Generates a new RSA private key for OpenID signing and serializes it as PKCS#8 DER.
@@ -700,7 +721,7 @@ impl Settings {
             self.mfa_code_timeout_seconds,
             self.public_proxy_url,
             self.default_admin_id,
-            self.secret_key,
+            &self.secret_key as &Option<SecretStringWrapper>,
             &self.openid_signing_key_der as &Option<Vec<u8>>,
             self.enable_stats_purge,
             self.stats_purge_frequency_hours,
@@ -753,13 +774,10 @@ impl Settings {
 
         let mut settings = Self::get(pool).await?.unwrap_or_default();
 
-        match settings.secret_key.as_deref() {
-            Some(secret_key) => {
-                Self::validate_secret_key(secret_key)?;
-            }
-            None => {
-                settings.secret_key = Some(Self::generate_secret_key());
-            }
+        if settings.secret_key.is_some() {
+            settings.validate_secret_key()?;
+        } else {
+            settings.generate_secret_key();
         }
 
         match settings.openid_signing_key_der.as_deref() {
@@ -869,14 +887,7 @@ impl Settings {
     }
 
     pub fn secret_key_required(&self) -> Result<&str, SettingsInitializationError> {
-        let secret_key = self
-            .secret_key
-            .as_deref()
-            .ok_or(SettingsInitializationError::Missing("secret_key"))?;
-
-        Self::validate_secret_key(secret_key)?;
-
-        Ok(secret_key)
+        self.validate_secret_key()
     }
 
     /// Builds the runtime OpenID signing key from stored DER bytes or returns an error if missing or invalid.
@@ -928,14 +939,12 @@ impl Settings {
             self.defguard_url = url.to_string();
         }
         if let Some(secret_key) = &config.secret_key {
-            let secret_key = secret_key.expose_secret();
-            if let Err(err) = Self::validate_secret_key(secret_key) {
+            self.secret_key = Some(SecretStringWrapper::from(secret_key.to_owned()));
+            if let Err(err) = self.validate_secret_key() {
                 warn!(
                     "Invalid secret_key provided in deprecated config, generating new one: {err}"
                 );
-                self.secret_key = Some(Self::generate_secret_key());
-            } else {
-                self.secret_key = Some(secret_key.to_owned());
+                self.generate_secret_key();
             }
         }
         if let Some(openid_signing_key) = &config.openid_signing_key {
@@ -1092,539 +1101,4 @@ Star us on GitHub! https://github.com/defguard/defguard\
 }
 
 #[cfg(test)]
-mod test {
-    use std::str::FromStr;
-
-    use humantime::Duration;
-    use reqwest::Url;
-    use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
-    use secrecy::SecretString;
-    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-    use super::*;
-    use crate::db::setup_pool;
-
-    #[test]
-    fn test_smtp_config() {
-        let mut settings = Settings::default();
-        assert!(!settings.smtp_configured());
-
-        // incomplete SMTP config
-        settings.smtp.server = Some("localhost".into());
-        settings.smtp.port = Some(587);
-        assert!(!settings.smtp_configured());
-
-        // no-auth SMTP config
-        settings.smtp.sender = Some("no-reply@defguard.net".into());
-        assert!(settings.smtp_configured());
-
-        // add non-default encryption
-        settings.smtp.encryption = SmtpEncryption::StartTls;
-        assert!(settings.smtp_configured());
-
-        // add auth info
-        settings.smtp.user = Some("smtp_user".into());
-        settings.smtp.password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
-        assert!(settings.smtp_configured());
-    }
-
-    #[test]
-    fn dg25_32_test_dont_expose_license_key() {
-        let key = "0000000000000000";
-        let settings = Settings {
-            license: Some(key.to_owned()),
-            ..Default::default()
-        };
-
-        let debug = format!("{settings:?}");
-        assert!(!debug.contains("license"));
-        assert!(!debug.contains(key));
-    }
-
-    #[test]
-    fn test_callback_url() {
-        let mut s = Settings {
-            defguard_url: "https://defguard.example.com".into(),
-            ..Default::default()
-        };
-        assert_eq!(
-            s.callback_url().unwrap().as_str(),
-            "https://defguard.example.com/auth/callback"
-        );
-
-        s.defguard_url = "https://defguard.example.com:8443/path".into();
-        assert_eq!(
-            s.callback_url().unwrap().as_str(),
-            "https://defguard.example.com:8443/path/auth/callback"
-        );
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_apply_from_config_maps_migrated_fields() {
-        let mut settings = Settings {
-            defguard_url: "https://defguard.example.com".into(),
-            ..Default::default()
-        };
-        let mut config = DefGuardConfig::new_test_config();
-
-        config.secret_key = Some(SecretString::from("a".repeat(64)));
-        config.enrollment_url = Some(Url::parse("https://proxy.example.com").unwrap());
-        config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(75)));
-        config.session_timeout = Some(Duration::from(std::time::Duration::from_hours(240)));
-        config.disable_stats_purge = Some(true);
-        config.stats_purge_frequency = Some(Duration::from(std::time::Duration::from_hours(5)));
-        config.stats_purge_threshold = Some(Duration::from(std::time::Duration::from_hours(288)));
-        config.enrollment_token_timeout = Some(Duration::from(std::time::Duration::from_hours(7)));
-        config.password_reset_token_timeout =
-            Some(Duration::from(std::time::Duration::from_hours(9)));
-        config.enrollment_session_timeout =
-            Some(Duration::from(std::time::Duration::from_mins(15)));
-        config.password_reset_session_timeout =
-            Some(Duration::from(std::time::Duration::from_mins(20)));
-
-        settings.apply_from_config(&config);
-
-        assert_eq!(
-            settings.secret_key.as_deref(),
-            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-        );
-        assert_eq!(settings.webauthn_rp_id().unwrap(), "defguard.example.com");
-        assert_eq!(settings.public_proxy_url, "https://proxy.example.com/");
-        assert_eq!(settings.mfa_code_timeout_seconds, 75);
-        assert_eq!(settings.authentication_period_days, 10);
-        assert!(!settings.enable_stats_purge);
-        assert_eq!(settings.stats_purge_frequency_hours, 5);
-        assert_eq!(settings.stats_purge_threshold_days, 12);
-        assert_eq!(settings.enrollment_token_timeout_hours, 7);
-        assert_eq!(settings.password_reset_token_timeout_hours, 9);
-        assert_eq!(settings.enrollment_session_timeout_minutes, 15);
-        assert_eq!(settings.password_reset_session_timeout_minutes, 20);
-    }
-
-    #[test]
-    fn test_apply_from_config_keeps_values_when_config_is_none() {
-        let mut settings = Settings {
-            defguard_url: "https://defguard.example.com".into(),
-            secret_key: Some("z".repeat(64)),
-            public_proxy_url: "https://proxy.initial".into(),
-            mfa_code_timeout_seconds: 123,
-            authentication_period_days: 9,
-            enable_stats_purge: false,
-            ..Default::default()
-        };
-        let config = DefGuardConfig::new_test_config();
-        let existing_secret = "z".repeat(64);
-
-        settings.apply_from_config(&config);
-
-        assert_eq!(
-            settings.secret_key.as_deref(),
-            Some(existing_secret.as_str())
-        );
-        assert_eq!(settings.webauthn_rp_id().unwrap(), "defguard.example.com");
-        assert_eq!(settings.public_proxy_url, "https://proxy.initial");
-        assert_eq!(settings.mfa_code_timeout_seconds, 123);
-        assert_eq!(settings.authentication_period_days, 9);
-        assert!(!settings.enable_stats_purge);
-    }
-
-    #[test]
-    fn test_webauthn_rp_id_rejects_invalid_defguard_url() {
-        let mut settings = Settings {
-            defguard_url: "this is not an url".into(),
-            ..Default::default()
-        };
-        let config = DefGuardConfig::new_test_config();
-
-        settings.apply_from_config(&config);
-
-        assert!(matches!(
-            settings.webauthn_rp_id(),
-            Err(SettingsUrlError::InvalidDefguardUrl(_))
-        ));
-    }
-
-    #[test]
-    fn test_parse_defguard_url_parses_valid_hostname_url() {
-        let settings = Settings {
-            defguard_url: "https://defguard.example.com:8443/path".into(),
-            ..Default::default()
-        };
-
-        let url = settings.parse_defguard_url().unwrap();
-
-        assert_eq!(url.host_str(), Some("defguard.example.com"));
-        assert_eq!(url.port(), Some(8443));
-        assert_eq!(url.path(), "/path");
-    }
-
-    #[test]
-    fn test_parse_defguard_url_rejects_ip_host() {
-        let settings = Settings {
-            defguard_url: "http://127.0.0.1:8000".into(),
-            ..Default::default()
-        };
-
-        assert!(matches!(
-            settings.parse_defguard_url(),
-            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
-        ));
-    }
-
-    #[test]
-    fn test_cookie_domain_derives_from_defguard_url() {
-        let settings = Settings {
-            defguard_url: "https://defguard.example.com:8443/path".into(),
-            ..Default::default()
-        };
-
-        assert_eq!(settings.cookie_domain().unwrap(), "defguard.example.com");
-    }
-
-    #[test]
-    fn test_cookie_domain_allows_localhost() {
-        let settings = Settings {
-            defguard_url: "http://localhost:8000".into(),
-            ..Default::default()
-        };
-
-        assert_eq!(settings.cookie_domain().unwrap(), "localhost");
-    }
-
-    #[test]
-    fn test_cookie_domain_rejects_ip_hosts() {
-        let settings = Settings {
-            defguard_url: "http://127.0.0.1:8000".into(),
-            ..Default::default()
-        };
-
-        assert!(matches!(
-            settings.cookie_domain(),
-            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
-        ));
-    }
-
-    // Regression tests for cookie_secure(): the secure flag on session/auth cookies
-    // must be derived from the defguard_url scheme when cookie_insecure is not set.
-
-    #[test]
-    fn test_cookie_secure_returns_true_for_https_url() {
-        let settings = Settings {
-            defguard_url: "https://defguard.example.com".into(),
-            ..Default::default()
-        };
-
-        assert!(settings.cookie_secure().unwrap());
-    }
-
-    #[test]
-    fn test_cookie_secure_returns_false_for_http_url() {
-        let settings = Settings {
-            defguard_url: "http://defguard.example.com".into(),
-            ..Default::default()
-        };
-
-        assert!(!settings.cookie_secure().unwrap());
-    }
-
-    #[test]
-    fn test_cookie_secure_returns_false_for_http_localhost() {
-        let settings = Settings {
-            defguard_url: "http://localhost:8000".into(),
-            ..Default::default()
-        };
-
-        assert!(!settings.cookie_secure().unwrap());
-    }
-
-    #[test]
-    fn test_cookie_secure_returns_true_for_https_with_port_and_path() {
-        let settings = Settings {
-            defguard_url: "https://defguard.example.com:8443/path".into(),
-            ..Default::default()
-        };
-
-        assert!(settings.cookie_secure().unwrap());
-    }
-
-    #[test]
-    fn test_cookie_secure_propagates_ip_address_error() {
-        let settings = Settings {
-            defguard_url: "https://127.0.0.1:8443".into(),
-            ..Default::default()
-        };
-
-        assert!(matches!(
-            settings.cookie_secure(),
-            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
-        ));
-    }
-
-    #[test]
-    fn test_cookie_secure_propagates_invalid_url_error() {
-        let settings = Settings {
-            defguard_url: "not a url".into(),
-            ..Default::default()
-        };
-
-        assert!(matches!(
-            settings.cookie_secure(),
-            Err(SettingsUrlError::InvalidDefguardUrl(_))
-        ));
-    }
-
-    #[test]
-    fn test_validate_accepts_valid_hostname() {
-        let mut settings = Settings {
-            defguard_url: "https://defguard.example.com".into(),
-            ..Default::default()
-        };
-
-        assert!(settings.validate().is_ok());
-    }
-
-    #[test]
-    fn test_validate_rejects_invalid_url() {
-        let mut settings = Settings {
-            defguard_url: "not a url".into(),
-            ..Default::default()
-        };
-
-        assert!(matches!(
-            settings.validate(),
-            Err(SettingsValidationError::InvalidDefguardUrl(_))
-        ));
-    }
-
-    /// Regression test for https://github.com/DefGuard/defguard/issues/3394
-    ///
-    /// Disabling LDAP remote enrollment while the dependent "send invite" option
-    /// is still set must not fail validation. The value is left untouched - the
-    /// email-sending path guards on both flags, so no invite is sent regardless.
-    #[test]
-    fn test_validate_accepts_send_invite_when_remote_enrollment_disabled() {
-        let mut settings = Settings {
-            defguard_url: "https://defguard.example.com".into(),
-            ldap_remote_enrollment_enabled: false,
-            ldap_remote_enrollment_send_invite: true,
-            ..Default::default()
-        };
-
-        assert!(
-            settings.validate().is_ok(),
-            "disabling remote enrollment must not fail validation when send invite is still set"
-        );
-        assert!(settings.ldap_remote_enrollment_send_invite);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_apply_from_config_invalid_secret_key_generates_new() {
-        let mut settings = Settings::default();
-        let mut config = DefGuardConfig::new_test_config();
-        config.secret_key = Some(SecretString::from(" short ".to_owned()));
-
-        settings.apply_from_config(&config);
-
-        let generated = settings.secret_key.expect("secret key should be generated");
-        assert_eq!(generated.len(), 64);
-        assert_ne!(generated, " short ");
-        assert!(Settings::validate_secret_key(&generated).is_ok());
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_apply_from_config_valid_secret_key_is_used() {
-        let mut settings = Settings::default();
-        let mut config = DefGuardConfig::new_test_config();
-        let valid_secret = "b".repeat(64);
-        config.secret_key = Some(SecretString::from(valid_secret.clone()));
-
-        settings.apply_from_config(&config);
-
-        assert_eq!(settings.secret_key.as_deref(), Some(valid_secret.as_str()));
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_apply_from_config_valid_openid_signing_key_overwrites_existing_value() {
-        let mut settings = Settings {
-            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der().unwrap()),
-            ..Default::default()
-        };
-        let mut config = DefGuardConfig::new_test_config();
-        let configured_key = RsaPrivateKey::new(&mut OsRng, OPENID_KEY_SIZE).unwrap();
-        let expected_der = configured_key.to_pkcs8_der().unwrap().as_bytes().to_vec();
-        config.openid_signing_key = Some(configured_key);
-
-        settings.apply_from_config(&config);
-
-        assert_eq!(settings.openid_signing_key_der, Some(expected_der));
-    }
-
-    #[test]
-    fn test_apply_from_config_keeps_openid_signing_key_when_config_is_none() {
-        let existing = Settings::generate_openid_signing_key_der().unwrap();
-        let mut settings = Settings {
-            openid_signing_key_der: Some(existing.clone()),
-            ..Default::default()
-        };
-        let config = DefGuardConfig::new_test_config();
-
-        settings.apply_from_config(&config);
-
-        assert_eq!(settings.openid_signing_key_der, Some(existing));
-    }
-
-    #[test]
-    fn test_openid_key_required_rejects_missing_key() {
-        let settings = Settings::default();
-
-        assert!(matches!(
-            settings.openid_key_required(),
-            Err(SettingsInitializationError::Missing(
-                "openid_signing_key_der"
-            ))
-        ));
-    }
-
-    #[test]
-    fn test_openid_key_required_rejects_invalid_der() {
-        let settings = Settings {
-            openid_signing_key_der: Some(vec![1, 2, 3]),
-            ..Default::default()
-        };
-
-        assert!(matches!(
-            settings.openid_key_required(),
-            Err(SettingsInitializationError::Invalid(
-                "openid_signing_key_der",
-                _
-            ))
-        ));
-    }
-
-    #[test]
-    fn test_openid_key_required_accepts_valid_der() {
-        let settings = Settings {
-            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der().unwrap()),
-            ..Default::default()
-        };
-
-        assert!(settings.openid_key_required().is_ok());
-    }
-
-    #[sqlx::test]
-    #[allow(deprecated)]
-    async fn test_update_from_config_persists_and_updates_current_settings(
-        _: PgPoolOptions,
-        options: PgConnectOptions,
-    ) {
-        let pool = setup_pool(options).await;
-        initialize_current_settings(&pool).await.unwrap();
-
-        let mut settings = Settings::get_current_settings();
-        settings.defguard_url = "https://defguard.example.com".into();
-        update_current_settings(&pool, settings.clone())
-            .await
-            .unwrap();
-
-        let mut config = DefGuardConfig::new_test_config();
-        config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(90)));
-        config.session_timeout = Some(Duration::from(std::time::Duration::from_hours(48)));
-        config.disable_stats_purge = Some(true);
-
-        settings.update_from_config(&pool, &config).await.unwrap();
-
-        let current = Settings::get_current_settings();
-        let from_db = Settings::get(&pool).await.unwrap().unwrap();
-
-        assert_eq!(current.mfa_code_timeout_seconds, 90);
-        assert_eq!(current.authentication_period_days, 2);
-        assert!(!current.enable_stats_purge);
-
-        assert_eq!(from_db.mfa_code_timeout_seconds, 90);
-        assert_eq!(from_db.authentication_period_days, 2);
-        assert!(!from_db.enable_stats_purge);
-    }
-
-    #[sqlx::test]
-    async fn test_initialize_runtime_defaults_keeps_valid_defguard_url(
-        _: PgPoolOptions,
-        options: PgConnectOptions,
-    ) {
-        let pool = setup_pool(options).await;
-        initialize_current_settings(&pool).await.unwrap();
-
-        let mut settings = Settings::get_current_settings();
-        settings.defguard_url = "https://defguard.example.com:8443/path".into();
-        settings.secret_key = Some("a".repeat(64));
-        update_current_settings(&pool, settings).await.unwrap();
-
-        Settings::initialize_runtime_defaults(&pool).await.unwrap();
-
-        let current = Settings::get_current_settings();
-        let from_db = Settings::get(&pool).await.unwrap().unwrap();
-
-        assert_eq!(current.webauthn_rp_id().unwrap(), "defguard.example.com");
-        assert_eq!(from_db.webauthn_rp_id().unwrap(), "defguard.example.com");
-    }
-
-    #[sqlx::test]
-    async fn test_initialize_runtime_defaults_generates_openid_signing_key(
-        _: PgPoolOptions,
-        options: PgConnectOptions,
-    ) {
-        let pool = setup_pool(options).await;
-        initialize_current_settings(&pool).await.unwrap();
-
-        Settings::initialize_runtime_defaults(&pool).await.unwrap();
-
-        let current = Settings::get_current_settings();
-        let from_db = Settings::get(&pool).await.unwrap().unwrap();
-
-        let current_key = current
-            .openid_signing_key_der
-            .as_deref()
-            .expect("current settings should contain OpenID signing key");
-        let db_key = from_db
-            .openid_signing_key_der
-            .as_deref()
-            .expect("database settings should contain OpenID signing key");
-
-        assert!(RsaPrivateKey::from_pkcs8_der(current_key).is_ok());
-        assert!(RsaPrivateKey::from_pkcs8_der(db_key).is_ok());
-    }
-
-    #[test]
-    fn test_edge_callback_url() {
-        let mut s = Settings {
-            public_proxy_url: "https://edge.example.com".into(),
-            ..Default::default()
-        };
-
-        assert_eq!(
-            s.edge_callback_url(AuthFlowType::Enrollment)
-                .unwrap()
-                .as_str(),
-            "https://edge.example.com/openid/callback"
-        );
-        assert_eq!(
-            s.edge_callback_url(AuthFlowType::Mfa).unwrap().as_str(),
-            "https://edge.example.com/openid/mfa/callback"
-        );
-
-        s.public_proxy_url = "https://edge.example.com:8443/path".into();
-        assert_eq!(
-            s.edge_callback_url(AuthFlowType::Enrollment)
-                .unwrap()
-                .as_str(),
-            "https://edge.example.com:8443/path/openid/callback"
-        );
-        assert_eq!(
-            s.edge_callback_url(AuthFlowType::Mfa).unwrap().as_str(),
-            "https://edge.example.com:8443/path/openid/mfa/callback"
-        );
-    }
-}
+mod tests;
