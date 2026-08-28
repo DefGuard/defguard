@@ -750,11 +750,11 @@ pub fn build_webapp(
     let sse_routes: Router<AppState> = Router::new().nest(
         "/api/v1",
         Router::new()
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-            .route("/proxy/acme/stream", get(stream_proxy_acme))
+            .route("/proxy/setup/stream", post(setup_proxy_tls_stream))
+            .route("/proxy/acme/stream", post(stream_proxy_acme))
             .route(
                 "/network/{network_id}/gateways/setup",
-                get(setup_gateway_tls_stream),
+                post(setup_gateway_tls_stream),
             ),
     );
     let sse_routes = if let Some(conf) = governor_config {
