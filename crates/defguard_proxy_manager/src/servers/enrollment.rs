@@ -77,7 +77,7 @@ impl EnrollmentServer {
 
     /// Checks if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
-        info!("Validating enrollment session. Token: {token:?}");
+        info!("Validating enrollment session.");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
@@ -132,9 +132,8 @@ impl EnrollmentServer {
         request: EnrollmentStartRequest,
         info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<EnrollmentStartResponse, Status> {
-        debug!("Starting enrollment session, request: {request:?}");
+        debug!("Starting enrollment session.");
         // fetch enrollment token
-        debug!("Try to find an enrollment token {}.", request.token);
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if let Some(token_type) = &enrollment.token_type {

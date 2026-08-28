@@ -717,11 +717,7 @@ pub(crate) async fn start_enrollment(
         "User {} created enrollment token for user {username}.",
         session.user.username
     );
-    debug!(
-        "Enrollment token {}, enrollment url {}",
-        enrollment_token,
-        public_proxy_url.to_string()
-    );
+    debug!("Enrollment url {}", public_proxy_url.to_string());
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::EnrollmentTokenAdded { user }),
@@ -816,8 +812,7 @@ pub(crate) async fn start_remote_desktop_configuration(
         session.user.username
     );
     debug!(
-        "Desktop configuration token {}, desktop configuration url {}",
-        desktop_configuration_token,
+        "Desktop configuration url {}",
         public_proxy_url.to_string()
     );
     appstate.emit_event(ApiEvent {
