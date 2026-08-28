@@ -339,6 +339,15 @@ impl EnrollmentServer {
                 "Device with given public key doesn't exist",
             ));
         };
+        if device.user_id != enrollment.user_id {
+            error!(
+                "Enrollment token of user {}({}) does not match device with pubkey {}",
+                user.username, user.id, request.device_pub_key
+            );
+            return Err(Status::unauthenticated(
+                "enrollment token is not valid for specified device",
+            ));
+        }
         BiometricAuth::validate_pubkey(&request.device_pub_key)?;
         let mobile_auth = BiometricAuth::new(device.id, request.auth_pub_key);
         let _ = mobile_auth.save(&self.pool).await.map_err(|err| {
