@@ -4,5 +4,6 @@ mod common;
 mod initial_setup;
 mod migration_wizard;
 mod session_info;
+mod setup_auth;
 mod wizard_init;
 mod wizard_state;

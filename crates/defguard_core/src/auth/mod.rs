@@ -208,10 +208,15 @@ macro_rules! role {
 
 role!(AdminRole, Permission::IsAdmin);
 
-/// Special role that allows access if the user is admin or if the initial setup is not yet completed.
-pub struct AdminOrSetupRole;
+/// Admin role for setup endpoints.
+///
+/// Always requires a session. While the setup wizard is incomplete, it also accepts
+/// the default setup admin (`Settings::default_admin_id`), who may not belong to an
+/// admin group yet because that group is created in a later wizard step. After the
+/// wizard completes, it behaves exactly like `AdminRole`.
+pub struct SetupAdminRole;
 
-impl<S> FromRequestParts<S> for AdminOrSetupRole
+impl<S> FromRequestParts<S> for SetupAdminRole
 where
     S: Send + Sync,
 {
@@ -224,10 +229,6 @@ where
             WebError::DbError("Failed to fetch wizard state".into())
         })?;
         if !wizard.completed {
-            // Allow unauthenticated access only up to the admin creation step.
-            if !wizard.requires_auth(&pool).await? {
-                return Ok(Self {});
-            }
             let session_info = SessionInfo::from_request_parts(parts, state).await?;
             if !session_info.user.is_active {
                 return Err(WebError::Forbidden("user is disabled"));

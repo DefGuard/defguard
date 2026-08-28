@@ -24,7 +24,7 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::{
-        AdminOrSetupRole, SessionInfo,
+        SessionInfo, SetupAdminRole,
         failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
     },
     error::WebError,
@@ -276,7 +276,7 @@ pub struct GeneralConfig {
 }
 
 pub async fn set_general_config(
-    _: AdminOrSetupRole,
+    _: SetupAdminRole,
     Extension(pool): Extension<PgPool>,
     Json(general_config): Json<GeneralConfig>,
 ) -> ApiResult {
@@ -351,7 +351,7 @@ pub struct CreateCA {
 }
 
 pub async fn create_ca(
-    _: AdminOrSetupRole,
+    _: SetupAdminRole,
     Extension(pool): Extension<PgPool>,
     Json(ca_info): Json<CreateCA>,
 ) -> ApiResult {
@@ -387,7 +387,7 @@ pub async fn create_ca(
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
-pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+pub async fn get_ca(_: SetupAdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Fetching certificate authority details");
     let certs = Certificates::get_or_default(&pool)
         .await
@@ -430,7 +430,7 @@ pub struct UploadCA {
 }
 
 pub async fn upload_ca(
-    _: AdminOrSetupRole,
+    _: SetupAdminRole,
     Extension(pool): Extension<PgPool>,
     Json(ca_info): Json<UploadCA>,
 ) -> ApiResult {
@@ -454,7 +454,7 @@ pub async fn upload_ca(
 }
 
 pub async fn finish_setup(
-    _: AdminOrSetupRole,
+    _: SetupAdminRole,
     Extension(pool): Extension<PgPool>,
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> ApiResult {
@@ -521,7 +521,7 @@ pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
     ))
 }
 
-pub async fn proxy_list(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+pub async fn proxy_list(_: SetupAdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let proxies = Proxy::list(&pool).await?;
     let proxies: Vec<ProxyInfo> = proxies.into_iter().map(Into::into).collect();
 

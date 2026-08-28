@@ -57,7 +57,7 @@ use tracing::Instrument;
 use utoipa::ToSchema;
 
 use crate::{
-    auth::{AdminOrSetupRole, SessionInfo},
+    auth::{SessionInfo, SetupAdminRole},
     cert_settings::ensure_https,
     enterprise::{LicenseFeature, has_enterprise_access},
     error::WebError,
@@ -253,7 +253,7 @@ impl SetupFlow {
     )
 )]
 pub async fn setup_proxy_tls_stream(
-    _admin: AdminOrSetupRole,
+    _admin: SetupAdminRole,
     Query(request): Query<ProxySetupRequest>,
     session: SessionInfo,
     Extension(pool): Extension<PgPool>,
@@ -1044,7 +1044,7 @@ async fn perform_gateway_adoption(
     )
 )]
 pub async fn setup_gateway_tls_stream(
-    _admin: AdminOrSetupRole,
+    _admin: SetupAdminRole,
     session: SessionInfo,
     Query(request): Query<GatewaySetupRequest>,
     Path(network_id): Path<Id>,
@@ -1172,7 +1172,7 @@ pub struct GatewayAdoptRequest {
     )
 )]
 pub async fn adopt_gateway(
-    _admin: AdminOrSetupRole,
+    _admin: SetupAdminRole,
     session: SessionInfo,
     Path(network_id): Path<Id>,
     Extension(pool): Extension<PgPool>,
@@ -1244,7 +1244,7 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     )
 )]
 pub async fn stream_proxy_acme(
-    _admin: AdminOrSetupRole,
+    _admin: SetupAdminRole,
     Extension(pool): Extension<PgPool>,
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
