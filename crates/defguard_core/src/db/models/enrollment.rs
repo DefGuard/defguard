@@ -256,7 +256,10 @@ impl Token {
     {
         debug!("Find user by id {}.", self.user_id);
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
-            error!("User not found for enrollment token of user {}", self.user_id);
+            error!(
+                "User not found for enrollment token of user {}",
+                self.user_id
+            );
             return Err(TokenError::UserNotFound);
         };
         debug!("Fetched user {user:?}.");

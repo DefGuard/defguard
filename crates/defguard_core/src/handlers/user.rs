@@ -811,10 +811,7 @@ pub(crate) async fn start_remote_desktop_configuration(
         "User {} started a new desktop activation.",
         session.user.username
     );
-    debug!(
-        "Desktop configuration url {}",
-        public_proxy_url.to_string()
-    );
+    debug!("Desktop configuration url {}", public_proxy_url.to_string());
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::ClientConfigurationTokenAdded { user }),
