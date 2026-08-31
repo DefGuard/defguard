@@ -899,6 +899,11 @@ impl Settings {
             ))
     }
 
+    #[must_use]
+    pub fn configured_public_proxy_url(&self) -> Option<String> {
+        (!self.public_proxy_url.is_empty()).then(|| self.public_proxy_url.clone())
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
@@ -1303,6 +1308,29 @@ mod test {
             settings.cookie_domain(),
             Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
         ));
+    }
+
+    #[test]
+    fn test_configured_public_proxy_url_returns_configured_url() {
+        let settings = Settings {
+            public_proxy_url: "https://edge.example.com".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            settings.configured_public_proxy_url().as_deref(),
+            Some("https://edge.example.com")
+        );
+    }
+
+    #[test]
+    fn test_configured_public_proxy_url_returns_none_for_empty_url() {
+        let settings = Settings {
+            public_proxy_url: String::new(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.configured_public_proxy_url(), None);
     }
 
     // Regression tests for cookie_secure(): the secure flag on session/auth cookies
