@@ -1102,33 +1102,43 @@ pub async fn token(
         }
         CoreGrantType::RefreshToken => {
             debug!("Starting refresh_token flow");
-            if let Some(refresh_token) = form.refresh_token
-                && let Ok(Some(mut token)) =
-                    OAuth2Token::find_by_refresh_token(&appstate.pool, &refresh_token).await
-            {
-                let Some(client) = OAuth2Client::find_by_token(&appstate.pool, &token).await?
-                else {
-                    error!("OAuth client not found for provided refresh_token");
-                    let err = CoreErrorResponseType::InvalidClient;
-                    let response = StandardErrorResponse::new(err, None, None);
-                    return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-                };
+            let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) else {
+                let err = CoreErrorResponseType::InvalidClient;
+                let response = StandardErrorResponse::new(err, None, None);
+                return Ok(ApiResponse::json(response, StatusCode::UNAUTHORIZED));
+            };
 
-                if !client.enabled {
-                    error!("OAuth client id `{}` is disabled", client.name);
-                    let response = StandardErrorResponse::new(
-                        CoreErrorResponseType::UnauthorizedClient,
-                        None,
-                        None,
-                    );
-                    return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-                }
-
-                token.refresh_and_save(&appstate.pool).await?;
-                let response = TokenRequest::refresh_token_flow(&token);
-                token.save(&appstate.pool).await?;
-                return Ok(ApiResponse::json(response, StatusCode::OK));
+            if !client.enabled {
+                error!("OAuth client id `{}` is disabled", client.name);
+                let response = StandardErrorResponse::new(
+                    CoreErrorResponseType::UnauthorizedClient,
+                    None,
+                    None,
+                );
+                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
             }
+
+            let Some(refresh_token) = form.refresh_token else {
+                let err = CoreErrorResponseType::InvalidGrant;
+                let response = StandardErrorResponse::new(err, None, None);
+                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+            };
+            let Some(mut token) = OAuth2Token::find_by_refresh_token_for_client(
+                &appstate.pool,
+                &refresh_token,
+                client.id,
+            )
+            .await?
+            else {
+                let err = CoreErrorResponseType::InvalidGrant;
+                let response = StandardErrorResponse::new(err, None, None);
+                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+            };
+
+            token.refresh_and_save(&appstate.pool).await?;
+            let response = TokenRequest::refresh_token_flow(&token);
+            token.save(&appstate.pool).await?;
+            return Ok(ApiResponse::json(response, StatusCode::OK));
         }
         _ => (), // TODO: Err(CoreErrorResponseType::UnsupportedGrantType),
     }
