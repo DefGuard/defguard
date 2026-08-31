@@ -90,7 +90,7 @@ impl OAuth2Token {
     }
 
     /// Find by access token.
-    pub async fn find_access_token(
+    pub async fn find_by_access_token(
         pool: &PgPool,
         access_token: &str,
     ) -> sqlx::Result<Option<Self>> {
@@ -117,8 +117,8 @@ impl OAuth2Token {
         }
     }
 
-    /// Find by refresh token.
-    pub async fn find_refresh_token(
+    /// Find by refresh token. Expired tokens are removed instead of returned.
+    pub async fn find_by_refresh_token(
         pool: &PgPool,
         refresh_token: &str,
     ) -> sqlx::Result<Option<Self>> {
@@ -128,6 +128,38 @@ impl OAuth2Token {
             expires_in \
             FROM oauth2token WHERE refresh_token = $1",
             refresh_token
+        )
+        .fetch_optional(pool)
+        .await
+        {
+            Ok(Some(token)) => {
+                if token.is_expired() {
+                    token.delete(pool).await?;
+                    Ok(None)
+                } else {
+                    Ok(Some(token))
+                }
+            }
+            Ok(None) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Find by refresh token for a specific OAuth2 client. Expired tokens are removed instead of returned.
+    pub async fn find_by_refresh_token_for_client(
+        pool: &PgPool,
+        refresh_token: &str,
+        oauth2client_id: Id,
+    ) -> sqlx::Result<Option<Self>> {
+        match query_as!(
+            Self,
+            "SELECT t.oauth2authorizedapp_id, t.access_token, t.refresh_token, t.redirect_uri, t.scope, \
+            t.expires_in \
+            FROM oauth2token t \
+            JOIN oauth2authorizedapp a ON a.id = t.oauth2authorizedapp_id \
+            WHERE t.refresh_token = $1 AND a.oauth2client_id = $2",
+            refresh_token,
+            oauth2client_id,
         )
         .fetch_optional(pool)
         .await

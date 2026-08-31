@@ -1104,7 +1104,7 @@ pub async fn token(
             debug!("Starting refresh_token flow");
             if let Some(refresh_token) = form.refresh_token
                 && let Ok(Some(mut token)) =
-                    OAuth2Token::find_refresh_token(&appstate.pool, &refresh_token).await
+                    OAuth2Token::find_by_refresh_token(&appstate.pool, &refresh_token).await
             {
                 let Some(client) = OAuth2Client::find_by_token(&appstate.pool, &token).await?
                 else {
@@ -1173,7 +1173,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
         return Err(WebError::Authorization("Invalid session".into()));
     };
 
-    let Some(oauth2token) = OAuth2Token::find_access_token(&appstate.pool, token).await? else {
+    let Some(oauth2token) = OAuth2Token::find_by_access_token(&appstate.pool, token).await? else {
         return Err(WebError::Authorization("Invalid token".into()));
     };
 
