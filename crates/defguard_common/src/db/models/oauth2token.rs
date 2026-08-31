@@ -50,6 +50,8 @@ impl OAuth2Token {
         )
         .execute(pool)
         .await?;
+        self.access_token = new_access_token;
+        self.refresh_token = new_refresh_token;
         Ok(())
     }
 

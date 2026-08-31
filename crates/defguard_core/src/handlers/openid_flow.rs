@@ -1137,7 +1137,6 @@ pub async fn token(
 
             token.refresh_and_save(&appstate.pool).await?;
             let response = TokenRequest::refresh_token_flow(&token);
-            token.save(&appstate.pool).await?;
             return Ok(ApiResponse::json(response, StatusCode::OK));
         }
         _ => (), // TODO: Err(CoreErrorResponseType::UnsupportedGrantType),
