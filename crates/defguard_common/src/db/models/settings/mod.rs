@@ -192,7 +192,6 @@ pub struct Settings {
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
     #[schema(value_type = Option<String>)]
-    #[serde(skip)]
     pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
@@ -225,7 +224,6 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
-    #[serde(skip)]
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,

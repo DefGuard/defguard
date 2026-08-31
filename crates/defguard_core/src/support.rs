@@ -29,8 +29,10 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
     // App settings DB records
     let settings = match Settings::get(&mut *conn).await {
         Ok(Some(mut settings)) => {
+            // Hide sensitive fields.
             settings.smtp.password = None;
             settings.ldap_bind_password = None;
+            settings.license = None;
             json!(settings)
         }
         Ok(None) => json!({"error": "Settings not found"}),
