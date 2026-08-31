@@ -91,6 +91,20 @@ impl OAuth2Token {
         Ok(())
     }
 
+    /// Delete all tokens for an authorized app.
+    pub async fn delete_all_by_authorized_app_id(
+        pool: &PgPool,
+        oauth2authorizedapp_id: Id,
+    ) -> sqlx::Result<()> {
+        query!(
+            "DELETE FROM oauth2token WHERE oauth2authorizedapp_id = $1",
+            oauth2authorizedapp_id,
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
     /// Find by access token.
     pub async fn find_by_access_token(
         pool: &PgPool,

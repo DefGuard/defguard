@@ -1029,15 +1029,12 @@ pub async fn token(
                                     "Issuing new token for user {} client {}",
                                     user.username, client.name
                                 );
-                                // Remove existing token in case the same client asks for new token.
-                                if let Some(token) = OAuth2Token::find_by_authorized_app_id(
+                                // Remove existing tokens in case the same client asks for a new token.
+                                OAuth2Token::delete_all_by_authorized_app_id(
                                     &appstate.pool,
                                     authorized_app.id,
                                 )
-                                .await?
-                                {
-                                    token.delete(&appstate.pool).await?;
-                                }
+                                .await?;
                                 let token = OAuth2Token::new(
                                     authorized_app.id,
                                     auth_code.redirect_uri.clone(),
