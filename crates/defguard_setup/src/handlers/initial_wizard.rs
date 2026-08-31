@@ -454,11 +454,23 @@ pub async fn upload_ca(
 }
 
 pub async fn finish_setup(
+    cookies: CookieJar,
     _: AdminOrSetupRole,
     Extension(pool): Extension<PgPool>,
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
-) -> ApiResult {
+) -> Result<(CookieJar, ApiResponse), WebError> {
     info!("Finishing initial setup");
+
+    let default_admin_id = Settings::get_current_settings()
+        .default_admin_id
+        .ok_or_else(|| WebError::DbError("Default admin user ID not set in settings".into()))?;
+    let admin_user = User::find_by_id(&pool, default_admin_id)
+        .await?
+        .ok_or_else(|| {
+            WebError::ObjectNotFound(format!(
+                "Default admin user with ID '{default_admin_id}' not found"
+            ))
+        })?;
 
     let mut wizard = Wizard::get(&pool).await?;
     InitialSetupState {
@@ -469,6 +481,9 @@ pub async fn finish_setup(
     wizard.completed = true;
     wizard.active_wizard = ActiveWizard::None;
     wizard.save(&pool).await?;
+
+    admin_user.logout_all_sessions(&pool).await?;
+
     if let Some(tx) = setup_shutdown_tx
         .lock()
         .expect("Failed to lock setup shutdown sender")
@@ -482,7 +497,9 @@ pub async fn finish_setup(
         ));
     }
 
-    Ok(ApiResponse::with_status(StatusCode::OK))
+    let cookies = cookies.remove(Cookie::build((SESSION_COOKIE_NAME, "")).path("/"));
+
+    Ok((cookies, ApiResponse::with_status(StatusCode::OK)))
 }
 
 #[derive(Serialize)]
