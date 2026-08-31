@@ -13,11 +13,10 @@ use axum_extra::{
 use defguard_common::db::{
     Id,
     models::{
-        OAuth2Token, Session, SessionState, Settings,
+        OAuth2Token, Session, SessionState,
         group::{Group, Permission},
         oauth2client::OAuth2Client,
         user::User,
-        wizard::Wizard,
     },
 };
 use sqlx::PgPool;
@@ -207,67 +206,6 @@ macro_rules! role {
 }
 
 role!(AdminRole, Permission::IsAdmin);
-
-/// Admin role for setup endpoints.
-///
-/// Always requires a session. While the setup wizard is incomplete, it also accepts
-/// the default setup admin (`Settings::default_admin_id`), who may not belong to an
-/// admin group yet because that group is created in a later wizard step. After the
-/// wizard completes, it behaves exactly like `AdminRole`.
-pub struct SetupAdminRole;
-
-impl<S> FromRequestParts<S> for SetupAdminRole
-where
-    S: Send + Sync,
-{
-    type Rejection = WebError;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let pool = extract_pool(parts, state).await?;
-        let wizard = Wizard::get(&pool).await.map_err(|err| {
-            error!("Failed to fetch wizard state: {err}");
-            WebError::DbError("Failed to fetch wizard state".into())
-        })?;
-        if !wizard.completed {
-            let session_info = SessionInfo::from_request_parts(parts, state).await?;
-            if !session_info.user.is_active {
-                return Err(WebError::Forbidden("user is disabled"));
-            }
-            let settings = Settings::get_current_settings();
-            if let Some(default_admin_id) = settings.default_admin_id
-                && session_info.user.id == default_admin_id
-            {
-                return Ok(Self {});
-            }
-            let pool = extract_pool(parts, state).await?;
-            let groups_with_permission =
-                Group::find_by_permission(&pool, Permission::IsAdmin).await?;
-            let group_names = groups_with_permission
-                .iter()
-                .map(|group| group.name.as_str())
-                .collect::<Vec<_>>();
-            if session_info.contains_any_group(&group_names) {
-                return Ok(Self {});
-            }
-            return Err(WebError::Forbidden("access denied"));
-        }
-
-        let session_info = SessionInfo::from_request_parts(parts, state).await?;
-        if !session_info.user.is_active {
-            return Err(WebError::Forbidden("user is disabled"));
-        }
-        let pool = extract_pool(parts, state).await?;
-        let groups_with_permission = Group::find_by_permission(&pool, Permission::IsAdmin).await?;
-        let group_names = groups_with_permission
-            .iter()
-            .map(|group| group.name.as_str())
-            .collect::<Vec<_>>();
-        if session_info.contains_any_group(&group_names) {
-            return Ok(Self {});
-        }
-        Err(WebError::Forbidden("access denied"))
-    }
-}
 
 async fn extract_pool<S>(parts: &mut Parts, state: &S) -> Result<PgPool, WebError>
 where

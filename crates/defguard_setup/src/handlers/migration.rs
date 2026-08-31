@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use axum::{Extension, Json};
 use defguard_common::db::models::{ActiveWizard, Wizard, migration_wizard::MigrationWizardState};
 use defguard_core::{
-    auth::SetupAdminRole,
+    auth::AdminRole,
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -19,16 +19,13 @@ use crate::handlers::auto_wizard::{
     apply_internal_url_settings,
 };
 
-pub async fn get_migration_state(
-    _: SetupAdminRole,
-    Extension(pool): Extension<PgPool>,
-) -> ApiResult {
+pub async fn get_migration_state(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let migration_state = MigrationWizardState::get(&pool).await?.unwrap_or_default();
     Ok(ApiResponse::new(json!(migration_state), StatusCode::OK))
 }
 
 pub async fn update_migration_state(
-    _: SetupAdminRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(data): Json<MigrationWizardState>,
 ) -> ApiResult {
@@ -45,7 +42,7 @@ pub struct GeneralConfig {
 }
 
 pub async fn finish_setup(
-    _: SetupAdminRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> ApiResult {
@@ -78,7 +75,7 @@ pub async fn finish_setup(
 }
 
 pub async fn migration_set_internal_url_settings(
-    _: SetupAdminRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<InternalUrlSettingsConfig>,
 ) -> ApiResult {
@@ -92,7 +89,7 @@ pub async fn migration_set_internal_url_settings(
 }
 
 pub async fn migration_set_external_url_settings(
-    _: SetupAdminRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<ExternalUrlSettingsConfig>,
 ) -> ApiResult {
