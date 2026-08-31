@@ -472,6 +472,123 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_finish_setup_clears_session_cookie(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie was not cleared");
+    assert_eq!(session_cookie.value(), "");
+    assert_eq!(session_cookie.path(), Some("/"));
+}
+
+#[sqlx::test]
+async fn test_finish_setup_deletes_all_admin_sessions(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let first_session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Initial session cookie not set")
+        .value()
+        .to_owned();
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .json(&json!({
+            "username": "admin1",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to log in during setup");
+    assert_eq!(response.status(), StatusCode::OK);
+    let second_session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Relogin session cookie not set")
+        .value()
+        .to_owned();
+    assert_ne!(first_session_id, second_session_id);
+
+    let admin_user = User::find_by_username(&pool, "admin1")
+        .await
+        .expect("Failed to fetch admin user")
+        .expect("Admin user not found");
+    let session_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM session WHERE user_id = $1")
+        .bind(admin_user.id)
+        .fetch_one(&pool)
+        .await
+        .expect("Failed to count admin sessions");
+    assert_eq!(session_count, 2);
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM session WHERE user_id = $1")
+        .bind(admin_user.id)
+        .fetch_one(&pool)
+        .await
+        .expect("Failed to count admin sessions");
+    assert_eq!(session_count, 0);
+}
+
+#[sqlx::test]
 async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
@@ -622,9 +739,11 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     let session = Session::find_by_id(&pool, &session_cookie_value)
         .await
-        .expect("Failed to fetch session")
-        .expect("Session not created");
-    assert_eq!(session.user_id, admin_user.id);
+        .expect("Failed to fetch session");
+    assert!(
+        session.is_none(),
+        "Session still exists after setup finished"
+    );
 
     let shutdown_signal = timeout(SHUTDOWN_TIMEOUT, shutdown_notify.notified()).await;
     assert!(shutdown_signal.is_ok());
