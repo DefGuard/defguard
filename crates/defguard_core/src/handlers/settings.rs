@@ -108,9 +108,9 @@ pub(crate) async fn update_settings(
     update_current_settings(&appstate.pool, data).await?;
     update_cached_license(license.as_deref())?;
 
-    // If SMTP configuration changed (e.g. server/port/sender toggled),
-    // push updated password-reset visibility to all connected proxies.
-    if before.smtp_configured() != after.smtp_configured()
+    // If SMTP configuration or the public proxy URL changed, push updated
+    // public settings to all connected proxies.
+    if before.edge_public_settings_changed(&after)
         && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
     {
         let display_password_reset = enterprise_settings.edge_can_display_password_reset();
@@ -123,7 +123,7 @@ pub(crate) async fn update_settings(
             })
             .await
         {
-            error!("Failed to broadcast PublicSettings after SMTP config change: {err:?}");
+            error!("Failed to broadcast PublicSettings after settings change: {err:?}");
         }
     }
 
@@ -315,9 +315,9 @@ pub async fn patch_settings(
         debug!("Updated cached license after saving settings patch");
     }
 
-    // If SMTP configuration changed (e.g. server/port/sender toggled),
-    // push updated password-reset visibility to all connected proxies.
-    if before.smtp_configured() != after.smtp_configured()
+    // If SMTP configuration or the public proxy URL changed, push updated
+    // public settings to all connected proxies.
+    if before.edge_public_settings_changed(&after)
         && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
     {
         let display_password_reset = enterprise_settings.edge_can_display_password_reset();
@@ -330,7 +330,7 @@ pub async fn patch_settings(
             })
             .await
         {
-            error!("Failed to broadcast PublicSettings after SMTP config change: {err:?}");
+            error!("Failed to broadcast PublicSettings after settings change: {err:?}");
         }
     }
 

@@ -904,6 +904,12 @@ impl Settings {
         (!self.public_proxy_url.is_empty()).then(|| self.public_proxy_url.clone())
     }
 
+    #[must_use]
+    pub fn edge_public_settings_changed(&self, other: &Self) -> bool {
+        self.smtp_configured() != other.smtp_configured()
+            || self.public_proxy_url != other.public_proxy_url
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
@@ -1331,6 +1337,47 @@ mod test {
         };
 
         assert_eq!(settings.configured_public_proxy_url(), None);
+    }
+
+    #[test]
+    fn test_public_settings_changed_returns_false_for_identical_settings() {
+        let settings = Settings::default();
+
+        assert!(!settings.edge_public_settings_changed(&settings));
+    }
+
+    #[test]
+    fn test_public_settings_changed_returns_false_for_unrelated_change() {
+        let before = Settings::default();
+        let mut after = before.clone();
+        after.instance_name = "Changed name".into();
+
+        assert!(!before.edge_public_settings_changed(&after));
+    }
+
+    #[test]
+    fn test_public_settings_changed_returns_true_for_smtp_state_change() {
+        let before = Settings::default();
+        let mut after = before.clone();
+        after.smtp.server = Some("smtp.example.com".into());
+        after.smtp.port = Some(587);
+        after.smtp.sender = Some("noreply@example.com".into());
+
+        assert!(!before.smtp_configured());
+        assert!(after.smtp_configured());
+        assert!(before.edge_public_settings_changed(&after));
+    }
+
+    #[test]
+    fn test_public_settings_changed_returns_true_for_public_proxy_url_change() {
+        let before = Settings {
+            public_proxy_url: "https://old.example.com".into(),
+            ..Default::default()
+        };
+        let mut after = before.clone();
+        after.public_proxy_url = "http://new.example.com".into();
+
+        assert!(before.edge_public_settings_changed(&after));
     }
 
     // Regression tests for cookie_secure(): the secure flag on session/auth cookies

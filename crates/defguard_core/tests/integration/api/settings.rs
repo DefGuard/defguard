@@ -469,3 +469,98 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
         "BroadcastPublicSettings should have been sent after SMTP config change"
     );
 }
+
+/// Changing only the public proxy URL through the PATCH settings API must
+/// broadcast the new URL to connected proxies.
+#[sqlx::test]
+async fn test_public_proxy_url_patch_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+    while proxy_control_rx.try_recv().is_ok() {}
+
+    let mut current_settings = Settings::get_current_settings();
+    current_settings.public_proxy_url = "https://proxy.example.com".to_owned();
+    update_current_settings(&client_state.pool, current_settings)
+        .await
+        .unwrap();
+
+    let expected_public_url = "http://proxy.example.com";
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({ "public_proxy_url": expected_public_url }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    sleep(Duration::from_millis(100)).await;
+
+    let mut found = false;
+    while let Ok(message) = proxy_control_rx.try_recv() {
+        if let ProxyControlMessage::BroadcastPublicSettings { public_url, .. } = message {
+            assert_eq!(
+                public_url.as_deref(),
+                Some(expected_public_url),
+                "public_url should match the patched proxy URL"
+            );
+            found = true;
+        }
+    }
+    assert!(
+        found,
+        "BroadcastPublicSettings should be sent after public proxy URL patch"
+    );
+}
+
+/// Changing only the public proxy URL through the PUT settings API must
+/// broadcast the new URL to connected proxies.
+#[sqlx::test]
+async fn test_public_proxy_url_update_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+    while proxy_control_rx.try_recv().is_ok() {}
+
+    let mut current_settings = Settings::get_current_settings();
+    current_settings.public_proxy_url = "https://proxy.example.com".to_owned();
+    update_current_settings(&client_state.pool, current_settings)
+        .await
+        .unwrap();
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut settings: Settings = response.json().await;
+    let expected_public_url = "http://proxy.example.com";
+    settings.public_proxy_url = expected_public_url.to_owned();
+
+    let response = client.put("/api/v1/settings").json(&settings).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    sleep(Duration::from_millis(100)).await;
+
+    let mut found = false;
+    while let Ok(message) = proxy_control_rx.try_recv() {
+        if let ProxyControlMessage::BroadcastPublicSettings { public_url, .. } = message {
+            assert_eq!(
+                public_url.as_deref(),
+                Some(expected_public_url),
+                "public_url should match the updated proxy URL"
+            );
+            found = true;
+        }
+    }
+    assert!(
+        found,
+        "BroadcastPublicSettings should be sent after public proxy URL update"
+    );
+}
