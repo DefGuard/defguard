@@ -179,11 +179,11 @@ where
                 && let Some((client_id, client_secret)) = auth_pair.split_once(':')
             {
                 let appstate = AppState::from_ref(state);
-                return Ok(Self(
-                    OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
-                        .await
-                        .map_err(WebError::from)?,
-                ));
+                let client = OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
+                    .await
+                    .map_err(WebError::from)?
+                    .ok_or_else(|| WebError::Authorization("Invalid credentials".into()))?;
+                return Ok(Self(Some(client)));
             }
             Err(WebError::Authorization("Invalid credentials".into()))
         } else {
