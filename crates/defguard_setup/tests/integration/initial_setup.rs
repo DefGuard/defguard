@@ -13,7 +13,7 @@ use defguard_common::{
             Certificates, Session, Settings, User,
             group::Group,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
-            settings::initialize_current_settings,
+            settings::{initialize_current_settings, set_settings},
             wizard::Wizard,
         },
         setup_pool,
@@ -30,7 +30,7 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{
     net::TcpListener,
-    sync::{Notify, oneshot},
+    sync::{Notify, oneshot, oneshot::error::TryRecvError},
     time::timeout,
 };
 
@@ -418,6 +418,72 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(pem.contains("BEGIN CERTIFICATE"));
 
     assert_setup_step(&pool, InitialSetupStep::EdgeComponent).await;
+}
+
+#[sqlx::test]
+async fn test_finish_setup_rejects_invalid_admin_configuration(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, mut shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    assert_eq!(
+        Settings::get_current_settings().default_admin_id,
+        None,
+        "Test must start without a default admin ID"
+    );
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup without an admin ID");
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .expect("Failed to parse missing-admin response");
+    assert_eq!(body["msg"], "Internal server error");
+
+    let wizard = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state");
+    assert!(!wizard.completed);
+    assert_setup_step(&pool, InitialSetupStep::Welcome).await;
+    assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
+
+    let dangling_admin_id = i64::MAX;
+    let original_settings = Settings::get_current_settings();
+    let mut settings = original_settings.clone();
+    settings.default_admin_id = Some(dangling_admin_id);
+    set_settings(Some(settings));
+
+    let response = client.post("/api/v1/initial_setup/finish").send().await;
+    set_settings(Some(original_settings));
+    let response = response.expect("Failed to finish setup with a dangling admin ID");
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .expect("Failed to parse dangling-admin response");
+    assert_eq!(
+        body["msg"],
+        format!("Default admin user with ID '{dangling_admin_id}' not found")
+    );
+
+    let wizard = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state");
+    assert!(!wizard.completed);
+    assert_setup_step(&pool, InitialSetupStep::Welcome).await;
+    assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
 }
 
 #[sqlx::test]
