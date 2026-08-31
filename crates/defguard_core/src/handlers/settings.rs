@@ -119,6 +119,7 @@ pub(crate) async fn update_settings(
             .send(ProxyControlMessage::BroadcastPublicSettings {
                 display_password_reset,
                 display_download_step: enterprise_settings.display_download_step,
+                public_url: after.configured_public_proxy_url(),
             })
             .await
         {
@@ -325,6 +326,7 @@ pub async fn patch_settings(
             .send(ProxyControlMessage::BroadcastPublicSettings {
                 display_password_reset,
                 display_download_step: enterprise_settings.display_download_step,
+                public_url: after.configured_public_proxy_url(),
             })
             .await
         {

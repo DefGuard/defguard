@@ -714,6 +714,7 @@ pub async fn run_periodic_license_check(
                 .send(ProxyControlMessage::BroadcastPublicSettings {
                     display_password_reset: settings.smtp_configured(),
                     display_download_step: true,
+                    public_url: settings.configured_public_proxy_url(),
                 })
                 .await
             {

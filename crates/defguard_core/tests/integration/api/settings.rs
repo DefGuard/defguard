@@ -417,6 +417,7 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
 
     // Drain any messages sent during setup (e.g. from app startup).
     while proxy_control_rx.try_recv().is_ok() {}
+    let expected_public_url = Settings::get_current_settings().public_proxy_url;
 
     // Patch settings to enable SMTP.  Previously SMTP is unconfigured, so
     // smtp_configured() transitions from false → true and the handler must
@@ -442,6 +443,7 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
             Ok(ProxyControlMessage::BroadcastPublicSettings {
                 display_password_reset,
                 display_download_step,
+                public_url,
             }) => {
                 assert!(
                     display_password_reset,
@@ -450,6 +452,11 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
                 assert!(
                     display_download_step,
                     "display_download_step should remain the enterprise default"
+                );
+                assert_eq!(
+                    public_url.as_deref(),
+                    Some(expected_public_url.as_str()),
+                    "public_url should match the configured proxy URL"
                 );
                 found = true;
             }

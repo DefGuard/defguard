@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use axum::{Json, extract::State, http::StatusCode};
-use defguard_common::{db::Id, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    db::{Id, models::Settings},
+    types::proxy::ProxyControlMessage,
+};
 use sqlx::{PgConnection, PgPool, query_scalar};
 use struct_patch::Patch;
 
@@ -210,6 +213,7 @@ pub async fn patch_enterprise_settings(
             .send(ProxyControlMessage::BroadcastPublicSettings {
                 display_password_reset: settings.edge_can_display_password_reset(),
                 display_download_step: settings.display_download_step,
+                public_url: Settings::get_current_settings().configured_public_proxy_url(),
             })
             .await
     {

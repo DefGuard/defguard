@@ -418,6 +418,7 @@ impl ProxyHandler {
                 let public_settings = PublicSettings {
                     display_password_reset: settings.edge_can_display_password_reset(),
                     display_download_step: settings.display_download_step,
+                    public_url: Settings::get_current_settings().configured_public_proxy_url(),
                 };
                 let _ = tx.send(CoreResponse {
                     id: 0,
@@ -1233,6 +1234,7 @@ impl ProxyHandler {
             let public_settings = PublicSettings {
                 display_password_reset: settings.edge_can_display_password_reset(),
                 display_download_step: settings.display_download_step,
+                public_url: Settings::get_current_settings().configured_public_proxy_url(),
             };
             let _ = tx.send(CoreResponse {
                 id: 0,
