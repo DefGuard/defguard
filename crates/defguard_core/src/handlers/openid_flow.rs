@@ -1105,16 +1105,6 @@ pub async fn token(
                 return Ok(ApiResponse::json(response, StatusCode::UNAUTHORIZED));
             };
 
-            if !client.enabled {
-                error!("OAuth client id `{}` is disabled", client.name);
-                let response = StandardErrorResponse::new(
-                    CoreErrorResponseType::UnauthorizedClient,
-                    None,
-                    None,
-                );
-                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-            }
-
             let Some(refresh_token) = form.refresh_token else {
                 let err = CoreErrorResponseType::InvalidGrant;
                 let response = StandardErrorResponse::new(err, None, None);

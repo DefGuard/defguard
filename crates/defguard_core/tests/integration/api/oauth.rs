@@ -1041,6 +1041,41 @@ async fn dg2608_3_test_refresh_token_rejects_wrong_client_credentials(
     assert_eq!(body["error"], "invalid_client");
 }
 
+/// Regression test for DG2608-3: a disabled client must be rejected as an invalid client.
+#[sqlx::test]
+async fn dg2608_3_test_disabled_client_refresh_returns_invalid_client(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (oauth_client, _, _, refresh_token) = issue_token_pair(&client, &pool).await;
+
+    let response = client
+        .post(format!("/api/v1/oauth/{}", oauth_client.client_id))
+        .json(&json!({"enabled": false}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=refresh_token&\
+            refresh_token={refresh_token}&\
+            client_id={}&\
+            client_secret={}",
+            oauth_client.client_id, oauth_client.client_secret
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body: Value = response.json().await;
+    assert_eq!(body["error"], "invalid_client");
+}
+
 /// Regression test for DG2608-3: redeeming a refresh token must rotate the pair and must not leave
 /// stale rows behind.
 #[sqlx::test]
