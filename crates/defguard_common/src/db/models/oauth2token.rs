@@ -31,7 +31,12 @@ impl OAuth2Token {
         }
     }
 
-    /// Generate new access token, scratching the old one. Changes are reflected in the database.
+    /// Atomically rotate this token pair in the database.
+    ///
+    /// Returns `Ok(true)` when exactly one row matching the current refresh token was updated.
+    /// Returns `Ok(false)` when the conditional update did not affect exactly one row, typically
+    /// because another request already consumed and rotated the refresh token.
+    /// Database failures are returned as `Err`.
     pub async fn refresh_and_save(&mut self, pool: &PgPool) -> sqlx::Result<bool> {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();

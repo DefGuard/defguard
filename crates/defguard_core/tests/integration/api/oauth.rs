@@ -1004,7 +1004,7 @@ async fn dg2608_3_test_refresh_token_rejects_wrong_client_credentials(
 
     let (_, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
 
-    // "isec:isec", base64-encoded - the wrong-credentials request from the audit report.
+    // "isec:isec", base64-encoded.
     let response = client
         .post("/api/v1/oauth/token")
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
@@ -1025,7 +1025,7 @@ async fn dg2608_3_test_refresh_token_rejects_wrong_client_credentials(
         "expected the extractor to reject the request, got {body}"
     );
 
-    // The same credentials in the form body, which the extractor never sees.
+    // The same credentials in the form body.
     let response = client
         .post("/api/v1/oauth/token")
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
