@@ -139,34 +139,6 @@ impl OAuth2Token {
         }
     }
 
-    /// Find by refresh token. Expired tokens are removed instead of returned.
-    pub async fn find_by_refresh_token(
-        pool: &PgPool,
-        refresh_token: &str,
-    ) -> sqlx::Result<Option<Self>> {
-        match query_as!(
-            Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
-            expires_in \
-            FROM oauth2token WHERE refresh_token = $1",
-            refresh_token
-        )
-        .fetch_optional(pool)
-        .await
-        {
-            Ok(Some(token)) => {
-                if token.is_expired() {
-                    token.delete(pool).await?;
-                    Ok(None)
-                } else {
-                    Ok(Some(token))
-                }
-            }
-            Ok(None) => Ok(None),
-            Err(err) => Err(err),
-        }
-    }
-
     /// Find by refresh token for a specific OAuth2 client. Expired tokens are removed instead of returned.
     pub async fn find_by_refresh_token_for_client(
         pool: &PgPool,
