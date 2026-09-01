@@ -1230,10 +1230,10 @@ async fn apply_acme_certificate(
     cert_pem: String,
     key_pem: String,
 ) {
-    let mut settings = Settings::get_current_settings();
-    let previous_public_proxy_url = settings.public_proxy_url.clone();
+    let before = Settings::get_current_settings();
+    let mut settings = before.clone();
     settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
-    let public_url_changed = previous_public_proxy_url != settings.public_proxy_url;
+    let edge_settings_changed = before.edge_public_settings_changed(&settings);
     let settings_updated = match update_current_settings(pool, settings).await {
         Ok(()) => true,
         Err(err) => {
@@ -1253,7 +1253,7 @@ async fn apply_acme_certificate(
     }
 
     if settings_updated
-        && public_url_changed
+        && edge_settings_changed
         && let Some(tx) = proxy_control_tx
     {
         let settings = Settings::get_current_settings();

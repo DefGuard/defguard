@@ -143,7 +143,7 @@ pub(crate) async fn set_external_url_settings(
     }
 
     let after = Settings::get_current_settings();
-    if before.public_proxy_url != after.public_proxy_url {
+    if before.edge_public_settings_changed(&after) {
         broadcast_public_settings(&pool, &after, &appstate.proxy_control_tx).await;
     }
 
