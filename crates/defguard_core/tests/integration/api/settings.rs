@@ -11,8 +11,11 @@ use defguard_common::{
 use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use serde_json::json;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::time::sleep;
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
+use tokio::{sync::mpsc, time::timeout};
 
 use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
@@ -398,6 +401,62 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     );
 }
 
+/// The fields of a `BroadcastPublicSettings` control message, so assertions read by name rather
+/// than by tuple position.
+struct PublicSettingsBroadcast {
+    display_password_reset: bool,
+    display_download_step: bool,
+    public_url: Option<String>,
+}
+
+/// How long to wait for a broadcast the handler emits asynchronously.
+const BROADCAST_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Wait for the next `BroadcastPublicSettings`, skipping unrelated control messages. Awaits the
+/// channel rather than sleeping and polling, so the test neither races the handler nor pays a
+/// fixed delay. Panics on timeout so a missing broadcast fails instead of hanging.
+async fn next_public_settings_broadcast(
+    proxy_control_rx: &mut mpsc::Receiver<ProxyControlMessage>,
+) -> PublicSettingsBroadcast {
+    timeout(BROADCAST_TIMEOUT, async {
+        loop {
+            match proxy_control_rx.recv().await {
+                Some(ProxyControlMessage::BroadcastPublicSettings {
+                    display_password_reset,
+                    display_download_step,
+                    public_url,
+                }) => {
+                    return PublicSettingsBroadcast {
+                        display_password_reset,
+                        display_download_step,
+                        public_url,
+                    };
+                }
+                Some(_) => {} // ignore other control messages
+                None => panic!("Proxy control channel closed before PublicSettings was broadcast"),
+            }
+        }
+    })
+    .await
+    .expect("Timed out waiting for BroadcastPublicSettings")
+}
+
+/// Store `public_proxy_url` and drain any control messages emitted while getting there, so a test
+/// asserts only on the broadcast its own request triggers.
+async fn seed_public_proxy_url(
+    pool: &PgPool,
+    proxy_control_rx: &mut mpsc::Receiver<ProxyControlMessage>,
+    public_proxy_url: &str,
+) {
+    let mut current_settings = Settings::get_current_settings();
+    current_settings.public_proxy_url = public_proxy_url.to_owned();
+    update_current_settings(pool, current_settings)
+        .await
+        .unwrap();
+
+    while proxy_control_rx.try_recv().is_ok() {}
+}
+
 /// When SMTP settings change from unconfigured to configured via the settings
 /// API, a `BroadcastPublicSettings` control message must be sent so connected
 /// proxies receive the updated password-reset visibility.
@@ -420,7 +479,7 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
     let expected_public_url = Settings::get_current_settings().public_proxy_url;
 
     // Patch settings to enable SMTP.  Previously SMTP is unconfigured, so
-    // smtp_configured() transitions from false → true and the handler must
+    // smtp_configured() transitions from false -> true and the handler must
     // broadcast the updated public settings.
     let settings = json!({
         "smtp_server": "smtp.example.com",
@@ -434,39 +493,19 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Allow the async broadcast to land.
-    sleep(Duration::from_millis(100)).await;
-
-    let mut found = false;
-    loop {
-        match proxy_control_rx.try_recv() {
-            Ok(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset,
-                display_download_step,
-                public_url,
-            }) => {
-                assert!(
-                    display_password_reset,
-                    "with SMTP configured, display_password_reset should be true"
-                );
-                assert!(
-                    display_download_step,
-                    "display_download_step should remain the enterprise default"
-                );
-                assert_eq!(
-                    public_url.as_deref(),
-                    Some(expected_public_url.as_str()),
-                    "public_url should match the configured proxy URL"
-                );
-                found = true;
-            }
-            Ok(_) => {} // ignore other control messages
-            Err(_) => break,
-        }
-    }
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
     assert!(
-        found,
-        "BroadcastPublicSettings should have been sent after SMTP config change"
+        broadcast.display_password_reset,
+        "with SMTP configured, display_password_reset should be true"
+    );
+    assert!(
+        broadcast.display_download_step,
+        "display_download_step should remain the enterprise default"
+    );
+    assert_eq!(
+        broadcast.public_url.as_deref(),
+        Some(expected_public_url.as_str()),
+        "public_url should match the configured proxy URL"
     );
 }
 
@@ -482,13 +521,12 @@ async fn test_public_proxy_url_patch_triggers_public_settings_broadcast(
     let mut proxy_control_rx = client_state.proxy_control_rx;
 
     exceed_enterprise_limits(&client).await;
-    while proxy_control_rx.try_recv().is_ok() {}
-
-    let mut current_settings = Settings::get_current_settings();
-    current_settings.public_proxy_url = "https://proxy.example.com".to_owned();
-    update_current_settings(&client_state.pool, current_settings)
-        .await
-        .unwrap();
+    seed_public_proxy_url(
+        &client_state.pool,
+        &mut proxy_control_rx,
+        "https://proxy.example.com",
+    )
+    .await;
 
     let expected_public_url = "http://proxy.example.com";
     let response = client
@@ -498,22 +536,11 @@ async fn test_public_proxy_url_patch_triggers_public_settings_broadcast(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    sleep(Duration::from_millis(100)).await;
-
-    let mut found = false;
-    while let Ok(message) = proxy_control_rx.try_recv() {
-        if let ProxyControlMessage::BroadcastPublicSettings { public_url, .. } = message {
-            assert_eq!(
-                public_url.as_deref(),
-                Some(expected_public_url),
-                "public_url should match the patched proxy URL"
-            );
-            found = true;
-        }
-    }
-    assert!(
-        found,
-        "BroadcastPublicSettings should be sent after public proxy URL patch"
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
+    assert_eq!(
+        broadcast.public_url.as_deref(),
+        Some(expected_public_url),
+        "public_url should match the patched proxy URL"
     );
 }
 
@@ -529,13 +556,12 @@ async fn test_public_proxy_url_update_triggers_public_settings_broadcast(
     let mut proxy_control_rx = client_state.proxy_control_rx;
 
     exceed_enterprise_limits(&client).await;
-    while proxy_control_rx.try_recv().is_ok() {}
-
-    let mut current_settings = Settings::get_current_settings();
-    current_settings.public_proxy_url = "https://proxy.example.com".to_owned();
-    update_current_settings(&client_state.pool, current_settings)
-        .await
-        .unwrap();
+    seed_public_proxy_url(
+        &client_state.pool,
+        &mut proxy_control_rx,
+        "https://proxy.example.com",
+    )
+    .await;
 
     let response = client.get("/api/v1/settings").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -546,21 +572,10 @@ async fn test_public_proxy_url_update_triggers_public_settings_broadcast(
     let response = client.put("/api/v1/settings").json(&settings).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    sleep(Duration::from_millis(100)).await;
-
-    let mut found = false;
-    while let Ok(message) = proxy_control_rx.try_recv() {
-        if let ProxyControlMessage::BroadcastPublicSettings { public_url, .. } = message {
-            assert_eq!(
-                public_url.as_deref(),
-                Some(expected_public_url),
-                "public_url should match the updated proxy URL"
-            );
-            found = true;
-        }
-    }
-    assert!(
-        found,
-        "BroadcastPublicSettings should be sent after public proxy URL update"
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
+    assert_eq!(
+        broadcast.public_url.as_deref(),
+        Some(expected_public_url),
+        "public_url should match the updated proxy URL"
     );
 }

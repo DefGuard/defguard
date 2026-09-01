@@ -1220,7 +1220,11 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     Event::default().data(body)
 }
 
-async fn finalize_acme_certificate(
+/// Apply a freshly issued ACME certificate. Three effects, in order: the stored public proxy URL
+/// is upgraded to `https://` now that the proxy serves TLS, the certificate is pushed to the
+/// proxy, and, if that upgrade actually changed the URL, updated public settings are pushed too
+/// so the proxy starts marking its session cookies `Secure`.
+async fn apply_acme_certificate(
     pool: &PgPool,
     proxy_control_tx: Option<&Sender<ProxyControlMessage>>,
     cert_pem: String,
@@ -1418,7 +1422,7 @@ pub async fn stream_proxy_acme(
                     }
                 }
 
-                finalize_acme_certificate(
+                apply_acme_certificate(
                     &pool,
                     proxy_control_tx.as_ref().map(|extension| &extension.0),
                     cert_pem,
@@ -1462,7 +1466,7 @@ mod tests {
     use super::*;
 
     #[sqlx::test]
-    async fn test_finalize_acme_certificate_broadcasts_public_settings(
+    async fn test_apply_acme_certificate_broadcasts_public_settings(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1474,7 +1478,7 @@ mod tests {
         update_current_settings(&pool, settings).await.unwrap();
 
         let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
-        finalize_acme_certificate(
+        apply_acme_certificate(
             &pool,
             Some(&proxy_control_tx),
             "certificate".to_owned(),

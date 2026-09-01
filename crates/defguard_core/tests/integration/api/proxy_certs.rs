@@ -45,11 +45,14 @@ use tokio::{
         broadcast,
         mpsc::{Receiver, Sender, channel, unbounded_channel},
     },
-    time::sleep,
+    time::{sleep, timeout},
 };
 
 use super::common::{client::TestClient, generate_expired_test_cert_pem, generate_test_cert_pem};
 use crate::common::{init_config, initialize_users};
+
+/// How long to wait for a control message the handler sends asynchronously.
+const BROADCAST_TIMEOUT: Duration = Duration::from_secs(5);
 
 // Mock: captures messages sent to the proxy manager channel.
 struct ProxyBroadcastCapture {
@@ -58,9 +61,12 @@ struct ProxyBroadcastCapture {
 
 impl ProxyBroadcastCapture {
     /// Drain all pending messages and return only the `BroadcastHttpsCerts` ones.
+    ///
+    /// Unlike the `next_*` helpers this cannot await a message, because one caller asserts that
+    /// *no* certificate broadcast happens. The sleep bounds how long a late message has to show
+    /// up; erring here means a missed message, not a spurious failure.
     async fn drain_broadcast_certs(&mut self) -> Vec<(String, String)> {
         let mut results = Vec::new();
-        // Give the handler a brief moment to enqueue the message.
         sleep(Duration::from_millis(50)).await;
         loop {
             match self.rx.try_recv() {
@@ -74,35 +80,42 @@ impl ProxyBroadcastCapture {
         results
     }
 
-    async fn drain_clear_https_certs(&mut self) -> usize {
-        let mut results = 0;
-        sleep(Duration::from_millis(50)).await;
-        loop {
-            match self.rx.try_recv() {
-                Ok(ProxyControlMessage::ClearHttpsCerts) => {
-                    results += 1;
+    /// Wait for the next message `pick` accepts, ignoring the rest. Awaits the channel rather
+    /// than sleeping and polling, so the test neither races the handler nor pays a fixed delay.
+    /// Panics on timeout so a missing message fails instead of hanging.
+    async fn next_matching<T>(
+        &mut self,
+        what: &str,
+        mut pick: impl FnMut(ProxyControlMessage) -> Option<T>,
+    ) -> T {
+        timeout(BROADCAST_TIMEOUT, async {
+            loop {
+                let Some(message) = self.rx.recv().await else {
+                    panic!("Proxy control channel closed before {what} arrived");
+                };
+                if let Some(value) = pick(message) {
+                    return value;
                 }
-                Ok(_) => {}
-                Err(_) => break,
             }
-        }
-        results
+        })
+        .await
+        .unwrap_or_else(|_| panic!("Timed out waiting for {what}"))
     }
 
-    /// Drain all pending messages and return public URLs from public-settings broadcasts.
-    async fn drain_public_settings(&mut self) -> Vec<Option<String>> {
-        let mut results = Vec::new();
-        sleep(Duration::from_millis(50)).await;
-        loop {
-            match self.rx.try_recv() {
-                Ok(ProxyControlMessage::BroadcastPublicSettings { public_url, .. }) => {
-                    results.push(public_url);
-                }
-                Ok(_) => {}
-                Err(_) => break,
-            }
-        }
-        results
+    async fn next_clear_https_certs(&mut self) {
+        self.next_matching("ClearHttpsCerts", |message| {
+            matches!(message, ProxyControlMessage::ClearHttpsCerts).then_some(())
+        })
+        .await;
+    }
+
+    /// Wait for the next public-settings broadcast and return the URL it carried.
+    async fn next_public_settings_url(&mut self) -> Option<String> {
+        self.next_matching("BroadcastPublicSettings", |message| match message {
+            ProxyControlMessage::BroadcastPublicSettings { public_url, .. } => Some(public_url),
+            _ => None,
+        })
+        .await
     }
 }
 
@@ -242,8 +255,8 @@ async fn test_external_url_settings_broadcasts_persisted_public_url(
 
     // The certificate broadcast may be queued before PublicSettings; the helper ignores it.
     assert_eq!(
-        capture.drain_public_settings().await,
-        vec![Some("https://edge.example.com".to_owned())]
+        capture.next_public_settings_url().await,
+        Some("https://edge.example.com".to_owned())
     );
 }
 
@@ -281,7 +294,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_key_pem.is_none());
     assert!(saved.proxy_http_cert_expiry.is_none());
     assert!(saved.acme_domain.is_none());
-    assert_eq!(capture.drain_clear_https_certs().await, 1);
+    capture.next_clear_https_certs().await;
 
     settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();

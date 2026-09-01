@@ -229,14 +229,14 @@ fn test_configured_public_proxy_url_returns_none_for_empty_url() {
 }
 
 #[test]
-fn test_public_settings_changed_returns_false_for_identical_settings() {
+fn test_edge_public_settings_changed_returns_false_for_identical_settings() {
     let settings = Settings::default();
 
     assert!(!settings.edge_public_settings_changed(&settings));
 }
 
 #[test]
-fn test_public_settings_changed_returns_false_for_unrelated_change() {
+fn test_edge_public_settings_changed_returns_false_for_unrelated_change() {
     let before = Settings::default();
     let mut after = before.clone();
     after.instance_name = "Changed name".into();
@@ -245,7 +245,7 @@ fn test_public_settings_changed_returns_false_for_unrelated_change() {
 }
 
 #[test]
-fn test_public_settings_changed_returns_true_for_smtp_state_change() {
+fn test_edge_public_settings_changed_returns_true_for_smtp_state_change() {
     let before = Settings::default();
     let mut after = before.clone();
     after.smtp.server = Some("smtp.example.com".into());
@@ -258,7 +258,7 @@ fn test_public_settings_changed_returns_true_for_smtp_state_change() {
 }
 
 #[test]
-fn test_public_settings_changed_returns_true_for_public_proxy_url_change() {
+fn test_edge_public_settings_changed_returns_true_for_public_proxy_url_change() {
     let before = Settings {
         public_proxy_url: "https://old.example.com".into(),
         ..Default::default()

@@ -15,6 +15,7 @@ use defguard_common::{
 };
 use sqlx::PgPool;
 use struct_patch::Patch;
+use tokio::sync::mpsc;
 
 use super::{ApiErrorResponse, ApiResponse, ApiResponseCode, ApiResult};
 use crate::{
@@ -36,10 +37,12 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
+/// Push `PublicSettings` to every connected proxy. Best effort: a send failure is logged rather
+/// than propagated, since proxies also receive the current values when they next connect.
 pub(crate) async fn broadcast_public_settings(
     pool: &PgPool,
     settings: &Settings,
-    proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    proxy_control_tx: &mpsc::Sender<ProxyControlMessage>,
 ) {
     let enterprise_settings = match EnterpriseSettings::get(pool).await {
         Ok(settings) => settings,
@@ -132,21 +135,8 @@ pub(crate) async fn update_settings(
 
     // If SMTP configuration or the public proxy URL changed, push updated
     // public settings to all connected proxies.
-    if before.edge_public_settings_changed(&after)
-        && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
-    {
-        let display_password_reset = enterprise_settings.edge_can_display_password_reset();
-        if let Err(err) = appstate
-            .proxy_control_tx
-            .send(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset,
-                display_download_step: enterprise_settings.display_download_step,
-                public_url: after.configured_public_proxy_url(),
-            })
-            .await
-        {
-            error!("Failed to broadcast PublicSettings after settings change: {err:?}");
-        }
+    if before.edge_public_settings_changed(&after) {
+        broadcast_public_settings(&appstate.pool, &after, &appstate.proxy_control_tx).await;
     }
 
     info!("User {} updated settings", session.user.username);
@@ -339,21 +329,8 @@ pub async fn patch_settings(
 
     // If SMTP configuration or the public proxy URL changed, push updated
     // public settings to all connected proxies.
-    if before.edge_public_settings_changed(&after)
-        && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
-    {
-        let display_password_reset = enterprise_settings.edge_can_display_password_reset();
-        if let Err(err) = appstate
-            .proxy_control_tx
-            .send(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset,
-                display_download_step: enterprise_settings.display_download_step,
-                public_url: after.configured_public_proxy_url(),
-            })
-            .await
-        {
-            error!("Failed to broadcast PublicSettings after settings change: {err:?}");
-        }
+    if before.edge_public_settings_changed(&after) {
+        broadcast_public_settings(&appstate.pool, &after, &appstate.proxy_control_tx).await;
     }
 
     info!("Admin {} patched settings", session.user.username);
