@@ -192,32 +192,4 @@ impl OAuth2Token {
             Err(err) => Err(err),
         }
     }
-
-    // Find by authorized app id
-    pub async fn find_by_authorized_app_id(
-        pool: &PgPool,
-        oauth2authorizedapp_id: Id,
-    ) -> sqlx::Result<Option<Self>> {
-        match query_as!(
-            Self,
-            "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
-            expires_in \
-            FROM oauth2token WHERE oauth2authorizedapp_id = $1",
-            oauth2authorizedapp_id,
-        )
-        .fetch_optional(pool)
-        .await
-        {
-            Ok(Some(token)) => {
-                if token.is_expired() {
-                    token.delete(pool).await?;
-                    Ok(None)
-                } else {
-                    Ok(Some(token))
-                }
-            }
-            Ok(None) => Ok(None),
-            Err(err) => Err(err),
-        }
-    }
 }
