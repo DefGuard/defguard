@@ -542,7 +542,7 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
         .json()
         .await
         .expect("Failed to parse missing-admin response");
-    assert_eq!(body["msg"], "Internal server error");
+    assert_eq!(body["msg"], "Internal Server Error");
 
     let wizard = Wizard::get(&pool)
         .await
@@ -565,10 +565,11 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
         .json()
         .await
         .expect("Failed to parse dangling-admin response");
-    assert_eq!(
-        body["msg"],
-        format!("Default admin user with ID '{dangling_admin_id}' not found")
-    );
+    let message = body["msg"]
+        .as_str()
+        .expect("Dangling-admin response message is not a string");
+    assert_eq!(message, "Default admin user not found");
+    assert!(!message.contains(&dangling_admin_id.to_string()));
 
     let wizard = Wizard::get(&pool)
         .await

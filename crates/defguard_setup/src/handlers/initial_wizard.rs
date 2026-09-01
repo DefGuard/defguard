@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::sync::oneshot;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use crate::handlers::{
     auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active},
@@ -470,14 +470,16 @@ pub async fn finish_setup(
 
     let default_admin_id = Settings::get_current_settings()
         .default_admin_id
-        .ok_or_else(|| WebError::DbError("Default admin user ID not set in settings".into()))?;
+        .ok_or_else(|| {
+            error!("Default admin user ID not set in settings");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
     let mut transaction = pool.begin().await?;
     let admin_user = User::find_by_id(&mut *transaction, default_admin_id)
         .await?
         .ok_or_else(|| {
-            WebError::ObjectNotFound(format!(
-                "Default admin user with ID '{default_admin_id}' not found"
-            ))
+            error!("Default admin user with ID '{default_admin_id}' not found");
+            WebError::ObjectNotFound("Default admin user not found".to_owned())
         })?;
 
     let mut wizard = Wizard::get(&mut *transaction).await?;
