@@ -624,17 +624,43 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
         .expect("Failed to initialize wizard");
 
     let (client, mut shutdown_rx) = make_setup_test_client(pool.clone()).await;
-    assert_eq!(
-        Settings::get_current_settings().default_admin_id,
-        None,
-        "Test must start without a default admin ID"
-    );
 
     let response = client
         .post("/api/v1/initial_setup/finish")
         .send()
         .await
-        .expect("Failed to finish setup without an admin ID");
+        .expect("Failed to finish setup anonymously");
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Initial session cookie not set")
+        .value()
+        .to_owned();
+
+    let original_settings = Settings::get_current_settings();
+    assert!(original_settings.default_admin_id.is_some());
+
+    let mut settings = original_settings.clone();
+    settings.default_admin_id = None;
+    set_settings(Some(settings));
+    let response = client.post("/api/v1/initial_setup/finish").send().await;
+    set_settings(Some(original_settings.clone()));
+    let response = response.expect("Failed to finish setup without an admin ID");
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     let body: serde_json::Value = response
         .json()
@@ -642,38 +668,35 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
         .expect("Failed to parse missing-admin response");
     assert_eq!(body["msg"], "Internal Server Error");
 
-    let wizard = Wizard::get(&pool)
-        .await
-        .expect("Failed to fetch wizard state");
-    assert!(!wizard.completed);
-    assert_setup_step(&pool, InitialSetupStep::Welcome).await;
-    assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
-
-    let dangling_admin_id = i64::MAX;
-    let original_settings = Settings::get_current_settings();
+    let mismatched_admin_id = i64::MAX;
     let mut settings = original_settings.clone();
-    settings.default_admin_id = Some(dangling_admin_id);
+    settings.default_admin_id = Some(mismatched_admin_id);
     set_settings(Some(settings));
-
     let response = client.post("/api/v1/initial_setup/finish").send().await;
     set_settings(Some(original_settings));
-    let response = response.expect("Failed to finish setup with a dangling admin ID");
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let response = response.expect("Failed to finish setup with a mismatched admin ID");
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let body: serde_json::Value = response
         .json()
         .await
-        .expect("Failed to parse dangling-admin response");
+        .expect("Failed to parse mismatched-admin response");
     let message = body["msg"]
         .as_str()
-        .expect("Dangling-admin response message is not a string");
-    assert_eq!(message, "Default admin user not found");
-    assert!(!message.contains(&dangling_admin_id.to_string()));
+        .expect("Mismatched-admin response message is not a string");
+    assert_eq!(message, "access denied");
+    assert!(!message.contains(&mismatched_admin_id.to_string()));
 
     let wizard = Wizard::get(&pool)
         .await
         .expect("Failed to fetch wizard state");
     assert!(!wizard.completed);
-    assert_setup_step(&pool, InitialSetupStep::Welcome).await;
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+    assert!(
+        Session::find_by_id(&pool, &session_id)
+            .await
+            .expect("Failed to fetch session after rejected finish")
+            .is_some()
+    );
     assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
 }
 

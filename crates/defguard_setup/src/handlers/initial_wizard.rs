@@ -436,6 +436,7 @@ pub async fn upload_ca(
 pub async fn finish_setup(
     cookies: CookieJar,
     _: AdminRole,
+    Extension(session_info): Extension<SessionInfo>,
     Extension(pool): Extension<PgPool>,
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -447,14 +448,15 @@ pub async fn finish_setup(
             error!("Default admin user ID not set in settings");
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
         })?;
-    let mut transaction = pool.begin().await?;
-    let admin_user = User::find_by_id(&mut *transaction, default_admin_id)
-        .await?
-        .ok_or_else(|| {
-            error!("Default admin user with ID '{default_admin_id}' not found");
-            WebError::ObjectNotFound("Default admin user not found".to_owned())
-        })?;
+    if session_info.user.id != default_admin_id {
+        error!(
+            "Authenticated user with ID '{}' does not match default admin user with ID '{}'",
+            session_info.user.id, default_admin_id
+        );
+        return Err(WebError::Forbidden("access denied"));
+    }
 
+    let mut transaction = pool.begin().await?;
     let mut wizard = Wizard::get(&mut *transaction).await?;
     InitialSetupState {
         step: InitialSetupStep::Finished,
@@ -465,7 +467,10 @@ pub async fn finish_setup(
     wizard.active_wizard = ActiveWizard::None;
     wizard.save(&mut *transaction).await?;
 
-    admin_user.logout_all_sessions(&mut *transaction).await?;
+    session_info
+        .user
+        .logout_all_sessions(&mut *transaction)
+        .await?;
     transaction.commit().await?;
 
     if let Some(tx) = setup_shutdown_tx
