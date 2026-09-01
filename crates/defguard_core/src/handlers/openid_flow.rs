@@ -1132,7 +1132,11 @@ pub async fn token(
                 return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
             };
 
-            token.refresh_and_save(&appstate.pool).await?;
+            if !token.refresh_and_save(&appstate.pool).await? {
+                let err = CoreErrorResponseType::InvalidGrant;
+                let response = StandardErrorResponse::new(err, None, None);
+                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+            }
             let response = TokenRequest::refresh_token_flow(&token);
             return Ok(ApiResponse::json(response, StatusCode::OK));
         }

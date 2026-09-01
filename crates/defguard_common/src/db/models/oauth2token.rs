@@ -32,27 +32,33 @@ impl OAuth2Token {
     }
 
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
-    pub async fn refresh_and_save(&mut self, pool: &PgPool) -> sqlx::Result<()> {
+    pub async fn refresh_and_save(&mut self, pool: &PgPool) -> sqlx::Result<bool> {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
+        let old_refresh_token = self.refresh_token.clone();
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
         let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
-        self.expires_in = expiration.timestamp();
+        let expires_in = expiration.timestamp();
 
-        query!(
+        let result = query!(
             "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 \
-            WHERE access_token = $1",
-            self.access_token,
+            WHERE refresh_token = $1",
+            old_refresh_token,
             new_access_token,
             new_refresh_token,
-            self.expires_in,
+            expires_in,
         )
         .execute(pool)
         .await?;
+        if result.rows_affected() != 1 {
+            return Ok(false);
+        }
+
         self.access_token = new_access_token;
         self.refresh_token = new_refresh_token;
-        Ok(())
+        self.expires_in = expires_in;
+        Ok(true)
     }
 
     /// Check if token has expired.

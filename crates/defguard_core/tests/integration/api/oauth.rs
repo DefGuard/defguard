@@ -1129,6 +1129,92 @@ async fn dg2608_3_test_refresh_token_is_rotated(_: PgPoolOptions, options: PgCon
     }
 }
 
+/// Regression test for DG2608-3: concurrent refreshes must rotate a pair only once.
+#[sqlx::test]
+async fn dg2608_3_test_concurrent_refresh_allows_single_rotation(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (oauth_client, _, _, refresh_token) = issue_token_pair(&client, &pool).await;
+
+    sqlx::query(
+        r#"
+        CREATE OR REPLACE FUNCTION dg2608_3_pause_oauth2token_update()
+        RETURNS trigger
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            PERFORM pg_sleep(1);
+            RETURN NEW;
+        END;
+        $$;
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "CREATE TRIGGER dg2608_3_pause_oauth2token_update_trigger
+         BEFORE UPDATE ON oauth2token
+         FOR EACH ROW
+         EXECUTE FUNCTION dg2608_3_pause_oauth2token_update()",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let request_body = format!(
+        "grant_type=refresh_token&\
+        refresh_token={refresh_token}&\
+        client_id={}&\
+        client_secret={}",
+        oauth_client.client_id, oauth_client.client_secret
+    );
+    let first_request = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(request_body.clone())
+        .send();
+    let second_request = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(request_body)
+        .send();
+    let (first, second) = tokio::join!(first_request, second_request);
+
+    let first_status = first.status();
+    let second_status = second.status();
+    let (winner, loser) = if first_status == StatusCode::OK
+        && second_status == StatusCode::BAD_REQUEST
+    {
+        (first, second)
+    } else if first_status == StatusCode::BAD_REQUEST && second_status == StatusCode::OK {
+        (second, first)
+    } else {
+        panic!(
+            "expected one successful refresh and one invalid grant, got {first_status} and {second_status}"
+        );
+    };
+
+    let winner_tokens: Value = winner.json().await;
+    let loser_body: Value = loser.json().await;
+    assert_eq!(loser_body["error"], "invalid_grant");
+
+    let access_token = winner_tokens["access_token"]
+        .as_str()
+        .expect("winner did not return an access token");
+    let bearer = format!("Bearer {access_token}");
+    let response = client
+        .get("/api/v1/oauth/userinfo")
+        .header(AUTHORIZATION, &bearer)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
 /// Regression test for DG2608-3: reauthorization must clear leftover token rows.
 #[sqlx::test]
 async fn dg2608_3_test_reauthorization_clears_leftover_rows(
