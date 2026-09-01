@@ -154,7 +154,6 @@ export const AutoAdoptionAdminUserStep = () => {
         username: value.username,
         email: value.email,
         password: value.password,
-        automatically_assign_group: true,
       });
     },
   });

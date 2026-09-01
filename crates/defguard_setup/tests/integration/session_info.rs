@@ -48,8 +48,7 @@ async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOpti
             "last_name": "Admin",
             "username": "admin1",
             "email": "admin1@example.com",
-            "password": "Passw0rd!",
-            "automatically_assign_group": true
+            "password": "Passw0rd!"
         }))
         .send()
         .await
