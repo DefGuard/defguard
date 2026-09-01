@@ -579,6 +579,105 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
 }
 
 #[sqlx::test]
+async fn test_finish_setup_rolls_back_when_session_invalidation_fails(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, mut shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Initial session cookie not set")
+        .value()
+        .to_owned();
+
+    let wizard_before = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state before finish");
+    let setup_state_before = InitialSetupState::get(&pool)
+        .await
+        .expect("Failed to fetch initial setup state before finish");
+
+    sqlx::query(
+        r#"
+        CREATE FUNCTION fail_session_delete() RETURNS trigger
+        LANGUAGE plpgsql AS $$
+        BEGIN
+            RAISE EXCEPTION 'session deletion blocked';
+        END;
+        $$;
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("Failed to create session delete trigger function");
+    sqlx::query(
+        r#"
+        CREATE TRIGGER fail_session_delete
+        BEFORE DELETE ON session
+        FOR EACH ROW
+        EXECUTE FUNCTION fail_session_delete();
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("Failed to create session delete trigger");
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup");
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+    let wizard_after = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state after failed finish");
+    assert_eq!(wizard_after.active_wizard, wizard_before.active_wizard);
+    assert_eq!(wizard_after.completed, wizard_before.completed);
+    assert_eq!(
+        wizard_after.last_version_migrated_to,
+        wizard_before.last_version_migrated_to
+    );
+    let setup_state_after = InitialSetupState::get(&pool)
+        .await
+        .expect("Failed to fetch initial setup state after failed finish");
+    assert_eq!(
+        setup_state_after.map(|state| state.step),
+        setup_state_before.map(|state| state.step)
+    );
+    assert!(
+        Session::find_by_id(&pool, &session_id)
+            .await
+            .expect("Failed to fetch session after failed finish")
+            .is_some()
+    );
+    assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
+}
+
+#[sqlx::test]
 async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)

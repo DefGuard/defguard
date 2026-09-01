@@ -471,7 +471,8 @@ pub async fn finish_setup(
     let default_admin_id = Settings::get_current_settings()
         .default_admin_id
         .ok_or_else(|| WebError::DbError("Default admin user ID not set in settings".into()))?;
-    let admin_user = User::find_by_id(&pool, default_admin_id)
+    let mut transaction = pool.begin().await?;
+    let admin_user = User::find_by_id(&mut *transaction, default_admin_id)
         .await?
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!(
@@ -479,17 +480,18 @@ pub async fn finish_setup(
             ))
         })?;
 
-    let mut wizard = Wizard::get(&pool).await?;
+    let mut wizard = Wizard::get(&mut *transaction).await?;
     InitialSetupState {
         step: InitialSetupStep::Finished,
     }
-    .save(&pool)
+    .save(&mut *transaction)
     .await?;
     wizard.completed = true;
     wizard.active_wizard = ActiveWizard::None;
-    wizard.save(&pool).await?;
+    wizard.save(&mut *transaction).await?;
 
-    admin_user.logout_all_sessions(&pool).await?;
+    admin_user.logout_all_sessions(&mut *transaction).await?;
+    transaction.commit().await?;
 
     if let Some(tx) = setup_shutdown_tx
         .lock()
