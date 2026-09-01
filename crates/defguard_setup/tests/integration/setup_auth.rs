@@ -29,7 +29,8 @@ async fn dg2608_16_test_acme_stream_rejects_anonymous_before_admin_exists(
     // The wizard is at the Welcome step and no admin exists yet.
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
     let resp = client
-        .get("/api/v1/proxy/acme/stream")
+        .post("/api/v1/proxy/acme/stream")
+        .json(&json!({}))
         .send()
         .await
         .expect("Request failed");
