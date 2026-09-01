@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use defguard_common::db::{
     Id,
     models::{
-        OAuth2AuthorizedApp,
+        OAuth2AuthorizedApp, OAuth2Token,
         oauth2client::{OAuth2Client, OAuth2ClientSafe},
     },
 };
@@ -1127,4 +1127,73 @@ async fn dg2608_3_test_refresh_token_is_rotated(_: PgPoolOptions, options: PgCon
             "round {round}: expected exactly one token row for the authorized app, found {rows}"
         );
     }
+}
+
+/// Regression test for DG2608-3: reauthorization must clear leftover token rows.
+#[sqlx::test]
+async fn dg2608_3_test_reauthorization_clears_leftover_rows(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (oauth_client, authorized_app_id, _, _) = issue_token_pair(&client, &pool).await;
+
+    for _ in 0..2 {
+        OAuth2Token::new(
+            authorized_app_id,
+            "http://test.server.tnt:12345/".into(),
+            "openid".into(),
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+    }
+    assert_eq!(token_row_count(&pool, authorized_app_id).await, 3);
+
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=ABCDEF",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    let code = redirect_url
+        .query_pairs()
+        .find(|(key, _)| key == "code")
+        .expect("authorize endpoint did not return a code")
+        .1
+        .into_owned();
+
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=authorization_code&\
+            code={code}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            client_id={}&\
+            client_secret={}",
+            oauth_client.client_id, oauth_client.client_secret
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(token_row_count(&pool, authorized_app_id).await, 1);
 }
