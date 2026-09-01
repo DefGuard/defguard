@@ -253,7 +253,6 @@ impl SetupFlow {
 )]
 pub async fn setup_proxy_tls_stream(
     _admin: AdminRole,
-    Query(request): Query<ProxySetupRequest>,
     session: SessionInfo,
     Extension(pool): Extension<PgPool>,
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
