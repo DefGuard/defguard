@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM oauth2token WHERE oauth2authorizedapp_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0f03aebc12088b30e9a869d47583650cc72bedb80091fca2a7f1ff691b7ff3e3"
+}

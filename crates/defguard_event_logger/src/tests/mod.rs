@@ -826,8 +826,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "SettingsUpdated",
             message: api_message(ApiEventType::SettingsUpdated {
-                before: Default::default(),
-                after: Default::default(),
+                before: Settings::default(),
+                after: Settings::default(),
             }),
             event_type: EventType::SettingsUpdated,
             module: ActivityLogModule::Defguard,
@@ -836,8 +836,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "SettingsUpdatedPartial",
             message: api_message(ApiEventType::SettingsUpdatedPartial {
-                before: Default::default(),
-                after: Default::default(),
+                before: Settings::default(),
+                after: Settings::default(),
             }),
             event_type: EventType::SettingsUpdatedPartial,
             module: ActivityLogModule::Defguard,

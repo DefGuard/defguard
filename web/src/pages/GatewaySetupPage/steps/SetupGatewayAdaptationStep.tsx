@@ -50,7 +50,6 @@ export const SetupGatewayAdoptionStep = () => {
       ip_or_domain: gatewayComponentWizardStore.ip_or_domain,
       grpc_port: gatewayComponentWizardStore.grpc_port,
       common_name: gatewayComponentWizardStore.common_name,
-      network_id: gatewayComponentWizardStore.network_id,
     },
     {
       onMessage: handleEvent,

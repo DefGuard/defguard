@@ -305,221 +305,215 @@ pub async fn user_from_claims(
     let sub = token_claims.subject().to_string();
 
     // Handle logging in or creating user.
-    let user = match User::find_by_sub(pool, &sub)
+    let user = if let Some(user) = User::find_by_sub(pool, &sub)
         .await
         .map_err(|err| WebError::Authorization(err.to_string()))?
     {
-        Some(user) => {
-            debug!(
-                "User {} is trying to log in using an OpenID provider.",
-                user.username
-            );
-            // Make sure the user is not disabled
+        debug!(
+            "User {} is trying to log in using an OpenID provider.",
+            user.username
+        );
+        // Make sure the user is not disabled
+        if !user.is_active {
+            debug!("User {} tried to log in, but is disabled", user.username);
+            return Err(WebError::Authorization("User is disabled".into()));
+        }
+        user
+    } else {
+        // Only an explicit `false` is rejected. Some providers omit `email_verified`.
+        match token_claims.email_verified() {
+            Some(false) => {
+                warn!(
+                    "OpenID login: provider reported email address {} as unverified, \
+                    refusing to link or create an account",
+                    email.as_str()
+                );
+                return Err(WebError::Authorization(
+                    "Provider did not verify the email address".into(),
+                ));
+            }
+            None => debug!(
+                "OpenID login: provider sent no email_verified claim for {}, so the address \
+                cannot be confirmed as belonging to this identity",
+                email.as_str()
+            ),
+            Some(true) => {}
+        }
+        if let Some(mut user) = User::find_by_email(pool, email).await? {
             if !user.is_active {
                 debug!("User {} tried to log in, but is disabled", user.username);
                 return Err(WebError::Authorization("User is disabled".into()));
             }
+            // User with the same email already exists, merge the accounts.
+            info!(
+                "User with email address {} is logging in through OpenID Connect for the \
+                first time and we've found an existing account with the same email \
+                address. Merging accounts.",
+                user.email
+            );
+            user.openid_sub = Some(sub);
+            user.save(pool).await?;
             user
-        }
-        None => {
-            // Only an explicit `false` is rejected. Some providers omit `email_verified`.
-            match token_claims.email_verified() {
-                Some(false) => {
-                    warn!(
-                        "OpenID login: provider reported email address {} as unverified, \
-                        refusing to link or create an account",
-                        email.as_str()
-                    );
-                    return Err(WebError::Authorization(
-                        "Provider did not verify the email address".into(),
-                    ));
-                }
-                None => debug!(
-                    "OpenID login: provider sent no email_verified claim for {}, so the address \
-                    cannot be confirmed as belonging to this identity",
+        } else {
+            let settings = Settings::get_current_settings();
+            // Check if the user should be created, if doesn't exist (default: true).
+            if !settings.openid_create_account {
+                warn!(
+                    "User with email address {} is trying to log in through OpenID Connect \
+                    for the first time, but the account creation is disabled. An enrollment \
+                    should be performed.",
                     email.as_str()
-                ),
-                Some(true) => {}
-            }
-            if let Some(mut user) = User::find_by_email(pool, email).await? {
-                if !user.is_active {
-                    debug!("User {} tried to log in, but is disabled", user.username);
-                    return Err(WebError::Authorization("User is disabled".into()));
-                }
-                // User with the same email already exists, merge the accounts.
-                info!(
-                    "User with email address {} is logging in through OpenID Connect for the \
-                    first time and we've found an existing account with the same email \
-                    address. Merging accounts.",
-                    user.email
                 );
-                user.openid_sub = Some(sub);
-                user.save(pool).await?;
-                user
-            } else {
-                let settings = Settings::get_current_settings();
-                // Check if the user should be created, if doesn't exist (default: true).
-                if !settings.openid_create_account {
-                    warn!(
-                        "User with email address {} is trying to log in through OpenID Connect \
-                        for the first time, but the account creation is disabled. An enrollment \
-                        should be performed.",
-                        email.as_str()
-                    );
-                    return Err(WebError::Authorization(
-                        "User not found and the automatic account creation is disabled. \
-                        Create the user or make sure they belong to an allowed LDAP synchronization group."
-                            .into(),
-                    ));
-                }
+                return Err(WebError::Authorization(
+                    "User not found and the automatic account creation is disabled. \
+                    Create the user or make sure they belong to an allowed LDAP synchronization group."
+                        .into(),
+                ));
+            }
 
-                // If user synchronization is enabled and limited to specific directory groups, only allow
-                // creating accounts for users who are members of one of those groups.
-                if provider.directory_sync_enabled
-                    && let Some(user_groups_filter) = provider
-                        .directory_sync_user_groups
-                        .as_ref()
-                        .filter(|groups| !groups.is_empty())
-                {
-                    let in_groups = user_in_directory_groups(pool, email, user_groups_filter)
-                            .await
-                            .map_err(|err| {
-                                error!(
-                                    "Failed to check directory group membership of user with email address {} during OpenID account creation: {err}",
-                                    email.as_str()
-                                );
-                                WebError::Authorization(
-                                    "Failed to verify user's directory group membership".into(),
-                                )
-                            })?;
-                    if !in_groups {
-                        warn!(
-                                "User with email address {} is trying to log in for the first time but is not a member of any
-                                directory groups configured for user synchronization. Blocking account creation.",
+            // If user synchronization is enabled and limited to specific directory groups, only allow
+            // creating accounts for users who are members of one of those groups.
+            if provider.directory_sync_enabled
+                && let Some(user_groups_filter) = provider
+                    .directory_sync_user_groups
+                    .as_ref()
+                    .filter(|groups| !groups.is_empty())
+            {
+                let in_groups = user_in_directory_groups(pool, email, user_groups_filter)
+                        .await
+                        .map_err(|err| {
+                            error!(
+                                "Failed to check directory group membership of user with email address {} during OpenID account creation: {err}",
                                 email.as_str()
                             );
-                        return Err(WebError::UserGroupsNotSynced(
-                                "User is not a member of any of the directory groups allowed for account creation".into(),
-                            ));
-                    }
+                            WebError::Authorization(
+                                "Failed to verify user's directory group membership".into(),
+                            )
+                        })?;
+                if !in_groups {
+                    warn!(
+                            "User with email address {} is trying to log in for the first time but is not a member of any
+                            directory groups configured for user synchronization. Blocking account creation.",
+                            email.as_str()
+                        );
+                    return Err(WebError::UserGroupsNotSynced(
+                            "User is not a member of any of the directory groups allowed for account creation".into(),
+                        ));
                 }
+            }
 
-                // Try to get the username from `preferred_username` claim.
-                // If it's not there, extract it from email.
-                let username = if let Some(username) = token_claims.preferred_username() {
-                    let username = username.as_str();
-                    debug!(
-                        "Preferred username {username} found in the claims. Using the username."
-                    );
-                    username
-                } else {
-                    debug!(
-                        "Preferred username not found in the claims, extracting from email address."
-                    );
-                    // Extract the username from the email address
-                    let username = email.split('@').next().ok_or(WebError::BadRequest(
-                        "Failed to extract username from email address".into(),
-                    ))?;
-                    debug!("Username extracted from email ({email:?}): {username})");
-                    username
-                };
+            // Try to get the username from `preferred_username` claim.
+            // If it's not there, extract it from email.
+            let username = if let Some(username) = token_claims.preferred_username() {
+                let username = username.as_str();
+                debug!("Preferred username {username} found in the claims. Using the username.");
+                username
+            } else {
+                debug!(
+                    "Preferred username not found in the claims, extracting from email address."
+                );
+                // Extract the username from the email address
+                let username = email.split('@').next().ok_or(WebError::BadRequest(
+                    "Failed to extract username from email address".into(),
+                ))?;
+                debug!("Username extracted from email ({email:?}): {username})");
+                username
+            };
 
-                let username = prune_username(username, settings.openid_username_handling);
-                // Check if the username is valid just in case, not everything can be handled by the
-                // pruning.
-                check_username(&username)?;
+            let username = prune_username(username, settings.openid_username_handling);
+            // Check if the username is valid just in case, not everything can be handled by the
+            // pruning.
+            check_username(&username)?;
 
-                info!(
-                    "User {username} is logging in through OpenID Connect for the first time and \
-                    there is no account with the same email address ({}). Creating a new account.",
+            info!(
+                "User {username} is logging in through OpenID Connect for the first time and \
+                there is no account with the same email address ({}). Creating a new account.",
+                email.as_str()
+            );
+            // Check if user with the same username already exists (usernames are unique).
+            if User::find_by_username(pool, &username).await?.is_some() {
+                return Err(WebError::Authorization(format!(
+                    "User with username {username} already exists"
+                )));
+            }
+
+            if let Some((user_count, limit)) = reached_user_license_limit() {
+                // Details (username/email/counts) are recorded in the activity
+                // log and admin notification email, but deliberately not
+                // returned to the client, which only learns that it should
+                // contact an administrator.
+                error!(
+                    "Skipping OpenID account creation for user {username} (email: {}) because \
+                    license user limit has been reached ({user_count}/{limit})",
                     email.as_str()
                 );
-                // Check if user with the same username already exists (usernames are unique).
-                if User::find_by_username(pool, &username).await?.is_some() {
-                    return Err(WebError::Authorization(format!(
-                        "User with username {username} already exists"
-                    )));
-                }
-
-                if let Some((user_count, limit)) = reached_user_license_limit() {
-                    // Details (username/email/counts) are recorded in the activity
-                    // log and admin notification email, but deliberately not
-                    // returned to the client, which only learns that it should
-                    // contact an administrator.
+                if let Err(err) = send_user_import_blocked_email(pool).await {
                     error!(
-                        "Skipping OpenID account creation for user {username} (email: {}) because \
-                        license user limit has been reached ({user_count}/{limit})",
-                        email.as_str()
+                        "Failed to send user import blocked emails for OpenID login attempt: \
+                        {err}"
                     );
-                    if let Err(err) = send_user_import_blocked_email(pool).await {
-                        error!(
-                            "Failed to send user import blocked emails for OpenID login attempt: \
-                            {err}"
-                        );
-                    }
-                    if let Some(event_tx) = event_tx
-                        && let Err(err) = event_tx.send(ApiEvent {
-                            context: ApiRequestContext::new(
-                                None::<Id>,
-                                username.clone(),
-                                ip_addr,
-                                user_agent.unwrap_or_default().to_string(),
-                            ),
-                            event: Box::new(ApiEventType::UserImportBlocked {
-                                username: username.clone(),
-                                email: email.as_str().to_string(),
-                                user_count,
-                                limit,
-                            }),
-                        })
-                    {
-                        error!(
-                            "Failed to emit activity log event for blocked OpenID account \
-                            creation: {err}"
-                        );
-                    }
-                    return Err(WebError::LicenseLimitReached(
-                        "Could not log in. Please contact your administrator.".to_string(),
-                    ));
                 }
+                if let Some(event_tx) = event_tx
+                    && let Err(err) = event_tx.send(ApiEvent {
+                        context: ApiRequestContext::new(
+                            None::<Id>,
+                            username.clone(),
+                            ip_addr,
+                            user_agent.unwrap_or_default().to_string(),
+                        ),
+                        event: Box::new(ApiEventType::UserImportBlocked {
+                            username: username.clone(),
+                            email: email.as_str().to_string(),
+                            user_count,
+                            limit,
+                        }),
+                    })
+                {
+                    error!(
+                        "Failed to emit activity log event for blocked OpenID account \
+                        creation: {err}"
+                    );
+                }
+                return Err(WebError::LicenseLimitReached(
+                    "Could not log in. Please contact your administrator.".to_string(),
+                ));
+            }
 
-                // Extract all necessary information from the token or call the userinfo endpoint.
-                let given_name = token_claims
-                    .given_name()
-                    // `None` gets the default value from a localized claim.
-                    // Otherwise, it is required to pass a locale.
-                    .and_then(|claim| claim.get(None));
-                let family_name = token_claims.family_name().and_then(|claim| claim.get(None));
-                let phone = token_claims.phone_number();
+            // Extract all necessary information from the token or call the userinfo endpoint.
+            let given_name = token_claims
+                .given_name()
+                // `None` gets the default value from a localized claim.
+                // Otherwise, it is required to pass a locale.
+                .and_then(|claim| claim.get(None));
+            let family_name = token_claims.family_name().and_then(|claim| claim.get(None));
+            let phone = token_claims.phone_number();
 
-                let userinfo_response: CoreUserInfoClaims;
-                let (given_name, family_name, phone) = if let (
-                    Some(given_name),
-                    Some(family_name),
-                    phone,
-                ) = (given_name, family_name, phone)
+            let userinfo_response: CoreUserInfoClaims;
+            let (given_name, family_name, phone) =
+                if let (Some(given_name), Some(family_name), phone) =
+                    (given_name, family_name, phone)
                 {
                     debug!("Given name and family name found in the claims for user {username}.");
                     (given_name, family_name, phone)
                 } else {
                     debug!(
                         "Given name or family name not found in the claims for user {username}, \
-                        trying to get them from the user info endpoint. Current values: \
-                        given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
+                    trying to get them from the user info endpoint. Current values: \
+                    given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
                     );
 
                     let async_http_client = get_async_http_client()?;
 
                     let retrieval_error = "Failed to retrieve given name and family name from \
-                        provider's userinfo endpoint. Make sure you have configured your provider \
-                        correctly and that you have granted the necessary permissions to retrieve \
-                        such information from the token or the userinfo endpoint.";
+                    provider's userinfo endpoint. Make sure you have configured your provider \
+                    correctly and that you have granted the necessary permissions to retrieve \
+                    such information from the token or the userinfo endpoint.";
                     userinfo_response = core_client
                         .user_info(access_token.clone(), Some(token_claims.subject().clone()))
                         .map_err(|err| {
                             error!(
                                 "Failed to get family name and given name from provider's \
-                                userinfo endpoint, they may not support this. Error details: {err}"
+                            userinfo endpoint, they may not support this. Error details: {err}"
                             );
                             WebError::BadRequest(retrieval_error.into())
                         })?
@@ -528,7 +522,7 @@ pub async fn user_from_claims(
                         .map_err(|err| {
                             error!(
                                 "Failed to get family name and given name from provider's userinfo \
-                                endpoint. Error details: {err}",
+                            endpoint. Error details: {err}",
                             );
                             WebError::BadRequest(retrieval_error.into())
                         })?;
@@ -536,9 +530,9 @@ pub async fn user_from_claims(
                     let claim_error = |claim_name: &str| {
                         format!(
                             "Failed to retrieve {claim_name} from provider's userinfo endpoint and \
-                            the ID token.  Make sure you have configured your provider correctly \
-                            and that you have granted the necessary permissions to retrieve such \
-                            information from the token or the userinfo endpoint.",
+                        the ID token.  Make sure you have configured your provider correctly \
+                        and that you have granted the necessary permissions to retrieve such \
+                        information from the token or the userinfo endpoint.",
                         )
                     };
                     let given_name = userinfo_response
@@ -553,23 +547,22 @@ pub async fn user_from_claims(
 
                     debug!(
                         "Given name and family name successfully retrieved from the user info \
-                        endpoint for user {username}."
+                    endpoint for user {username}."
                     );
 
                     (given_name, family_name, phone)
                 };
 
-                let mut user = User::new(
-                    username.clone(),
-                    None,
-                    family_name.to_string(),
-                    given_name.to_string(),
-                    email.to_string(),
-                    phone.map(|v| v.to_string()),
-                );
-                user.openid_sub = Some(sub);
-                user.save(pool).await?
-            }
+            let mut user = User::new(
+                username.clone(),
+                None,
+                family_name.to_string(),
+                given_name.to_string(),
+                email.to_string(),
+                phone.map(|v| v.to_string()),
+            );
+            user.openid_sub = Some(sub);
+            user.save(pool).await?
         }
     };
 
