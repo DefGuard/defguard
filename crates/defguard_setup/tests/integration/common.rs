@@ -88,6 +88,10 @@ impl TestClient {
 }
 
 pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Receiver<()>) {
+    let mut config = DefGuardConfig::new_test_config();
+    config.cookie_insecure = None;
+    let _ = SERVER_CONFIG.set(config);
+
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
     let app = build_setup_webapp(
         pool,

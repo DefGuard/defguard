@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use axum::{Extension, Json};
+use axum::{Extension, Json, http::HeaderMap};
 use axum_extra::{
     TypedHeader,
     extract::{
@@ -38,7 +38,10 @@ use sqlx::PgPool;
 use tokio::sync::oneshot;
 use tracing::{debug, info};
 
-use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
+use crate::handlers::{
+    auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active},
+    cookies::setup_cookie_secure,
+};
 
 pub(crate) async fn advance_initial_wizard_to_step(
     pool: &PgPool,
@@ -111,6 +114,7 @@ pub struct SetupLogin {
 
 pub async fn create_admin(
     cookies: CookieJar,
+    headers: HeaderMap,
     user_agent: TypedHeader<UserAgent>,
     ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
@@ -180,6 +184,7 @@ pub async fn create_admin(
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .path("/")
         .http_only(true)
+        .secure(setup_cookie_secure(&headers))
         .same_site(SameSite::Lax);
     let cookies = cookies.add(auth_cookie);
 
@@ -197,6 +202,7 @@ pub async fn create_admin(
 
 pub async fn setup_login(
     cookies: CookieJar,
+    headers: HeaderMap,
     user_agent: TypedHeader<UserAgent>,
     ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
@@ -247,6 +253,7 @@ pub async fn setup_login(
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .path("/")
         .http_only(true)
+        .secure(setup_cookie_secure(&headers))
         .same_site(SameSite::Lax);
     let cookies = cookies.add(auth_cookie);
 

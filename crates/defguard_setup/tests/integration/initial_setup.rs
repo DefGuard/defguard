@@ -7,7 +7,7 @@ use axum::serve;
 use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};
 use defguard_common::{
     VERSION,
-    config::DefGuardConfig,
+    config::{DefGuardConfig, SERVER_CONFIG},
     db::{
         models::{
             Certificates, Session, Settings, User,
@@ -660,6 +660,9 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    let mut config = DefGuardConfig::new_test_config();
+    config.cookie_insecure = None;
+    let _ = SERVER_CONFIG.set(config);
     Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
