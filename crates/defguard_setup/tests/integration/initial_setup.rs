@@ -150,6 +150,98 @@ async fn test_create_admin_with_automatic_group_assignment(
 }
 
 #[sqlx::test]
+async fn test_create_admin_sets_secure_cookie_for_forwarded_https(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .header("x-forwarded-proto", "https")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie not set");
+    assert!(
+        session_cookie.secure(),
+        "Session cookie must be Secure for forwarded HTTPS"
+    );
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
+async fn test_setup_login_sets_insecure_cookie_without_forwarded_proto(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .json(&json!({
+            "username": "admin1",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to log in during setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie not set");
+    assert!(
+        !session_cookie.secure(),
+        "Session cookie must not be Secure without forwarded HTTPS"
+    );
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
 async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
