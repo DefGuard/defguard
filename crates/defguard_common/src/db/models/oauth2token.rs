@@ -111,12 +111,22 @@ impl OAuth2Token {
         Ok(())
     }
 
+    async fn reap_expired(pool: &PgPool, token: Option<Self>) -> sqlx::Result<Option<Self>> {
+        match token {
+            Some(token) if token.is_expired() => {
+                token.delete(pool).await?;
+                Ok(None)
+            }
+            token => Ok(token),
+        }
+    }
+
     /// Find by access token.
     pub async fn find_by_access_token(
         pool: &PgPool,
         access_token: &str,
     ) -> sqlx::Result<Option<Self>> {
-        match query_as!(
+        let token = query_as!(
             Self,
             "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, \
             expires_in \
@@ -124,19 +134,8 @@ impl OAuth2Token {
             access_token
         )
         .fetch_optional(pool)
-        .await
-        {
-            Ok(Some(token)) => {
-                if token.is_expired() {
-                    token.delete(pool).await?;
-                    Ok(None)
-                } else {
-                    Ok(Some(token))
-                }
-            }
-            Ok(None) => Ok(None),
-            Err(err) => Err(err),
-        }
+        .await?;
+        Self::reap_expired(pool, token).await
     }
 
     /// Find by refresh token for a specific OAuth2 client. Expired tokens are removed instead of returned.
@@ -145,7 +144,7 @@ impl OAuth2Token {
         refresh_token: &str,
         oauth2client_id: Id,
     ) -> sqlx::Result<Option<Self>> {
-        match query_as!(
+        let token = query_as!(
             Self,
             "SELECT t.oauth2authorizedapp_id, t.access_token, t.refresh_token, t.redirect_uri, t.scope, \
             t.expires_in \
@@ -156,18 +155,7 @@ impl OAuth2Token {
             oauth2client_id,
         )
         .fetch_optional(pool)
-        .await
-        {
-            Ok(Some(token)) => {
-                if token.is_expired() {
-                    token.delete(pool).await?;
-                    Ok(None)
-                } else {
-                    Ok(Some(token))
-                }
-            }
-            Ok(None) => Ok(None),
-            Err(err) => Err(err),
-        }
+        .await?;
+        Self::reap_expired(pool, token).await
     }
 }

@@ -954,6 +954,10 @@ impl TokenRequest {
     }
 }
 
+fn error_response(error: CoreErrorResponseType, status: StatusCode) -> ApiResponse {
+    ApiResponse::json(StandardErrorResponse::new(error, None, None), status)
+}
+
 /// Exchange an authorization code or a refresh token for tokens
 ///
 /// Accepts `application/x-www-form-urlencoded` and supports the `authorization_code` and
@@ -1099,16 +1103,24 @@ pub async fn token(
         }
         CoreGrantType::RefreshToken => {
             debug!("Starting refresh_token flow");
-            let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) else {
-                let err = CoreErrorResponseType::InvalidClient;
-                let response = StandardErrorResponse::new(err, None, None);
-                return Ok(ApiResponse::json(response, StatusCode::UNAUTHORIZED));
+            let client = match oauth2client {
+                Some(client) => client,
+                None => match form.oauth2client(&appstate.pool).await {
+                    Some(client) => client,
+                    None => {
+                        return Ok(error_response(
+                            CoreErrorResponseType::InvalidClient,
+                            StatusCode::UNAUTHORIZED,
+                        ));
+                    }
+                },
             };
 
             let Some(refresh_token) = form.refresh_token else {
-                let err = CoreErrorResponseType::InvalidGrant;
-                let response = StandardErrorResponse::new(err, None, None);
-                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+                return Ok(error_response(
+                    CoreErrorResponseType::InvalidGrant,
+                    StatusCode::BAD_REQUEST,
+                ));
             };
             let Some(mut token) = OAuth2Token::find_by_refresh_token_for_client(
                 &appstate.pool,
@@ -1117,15 +1129,17 @@ pub async fn token(
             )
             .await?
             else {
-                let err = CoreErrorResponseType::InvalidGrant;
-                let response = StandardErrorResponse::new(err, None, None);
-                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+                return Ok(error_response(
+                    CoreErrorResponseType::InvalidGrant,
+                    StatusCode::BAD_REQUEST,
+                ));
             };
 
             if !token.refresh_and_save(&appstate.pool).await? {
-                let err = CoreErrorResponseType::InvalidGrant;
-                let response = StandardErrorResponse::new(err, None, None);
-                return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
+                return Ok(error_response(
+                    CoreErrorResponseType::InvalidGrant,
+                    StatusCode::BAD_REQUEST,
+                ));
             }
             let response = TokenRequest::refresh_token_flow(&token);
             return Ok(ApiResponse::json(response, StatusCode::OK));

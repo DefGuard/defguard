@@ -859,12 +859,45 @@ async fn dg26_7_test_state_parameter_secure_authorization(
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+struct TokenPair {
+    access_token: String,
+    refresh_token: String,
+}
+
+async fn authorize_and_get_code(client: &TestClient, oauth_client: &OAuth2Client<Id>) -> String {
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=ABCDEF",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    redirect_url
+        .query_pairs()
+        .find(|(key, _)| key == "code")
+        .expect("authorize endpoint did not return a code")
+        .1
+        .into_owned()
+}
+
 /// Run a full authorization_code flow and return the OAuth2 client, the id of its authorized app,
-/// and the issued `(access_token, refresh_token)` pair.
-async fn issue_token_pair(
-    client: &TestClient,
-    pool: &PgPool,
-) -> (OAuth2Client<Id>, Id, String, String) {
+/// and the issued access and refresh tokens.
+async fn issue_token_pair(client: &TestClient, pool: &PgPool) -> (OAuth2Client<Id>, Id, TokenPair) {
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -888,35 +921,7 @@ async fn issue_token_pair(
         .save(pool)
         .await
         .unwrap();
-
-    let response = client
-        .get(format!(
-            "/api/v1/oauth/authorize?\
-            response_type=code&\
-            client_id={}&\
-            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
-            scope=openid&\
-            state=ABCDEF",
-            oauth_client.client_id
-        ))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::FOUND);
-    let redirect_url = Url::parse(
-        response
-            .headers()
-            .get("Location")
-            .unwrap()
-            .to_str()
-            .unwrap(),
-    )
-    .unwrap();
-    let code = redirect_url
-        .query_pairs()
-        .find(|(k, _)| k == "code")
-        .expect("authorize endpoint did not return a code")
-        .1
-        .into_owned();
+    let code = authorize_and_get_code(client, &oauth_client).await;
 
     let response = client
         .post("/api/v1/oauth/token")
@@ -933,24 +938,26 @@ async fn issue_token_pair(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let tokens: Value = response.json().await;
-    let access_token = tokens["access_token"]
-        .as_str()
-        .expect("no access_token in token response")
-        .to_owned();
-    let refresh_token = tokens["refresh_token"]
-        .as_str()
-        .expect("no refresh_token in token response")
-        .to_owned();
+    let token_pair = TokenPair {
+        access_token: tokens["access_token"]
+            .as_str()
+            .expect("no access_token in token response")
+            .to_owned(),
+        refresh_token: tokens["refresh_token"]
+            .as_str()
+            .expect("no refresh_token in token response")
+            .to_owned(),
+    };
 
-    (oauth_client, authorized_app.id, access_token, refresh_token)
+    (oauth_client, authorized_app.id, token_pair)
 }
 
 /// Count the token rows currently stored for an authorized app.
 async fn token_row_count(pool: &PgPool, authorized_app_id: Id) -> i64 {
-    sqlx::query_scalar::<_, i64>(
-        "SELECT count(*) FROM oauth2token WHERE oauth2authorizedapp_id = $1",
+    sqlx::query_scalar!(
+        "SELECT count(*) AS \"count!\" FROM oauth2token WHERE oauth2authorizedapp_id = $1",
+        authorized_app_id
     )
-    .bind(authorized_app_id)
     .fetch_one(pool)
     .await
     .unwrap()
@@ -965,8 +972,7 @@ async fn dg2608_3_test_refresh_token_requires_client_authentication(
     let pool = setup_pool(options).await;
     let (client, pool) = make_client_with_db(pool).await;
 
-    let (_oauth_client, _authorized_app_id, _access_token, refresh_token) =
-        issue_token_pair(&client, &pool).await;
+    let (_, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
 
     // No Authorization header, no client_id, no client_secret - only the stolen refresh token.
     let response = client
@@ -996,8 +1002,7 @@ async fn dg2608_3_test_refresh_token_rejects_wrong_client_credentials(
     let pool = setup_pool(options).await;
     let (client, pool) = make_client_with_db(pool).await;
 
-    let (_oauth_client, _authorized_app_id, _access_token, refresh_token) =
-        issue_token_pair(&client, &pool).await;
+    let (_, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
 
     // "isec:isec", base64-encoded - the wrong-credentials request from the audit report.
     let response = client
@@ -1050,7 +1055,7 @@ async fn dg2608_3_test_disabled_client_refresh_returns_invalid_client(
     let pool = setup_pool(options).await;
     let (client, pool) = make_client_with_db(pool).await;
 
-    let (oauth_client, _, _, refresh_token) = issue_token_pair(&client, &pool).await;
+    let (oauth_client, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
 
     let response = client
         .post(format!("/api/v1/oauth/{}", oauth_client.client_id))
@@ -1083,8 +1088,14 @@ async fn dg2608_3_test_refresh_token_is_rotated(_: PgPoolOptions, options: PgCon
     let pool = setup_pool(options).await;
     let (client, pool) = make_client_with_db(pool).await;
 
-    let (oauth_client, authorized_app_id, access_token, refresh_token) =
-        issue_token_pair(&client, &pool).await;
+    let (
+        oauth_client,
+        authorized_app_id,
+        TokenPair {
+            access_token,
+            refresh_token,
+        },
+    ) = issue_token_pair(&client, &pool).await;
 
     assert_eq!(
         token_row_count(&pool, authorized_app_id).await,
@@ -1154,8 +1165,7 @@ async fn dg2608_3_test_refresh_token_is_rotated(_: PgPoolOptions, options: PgCon
             "round {round}: a consumed refresh token must not be redeemable again"
         );
 
-        // Refreshing must replace the stored token, not add a row. Leftovers break the cleanup
-        // that runs when a client asks for a new token, which only removes a single row.
+        // Refreshing must replace the stored token, not add a row.
         let rows = token_row_count(&pool, authorized_app_id).await;
         assert_eq!(
             rows, 1,
@@ -1173,7 +1183,7 @@ async fn dg2608_3_test_concurrent_refresh_allows_single_rotation(
     let pool = setup_pool(options).await;
     let (client, pool) = make_client_with_db(pool).await;
 
-    let (oauth_client, _, _, refresh_token) = issue_token_pair(&client, &pool).await;
+    let (oauth_client, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
 
     sqlx::query(
         r#"
@@ -1259,7 +1269,7 @@ async fn dg2608_3_test_reauthorization_clears_leftover_rows(
     let pool = setup_pool(options).await;
     let (client, pool) = make_client_with_db(pool).await;
 
-    let (oauth_client, authorized_app_id, _, _) = issue_token_pair(&client, &pool).await;
+    let (oauth_client, authorized_app_id, _) = issue_token_pair(&client, &pool).await;
 
     for _ in 0..2 {
         OAuth2Token::new(
@@ -1273,34 +1283,7 @@ async fn dg2608_3_test_reauthorization_clears_leftover_rows(
     }
     assert_eq!(token_row_count(&pool, authorized_app_id).await, 3);
 
-    let response = client
-        .get(format!(
-            "/api/v1/oauth/authorize?\
-            response_type=code&\
-            client_id={}&\
-            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
-            scope=openid&\
-            state=ABCDEF",
-            oauth_client.client_id
-        ))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::FOUND);
-    let redirect_url = Url::parse(
-        response
-            .headers()
-            .get("Location")
-            .unwrap()
-            .to_str()
-            .unwrap(),
-    )
-    .unwrap();
-    let code = redirect_url
-        .query_pairs()
-        .find(|(key, _)| key == "code")
-        .expect("authorize endpoint did not return a code")
-        .1
-        .into_owned();
+    let code = authorize_and_get_code(&client, &oauth_client).await;
 
     let response = client
         .post("/api/v1/oauth/token")
