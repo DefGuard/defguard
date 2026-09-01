@@ -13,6 +13,7 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
+use defguard_proto::proxy::PublicSettings;
 use sqlx::PgPool;
 use struct_patch::Patch;
 use tokio::sync::mpsc;
@@ -37,25 +38,34 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
-/// Push `PublicSettings` to every connected proxy. Best effort: a send failure is logged rather
-/// than propagated, since proxies also receive the current values when they next connect.
+/// Wrap `PublicSettings` in the control message the proxy manager fans out to every connected
+/// proxy. Build the payload with [`EnterpriseSettings::edge_public_settings`] or
+/// [`unlicensed_edge_public_settings`] rather than by hand, so the two cases stay distinguishable.
+#[must_use]
+pub(crate) fn public_settings_message(public_settings: PublicSettings) -> ProxyControlMessage {
+    ProxyControlMessage::BroadcastPublicSettings {
+        display_password_reset: public_settings.display_password_reset,
+        display_download_step: public_settings.display_download_step,
+        public_url: public_settings.public_url,
+    }
+}
+
+/// Push the current `PublicSettings` to every connected proxy. Best effort: a send failure is
+/// logged rather than propagated, since proxies also receive the current values when they next
+/// connect.
 pub(crate) async fn broadcast_public_settings(
     pool: &PgPool,
     settings: &Settings,
     proxy_control_tx: &mpsc::Sender<ProxyControlMessage>,
 ) {
     let enterprise_settings = match EnterpriseSettings::get(pool).await {
-        Ok(settings) => settings,
+        Ok(enterprise_settings) => enterprise_settings,
         Err(err) => {
             error!("Failed to load enterprise settings for public settings broadcast: {err:?}");
             return;
         }
     };
-    let message = ProxyControlMessage::BroadcastPublicSettings {
-        display_password_reset: enterprise_settings.edge_can_display_password_reset(),
-        display_download_step: enterprise_settings.display_download_step,
-        public_url: settings.configured_public_proxy_url(),
-    };
+    let message = public_settings_message(enterprise_settings.edge_public_settings(settings));
     if let Err(err) = proxy_control_tx.send(message).await {
         error!("Failed to broadcast PublicSettings after public proxy URL change: {err:?}");
     }
