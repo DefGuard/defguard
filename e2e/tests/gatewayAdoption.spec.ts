@@ -82,11 +82,11 @@ test.describe('Gateway Adoption', () => {
     expect(networks.length).toBeGreaterThan(0);
     const networkId = (networks[0] as { id: number }).id;
 
-    const sseRes = await request.get(`/api/v1/network/${networkId}/gateways/setup`, {
-      params: {
+    const sseRes = await request.post(`/api/v1/network/${networkId}/gateways/setup`, {
+      data: {
         common_name: 'test-gateway-sse',
         ip_or_domain: GATEWAY_IP_OR_DOMAIN,
-        grpc_port: String(GATEWAY_GRPC_PORT),
+        grpc_port: GATEWAY_GRPC_PORT,
       },
       timeout: testsConfig.TEST_TIMEOUT * 1000,
     });

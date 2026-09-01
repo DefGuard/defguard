@@ -137,8 +137,8 @@ pub async fn init_settings_with_secret_key(pool: &PgPool) {
         .await
         .expect("Failed to initialize settings");
     let mut settings = Settings::get_current_settings();
-    settings.secret_key = Some(TEST_SECRET_KEY.to_owned());
-    settings.defguard_url = "http://localhost:8000".to_owned();
+    settings.set_secret_key(Some(TEST_SECRET_KEY.to_owned()));
+    "http://localhost:8000".clone_into(&mut settings.defguard_url);
     update_current_settings(pool, settings)
         .await
         .expect("Failed to update settings");

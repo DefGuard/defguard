@@ -104,7 +104,6 @@ export interface CreateAdminRequest {
   username: string;
   email: string;
   password: string;
-  automatically_assign_group?: boolean;
 }
 
 export interface SetGeneralConfigRequest {

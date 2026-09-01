@@ -24,7 +24,7 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::{
-        AdminOrSetupRole, SessionInfo,
+        AdminRole, SessionInfo,
         failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
     },
     error::WebError,
@@ -102,8 +102,6 @@ pub struct CreateAdmin {
     username: String,
     email: String,
     password: String,
-    #[serde(default)]
-    automatically_assign_group: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -147,28 +145,22 @@ pub async fn create_admin(
     update_current_settings(&pool, settings).await?;
     debug!("Initial admin user set as default admin in settings");
 
-    if admin.automatically_assign_group {
-        let settings = Settings::get_current_settings();
-        let default_admin_group_name = settings.default_admin_group_name;
-
-        let admin_group =
-            if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
-                group.is_admin = true;
-                group.save(&pool).await?;
-                group
-            } else {
-                let mut group = Group::new(&default_admin_group_name);
-                group.is_admin = true;
-                group.save(&pool).await?
-            };
-
-        user.add_to_group(&pool, &admin_group).await?;
-
-        debug!(
-            "Automatically assigned admin user {} to admin group {}",
-            user.username, admin_group.name
-        );
-    }
+    let default_admin_group_name = Settings::get_current_settings().default_admin_group_name;
+    let admin_group =
+        if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
+            group.is_admin = true;
+            group.save(&pool).await?;
+            group
+        } else {
+            let mut group = Group::new(&default_admin_group_name);
+            group.is_admin = true;
+            group.save(&pool).await?
+        };
+    user.add_to_group(&pool, &admin_group).await?;
+    debug!(
+        "Assigned admin user {} to admin group {}",
+        user.username, admin_group.name
+    );
 
     let device_info = get_device_info(user_agent.as_str());
 
@@ -283,7 +275,7 @@ pub struct GeneralConfig {
 }
 
 pub async fn set_general_config(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(general_config): Json<GeneralConfig>,
 ) -> ApiResult {
@@ -294,8 +286,9 @@ pub async fn set_general_config(
         general_config.default_authentication,
         general_config.default_mfa_code_lifetime,
     );
-    let default_admin_group_name = general_config.default_admin_group_name.clone();
+    let new_admin_group_name = general_config.default_admin_group_name.clone();
     let mut settings = Settings::get_current_settings();
+    let old_admin_group_name = settings.default_admin_group_name.clone();
     settings.default_admin_group_name = general_config.default_admin_group_name;
     settings.authentication_period_days = general_config
         .default_authentication
@@ -308,40 +301,20 @@ pub async fn set_general_config(
         .try_into()
         .map_err(|err| WebError::BadRequest(format!("Invalid MFA code timeout seconds: {err}")))?;
     update_current_settings(&pool, settings).await?;
-    let settings = Settings::get_current_settings();
     debug!("Settings persisted");
 
-    let admin_group =
-        if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
-            debug!(
-                "Admin group {} found, marking as admin",
-                default_admin_group_name
-            );
-            group.is_admin = true;
-            group.save(&pool).await?;
-            group
-        } else {
-            debug!(
-                "Admin group {} not found, creating",
-                default_admin_group_name
-            );
-            let mut group = Group::new(&default_admin_group_name);
-            group.is_admin = true;
-            group.save(&pool).await?
-        };
-
-    let admin_id = settings
-        .default_admin_id
-        .ok_or_else(|| WebError::DbError("Default admin user ID not set in settings".into()))?;
-
-    let admin_user = User::find_by_id(&pool, admin_id).await?.ok_or_else(|| {
-        WebError::ObjectNotFound(format!("Admin user with ID '{admin_id}' not found"))
-    })?;
-    debug!(
-        "Assigning admin user {} to admin group {}",
-        admin_user.username, admin_group.name
-    );
-    admin_user.add_to_group(&pool, &admin_group).await?;
+    // `create_admin` already made the admin group under the previous name and put the admin
+    // in it, so this step renames that group.
+    if old_admin_group_name != new_admin_group_name {
+        let mut admin_group = Group::find_by_name(&pool, &old_admin_group_name)
+            .await?
+            .ok_or_else(|| {
+                WebError::ObjectNotFound(format!("Admin group '{old_admin_group_name}' not found"))
+            })?;
+        debug!("Renaming admin group {old_admin_group_name} to {new_admin_group_name}");
+        admin_group.name = new_admin_group_name;
+        admin_group.save(&pool).await?;
+    }
 
     info!("Initial general configuration applied");
 
@@ -358,7 +331,7 @@ pub struct CreateCA {
 }
 
 pub async fn create_ca(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(ca_info): Json<CreateCA>,
 ) -> ApiResult {
@@ -394,7 +367,7 @@ pub async fn create_ca(
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
-pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+pub async fn get_ca(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Fetching certificate authority details");
     let certs = Certificates::get_or_default(&pool)
         .await
@@ -437,7 +410,7 @@ pub struct UploadCA {
 }
 
 pub async fn upload_ca(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(ca_info): Json<UploadCA>,
 ) -> ApiResult {
@@ -462,7 +435,7 @@ pub async fn upload_ca(
 
 pub async fn finish_setup(
     cookies: CookieJar,
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -549,7 +522,7 @@ pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
     ))
 }
 
-pub async fn proxy_list(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+pub async fn proxy_list(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let proxies = Proxy::list(&pool).await?;
     let proxies: Vec<ProxyInfo> = proxies.into_iter().map(Into::into).collect();
 

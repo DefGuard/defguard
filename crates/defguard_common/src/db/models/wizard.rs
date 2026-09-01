@@ -5,11 +5,9 @@ use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use tracing::{error, info};
 use url::Url;
 
-use super::setup_auto_adoption::AutoAdoptionWizardStep;
 use crate::{
     config::DefGuardConfig,
     db::models::{
-        InitialSetupState, InitialSetupStep,
         migration_wizard::{MigrationWizardState, ProxyUrl},
         setup_auto_adoption::AutoAdoptionWizardState,
     },
@@ -182,33 +180,6 @@ impl Wizard {
                 }
             },
             None => None,
-        }
-    }
-
-    /// Returns `true` when the current wizard state requires authentication.
-    ///
-    /// During the Initial and AutoAdoption wizards, unauthenticated access is
-    /// allowed until the admin user has been created (i.e. the wizard step is
-    /// at or before `AdminUser`). All other wizard types (or steps past admin
-    /// creation) require a valid session.
-    pub async fn requires_auth<'e, E>(&self, executor: E) -> Result<bool, sqlx::Error>
-    where
-        E: PgExecutor<'e> + Copy,
-    {
-        match self.active_wizard {
-            ActiveWizard::Initial => {
-                let state = InitialSetupState::get(executor).await?.unwrap_or_default();
-                let step = state.step;
-                Ok(step > InitialSetupStep::AdminUser)
-            }
-            ActiveWizard::AutoAdoption => {
-                let state = AutoAdoptionWizardState::get(executor)
-                    .await?
-                    .unwrap_or_default();
-                let step = state.step;
-                Ok(step > AutoAdoptionWizardStep::AdminUser)
-            }
-            _ => Ok(true),
         }
     }
 

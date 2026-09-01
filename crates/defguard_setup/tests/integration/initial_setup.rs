@@ -100,10 +100,7 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-async fn test_create_admin_with_automatic_group_assignment(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_create_admin_assigns_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -120,8 +117,7 @@ async fn test_create_admin_with_automatic_group_assignment(
         "last_name": "Admin",
         "username": "admin1",
         "email": "admin1@example.com",
-        "password": "Passw0rd!",
-        "automatically_assign_group": true
+        "password": "Passw0rd!"
     });
 
     let response = client
@@ -394,6 +390,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let initial_admin_group_name = Settings::get_current_settings().default_admin_group_name;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -448,6 +445,15 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch group membership");
     assert!(groups.contains(&"admins".to_owned()));
+
+    // The group created by `create_admin` must be renamed, not left behind as a second
+    // group with admin permission.
+    assert!(
+        Group::find_by_name(&pool, &initial_admin_group_name)
+            .await
+            .expect("Failed to fetch group")
+            .is_none()
+    );
 
     assert_setup_step(&pool, InitialSetupStep::Ca).await;
 }
