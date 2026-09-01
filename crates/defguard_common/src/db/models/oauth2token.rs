@@ -143,7 +143,7 @@ impl OAuth2Token {
         Self::reap_expired(pool, token).await
     }
 
-    /// Find by refresh token for a specific OAuth2 client. Expired tokens are removed instead of returned.
+    /// Find by refresh token for a specific OAuth2 client. Expired tokens are removed.
     pub async fn find_by_refresh_token_for_client(
         pool: &PgPool,
         refresh_token: &str,
