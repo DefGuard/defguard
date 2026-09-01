@@ -38,23 +38,23 @@ mod tests {
     }
 
     #[test]
-    fn explicit_cookie_setting_is_inverted() {
+    fn test_explicit_cookie_setting_is_inverted() {
         assert!(setup_cookie_secure_with(&headers(None), Some(false)));
         assert!(!setup_cookie_secure_with(&headers(None), Some(true)));
     }
 
     #[test]
-    fn forwarded_https_enables_secure_cookie() {
+    fn test_forwarded_https_enables_secure_cookie() {
         assert!(setup_cookie_secure_with(&headers(Some("https")), None));
     }
 
     #[test]
-    fn uppercase_forwarded_https_enables_secure_cookie() {
+    fn test_uppercase_forwarded_https_enables_secure_cookie() {
         assert!(setup_cookie_secure_with(&headers(Some("HTTPS")), None));
     }
 
     #[test]
-    fn comma_separated_forwarded_https_enables_secure_cookie() {
+    fn test_comma_separated_forwarded_https_enables_secure_cookie() {
         let mut headers = HeaderMap::new();
         headers.insert(X_FORWARDED_PROTO, HeaderValue::from_static("http, https"));
 
@@ -62,7 +62,7 @@ mod tests {
     }
 
     #[test]
-    fn final_forwarded_proto_header_enables_secure_cookie() {
+    fn test_final_forwarded_proto_header_enables_secure_cookie() {
         let mut headers = HeaderMap::new();
         headers.append(X_FORWARDED_PROTO, HeaderValue::from_static("http"));
         headers.append(X_FORWARDED_PROTO, HeaderValue::from_static("HTTPS"));
@@ -71,17 +71,17 @@ mod tests {
     }
 
     #[test]
-    fn forwarded_http_defaults_to_insecure() {
+    fn test_forwarded_http_defaults_to_insecure() {
         assert!(!setup_cookie_secure_with(&headers(Some("http")), None));
     }
 
     #[test]
-    fn missing_forwarded_proto_defaults_to_insecure() {
+    fn test_missing_forwarded_proto_defaults_to_insecure() {
         assert!(!setup_cookie_secure_with(&headers(None), None));
     }
 
     #[test]
-    fn explicit_cookie_setting_beats_forwarded_proto() {
+    fn test_explicit_cookie_setting_beats_forwarded_proto() {
         assert!(!setup_cookie_secure_with(
             &headers(Some("https")),
             Some(true)
