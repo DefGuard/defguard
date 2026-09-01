@@ -61,8 +61,8 @@ pub fn build_setup_webapp(
                 .route("/network/display", get(get_locations_display))
                 .route("/wizard", get(get_wizard_state))
                 .route("/proxy", get(proxy_list))
-                .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-                .route("/proxy/acme/stream", get(stream_proxy_acme))
+                .route("/proxy/setup/stream", post(setup_proxy_tls_stream))
+                .route("/proxy/acme/stream", post(stream_proxy_acme))
                 .nest(
                     "/initial_setup",
                     Router::<()>::new()

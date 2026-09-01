@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
@@ -77,7 +77,7 @@ impl From<TokenError> for Status {
 }
 
 // Representation of a user enrollment session
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Token {
     pub id: String,
     pub user_id: Id,
@@ -88,6 +88,21 @@ pub struct Token {
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
+}
+
+impl fmt::Debug for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Token")
+            .field("id", &"<redacted>")
+            .field("user_id", &self.user_id)
+            .field("admin_id", &self.admin_id)
+            .field("created_at", &self.created_at)
+            .field("expires_at", &self.expires_at)
+            .field("used_at", &self.used_at)
+            .field("token_type", &self.token_type)
+            .field("device_id", &self.device_id)
+            .finish()
+    }
 }
 
 impl Token {
@@ -241,7 +256,10 @@ impl Token {
     {
         debug!("Find user by id {}.", self.user_id);
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
-            error!("User not found for enrollment token {}", self.id);
+            error!(
+                "User not found for enrollment token of user {}",
+                self.user_id
+            );
             return Err(TokenError::UserNotFound);
         };
         debug!("Fetched user {user:?}.");
@@ -329,8 +347,8 @@ impl Token {
         conn: &mut PgConnection,
     ) -> Result<Context, TokenError> {
         debug!(
-            "Preparing welcome message context for enrollment token {}",
-            self.id
+            "Preparing welcome message context for enrollment token of user {}",
+            self.user_id
         );
 
         let user = self.fetch_user(&mut *conn).await?;
@@ -409,4 +427,26 @@ fn enrollment_welcome_email(settings: &Settings) -> Result<String, TokenError> {
         error!("Enrollment welcome email not configured");
         TokenError::WelcomeEmailNotConfigured
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_debug_masks_id() {
+        let token = Token::new(
+            7,
+            Some(1),
+            Some("user@example.com".to_owned()),
+            60,
+            Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
+        );
+        let debug = format!("{token:?}");
+
+        assert!(!debug.contains(&token.id));
+        assert!(!debug.contains("user@example.com"));
+        assert!(debug.contains("user_id: 7"));
+        assert!(debug.contains(ENROLLMENT_TOKEN_TYPE));
+    }
 }

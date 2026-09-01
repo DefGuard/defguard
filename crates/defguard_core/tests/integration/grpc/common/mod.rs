@@ -107,7 +107,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 
     // set test secret for generating JWT tokens
     let mut settings = Settings::get_current_settings();
-    settings.secret_key = Some(TEST_SECRET_KEY.to_owned());
+    settings.set_secret_key(Some(TEST_SECRET_KEY.to_owned()));
     update_current_settings(pool, settings)
         .await
         .expect("Failed to update settings");

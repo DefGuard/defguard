@@ -17,7 +17,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc};
 
-    use super::super::*;
+    use super::super::{testprovider::FAILING_GROUP, *};
     use crate::{
         device_access::join_device_to_all_networks,
         enterprise::{
@@ -1015,6 +1015,45 @@ mod test {
 
         // No events
         assert!(gateway_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_user_sync_filter_keeps_users_when_member_query_fails(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+
+        // limit the sync to a group whose member query always fails
+        let mut provider = make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::Users,
+            true,
+        )
+        .await;
+        provider.directory_sync_user_groups = Some(vec![FAILING_GROUP.to_owned()]);
+        provider.save(&pool).await.unwrap();
+
+        make_test_user_and_device("FirstName", &pool).await;
+        make_test_user_and_device("LastName", &pool).await;
+        let users_before = User::all(&pool).await.unwrap().len();
+        assert_eq!(users_before, 2);
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        let result = do_directory_sync(&pool, &gateway_tx, &ldap_tx, &dirsync_tx).await;
+
+        // the sync aborts instead of acting on an incomplete list of allowed users
+        assert_eq!(User::all(&pool).await.unwrap().len(), users_before);
+        assert!(get_test_user(&pool, "FirstName").await.is_some());
+        assert!(get_test_user(&pool, "LastName").await.is_some());
+        assert!(result.is_err());
     }
 
     #[sqlx::test]

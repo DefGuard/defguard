@@ -908,6 +908,47 @@ async fn test_register_mobile_auth_device_not_found(_: PgPoolOptions, options: P
 }
 
 #[sqlx::test]
+async fn test_register_mobile_auth_foreign_device(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (_victim, victim_device) = create_user_with_device(&context.pool).await;
+    let attacker = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, attacker.id, Some(attacker.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 303,
+        device_info: None,
+        payload: Some(core_request::Payload::RegisterMobileAuth(
+            RegisterMobileAuthRequest {
+                token: token.id.clone(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_owned(),
+                device_pub_key: victim_device.wireguard_pubkey.clone(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::Unauthenticated,
+        "device owned by another user must return Unauthenticated"
+    );
+
+    assert!(
+        BiometricAuth::find_by_device_id(&context.pool, victim_device.id)
+            .await
+            .expect("DB query for BiometricAuth failed")
+            .is_none(),
+        "no BiometricAuth row may be created for a device owned by another user"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_code_mfa_setup_unsupported_method_returns_error(
     _: PgPoolOptions,
     options: PgConnectOptions,
