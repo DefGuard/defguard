@@ -36,6 +36,28 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
+pub(crate) async fn broadcast_public_settings(
+    pool: &PgPool,
+    settings: &Settings,
+    proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
+) {
+    let enterprise_settings = match EnterpriseSettings::get(pool).await {
+        Ok(settings) => settings,
+        Err(err) => {
+            error!("Failed to load enterprise settings for public settings broadcast: {err:?}");
+            return;
+        }
+    };
+    let message = ProxyControlMessage::BroadcastPublicSettings {
+        display_password_reset: enterprise_settings.edge_can_display_password_reset(),
+        display_download_step: enterprise_settings.display_download_step,
+        public_url: settings.configured_public_proxy_url(),
+    };
+    if let Err(err) = proxy_control_tx.send(message).await {
+        error!("Failed to broadcast PublicSettings after public proxy URL change: {err:?}");
+    }
+}
+
 /// Get instance settings
 #[utoipa::path(
     get,

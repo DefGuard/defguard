@@ -4,8 +4,8 @@
 ///
 /// The `proxy_control_tx` channel is kept alive and its receiver is held by
 /// `ProxyBroadcastCapture`, acting as a mock for the proxy manager.
-/// This lets us assert that the correct `ProxyControlMessage::BroadcastHttpsCerts`
-/// was sent after a successful cert operation without needing a real proxy process.
+/// This lets us assert that the correct certificate and public-settings messages
+/// were sent after successful certificate operations without needing a real proxy process.
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, atomic::AtomicBool},
@@ -81,6 +81,22 @@ impl ProxyBroadcastCapture {
             match self.rx.try_recv() {
                 Ok(ProxyControlMessage::ClearHttpsCerts) => {
                     results += 1;
+                }
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        results
+    }
+
+    /// Drain all pending messages and return public URLs from public-settings broadcasts.
+    async fn drain_public_settings(&mut self) -> Vec<Option<String>> {
+        let mut results = Vec::new();
+        sleep(Duration::from_millis(50)).await;
+        loop {
+            match self.rx.try_recv() {
+                Ok(ProxyControlMessage::BroadcastPublicSettings { public_url, .. }) => {
+                    results.push(public_url);
                 }
                 Ok(_) => {}
                 Err(_) => break,
@@ -197,6 +213,37 @@ async fn test_proxy_cert_pair_none_by_default(_: PgPoolOptions, opts: PgConnectO
     assert!(
         certs.proxy_http_cert_pair().is_none(),
         "No cert must be configured by default"
+    );
+}
+
+#[sqlx::test]
+async fn test_external_url_settings_broadcasts_persisted_public_url(
+    _: PgPoolOptions,
+    opts: PgConnectOptions,
+) {
+    let pool = setup_pool(opts).await;
+    let (mut client, mut capture, pool) = make_test_client_with_proxy_rx(pool).await;
+    login_admin(&mut client).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
+    update_current_settings(&pool, settings).await.unwrap();
+    seed_ca(&pool).await;
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({ "ssl_type": "defguard_ca" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
+
+    // The certificate broadcast may be queued before PublicSettings; the helper ignores it.
+    assert_eq!(
+        capture.drain_public_settings().await,
+        vec![Some("https://edge.example.com".to_owned())]
     );
 }
 

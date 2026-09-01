@@ -15,7 +15,7 @@ use crate::{
         apply_external_url_settings, apply_internal_url_settings,
     },
     error::WebError,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult, settings::broadcast_public_settings},
 };
 
 fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
@@ -122,9 +122,9 @@ pub(crate) async fn set_external_url_settings(
         "User {} applying proxy external URL certificate settings",
         session.user.username
     );
-    let settings = Settings::get_current_settings();
+    let before = Settings::get_current_settings();
     let ssl_type = config.ssl_type.clone();
-    let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;
+    let cert_info = apply_external_url_settings(&pool, &before.public_proxy_url, config).await?;
 
     match ssl_type {
         ExternalSslType::DefguardCa | ExternalSslType::OwnCert => {
@@ -141,6 +141,12 @@ pub(crate) async fn set_external_url_settings(
         }
         ExternalSslType::LetsEncrypt => {}
     }
+
+    let after = Settings::get_current_settings();
+    if before.public_proxy_url != after.public_proxy_url {
+        broadcast_public_settings(&pool, &after, &appstate.proxy_control_tx).await;
+    }
+
     info!(
         "User {} applied proxy external URL certificate settings",
         session.user.username
