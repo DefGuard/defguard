@@ -1250,14 +1250,11 @@ async fn apply_acme_certificate(
         if let Err(e) = tx.send(msg).await {
             error!("Failed to broadcast HttpsCerts to Edge: {e}");
         }
-    }
 
-    if settings_updated
-        && edge_settings_changed
-        && let Some(tx) = proxy_control_tx
-    {
-        let settings = Settings::get_current_settings();
-        broadcast_public_settings(pool, &settings, tx).await;
+        if settings_updated && edge_settings_changed {
+            let settings = Settings::get_current_settings();
+            broadcast_public_settings(pool, &settings, tx).await;
+        }
     }
 }
 
