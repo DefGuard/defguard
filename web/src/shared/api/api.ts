@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
+import { isPresent } from '../defguard-ui/utils/isPresent';
 import { narrowLicenseSupport } from '../utils/license';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
@@ -616,10 +617,11 @@ const api = {
     client
       .get<LicenseInfoResponse>(`/enterprise_info`)
       .then((res): LicenseInfo | null => {
-        if (res.data.license_info === null) return null;
+        const licenseInfo = res.data?.license_info;
+        if (!isPresent(licenseInfo)) return null;
         return {
-          ...res.data.license_info,
-          support_type_narrow: narrowLicenseSupport(res.data.license_info),
+          ...licenseInfo,
+          support_type_narrow: narrowLicenseSupport(licenseInfo),
         };
       }),
   support: {

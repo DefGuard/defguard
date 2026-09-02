@@ -522,7 +522,7 @@ export interface LicenseInfoApi {
 }
 
 export interface LicenseInfoResponse {
-  license_info: LicenseInfo | null;
+  license_info: LicenseInfoApi | null;
 }
 
 export interface LdapInfo {
