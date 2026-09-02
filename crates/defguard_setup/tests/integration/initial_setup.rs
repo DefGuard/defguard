@@ -7,13 +7,13 @@ use axum::serve;
 use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};
 use defguard_common::{
     VERSION,
-    config::DefGuardConfig,
+    config::{DefGuardConfig, SERVER_CONFIG},
     db::{
         models::{
             Certificates, Session, Settings, User,
             group::Group,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
-            settings::initialize_current_settings,
+            settings::{initialize_current_settings, set_settings},
             wizard::Wizard,
         },
         setup_pool,
@@ -30,7 +30,7 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{
     net::TcpListener,
-    sync::{Notify, oneshot},
+    sync::{Notify, oneshot, oneshot::error::TryRecvError},
     time::timeout,
 };
 
@@ -143,6 +143,190 @@ async fn test_create_admin_assigns_admin_group(_: PgPoolOptions, options: PgConn
         .await
         .expect("Failed to fetch group membership");
     assert!(groups.contains(&default_admin_group_name));
+}
+
+#[sqlx::test]
+async fn test_create_admin_sets_secure_cookie_for_forwarded_https(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .header("x-forwarded-proto", "https")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie not set");
+    assert!(
+        session_cookie.secure(),
+        "Session cookie must be Secure for forwarded HTTPS"
+    );
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
+async fn test_create_admin_sets_insecure_cookie_without_forwarded_proto(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie not set");
+    assert!(
+        !session_cookie.secure(),
+        "Session cookie must not be Secure without forwarded HTTPS"
+    );
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
+async fn test_setup_login_sets_insecure_cookie_without_forwarded_proto(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .json(&json!({
+            "username": "admin1",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to log in during setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie not set");
+    assert!(
+        !session_cookie.secure(),
+        "Session cookie must not be Secure without forwarded HTTPS"
+    );
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
+async fn test_setup_login_sets_secure_cookie_for_forwarded_https(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .header("x-forwarded-proto", "https")
+        .json(&json!({
+            "username": "admin1",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to log in during setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie not set");
+    assert!(
+        session_cookie.secure(),
+        "Session cookie must be Secure for forwarded HTTPS"
+    );
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
 }
 
 #[sqlx::test]
@@ -427,6 +611,195 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_finish_setup_rejects_invalid_admin_configuration(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, mut shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup anonymously");
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Initial session cookie not set")
+        .value()
+        .to_owned();
+
+    let original_settings = Settings::get_current_settings();
+    assert!(original_settings.default_admin_id.is_some());
+
+    let mut settings = original_settings.clone();
+    settings.default_admin_id = None;
+    set_settings(Some(settings));
+    let response = client.post("/api/v1/initial_setup/finish").send().await;
+    set_settings(Some(original_settings.clone()));
+    let response = response.expect("Failed to finish setup without an admin ID");
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .expect("Failed to parse missing-admin response");
+    assert_eq!(body["msg"], "Internal Server Error");
+
+    let mismatched_admin_id = i64::MAX;
+    let mut settings = original_settings.clone();
+    settings.default_admin_id = Some(mismatched_admin_id);
+    set_settings(Some(settings));
+    let response = client.post("/api/v1/initial_setup/finish").send().await;
+    set_settings(Some(original_settings));
+    let response = response.expect("Failed to finish setup with a mismatched admin ID");
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .expect("Failed to parse mismatched-admin response");
+    let message = body["msg"]
+        .as_str()
+        .expect("Mismatched-admin response message is not a string");
+    assert_eq!(message, "access denied");
+    assert!(!message.contains(&mismatched_admin_id.to_string()));
+
+    let wizard = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state");
+    assert!(!wizard.completed);
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+    assert!(
+        Session::find_by_id(&pool, &session_id)
+            .await
+            .expect("Failed to fetch session after rejected finish")
+            .is_some()
+    );
+    assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
+}
+
+#[sqlx::test]
+async fn test_finish_setup_rolls_back_when_session_invalidation_fails(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, mut shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Initial session cookie not set")
+        .value()
+        .to_owned();
+
+    let wizard_before = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state before finish");
+    let setup_state_before = InitialSetupState::get(&pool)
+        .await
+        .expect("Failed to fetch initial setup state before finish");
+
+    sqlx::query(
+        r#"
+        CREATE FUNCTION fail_session_delete() RETURNS trigger
+        LANGUAGE plpgsql AS $$
+        BEGIN
+            RAISE EXCEPTION 'session deletion blocked';
+        END;
+        $$;
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("Failed to create session delete trigger function");
+    sqlx::query(
+        r#"
+        CREATE TRIGGER fail_session_delete
+        BEFORE DELETE ON session
+        FOR EACH ROW
+        EXECUTE FUNCTION fail_session_delete();
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("Failed to create session delete trigger");
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup");
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+    let wizard_after = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state after failed finish");
+    assert_eq!(wizard_after.active_wizard, wizard_before.active_wizard);
+    assert_eq!(wizard_after.completed, wizard_before.completed);
+    assert_eq!(
+        wizard_after.last_version_migrated_to,
+        wizard_before.last_version_migrated_to
+    );
+    let setup_state_after = InitialSetupState::get(&pool)
+        .await
+        .expect("Failed to fetch initial setup state after failed finish");
+    assert_eq!(
+        setup_state_after.map(|state| state.step),
+        setup_state_before.map(|state| state.step)
+    );
+    assert!(
+        Session::find_by_id(&pool, &session_id)
+            .await
+            .expect("Failed to fetch session after failed finish")
+            .is_some()
+    );
+    assert!(matches!(shutdown_rx.try_recv(), Err(TryRecvError::Empty)));
+}
+
+#[sqlx::test]
 async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
@@ -478,11 +851,131 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_finish_setup_clears_session_cookie(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Session cookie was not cleared");
+    assert_eq!(session_cookie.value(), "");
+    assert_eq!(session_cookie.path(), Some("/"));
+}
+
+#[sqlx::test]
+async fn test_finish_setup_deletes_all_admin_sessions(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let first_session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Initial session cookie not set")
+        .value()
+        .to_owned();
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .json(&json!({
+            "username": "admin1",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to log in during setup");
+    assert_eq!(response.status(), StatusCode::OK);
+    let second_session_id = response
+        .cookies()
+        .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
+        .expect("Relogin session cookie not set")
+        .value()
+        .to_owned();
+    assert_ne!(first_session_id, second_session_id);
+
+    let admin_user = User::find_by_username(&pool, "admin1")
+        .await
+        .expect("Failed to fetch admin user")
+        .expect("Admin user not found");
+    let session_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM session WHERE user_id = $1")
+        .bind(admin_user.id)
+        .fetch_one(&pool)
+        .await
+        .expect("Failed to count admin sessions");
+    assert_eq!(session_count, 2);
+
+    let response = client
+        .post("/api/v1/initial_setup/finish")
+        .send()
+        .await
+        .expect("Failed to finish setup");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let session_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM session WHERE user_id = $1")
+        .bind(admin_user.id)
+        .fetch_one(&pool)
+        .await
+        .expect("Failed to count admin sessions");
+    assert_eq!(session_count, 0);
+}
+
+#[sqlx::test]
 async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    let mut config = DefGuardConfig::new_test_config();
+    config.cookie_insecure = None;
+    let _ = SERVER_CONFIG.set(config);
     Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
@@ -628,9 +1121,11 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     let session = Session::find_by_id(&pool, &session_cookie_value)
         .await
-        .expect("Failed to fetch session")
-        .expect("Session not created");
-    assert_eq!(session.user_id, admin_user.id);
+        .expect("Failed to fetch session");
+    assert!(
+        session.is_none(),
+        "Session still exists after setup finished"
+    );
 
     let shutdown_signal = timeout(SHUTDOWN_TIMEOUT, shutdown_notify.notified()).await;
     assert!(shutdown_signal.is_ok());

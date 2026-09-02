@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use axum::{Extension, Json};
+use axum::{Extension, Json, http::HeaderMap};
 use axum_extra::{
     TypedHeader,
     extract::{
@@ -36,9 +36,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::sync::oneshot;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
-use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
+use crate::handlers::{
+    auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active},
+    cookies::setup_cookie_secure,
+};
 
 pub(crate) async fn advance_initial_wizard_to_step(
     pool: &PgPool,
@@ -109,6 +112,7 @@ pub struct SetupLogin {
 
 pub async fn create_admin(
     cookies: CookieJar,
+    headers: HeaderMap,
     user_agent: TypedHeader<UserAgent>,
     ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
@@ -172,6 +176,7 @@ pub async fn create_admin(
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .path("/")
         .http_only(true)
+        .secure(setup_cookie_secure(&headers))
         .same_site(SameSite::Lax);
     let cookies = cookies.add(auth_cookie);
 
@@ -189,6 +194,7 @@ pub async fn create_admin(
 
 pub async fn setup_login(
     cookies: CookieJar,
+    headers: HeaderMap,
     user_agent: TypedHeader<UserAgent>,
     ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
@@ -239,6 +245,7 @@ pub async fn setup_login(
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .path("/")
         .http_only(true)
+        .secure(setup_cookie_secure(&headers))
         .same_site(SameSite::Lax);
     let cookies = cookies.add(auth_cookie);
 
@@ -427,21 +434,45 @@ pub async fn upload_ca(
 }
 
 pub async fn finish_setup(
+    cookies: CookieJar,
     _: AdminRole,
+    Extension(session_info): Extension<SessionInfo>,
     Extension(pool): Extension<PgPool>,
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
-) -> ApiResult {
+) -> Result<(CookieJar, ApiResponse), WebError> {
     info!("Finishing initial setup");
 
-    let mut wizard = Wizard::get(&pool).await?;
+    let default_admin_id = Settings::get_current_settings()
+        .default_admin_id
+        .ok_or_else(|| {
+            error!("Default admin user ID not set in settings");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
+    if session_info.user.id != default_admin_id {
+        error!(
+            "Authenticated user with ID '{}' does not match default admin user with ID '{}'",
+            session_info.user.id, default_admin_id
+        );
+        return Err(WebError::Forbidden("access denied"));
+    }
+
+    let mut transaction = pool.begin().await?;
+    let mut wizard = Wizard::get(&mut *transaction).await?;
     InitialSetupState {
         step: InitialSetupStep::Finished,
     }
-    .save(&pool)
+    .save(&mut *transaction)
     .await?;
     wizard.completed = true;
     wizard.active_wizard = ActiveWizard::None;
-    wizard.save(&pool).await?;
+    wizard.save(&mut *transaction).await?;
+
+    session_info
+        .user
+        .logout_all_sessions(&mut *transaction)
+        .await?;
+    transaction.commit().await?;
+
     if let Some(tx) = setup_shutdown_tx
         .lock()
         .expect("Failed to lock setup shutdown sender")
@@ -455,7 +486,9 @@ pub async fn finish_setup(
         ));
     }
 
-    Ok(ApiResponse::with_status(StatusCode::OK))
+    let cookies = cookies.remove(Cookie::build((SESSION_COOKIE_NAME, "")).path("/"));
+
+    Ok((cookies, ApiResponse::with_status(StatusCode::OK)))
 }
 
 #[derive(Serialize)]
