@@ -25,6 +25,7 @@ use crate::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         handlers::LicenseInfo,
+        is_business_license_active,
         ldap::{LDAPConnection, sync::Authority},
         license::{
             License, LicenseTier, get_cached_license, update_cached_license, validate_license,
@@ -134,6 +135,7 @@ pub(crate) async fn update_settings(
     // fetch current settings for event
     let before = Settings::get_current_settings();
     let license = data.license.clone();
+    let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
     data.validate()?;
@@ -143,9 +145,11 @@ pub(crate) async fn update_settings(
     update_current_settings(&appstate.pool, data).await?;
     update_cached_license(license.as_deref())?;
 
-    // If SMTP configuration or the public proxy URL changed, push updated
-    // public settings to all connected proxies.
-    if before.edge_public_settings_changed(&after) {
+    // A license flip changes the effective Edge payload even when no setting field did, so
+    // compare licensing too.
+    if before.edge_public_settings_changed(&after)
+        || licensed_before != is_business_license_active()
+    {
         broadcast_public_settings(&appstate.pool, &after, &appstate.proxy_control_tx).await;
     }
 
@@ -291,6 +295,7 @@ pub async fn patch_settings(
     // prepare clone for emitting an event
     let before = settings.clone();
     let license = data.license.clone();
+    let licensed_before = is_business_license_active();
 
     // update LDAP sync status if relevant settings have been changed
     if let Some(ldap_enabled) = data.ldap_enabled
@@ -337,9 +342,11 @@ pub async fn patch_settings(
         debug!("Updated cached license after saving settings patch");
     }
 
-    // If SMTP configuration or the public proxy URL changed, push updated
-    // public settings to all connected proxies.
-    if before.edge_public_settings_changed(&after) {
+    // A license flip changes the effective Edge payload even when no setting field did, so
+    // compare licensing too.
+    if before.edge_public_settings_changed(&after)
+        || licensed_before != is_business_license_active()
+    {
         broadcast_public_settings(&appstate.pool, &after, &appstate.proxy_control_tx).await;
     }
 

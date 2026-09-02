@@ -579,3 +579,44 @@ async fn test_public_proxy_url_update_triggers_public_settings_broadcast(
         "public_url should match the updated proxy URL"
     );
 }
+
+/// Removing the license through the PATCH settings API changes the effective Edge payload even
+/// though no SMTP or proxy URL field changed, so the handler must broadcast the unlicensed
+/// defaults to the still-connected Edge.
+#[sqlx::test]
+async fn test_license_removal_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+
+    // Hide the download step while licensed, so the unlicensed broadcast is observable.
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&json!({ "display_download_step": false }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    while proxy_control_rx.try_recv().is_ok() {}
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({ "license": "" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
+    assert!(
+        broadcast.display_download_step,
+        "unlicensed Edge must fall back to showing the download step"
+    );
+    assert!(
+        !broadcast.display_password_reset,
+        "SMTP is not configured, so password reset stays hidden"
+    );
+}
