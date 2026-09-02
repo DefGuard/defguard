@@ -2766,3 +2766,62 @@ async fn test_config_allowed_ips_from_acl_disabled(_: PgPoolOptions, options: Pg
         "config should NOT contain ACL IP when ACL disabled, got: {allowed_ips}"
     );
 }
+
+#[sqlx::test]
+async fn test_static_ip_assignment_sends_device_modified(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut gateway_rx = client_state.gateway_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    make_network(&client, "network").await;
+    assert_matches!(
+        gateway_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkCreated(..)
+    );
+
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let GatewayCommand::DeviceCreated(created) = gateway_rx.try_recv().unwrap() else {
+        panic!("expected DeviceCreated");
+    };
+    let device_id = created.device.id;
+    let network_id = created.network_info[0].network_id;
+
+    let new_ip: IpAddr = "10.1.1.42".parse().unwrap();
+    let response = client
+        .post("/api/v1/device/user/admin/ip")
+        .json(&json!([{
+            "device_id": device_id,
+            "location_id": network_id,
+            "ips": [new_ip],
+        }]))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let GatewayCommand::DeviceModified(modified) = gateway_rx.try_recv().unwrap() else {
+        panic!("expected DeviceModified after static IP assignment");
+    };
+    assert_eq!(modified.device.id, device_id);
+    assert_eq!(modified.network_info.len(), 1);
+    assert_eq!(modified.network_info[0].network_id, network_id);
+    assert_eq!(modified.network_info[0].device_wireguard_ips, vec![new_ip]);
+
+    // ACLs are disabled for this location, so no firewall update follows.
+    assert!(gateway_rx.try_recv().is_err());
+}
