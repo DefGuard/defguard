@@ -208,7 +208,7 @@ async fn buffer_is_bounded_to_max_core_log_lines() {
     );
 }
 
-const MOCK_GATEWAY_VERSION: &str = "2.0.0";
+const MOCK_GATEWAY_VERSION: &str = "2.1.0";
 const MOCK_LOG_TIMESTAMP: &str = "2026-01-01T00:00:00Z";
 
 struct MockGatewaySetupState {
