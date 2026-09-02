@@ -13,8 +13,10 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
+use defguard_proto::proxy::PublicSettings;
 use sqlx::PgPool;
 use struct_patch::Patch;
+use tokio::sync::mpsc;
 
 use super::{ApiErrorResponse, ApiResponse, ApiResponseCode, ApiResult};
 use crate::{
@@ -23,6 +25,7 @@ use crate::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         handlers::LicenseInfo,
+        is_business_license_active,
         ldap::{LDAPConnection, sync::Authority},
         license::{
             License, LicenseTier, get_cached_license, update_cached_license, validate_license,
@@ -35,6 +38,39 @@ use crate::{
 
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
+
+/// Wrap `PublicSettings` in the control message the proxy manager fans out to every connected
+/// proxy. Build the payload with [`EnterpriseSettings::edge_public_settings`] or
+/// [`unlicensed_edge_public_settings`] rather than by hand, so the two cases stay distinguishable.
+#[must_use]
+pub(crate) fn public_settings_message(public_settings: PublicSettings) -> ProxyControlMessage {
+    ProxyControlMessage::BroadcastPublicSettings {
+        display_password_reset: public_settings.display_password_reset,
+        display_download_step: public_settings.display_download_step,
+        public_url: public_settings.public_url,
+    }
+}
+
+/// Push the current `PublicSettings` to every connected proxy. Best effort: a send failure is
+/// logged rather than propagated, since proxies also receive the current values when they next
+/// connect.
+pub(crate) async fn broadcast_public_settings(
+    pool: &PgPool,
+    settings: &Settings,
+    proxy_control_tx: &mpsc::Sender<ProxyControlMessage>,
+) {
+    let enterprise_settings = match EnterpriseSettings::get(pool).await {
+        Ok(enterprise_settings) => enterprise_settings,
+        Err(err) => {
+            error!("Failed to load enterprise settings for public settings broadcast: {err:?}");
+            return;
+        }
+    };
+    let message = public_settings_message(enterprise_settings.edge_public_settings(settings));
+    if let Err(err) = proxy_control_tx.send(message).await {
+        error!("Failed to broadcast PublicSettings after public proxy URL change: {err:?}");
+    }
+}
 
 /// Get instance settings
 #[utoipa::path(
@@ -99,6 +135,7 @@ pub(crate) async fn update_settings(
     // fetch current settings for event
     let before = Settings::get_current_settings();
     let license = data.license.clone();
+    let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
     data.validate()?;
@@ -108,22 +145,12 @@ pub(crate) async fn update_settings(
     update_current_settings(&appstate.pool, data).await?;
     update_cached_license(license.as_deref())?;
 
-    // If SMTP configuration changed (e.g. server/port/sender toggled),
-    // push updated password-reset visibility to all connected proxies.
-    if before.smtp_configured() != after.smtp_configured()
-        && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
+    // A license flip changes the effective Edge payload even when no setting field did, so
+    // compare licensing too.
+    if before.edge_public_settings_changed(&after)
+        || licensed_before != is_business_license_active()
     {
-        let display_password_reset = enterprise_settings.edge_can_display_password_reset();
-        if let Err(err) = appstate
-            .proxy_control_tx
-            .send(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset,
-                display_download_step: enterprise_settings.display_download_step,
-            })
-            .await
-        {
-            error!("Failed to broadcast PublicSettings after SMTP config change: {err:?}");
-        }
+        broadcast_public_settings(&appstate.pool, &after, &appstate.proxy_control_tx).await;
     }
 
     info!("User {} updated settings", session.user.username);
@@ -268,6 +295,7 @@ pub async fn patch_settings(
     // prepare clone for emitting an event
     let before = settings.clone();
     let license = data.license.clone();
+    let licensed_before = is_business_license_active();
 
     // update LDAP sync status if relevant settings have been changed
     if let Some(ldap_enabled) = data.ldap_enabled
@@ -314,22 +342,12 @@ pub async fn patch_settings(
         debug!("Updated cached license after saving settings patch");
     }
 
-    // If SMTP configuration changed (e.g. server/port/sender toggled),
-    // push updated password-reset visibility to all connected proxies.
-    if before.smtp_configured() != after.smtp_configured()
-        && let Ok(enterprise_settings) = EnterpriseSettings::get(&appstate.pool).await
+    // A license flip changes the effective Edge payload even when no setting field did, so
+    // compare licensing too.
+    if before.edge_public_settings_changed(&after)
+        || licensed_before != is_business_license_active()
     {
-        let display_password_reset = enterprise_settings.edge_can_display_password_reset();
-        if let Err(err) = appstate
-            .proxy_control_tx
-            .send(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset,
-                display_download_step: enterprise_settings.display_download_step,
-            })
-            .await
-        {
-            error!("Failed to broadcast PublicSettings after SMTP config change: {err:?}");
-        }
+        broadcast_public_settings(&appstate.pool, &after, &appstate.proxy_control_tx).await;
     }
 
     info!("Admin {} patched settings", session.user.username);

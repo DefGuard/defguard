@@ -61,7 +61,7 @@ use crate::{
     cert_settings::ensure_https,
     enterprise::{LicenseFeature, has_enterprise_access},
     error::WebError,
-    handlers::ApiErrorResponse,
+    handlers::{ApiErrorResponse, settings::broadcast_public_settings},
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -1220,6 +1220,44 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     Event::default().data(body)
 }
 
+/// Apply a freshly issued ACME certificate. Three effects, in order: the stored public proxy URL
+/// is upgraded to `https://` now that the proxy serves TLS, the certificate is pushed to the
+/// proxy, and, if that upgrade actually changed the URL, updated public settings are pushed too
+/// so the proxy starts marking its session cookies `Secure`.
+async fn apply_acme_certificate(
+    pool: &PgPool,
+    proxy_control_tx: Option<&Sender<ProxyControlMessage>>,
+    cert_pem: String,
+    key_pem: String,
+) {
+    let before = Settings::get_current_settings();
+    let mut settings = before.clone();
+    settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
+    let edge_settings_changed = before.edge_public_settings_changed(&settings);
+    let settings_updated = match update_current_settings(pool, settings).await {
+        Ok(()) => true,
+        Err(err) => {
+            error!(
+                "Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}"
+            );
+            false
+        }
+    };
+
+    // Post-wizard: broadcast certs to the proxy via bidi channel.
+    if let Some(tx) = proxy_control_tx {
+        let msg = ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem };
+        if let Err(e) = tx.send(msg).await {
+            error!("Failed to broadcast HttpsCerts to Edge: {e}");
+        }
+
+        if settings_updated && edge_settings_changed {
+            let settings = Settings::get_current_settings();
+            broadcast_public_settings(pool, &settings, tx).await;
+        }
+    }
+}
+
 /// Stream the progress of Let's Encrypt certificate issuance on the edge
 ///
 /// Reports progress as Server-Sent Events. The domain and credentials are taken from the
@@ -1381,23 +1419,13 @@ pub async fn stream_proxy_acme(
                     }
                 }
 
-                // Ensure external url is HTTPS
-                let mut settings = Settings::get_current_settings();
-                settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
-                if let Err(err) = update_current_settings(&pool, settings).await {
-                    error!("Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}");
-                }
-
-                // Post-wizard: broadcast certs to the proxy via bidi channel.
-                if let Some(ref tx) = proxy_control_tx {
-                    let msg = ProxyControlMessage::BroadcastHttpsCerts {
-                        cert_pem,
-                        key_pem,
-                    };
-                    if let Err(e) = tx.send(msg).await {
-                        error!("Failed to broadcast HttpsCerts to Edge: {e}");
-                    }
-                }
+                apply_acme_certificate(
+                    &pool,
+                    proxy_control_tx.as_ref().map(|extension| &extension.0),
+                    cert_pem,
+                    key_pem,
+                )
+                .await;
 
                 info!("ACME certificate issued and saved for domain: {domain}");
                 yield Ok(acme_event("Done"));
@@ -1418,4 +1446,68 @@ pub async fn stream_proxy_acme(
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use defguard_common::db::{
+        models::{
+            Settings,
+            settings::{initialize_current_settings, update_current_settings},
+        },
+        setup_pool,
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::mpsc;
+
+    use super::*;
+
+    #[sqlx::test]
+    async fn test_apply_acme_certificate_broadcasts_public_settings(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.public_proxy_url = "http://edge.example.com".to_owned();
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
+        apply_acme_certificate(
+            &pool,
+            Some(&proxy_control_tx),
+            "certificate".to_owned(),
+            "private-key".to_owned(),
+        )
+        .await;
+
+        match proxy_control_rx
+            .recv()
+            .await
+            .expect("missing certificate broadcast")
+        {
+            ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem } => {
+                assert_eq!(cert_pem, "certificate");
+                assert_eq!(key_pem, "private-key");
+            }
+            _ => panic!("expected certificate broadcast"),
+        }
+
+        match proxy_control_rx
+            .recv()
+            .await
+            .expect("missing public settings broadcast")
+        {
+            ProxyControlMessage::BroadcastPublicSettings { public_url, .. } => {
+                assert_eq!(public_url.as_deref(), Some("https://edge.example.com"));
+            }
+            _ => panic!("expected public settings broadcast"),
+        }
+
+        assert!(proxy_control_rx.try_recv().is_err());
+        let settings = Settings::get(&pool).await.unwrap().unwrap();
+        assert_eq!(settings.public_proxy_url, "https://edge.example.com");
+    }
 }

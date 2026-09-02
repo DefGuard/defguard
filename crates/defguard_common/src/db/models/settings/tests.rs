@@ -205,6 +205,70 @@ fn test_cookie_domain_rejects_ip_hosts() {
     ));
 }
 
+#[test]
+fn test_configured_public_proxy_url_returns_configured_url() {
+    let settings = Settings {
+        public_proxy_url: "https://edge.example.com".into(),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        settings.configured_public_proxy_url().as_deref(),
+        Some("https://edge.example.com")
+    );
+}
+
+#[test]
+fn test_configured_public_proxy_url_returns_none_for_empty_url() {
+    let settings = Settings {
+        public_proxy_url: String::new(),
+        ..Default::default()
+    };
+
+    assert_eq!(settings.configured_public_proxy_url(), None);
+}
+
+#[test]
+fn test_edge_public_settings_changed_returns_false_for_identical_settings() {
+    let settings = Settings::default();
+
+    assert!(!settings.edge_public_settings_changed(&settings));
+}
+
+#[test]
+fn test_edge_public_settings_changed_returns_false_for_unrelated_change() {
+    let before = Settings::default();
+    let mut after = before.clone();
+    after.instance_name = "Changed name".into();
+
+    assert!(!before.edge_public_settings_changed(&after));
+}
+
+#[test]
+fn test_edge_public_settings_changed_returns_true_for_smtp_state_change() {
+    let before = Settings::default();
+    let mut after = before.clone();
+    after.smtp.server = Some("smtp.example.com".into());
+    after.smtp.port = Some(587);
+    after.smtp.sender = Some("noreply@example.com".into());
+
+    assert!(!before.smtp_configured());
+    assert!(after.smtp_configured());
+    assert!(before.edge_public_settings_changed(&after));
+}
+
+#[test]
+fn test_edge_public_settings_changed_returns_true_for_public_proxy_url_change() {
+    let before = Settings {
+        public_proxy_url: "https://old.example.com".into(),
+        ..Default::default()
+    };
+    let mut after = before.clone();
+    after.public_proxy_url = "http://new.example.com".into();
+
+    assert!(before.edge_public_settings_changed(&after));
+}
+
 // Regression tests for cookie_secure(): the secure flag on session/auth cookies
 // must be derived from the defguard_url scheme when cookie_insecure is not set.
 

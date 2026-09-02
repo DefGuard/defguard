@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use defguard_common::{db::models::group::Group, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    db::models::{Settings, group::Group},
+    types::proxy::ProxyControlMessage,
+};
 use defguard_core::{
     enterprise::{
         db::models::enterprise_settings::{
@@ -722,6 +725,7 @@ async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgCon
     let mut proxy_control_rx = client_state.proxy_control_rx;
 
     exceed_enterprise_limits(&client).await;
+    let expected_public_url = Settings::get_current_settings().public_proxy_url;
     // Clear events generated during setup (login, network creation).
     client.drain_all_events();
 
@@ -754,6 +758,7 @@ async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgCon
             Ok(ProxyControlMessage::BroadcastPublicSettings {
                 display_password_reset,
                 display_download_step,
+                public_url,
             }) => {
                 assert!(
                     !display_password_reset,
@@ -762,6 +767,11 @@ async fn test_public_settings_broadcast_on_save(_: PgPoolOptions, options: PgCon
                 assert!(
                     !display_download_step,
                     "expected display_download_step=false"
+                );
+                assert_eq!(
+                    public_url.as_deref(),
+                    Some(expected_public_url.as_str()),
+                    "public_url should match the configured proxy URL"
                 );
                 found = true;
             }

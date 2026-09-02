@@ -1028,6 +1028,17 @@ impl Settings {
         let url = self.parse_defguard_url()?;
         Ok(url.scheme() == "https")
     }
+
+    #[must_use]
+    pub fn configured_public_proxy_url(&self) -> Option<String> {
+        (!self.public_proxy_url.is_empty()).then(|| self.public_proxy_url.clone())
+    }
+
+    #[must_use]
+    pub fn edge_public_settings_changed(&self, other: &Self) -> bool {
+        self.smtp_configured() != other.smtp_configured()
+            || self.public_proxy_url != other.public_proxy_url
+    }
 }
 
 #[derive(Serialize)]
