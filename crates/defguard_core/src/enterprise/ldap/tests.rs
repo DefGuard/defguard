@@ -1983,6 +1983,62 @@ async fn test_ldap_dry_run_skips_disabled_users_existing_in_defguard(
     );
 }
 
+/// A Defguard user outside the sync scope is filtered out of the Defguard side of the group
+/// diff but not out of the LDAP side, so every run tries to add them to their groups again.
+/// The insert is a no-op on an existing membership and must not produce a "group member added"
+/// event, otherwise the activity log fills with repeated entries.
+#[sqlx::test]
+async fn test_sync_does_not_repeat_group_events_for_out_of_scope_users(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, mut ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("provisioning").save(&pool).await.unwrap();
+
+    // Account status sync is off here, so a disabled user is out of the sync scope.
+    let mut disabled_user = make_test_user("disabled_user", Some("disabled_user".to_owned()), None);
+    disabled_user.is_active = false;
+    disabled_user.from_ldap = true;
+    let disabled_user = disabled_user.save(&pool).await.unwrap();
+    disabled_user.add_to_group(&pool, &group).await.unwrap();
+
+    let ldap_user = disabled_user.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership(&group.clone().as_noid(), &ldap_user, &config);
+
+    for run in 1..=2 {
+        ldap_conn
+            .sync(&pool, false, &wg_tx, &ldap_tx)
+            .await
+            .unwrap();
+        let events = drain_ldap_sync_events(&mut ldap_rx);
+        assert!(
+            !events.iter().any(|event| matches!(
+                event,
+                LdapSyncEventType::GroupMemberAdded { .. }
+                    | LdapSyncEventType::GroupMemberRemoved { .. }
+            )),
+            "sync run {run} reported a group membership change for an out of scope user: {events:?}"
+        );
+    }
+
+    // The stored membership must survive, only the reporting stops.
+    let members = group.member_usernames(&pool).await.unwrap();
+    assert_eq!(members, vec!["disabled_user".to_owned()]);
+}
+
 /// The dry run previews not yet saved settings, so user scoping must follow the connection's
 /// config (built from the submitted form values) instead of the globally saved settings.
 /// Here the saved settings have no sync group restriction, while the submitted config limits

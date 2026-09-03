@@ -220,13 +220,16 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        user.add_to_group(&pool, &group).await.unwrap();
+        assert!(user.add_to_group(&pool, &group).await.unwrap());
+        // A repeated add changes nothing, so callers can tell a real change from a no-op.
+        assert!(!user.add_to_group(&pool, &group).await.unwrap());
 
         let members = group.member_usernames(&pool).await.unwrap();
         assert_eq!(members.len(), 1);
         assert_eq!(members[0], user.username);
 
-        user.remove_from_group(&pool, &group).await.unwrap();
+        assert!(user.remove_from_group(&pool, &group).await.unwrap());
+        assert!(!user.remove_from_group(&pool, &group).await.unwrap());
 
         let members = group.member_usernames(&pool).await.unwrap();
         assert!(members.is_empty());

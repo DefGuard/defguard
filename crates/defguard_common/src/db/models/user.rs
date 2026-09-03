@@ -1054,11 +1054,15 @@ impl User<Id> {
         .await
     }
 
-    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<()>
+    /// Adds the user to a group.
+    ///
+    /// Returns `true` when the membership was created, `false` when the user already belonged
+    /// to the group. Callers that log a membership change must only do so on `true`.
+    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
-        query!(
+        let result = query!(
             "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2) \
             ON CONFLICT DO NOTHING",
             group.id,
@@ -1066,21 +1070,29 @@ impl User<Id> {
         )
         .execute(executor)
         .await?;
-        Ok(())
+        Ok(result.rows_affected() > 0)
     }
 
-    pub async fn remove_from_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<()>
+    /// Removes the user from a group.
+    ///
+    /// Returns `true` when the membership was deleted, `false` when the user did not belong to
+    /// the group. Callers that log a membership change must only do so on `true`.
+    pub async fn remove_from_group<'e, E>(
+        &self,
+        executor: E,
+        group: &Group<Id>,
+    ) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
-        query!(
+        let result = query!(
             "DELETE FROM group_user WHERE group_id = $1 AND user_id = $2",
             group.id,
             self.id
         )
         .execute(executor)
         .await?;
-        Ok(())
+        Ok(result.rows_affected() > 0)
     }
 
     /// Remove authorized apps by their client id's from user

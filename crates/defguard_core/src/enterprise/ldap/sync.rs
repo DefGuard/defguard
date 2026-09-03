@@ -1007,19 +1007,21 @@ impl super::LDAPConnection {
                             member.username
                         );
                         admin_count -= 1;
-                        member.remove_from_group(&mut *transaction, &group).await?;
+                        if member.remove_from_group(&mut *transaction, &group).await? {
+                            events.push(LdapSyncEventType::GroupMemberRemoved {
+                                group: group.clone(),
+                                user: member,
+                            });
+                        }
+                    }
+                } else {
+                    debug!("Removing user {} from group {}", member.username, groupname);
+                    if member.remove_from_group(&mut *transaction, &group).await? {
                         events.push(LdapSyncEventType::GroupMemberRemoved {
                             group: group.clone(),
                             user: member,
                         });
                     }
-                } else {
-                    debug!("Removing user {} from group {}", member.username, groupname);
-                    member.remove_from_group(&mut *transaction, &group).await?;
-                    events.push(LdapSyncEventType::GroupMemberRemoved {
-                        group: group.clone(),
-                        user: member,
-                    });
                 }
             }
         }
@@ -1039,11 +1041,12 @@ impl super::LDAPConnection {
                 if let Some(user) =
                     User::find_by_username(&mut *transaction, &member.username).await?
                 {
-                    user.add_to_group(&mut *transaction, &group).await?;
-                    events.push(LdapSyncEventType::GroupMemberAdded {
-                        group: group.clone(),
-                        user,
-                    });
+                    if user.add_to_group(&mut *transaction, &group).await? {
+                        events.push(LdapSyncEventType::GroupMemberAdded {
+                            group: group.clone(),
+                            user,
+                        });
+                    }
                 } else {
                     warn!(
                         "LDAP user {} not found in Defguard, despite completing user sync earlier. \
