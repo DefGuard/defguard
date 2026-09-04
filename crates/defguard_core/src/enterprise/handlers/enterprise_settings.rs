@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use axum::{Json, extract::State, http::StatusCode};
-use defguard_common::{db::Id, types::proxy::ProxyControlMessage};
+use defguard_common::db::{Id, models::Settings};
 use sqlx::{PgConnection, PgPool, query_scalar};
 use struct_patch::Patch;
 
@@ -18,7 +18,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiErrorResponse, ApiResponse, ApiResult, settings::public_settings_message},
 };
 
 #[derive(Deserialize)]
@@ -207,10 +207,9 @@ pub async fn patch_enterprise_settings(
         || settings.display_download_step != old_display_download_step)
         && let Err(err) = appstate
             .proxy_control_tx
-            .send(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset: settings.edge_can_display_password_reset(),
-                display_download_step: settings.display_download_step,
-            })
+            .send(public_settings_message(
+                settings.edge_public_settings(&Settings::get_current_settings()),
+            ))
             .await
     {
         error!("Failed to broadcast PublicSettings to proxies: {err:?}");

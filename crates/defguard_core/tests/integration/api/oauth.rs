@@ -3,16 +3,22 @@ use std::borrow::Cow;
 use defguard_common::db::{
     Id,
     models::{
-        OAuth2AuthorizedApp,
+        OAuth2AuthorizedApp, OAuth2Token,
         oauth2client::{OAuth2Client, OAuth2ClientSafe},
     },
 };
 use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
-use reqwest::{StatusCode, Url, header::CONTENT_TYPE};
-use serde_json::json;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use reqwest::{
+    StatusCode, Url,
+    header::{AUTHORIZATION, CONTENT_TYPE},
+};
+use serde_json::{Value, json};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 
-use super::common::{make_client_with_db, setup_pool};
+use super::common::{client::TestClient, make_client_with_db, setup_pool};
 use crate::api::PaginatedApiResponse;
 
 #[sqlx::test]
@@ -851,4 +857,447 @@ async fn dg26_7_test_state_parameter_secure_authorization(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+struct TokenPair {
+    access_token: String,
+    refresh_token: String,
+}
+
+async fn authorize_and_get_code(client: &TestClient, oauth_client: &OAuth2Client<Id>) -> String {
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=ABCDEF",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    redirect_url
+        .query_pairs()
+        .find(|(key, _)| key == "code")
+        .expect("authorize endpoint did not return a code")
+        .1
+        .into_owned()
+}
+
+/// Run a full authorization_code flow and return the OAuth2 client, the id of its authorized app,
+/// and the issued access and refresh tokens.
+async fn issue_token_pair(client: &TestClient, pool: &PgPool) -> (OAuth2Client<Id>, Id, TokenPair) {
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let oauth2client = NewOpenIDClient {
+        name: "test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth_client: OAuth2Client<Id> = response.json().await;
+
+    // authorize the client for the admin user so the authorize endpoint returns a code directly
+    let authorized_app = OAuth2AuthorizedApp::new(1, oauth_client.id)
+        .save(pool)
+        .await
+        .unwrap();
+    let code = authorize_and_get_code(client, &oauth_client).await;
+
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=authorization_code&\
+            code={code}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            client_id={}&\
+            client_secret={}",
+            oauth_client.client_id, oauth_client.client_secret
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let tokens: Value = response.json().await;
+    let token_pair = TokenPair {
+        access_token: tokens["access_token"]
+            .as_str()
+            .expect("no access_token in token response")
+            .to_owned(),
+        refresh_token: tokens["refresh_token"]
+            .as_str()
+            .expect("no refresh_token in token response")
+            .to_owned(),
+    };
+
+    (oauth_client, authorized_app.id, token_pair)
+}
+
+/// Count the token rows currently stored for an authorized app.
+async fn token_row_count(pool: &PgPool, authorized_app_id: Id) -> i64 {
+    sqlx::query_scalar!(
+        "SELECT count(*) AS \"count!\" FROM oauth2token WHERE oauth2authorizedapp_id = $1",
+        authorized_app_id
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+/// Regression test for DG2608-3: the refresh_token grant must authenticate the OAuth2 client.
+#[sqlx::test]
+async fn dg2608_3_test_refresh_token_requires_client_authentication(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (_, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
+
+    // No Authorization header, no client_id, no client_secret - only the stolen refresh token.
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=refresh_token&refresh_token={refresh_token}"
+        ))
+        .send()
+        .await;
+
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an unauthenticated refresh_token grant must be rejected"
+    );
+    let body: Value = response.json().await;
+    assert_eq!(body["error"], "invalid_client");
+}
+
+/// Regression test for DG2608-3: wrong client credentials must be rejected outright.
+#[sqlx::test]
+async fn dg2608_3_test_refresh_token_rejects_wrong_client_credentials(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (_, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
+
+    // "isec:isec", base64-encoded.
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .header(AUTHORIZATION, "Basic aXNlYzppc2Vj")
+        .body(format!(
+            "grant_type=refresh_token&refresh_token={refresh_token}"
+        ))
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "a refresh_token grant with a wrong Basic header must be rejected"
+    );
+    let body: Value = response.json().await;
+    assert!(
+        body["msg"].is_string(),
+        "expected the extractor to reject the request, got {body}"
+    );
+
+    // The same credentials in the form body.
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=refresh_token&\
+            refresh_token={refresh_token}&\
+            client_id=isec&\
+            client_secret=isec"
+        ))
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "a refresh_token grant with wrong form credentials must be rejected"
+    );
+    let body: Value = response.json().await;
+    assert_eq!(body["error"], "invalid_client");
+}
+
+/// Regression test for DG2608-3: a disabled client must be rejected as an invalid client.
+#[sqlx::test]
+async fn dg2608_3_test_disabled_client_refresh_returns_invalid_client(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (oauth_client, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
+
+    let response = client
+        .post(format!("/api/v1/oauth/{}", oauth_client.client_id))
+        .json(&json!({"enabled": false}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=refresh_token&\
+            refresh_token={refresh_token}&\
+            client_id={}&\
+            client_secret={}",
+            oauth_client.client_id, oauth_client.client_secret
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body: Value = response.json().await;
+    assert_eq!(body["error"], "invalid_client");
+}
+
+/// Regression test for DG2608-3: redeeming a refresh token must rotate the pair and must not leave
+/// stale rows behind.
+#[sqlx::test]
+async fn dg2608_3_test_refresh_token_is_rotated(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (
+        oauth_client,
+        authorized_app_id,
+        TokenPair {
+            access_token,
+            refresh_token,
+        },
+    ) = issue_token_pair(&client, &pool).await;
+
+    assert_eq!(
+        token_row_count(&pool, authorized_app_id).await,
+        1,
+        "the authorization_code flow should store exactly one token row"
+    );
+
+    let mut current_access_token = access_token;
+    let mut current_refresh_token = refresh_token;
+
+    for round in 1..=3 {
+        let previous_access_token = current_access_token.clone();
+        let previous_refresh_token = current_refresh_token.clone();
+
+        let response = client
+            .post("/api/v1/oauth/token")
+            .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body(format!(
+                "grant_type=refresh_token&\
+                refresh_token={previous_refresh_token}&\
+                client_id={}&\
+                client_secret={}",
+                oauth_client.client_id, oauth_client.client_secret
+            ))
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "round {round}: an authenticated refresh must succeed"
+        );
+        let tokens: Value = response.json().await;
+        current_access_token = tokens["access_token"]
+            .as_str()
+            .expect("no access_token in refresh response")
+            .to_owned();
+        current_refresh_token = tokens["refresh_token"]
+            .as_str()
+            .expect("no refresh_token in refresh response")
+            .to_owned();
+
+        assert_ne!(
+            current_access_token, previous_access_token,
+            "round {round}: the access token was not rotated"
+        );
+        assert_ne!(
+            current_refresh_token, previous_refresh_token,
+            "round {round}: the refresh token was not rotated"
+        );
+
+        // The consumed refresh token must be dead, otherwise a leaked credential never expires.
+        let response = client
+            .post("/api/v1/oauth/token")
+            .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body(format!(
+                "grant_type=refresh_token&\
+                refresh_token={previous_refresh_token}&\
+                client_id={}&\
+                client_secret={}",
+                oauth_client.client_id, oauth_client.client_secret
+            ))
+            .send()
+            .await;
+        assert_ne!(
+            response.status(),
+            StatusCode::OK,
+            "round {round}: a consumed refresh token must not be redeemable again"
+        );
+
+        // Refreshing must replace the stored token, not add a row.
+        let rows = token_row_count(&pool, authorized_app_id).await;
+        assert_eq!(
+            rows, 1,
+            "round {round}: expected exactly one token row for the authorized app, found {rows}"
+        );
+    }
+}
+
+/// Regression test for DG2608-3: concurrent refreshes must rotate a pair only once.
+#[sqlx::test]
+async fn dg2608_3_test_concurrent_refresh_allows_single_rotation(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (oauth_client, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
+
+    sqlx::query(
+        r#"
+        CREATE OR REPLACE FUNCTION dg2608_3_pause_oauth2token_update()
+        RETURNS trigger
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            PERFORM pg_sleep(1);
+            RETURN NEW;
+        END;
+        $$;
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "CREATE TRIGGER dg2608_3_pause_oauth2token_update_trigger
+         BEFORE UPDATE ON oauth2token
+         FOR EACH ROW
+         EXECUTE FUNCTION dg2608_3_pause_oauth2token_update()",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let request_body = format!(
+        "grant_type=refresh_token&\
+        refresh_token={refresh_token}&\
+        client_id={}&\
+        client_secret={}",
+        oauth_client.client_id, oauth_client.client_secret
+    );
+    let first_request = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(request_body.clone())
+        .send();
+    let second_request = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(request_body)
+        .send();
+    let (first, second) = tokio::join!(first_request, second_request);
+
+    let first_status = first.status();
+    let second_status = second.status();
+    let (winner, loser) = if first_status == StatusCode::OK
+        && second_status == StatusCode::BAD_REQUEST
+    {
+        (first, second)
+    } else if first_status == StatusCode::BAD_REQUEST && second_status == StatusCode::OK {
+        (second, first)
+    } else {
+        panic!(
+            "expected one successful refresh and one invalid grant, got {first_status} and {second_status}"
+        );
+    };
+
+    let winner_tokens: Value = winner.json().await;
+    let loser_body: Value = loser.json().await;
+    assert_eq!(loser_body["error"], "invalid_grant");
+
+    let access_token = winner_tokens["access_token"]
+        .as_str()
+        .expect("winner did not return an access token");
+    let bearer = format!("Bearer {access_token}");
+    let response = client
+        .get("/api/v1/oauth/userinfo")
+        .header(AUTHORIZATION, &bearer)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+/// Regression test for DG2608-3: reauthorization must clear leftover token rows.
+#[sqlx::test]
+async fn dg2608_3_test_reauthorization_clears_leftover_rows(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let (oauth_client, authorized_app_id, _) = issue_token_pair(&client, &pool).await;
+
+    for _ in 0..2 {
+        OAuth2Token::new(
+            authorized_app_id,
+            "http://test.server.tnt:12345/".into(),
+            "openid".into(),
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+    }
+    assert_eq!(token_row_count(&pool, authorized_app_id).await, 3);
+
+    let code = authorize_and_get_code(&client, &oauth_client).await;
+
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=authorization_code&\
+            code={code}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            client_id={}&\
+            client_secret={}",
+            oauth_client.client_id, oauth_client.client_secret
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(token_row_count(&pool, authorized_app_id).await, 1);
 }

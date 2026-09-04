@@ -88,6 +88,10 @@ impl TestClient {
 }
 
 pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Receiver<()>) {
+    let mut config = DefGuardConfig::new_test_config();
+    config.cookie_insecure = None;
+    let _ = SERVER_CONFIG.set(config);
+
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
     let app = build_setup_webapp(
         pool,
@@ -133,8 +137,8 @@ pub async fn init_settings_with_secret_key(pool: &PgPool) {
         .await
         .expect("Failed to initialize settings");
     let mut settings = Settings::get_current_settings();
-    settings.secret_key = Some(TEST_SECRET_KEY.to_owned());
-    settings.defguard_url = "http://localhost:8000".to_owned();
+    settings.set_secret_key(Some(TEST_SECRET_KEY.to_owned()));
+    "http://localhost:8000".clone_into(&mut settings.defguard_url);
     update_current_settings(pool, settings)
         .await
         .expect("Failed to update settings");

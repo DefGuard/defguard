@@ -364,7 +364,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
     let webhook = WebHook {
         id: 1,
         url: "http://x".into(),
-        description: "".into(),
+        description: String::new(),
         token: "t".into(),
         enabled: true,
         on_user_created: false,
@@ -900,8 +900,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "SettingsUpdated",
             message: api_message(ApiEventType::SettingsUpdated {
-                before: Default::default(),
-                after: Default::default(),
+                before: Settings::default(),
+                after: Settings::default(),
             }),
             event_type: EventType::SettingsUpdated,
             module: ActivityLogModule::Defguard,
@@ -910,8 +910,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "SettingsUpdatedPartial",
             message: api_message(ApiEventType::SettingsUpdatedPartial {
-                before: Default::default(),
-                after: Default::default(),
+                before: Settings::default(),
+                after: Settings::default(),
             }),
             event_type: EventType::SettingsUpdatedPartial,
             module: ActivityLogModule::Defguard,

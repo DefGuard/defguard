@@ -13,7 +13,7 @@ use tokio::{task, time::timeout};
 use tonic::Code;
 
 use super::support::{
-    assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
+    assert_error_response, assert_error_response_details, assert_vpn_session_exists,
     biometric_pub_key, clear_test_license, complete_proxy_handshake, create_external_mfa_network,
     create_mfa_network, create_multi_step_mfa_network, create_network, create_user_with_device,
     expect_bidi_mfa_success, generate_totp_code, make_device_info, register_biometric_key,
@@ -305,6 +305,8 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -424,7 +426,7 @@ async fn test_mfa_start_rejects_email_when_smtp_not_configured(
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "selected MFA method is not available");
 
@@ -613,7 +615,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
     clear_test_license();
     context.mock_proxy().send_request(request(1));
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "selected MFA method is not supported by location");
 
@@ -622,7 +624,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
     set_test_license_business();
     context.mock_proxy().send_request(request(2));
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "selected MFA method is not available");
 

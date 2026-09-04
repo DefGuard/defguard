@@ -888,7 +888,7 @@ impl User<Id> {
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
-            FROM \"user\" WHERE email ILIKE $1",
+            FROM \"user\" WHERE LOWER(email) = LOWER($1)",
             email
         )
         .fetch_optional(executor)
@@ -1054,11 +1054,15 @@ impl User<Id> {
         .await
     }
 
-    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<()>
+    /// Adds the user to a group.
+    ///
+    /// Returns `true` when the membership was created, `false` when the user already belonged
+    /// to the group. Callers that log a membership change must only do so on `true`.
+    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
-        query!(
+        let result = query!(
             "INSERT INTO group_user (group_id, user_id) VALUES ($1, $2) \
             ON CONFLICT DO NOTHING",
             group.id,
@@ -1066,21 +1070,29 @@ impl User<Id> {
         )
         .execute(executor)
         .await?;
-        Ok(())
+        Ok(result.rows_affected() > 0)
     }
 
-    pub async fn remove_from_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<()>
+    /// Removes the user from a group.
+    ///
+    /// Returns `true` when the membership was deleted, `false` when the user did not belong to
+    /// the group. Callers that log a membership change must only do so on `true`.
+    pub async fn remove_from_group<'e, E>(
+        &self,
+        executor: E,
+        group: &Group<Id>,
+    ) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
-        query!(
+        let result = query!(
             "DELETE FROM group_user WHERE group_id = $1 AND user_id = $2",
             group.id,
             self.id
         )
         .execute(executor)
         .await?;
-        Ok(())
+        Ok(result.rows_affected() > 0)
     }
 
     /// Remove authorized apps by their client id's from user
@@ -1167,6 +1179,18 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         Session::delete_all_for_user(executor, self.id).await?;
+        Ok(())
+    }
+
+    pub async fn logout_all_sessions_except<'e, E>(
+        &self,
+        executor: E,
+        session_id: &str,
+    ) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        Session::delete_all_for_user_except(executor, self.id, session_id).await?;
         Ok(())
     }
 
@@ -1345,6 +1369,48 @@ mod test {
         },
         secret::SecretStringWrapper,
     };
+
+    #[sqlx::test]
+    async fn test_find_by_email_is_exact_not_a_pattern(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Lookups stay case-insensitive.
+        assert!(
+            User::find_by_email(&pool, "H.Potter@Hogwart.Edu.UK")
+                .await
+                .unwrap()
+                .is_some()
+        );
+
+        // The argument is a value, not a `LIKE` pattern: callers pass externally
+        // supplied addresses, so wildcards must never match another user.
+        for pattern in [
+            "%",
+            "%@%",
+            "h.potter@hogwart.edu.u_",
+            "_.potter@hogwart.edu.uk",
+        ] {
+            assert!(
+                User::find_by_email(&pool, pattern).await.unwrap().is_none(),
+                "email lookup treated {pattern:?} as a pattern"
+            );
+        }
+    }
 
     #[sqlx::test]
     async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {

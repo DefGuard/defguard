@@ -78,7 +78,7 @@ impl EnrollmentServer {
 
     /// Checks if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
-        info!("Validating enrollment session. Token: {token:?}");
+        info!("Validating enrollment session.");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
@@ -133,9 +133,8 @@ impl EnrollmentServer {
         request: EnrollmentStartRequest,
         info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<EnrollmentStartResponse, Status> {
-        debug!("Starting enrollment session, request: {request:?}");
+        debug!("Starting enrollment session.");
         // fetch enrollment token
-        debug!("Try to find an enrollment token {}.", request.token);
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if let Some(token_type) = &enrollment.token_type {
@@ -347,6 +346,15 @@ impl EnrollmentServer {
                 "Device with given public key doesn't exist",
             ));
         };
+        if device.user_id != enrollment.user_id {
+            error!(
+                "Enrollment token of user {}({}) does not match device with pubkey {}",
+                user.username, user.id, request.device_pub_key
+            );
+            return Err(Status::unauthenticated(
+                "enrollment token is not valid for specified device",
+            ));
+        }
         BiometricAuth::validate_pubkey(&request.device_pub_key)?;
         let mobile_auth = BiometricAuth::new(device.id, request.auth_pub_key);
         let _ = mobile_auth.save(&self.pool).await.map_err(|err| {

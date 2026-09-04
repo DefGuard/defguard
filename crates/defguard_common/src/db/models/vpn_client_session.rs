@@ -30,6 +30,7 @@ pub enum VpnClientMfaMethod {
     Oidc,
     Biometric,
     MobileApprove,
+    Fido2,
 }
 
 impl VpnClientMfaMethod {
@@ -65,6 +66,7 @@ impl VpnClientMfaMethod {
             Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
                 .await?
                 .is_empty(),
+            Self::Fido2 => false,
         };
         Ok(configured)
     }

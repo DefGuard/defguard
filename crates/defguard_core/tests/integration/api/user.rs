@@ -328,7 +328,7 @@ async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOption
         .iter()
         .map(|u| u["username"].as_str().unwrap())
         .collect();
-    usernames.sort();
+    usernames.sort_unstable();
     assert_eq!(usernames, vec!["admin", "hpotter"]);
     assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 2);
 
@@ -396,7 +396,7 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
         .iter()
         .map(|u| u["username"].as_str().unwrap())
         .collect();
-    usernames.sort();
+    usernames.sort_unstable();
     assert_eq!(usernames, vec!["admin", "hpotter"]);
     assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 2);
 
@@ -451,7 +451,7 @@ async fn test_list_users_no_group_multi_group_filter(_: PgPoolOptions, options: 
         .iter()
         .map(|u| u["username"].as_str().unwrap())
         .collect();
-    usernames.sort();
+    usernames.sort_unstable();
     assert_eq!(usernames, vec!["admin", "hpotter", "rweasley"]);
     assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 3);
 

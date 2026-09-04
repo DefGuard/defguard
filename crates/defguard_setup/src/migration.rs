@@ -116,8 +116,8 @@ pub fn build_migration_webapp(
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/settings", get(get_settings).patch(patch_settings))
                 .route("/proxy", get(proxy_list))
-                .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-                .route("/proxy/acme/stream", get(stream_proxy_acme))
+                .route("/proxy/setup/stream", post(setup_proxy_tls_stream))
+                .route("/proxy/acme/stream", post(stream_proxy_acme))
                 .route("/auth", post(authenticate))
                 .route("/auth/logout", post(logout))
                 .route("/auth/mfa", put(mfa_enable).delete(mfa_disable))
@@ -140,7 +140,7 @@ pub fn build_migration_webapp(
                 .route("/network/display", get(get_locations_display))
                 .route(
                     "/network/{network_id}/gateways/setup",
-                    get(setup_gateway_tls_stream),
+                    post(setup_gateway_tls_stream),
                 )
                 .route("/gateway", get(gateway_list))
                 .nest(

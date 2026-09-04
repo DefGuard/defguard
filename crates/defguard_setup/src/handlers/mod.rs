@@ -1,4 +1,5 @@
 pub mod auto_wizard;
+mod cookies;
 pub mod initial_wizard;
 pub mod migration;
 pub mod session_info;

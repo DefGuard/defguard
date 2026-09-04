@@ -19,6 +19,7 @@ pub enum ProxyControlMessage {
     BroadcastPublicSettings {
         display_password_reset: bool,
         display_download_step: bool,
+        public_url: Option<String>,
     },
 }
 
