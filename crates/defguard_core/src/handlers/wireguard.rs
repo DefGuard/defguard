@@ -37,11 +37,11 @@ use crate::{
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
         has_enterprise_access, is_business_license_active,
-        license::{LicenseFeature, get_cached_license},
+        license::{LicenseFeature, LicenseTier, get_cached_license},
         limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::GatewayCommand,
+    grpc::{GatewayCommand, location_mfa_required_tier},
     handlers::{
         gateway::GatewayInfo,
         mfa_flow::{assignment_error_response, license_error_response},
@@ -63,6 +63,9 @@ pub(crate) struct WireguardNetworkInfo {
     allowed_groups: Vec<String>,
     has_devices: bool,
     posture_checks: Vec<Id>,
+    /// Minimum license tier required by saved MFA assignments. `null` means MFA is disabled or the
+    /// assignments fit the Free tier.
+    mfa_required_tier: Option<LicenseTier>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -723,12 +726,14 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
             WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network.id).await?;
         let posture_checks =
             DevicePostureLocation::find_by_location(&appstate.pool, network.id).await?;
+        let mfa_required_tier = location_mfa_required_tier(&appstate.pool, &network).await?;
         network_info.push(WireguardNetworkInfo {
             network,
             gateways,
             allowed_groups,
             has_devices,
             posture_checks,
+            mfa_required_tier,
         });
     }
     network_info.sort_by(|a, b| a.network.name.cmp(&b.network.name));
@@ -801,12 +806,14 @@ pub(crate) async fn network_details(
                 WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network_id).await?;
             let posture_checks =
                 DevicePostureLocation::find_by_location(&appstate.pool, network_id).await?;
+            let mfa_required_tier = location_mfa_required_tier(&appstate.pool, &network).await?;
             let network_info = WireguardNetworkInfo {
                 network,
                 gateways,
                 allowed_groups,
                 has_devices,
                 posture_checks,
+                mfa_required_tier,
             };
             ApiResponse::json(network_info, StatusCode::OK)
         }

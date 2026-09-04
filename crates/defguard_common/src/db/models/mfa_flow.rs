@@ -878,6 +878,21 @@ impl MfaFlowStep<Id> {
         .await
     }
 
+    /// Returns all flow steps ordered by flow ID and position.
+    pub async fn find_all<'e, E: PgExecutor<'e>>(
+        executor: E,
+    ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
+        query_as!(
+            MfaFlowStep,
+            "SELECT id, flow_id, position, \
+             methods AS \"methods: Vec<VpnClientMfaMethod>\" \
+             FROM mfa_flow_step \
+             ORDER BY flow_id, position"
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Deletes all steps for a given flow except those whose id is in `keep_ids`.
     pub async fn delete_by_flow_except(
         conn: &mut PgConnection,

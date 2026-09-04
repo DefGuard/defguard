@@ -1168,7 +1168,6 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
             if snapshot.flow.id == flow_id && snapshot.steps.len() == 2
     );
 
-    // List: the item must carry the server-computed step_count.
     let resp = client.get("/api/v1/mfa-flow").send().await;
     assert_eq!(resp.status(), StatusCode::OK);
     let items = resp.json::<serde_json::Value>().await;
@@ -1179,6 +1178,8 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .find(|i| i["id"].as_i64() == Some(flow_id))
         .expect("created flow must appear in list");
     assert_eq!(item["step_count"].as_i64(), Some(2));
+    assert_eq!(item["steps"][0]["methods"], json!(["totp"]));
+    assert_eq!(item["steps"][1]["methods"], json!(["biometric"]));
 
     // Fetch single.
     let resp = client
@@ -1227,6 +1228,63 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
         &events[0].0,
         ApiEventType::MfaFlowDeleted { snapshot } if snapshot.flow.id == flow_id
     );
+}
+
+/// Lists each flow with its own steps in position order.
+#[sqlx::test]
+async fn test_mfa_flow_list_groups_steps_per_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let first = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({
+                "title": "FirstName",
+                "steps": [{"methods": ["totp"]}, {"methods": ["biometric"]}]
+            }))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+    let second = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({"title": "LastName", "steps": [{"methods": ["totp"]}]}))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let items = resp.json::<serde_json::Value>().await;
+    let by_id = |id: i64| {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["id"].as_i64() == Some(id))
+            .expect("flow must appear in list")
+            .clone()
+    };
+
+    let first_item = by_id(first);
+    assert_eq!(first_item["step_count"].as_i64(), Some(2));
+    assert_eq!(first_item["steps"][0]["methods"], json!(["totp"]));
+    assert_eq!(first_item["steps"][1]["methods"], json!(["biometric"]));
+
+    let second_item = by_id(second);
+    assert_eq!(second_item["step_count"].as_i64(), Some(1));
+    assert_eq!(second_item["steps"].as_array().unwrap().len(), 1);
+    assert_eq!(second_item["steps"][0]["methods"], json!(["totp"]));
 }
 
 /// Saving an assignment set with no designated default is refused over HTTP with

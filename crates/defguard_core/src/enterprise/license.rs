@@ -25,6 +25,7 @@ use sqlx::PgPool;
 use strum::VariantArray;
 use thiserror::Error;
 use tokio::time::sleep;
+use utoipa::ToSchema;
 
 use crate::{
     enterprise::{
@@ -86,7 +87,7 @@ struct RefreshRequestResponse {
 /// Represents license tiers
 ///
 /// Variant order must be maintained to go from lowest (first) to highest (last) tier
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd, ToSchema)]
 pub enum LicenseTier {
     Business, // this corresponds to both Team & Business level in our current pricing structure
     Enterprise,

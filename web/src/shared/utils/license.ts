@@ -22,7 +22,7 @@ export type LicenseState =
   | 'validBusiness'
   | 'validEnterprise';
 
-interface LicenseCheckResult {
+export interface LicenseCheckResult {
   result: boolean;
   error: 'expired' | 'tier' | null;
   tierCheck: 'Business' | 'Enterprise';
@@ -196,22 +196,28 @@ export const canUseEnterpriseFeature = (
 export const canUseServiceLocations = (license: LicenseInfo | null): boolean =>
   canUseEnterpriseFeature(license, LicenseFeature.ServiceLocations).result;
 
-// An Enterprise entry honors the additive `licenseFeature` flag, so a granted feature unlocks the
-// item on a lower tier; entries with no tier requirement are never locked.
-export const isNavItemLocked = (
+// A granted `licenseFeature` can satisfy an Enterprise requirement on a lower tier. Return
+// undefined when no tier is required.
+export const tierLicenseCheck = (
   license: LicenseInfo | null,
-  licenseTier: LicenseTierValue | undefined,
+  licenseTier: LicenseTierValue | null | undefined,
   licenseFeature?: LicenseFeatureValue,
-): boolean => {
+): LicenseCheckResult | undefined => {
   switch (licenseTier) {
     case LicenseTier.Business:
-      return !canUseBusinessFeature(license).result;
+      return canUseBusinessFeature(license);
     case LicenseTier.Enterprise:
-      return !canUseEnterpriseFeature(license, licenseFeature).result;
+      return canUseEnterpriseFeature(license, licenseFeature);
     default:
-      return false;
+      return undefined;
   }
 };
+
+export const isNavItemLocked = (
+  license: LicenseInfo | null,
+  licenseTier: LicenseTierValue | null | undefined,
+  licenseFeature?: LicenseFeatureValue,
+): boolean => tierLicenseCheck(license, licenseTier, licenseFeature)?.result === false;
 
 export const narrowLicenseSupport = (license: LicenseInfoApi): SupportTypeNarrowValue => {
   switch (license.support_type) {
