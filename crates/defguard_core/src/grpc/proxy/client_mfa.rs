@@ -64,8 +64,9 @@ use crate::{
     },
 };
 
-// How much time the user has to approve remote MFA with mobile device
-const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
+// Keep this at least as long as the client's MOBILE_APPROVE_TIMEOUT. These constants live in
+// separate repositories and cannot be shared.
+const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(2);
 
 /// A remote MFA waiter can learn that an approval happened or advanced the flow, never receive a
 /// credential.
