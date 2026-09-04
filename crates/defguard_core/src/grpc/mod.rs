@@ -328,7 +328,7 @@ mod tests {
             Some(LicenseTier::Business)
         );
         assert_eq!(
-            required_assignment_tier(&[item(1, vec![]), item(1, vec![])]),
+            required_assignment_tier(&[item(1, Vec::new()), item(1, Vec::new())]),
             Some(LicenseTier::Business)
         );
         assert_eq!(
