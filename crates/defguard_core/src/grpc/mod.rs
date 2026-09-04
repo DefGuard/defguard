@@ -322,9 +322,9 @@ mod tests {
     #[test]
     fn test_required_assignment_tier() {
         assert_eq!(required_assignment_tier(&[]), None);
-        assert_eq!(required_assignment_tier(&[item(1, vec![])]), None);
+        assert_eq!(required_assignment_tier(&[item(1, Vec::new())]), None);
         assert_eq!(
-            required_assignment_tier(&[item(2, vec![])]),
+            required_assignment_tier(&[item(2, Vec::new())]),
             Some(LicenseTier::Business)
         );
         assert_eq!(
@@ -332,7 +332,7 @@ mod tests {
             Some(LicenseTier::Business)
         );
         assert_eq!(
-            required_assignment_tier(&[item(1, vec![]), item(1, vec![7])]),
+            required_assignment_tier(&[item(1, Vec::new()), item(1, vec![7])]),
             Some(LicenseTier::Enterprise)
         );
     }
