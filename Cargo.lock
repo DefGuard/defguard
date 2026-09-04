@@ -1532,6 +1532,7 @@ dependencies = [
  "defguard_static_ip",
  "defguard_version",
  "defguard_web_ui",
+ "ed25519-dalek",
  "futures",
  "humantime",
  "hyper-util",
