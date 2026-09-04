@@ -98,17 +98,16 @@ pub(crate) fn assert_device_config_response(response: &CoreResponse) -> &DeviceC
 /// Assert that a `CoreResponse` carries a `CoreError` payload and return the
 /// tonic status code.
 pub(crate) fn assert_error_response(response: &CoreResponse) -> Code {
-    assert_error_response_with_message(response).0
+    assert_error_response_details(response).0
 }
 
-/// Like [`assert_error_response`], but also returns the error message.
-///
-/// Needed wherever several distinct rejection reasons share a status code: asserting the code
-/// alone would pass no matter which of them fired.
-pub(crate) fn assert_error_response_with_message(response: &CoreResponse) -> (Code, String) {
+/// Assert that a `CoreResponse` carries a `CoreError` payload and return the
+/// tonic status code and message. Use when the status code alone cannot tell two
+/// rejections apart.
+pub(crate) fn assert_error_response_details(response: &CoreResponse) -> (Code, &str) {
     match &response.payload {
         Some(core_response::Payload::CoreError(err)) => {
-            (Code::from_i32(err.status_code), err.message.clone())
+            (Code::from_i32(err.status_code), err.message.as_str())
         }
         other => panic!(
             "expected CoreError response, got: {:?}",
@@ -1026,10 +1025,34 @@ pub(crate) async fn set_public_proxy_url(pool: &PgPool, url: &str) {
         .expect("failed to update public_proxy_url in settings");
 }
 
+/// The `email_verified` claim a mock ID token should carry.
+pub(crate) enum EmailVerified {
+    /// `"email_verified": true`.
+    Verified,
+    /// `"email_verified": false`.
+    Unverified,
+    /// The claim is omitted, as many providers do.
+    Absent,
+}
+
 /// Build the authorization code expected by `MockOidcProvider`'s `/token`
-/// endpoint.  Format: `"{sub}:{email}:{nonce}"`.
+/// endpoint, with the email marked as verified.
 pub(crate) fn make_oidc_code(sub: &str, email: &str, nonce: &str) -> String {
-    format!("{sub}:{email}:{nonce}")
+    make_oidc_code_with_email_verified(sub, email, nonce, EmailVerified::Verified)
+}
+
+/// Build an authorization code carrying the given `email_verified` claim.
+pub(crate) fn make_oidc_code_with_email_verified(
+    sub: &str,
+    email: &str,
+    nonce: &str,
+    email_verified: EmailVerified,
+) -> String {
+    match email_verified {
+        EmailVerified::Verified => format!("{sub}:{email}:{nonce}:true"),
+        EmailVerified::Unverified => format!("{sub}:{email}:{nonce}:false"),
+        EmailVerified::Absent => format!("{sub}:{email}:{nonce}"),
+    }
 }
 
 /// Send an `ActivateUser` request through the handler and return the raw

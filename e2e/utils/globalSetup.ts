@@ -141,7 +141,7 @@ export const runWizard = async () => {
     .waitFor({ state: 'visible' });
   await page.getByRole('button', { name: "I'll do this later" }).click();
 
-  await page.waitForURL('**/vpn-overview', { timeout: testsConfig.TEST_TIMEOUT * 1000 });
+  await page.waitForURL('**/auth/login', { timeout: testsConfig.TEST_TIMEOUT * 1000 });
 
   await context.close();
   await browser.close();

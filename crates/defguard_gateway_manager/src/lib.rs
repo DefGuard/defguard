@@ -1,13 +1,10 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     time::Duration,
 };
 #[cfg(test)]
-use std::{
-    path::PathBuf,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::{path::PathBuf, sync::atomic::Ordering};
 
 use defguard_common::{
     db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
@@ -69,19 +66,64 @@ impl<T> Drop for AbortTaskOnDrop<T> {
     }
 }
 
+/// A per-Gateway counter that tests can increment, read, and block on. The map and its
+/// `Notify` always travel together, so they are bundled into one type.
+#[cfg(test)]
+#[derive(Clone, Default)]
+struct NotificationCounter {
+    counts: Arc<Mutex<HashMap<Id, u64>>>,
+    notify: Arc<Notify>,
+}
+
+#[cfg(test)]
+impl NotificationCounter {
+    fn note(&self, gateway_id: Id) {
+        let mut counts = self
+            .counts
+            .lock()
+            .expect("Failed to lock GatewayManager test notification counter");
+        *counts.entry(gateway_id).or_default() += 1;
+        self.notify.notify_waiters();
+    }
+
+    fn count(&self, gateway_id: Id) -> u64 {
+        self.counts
+            .lock()
+            .expect("Failed to lock GatewayManager test notification counter")
+            .get(&gateway_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    async fn wait_for(&self, gateway_id: Id, expected_count: u64) {
+        loop {
+            if self.count(gateway_id) >= expected_count {
+                return;
+            }
+
+            let notified = self.notify.notified();
+            if self.count(gateway_id) >= expected_count {
+                return;
+            }
+
+            notified.await;
+        }
+    }
+}
+
 #[cfg(test)]
 #[derive(Clone, Default)]
 struct GatewayManagerTestSupport {
     socket_paths_by_url: Arc<Mutex<HashMap<String, PathBuf>>>,
-    handler_spawn_attempts_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
-    handler_spawn_attempt_notify: Arc<Notify>,
-    handler_connection_attempts_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
-    handler_connection_attempt_notify: Arc<Notify>,
-    gateway_notifications_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
-    gateway_notification_notify: Arc<Notify>,
+    handler_spawn_attempts: NotificationCounter,
+    handler_connection_attempts: NotificationCounter,
+    gateway_notifications: NotificationCounter,
+    disconnect_notifications: NotificationCounter,
+    reconnect_notifications: NotificationCounter,
     listener_ready: Arc<AtomicBool>,
     listener_ready_notify: Arc<Notify>,
     retry_delay_override: Arc<Mutex<Option<Duration>>>,
+    disconnect_notification_delay_override: Arc<Mutex<Option<Duration>>>,
 }
 
 #[cfg(test)]
@@ -102,108 +144,86 @@ impl GatewayManagerTestSupport {
     }
 
     fn note_handler_spawn_attempt(&self, gateway_id: Id) {
-        let mut handler_spawn_attempts = self
-            .handler_spawn_attempts_by_gateway
-            .lock()
-            .expect("Failed to lock GatewayManager handler spawn attempts registry");
-        *handler_spawn_attempts.entry(gateway_id).or_default() += 1;
-        self.handler_spawn_attempt_notify.notify_waiters();
+        self.handler_spawn_attempts.note(gateway_id);
     }
 
     #[cfg(test)]
     fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
-        self.handler_spawn_attempts_by_gateway
-            .lock()
-            .expect("Failed to lock GatewayManager handler spawn attempts registry")
-            .get(&gateway_id)
-            .copied()
-            .unwrap_or_default()
+        self.handler_spawn_attempts.count(gateway_id)
     }
 
     #[cfg(test)]
     async fn wait_for_handler_spawn_attempt_count(&self, gateway_id: Id, expected_count: u64) {
-        loop {
-            if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
-                return;
-            }
-
-            let notified = self.handler_spawn_attempt_notify.notified();
-            if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
-                return;
-            }
-
-            notified.await;
-        }
+        self.handler_spawn_attempts
+            .wait_for(gateway_id, expected_count)
+            .await;
     }
 
     fn note_handler_connection_attempt(&self, gateway_id: Id) {
-        let mut handler_connection_attempts = self
-            .handler_connection_attempts_by_gateway
-            .lock()
-            .expect("Failed to lock GatewayManager handler connection attempts registry");
-        *handler_connection_attempts.entry(gateway_id).or_default() += 1;
-        self.handler_connection_attempt_notify.notify_waiters();
+        self.handler_connection_attempts.note(gateway_id);
     }
 
     #[cfg(test)]
     fn handler_connection_attempt_count(&self, gateway_id: Id) -> u64 {
-        self.handler_connection_attempts_by_gateway
-            .lock()
-            .expect("Failed to lock GatewayManager handler connection attempts registry")
-            .get(&gateway_id)
-            .copied()
-            .unwrap_or_default()
+        self.handler_connection_attempts.count(gateway_id)
     }
 
     #[cfg(test)]
     async fn wait_for_handler_connection_attempt_count(&self, gateway_id: Id, expected_count: u64) {
-        loop {
-            if self.handler_connection_attempt_count(gateway_id) >= expected_count {
-                return;
-            }
-
-            let notified = self.handler_connection_attempt_notify.notified();
-            if self.handler_connection_attempt_count(gateway_id) >= expected_count {
-                return;
-            }
-
-            notified.await;
-        }
+        self.handler_connection_attempts
+            .wait_for(gateway_id, expected_count)
+            .await;
     }
 
     fn note_gateway_notification(&self, gateway_id: Id) {
-        let mut gateway_notifications = self
-            .gateway_notifications_by_gateway
-            .lock()
-            .expect("Failed to lock GatewayManager gateway notification registry");
-        *gateway_notifications.entry(gateway_id).or_default() += 1;
-        self.gateway_notification_notify.notify_waiters();
+        self.gateway_notifications.note(gateway_id);
     }
 
     #[cfg(test)]
     fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
-        self.gateway_notifications_by_gateway
-            .lock()
-            .expect("Failed to lock GatewayManager gateway notification registry")
-            .get(&gateway_id)
-            .copied()
-            .unwrap_or_default()
+        self.gateway_notifications.count(gateway_id)
     }
 
     #[cfg(test)]
     async fn wait_for_gateway_notification_count(&self, gateway_id: Id, expected_count: u64) {
-        loop {
-            if self.gateway_notification_count(gateway_id) >= expected_count {
-                return;
-            }
+        self.gateway_notifications
+            .wait_for(gateway_id, expected_count)
+            .await;
+    }
 
-            let notified = self.gateway_notification_notify.notified();
-            if self.gateway_notification_count(gateway_id) >= expected_count {
-                return;
-            }
+    /// Records that a Gateway disconnect email notification was actually sent. Tests use this
+    /// instead of a mock SMTP server, because mail delivery itself is fire-and-forget.
+    fn note_disconnect_notification_sent(&self, gateway_id: Id) {
+        self.disconnect_notifications.note(gateway_id);
+    }
 
-            notified.await;
-        }
+    #[cfg(test)]
+    fn disconnect_notification_count(&self, gateway_id: Id) -> u64 {
+        self.disconnect_notifications.count(gateway_id)
+    }
+
+    #[cfg(test)]
+    async fn wait_for_disconnect_notification_count(&self, gateway_id: Id, expected_count: u64) {
+        self.disconnect_notifications
+            .wait_for(gateway_id, expected_count)
+            .await;
+    }
+
+    /// Records that a Gateway reconnect email notification was actually sent.
+    fn note_reconnect_notification_sent(&self, gateway_id: Id) {
+        self.reconnect_notifications.note(gateway_id);
+    }
+
+    #[cfg(test)]
+    fn reconnect_notification_count(&self, gateway_id: Id) -> u64 {
+        self.reconnect_notifications.count(gateway_id)
+    }
+
+    #[cfg(test)]
+    async fn wait_for_reconnect_notification_count(&self, gateway_id: Id, expected_count: u64) {
+        self.reconnect_notifications
+            .wait_for(gateway_id, expected_count)
+            .await;
     }
 
     fn mark_listener_ready(&self) {
@@ -248,12 +268,33 @@ impl GatewayManagerTestSupport {
             .expect("Failed to lock GatewayManager retry delay override")
             .unwrap_or(TEN_SECS)
     }
+
+    /// Overrides the inactivity threshold delay so tests do not have to wait out whole minutes.
+    #[cfg(test)]
+    fn set_disconnect_notification_delay(&self, delay: Duration) {
+        *self
+            .disconnect_notification_delay_override
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification delay override") =
+            Some(delay);
+    }
+
+    fn disconnect_notification_delay(&self, configured_delay: Duration) -> Duration {
+        self.disconnect_notification_delay_override
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification delay override")
+            .unwrap_or(configured_delay)
+    }
 }
 
 pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
     pool: PgPool,
     handlers: JoinSet<Result<(), GatewayError>>,
+    /// Per-Gateway flag tracking whether a disconnect email went out and is still awaiting its
+    /// matching reconnect email. Owned by the manager rather than the handler so it survives a
+    /// handler rebuild when connection-relevant fields change.
+    disconnect_notification_sent_by_gateway: Arc<Mutex<HashMap<Id, Arc<AtomicBool>>>>,
     #[cfg(test)]
     test_support: GatewayManagerTestSupport,
     tx: GatewayTxSet,
@@ -267,6 +308,7 @@ impl GatewayManager {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
+            disconnect_notification_sent_by_gateway: Arc::default(),
             tx,
         }
     }
@@ -278,6 +320,7 @@ impl GatewayManager {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
+            disconnect_notification_sent_by_gateway: Arc::default(),
             test_support,
             tx,
         }
@@ -303,11 +346,34 @@ impl GatewayManager {
         }
     }
 
+    /// Returns the per-Gateway "disconnect email sent, awaiting reconnect" flag, creating it if
+    /// necessary.
+    fn disconnect_notification_flag(&self, gateway_id: Id) -> Arc<AtomicBool> {
+        self.disconnect_notification_sent_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification flags")
+            .entry(gateway_id)
+            .or_insert_with(|| Arc::new(AtomicBool::new(false)))
+            .clone()
+    }
+
+    /// Removes the per-Gateway "disconnect email sent" flag (on Gateway deletion).
+    fn clear_disconnect_notification_flag(&self, gateway_id: Id) {
+        self.disconnect_notification_sent_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager disconnect notification flags")
+            .remove(&gateway_id);
+    }
+
     fn build_handler(
         &self,
         gateway: Gateway<Id>,
         certs_rx: Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<GatewayHandler, GatewayError> {
+        // Reuse any outstanding "disconnect sent" flag for this Gateway so a reconnect email is
+        // not lost when the handler is rebuilt after connection-relevant fields change.
+        let disconnect_notification_sent = self.disconnect_notification_flag(gateway.id);
+
         #[cfg(test)]
         {
             self.test_support.note_handler_spawn_attempt(gateway.id);
@@ -322,6 +388,7 @@ impl GatewayManager {
                         self.tx.peer_stats.clone(),
                         certs_rx,
                         socket_path,
+                        disconnect_notification_sent,
                     )?
                 } else {
                     GatewayHandler::new(
@@ -331,6 +398,7 @@ impl GatewayManager {
                         self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
+                        disconnect_notification_sent,
                     )?
                 };
             gateway_handler.attach_test_support(self.test_support.clone());
@@ -346,6 +414,7 @@ impl GatewayManager {
             self.tx.connection_events.clone(),
             self.tx.peer_stats.clone(),
             certs_rx,
+            disconnect_notification_sent,
         )
     }
 
@@ -532,6 +601,9 @@ impl GatewayManager {
                                     connected gateways"
                                 );
                             }
+
+                            // Drop the per-Gateway reconnect-pairing state.
+                            self.clear_disconnect_notification_flag(gateway_id);
 
                             #[cfg(test)]
                             self.note_gateway_notification_for_tests(gateway_id);

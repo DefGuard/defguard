@@ -83,10 +83,12 @@
   }
 }
 
-.selection-section .item .destination-selection-item {
+.selection-section .item .destination-selection-item,
+.selection-section .item .location-selection-item {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   grid-template-rows: 1fr;
+  align-items: center;
   column-gap: var(--spacing-md);
   width: 100%;
   overflow: hidden;

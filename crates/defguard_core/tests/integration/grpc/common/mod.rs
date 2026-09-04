@@ -56,7 +56,7 @@ impl TestGrpcServer {
                 .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server_stream)))
                 .await
                 .map_err(|err| eprintln!("Unexpected test gRPC server error: {err}"))
-                .unwrap()
+                .unwrap();
         });
 
         Self {
@@ -107,7 +107,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 
     // set test secret for generating JWT tokens
     let mut settings = Settings::get_current_settings();
-    settings.secret_key = Some(TEST_SECRET_KEY.to_owned());
+    settings.set_secret_key(Some(TEST_SECRET_KEY.to_owned()));
     update_current_settings(pool, settings)
         .await
         .expect("Failed to update settings");

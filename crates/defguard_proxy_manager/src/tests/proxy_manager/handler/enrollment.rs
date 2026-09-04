@@ -722,23 +722,20 @@ async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
     let finish_resp =
         send_code_mfa_setup_finish(&mut context, &token.id, MfaMethod::Totp, &code).await;
 
-    match &finish_resp.payload {
-        Some(core_response::Payload::CodeMfaSetupFinishResponse(r)) => {
-            assert!(
-                !r.recovery_codes.is_empty(),
-                "finish must return at least one recovery code"
+    if let Some(core_response::Payload::CodeMfaSetupFinishResponse(r)) = &finish_resp.payload {
+        assert!(
+            !r.recovery_codes.is_empty(),
+            "finish must return at least one recovery code"
+        );
+    } else {
+        // Show the error code if it came back as CoreError.
+        if let Some(core_response::Payload::CoreError(e)) = &finish_resp.payload {
+            panic!(
+                "expected CodeMfaSetupFinishResponse, got CoreError: {:?}",
+                e.message
             );
         }
-        _ => {
-            // Show the error code if it came back as CoreError.
-            if let Some(core_response::Payload::CoreError(e)) = &finish_resp.payload {
-                panic!(
-                    "expected CodeMfaSetupFinishResponse, got CoreError: {:?}",
-                    e.message
-                );
-            }
-            panic!("expected CodeMfaSetupFinishResponse");
-        }
+        panic!("expected CodeMfaSetupFinishResponse");
     }
 
     // DB: user must now have totp_enabled = true and mfa_enabled = true.
@@ -1017,6 +1014,47 @@ async fn test_register_mobile_auth_device_not_found(_: PgPoolOptions, options: P
         code,
         tonic::Code::InvalidArgument,
         "device_pub_key not in DB must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_register_mobile_auth_foreign_device(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (_victim, victim_device) = create_user_with_device(&context.pool).await;
+    let attacker = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, attacker.id, Some(attacker.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 303,
+        device_info: None,
+        payload: Some(core_request::Payload::RegisterMobileAuth(
+            RegisterMobileAuthRequest {
+                token: token.id.clone(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_owned(),
+                device_pub_key: victim_device.wireguard_pubkey.clone(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::Unauthenticated,
+        "device owned by another user must return Unauthenticated"
+    );
+
+    assert!(
+        BiometricAuth::find_by_device_id(&context.pool, victim_device.id)
+            .await
+            .expect("DB query for BiometricAuth failed")
+            .is_none(),
+        "no BiometricAuth row may be created for a device owned by another user"
     );
 
     context.finish().await.expect_server_finished().await;

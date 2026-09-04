@@ -9,8 +9,8 @@ test.describe('Auto Adoption Wizard', () => {
     dockerRestartAutoAdoption();
   });
 
-  test('completes the happy path and lands on vpn-overview', async ({ page }) => {
+  test('completes the happy path and lands on the login page', async ({ page }) => {
     await runAutoAdoptionWizard(page);
-    await expect(page).toHaveURL(/\/vpn-overview/);
+    await expect(page).toHaveURL(/\/auth\/login/);
   });
 });

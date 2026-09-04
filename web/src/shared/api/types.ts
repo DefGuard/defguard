@@ -104,7 +104,6 @@ export interface CreateAdminRequest {
   username: string;
   email: string;
   password: string;
-  automatically_assign_group?: boolean;
 }
 
 export interface SetGeneralConfigRequest {
@@ -524,7 +523,7 @@ export interface LicenseInfoApi {
 }
 
 export interface LicenseInfoResponse {
-  license_info: LicenseInfo | null;
+  license_info: LicenseInfoApi | null;
 }
 
 export interface LdapInfo {

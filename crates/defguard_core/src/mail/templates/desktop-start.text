@@ -5,3 +5,10 @@
 {{ label_token }}: {{ token }}
 
 {{ configure }}: {{ url }}/open-desktop?token={{ token }}
+
+{% if scan_qr %}{{ label_mobile }}
+{{ scan_qr }}
+
+{{ mobile_install }}
+{{ download_google }}: https://play.google.com/store/apps/details?id=net.defguard.mobile
+{{ download_apple }}: https://apps.apple.com/us/app/defguard-vpn-client/id6748068630{% endif %}
