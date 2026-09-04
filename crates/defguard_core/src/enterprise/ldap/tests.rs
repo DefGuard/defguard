@@ -1983,6 +1983,62 @@ async fn test_ldap_dry_run_skips_disabled_users_existing_in_defguard(
     );
 }
 
+/// A Defguard user outside the sync scope is filtered out of the Defguard side of the group
+/// diff but not out of the LDAP side, so every run tries to add them to their groups again.
+/// The insert is a no-op on an existing membership and must not produce a "group member added"
+/// event, otherwise the activity log fills with repeated entries.
+#[sqlx::test]
+async fn test_sync_does_not_repeat_group_events_for_out_of_scope_users(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, mut ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("provisioning").save(&pool).await.unwrap();
+
+    // Account status sync is off here, so a disabled user is out of the sync scope.
+    let mut disabled_user = make_test_user("disabled_user", Some("disabled_user".to_owned()), None);
+    disabled_user.is_active = false;
+    disabled_user.from_ldap = true;
+    let disabled_user = disabled_user.save(&pool).await.unwrap();
+    disabled_user.add_to_group(&pool, &group).await.unwrap();
+
+    let ldap_user = disabled_user.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership(&group.clone().as_noid(), &ldap_user, &config);
+
+    for run in 1..=2 {
+        ldap_conn
+            .sync(&pool, false, &wg_tx, &ldap_tx)
+            .await
+            .unwrap();
+        let events = drain_ldap_sync_events(&mut ldap_rx);
+        assert!(
+            !events.iter().any(|event| matches!(
+                event,
+                LdapSyncEventType::GroupMemberAdded { .. }
+                    | LdapSyncEventType::GroupMemberRemoved { .. }
+            )),
+            "sync run {run} reported a group membership change for an out of scope user: {events:?}"
+        );
+    }
+
+    // The stored membership must survive, only the reporting stops.
+    let members = group.member_usernames(&pool).await.unwrap();
+    assert_eq!(members, vec!["disabled_user".to_owned()]);
+}
+
 /// The dry run previews not yet saved settings, so user scoping must follow the connection's
 /// config (built from the submitted form values) instead of the globally saved settings.
 /// Here the saved settings have no sync group restriction, while the submitted config limits
@@ -4525,5 +4581,87 @@ async fn test_sync_failure_marks_desynced_and_recovers(
     assert!(
         !is_ldap_desynced(),
         "instance should be back in sync after recovery"
+    );
+}
+
+#[sqlx::test]
+async fn test_disabled_user_created_as_disabled_ad_account(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_uses_ad = true;
+    settings.ldap_sync_account_status = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = true;
+    ldap_conn.config.ldap_sync_account_status = true;
+
+    let mut user = make_test_user(
+        "disabled_ad_user",
+        Some("disabled_ad_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    user.is_active = false;
+    let mut user = user.save(&pool).await.unwrap();
+    let user_dn = ldap_conn.config.user_dn_for_user(&user);
+
+    ldap_conn
+        .update_users_state(vec![&mut user], &pool, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let events = ldap_conn.test_client.get_events();
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, LdapEvent::ObjectAdded { dn, .. } if *dn == user_dn)),
+        "Disabled user should be created in AD, got events: {events:?}"
+    );
+
+    let disabled_uac = uac_with_active(UAC_NORMAL_ACCOUNT, false).to_string();
+    assert!(
+        events.iter().any(|event| matches!(
+            event,
+            LdapEvent::ObjectModified { new_dn, mods, .. }
+                if *new_dn == user_dn && mods.iter().any(|modification| matches!(
+                    modification,
+                    Mod::Replace(attr, values)
+                        if attr == "userAccountControl" && values.contains(&disabled_uac)
+                ))
+        )),
+        "Created AD account should have the ACCOUNTDISABLE bit set, got events: {events:?}"
+    );
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_sync_account_status = false;
+    update_current_settings(&pool, settings).await.unwrap();
+    ldap_conn.config.ldap_sync_account_status = false;
+    ldap_conn.test_client.clear_events();
+
+    let mut other_user = make_test_user(
+        "disabled_plain_user",
+        Some("disabled_plain_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    other_user.is_active = false;
+    let mut other_user = other_user.save(&pool).await.unwrap();
+
+    ldap_conn
+        .update_users_state(vec![&mut other_user], &pool, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    assert!(
+        ldap_conn.test_client.get_events().is_empty(),
+        "Disabled user must not be created in LDAP without account status sync, got events: {:?}",
+        ldap_conn.test_client.get_events()
     );
 }

@@ -759,3 +759,40 @@ fn test_parse_destination_addresses_rejects_malformed_cidr_prefix_tokens() {
         ));
     }
 }
+
+#[test]
+fn test_format_destination_address_omits_only_host_masks() {
+    for (input, expected) in [
+        ("10.0.0.1/32", "10.0.0.1"),
+        ("10.0.0.1", "10.0.0.1"),
+        ("10.1.0.0/16", "10.1.0.0/16"),
+        ("0.0.0.0/0", "0.0.0.0/0"),
+        ("2001:db8::1/128", "2001:db8::1"),
+        ("2001:db8::1", "2001:db8::1"),
+        ("2001:db8::/32", "2001:db8::/32"),
+        ("::/0", "::/0"),
+    ] {
+        let addr = input
+            .parse::<IpNetwork>()
+            .expect("test address should be a valid IpNetwork");
+        assert_eq!(format_destination_address(&addr), expected);
+    }
+}
+
+#[test]
+fn test_format_destination_address_round_trips_through_parsing() {
+    for input in [
+        "10.0.0.1/32",
+        "10.1.0.0/16",
+        "2001:db8::1/128",
+        "2001:db8::/32",
+        "2001:db8::/64",
+    ] {
+        let addr = input
+            .parse::<IpNetwork>()
+            .expect("test address should be a valid IpNetwork");
+        let parsed = parse_destination_addresses(&format_destination_address(&addr))
+            .expect("formatted address should be parsable");
+        assert_eq!(parsed.addrs, [addr]);
+    }
+}

@@ -120,6 +120,9 @@ impl From<InitiateError> for Status {
                 Status::invalid_argument("Select MFA method is not available for the device.")
             }
             InitiateError::InvalidPublicKey(_) => Status::invalid_argument("Invalid public key"),
+            InitiateError::UnsupportedMethod => {
+                Status::unimplemented("Selected MFA method is not supported")
+            }
         }
     }
 }
@@ -148,6 +151,7 @@ impl From<StepStarted> for ClientMfaStepStartResponse {
         Self {
             step_attempt_id: value.step_attempt_id,
             challenge: value.challenge,
+            credential_ids: Vec::new(),
         }
     }
 }
@@ -519,6 +523,7 @@ impl ClientMfaServer {
                         token: String::new(),
                         challenge: None,
                         rejections: rejections.into_iter().map(Into::into).collect(),
+                        credential_ids: Vec::new(),
                     }))
                 }
             }
@@ -563,6 +568,7 @@ impl ClientMfaServer {
             token: start_outcome.token,
             challenge: start_outcome.challenge,
             rejections: Vec::new(),
+            credential_ids: Vec::new(),
         }))
     }
 
@@ -2533,6 +2539,8 @@ mod tests {
                     code: Some(code),
                     auth_pub_key: None,
                     step_attempt_id: None,
+                    auth_data: None,
+                    credential_id: None,
                 },
                 device_info(),
             )
@@ -2638,6 +2646,8 @@ mod tests {
                         code: Some("000000".to_owned()),
                         auth_pub_key: None,
                         step_attempt_id: None,
+                        auth_data: None,
+                        credential_id: None,
                     },
                     device_info(),
                 )
@@ -2984,6 +2994,8 @@ mod tests {
                     code: Some(code),
                     auth_pub_key: None,
                     step_attempt_id: None,
+                    auth_data: None,
+                    credential_id: None,
                 },
                 device_info(),
             )

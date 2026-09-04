@@ -18,13 +18,13 @@ if [ -z "${DATABASE_URL}" ]; then
     exit 1
 fi
 
-PATTERN='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+PATTERN='_sqlx_test_*'
 
 echo "Dropping test databases"
 
-psql "${DATABASE_URL}" -c "copy (select datname from pg_database where datname ~ '$PATTERN') to stdout" | while read dbname; do
-    echo "Dropping $dbname"
-    psql "${DATABASE_URL}" -c "DROP DATABASE \"$dbname\""
+psql "${DATABASE_URL}" -c "copy (SELECT datname FROM pg_database WHERE datname ~ '${PATTERN}') to stdout" | while read dbname; do
+    echo "Dropping ${dbname}"
+    psql "${DATABASE_URL}" -c "DROP DATABASE \"${dbname}\""
 done
 echo
 echo "Test databases were deleted!"

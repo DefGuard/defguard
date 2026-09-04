@@ -12,7 +12,7 @@ use defguard_proto::{
     common::{CertBundle, CertificateInfo, DerPayload, LogEntry},
     gateway::gateway_setup_server::{GatewaySetup, GatewaySetupServer},
 };
-use reqwest::StatusCode;
+use reqwest::{StatusCode, header::CONTENT_TYPE};
 use serde_json::Value;
 use sqlx::{
     PgPool,
@@ -70,7 +70,12 @@ async fn test_proxy_setup_error_includes_core_logs(_: PgPoolOptions, options: Pg
     client.login_user("admin", "pass123").await;
 
     let response = client
-        .get("/api/v1/proxy/setup/stream?ip_or_domain=bad%20host&grpc_port=50051&common_name=edge")
+        .post("/api/v1/proxy/setup/stream")
+        .json(&serde_json::json!({
+            "ip_or_domain": "bad host",
+            "grpc_port": 50051,
+            "common_name": "edge",
+        }))
         .send()
         .await;
 
@@ -112,7 +117,12 @@ async fn test_gateway_setup_error_includes_core_logs(_: PgPoolOptions, options: 
     client.login_user("admin", "pass123").await;
 
     let response = client
-        .get("/api/v1/network/1/gateways/setup?ip_or_domain=bad%20host&grpc_port=50051&common_name=gateway")
+        .post("/api/v1/network/1/gateways/setup")
+        .json(&serde_json::json!({
+            "ip_or_domain": "bad host",
+            "grpc_port": 50051,
+            "common_name": "gateway",
+        }))
         .send()
         .await;
 
@@ -198,7 +208,7 @@ async fn buffer_is_bounded_to_max_core_log_lines() {
     );
 }
 
-const MOCK_GATEWAY_VERSION: &str = "2.0.0";
+const MOCK_GATEWAY_VERSION: &str = "2.1.0";
 const MOCK_LOG_TIMESTAMP: &str = "2026-01-01T00:00:00Z";
 
 struct MockGatewaySetupState {
@@ -502,10 +512,12 @@ async fn test_adopt_gateway_sse(_: PgPoolOptions, options: PgConnectOptions) {
     let port = harness.port;
 
     let response = client
-        .get(format!(
-            "/api/v1/network/{network_id}/gateways/setup\
-             ?ip_or_domain=127.0.0.1&grpc_port={port}&common_name=FirstGateway"
-        ))
+        .post(format!("/api/v1/network/{network_id}/gateways/setup"))
+        .json(&serde_json::json!({
+            "ip_or_domain": "127.0.0.1",
+            "grpc_port": port,
+            "common_name": "FirstGateway",
+        }))
         .send()
         .await;
 
@@ -594,11 +606,12 @@ async fn dg26_11_test_gateway_setup_sse_rejects_host_with_path(
     // the query parser passes them through into ip_or_domain rather than treating
     // them as separate query parameters).
     let response = client
-        .get(format!(
-            "/api/v1/network/{network_id}/gateways/setup\
-             ?ip_or_domain=46.101.217.165%3A4444%2Ftestpath%3Fa%3Db%23\
-             &grpc_port=50061&common_name=test"
-        ))
+        .post(format!("/api/v1/network/{network_id}/gateways/setup"))
+        .json(&serde_json::json!({
+            "ip_or_domain": "46.101.217.165:4444/testpath?a=b#",
+            "grpc_port": 50061,
+            "common_name": "test",
+        }))
         .send()
         .await;
 
@@ -631,10 +644,12 @@ async fn dg26_11_test_gateway_setup_sse_rejects_port_zero(
     let (client, network_id) = setup_test_no_ca(&pool).await;
 
     let response = client
-        .get(format!(
-            "/api/v1/network/{network_id}/gateways/setup\
-             ?ip_or_domain=127.0.0.1&grpc_port=0&common_name=test"
-        ))
+        .post(format!("/api/v1/network/{network_id}/gateways/setup"))
+        .json(&serde_json::json!({
+            "ip_or_domain": "127.0.0.1",
+            "grpc_port": 0,
+            "common_name": "test",
+        }))
         .send()
         .await;
 
@@ -724,11 +739,12 @@ async fn dg26_11_test_proxy_setup_sse_rejects_host_with_path(
     client.login_user("admin", "pass123").await;
 
     let response = client
-        .get(
-            "/api/v1/proxy/setup/stream\
-             ?ip_or_domain=46.101.217.165%3A4444%2Ftestpath%3Fa%3Db%23\
-             &grpc_port=50061&common_name=test",
-        )
+        .post("/api/v1/proxy/setup/stream")
+        .json(&serde_json::json!({
+            "ip_or_domain": "46.101.217.165:4444/testpath?a=b#",
+            "grpc_port": 50061,
+            "common_name": "test",
+        }))
         .send()
         .await;
 
@@ -762,10 +778,12 @@ async fn dg26_11_test_proxy_setup_sse_rejects_port_zero(
     client.login_user("admin", "pass123").await;
 
     let response = client
-        .get(
-            "/api/v1/proxy/setup/stream\
-             ?ip_or_domain=127.0.0.1&grpc_port=0&common_name=test",
-        )
+        .post("/api/v1/proxy/setup/stream")
+        .json(&serde_json::json!({
+            "ip_or_domain": "127.0.0.1",
+            "grpc_port": 0,
+            "common_name": "test",
+        }))
         .send()
         .await;
 
@@ -787,4 +805,40 @@ async fn dg26_11_test_proxy_setup_sse_rejects_port_zero(
         msg.contains("grpc_port must not be 0"),
         "expected port-zero validation error, got: {msg:?}"
     );
+}
+
+#[sqlx::test]
+async fn dg2608_6_test_setup_streams_reject_cross_site_form_requests(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, network_id) = setup_test_no_ca(&pool).await;
+
+    let paths = [
+        "/api/v1/proxy/setup/stream".to_string(),
+        "/api/v1/proxy/acme/stream".to_string(),
+        format!("/api/v1/network/{network_id}/gateways/setup"),
+    ];
+
+    for path in &paths {
+        let response = client.get(path).send().await;
+        assert_eq!(
+            response.status(),
+            StatusCode::METHOD_NOT_ALLOWED,
+            "GET must not be routed for {path}"
+        );
+
+        let response = client
+            .post(path)
+            .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body("ip_or_domain=127.0.0.1&grpc_port=50051&common_name=attacker")
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "form-encoded POST must be rejected for {path}"
+        );
+    }
 }

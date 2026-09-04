@@ -15,7 +15,7 @@ use tera::{Context, Function, Tera};
 use thiserror::Error;
 use tracing::{debug, warn};
 
-use super::{Attachment, MailError, MailMessage};
+use super::{Attachment, Mail, MailError, MailMessage};
 
 pub(crate) const DEFAULT_LANG: &str = "en_US";
 
@@ -139,14 +139,43 @@ pub async fn user_import_blocked_mail(
     Ok(())
 }
 
+/// Placeholders substituted into the admin-configurable `token_info` mail text with the
+/// configured enrollment timeouts.
+const TOKEN_TIMEOUT_PLACEHOLDER: &str = "{{ token_timeout }}";
+const SESSION_TIMEOUT_PLACEHOLDER: &str = "{{ session_timeout }}";
+
 // Mail with link to enrollment service.
 pub async fn new_account_mail(
     to: &str,
     conn: &mut PgConnection,
     context: Context,
+    enrollment_service_url: Url,
+    enrollment_token: &str,
+    token_timeout: Duration,
+) -> Result<(), TemplateError> {
+    build_new_account_mail(
+        to,
+        conn,
+        context,
+        enrollment_service_url,
+        enrollment_token,
+        token_timeout,
+    )
+    .await?
+    .send_and_forget();
+    Ok(())
+}
+
+/// Build (but do not send) the enrollment start mail. Extracted so tests can assert the
+/// rendered content without requiring an SMTP server.
+pub(crate) async fn build_new_account_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    context: Context,
     mut enrollment_service_url: Url,
     enrollment_token: &str,
-) -> Result<(), TemplateError> {
+    token_timeout: Duration,
+) -> Result<Mail, TemplateError> {
     debug!("Render an enrollment start mail template for the user.");
     let (mut tera, mut context) = get_base_tera_mjml(context, None, None, None)?;
 
@@ -166,9 +195,54 @@ pub async fn new_account_mail(
 
     let message = MailMessage::NewAccount;
     message.fill_context(conn, &mut context).await?;
-    message.mail(&mut tera, &context, to)?.send_and_forget();
 
-    Ok(())
+    // The token timeout is per-enrollment (passed in), while the session timeout is a global
+    // setting read here so the email reflects the configured value.
+    let session_timeout = Settings::get_current_settings().enrollment_session_timeout();
+
+    // Render the effective token/session timeouts into the admin-configurable `token_info` text.
+    if let Some(Value::String(token_info)) = context.get("token_info").cloned() {
+        if !token_info.contains(TOKEN_TIMEOUT_PLACEHOLDER)
+            || !token_info.contains(SESSION_TIMEOUT_PLACEHOLDER)
+        {
+            warn!(
+                "mail_context 'new-account' token_info is missing the timeout placeholders; \
+                the configured enrollment timeouts will not be shown"
+            );
+        }
+        let rendered = token_info
+            .replace(TOKEN_TIMEOUT_PLACEHOLDER, &format_timeout(token_timeout))
+            .replace(
+                SESSION_TIMEOUT_PLACEHOLDER,
+                &format_timeout(session_timeout),
+            );
+        context.insert("token_info", &rendered);
+    }
+
+    message.mail(&mut tera, &context, to)
+}
+
+/// Format a timeout duration as a short human-readable string, e.g. "1 week", "1 day",
+/// "24 hours", or "30 minutes".
+fn format_timeout(duration: Duration) -> String {
+    let secs = duration.as_secs();
+    let minute = 60;
+    let hour = 60 * minute;
+    let day = 24 * hour;
+    let week = 7 * day;
+
+    let (value, unit) = if secs >= week && secs.is_multiple_of(week) {
+        (secs / week, "week")
+    } else if secs >= day && secs.is_multiple_of(day) {
+        (secs / day, "day")
+    } else if secs >= hour && secs.is_multiple_of(hour) {
+        (secs / hour, "hour")
+    } else if secs >= minute && secs.is_multiple_of(minute) {
+        (secs / minute, "minute")
+    } else {
+        (secs, "second")
+    };
+    format!("{value} {unit}{}", if value == 1 { "" } else { "s" })
 }
 
 // Mail with link to enrollment service.
@@ -686,4 +760,41 @@ pub async fn certificate_expired_mail(
     message.mail(&mut tera, &context, to)?.send_and_forget();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::format_timeout;
+
+    #[test]
+    fn test_formats_weeks() {
+        assert_eq!(format_timeout(Duration::from_hours(168)), "1 week");
+        assert_eq!(format_timeout(Duration::from_hours(336)), "2 weeks");
+    }
+
+    #[test]
+    fn test_formats_days() {
+        assert_eq!(format_timeout(Duration::from_hours(24)), "1 day");
+        assert_eq!(format_timeout(Duration::from_hours(48)), "2 days");
+    }
+
+    #[test]
+    fn test_formats_hours() {
+        assert_eq!(format_timeout(Duration::from_hours(1)), "1 hour");
+        assert_eq!(format_timeout(Duration::from_hours(23)), "23 hours");
+    }
+
+    #[test]
+    fn test_formats_minutes() {
+        assert_eq!(format_timeout(Duration::from_mins(1)), "1 minute");
+        assert_eq!(format_timeout(Duration::from_mins(30)), "30 minutes");
+    }
+
+    #[test]
+    fn test_formats_seconds() {
+        assert_eq!(format_timeout(Duration::from_secs(1)), "1 second");
+        assert_eq!(format_timeout(Duration::from_secs(90)), "90 seconds");
+    }
 }

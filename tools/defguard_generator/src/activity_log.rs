@@ -28,8 +28,7 @@ use defguard_event_logger::description::{
 };
 use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
 
-#[allow(dead_code)]
-#[allow(clippy::large_enum_variant)]
+#[allow(dead_code, clippy::large_enum_variant)]
 enum DefguardEvent {
     UserLogin,
     UserLoginFailed {
@@ -248,8 +247,7 @@ enum VpnEvent {
     },
 }
 
-#[allow(dead_code)]
-#[allow(clippy::large_enum_variant)]
+#[allow(dead_code, clippy::large_enum_variant)]
 enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentDeviceAdded { device: Device<Id> },

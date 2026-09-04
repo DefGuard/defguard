@@ -27,11 +27,14 @@ use thiserror::Error;
 use tokio::time::sleep;
 
 use crate::{
-    enterprise::limits::Counts,
+    enterprise::{
+        db::models::enterprise_settings::unlicensed_edge_public_settings, limits::Counts,
+    },
     grpc::proto::enterprise::license::{
         LicenseFeature as LicenseFeatureProto, LicenseKey, LicenseLimits, LicenseMetadata,
         LicenseTier as LicenseTierProto, SupportType as SupportTypeProto,
     },
+    handlers::settings::public_settings_message,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -711,10 +714,9 @@ pub async fn run_periodic_license_check(
             // to their defaults so proxies no longer apply restricted settings.
             let settings = Settings::get_current_settings();
             if let Err(err) = proxy_control_tx
-                .send(ProxyControlMessage::BroadcastPublicSettings {
-                    display_password_reset: settings.smtp_configured(),
-                    display_download_step: true,
-                })
+                .send(public_settings_message(unlicensed_edge_public_settings(
+                    &settings,
+                )))
                 .await
             {
                 error!("Failed to broadcast default public settings after license change: {err:?}");

@@ -47,7 +47,7 @@ use defguard_proto::{
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, HttpsCerts,
-        InitialInfo, PublicSettings, core_request, core_response, proxy_client::ProxyClient,
+        InitialInfo, core_request, core_response, proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
@@ -499,10 +499,8 @@ impl ProxyHandler {
 
             // Push public settings (Edge UI controls) to the newly-connected proxy.
             if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
-                let public_settings = PublicSettings {
-                    display_password_reset: settings.edge_can_display_password_reset(),
-                    display_download_step: settings.display_download_step,
-                };
+                let public_settings =
+                    settings.edge_public_settings(&Settings::get_current_settings());
                 let _ = tx.send(CoreResponse {
                     id: 0,
                     payload: Some(core_response::Payload::PublicSettings(public_settings)),
@@ -1322,10 +1320,7 @@ impl ProxyHandler {
 
         // Push public settings to the test proxy.
         if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
-            let public_settings = PublicSettings {
-                display_password_reset: settings.edge_can_display_password_reset(),
-                display_download_step: settings.display_download_step,
-            };
+            let public_settings = settings.edge_public_settings(&Settings::get_current_settings());
             let _ = tx.send(CoreResponse {
                 id: 0,
                 payload: Some(core_response::Payload::PublicSettings(public_settings)),

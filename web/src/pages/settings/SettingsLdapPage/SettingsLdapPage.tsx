@@ -94,38 +94,50 @@ export const SettingsLdapPage = () => {
   );
 };
 
-const formSchema = z.object({
-  ldap_bind_password: z.string().trim().min(1, m.form_error_required()),
-  ldap_bind_username: z.string().trim().min(1, m.form_error_required()),
-  ldap_url: z.url(m.form_error_invalid()).min(1, m.form_error_required()),
-  ldap_group_member_attr: z.string().trim().min(1, m.form_error_required()),
-  ldap_group_obj_class: z.string().trim().min(1, m.form_error_required()),
-  ldap_group_search_base: z.string().trim().min(1, m.form_error_required()),
-  ldap_groupname_attr: z.string().trim().min(1, m.form_error_required()),
-  ldap_member_attr: z.string().trim().min(1, m.form_error_required()),
-  ldap_user_obj_class: z.string().trim().min(1, m.form_error_required()),
-  ldap_user_auxiliary_obj_classes: z.string().trim().nullable(),
-  ldap_user_search_base: z.string().trim().min(1, m.form_error_required()),
-  ldap_username_attr: z.string().trim().min(1, m.form_error_required()),
-  ldap_enabled: z.boolean(),
-  ldap_sync_enabled: z.boolean(),
-  ldap_is_authoritative: z.boolean(),
-  ldap_use_starttls: z.boolean(),
-  ldap_tls_verify_cert: z.boolean(),
-  ldap_sync_interval: z.number().min(
-    10,
-    m.form_error_min({
-      value: 10,
-    }),
-  ),
-  ldap_uses_ad: z.boolean(),
-  ldap_sync_account_status: z.boolean(),
-  ldap_disable_password_management: z.boolean(),
-  ldap_user_rdn_attr: z.string().trim().nullable(),
-  ldap_sync_groups: z.string().trim().nullable(),
-  ldap_remote_enrollment_enabled: z.boolean(),
-  ldap_remote_enrollment_send_invite: z.boolean(),
-});
+const ldap_minimum_sync_interval = 10;
+
+const formSchema = z
+  .object({
+    ldap_bind_password: z.string().trim().min(1, m.form_error_required()),
+    ldap_bind_username: z.string().trim().min(1, m.form_error_required()),
+    ldap_url: z.url(m.form_error_invalid()).min(1, m.form_error_required()),
+    ldap_group_member_attr: z.string().trim().min(1, m.form_error_required()),
+    ldap_group_obj_class: z.string().trim().min(1, m.form_error_required()),
+    ldap_group_search_base: z.string().trim().min(1, m.form_error_required()),
+    ldap_groupname_attr: z.string().trim().min(1, m.form_error_required()),
+    ldap_member_attr: z.string().trim().min(1, m.form_error_required()),
+    ldap_user_obj_class: z.string().trim().min(1, m.form_error_required()),
+    ldap_user_auxiliary_obj_classes: z.string().trim().nullable(),
+    ldap_user_search_base: z.string().trim().min(1, m.form_error_required()),
+    ldap_username_attr: z.string().trim().min(1, m.form_error_required()),
+    ldap_enabled: z.boolean(),
+    ldap_sync_enabled: z.boolean(),
+    ldap_is_authoritative: z.boolean(),
+    ldap_use_starttls: z.boolean(),
+    ldap_tls_verify_cert: z.boolean(),
+    ldap_sync_interval: z.number(m.form_error_required()),
+    ldap_uses_ad: z.boolean(),
+    ldap_sync_account_status: z.boolean(),
+    ldap_disable_password_management: z.boolean(),
+    ldap_user_rdn_attr: z.string().trim().nullable(),
+    ldap_sync_groups: z.string().trim().nullable(),
+    ldap_remote_enrollment_enabled: z.boolean(),
+    ldap_remote_enrollment_send_invite: z.boolean(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.ldap_sync_enabled &&
+      value.ldap_sync_interval < ldap_minimum_sync_interval
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['ldap_sync_interval'],
+        message: m.form_error_min({
+          value: ldap_minimum_sync_interval,
+        }),
+      });
+    }
+  });
 
 type FormFields = z.infer<typeof formSchema>;
 

@@ -14,7 +14,7 @@ use defguard_common::{
     utils::{parse_address_list, parse_network_address_list},
 };
 use defguard_core::{
-    auth::AdminOrSetupRole,
+    auth::AdminRole,
     cert_settings::{
         CertInfoResponse, ExternalSslType,
         ExternalUrlSettingsConfig as CoreExternalUrlSettingsConfig, InternalSslType,
@@ -88,7 +88,7 @@ pub(crate) async fn apply_internal_url_settings(
 
 /// Updates internal URL settings and configures SSL for the core web server.
 pub async fn set_internal_url_settings(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<InternalUrlSettingsConfig>,
 ) -> ApiResult {
@@ -118,10 +118,7 @@ pub async fn set_internal_url_settings(
 }
 
 /// Returns internal SSL certificate info (for the "Download certificate" step).
-pub async fn get_internal_ssl_info(
-    _: AdminOrSetupRole,
-    Extension(pool): Extension<PgPool>,
-) -> ApiResult {
+pub async fn get_internal_ssl_info(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let certs = Certificates::get_or_default(&pool)
         .await
         .map_err(WebError::from)?;
@@ -149,7 +146,7 @@ pub struct ExternalUrlSettingsConfig {
 
 /// Updates external proxy URL settings (step 4).
 pub async fn set_external_url_settings(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<ExternalUrlSettingsConfig>,
 ) -> ApiResult {
@@ -201,10 +198,7 @@ pub(crate) async fn apply_external_url_settings(
 }
 
 /// Returns external SSL certificate info (for the "Download CA certificate" step).
-pub async fn get_external_ssl_info(
-    _: AdminOrSetupRole,
-    Extension(pool): Extension<PgPool>,
-) -> ApiResult {
+pub async fn get_external_ssl_info(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let certs = Certificates::get_or_default(&pool)
         .await
         .map_err(WebError::from)?;
@@ -237,7 +231,7 @@ pub struct VpnSettingsConfig {
 
 /// Updates first auto-adopted network location with VPN settings from auto-adoption wizard.
 pub async fn set_vpn_settings(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(vpn_settings): Json<VpnSettingsConfig>,
 ) -> ApiResult {
@@ -308,7 +302,7 @@ pub struct MfaSettingsConfig {
 
 /// Updates first auto-adopted network location with MFA mode from Auto-adoption wizard.
 pub async fn set_mfa_settings(
-    _: AdminOrSetupRole,
+    _: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(mfa_settings): Json<MfaSettingsConfig>,
 ) -> ApiResult {
