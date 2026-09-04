@@ -51,7 +51,13 @@ export const LocationMfaSection = ({
   onChange,
 }: Props) => {
   const [editor, setEditor] = useState<OpenEditor>();
+  const [modalOpen, setModalOpen] = useState(false);
   const overridesTrackRef = useRef<HTMLUListElement>(null);
+
+  const openEditor = (next: OpenEditor) => {
+    setEditor(next);
+    setModalOpen(true);
+  };
 
   const flowsById = useMemo(() => new Map(flows.map((flow) => [flow.id, flow])), [flows]);
   const groupNameById = useMemo(
@@ -128,7 +134,7 @@ export const LocationMfaSection = ({
               steps={flowsById.get(override.flow_id)?.steps ?? []}
               chips={override.group_ids.map((id) => groupNameById.get(id) ?? String(id))}
               dragConstraints={overridesTrackRef}
-              onEdit={() => setEditor({ kind: 'override', index })}
+              onEdit={() => openEditor({ kind: 'override', index })}
               onRemove={() => onChange(removeOverride(assignments, index))}
             />
           ))}
@@ -156,7 +162,7 @@ export const LocationMfaSection = ({
                 />
               }
               editLabel={m.location_mfa_default_flow_edit()}
-              onEdit={() => setEditor({ kind: 'default' })}
+              onEdit={() => openEditor({ kind: 'default' })}
             />
           </div>
         )}
@@ -164,7 +170,7 @@ export const LocationMfaSection = ({
           <Button
             variant="outlined"
             text={m.location_mfa_default_flow_modal_title()}
-            onClick={() => setEditor({ kind: 'default' })}
+            onClick={() => openEditor({ kind: 'default' })}
           />
         )}
       </div>
@@ -182,16 +188,15 @@ export const LocationMfaSection = ({
         variant="outlined"
         text={m.location_mfa_overrides_add()}
         disabled={overridesLocked || !isPresent(defaultAssignment) || allFlowsAssigned}
-        onClick={() => setEditor({ kind: 'override' })}
+        onClick={() => openEditor({ kind: 'override' })}
       />
       <MfaFlowAssignmentModal
-        key={editor === undefined ? 'closed' : JSON.stringify(editor)}
-        isOpen={isPresent(editor)}
+        isOpen={modalOpen}
+        target={editorTarget}
         flows={editorFlows}
-        groupOptions={editor?.kind === 'default' ? undefined : groupOptions}
-        initialFlowId={editorTarget?.flowId}
-        initialGroupIds={editorTarget?.groupIds}
-        onClose={() => setEditor(undefined)}
+        groupOptions={editor?.kind === 'override' ? groupOptions : undefined}
+        onClose={() => setModalOpen(false)}
+        afterClose={() => setEditor(undefined)}
         onSubmit={handleSubmit}
       />
     </>

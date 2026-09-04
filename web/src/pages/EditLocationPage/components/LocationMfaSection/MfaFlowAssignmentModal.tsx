@@ -17,41 +17,33 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 
+export type MfaFlowAssignmentTarget = {
+  flowId?: number;
+  groupIds?: number[];
+};
+
 type Props = {
   isOpen: boolean;
+  target?: MfaFlowAssignmentTarget;
   flows: MfaFlowListItemResponse[];
   /** Provided when editing a group-scoped override. */
   groupOptions?: SelectionOption<number>[];
-  initialFlowId?: number;
-  initialGroupIds?: number[];
   onClose: () => void;
+  afterClose: () => void;
   onSubmit: (flowId: number, groupIds: number[]) => void;
 };
 
 export const MfaFlowAssignmentModal = ({
   isOpen,
+  target,
   flows,
   groupOptions,
-  initialFlowId,
-  initialGroupIds,
   onClose,
+  afterClose,
   onSubmit,
 }: Props) => {
   const editsGroups = isPresent(groupOptions);
   const [onGroupStep, setOnGroupStep] = useState(false);
-  const [flowId, setFlowId] = useState(initialFlowId);
-  const [groupIds, setGroupIds] = useState(new Set(initialGroupIds ?? []));
-  const [groupError, setGroupError] = useState<string>();
-
-  const flowSelectionOptions = useMemo(
-    (): SelectionOption<number, MfaFlowSelectionMeta>[] =>
-      flows.map((flow) => ({
-        id: flow.id,
-        label: flow.title,
-        meta: { steps: flow.steps },
-      })),
-    [flows],
-  );
 
   const title = useMemo(() => {
     if (!editsGroups) return m.location_mfa_default_flow_modal_title();
@@ -59,6 +51,66 @@ export const MfaFlowAssignmentModal = ({
       ? m.location_mfa_override_groups_modal_title()
       : m.location_mfa_override_flow_modal_title();
   }, [editsGroups, onGroupStep]);
+
+  return (
+    <Modal
+      title={title}
+      id="mfa-flow-assignment-modal"
+      contentClassName="mfa-flow-assignment-modal"
+      isOpen={isOpen}
+      onClose={onClose}
+      afterClose={() => {
+        setOnGroupStep(false);
+        afterClose();
+      }}
+    >
+      {isPresent(target) && (
+        <MfaFlowAssignmentModalContent
+          target={target}
+          flows={flows}
+          groupOptions={groupOptions}
+          onGroupStep={onGroupStep}
+          setOnGroupStep={setOnGroupStep}
+          onClose={onClose}
+          onSubmit={onSubmit}
+        />
+      )}
+    </Modal>
+  );
+};
+
+type ContentProps = {
+  target: MfaFlowAssignmentTarget;
+  flows: MfaFlowListItemResponse[];
+  groupOptions?: SelectionOption<number>[];
+  onGroupStep: boolean;
+  setOnGroupStep: (value: boolean) => void;
+  onClose: () => void;
+  onSubmit: (flowId: number, groupIds: number[]) => void;
+};
+
+export const MfaFlowAssignmentModalContent = ({
+  target,
+  flows,
+  groupOptions,
+  onGroupStep,
+  setOnGroupStep,
+  onClose,
+  onSubmit,
+}: ContentProps) => {
+  const editsGroups = isPresent(groupOptions);
+  const [flowId, setFlowId] = useState(target.flowId);
+  const [groupIds, setGroupIds] = useState(new Set(target.groupIds ?? []));
+  const [groupError, setGroupError] = useState<string>();
+
+  const [flowSelectionOptions] = useState(
+    (): SelectionOption<number, MfaFlowSelectionMeta>[] =>
+      flows.map((flow) => ({
+        id: flow.id,
+        label: flow.title,
+        meta: { steps: flow.steps },
+      })),
+  );
 
   // Keep the selected flow when its radio item is clicked again.
   const handleFlowChange = (next: Set<number>) => {
@@ -82,13 +134,7 @@ export const MfaFlowAssignmentModal = ({
   };
 
   return (
-    <Modal
-      title={title}
-      id="mfa-flow-assignment-modal"
-      contentClassName="mfa-flow-assignment-modal"
-      isOpen={isOpen}
-      onClose={onClose}
-    >
+    <>
       {onGroupStep ? (
         <>
           <SelectionSection
@@ -139,6 +185,6 @@ export const MfaFlowAssignmentModal = ({
           )}
         </div>
       </Controls>
-    </Modal>
+    </>
   );
 };
