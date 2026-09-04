@@ -305,6 +305,8 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
