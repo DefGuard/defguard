@@ -67,10 +67,12 @@ use crate::{
 // How much time the user has to approve remote MFA with mobile device
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
 
-/// A remote MFA waiter can learn only that an approval happened, never receive a credential.
+/// A remote MFA waiter can learn that an approval happened or advanced the flow, never receive a
+/// credential.
 #[derive(Debug)]
 pub enum RemoteAuthSignal {
     Approved,
+    Advanced { next_step: u32 },
 }
 
 /// The parked relay's state. The legacy PSK is side state, not a channel payload.
@@ -706,6 +708,18 @@ impl ClientMfaServer {
         // The legacy path stores its key as waiter side state, never in the signal channel.
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
+                Ok(Ok(RemoteAuthSignal::Advanced { next_step })) => {
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(Payload::AwaitRemoteMfaFinish(
+                            AwaitRemoteMfaFinishResponse {
+                                #[allow(deprecated)]
+                                preshared_key: String::new(),
+                                result: Some(FinishOutcome::Advanced { next_step }.into()),
+                            },
+                        )),
+                    });
+                }
                 Ok(Ok(RemoteAuthSignal::Approved)) => {
                     if let Some(preshared_key) = legacy_preshared_key
                         .lock()
@@ -812,9 +826,22 @@ impl ClientMfaServer {
             let _ = waiter.signal_tx.send(RemoteAuthSignal::Approved);
         }
 
-        // The parked remote-MFA waiter is session-scoped, so resolve it only once the flow
-        // completes. An intermediate step (`Advanced`) must not terminate it: a pre-2.2 client
-        // reads an empty preshared key as success.
+        if is_legacy_mobile_approval
+            && is_mobile_signature
+            && let FinishOutcome::Advanced { next_step } = &outcome
+            && let Some(waiter) = self
+                .remote_mfa_responses
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                .remove(&hash_token(&request.token))
+        {
+            let _ = waiter.signal_tx.send(RemoteAuthSignal::Advanced {
+                next_step: *next_step,
+            });
+        }
+
+        // The parked remote-MFA waiter is session-scoped. A legacy mobile approval at an
+        // intermediate step resolves it with an `Advanced` result, never a key.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
                 if let Some(waiter) = self
