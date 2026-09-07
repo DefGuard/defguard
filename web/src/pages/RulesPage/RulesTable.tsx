@@ -4,6 +4,7 @@ import {
   createColumnHelper,
   getCoreRowModel,
   getSortedRowModel,
+  type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
 import { cloneDeep } from 'radashi';
@@ -27,6 +28,7 @@ import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { BadgeVariant } from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
+import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import type {
   MenuItemProps,
@@ -39,6 +41,9 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import type { OpenConfirmActionModal } from '../../shared/hooks/modalControls/types';
 import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
@@ -59,9 +64,9 @@ type Props = {
   enableSearch?: boolean;
 };
 
-const toggleRulePromise = async (id: number) => {
+const setRuleEnabled = async (id: number, enabled: boolean) => {
   const rule = cloneDeep((await api.acl.rule.getRule(id)).data);
-  rule.enabled = !rule.enabled;
+  rule.enabled = enabled;
   return api.acl.rule.editRule(rule);
 };
 
@@ -99,7 +104,8 @@ export const RulesTable = ({
   });
 
   const { mutate: toggleRule } = useMutation({
-    mutationFn: toggleRulePromise,
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      setRuleEnabled(id, enabled),
     meta: {
       invalidate: ['acl'],
     },
@@ -116,6 +122,7 @@ export const RulesTable = ({
   });
 
   const [search, setSearch] = useState('');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const renderStatusCell = useCallback(
     (ruleState: AclStatusValue, isEnabled: boolean) => {
@@ -310,7 +317,7 @@ export const RulesTable = ({
                   text: m.controls_disable(),
                   onClick: () => {
                     licenseActionCheck(canUseBusinessFeature(license), () => {
-                      toggleRule(row.id);
+                      toggleRule({ id: row.id, enabled: false });
                     });
                   },
                 });
@@ -320,7 +327,7 @@ export const RulesTable = ({
                   text: m.controls_enable(),
                   onClick: () => {
                     licenseActionCheck(canUseBusinessFeature(license), () => {
-                      toggleRule(row.id);
+                      toggleRule({ id: row.id, enabled: true });
                     });
                   },
                 });
@@ -399,20 +406,153 @@ export const RulesTable = ({
         },
       ],
     },
+    state: {
+      rowSelection,
+    },
     sortingFns: tableSortingFns,
     columns,
     data: visibleRules,
-    enableRowSelection: false,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     columnResizeMode: 'onChange',
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
   });
+
+  const selectedRules = table.getSelectedRowModel().rows.map((row) => row.original);
+
+  const confirmBulk = useCallback(
+    (data: OpenConfirmActionModal) => {
+      licenseActionCheck(canUseBusinessFeature(license), () => {
+        openModal(ModalName.ConfirmAction, {
+          ...data,
+          invalidateKeys: [['acl']],
+          onSuccess: (result) => {
+            setRowSelection({});
+            data.onSuccess?.(result);
+          },
+        });
+      });
+    },
+    [license],
+  );
+
+  const handleBulkEnable = useCallback(() => {
+    const ids = selectedRules.filter((rule) => !rule.enabled).map((rule) => rule.id);
+    if (ids.length === 0) {
+      Snackbar.warning(m.acl_rules_bulk_enable_no_eligible());
+      return;
+    }
+    confirmBulk({
+      title: m.acl_rules_modal_bulk_enable_title(),
+      contentMd: m.acl_rules_modal_bulk_enable_content({ count: ids.length }),
+      actionPromise: () => Promise.all(ids.map((id) => setRuleEnabled(id, true))),
+      submitProps: { text: m.controls_enable() },
+      onSuccess: () => Snackbar.default(m.acl_rules_bulk_enable_success()),
+      onError: () => Snackbar.error(m.acl_rules_bulk_enable_error()),
+    });
+  }, [confirmBulk, selectedRules]);
+
+  const handleBulkDisable = useCallback(() => {
+    const ids = selectedRules.filter((rule) => rule.enabled).map((rule) => rule.id);
+    if (ids.length === 0) {
+      Snackbar.warning(m.acl_rules_bulk_disable_no_eligible());
+      return;
+    }
+    confirmBulk({
+      title: m.acl_rules_modal_bulk_disable_title(),
+      contentMd: m.acl_rules_modal_bulk_disable_content({ count: ids.length }),
+      actionPromise: () => Promise.all(ids.map((id) => setRuleEnabled(id, false))),
+      submitProps: { text: m.controls_disable(), variant: 'critical' },
+      onSuccess: () => Snackbar.default(m.acl_rules_bulk_disable_success()),
+      onError: () => Snackbar.error(m.acl_rules_bulk_disable_error()),
+    });
+  }, [confirmBulk, selectedRules]);
+
+  const handleBulkDeploy = useCallback(() => {
+    const ids = selectedRules.map((rule) => rule.id);
+    if (ids.length === 0) return;
+    confirmBulk({
+      title: m.acl_rules_modal_bulk_deploy_title(),
+      contentMd: m.acl_rules_modal_bulk_deploy_content({ count: ids.length }),
+      actionPromise: () => api.acl.rule.applyRules(ids),
+      submitProps: { text: m.controls_deploy() },
+      onSuccess: () => Snackbar.default(m.acl_rules_bulk_deploy_success()),
+      onError: () => Snackbar.error(m.acl_rules_bulk_deploy_error()),
+    });
+  }, [confirmBulk, selectedRules]);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = selectedRules.map((rule) => rule.id);
+    if (ids.length === 0) return;
+    confirmBulk({
+      title: m.acl_rules_modal_bulk_delete_title(),
+      contentMd: m.acl_rules_modal_bulk_delete_content({ count: ids.length }),
+      actionPromise: () => Promise.all(ids.map((id) => api.acl.rule.deleteRule(id))),
+      submitProps: { text: m.controls_delete(), variant: 'critical' },
+      onSuccess: () => Snackbar.default(m.acl_rules_bulk_delete_success()),
+      onError: () => Snackbar.error(m.acl_rules_bulk_delete_error()),
+    });
+  }, [confirmBulk, selectedRules]);
+
+  const bulkMenuItems = useMemo((): MenuItemsGroup[] => {
+    const items: MenuItemProps[] =
+      variant === AclListTab.Deployed
+        ? [
+            {
+              text: m.controls_enable(),
+              icon: 'check',
+              testId: 'bulk-enable',
+              onClick: handleBulkEnable,
+            },
+            {
+              text: m.controls_disable(),
+              icon: 'disabled',
+              testId: 'bulk-disable',
+              onClick: handleBulkDisable,
+            },
+          ]
+        : [
+            {
+              text: m.controls_deploy(),
+              icon: 'deploy',
+              testId: 'bulk-deploy',
+              onClick: handleBulkDeploy,
+            },
+          ];
+    return [
+      { items },
+      {
+        items: [
+          {
+            text: m.controls_delete(),
+            icon: 'delete',
+            variant: 'danger',
+            testId: 'bulk-delete',
+            onClick: handleBulkDelete,
+          },
+        ],
+      },
+    ];
+  }, [variant, handleBulkEnable, handleBulkDisable, handleBulkDeploy, handleBulkDelete]);
 
   if (data.length === 0) return null;
 
   return (
     <>
       <TableTop text={title}>
+        {selectedRules.length > 0 && (
+          <ButtonMenu
+            variant="outlined"
+            text={m.acl_rules_bulk_actions()}
+            iconRight="arrow-small"
+            iconRightRotation="down"
+            placement="bottom-start"
+            testId="rules-bulk-actions"
+            menuItems={bulkMenuItems}
+          />
+        )}
         {enableSearch && (
           <Search placeholder={m.controls_search()} value={search} onChange={setSearch} />
         )}
