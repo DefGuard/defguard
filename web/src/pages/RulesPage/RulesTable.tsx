@@ -41,12 +41,10 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import type { OpenConfirmActionModal } from '../../shared/hooks/modalControls/types';
 import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { useAclBulkActions } from '../Acl/hooks/useAclBulkActions';
 
 type RowData = AclRule;
 
@@ -422,120 +420,14 @@ export const RulesTable = ({
 
   const selectedRules = table.getSelectedRowModel().rows.map((row) => row.original);
 
-  const confirmBulk = useCallback(
-    (data: OpenConfirmActionModal) => {
-      licenseActionCheck(canUseBusinessFeature(license), () => {
-        openModal(ModalName.ConfirmAction, {
-          ...data,
-          invalidateKeys: [['acl']],
-          onSuccess: (result) => {
-            setRowSelection({});
-            data.onSuccess?.(result);
-          },
-        });
-      });
-    },
-    [license],
-  );
-
-  const handleBulkEnable = useCallback(() => {
-    const ids = selectedRules.filter((rule) => !rule.enabled).map((rule) => rule.id);
-    if (ids.length === 0) {
-      Snackbar.warning(m.acl_rules_bulk_enable_no_eligible());
-      return;
-    }
-    confirmBulk({
-      title: m.acl_rules_modal_bulk_enable_title(),
-      contentMd: m.acl_rules_modal_bulk_enable_content({ count: ids.length }),
-      actionPromise: () => api.acl.rule.bulkEnableRules(ids),
-      submitProps: { text: m.controls_enable() },
-      onSuccess: () => Snackbar.default(m.acl_rules_bulk_enable_success()),
-      onError: () => Snackbar.error(m.acl_rules_bulk_enable_error()),
-    });
-  }, [confirmBulk, selectedRules]);
-
-  const handleBulkDisable = useCallback(() => {
-    const ids = selectedRules.filter((rule) => rule.enabled).map((rule) => rule.id);
-    if (ids.length === 0) {
-      Snackbar.warning(m.acl_rules_bulk_disable_no_eligible());
-      return;
-    }
-    confirmBulk({
-      title: m.acl_rules_modal_bulk_disable_title(),
-      contentMd: m.acl_rules_modal_bulk_disable_content({ count: ids.length }),
-      actionPromise: () => api.acl.rule.bulkDisableRules(ids),
-      submitProps: { text: m.controls_disable(), variant: 'critical' },
-      onSuccess: () => Snackbar.default(m.acl_rules_bulk_disable_success()),
-      onError: () => Snackbar.error(m.acl_rules_bulk_disable_error()),
-    });
-  }, [confirmBulk, selectedRules]);
-
-  const handleBulkDeploy = useCallback(() => {
-    const ids = selectedRules.map((rule) => rule.id);
-    if (ids.length === 0) return;
-    confirmBulk({
-      title: m.acl_rules_modal_bulk_deploy_title(),
-      contentMd: m.acl_rules_modal_bulk_deploy_content({ count: ids.length }),
-      actionPromise: () => api.acl.rule.applyRules(ids),
-      submitProps: { text: m.controls_deploy() },
-      onSuccess: () => Snackbar.default(m.acl_rules_bulk_deploy_success()),
-      onError: () => Snackbar.error(m.acl_rules_bulk_deploy_error()),
-    });
-  }, [confirmBulk, selectedRules]);
-
-  const handleBulkDelete = useCallback(() => {
-    const ids = selectedRules.map((rule) => rule.id);
-    if (ids.length === 0) return;
-    confirmBulk({
-      title: m.acl_rules_modal_bulk_delete_title(),
-      contentMd: m.acl_rules_modal_bulk_delete_content({ count: ids.length }),
-      actionPromise: () => api.acl.rule.bulkDeleteRules(ids),
-      submitProps: { text: m.controls_delete(), variant: 'critical' },
-      onSuccess: () => Snackbar.default(m.acl_rules_bulk_delete_success()),
-      onError: () => Snackbar.error(m.acl_rules_bulk_delete_error()),
-    });
-  }, [confirmBulk, selectedRules]);
-
-  const bulkMenuItems = useMemo((): MenuItemsGroup[] => {
-    const items: MenuItemProps[] =
-      variant === AclListTab.Deployed
-        ? [
-            {
-              text: m.controls_enable(),
-              icon: 'check',
-              testId: 'bulk-enable',
-              onClick: handleBulkEnable,
-            },
-            {
-              text: m.controls_disable(),
-              icon: 'disabled',
-              testId: 'bulk-disable',
-              onClick: handleBulkDisable,
-            },
-          ]
-        : [
-            {
-              text: m.controls_deploy(),
-              icon: 'deploy',
-              testId: 'bulk-deploy',
-              onClick: handleBulkDeploy,
-            },
-          ];
-    return [
-      { items },
-      {
-        items: [
-          {
-            text: m.controls_delete(),
-            icon: 'delete',
-            variant: 'danger',
-            testId: 'bulk-delete',
-            onClick: handleBulkDelete,
-          },
-        ],
-      },
-    ];
-  }, [variant, handleBulkEnable, handleBulkDisable, handleBulkDeploy, handleBulkDelete]);
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+  const bulkMenuItems = useAclBulkActions({
+    kind: 'rule',
+    selected: selectedRules,
+    variant,
+    license,
+    clearSelection,
+  });
 
   if (data.length === 0) return null;
 

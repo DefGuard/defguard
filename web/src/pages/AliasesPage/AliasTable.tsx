@@ -4,6 +4,8 @@ import {
   createColumnHelper,
   getCoreRowModel,
   getSortedRowModel,
+  type OnChangeFn,
+  type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
@@ -32,9 +34,19 @@ type Props = {
   rules: AclRule[];
   tab: AclListTabValue;
   disableBlockedModal?: boolean;
+  // The parent owns selection because it renders the bulk-action menu.
+  rowSelection: RowSelectionState;
+  onRowSelectionChange: OnChangeFn<RowSelectionState>;
 };
 
-export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: Props) => {
+export const AliasTable = ({
+  data: rowData,
+  rules,
+  tab,
+  disableBlockedModal,
+  rowSelection,
+  onRowSelectionChange,
+}: Props) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: isLicenseFetching } = useQuery(
@@ -139,6 +151,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
                 {
                   text: m.controls_edit(),
                   icon: 'edit',
+                  testId: 'alias-row-edit',
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -156,6 +169,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  testId: 'alias-row-delete',
                   disabled: disableBlockedModal && row.rules.length > 0,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
@@ -191,6 +205,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
             menuItems[0].items.splice(1, 0, {
               text: m.controls_deploy(),
               icon: 'deploy',
+              testId: 'alias-row-deploy',
               onClick: () => {
                 if (licenseInfo === undefined) return;
                 licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -199,7 +214,13 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
               },
             });
           }
-          return <TableEditCell menuItems={menuItems} disabled={isLicenseFetching} />;
+          return (
+            <TableEditCell
+              menuItems={menuItems}
+              disabled={isLicenseFetching}
+              testId="alias-row-menu"
+            />
+          );
         },
       }),
     ],
@@ -224,9 +245,14 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
         },
       ],
     },
+    state: {
+      rowSelection,
+    },
     data: rowData,
     columns,
-    enableRowSelection: false,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    onRowSelectionChange,
     enableExpanding: false,
     enableSorting: true,
     columnResizeMode: 'onChange',

@@ -905,3 +905,54 @@ async fn test_alias_apply_rejects_destination(_: PgPoolOptions, options: PgConne
         .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+/// Verifies atomic bulk deletion for referenced and missing aliases.
+#[sqlx::test]
+async fn test_alias_bulk_delete(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    for name in ["alias-1", "alias-2", "alias-3"] {
+        let mut alias = make_alias();
+        alias.name = name.to_owned();
+        create_alias(&mut client, alias).await;
+    }
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 3);
+
+    // A referenced alias rolls back the batch.
+    let mut rule = make_rule();
+    rule.aliases = vec![3];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/acl/alias/bulk-delete")
+        .json(&json!({ "aliases": [1, 3] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 3);
+
+    // A missing alias also rolls back the batch.
+    let response = client
+        .post("/api/v1/acl/alias/bulk-delete")
+        .json(&json!({ "aliases": [1, 999] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 3);
+
+    // Unused aliases are deleted as one batch.
+    let response = client
+        .post("/api/v1/acl/alias/bulk-delete")
+        .json(&json!({ "aliases": [1, 2] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let remaining = AclAlias::all(&pool).await.unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].id, 3);
+}

@@ -83,7 +83,7 @@ pub struct ApiAclAlias {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub(crate) struct ApplyAclAliasesData {
+pub(crate) struct AclAliasesData {
     aliases: Vec<Id>,
 }
 
@@ -428,13 +428,60 @@ pub(crate) async fn delete_acl_alias(
     Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting ACL alias {id}", session.user.username);
-    AclAlias::delete_by_kind(&appstate.pool, id, AliasKind::Component)
+    let mut transaction = appstate.pool.begin().await?;
+    AclAlias::delete_by_kind(&mut transaction, id, AliasKind::Component)
         .await
         .map_err(|err| {
             error!("Error deleting ACL alias {id}: {err}");
             err
         })?;
+    transaction.commit().await?;
     info!("User {} deleted ACL alias {id}", session.user.username);
+    Ok(ApiResponse::default())
+}
+
+/// Deletes multiple ACL aliases.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/alias/bulk-delete",
+    tag = "ACL",
+    request_body = AclAliasesData,
+    responses(
+        (status = 200, description = "ACL aliases deleted."),
+        (status = 400, description = "An alias is used by an existing ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Alias 1 is used by some existing ACL rules"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL alias not found.", body = ApiErrorResponse, example = json!({"msg": "Alias 1 not found"})),
+        (status = 500, description = "Unable to delete ACL aliases.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_delete_acl_aliases(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(mut data): Json<AclAliasesData>,
+) -> ApiResult {
+    data.aliases.sort_unstable();
+    data.aliases.dedup();
+    debug!(
+        "User {} deleting ACL aliases: {:?}",
+        session.user.username, data.aliases
+    );
+    AclAlias::delete_many_by_kind(&data.aliases, AliasKind::Component, &appstate.pool)
+        .await
+        .map_err(|err| {
+            error!("Error deleting ACL aliases {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} deleted ACL aliases: {:?}",
+        session.user.username, data.aliases
+    );
     Ok(ApiResponse::default())
 }
 
@@ -443,7 +490,7 @@ pub(crate) async fn delete_acl_alias(
     put,
     path = "/api/v1/acl/alias/apply",
     tag = "ACL",
-    request_body = ApplyAclAliasesData,
+    request_body = AclAliasesData,
     responses(
         (status = 200, description = "Pending alias changes applied."),
         (status = 400, description = "ACL alias is already applied.", body = ApiErrorResponse, example = json!({"msg": "Alias 1 already applied"})),
@@ -462,7 +509,7 @@ pub(crate) async fn apply_acl_aliases(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<ApplyAclAliasesData>,
+    Json(data): Json<AclAliasesData>,
 ) -> ApiResult {
     debug!(
         "User {} applying ACL aliases: {:?}",

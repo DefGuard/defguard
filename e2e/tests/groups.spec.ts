@@ -66,8 +66,8 @@ test.describe('Test groups', () => {
       .filter({ hasText: testUser2.username });
     await secondUser.locator('.checkbox').click();
 
-    await page.getByTestId('bulk-actions').click();
-    await page.getByTestId('bulk-assign-to-group').click();
+    await page.getByTestId('users-bulk-actions').click();
+    await page.getByTestId('users-bulk-assign-to-group').click();
     await page
       .locator('.modal')
       .locator('.checkbox')

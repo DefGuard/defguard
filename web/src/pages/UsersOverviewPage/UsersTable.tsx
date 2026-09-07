@@ -976,14 +976,14 @@ export const UsersTable = () => {
             iconRight="arrow-small"
             iconRightRotation="down"
             placement="bottom-start"
-            testId="bulk-actions"
+            testId="users-bulk-actions"
             menuItems={[
               {
                 items: [
                   {
                     text: m.users_bulk_assign_to_group(),
                     icon: 'add-group',
-                    testId: 'bulk-assign-to-group',
+                    testId: 'users-bulk-assign-to-group',
                     onClick: () => {
                       const selectedUsers = table
                         .getFilteredSelectedRowModel()
@@ -997,26 +997,26 @@ export const UsersTable = () => {
                   {
                     text: m.users_bulk_start_enrollment(),
                     icon: 'enrollment',
-                    testId: 'bulk-start-enrollment',
+                    testId: 'users-bulk-start-enrollment',
                     onClick: handleBulkStartEnrollment,
                   },
                   {
                     text: m.users_bulk_enable(),
                     icon: 'check-circle',
-                    testId: 'bulk-enable',
+                    testId: 'users-bulk-enable',
                     onClick: handleBulkEnable,
                   },
                   {
                     text: m.users_bulk_disable(),
                     icon: 'disabled',
-                    testId: 'bulk-disable',
+                    testId: 'users-bulk-disable',
                     onClick: handleBulkDisable,
                   },
                   {
                     text: m.users_bulk_delete(),
                     icon: 'delete',
                     variant: 'danger',
-                    testId: 'bulk-delete',
+                    testId: 'users-bulk-delete',
                     onClick: handleBulkDelete,
                   },
                 ],

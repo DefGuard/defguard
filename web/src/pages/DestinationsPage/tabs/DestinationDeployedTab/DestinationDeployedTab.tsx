@@ -34,6 +34,7 @@ export const DestinationDeployedTab = () => {
       text: m.acl_destinations_button_create(),
       variant: 'primary',
       iconLeft: 'add-location',
+      testId: 'add-destination',
       disabled: loading,
       onClick: () => {
         if (license === undefined) return;

@@ -1745,15 +1745,14 @@ impl AclAlias {
     ///
     /// Since these aliases were not yet applied, we can safely remove them.
     pub(crate) async fn delete_by_kind(
-        pool: &PgPool,
+        conn: &mut PgConnection,
         id: Id,
         kind: AliasKind,
     ) -> Result<(), AclError> {
         debug!("Deleting alias {id} of kind {kind:?}");
-        let mut transaction = pool.begin().await?;
 
         // find the existing alias
-        let existing_alias = AclAlias::find_by_id_and_kind(&mut *transaction, id, kind.clone())
+        let existing_alias = AclAlias::find_by_id_and_kind(&mut *conn, id, kind.clone())
             .await?
             .ok_or_else(|| {
                 error!("Deletion of nonexistent alias ({id}) failed");
@@ -1764,7 +1763,7 @@ impl AclAlias {
             })?;
 
         // check if any rules are using this alias
-        let rules = existing_alias.get_rules(&mut *transaction).await?;
+        let rules = existing_alias.get_rules(&mut *conn).await?;
         if !rules.is_empty() {
             error!(
                 "Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}"
@@ -1777,7 +1776,7 @@ impl AclAlias {
 
         // delete all modifications of this alias if any exist
         let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
-            .execute(&mut *transaction)
+            .execute(&mut *conn)
             .await?;
         let removed_modifications = result.rows_affected();
         if removed_modifications > 0 {
@@ -1785,12 +1784,35 @@ impl AclAlias {
         }
 
         // delete related objects
-        acl_delete_related_objects(&mut transaction, id).await?;
+        acl_delete_related_objects(&mut *conn, id).await?;
 
         // delete the alias itself
-        existing_alias.delete(&mut *transaction).await?;
+        existing_alias.delete(&mut *conn).await?;
 
+        Ok(())
+    }
+
+    /// Deletes the specified aliases in one transaction.
+    ///
+    /// Any failed deletion rolls back the batch.
+    pub(crate) async fn delete_many_by_kind(
+        aliases: &[Id],
+        kind: AliasKind,
+        pool: &PgPool,
+    ) -> Result<(), AclError> {
+        debug!(
+            "Deleting {} ACL aliases of kind {kind:?}: {aliases:?}",
+            aliases.len()
+        );
+        let mut transaction = pool.begin().await?;
+        for id in aliases {
+            Self::delete_by_kind(&mut transaction, *id, kind.clone()).await?;
+        }
         transaction.commit().await?;
+        info!(
+            "Deleted {} ACL aliases of kind {kind:?}: {aliases:?}",
+            aliases.len()
+        );
         Ok(())
     }
 
