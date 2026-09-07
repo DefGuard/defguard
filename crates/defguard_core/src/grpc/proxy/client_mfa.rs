@@ -3205,6 +3205,101 @@ mod tests {
         );
     }
 
+    #[sqlx::test]
+    async fn test_auth_mfa_session_with_oidc_rejects_invalid_state_without_mutating_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        create_and_assign_mfa_flow(&pool, location.id).await;
+        let mut user = create_user(&pool).await;
+        user.enable_totp(&pool)
+            .await
+            .expect("failed to enable TOTP");
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+        let start = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    #[allow(deprecated)]
+                    method: MfaMethod::Totp as i32,
+                    posture_data: None,
+                    selected_methods: Vec::new(),
+                },
+                device_info(),
+            )
+            .await
+            .expect("start should succeed");
+        let token = match start {
+            ClientMfaStartOutcome::Approved(response) => response.token,
+            ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
+        };
+
+        let before = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+            .await
+            .expect("failed to find MFA session")
+            .expect("expected an active MFA session");
+        let before_attempt_id = before
+            .ephemeral_state
+            .as_ref()
+            .expect("expected an attempt in progress")
+            .step_attempt_id
+            .clone();
+        let before_step = before.current_step;
+
+        // This is a valid encoded OIDC state envelope whose payload is only the token. It is
+        // missing the MFA attempt id required by the callback contract.
+        let state = build_state(Some(token.clone())).secret().to_owned();
+        let status = server
+            .auth_mfa_session_with_oidc(
+                ClientMfaOidcAuthenticateRequest {
+                    code: "dummy".to_owned(),
+                    state,
+                    nonce: "dummy".to_owned(),
+                },
+                device_info(),
+            )
+            .await
+            .expect_err("state without an attempt id must be rejected");
+        assert_eq!(status.code(), Code::InvalidArgument);
+        assert_eq!(status.message(), "invalid state data");
+
+        let malformed_status = server
+            .auth_mfa_session_with_oidc(
+                ClientMfaOidcAuthenticateRequest {
+                    code: "dummy".to_owned(),
+                    state: "not-base64".to_owned(),
+                    nonce: "dummy".to_owned(),
+                },
+                device_info(),
+            )
+            .await
+            .expect_err("malformed state must be rejected");
+        assert_eq!(malformed_status.code(), Code::InvalidArgument);
+        assert_eq!(malformed_status.message(), "invalid state data");
+
+        let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+            .await
+            .expect("failed to find MFA session")
+            .expect("invalid state must not delete the session");
+        let after_ephemeral = session
+            .ephemeral_state
+            .as_ref()
+            .expect("expected an attempt in progress");
+        assert_eq!(session.current_step, before_step);
+        assert_eq!(after_ephemeral.step_attempt_id, before_attempt_id);
+        assert!(!after_ephemeral.openid_auth_completed);
+    }
+
     fn set_enterprise_license() {
         let license = License::new(
             "test".to_owned(),

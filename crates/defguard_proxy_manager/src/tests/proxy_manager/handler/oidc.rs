@@ -270,6 +270,80 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
 }
 
 #[sqlx::test]
+async fn test_auth_info_mfa_accepts_composite_state(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let (_id, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+    let composite_state = MfaOidcState::build(&mfa_token, &attempt_id);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 51,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            state: Some(composite_state.clone()),
+            auth_flow_type: AuthFlowType::Mfa as i32,
+            ..Default::default()
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let auth_info = match &response.payload {
+        Some(core_response::Payload::AuthInfo(r)) => r,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "test_auth_info_mfa_accepts_composite_state: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "expected AuthInfo response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    };
+
+    let url = Url::parse(&auth_info.url).expect("failed to parse authorize URL");
+    let state_param = url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .map(|(_, value)| value.into_owned())
+        .expect("authorize URL must carry a state parameter");
+    let decoded = BASE64_STANDARD
+        .decode(state_param.as_bytes())
+        .expect("state must be base64");
+    let decoded = String::from_utf8(decoded).expect("state must be UTF-8");
+    let (_, tail) = decoded
+        .split_once('.')
+        .expect("state must be <csrf>.<payload>");
+    assert_eq!(tail, composite_state);
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_auth_info_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
