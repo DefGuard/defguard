@@ -1,0 +1,43 @@
+.summary-tooltip {
+  --background: var(--bg-default);
+  --border: var(--border-1) solid var(--border-default);
+
+  display: flex;
+  flex-flow: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+
+  .summary-item {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    align-items: start;
+
+    .label {
+      font: var(--t-body-sm-400);
+      color: var(--fg-faded);
+      line-height: 16px;
+    }
+
+    .content {
+      display: flex;
+      flex-flow: column;
+      gap: var(--spacing-xs);
+
+      & > p {
+        margin: 0;
+        font: var(--t-body-sm-400);
+        color: var(--fg-muted);
+        line-height: 16px;
+      }
+    }
+  }
+}
+
+.summary-info-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  cursor: help;
+}

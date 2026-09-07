@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { cloneDeep, omit } from 'lodash-es';
+import { cloneDeep, isEqual, omit } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
@@ -40,9 +40,11 @@ import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
+  getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
   getLocationMfaFlowsQueryOptions,
   getLocationQueryOptions,
+  getMfaFlowsQueryOptions,
 } from '../../shared/query';
 import {
   canUseBusinessFeature,
@@ -52,6 +54,7 @@ import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
+import { LocationMfaSection } from './components/LocationMfaSection/LocationMfaSection';
 import { getPostureChecksSectionState } from './postureChecksSection';
 
 export const EditLocationPage = () => {
@@ -243,6 +246,14 @@ const normalizeSelectedGroups = (groups: string[]) =>
 const areEqualStringArrays = (left: string[], right: string[]) =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
+// Sort group IDs because the server normalizes their order when comparing assignments.
+const toMfaFlowAssignments = (flows: LocationMfaFlowResponse[]): MfaFlowAssignment[] =>
+  flows.map((flow) => ({
+    flow_id: flow.id,
+    is_default: flow.is_default,
+    group_ids: flow.groups.map((group) => group.id).sort((left, right) => left - right),
+  }));
+
 // Builds the submitted location payload used for both save and warning comparisons.
 const buildLocationSubmissionData = (
   value: FormFields,
@@ -366,30 +377,28 @@ const EditLocationForm = ({
 }) => {
   const navigate = useNavigate();
 
-  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const canUseDevicePosture = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.DevicePosture).result;
-  }, [licenseInfo]);
-  const canUseServiceLocations = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.ServiceLocations).result;
-  }, [licenseInfo]);
-  const canUseAllowedIpsFromAcl = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.AclAllowedIps).result;
-  }, [licenseInfo]);
-  const canUseBusiness = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseBusinessFeature(licenseInfo).result;
-  }, [licenseInfo]);
+  const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
+  const canUseDevicePosture = canUseEnterpriseFeature(
+    licenseInfo,
+    LicenseFeature.DevicePosture,
+  ).result;
+  const canUseServiceLocations = canUseEnterpriseFeature(
+    licenseInfo,
+    LicenseFeature.ServiceLocations,
+  ).result;
+  const canUseAllowedIpsFromAcl = canUseEnterpriseFeature(
+    licenseInfo,
+    LicenseFeature.AclAllowedIps,
+  ).result;
+  const canUseBusiness = canUseBusinessFeature(licenseInfo).result;
+  // Group-scoped MFA assignments require an Enterprise license.
+  const canUseMfaGroupOverrides = canUseEnterpriseFeature(licenseInfo).result;
   const { data: postureChecks = [] } = useQuery({
     queryKey: ['device-posture'],
     queryFn: api.devicePosture.getDevicePostures,
-    enabled: canUseDevicePosture === true,
+    enabled: canUseDevicePosture,
   });
-  const serviceLocationLocked =
-    isPresent(canUseServiceLocations) && !canUseServiceLocations;
+  const serviceLocationLocked = !canUseServiceLocations;
   const [pendingPostureChecks, setPendingPostureChecks] = useState(
     location.posture_checks ?? [],
   );
@@ -402,10 +411,15 @@ const EditLocationForm = ({
       }),
     [canUseDevicePosture, pendingPostureChecks.length, postureChecks.length],
   );
-  const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
+  const firewallLocked = !canUseBusiness;
   const hasPendingPostureCheckChanges =
     pendingPostureChecks.length !== (location.posture_checks?.length ?? 0) ||
     pendingPostureChecks.some((id) => !location.posture_checks?.includes(id));
+
+  const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
+  const [pendingMfaFlows, setPendingMfaFlows] =
+    useState<MfaFlowAssignment[]>(savedMfaFlows);
+  const hasPendingMfaFlowChanges = !isEqual(pendingMfaFlows, savedMfaFlows);
 
   const postureCheckOptions = useMemo(
     () =>
@@ -473,10 +487,22 @@ const EditLocationForm = ({
       ),
   });
 
+  const { data: mfaFlowCatalog = [] } = useQuery(getMfaFlowsQueryOptions);
+  const { data: mfaGroupOptions = [] } = useQuery({
+    ...getGroupsInfoQueryOptions,
+    select: (response) =>
+      response.data.map(
+        (group): SelectionOption<number> => ({
+          id: group.id,
+          label: group.name,
+        }),
+      ),
+  });
+
   const { mutateAsync: editLocation } = useMutation({
     mutationFn: api.location.editLocation,
     meta: {
-      invalidate: [['network'], ['gateway']],
+      invalidate: [['network'], ['gateway'], ['location', location.id]],
     },
     onSuccess: () => {
       navigate({
@@ -536,12 +562,6 @@ const EditLocationForm = ({
     [location],
   );
 
-  const mfaFlowAssignments = mfaFlows.map((flow) => ({
-    flow_id: flow.id,
-    is_default: flow.is_default,
-    group_ids: flow.groups.map((group) => group.id),
-  }));
-
   // Reuses the same save request for direct submits and confirmed warning actions.
   const submitLocationChanges = async (value: FormFields) => {
     await editLocation({
@@ -550,7 +570,7 @@ const EditLocationForm = ({
         value,
         location,
         pendingPostureChecks,
-        mfaFlowAssignments,
+        pendingMfaFlows,
       ),
     });
   };
@@ -578,7 +598,7 @@ const EditLocationForm = ({
             defaultValues,
             location,
             location.posture_checks ?? [],
-            mfaFlowAssignments,
+            savedMfaFlows,
           ),
         ),
         getDisconnectRelevantLocationData(
@@ -586,7 +606,7 @@ const EditLocationForm = ({
             value,
             location,
             pendingPostureChecks,
-            mfaFlowAssignments,
+            pendingMfaFlows,
           ),
         ),
       );
@@ -703,7 +723,7 @@ const EditLocationForm = ({
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          {isPresent(canUseAllowedIpsFromAcl) && !canUseAllowedIpsFromAcl && (
+          {!canUseAllowedIpsFromAcl && (
             <>
               <p className="acl-upsell-text">
                 <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
@@ -720,7 +740,7 @@ const EditLocationForm = ({
             {(field) => (
               <field.FormCheckbox
                 text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-                disabled={isPresent(canUseAllowedIpsFromAcl) && !canUseAllowedIpsFromAcl}
+                disabled={!canUseAllowedIpsFromAcl}
                 helperBlock={
                   <Helper>
                     <p>
@@ -917,8 +937,8 @@ const EditLocationForm = ({
                   )}
                 </form.AppField>
                 <form.Subscribe selector={(state) => state.values.mfa_enabled}>
-                  {(showDisconnectThreshold) =>
-                    showDisconnectThreshold ? (
+                  {(mfaEnabled) =>
+                    mfaEnabled ? (
                       <>
                         <SizedBox height={ThemeSpacing.Xl2} />
                         <form.AppField name="peer_disconnect_threshold">
@@ -931,6 +951,14 @@ const EditLocationForm = ({
                             />
                           )}
                         </form.AppField>
+                        <SizedBox height={ThemeSpacing.Xl2} />
+                        <LocationMfaSection
+                          assignments={pendingMfaFlows}
+                          flows={mfaFlowCatalog}
+                          groupOptions={mfaGroupOptions}
+                          canUseEnterprise={canUseMfaGroupOverrides}
+                          onChange={setPendingMfaFlows}
+                        />
                       </>
                     ) : null
                   }
@@ -944,8 +972,8 @@ const EditLocationForm = ({
           labelContent={postureChecksLabelContent}
         >
           {postureChecksSectionState.showEmptyState && (
-            <div className="posture-checks-empty-state">
-              <img src={postureCheckShield} alt="" className="posture-check-shield" />
+            <div className="location-empty-state">
+              <img src={postureCheckShield} alt="" className="shield" />
               <p>
                 {m.location_posture_checks_empty_state_before_link()}{' '}
                 <Link to="/acl/posture-checks">{m.cmp_nav_item_posture_checks()}</Link>{' '}
@@ -999,7 +1027,9 @@ const EditLocationForm = ({
           selector={(form) => ({
             isSubmitting: form.isSubmitting,
             isDefault:
-              (form.isPristine || form.isDefaultValue) && !hasPendingPostureCheckChanges,
+              (form.isPristine || form.isDefaultValue) &&
+              !hasPendingPostureCheckChanges &&
+              !hasPendingMfaFlowChanges,
           })}
         >
           {({ isDefault, isSubmitting }) => (
