@@ -34,7 +34,7 @@ export const AutoAdoptionSummaryStep = () => {
       window.onbeforeunload = null;
       await new Promise((r) => setTimeout(r, 2000));
       useAutoAdoptionSetupWizardStore.getState().reset();
-      window.location.replace(`${base}/vpn-overview`);
+      window.location.replace(`${base}/auth/login`);
     } catch (error) {
       console.error(m.initial_setup_auto_adoption_summary_error_finish_console(), error);
       useAutoAdoptionSetupWizardStore.setState({ isFinishing: false });

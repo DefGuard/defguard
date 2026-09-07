@@ -29,7 +29,7 @@ use crate::{
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     grpc::{
         client_version::{ClientFeature, should_omit_location_for_device},
-        should_prevent_service_location_usage,
+        should_prevent_mfa_location_usage, should_prevent_service_location_usage,
     },
 };
 
@@ -152,6 +152,22 @@ pub async fn build_device_config_response(
             if should_prevent_service_location_usage(&location) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
+                    location.name
+                );
+                continue;
+            }
+            if should_prevent_mfa_location_usage(pool, &location)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to read the MFA policy of location {}: {err}",
+                        location.name
+                    );
+                    Status::internal(format!("unexpected error: {err}"))
+                })?
+            {
+                warn!(
+                    "Tried to use location {} whose MFA policy is above the active licence.",
                     location.name
                 );
                 continue;

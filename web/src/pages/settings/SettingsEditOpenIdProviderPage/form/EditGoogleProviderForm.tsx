@@ -40,30 +40,31 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   syncSchema,
 ]);
 
-const validationSchema = syncSchema
-  .omit({ admin_email: true, google_service_account_file: true })
-  .extend({
-    admin_email: z.string().trim(),
-    google_service_account_file: z.file(m.form_error_required()).nullable(),
-  })
-  .superRefine((val, ctx) => {
-    if (val.directory_sync_enabled) {
-      if (val.admin_email.trim().length === 0) {
-        ctx.addIssue({
-          path: ['admin_email'],
-          code: 'custom',
-          message: m.form_error_required(),
-        });
+const makeValidationSchema = (hasServiceAccountKey: boolean) =>
+  syncSchema
+    .omit({ admin_email: true, google_service_account_file: true })
+    .extend({
+      admin_email: z.string().trim(),
+      google_service_account_file: z.file(m.form_error_required()).nullable(),
+    })
+    .superRefine((val, ctx) => {
+      if (val.directory_sync_enabled) {
+        if (val.admin_email.trim().length === 0) {
+          ctx.addIssue({
+            path: ['admin_email'],
+            code: 'custom',
+            message: m.form_error_required(),
+          });
+        }
+        if (!hasServiceAccountKey && val.google_service_account_file === null) {
+          ctx.addIssue({
+            path: ['google_service_account_file'],
+            code: 'custom',
+            message: m.form_error_required(),
+          });
+        }
       }
-      if (val.google_service_account_file === null) {
-        ctx.addIssue({
-          path: ['google_service_account_file'],
-          code: 'custom',
-          message: m.form_error_required(),
-        });
-      }
-    }
-  });
+    });
 
 type FormFields = z.infer<typeof discriminatedSchema>;
 
@@ -99,6 +100,12 @@ export const EditGoogleProviderForm = ({
     };
   }, [provider]);
 
+  const hasServiceAccountKey = Boolean(provider.google_service_account_email);
+  const validationSchema = useMemo(
+    () => makeValidationSchema(hasServiceAccountKey),
+    [hasServiceAccountKey],
+  );
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -109,17 +116,24 @@ export const EditGoogleProviderForm = ({
     onSubmit: async ({ value }) => {
       if (value.directory_sync_enabled) {
         const inner = value as z.infer<typeof syncSchema>;
-        const file = await parseGoogleKeyFile(inner.google_service_account_file as File);
-        if (!file) {
-          Snackbar.error(m.form_error_file_contents());
-          return;
+        if (inner.google_service_account_file) {
+          const file = await parseGoogleKeyFile(inner.google_service_account_file);
+          if (!file) {
+            Snackbar.error(m.form_error_file_contents());
+            return;
+          }
+          await onSubmit({
+            ...omit(inner, ['google_service_account_file']),
+            google_service_account_email: file.client_email,
+            google_service_account_key: file.private_key,
+            directory_sync_user_groups: inner.directory_sync_user_groups ?? '',
+          });
+        } else {
+          await onSubmit({
+            ...omit(inner, ['google_service_account_file']),
+            directory_sync_user_groups: inner.directory_sync_user_groups ?? '',
+          });
         }
-        await onSubmit({
-          ...omit(inner, ['google_service_account_file']),
-          google_service_account_email: file.client_email,
-          google_service_account_key: file.private_key,
-          directory_sync_user_groups: inner.directory_sync_user_groups ?? '',
-        });
       } else {
         await onSubmit(omit(value, ['google_service_account_file']));
       }
@@ -272,11 +286,23 @@ export const EditGoogleProviderForm = ({
                 <DescriptionBlock
                   title={m.settings_openid_provider_google_service_account_key_title()}
                 >
-                  <p>{m.settings_openid_provider_google_service_account_key_content()}</p>
+                  <p>
+                    {hasServiceAccountKey
+                      ? m.settings_openid_provider_google_service_account_key_configured_content()
+                      : m.settings_openid_provider_google_service_account_key_content()}
+                  </p>
                 </DescriptionBlock>
                 <SizedBox height={ThemeSpacing.Xl} />
                 <form.AppField name="google_service_account_file">
-                  {(field) => <field.FormUploadField />}
+                  {(field) => (
+                    <field.FormUploadField
+                      title={
+                        hasServiceAccountKey
+                          ? m.settings_openid_provider_google_service_account_key_replace()
+                          : undefined
+                      }
+                    />
+                  )}
                 </form.AppField>
               </Fold>
             )}

@@ -241,7 +241,7 @@ pub async fn make_oidc_client(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClaimsUserResolution {
     /// Link the account matching the `email` claim, or create one. Writes to the database, and
-    /// trusts the claim without consulting `email_verified`.
+    /// refuses when the provider explicitly reports the address as unverified.
     GetOrCreate,
     /// Refuse. For flows that re-verify an existing link and must not write.
     LookupOnly,
@@ -372,6 +372,25 @@ pub async fn user_from_claims(
             return Err(WebError::Authorization(
                 "No account is linked to this OpenID identity".into(),
             ));
+        }
+        // Only an explicit `false` is rejected. Some providers omit `email_verified`.
+        match token_claims.email_verified() {
+            Some(false) => {
+                warn!(
+                    "OpenID login: provider reported email address {} as unverified, \
+                    refusing to link or create an account",
+                    email.as_str()
+                );
+                return Err(WebError::Authorization(
+                    "Provider did not verify the email address".into(),
+                ));
+            }
+            None => debug!(
+                "OpenID login: provider sent no email_verified claim for {}, so the address \
+                cannot be confirmed as belonging to this identity",
+                email.as_str()
+            ),
+            Some(true) => {}
         }
         if let Some(mut user) = User::find_by_email(pool, email).await? {
             if !user.is_active {

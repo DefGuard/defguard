@@ -4,7 +4,7 @@ use defguard_common::{
 };
 use sqlx::{PgConnection, query};
 
-use crate::grpc::should_prevent_service_location_usage;
+use crate::grpc::{should_prevent_mfa_location_usage, should_prevent_service_location_usage};
 
 /// Get a list of all allowed peers for a given location
 ///
@@ -22,6 +22,14 @@ pub async fn get_location_allowed_peers(
     if should_prevent_service_location_usage(location) {
         warn!(
             "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
+            location.name
+        );
+        return Ok(Vec::new());
+    }
+
+    if should_prevent_mfa_location_usage(&mut *conn, location).await? {
+        warn!(
+            "Location {} enforces an MFA policy above the active licence. No clients will be allowed to connect.",
             location.name
         );
         return Ok(Vec::new());

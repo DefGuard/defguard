@@ -24,6 +24,7 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
   id,
   renderItem,
   orderItems,
+  showActions = true,
   enableDividers = false,
   itemGap = 8,
   itemHeight = 24,
@@ -100,21 +101,23 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
         onChange={setSearch}
       />
       <SizedBox height={ThemeSpacing.Xl} />
-      <div className="actions">
-        <Checkbox
-          text={m.cmp_selection_section_all()}
-          active={selection.size === options.length}
-          onClick={handleSelectAll}
-        />
-        <div className="right">
-          <Toggle
-            label={m.cmp_selection_section_selected_filter()}
-            active={onlySelected}
-            onClick={() => setOnlySelected((s) => !s)}
-            disabled={selection.size === 0}
+      {showActions && (
+        <div className="actions">
+          <Checkbox
+            text={m.cmp_selection_section_all()}
+            active={selection.size === options.length}
+            onClick={handleSelectAll}
           />
+          <div className="right">
+            <Toggle
+              label={m.cmp_selection_section_selected_filter()}
+              active={onlySelected}
+              onClick={() => setOnlySelected((s) => !s)}
+              disabled={selection.size === 0}
+            />
+          </div>
         </div>
-      </div>
+      )}
       <Divider spacing={ThemeSpacing.Md} />
       {searching && visibleOptions.length === 0 && (
         <>

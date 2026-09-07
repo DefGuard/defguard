@@ -49,7 +49,7 @@ impl PasswordResetServer {
 
     /// Checks if token provided with request corresponds to a valid password reset session
     async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
-        info!("Validating password reset session. Token: {token:?}");
+        info!("Validating password reset session.");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
@@ -264,7 +264,7 @@ impl PasswordResetServer {
         request: PasswordResetStartRequest,
         info: Option<DeviceInfo>,
     ) -> Result<PasswordResetStartResponse, Status> {
-        debug!("Starting password reset session: {request:?}");
+        debug!("Starting password reset session.");
 
         let settings = EnterpriseSettings::get(&self.pool)
             .await

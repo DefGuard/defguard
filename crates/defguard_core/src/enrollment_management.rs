@@ -42,10 +42,7 @@ pub async fn start_user_enrollment(
     );
     debug!("Saving a new enrollment token for user {user}");
     enrollment.save(&mut *conn).await?;
-    debug!(
-        "Saved a new enrollment token with ID {} for user {user}.",
-        enrollment.id
-    );
+    debug!("Saved a new enrollment token for user {user}.");
 
     // Mark the user with enrollment-pending flag.
     // https://github.com/DefGuard/client/issues/647
@@ -61,6 +58,7 @@ pub async fn start_user_enrollment(
             base_message_context,
             enrollment_service_url,
             &enrollment.id,
+            enrollment.validity_duration(),
         )
         .await;
         match result {
@@ -130,8 +128,8 @@ pub async fn start_desktop_configuration(
     debug!("Saving a new desktop configuration token...");
     desktop_configuration.save(&mut *conn).await?;
     debug!(
-        "Saved a new desktop activation token with id {} for user {}.",
-        desktop_configuration.id, user.username
+        "Saved a new desktop activation token for user {}.",
+        user.username
     );
 
     if send_user_notification && let Some(email) = email {
@@ -200,6 +198,7 @@ pub async fn send_enrollment_invitation(
         base_message_context,
         enrollment_service_url,
         token_id,
+        token.validity_duration(),
     )
     .await
     {

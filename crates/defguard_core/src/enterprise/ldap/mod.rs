@@ -432,7 +432,7 @@ impl LDAPConnection {
             if !user_exists_in_ldap {
                 // With account status sync, disabled users stay in sync scope but must not be
                 // freshly created in LDAP as enabled accounts.
-                if !user.is_active {
+                if !user.is_active && !sync_account_status {
                     debug!("User {user} is disabled in Defguard and absent from LDAP, skipping");
                     continue;
                 }
@@ -690,7 +690,8 @@ impl LDAPConnection {
         .await?;
         if self.config.ldap_uses_ad {
             self.set_password(user, &password).await?;
-            self.activate_ad_user(&user_dn).await?;
+            let active = user.is_active || !self.config.ldap_sync_account_status;
+            self.activate_ad_user(&user_dn, active).await?;
         }
         user.ldap_user_path = extract_dn_path(&user_dn);
         if password_is_random {
@@ -762,14 +763,16 @@ impl LDAPConnection {
     /// Activates an Active Directory user account.
     /// Sets userAccountControl to enable the account and pwdLastSet to avoid password change
     /// requirement.
-    pub async fn activate_ad_user(&mut self, user_dn: &str) -> Result<(), LdapError> {
+    pub async fn activate_ad_user(&mut self, user_dn: &str, active: bool) -> Result<(), LdapError> {
+        let uac = uac_with_active(UAC_NORMAL_ACCOUNT, active);
+        let uac_str = uac.to_string();
         debug!("Activating user {user_dn}");
         self.modify(
             user_dn,
             user_dn,
             vec![
                 // Enables the user
-                Mod::Replace("userAccountControl", hashset!["512"]),
+                Mod::Replace("userAccountControl", hashset![uac_str.as_str()]),
                 // The user doesn't have to change password at next login
                 Mod::Replace("pwdLastSet", hashset!["-1"]),
             ],

@@ -10,13 +10,17 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, User, WireguardNetwork, wireguard::ServiceLocationMode},
+        models::{
+            Settings, User, WireguardNetwork,
+            mfa_flow::{LocationMfaFlowItem, MfaFlow},
+            wireguard::ServiceLocationMode,
+        },
     },
     types::UrlParseError,
 };
 use reqwest::Url;
 use serde::Serialize;
-use sqlx::PgPool;
+use sqlx::{PgExecutor, PgPool};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -31,6 +35,7 @@ use crate::{
             openid_provider::OpenIdProvider,
         },
         has_enterprise_access, is_business_license_active,
+        license::LicenseTier,
     },
     grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
 };
@@ -246,4 +251,89 @@ pub use defguard_common::gateway_event::{
 pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
     location.service_location_mode != ServiceLocationMode::Disabled
         && !has_enterprise_access(Some(LicenseFeature::ServiceLocations))
+}
+
+/// Returns the minimum license tier required by the assignments. `None` means they fit the Free
+/// tier.
+///
+/// Keep this logic in sync with [`WireguardNetwork::validate_mfa_flow_assignments_license`].
+#[must_use]
+fn required_assignment_tier(items: &[LocationMfaFlowItem]) -> Option<LicenseTier> {
+    if items.is_empty() {
+        return None;
+    }
+    if items.iter().any(|item| !item.group_ids.is_empty()) {
+        return Some(LicenseTier::Enterprise);
+    }
+    if items.len() > 1 || items[0].step_count > 1 {
+        return Some(LicenseTier::Business);
+    }
+    None
+}
+
+/// Returns the minimum license tier required by the location's saved MFA assignments. `None` means
+/// MFA is disabled or the assignments fit the Free tier.
+///
+/// Assignments persist while MFA is disabled, so check the flag before loading them.
+pub async fn location_mfa_required_tier<'e, E: PgExecutor<'e>>(
+    executor: E,
+    location: &WireguardNetwork<Id>,
+) -> sqlx::Result<Option<LicenseTier>> {
+    if !location.mfa_enabled {
+        return Ok(None);
+    }
+    let items = MfaFlow::for_location(executor, location.id).await?;
+    Ok(required_assignment_tier(&items))
+}
+
+/// Returns whether the location's MFA policy is unavailable under the active license.
+///
+/// A saved policy can outlive a license change. Skip the location when the active license can no
+/// longer enforce it.
+pub async fn should_prevent_mfa_location_usage<'e, E: PgExecutor<'e>>(
+    executor: E,
+    location: &WireguardNetwork<Id>,
+) -> sqlx::Result<bool> {
+    Ok(
+        match location_mfa_required_tier(executor, location).await? {
+            None => false,
+            Some(LicenseTier::Business) => !is_business_license_active(),
+            Some(LicenseTier::Enterprise) => !has_enterprise_access(None),
+        },
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn item(step_count: i64, group_ids: Vec<Id>) -> LocationMfaFlowItem {
+        LocationMfaFlowItem {
+            id: 1,
+            title: "FlowTitle".into(),
+            step_count,
+            group_ids,
+            group_names: Vec::new(),
+            position: 0,
+            is_default: true,
+        }
+    }
+
+    #[test]
+    fn test_required_assignment_tier() {
+        assert_eq!(required_assignment_tier(&[]), None);
+        assert_eq!(required_assignment_tier(&[item(1, Vec::new())]), None);
+        assert_eq!(
+            required_assignment_tier(&[item(2, Vec::new())]),
+            Some(LicenseTier::Business)
+        );
+        assert_eq!(
+            required_assignment_tier(&[item(1, Vec::new()), item(1, Vec::new())]),
+            Some(LicenseTier::Business)
+        );
+        assert_eq!(
+            required_assignment_tier(&[item(1, Vec::new()), item(1, vec![7])]),
+            Some(LicenseTier::Enterprise)
+        );
+    }
 }

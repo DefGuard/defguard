@@ -583,6 +583,7 @@ async fn test_broadcast_public_settings_reaches_proxy(_: PgPoolOptions, options:
         .send(ProxyControlMessage::BroadcastPublicSettings {
             display_password_reset: false,
             display_download_step: false,
+            public_url: Some("https://edge.example.com".to_owned()),
         })
         .await
         .expect("failed to send BroadcastPublicSettings control message");
@@ -599,6 +600,11 @@ async fn test_broadcast_public_settings_reaches_proxy(_: PgPoolOptions, options:
                 assert!(
                     !s.display_download_step,
                     "{label}: display_download_step should be false"
+                );
+                assert_eq!(
+                    s.public_url.as_deref(),
+                    Some("https://edge.example.com"),
+                    "{label}: public_url should match the broadcast value"
                 );
             }
             other => panic!(
@@ -617,6 +623,12 @@ async fn test_broadcast_public_settings_reaches_proxy(_: PgPoolOptions, options:
 #[sqlx::test]
 async fn test_public_settings_pushed_on_connect(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://edge.example.com".to_owned();
+    update_current_settings(&context.pool, settings)
+        .await
+        .expect("failed to update public proxy URL");
 
     let proxy = create_proxy(&context.pool).await;
     let mut mock = MockProxyHarness::start().await;
@@ -638,6 +650,11 @@ async fn test_public_settings_pushed_on_connect(_: PgPoolOptions, options: PgCon
                 s.display_download_step,
                 "display_download_step should default to true"
             );
+            assert_eq!(
+                s.public_url.as_deref(),
+                Some("https://edge.example.com"),
+                "public_url should match the configured proxy URL"
+            );
         }
         other => panic!(
             "expected PublicSettings on connect, got: {:?}",
@@ -656,6 +673,7 @@ async fn test_public_settings_on_connect_with_smtp(_: PgPoolOptions, options: Pg
 
     // Enable SMTP so the fold passes through the enterprise default.
     let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://edge.example.com".to_owned();
     configure_smtp(&mut settings);
     update_current_settings(&context.pool, settings)
         .await
@@ -675,6 +693,11 @@ async fn test_public_settings_on_connect_with_smtp(_: PgPoolOptions, options: Pg
             assert!(
                 s.display_password_reset,
                 "display_password_reset should be true with SMTP configured"
+            );
+            assert_eq!(
+                s.public_url.as_deref(),
+                Some("https://edge.example.com"),
+                "public_url should match the configured proxy URL"
             );
         }
         other => panic!(

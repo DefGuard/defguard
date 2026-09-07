@@ -58,6 +58,7 @@ export const RulesPendingTab = () => {
       )}
       {!isEmpty && loading && <TableSkeleton />}
       {!isEmpty &&
+        !loading &&
         isPresent(aliases) &&
         isPresent(destinations) &&
         isPresent(locations) &&

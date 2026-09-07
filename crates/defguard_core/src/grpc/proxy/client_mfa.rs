@@ -120,6 +120,9 @@ impl From<InitiateError> for Status {
                 Status::invalid_argument("Select MFA method is not available for the device.")
             }
             InitiateError::InvalidPublicKey(_) => Status::invalid_argument("Invalid public key"),
+            InitiateError::UnsupportedMethod => {
+                Status::unimplemented("Selected MFA method is not supported")
+            }
         }
     }
 }

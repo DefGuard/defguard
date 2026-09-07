@@ -4,8 +4,8 @@
 ///
 /// The `proxy_control_tx` channel is kept alive and its receiver is held by
 /// `ProxyBroadcastCapture`, acting as a mock for the proxy manager.
-/// This lets us assert that the correct `ProxyControlMessage::BroadcastHttpsCerts`
-/// was sent after a successful cert operation without needing a real proxy process.
+/// This lets us assert that the correct certificate and public-settings messages
+/// were sent after successful certificate operations without needing a real proxy process.
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, atomic::AtomicBool},
@@ -45,11 +45,14 @@ use tokio::{
         broadcast,
         mpsc::{Receiver, Sender, channel, unbounded_channel},
     },
-    time::sleep,
+    time::{sleep, timeout},
 };
 
 use super::common::{client::TestClient, generate_expired_test_cert_pem, generate_test_cert_pem};
 use crate::common::{init_config, initialize_users};
+
+/// How long to wait for a control message the handler sends asynchronously.
+const BROADCAST_TIMEOUT: Duration = Duration::from_secs(5);
 
 // Mock: captures messages sent to the proxy manager channel.
 struct ProxyBroadcastCapture {
@@ -58,9 +61,12 @@ struct ProxyBroadcastCapture {
 
 impl ProxyBroadcastCapture {
     /// Drain all pending messages and return only the `BroadcastHttpsCerts` ones.
+    ///
+    /// Unlike the `next_*` helpers this cannot await a message, because one caller asserts that
+    /// *no* certificate broadcast happens. The sleep bounds how long a late message has to show
+    /// up; erring here means a missed message, not a spurious failure.
     async fn drain_broadcast_certs(&mut self) -> Vec<(String, String)> {
         let mut results = Vec::new();
-        // Give the handler a brief moment to enqueue the message.
         sleep(Duration::from_millis(50)).await;
         loop {
             match self.rx.try_recv() {
@@ -74,19 +80,42 @@ impl ProxyBroadcastCapture {
         results
     }
 
-    async fn drain_clear_https_certs(&mut self) -> usize {
-        let mut results = 0;
-        sleep(Duration::from_millis(50)).await;
-        loop {
-            match self.rx.try_recv() {
-                Ok(ProxyControlMessage::ClearHttpsCerts) => {
-                    results += 1;
+    /// Wait for the next message `pick` accepts, ignoring the rest. Awaits the channel rather
+    /// than sleeping and polling, so the test neither races the handler nor pays a fixed delay.
+    /// Panics on timeout so a missing message fails instead of hanging.
+    async fn next_matching<T>(
+        &mut self,
+        what: &str,
+        mut pick: impl FnMut(ProxyControlMessage) -> Option<T>,
+    ) -> T {
+        timeout(BROADCAST_TIMEOUT, async {
+            loop {
+                let Some(message) = self.rx.recv().await else {
+                    panic!("Proxy control channel closed before {what} arrived");
+                };
+                if let Some(value) = pick(message) {
+                    return value;
                 }
-                Ok(_) => {}
-                Err(_) => break,
             }
-        }
-        results
+        })
+        .await
+        .unwrap_or_else(|_| panic!("Timed out waiting for {what}"))
+    }
+
+    async fn next_clear_https_certs(&mut self) {
+        self.next_matching("ClearHttpsCerts", |message| {
+            matches!(message, ProxyControlMessage::ClearHttpsCerts).then_some(())
+        })
+        .await;
+    }
+
+    /// Wait for the next public-settings broadcast and return the URL it carried.
+    async fn next_public_settings_url(&mut self) -> Option<String> {
+        self.next_matching("BroadcastPublicSettings", |message| match message {
+            ProxyControlMessage::BroadcastPublicSettings { public_url, .. } => Some(public_url),
+            _ => None,
+        })
+        .await
     }
 }
 
@@ -201,6 +230,37 @@ async fn test_proxy_cert_pair_none_by_default(_: PgPoolOptions, opts: PgConnectO
 }
 
 #[sqlx::test]
+async fn test_external_url_settings_broadcasts_persisted_public_url(
+    _: PgPoolOptions,
+    opts: PgConnectOptions,
+) {
+    let pool = setup_pool(opts).await;
+    let (mut client, mut capture, pool) = make_test_client_with_proxy_rx(pool).await;
+    login_admin(&mut client).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
+    update_current_settings(&pool, settings).await.unwrap();
+    seed_ca(&pool).await;
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({ "ssl_type": "defguard_ca" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
+
+    // The certificate broadcast may be queued before PublicSettings; the helper ignores it.
+    assert_eq!(
+        capture.next_public_settings_url().await,
+        Some("https://edge.example.com".to_owned())
+    );
+}
+
+#[sqlx::test]
 async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOptions) {
     let pool = setup_pool(opts).await;
     let (mut client, mut capture, pool) = make_test_client_with_proxy_rx(pool).await;
@@ -234,7 +294,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_key_pem.is_none());
     assert!(saved.proxy_http_cert_expiry.is_none());
     assert!(saved.acme_domain.is_none());
-    assert_eq!(capture.drain_clear_https_certs().await, 1);
+    capture.next_clear_https_certs().await;
 
     settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();

@@ -1329,9 +1329,12 @@ pub(crate) async fn do_directory_sync(
                             }
                             Err(err) => {
                                 error!(
-                                    "Failed to get members of group '{}' for the user sync filter: {err}",
+                                    "Failed to get members of group '{}' for the user sync filter, \
+                                    aborting the sync to avoid acting on an incomplete list of \
+                                    allowed users: {err}",
                                     group.name
                                 );
+                                return Err(err);
                             }
                         }
                     }

@@ -17,6 +17,7 @@ import {
   getMfaMethodAvailabilityQueryOptions,
 } from '../../query';
 import { canUseBusinessFeature } from '../../utils/license';
+import { mfaFlowMethodLabels } from '../../utils/mfaFlowSteps';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
@@ -38,15 +39,6 @@ const getDisabledHelper = (reason: MfaMethodAvailabilityReasonValue) => {
   }
 };
 
-const methodLabels: Record<MfaFlowMethodValue, string> = {
-  [MfaFlowMethod.MobileApprove]: m.mfa_flow_method_mobile_client(),
-  [MfaFlowMethod.Totp]: m.mfa_flow_method_authenticator_app(),
-  [MfaFlowMethod.OpenId]: m.mfa_flow_method_external_provider(),
-  [MfaFlowMethod.Email]: m.mfa_flow_method_email_code(),
-  [MfaFlowMethod.Biometric]: m.mfa_flow_method_biometric(),
-  [MfaFlowMethod.Fido2]: m.mfa_flow_method_fido2(),
-};
-
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
   const stepsTrackRef = useRef<HTMLUListElement>(null);
   const { data: methodData } = useQuery(getMfaMethodAvailabilityQueryOptions);
@@ -65,7 +57,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
         ? getDisabledHelper(availability.reason)
         : undefined;
       return {
-        text: methodLabels[method],
+        text: mfaFlowMethodLabels[method],
         onClick,
         disabled: availability?.available !== true,
         helper: unavailableText
@@ -175,7 +167,7 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
             methodGroups={buildMethodGroups(
               methods.filter((method) => !step.methods.includes(method)),
             )}
-            methodLabels={methodLabels}
+            methodLabels={mfaFlowMethodLabels}
             onDeleteStep={deleteStep}
             onAddMethod={addMethod}
             onDeleteMethod={deleteMethod}

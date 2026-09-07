@@ -27,16 +27,6 @@ async fn test_wizard_init_fresh_db(_: PgPoolOptions, options: PgConnectOptions) 
     assert!(!wizard.completed);
     assert!(wizard.is_active());
 
-    // requires_auth returns false at the Welcome step (no admin created yet)
-    let requires_auth = wizard
-        .requires_auth(&pool)
-        .await
-        .expect("Failed to check requires_auth");
-    assert!(
-        !requires_auth,
-        "Initial wizard at Welcome step should not require auth yet"
-    );
-
     let wizard_from_db = Wizard::get(&pool).await.expect("Failed to get wizard");
     assert_eq!(wizard_from_db.active_wizard, ActiveWizard::Initial);
     assert!(!wizard_from_db.completed);
@@ -57,16 +47,6 @@ async fn test_wizard_init_auto_adopt_flags(_: PgPoolOptions, options: PgConnectO
     assert_eq!(wizard.active_wizard, ActiveWizard::AutoAdoption);
     assert!(!wizard.completed);
     assert!(wizard.is_active());
-
-    // requires_auth returns false at the Welcome step
-    let requires_auth = wizard
-        .requires_auth(&pool)
-        .await
-        .expect("Failed to check requires_auth");
-    assert!(
-        !requires_auth,
-        "AutoAdoption wizard at Welcome step should not require auth yet"
-    );
 
     let wizard_from_db = Wizard::get(&pool).await.expect("Failed to get wizard");
     assert_eq!(wizard_from_db.active_wizard, ActiveWizard::AutoAdoption);
@@ -100,13 +80,6 @@ async fn test_wizard_init_existing_data(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(wizard.active_wizard, ActiveWizard::Migration);
     assert!(!wizard.completed);
     assert!(wizard.is_active());
-
-    // Migration wizard always requires auth (admin must log in)
-    let requires_auth = wizard
-        .requires_auth(&pool)
-        .await
-        .expect("Failed to check requires_auth");
-    assert!(requires_auth, "Migration wizard should always require auth");
 
     let wizard_from_db = Wizard::get(&pool).await.expect("Failed to get wizard");
     assert_eq!(wizard_from_db.active_wizard, ActiveWizard::Migration);

@@ -38,7 +38,7 @@ pub(crate) async fn init_config(
         .expect("Could not initialize current settings in the database");
     let mut settings = Settings::get_current_settings();
     settings.defguard_url = url.to_owned();
-    settings.secret_key = Some(test_secret_key.to_owned());
+    settings.set_secret_key(Some(test_secret_key.to_owned()));
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");

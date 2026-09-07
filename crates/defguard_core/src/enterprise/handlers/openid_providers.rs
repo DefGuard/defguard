@@ -478,6 +478,7 @@ pub(crate) async fn modify_openid_provider(
         provider.directory_sync_group_match = group_match;
         provider.jumpcloud_api_key = provider_data.jumpcloud_api_key;
         provider.prefetch_users = provider_data.prefetch_users;
+        provider.disable_password_management = provider_data.disable_password_management;
         provider.directory_sync_user_groups = user_groups;
         provider.save(&mut *transaction).await?;
         transaction.commit().await?;

@@ -65,6 +65,8 @@ pub enum InitiateError {
     BiometricNotConfigured,
     #[error("invalid biometric public key")]
     InvalidPublicKey(#[from] BiometricAuthError),
+    #[error("MFA method is not supported")]
+    UnsupportedMethod,
 }
 
 /// Initiate a step: send the email code or mint the biometric / mobile-approve challenge.

@@ -7,7 +7,7 @@ use std::{
 
 use axum::{
     Extension, Json,
-    extract::{Path, Query},
+    extract::Path,
     http::StatusCode,
     response::sse::{Event, KeepAlive, Sse},
 };
@@ -57,11 +57,11 @@ use tracing::Instrument;
 use utoipa::ToSchema;
 
 use crate::{
-    auth::{AdminOrSetupRole, SessionInfo},
+    auth::{AdminRole, SessionInfo},
     cert_settings::ensure_https,
     enterprise::{LicenseFeature, has_enterprise_access},
     error::WebError,
-    handlers::ApiErrorResponse,
+    handlers::{ApiErrorResponse, settings::broadcast_public_settings},
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -85,19 +85,23 @@ impl Drop for TaskGuard {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProxySetupRequest {
     pub ip_or_domain: String,
     pub grpc_port: u16,
     pub common_name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct GatewaySetupRequest {
     pub common_name: String,
     pub ip_or_domain: String,
     pub grpc_port: u16,
 }
+
+/// Empty request body for the ACME stream endpoint.
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct AcmeStreamRequest {}
 
 #[derive(Debug, Serialize, Copy, Clone)]
 #[serde(tag = "step", content = "data")]
@@ -232,16 +236,11 @@ impl SetupFlow {
 /// Stream the progress of edge (proxy) TLS setup
 ///
 /// Drives the whole TLS setup flow and reports its progress as Server-Sent Events.
-// This is a get request, since HTML's EventSource only supports GET
 #[utoipa::path(
-    get,
+    post,
     path = "/api/v1/proxy/setup/stream",
     tag = "proxy",
-    params(
-        ("common_name" = String, Query, description = "Common name for the edge certificate."),
-        ("ip_or_domain" = String, Query, description = "Address the edge instance is reachable at."),
-        ("grpc_port" = u16, Query, description = "gRPC port of the edge instance."),
-    ),
+    request_body = ProxySetupRequest,
     responses(
         (status = 200, description = "Server-Sent Event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream", body = String, example = json!("data: {\"step\":\"CheckingConfiguration\",\"version\":null,\"message\":null,\"logs\":null,\"error\":false}\n\ndata: {\"step\":\"CheckingVersion\",\"version\":\"2.1.0\",\"message\":null,\"logs\":null,\"error\":false}\n\ndata: {\"step\":\"SigningCertificate\",\"version\":null,\"message\":null,\"logs\":null,\"error\":false}\n\ndata: {\"step\":\"Done\",\"version\":null,\"message\":null,\"logs\":null,\"error\":false}\n\n")),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -253,11 +252,11 @@ impl SetupFlow {
     )
 )]
 pub async fn setup_proxy_tls_stream(
-    _admin: AdminOrSetupRole,
-    Query(request): Query<ProxySetupRequest>,
+    _admin: AdminRole,
     session: SessionInfo,
     Extension(pool): Extension<PgPool>,
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
+    Json(request): Json<ProxySetupRequest>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = unbounded_channel::<String>();
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
@@ -1022,17 +1021,14 @@ async fn perform_gateway_adoption(
 /// Stream the progress of gateway TLS setup
 ///
 /// Drives the whole TLS setup flow and reports its progress as Server-Sent Events.
-// This is a get request, since HTML's EventSource only supports GET
 #[utoipa::path(
-    get,
+    post,
     path = "/api/v1/network/{network_id}/gateways/setup",
     tag = "gateway",
     params(
         ("network_id" = i64, Path, description = "ID of the network."),
-        ("common_name" = String, Query, description = "Common name for the gateway certificate."),
-        ("ip_or_domain" = String, Query, description = "Address the gateway is reachable at."),
-        ("grpc_port" = u16, Query, description = "gRPC port of the gateway."),
     ),
+    request_body = GatewaySetupRequest,
     responses(
         (status = 200, description = "Server-Sent Event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream", body = String, example = json!("data: {\"step\":\"CheckingConfiguration\",\"version\":null,\"message\":null,\"logs\":null,\"error\":false}\n\ndata: {\"step\":\"CheckingVersion\",\"version\":\"2.1.0\",\"message\":null,\"logs\":null,\"error\":false}\n\ndata: {\"step\":\"ConfiguringTls\",\"version\":null,\"message\":null,\"logs\":null,\"error\":false}\n\ndata: {\"step\":\"Done\",\"version\":null,\"message\":null,\"logs\":null,\"error\":false}\n\n")),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -1044,11 +1040,11 @@ async fn perform_gateway_adoption(
     )
 )]
 pub async fn setup_gateway_tls_stream(
-    _admin: AdminOrSetupRole,
+    _admin: AdminRole,
     session: SessionInfo,
-    Query(request): Query<GatewaySetupRequest>,
     Path(network_id): Path<Id>,
     Extension(pool): Extension<PgPool>,
+    Json(request): Json<GatewaySetupRequest>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = unbounded_channel::<String>();
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
@@ -1172,7 +1168,7 @@ pub struct GatewayAdoptRequest {
     )
 )]
 pub async fn adopt_gateway(
-    _admin: AdminOrSetupRole,
+    _admin: AdminRole,
     session: SessionInfo,
     Path(network_id): Path<Id>,
     Extension(pool): Extension<PgPool>,
@@ -1224,15 +1220,53 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     Event::default().data(body)
 }
 
+/// Apply a freshly issued ACME certificate. Three effects, in order: the stored public proxy URL
+/// is upgraded to `https://` now that the proxy serves TLS, the certificate is pushed to the
+/// proxy, and, if that upgrade actually changed the URL, updated public settings are pushed too
+/// so the proxy starts marking its session cookies `Secure`.
+async fn apply_acme_certificate(
+    pool: &PgPool,
+    proxy_control_tx: Option<&Sender<ProxyControlMessage>>,
+    cert_pem: String,
+    key_pem: String,
+) {
+    let before = Settings::get_current_settings();
+    let mut settings = before.clone();
+    settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
+    let edge_settings_changed = before.edge_public_settings_changed(&settings);
+    let settings_updated = match update_current_settings(pool, settings).await {
+        Ok(()) => true,
+        Err(err) => {
+            error!(
+                "Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}"
+            );
+            false
+        }
+    };
+
+    // Post-wizard: broadcast certs to the proxy via bidi channel.
+    if let Some(tx) = proxy_control_tx {
+        let msg = ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem };
+        if let Err(e) = tx.send(msg).await {
+            error!("Failed to broadcast HttpsCerts to Edge: {e}");
+        }
+
+        if settings_updated && edge_settings_changed {
+            let settings = Settings::get_current_settings();
+            broadcast_public_settings(pool, &settings, tx).await;
+        }
+    }
+}
+
 /// Stream the progress of Let's Encrypt certificate issuance on the edge
 ///
 /// Reports progress as Server-Sent Events. The domain and credentials are taken from the
 /// settings, so no parameters are needed.
-// GET: EventSource only supports GET
 #[utoipa::path(
-    get,
+    post,
     path = "/api/v1/proxy/acme/stream",
     tag = "proxy",
+    request_body = AcmeStreamRequest,
     responses(
         (status = 200, description = "Server-Sent Event stream with setup progress. Each event carries the current step name and its result.", content_type = "text/event-stream", body = String, example = json!("data: {\"step\":\"Connecting\",\"error\":false}\n\ndata: {\"step\":\"CheckingDomain\",\"error\":false}\n\ndata: {\"step\":\"ValidatingDomain\",\"error\":false}\n\ndata: {\"step\":\"IssuingCertificate\",\"error\":false}\n\ndata: {\"step\":\"Done\",\"error\":false}\n\n")),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -1244,9 +1278,10 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     )
 )]
 pub async fn stream_proxy_acme(
-    _admin: AdminOrSetupRole,
+    _admin: AdminRole,
     Extension(pool): Extension<PgPool>,
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
+    Json(_body): Json<AcmeStreamRequest>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let stream = async_stream::stream! {
         let certs = match Certificates::get_or_default(&pool).await {
@@ -1384,23 +1419,13 @@ pub async fn stream_proxy_acme(
                     }
                 }
 
-                // Ensure external url is HTTPS
-                let mut settings = Settings::get_current_settings();
-                settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
-                if let Err(err) = update_current_settings(&pool, settings).await {
-                    error!("Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}");
-                }
-
-                // Post-wizard: broadcast certs to the proxy via bidi channel.
-                if let Some(ref tx) = proxy_control_tx {
-                    let msg = ProxyControlMessage::BroadcastHttpsCerts {
-                        cert_pem,
-                        key_pem,
-                    };
-                    if let Err(e) = tx.send(msg).await {
-                        error!("Failed to broadcast HttpsCerts to Edge: {e}");
-                    }
-                }
+                apply_acme_certificate(
+                    &pool,
+                    proxy_control_tx.as_ref().map(|extension| &extension.0),
+                    cert_pem,
+                    key_pem,
+                )
+                .await;
 
                 info!("ACME certificate issued and saved for domain: {domain}");
                 yield Ok(acme_event("Done"));
@@ -1421,4 +1446,68 @@ pub async fn stream_proxy_acme(
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use defguard_common::db::{
+        models::{
+            Settings,
+            settings::{initialize_current_settings, update_current_settings},
+        },
+        setup_pool,
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::mpsc;
+
+    use super::*;
+
+    #[sqlx::test]
+    async fn test_apply_acme_certificate_broadcasts_public_settings(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.public_proxy_url = "http://edge.example.com".to_owned();
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
+        apply_acme_certificate(
+            &pool,
+            Some(&proxy_control_tx),
+            "certificate".to_owned(),
+            "private-key".to_owned(),
+        )
+        .await;
+
+        match proxy_control_rx
+            .recv()
+            .await
+            .expect("missing certificate broadcast")
+        {
+            ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem } => {
+                assert_eq!(cert_pem, "certificate");
+                assert_eq!(key_pem, "private-key");
+            }
+            _ => panic!("expected certificate broadcast"),
+        }
+
+        match proxy_control_rx
+            .recv()
+            .await
+            .expect("missing public settings broadcast")
+        {
+            ProxyControlMessage::BroadcastPublicSettings { public_url, .. } => {
+                assert_eq!(public_url.as_deref(), Some("https://edge.example.com"));
+            }
+            _ => panic!("expected public settings broadcast"),
+        }
+
+        assert!(proxy_control_rx.try_recv().is_err());
+        let settings = Settings::get(&pool).await.unwrap().unwrap();
+        assert_eq!(settings.public_proxy_url, "https://edge.example.com");
+    }
 }
