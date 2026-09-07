@@ -6,10 +6,8 @@ import { getCanonicalAclListUrlSearch } from '../../shared/aclTabs';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
-import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getRulesCountQueryOptions } from '../../shared/query';
 import { RulesDeployedTab } from './tabs/RulesDeployedTab';
@@ -65,15 +63,13 @@ export const RulesPage = () => {
 
   return (
     <Page title={m.cmp_nav_item_rules()} id="rules-page">
-      <SizedBox height={ThemeSpacing.Md} />
-      <Tabs items={tabs} />
-      <SizedBox height={ThemeSpacing.Xl2} />
-      <Suspense fallback={<TableSkeleton />}>
-        <TablePageLayout>
+      <TablePageLayout>
+        <Tabs items={tabs} />
+        <Suspense fallback={<TableSkeleton />}>
           {activeTab === RulesPageTab.Deployed && <RulesDeployedTab />}
           {activeTab === RulesPageTab.Pending && <RulesPendingTab />}
-        </TablePageLayout>
-      </Suspense>
+        </Suspense>
+      </TablePageLayout>
     </Page>
   );
 };
