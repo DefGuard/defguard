@@ -439,20 +439,17 @@ impl AclRule {
     ///
     /// Since these rules were not yet applied, we can safely remove them.
     pub(crate) async fn delete_from_api(
-        pool: &PgPool,
+        conn: &mut PgConnection,
         id: Id,
         actor: &str,
     ) -> Result<(), AclError> {
         debug!("Deleting rule {id}");
-        let mut transaction = pool.begin().await?;
 
         // find the existing rule
-        let existing_rule = AclRule::find_by_id(&mut *transaction, id)
-            .await?
-            .ok_or_else(|| {
-                warn!("Deletion of nonexistent rule ({id}) failed");
-                AclError::RuleNotFoundError(id)
-            })?;
+        let existing_rule = AclRule::find_by_id(&mut *conn, id).await?.ok_or_else(|| {
+            warn!("Deletion of nonexistent rule ({id}) failed");
+            AclError::RuleNotFoundError(id)
+        })?;
 
         // perform appropriate modifications depending on existing rule's state
         match existing_rule.state {
@@ -464,7 +461,7 @@ impl AclRule {
                 );
                 // delete all modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
-                    .execute(&mut *transaction)
+                    .execute(&mut *conn)
                     .await?;
                 debug!(
                     "Removed {} old modifications of rule {id}",
@@ -472,17 +469,17 @@ impl AclRule {
                 );
 
                 // prefetch related objects for use later
-                let rule_info = existing_rule.to_info(&mut transaction).await?;
+                let rule_info = existing_rule.to_info(&mut *conn).await?;
 
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = existing_rule.as_noid();
                 rule.state = RuleState::Deleted;
                 rule.parent_id = Some(id);
                 rule.stamp_modified(actor);
-                let rule = rule.save(&mut *transaction).await?;
+                let rule = rule.save(&mut *conn).await?;
 
                 // inherit related objects from parent rule
-                rule.create_related_objects(&mut transaction, &rule_info.into())
+                rule.create_related_objects(&mut *conn, &rule_info.into())
                     .await?;
             }
             _ => {
@@ -492,17 +489,59 @@ impl AclRule {
                     existing_rule.parent_id,
                 );
                 // delete related objects
-                existing_rule
-                    .delete_related_objects(&mut transaction)
-                    .await?;
+                existing_rule.delete_related_objects(&mut *conn).await?;
 
                 // delete the rule
-                existing_rule.delete(&mut *transaction).await?;
+                existing_rule.delete(&mut *conn).await?;
             }
         }
 
-        transaction.commit().await?;
         info!("Rule {id} succesfully deleted or marked for deletion");
+        Ok(())
+    }
+
+    pub async fn delete_rules(rules: &[Id], actor: &str, pool: &PgPool) -> Result<(), AclError> {
+        debug!("Deleting {} ACL rules: {rules:?}", rules.len());
+        let mut transaction = pool.begin().await?;
+        for id in rules {
+            Self::delete_from_api(&mut transaction, *id, actor).await?;
+        }
+        transaction.commit().await?;
+        info!("Deleted {} ACL rules: {rules:?}", rules.len());
+        Ok(())
+    }
+
+    pub async fn set_rules_enabled(
+        rules: &[Id],
+        enabled: bool,
+        actor: &str,
+        pool: &PgPool,
+    ) -> Result<(), AclError> {
+        debug!(
+            "Setting enabled={enabled} for {} ACL rules: {rules:?}",
+            rules.len()
+        );
+        let mut transaction = pool.begin().await?;
+        for id in rules {
+            let rule = AclRule::find_by_id(&mut *transaction, *id)
+                .await?
+                .ok_or_else(|| {
+                    warn!("Failed to change enabled state for nonexistent rule {id}");
+                    AclError::RuleNotFoundError(*id)
+                })?;
+            if rule.enabled == enabled {
+                debug!("Rule {id} already has enabled={enabled}; skipping");
+                continue;
+            }
+            let mut api_rule: EditAclRule = rule.to_info(&mut transaction).await?.into();
+            api_rule.enabled = enabled;
+            Self::update_from_api(&mut transaction, *id, &api_rule, actor).await?;
+        }
+        transaction.commit().await?;
+        info!(
+            "Set enabled={enabled} for {} ACL rules: {rules:?}",
+            rules.len()
+        );
         Ok(())
     }
 

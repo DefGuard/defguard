@@ -241,7 +241,7 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub(crate) struct ApplyAclRulesData {
+pub(crate) struct AclRulesData {
     rules: Vec<Id>,
 }
 
@@ -506,12 +506,14 @@ pub(crate) async fn delete_acl_rule(
     Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting ACL rule {id}", session.user.username);
-    AclRule::delete_from_api(&appstate.pool, id, &session.user.username)
+    let mut transaction = appstate.pool.begin().await?;
+    AclRule::delete_from_api(&mut transaction, id, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error deleting ACL rule {id}: {err}");
             err
         })?;
+    transaction.commit().await?;
     info!("User {} deleted ACL rule {id}", session.user.username);
     Ok(ApiResponse::default())
 }
@@ -521,7 +523,7 @@ pub(crate) async fn delete_acl_rule(
     put,
     path = "/api/v1/acl/rule/apply",
     tag = "ACL",
-    request_body = ApplyAclRulesData,
+    request_body = AclRulesData,
     responses(
         (status = 200, description = "Pending rule changes applied."),
         (status = 400, description = "ACL rule is already applied.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 already applied"})),
@@ -540,7 +542,7 @@ pub(crate) async fn apply_acl_rules(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<ApplyAclRulesData>,
+    Json(data): Json<AclRulesData>,
 ) -> ApiResult {
     debug!(
         "User {} applying ACL rules: {:?}",
@@ -560,6 +562,148 @@ pub(crate) async fn apply_acl_rules(
     info!(
         "User {} applied ACL rules: {:?}",
         session.user.username, data.rules
+    );
+    Ok(ApiResponse::default())
+}
+
+/// Enables multiple ACL rules.
+///
+/// Each listed rule that is already enabled is skipped. As with a single-rule update,
+/// enabling an applied rule creates a pending change that takes effect after
+/// `PUT /api/v1/acl/rule/apply`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/rule/bulk-enable",
+    tag = "ACL",
+    request_body(content = AclRulesData, example = json!({"rules": [1, 4, 6]})),
+    responses(
+        (status = 200, description = "ACL rules enabled."),
+        (status = 400, description = "Cannot modify a deleted ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Cannot modify deleted ACL rule 1"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires administrator privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 not found"})),
+        (status = 500, description = "Unable to enable ACL rules.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_enable_acl_rules(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<AclRulesData>,
+) -> ApiResult {
+    set_acl_rules_enabled(&appstate, &session, data, true).await
+}
+
+/// Disables multiple ACL rules.
+///
+/// Each listed rule that is already disabled is skipped. As with a single-rule update,
+/// disabling an applied rule creates a pending change that takes effect after
+/// `PUT /api/v1/acl/rule/apply`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/rule/bulk-disable",
+    tag = "ACL",
+    request_body(content = AclRulesData, example = json!({"rules": [1, 4, 6]})),
+    responses(
+        (status = 200, description = "ACL rules disabled."),
+        (status = 400, description = "Cannot modify a deleted ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Cannot modify deleted ACL rule 1"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires administrator privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 not found"})),
+        (status = 500, description = "Unable to disable ACL rules.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_disable_acl_rules(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<AclRulesData>,
+) -> ApiResult {
+    set_acl_rules_enabled(&appstate, &session, data, false).await
+}
+
+async fn set_acl_rules_enabled(
+    appstate: &AppState,
+    session: &SessionInfo,
+    mut data: AclRulesData,
+    enabled: bool,
+) -> ApiResult {
+    debug!(
+        "User {} setting enabled={enabled} for {} ACL rules",
+        session.user.username,
+        data.rules.len()
+    );
+    data.rules.sort_unstable();
+    data.rules.dedup();
+    AclRule::set_rules_enabled(&data.rules, enabled, &session.user.username, &appstate.pool)
+        .await
+        .map_err(|err| {
+            error!("Error setting enabled={enabled} for ACL rules {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} set enabled={enabled} for {} ACL rules",
+        session.user.username,
+        data.rules.len()
+    );
+    Ok(ApiResponse::default())
+}
+
+/// Deletes multiple ACL rules.
+///
+/// An unapplied rule is deleted immediately. An applied rule is marked for deletion and
+/// removed after `PUT /api/v1/acl/rule/apply`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/rule/bulk-delete",
+    tag = "ACL",
+    request_body(content = AclRulesData, example = json!({"rules": [1, 4, 6]})),
+    responses(
+        (status = 200, description = "ACL rules deleted or marked for deletion."),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires administrator privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL rule not found.", body = ApiErrorResponse, example = json!({"msg": "Rule 1 not found"})),
+        (status = 500, description = "Unable to delete ACL rules.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_delete_acl_rules(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(mut data): Json<AclRulesData>,
+) -> ApiResult {
+    debug!(
+        "User {} deleting {} ACL rules",
+        session.user.username,
+        data.rules.len()
+    );
+    data.rules.sort_unstable();
+    data.rules.dedup();
+    AclRule::delete_rules(&data.rules, &session.user.username, &appstate.pool)
+        .await
+        .map_err(|err| {
+            error!("Error deleting ACL rules {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} deleted {} ACL rules",
+        session.user.username,
+        data.rules.len()
     );
     Ok(ApiResponse::default())
 }

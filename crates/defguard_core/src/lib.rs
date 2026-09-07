@@ -105,7 +105,8 @@ use crate::{
                     apply_acl_aliases, count_acl_aliases, create_acl_alias, delete_acl_alias,
                     get_acl_alias, list_acl_aliases, update_acl_alias,
                 },
-                apply_acl_rules, count_acl_rules, create_acl_rule, delete_acl_rule,
+                apply_acl_rules, bulk_delete_acl_rules, bulk_disable_acl_rules,
+                bulk_enable_acl_rules, count_acl_rules, create_acl_rule, delete_acl_rule,
                 destination::{
                     apply_acl_destinations, count_acl_destinations, create_acl_destination,
                     delete_acl_destination, get_acl_destination, list_acl_destinations,
@@ -542,6 +543,9 @@ pub fn build_webapp(
             .route("/rule", get(list_acl_rules).post(create_acl_rule))
             .route("/rule/count", get(count_acl_rules))
             .route("/rule/apply", put(apply_acl_rules))
+            .route("/rule/bulk-enable", post(bulk_enable_acl_rules))
+            .route("/rule/bulk-disable", post(bulk_disable_acl_rules))
+            .route("/rule/bulk-delete", post(bulk_delete_acl_rules))
             .route(
                 "/rule/{id}",
                 get(get_acl_rule)

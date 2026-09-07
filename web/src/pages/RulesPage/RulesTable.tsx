@@ -447,7 +447,7 @@ export const RulesTable = ({
     confirmBulk({
       title: m.acl_rules_modal_bulk_enable_title(),
       contentMd: m.acl_rules_modal_bulk_enable_content({ count: ids.length }),
-      actionPromise: () => Promise.all(ids.map((id) => setRuleEnabled(id, true))),
+      actionPromise: () => api.acl.rule.bulkEnableRules(ids),
       submitProps: { text: m.controls_enable() },
       onSuccess: () => Snackbar.default(m.acl_rules_bulk_enable_success()),
       onError: () => Snackbar.error(m.acl_rules_bulk_enable_error()),
@@ -463,7 +463,7 @@ export const RulesTable = ({
     confirmBulk({
       title: m.acl_rules_modal_bulk_disable_title(),
       contentMd: m.acl_rules_modal_bulk_disable_content({ count: ids.length }),
-      actionPromise: () => Promise.all(ids.map((id) => setRuleEnabled(id, false))),
+      actionPromise: () => api.acl.rule.bulkDisableRules(ids),
       submitProps: { text: m.controls_disable(), variant: 'critical' },
       onSuccess: () => Snackbar.default(m.acl_rules_bulk_disable_success()),
       onError: () => Snackbar.error(m.acl_rules_bulk_disable_error()),
@@ -489,7 +489,7 @@ export const RulesTable = ({
     confirmBulk({
       title: m.acl_rules_modal_bulk_delete_title(),
       contentMd: m.acl_rules_modal_bulk_delete_content({ count: ids.length }),
-      actionPromise: () => Promise.all(ids.map((id) => api.acl.rule.deleteRule(id))),
+      actionPromise: () => api.acl.rule.bulkDeleteRules(ids),
       submitProps: { text: m.controls_delete(), variant: 'critical' },
       onSuccess: () => Snackbar.default(m.acl_rules_bulk_delete_success()),
       onError: () => Snackbar.error(m.acl_rules_bulk_delete_error()),

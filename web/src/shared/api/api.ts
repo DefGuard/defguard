@@ -583,6 +583,12 @@ const api = {
           rules,
         }),
       deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
+      bulkEnableRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-enable', { rules }),
+      bulkDisableRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-disable', { rules }),
+      bulkDeleteRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-delete', { rules }),
     },
   },
   activityLogStream: {
