@@ -750,7 +750,7 @@ fn log_initiate_error(err: &InitiateError, username: &str) {
             error!("Start biometric MFA failed. Challenge creation failed. Reason: {e}");
         }
         InitiateError::UnsupportedMethod => {
-            error!("MFA start for user {username} selected a method Core does not support")
+            error!("MFA start for user {username} selected a method Core does not support");
         }
     }
 }

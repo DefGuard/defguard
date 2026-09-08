@@ -200,6 +200,8 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::Fido2 => {
+            const RP_ID_HASH_LEN: usize = 32;
+
             let settings = Settings::get_current_settings();
             let rp_id = settings
                 .webauthn_rp_id()
@@ -208,9 +210,8 @@ pub async fn verify(
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
-            // The client sends binary as base64url, matching how webauthn-rs
-            // writes the credential ids it was offered.
-            let rpid_hash = decode_proof_field(proof.code.as_ref(), "RP ID hash")?;
+            // The client sends binary as base64url, matching how webauthn-rs writes
+            // the credential ids it was offered.
             let signature = decode_proof_field(proof.auth_pub_key.as_ref(), "Signature")?;
             let auth_data = proof
                 .auth_data
@@ -219,16 +220,19 @@ pub async fn verify(
                     message: "Auth data not found in request",
                     event: None,
                 })?;
+            if auth_data.len() < RP_ID_HASH_LEN {
+                return Err(VerifyError::MalformedProof {
+                    message: "Auth data too small",
+                    event: None,
+                });
+            }
+            let rpid_hash = auth_data[..RP_ID_HASH_LEN].to_vec();
 
             // The key names the credential it signed with, so verification goes
             // straight to that public key. A client that names none - a pre-FIDO2
             // build - falls back to trying every registered key; one that names a
             // credential this user does not own matches nothing and fails.
             let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
-            let named = proof
-                .credential_id
-                .as_deref()
-                .and_then(|credential_id| decode_base64(credential_id).ok());
 
             let assertion = Assertion {
                 rpid_hash,
@@ -238,7 +242,7 @@ pub async fn verify(
             };
             for passkey in &passkeys {
                 // Skip the keys the client did not name, if it named one.
-                if named.as_ref().is_some_and(|credential_id| {
+                if proof.credential_id.as_ref().is_some_and(|credential_id| {
                     passkey.cred_id().as_ref() != credential_id.as_slice()
                 }) {
                     continue;

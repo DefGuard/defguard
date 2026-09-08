@@ -32,9 +32,9 @@ pub struct Proof {
     pub step_attempt_id: Option<String>,
     /// FIDO2
     pub auth_data: Option<Vec<u8>>,
-    /// FIDO2: which of the offered credentials signed, base64url. Names the
-    /// security key in use, so verification goes straight to its public key.
-    pub credential_id: Option<String>,
+    /// FIDO2: which of the offered credentials signed. Names the security key in use, so
+    /// verification goes straight to its public key.
+    pub credential_id: Option<Vec<u8>>,
 }
 
 /// Result of `step_start`: the minted attempt id plus an optional biometric / mobile-approve

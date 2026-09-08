@@ -1186,7 +1186,7 @@ async fn dg2608_3_test_concurrent_refresh_allows_single_rotation(
     let (oauth_client, _, TokenPair { refresh_token, .. }) = issue_token_pair(&client, &pool).await;
 
     sqlx::query(
-        r#"
+        r"
         CREATE OR REPLACE FUNCTION dg2608_3_pause_oauth2token_update()
         RETURNS trigger
         LANGUAGE plpgsql
@@ -1196,7 +1196,7 @@ async fn dg2608_3_test_concurrent_refresh_allows_single_rotation(
             RETURN NEW;
         END;
         $$;
-        "#,
+        ",
     )
     .execute(&pool)
     .await
