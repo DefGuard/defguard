@@ -68,6 +68,7 @@ impl EventChannels {
     }
 }
 
+#[must_use]
 pub fn build_authorized_gateway_network_info(
     network_device: WireguardNetworkDevice,
     preshared_key: String,

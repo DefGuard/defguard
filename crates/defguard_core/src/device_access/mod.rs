@@ -262,7 +262,7 @@ mod tests {
                 LocationMfaFlowAssignment {
                     flow_id: default_flow.id,
                     is_default: true,
-                    group_ids: vec![],
+                    group_ids: Vec::new(),
                 },
             ],
         )

@@ -1073,7 +1073,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -1096,7 +1096,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -1114,7 +1114,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -1236,7 +1236,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         )));
 
         let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());

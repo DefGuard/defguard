@@ -1,6 +1,7 @@
+use ctap_hid_fido2::public_key::{PublicKey, PublicKeyType};
 use model_derive::Model;
 use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
-use webauthn_rs::prelude::Passkey;
+use webauthn_rs::prelude::{COSEKeyType, ECDSACurve, EDDSACurve, Passkey};
 
 use crate::db::{Id, NoId, models::ModelError};
 
@@ -49,6 +50,20 @@ impl WebAuthn<Id> {
             })
     }
 
+    /// Check whether a user has at least one security key registered.
+    pub async fn exists_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM webauthn WHERE user_id = $1)",
+            user_id
+        )
+        .fetch_one(executor)
+        .await
+        .map(Option::unwrap_or_default)
+    }
+
     /// Fetch all for a given user.
     pub async fn all_for_user(pool: &PgPool, user_id: Id) -> sqlx::Result<Vec<Self>> {
         query_as!(
@@ -69,5 +84,24 @@ impl WebAuthn<Id> {
             .execute(executor)
             .await?;
         Ok(())
+    }
+}
+
+/// Convert a `PassKey` into a form that `ctap-hid-fido2`'s verifier expects.
+#[must_use]
+pub fn to_ctap_public_key(passkey: &Passkey) -> Option<PublicKey> {
+    let cose = passkey.get_public_key();
+    match &cose.key {
+        COSEKeyType::EC_EC2(ec2) if ec2.curve == ECDSACurve::SECP256R1 => {
+            let mut der = Vec::with_capacity(1 + ec2.x.len() + ec2.y.len());
+            der.push(0x04); // uncompressed point
+            der.extend_from_slice(&ec2.x);
+            der.extend_from_slice(&ec2.y);
+            Some(PublicKey::with_der(&der, PublicKeyType::Ecdsa256))
+        }
+        COSEKeyType::EC_OKP(okp) if okp.curve == EDDSACurve::ED25519 => {
+            Some(PublicKey::with_der(&okp.x, PublicKeyType::Ed25519))
+        }
+        _ => None,
     }
 }

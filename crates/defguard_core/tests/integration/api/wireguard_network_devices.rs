@@ -1,4 +1,4 @@
-use std::{net::IpAddr, str::FromStr};
+use std::{assert_matches, net::IpAddr, str::FromStr};
 
 use defguard_common::db::{
     Id,
@@ -9,7 +9,6 @@ use defguard_core::{
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::{Value, json};

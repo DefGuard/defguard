@@ -521,7 +521,7 @@ mod tests {
             &[LocationMfaFlowAssignment {
                 flow_id: flow.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             }],
         )
         .await
@@ -620,7 +620,7 @@ mod tests {
             version_date_limit: None,
             tier: LicenseTier::Business,
             support_type: SupportType::Basic,
-            features: vec![],
+            features: Vec::new(),
         }
     }
 

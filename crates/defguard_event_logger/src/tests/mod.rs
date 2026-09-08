@@ -1254,7 +1254,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
                         flow_id: 2,
                         position: 1,
                         is_default: true,
-                        group_ids: vec![],
+                        group_ids: Vec::new(),
                     },
                 ],
             }),

@@ -907,7 +907,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -920,7 +920,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -933,7 +933,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -946,7 +946,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -959,7 +959,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -979,7 +979,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -997,7 +997,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
     }
