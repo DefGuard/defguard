@@ -10,9 +10,10 @@ use defguard_common::{
     random::gen_alphanumeric,
 };
 use serde_json::json;
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, webhooks::ChangeStateData};
+use super::{ApiResponse, ApiResult, webhooks::ChangeStateData};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -20,7 +21,8 @@ use crate::{
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
 };
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct NewOpenIDClient {
     pub name: String,
     pub redirect_uri: Vec<String>,
@@ -45,7 +47,7 @@ impl From<NewOpenIDClient> for OAuth2Client<NoId> {
 }
 
 /// Create an OAuth2/OpenID client application
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/oauth/",
     tag = "OAuth2",
@@ -69,7 +71,7 @@ impl From<NewOpenIDClient> for OAuth2Client<NoId> {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -107,7 +109,7 @@ pub(crate) async fn add_openid_client(
 }
 
 /// List OAuth2/OpenID client applications
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/oauth/",
     tag = "OAuth2",
@@ -136,7 +138,7 @@ pub(crate) async fn add_openid_client(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_openid_clients(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -162,7 +164,7 @@ pub(crate) async fn list_openid_clients(
 /// Get an OAuth2/OpenID client application
 ///
 /// Non-admin users receive a reduced representation without the client secret.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/oauth/{client_id}",
     tag = "OAuth2",
@@ -187,7 +189,7 @@ pub(crate) async fn list_openid_clients(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_openid_client(
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
@@ -209,7 +211,7 @@ pub(crate) async fn get_openid_client(
 }
 
 /// Update an OAuth2/OpenID client application
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/oauth/{client_id}",
     tag = "OAuth2",
@@ -229,7 +231,7 @@ pub(crate) async fn get_openid_client(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn change_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
@@ -285,7 +287,7 @@ pub(crate) async fn change_openid_client(
 }
 
 /// Enable or disable an OAuth2/OpenID client application
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/oauth/{client_id}",
     tag = "OAuth2",
@@ -304,7 +306,7 @@ pub(crate) async fn change_openid_client(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn change_openid_client_state(
     _admin: AdminRole,
     session: SessionInfo,
@@ -340,7 +342,7 @@ pub(crate) async fn change_openid_client_state(
 }
 
 /// Delete an OAuth2/OpenID client application
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/oauth/{client_id}",
     tag = "OAuth2",
@@ -358,7 +360,7 @@ pub(crate) async fn change_openid_client_state(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_openid_client(
     _admin: AdminRole,
     session: SessionInfo,

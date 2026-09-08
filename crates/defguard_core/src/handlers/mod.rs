@@ -20,7 +20,6 @@ use defguard_static_ip::error::StaticIpError;
 use ipnetwork::IpNetworkError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 use crate::{
@@ -95,12 +94,12 @@ pub enum WebErrorCode {
 }
 
 /// Body returned with error responses.
-#[derive(ToSchema)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiErrorResponse {
     /// Human-readable error message.
     pub msg: String,
     /// Machine-readable error code, returned for selected errors.
-    #[schema(value_type = Option<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     pub code: Option<WebErrorCode>,
 }
 
@@ -458,7 +457,8 @@ impl IntoResponse for ApiResponse {
 
 pub type ApiResult = Result<ApiResponse, WebError>;
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Auth {
     username: String,
     password: String,
@@ -474,7 +474,8 @@ impl Auth {
     }
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AuthTotp {
     pub secret: String,
 }
@@ -488,7 +489,8 @@ impl AuthTotp {
     }
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AuthCode {
     code: String,
 }
@@ -500,7 +502,8 @@ impl AuthCode {
     }
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GroupInfo {
     pub id: Id,
     pub name: String,
@@ -529,7 +532,8 @@ impl GroupInfo {
 }
 
 /// Dedicated `GroupInfo` variant for group modification operations.
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
@@ -547,12 +551,14 @@ impl EditGroupInfo {
     }
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Username {
     pub username: String,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddUserData {
     pub username: String,
     pub last_name: String,
@@ -562,7 +568,8 @@ pub struct AddUserData {
     pub password: Option<String>,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
@@ -570,30 +577,35 @@ pub struct StartEnrollmentRequest {
     pub token_expiration_time: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PasswordChangeSelf {
     pub old_password: String,
     pub new_password: String,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WebAuthnRegistration {
     pub name: String,
-    #[schema(value_type = Object)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Object))]
     pub rpkc: RegisterPublicKeyCredential,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RecoveryCode {
     code: String,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RecoveryCodes {
     codes: Option<Vec<String>>,
 }
@@ -605,7 +617,8 @@ impl RecoveryCodes {
     }
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WebHookData {
     pub url: String,
     pub description: String,
@@ -635,7 +648,8 @@ impl From<WebHookData> for WebHook {
 
 /// Return type needed for knowing if a user came from OpenID flow.
 /// If so, fill in the optional URL field to redirect him later.
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AuthResponse {
     pub user: UserInfo,
     pub url: Option<String>,

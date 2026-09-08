@@ -6,9 +6,10 @@ use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::{PgConnection, PgPool, query, query_as};
-use utoipa::ToSchema;
 
 use super::{AclStateCount, LicenseInfo};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -17,11 +18,12 @@ use crate::{
         Protocol, acl_delete_related_objects, parse_destination_addresses,
     },
     error::WebError,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// An ACL destination, as accepted when creating or updating one.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EditAclDestination {
     pub name: String,
     pub addresses: String,
@@ -79,7 +81,8 @@ impl EditAclDestination {
 
 /// An ACL destination.
 /// All relations represented as arrays of IDs.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiAclDestination {
     #[serde(default)]
     pub id: Id,
@@ -96,7 +99,8 @@ pub struct ApiAclDestination {
     pub any_protocol: bool,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct AclDestinationsData {
     destinations: Vec<Id>,
 }
@@ -217,7 +221,7 @@ impl From<AclAliasInfo> for ApiAclDestination {
 }
 
 /// List ACL destinations
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/destination",
     tag = "ACL",
@@ -231,7 +235,7 @@ impl From<AclAliasInfo> for ApiAclDestination {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_acl_destinations(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -253,7 +257,7 @@ pub(crate) async fn list_acl_destinations(
 }
 
 /// Count ACL destinations by state
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/destination/count",
     tag = "ACL",
@@ -267,7 +271,7 @@ pub(crate) async fn list_acl_destinations(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn count_acl_destinations(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -287,7 +291,7 @@ pub(crate) async fn count_acl_destinations(
 }
 
 /// Get an ACL destination
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/destination/{id}",
     tag = "ACL",
@@ -305,7 +309,7 @@ pub(crate) async fn count_acl_destinations(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_acl_destination(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -339,7 +343,7 @@ pub(crate) async fn get_acl_destination(
 }
 
 /// Create an ACL destination
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/destination",
     tag = "ACL",
@@ -356,7 +360,7 @@ pub(crate) async fn get_acl_destination(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn create_acl_destination(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -383,7 +387,7 @@ pub(crate) async fn create_acl_destination(
 }
 
 /// Update an ACL destination
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/acl/destination/{id}",
     tag = "ACL",
@@ -404,7 +408,7 @@ pub(crate) async fn create_acl_destination(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn update_acl_destination(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -430,7 +434,7 @@ pub(crate) async fn update_acl_destination(
 }
 
 /// Delete an ACL destination
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/acl/destination/{id}",
     tag = "ACL",
@@ -449,7 +453,7 @@ pub(crate) async fn update_acl_destination(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_acl_destination(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -477,7 +481,7 @@ pub(crate) async fn delete_acl_destination(
 }
 
 /// Deletes multiple ACL destinations.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/destination/bulk-delete",
     tag = "ACL",
@@ -494,7 +498,7 @@ pub(crate) async fn delete_acl_destination(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_delete_acl_destinations(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -522,7 +526,7 @@ pub(crate) async fn bulk_delete_acl_destinations(
 }
 
 /// Apply ACL destinations
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/acl/destination/apply",
     tag = "ACL",
@@ -539,7 +543,7 @@ pub(crate) async fn bulk_delete_acl_destinations(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn apply_acl_destinations(
     _license: LicenseInfo,
     _admin: AdminRole,

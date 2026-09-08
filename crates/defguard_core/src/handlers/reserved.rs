@@ -5,10 +5,13 @@ use axum::{
 use serde::Deserialize;
 use sqlx::PgPool;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{appstate::AppState, auth::AdminRole, error::WebError};
 
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum CheckResource {
     Email,
@@ -42,7 +45,7 @@ async fn username_exists(pool: &PgPool, username: &str) -> Result<bool, sqlx::Er
 }
 
 /// Check whether an email address or username is already taken
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/reserved",
     tag = "system",
@@ -61,7 +64,7 @@ async fn username_exists(pool: &PgPool, username: &str) -> Result<bool, sqlx::Er
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn check_reserved(
     _role: AdminRole,
     State(appstate): State<AppState>,

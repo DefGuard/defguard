@@ -3,7 +3,6 @@ use std::fmt;
 use model_derive::Model;
 use serde::Serialize;
 use sqlx::{FromRow, PgExecutor, query, query_as, query_scalar};
-use utoipa::ToSchema;
 
 use crate::db::{Id, NoId, models::user::User};
 
@@ -19,7 +18,8 @@ impl fmt::Display for Permission {
     }
 }
 
-#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq, Serialize)]
+#[derive(Clone, Debug, Model, FromRow, PartialEq, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Group<I = NoId> {
     pub id: I,
     pub name: String,

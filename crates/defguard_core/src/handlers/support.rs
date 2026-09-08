@@ -1,6 +1,8 @@
 use axum::{extract::State, http::StatusCode};
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
@@ -12,7 +14,7 @@ use crate::{
 /// Get instance configuration for support purposes
 ///
 /// Secrets are stripped from the returned configuration.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/support/configuration",
     tag = "support",
@@ -27,7 +29,7 @@ use crate::{
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn configuration(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -52,7 +54,7 @@ pub(crate) async fn configuration(
 }
 
 /// Get recent instance logs for support purposes
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/support/logs",
     tag = "support",
@@ -66,7 +68,7 @@ pub(crate) async fn configuration(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = server_config().log_file {

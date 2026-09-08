@@ -2,7 +2,9 @@ use axum::{extract::State, http::StatusCode};
 use defguard_common::db::models::{ActiveWizard, User, Wizard};
 use serde::Serialize;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{appstate::AppState, auth::SessionExtractor, error::WebError};
 
 #[derive(Serialize)]
@@ -16,7 +18,7 @@ struct SessionInfoResponse {
 /// Get information about the current session
 ///
 /// The payload tells whether a valid session is present.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/session-info",
     tag = "system",
@@ -29,7 +31,7 @@ struct SessionInfoResponse {
         })),
         (status = 500, description = "Unable to get session information.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn get_session_info(
     State(appstate): State<AppState>,
     session: Result<SessionExtractor, WebError>,

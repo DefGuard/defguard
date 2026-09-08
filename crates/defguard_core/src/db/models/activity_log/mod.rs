@@ -3,11 +3,11 @@ use defguard_common::db::{Id, NoId};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{FromRow, Type};
-use utoipa::ToSchema;
 
 pub mod metadata;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "activity_log_module", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ActivityLogModule {

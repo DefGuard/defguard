@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{PgConnection, PgPool, query_scalar};
-use utoipa::ToSchema;
 
 use crate::{
     db::{
@@ -10,14 +9,16 @@ use crate::{
     types::group_diff::GroupDiff,
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: Id,
     pub oauth2client_name: String,
 }
 
 // Basic user info used in user list, etc.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UserInfo {
     pub id: Id,
     pub username: String,

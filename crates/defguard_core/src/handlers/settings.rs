@@ -18,7 +18,9 @@ use sqlx::PgPool;
 use struct_patch::Patch;
 use tokio::sync::mpsc;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResponseCode, ApiResult};
+use super::{ApiResponse, ApiResponseCode, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
@@ -73,7 +75,7 @@ pub(crate) async fn broadcast_public_settings(
 }
 
 /// Get instance settings
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/settings",
     tag = "settings",
@@ -87,7 +89,7 @@ pub(crate) async fn broadcast_public_settings(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     if let Some(mut settings) = Settings::get(&appstate.pool).await? {
@@ -106,7 +108,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
 /// Replace instance settings
 ///
 /// The whole settings object has to be sent. Use `PATCH` to update selected fields only.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/settings",
     tag = "settings",
@@ -122,7 +124,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn update_settings(
     _admin: AdminRole,
     session: SessionInfo,
@@ -165,7 +167,7 @@ pub(crate) async fn update_settings(
 /// Get settings required to render the web UI
 ///
 /// Public endpoint. Returns only non-sensitive settings.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/settings_essentials",
     tag = "settings",
@@ -181,7 +183,7 @@ pub(crate) async fn update_settings(
         })),
         (status = 500, description = "Unable to get essential settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Retrieving essential settings");
     let mut settings = SettingsEssentials::get_settings_essentials(&pool).await?;
@@ -198,7 +200,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
 }
 
 /// Restore default branding settings
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/settings/{id}",
     tag = "settings",
@@ -215,7 +217,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn set_default_branding(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -266,7 +268,7 @@ fn is_license_reactivation(
 /// Update selected instance settings
 ///
 /// Only the fields present in the request body are modified. Sending `null` clears a field.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     patch,
     path = "/api/v1/settings",
     tag = "settings",
@@ -282,7 +284,7 @@ fn is_license_reactivation(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn patch_settings(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -364,7 +366,7 @@ pub async fn patch_settings(
 }
 
 /// Test the LDAP connection using the currently saved settings
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/ldap/test",
     tag = "LDAP",
@@ -379,7 +381,7 @@ pub async fn patch_settings(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
     debug!("Testing LDAP connection");
     match LDAPConnection::create().await {
@@ -397,7 +399,7 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
 /// Test the LDAP connection
 ///
 /// Uses the settings from the request body, which do not have to be saved yet.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/ldap/test",
     tag = "LDAP",
@@ -413,7 +415,7 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn test_submitted_ldap_settings(
     _admin: AdminRole,
     _license: LicenseInfo,
@@ -436,7 +438,7 @@ pub(crate) async fn test_submitted_ldap_settings(
 ///
 /// Uses the settings from the request body, which do not have to be saved yet. Read-only:
 /// nothing is imported, removed or persisted.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/ldap/dry_run",
     tag = "LDAP",
@@ -455,7 +457,7 @@ pub(crate) async fn test_submitted_ldap_settings(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn ldap_dry_run(
     _admin: AdminRole,
     _license: LicenseInfo,

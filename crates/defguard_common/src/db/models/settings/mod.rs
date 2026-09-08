@@ -13,7 +13,6 @@ use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
 use url::Url;
-use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::WebauthnBuilder;
 
@@ -109,7 +108,8 @@ pub enum SettingsSaveError {
     Validation(#[from] SettingsValidationError),
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
 pub enum OpenIdUsernameHandling {
     #[default]
@@ -121,7 +121,8 @@ pub enum OpenIdUsernameHandling {
     PruneEmailDomain,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, ToSchema, Type)]
+#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize, Default, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
 pub enum LdapSyncStatus {
     InSync,
@@ -158,7 +159,8 @@ where
 }
 
 /// Instance settings.
-#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize, ToSchema)]
+#[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct Settings {
     // Modules
@@ -191,7 +193,7 @@ pub struct Settings {
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
-    #[schema(value_type = Option<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
@@ -237,7 +239,7 @@ pub struct Settings {
     pub public_proxy_url: String,
     pub default_admin_id: Option<Id>,
     // 1.6 config options
-    #[schema(value_type = Option<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     #[serde(skip)]
     secret_key: Option<SecretStringWrapper>,
     #[serde(skip)]

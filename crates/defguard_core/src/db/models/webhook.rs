@@ -4,7 +4,6 @@ use defguard_common::{
 };
 use model_derive::Model;
 use sqlx::{FromRow, PgPool, query_as};
-use utoipa::ToSchema;
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -49,9 +48,10 @@ impl AppEvent {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WebHook<I = NoId> {
-    #[schema(value_type = i64)]
+    #[cfg_attr(feature = "openapi", schema(value_type = i64))]
     pub id: I,
     pub url: String,
     pub description: String,

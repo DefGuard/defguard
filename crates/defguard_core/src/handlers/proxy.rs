@@ -9,23 +9,25 @@ use defguard_common::{
     types::proxy::{ProxyControlMessage, ProxyInfo},
 };
 use serde_json::Value;
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ProxyUpdateData {
     pub name: String,
     pub enabled: bool,
 }
 
 /// List edge instances
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/proxy",
     tag = "proxy",
@@ -39,7 +41,7 @@ pub struct ProxyUpdateData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn proxy_list(
     _role: AdminRole,
     session: SessionInfo,
@@ -54,7 +56,7 @@ pub async fn proxy_list(
 }
 
 /// Get an edge instance
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/proxy/{proxy_id}",
     tag = "proxy",
@@ -72,7 +74,7 @@ pub async fn proxy_list(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn proxy_details(
     Path(proxy_id): Path<Id>,
     _role: AdminRole,
@@ -97,7 +99,7 @@ pub(crate) async fn proxy_details(
 }
 
 /// Rename an edge instance, or enable or disable it
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/proxy/{proxy_id}",
     tag = "proxy",
@@ -116,7 +118,7 @@ pub(crate) async fn proxy_details(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn update_proxy(
     _role: AdminRole,
     Path(proxy_id): Path<Id>,
@@ -178,7 +180,7 @@ pub(crate) async fn update_proxy(
 }
 
 /// Delete an edge instance
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/proxy/{proxy_id}",
     tag = "proxy",
@@ -196,7 +198,7 @@ pub(crate) async fn update_proxy(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_proxy(
     _role: AdminRole,
     Path(proxy_id): Path<Id>,

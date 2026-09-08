@@ -17,12 +17,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{PgPool, Postgres, QueryBuilder, Type};
 use thiserror::Error;
-use utoipa::ToSchema;
 
 use super::{
-    AddUserData, ApiErrorResponse, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
+    AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
     StartEnrollmentRequest, Username, user_for_admin_or_self,
 };
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -54,12 +55,14 @@ use crate::{
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct BulkUserOperationRequest {
     pub users: Vec<Id>,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct BulkStartEnrollmentRequest {
     pub users: Vec<Id>,
     /// Whether to send enrollment email to each user (uses user's stored email).
@@ -142,7 +145,8 @@ pub fn check_password_strength(password: &str) -> Result<(), ValidationError> {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UserDetails {
     pub user: UserInfo,
     pub biometric_enabled_devices: Vec<Id>,
@@ -182,7 +186,8 @@ pub struct SortParams {
     pub sort_order: SortOrder,
 }
 
-#[derive(Debug, Deserialize, Type, Serialize, ToSchema, Default)]
+#[derive(Debug, Deserialize, Type, Serialize, Default)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum SortKey {
     Username,
@@ -201,7 +206,8 @@ impl fmt::Display for SortKey {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema, Default, Type)]
+#[derive(Debug, Deserialize, Serialize, Default, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum SortOrder {
     #[default]
@@ -233,7 +239,7 @@ pub struct UserFilterParams {
 }
 
 /// List users
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/user",
     tag = "user",
@@ -292,7 +298,7 @@ pub struct UserFilterParams {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -419,7 +425,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
 }
 
 /// Get a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/user/{username}",
     tag = "user",
@@ -465,7 +471,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -480,7 +486,7 @@ pub(crate) async fn get_user(
 }
 
 /// Create a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user",
     tag = "user",
@@ -520,7 +526,7 @@ pub(crate) async fn get_user(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_user(
     _role: AdminRole,
     session: SessionInfo,
@@ -625,7 +631,7 @@ pub(crate) async fn add_user(
 ///
 /// Returns an enrollment token, valid for 24 hours, and the URL the user opens to finish
 /// enrollment in a browser or in the desktop client. The user can also be notified by email.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/start_enrollment",
     tag = "user",
@@ -645,7 +651,7 @@ pub(crate) async fn add_user(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn start_enrollment(
     _role: AdminRole,
     session: SessionInfo,
@@ -734,7 +740,7 @@ pub(crate) async fn start_enrollment(
 /// Creates or updates the desktop client configuration of the user. Returns an enrollment
 /// token, valid for 24 hours, and the URL the user opens to finish the setup. The user can
 /// also be notified by email.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/start_desktop",
     tag = "user",
@@ -754,7 +760,7 @@ pub(crate) async fn start_enrollment(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn start_remote_desktop_configuration(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
@@ -824,7 +830,7 @@ pub(crate) async fn start_remote_desktop_configuration(
 }
 
 /// Check whether a username is available
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/available",
     tag = "user",
@@ -840,7 +846,7 @@ pub(crate) async fn start_remote_desktop_configuration(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn username_available(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -864,7 +870,7 @@ pub(crate) async fn username_available(
 ///
 /// Can also add or remove the user's groups and authorized apps. Set `is_active` to
 /// `false` to disable the user. An admin cannot disable their own account.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/user/{username}",
     tag = "user",
@@ -884,7 +890,7 @@ pub(crate) async fn username_available(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn modify_user(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1104,7 +1110,7 @@ pub(crate) async fn modify_user(
 /// Delete a user
 ///
 /// You cannot delete your own account.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}",
     tag = "user",
@@ -1123,7 +1129,7 @@ pub(crate) async fn modify_user(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_user(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -1184,7 +1190,7 @@ async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sq
 /// Change your own password
 ///
 /// Fails when the new password is not strong enough.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/user/change_password",
     tag = "user",
@@ -1200,7 +1206,7 @@ async fn user_password_management_disabled(pool: &PgPool, user: &User<Id>) -> sq
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn change_self_password(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1256,7 +1262,7 @@ pub(crate) async fn change_self_password(
 ///
 /// Fails when the new password is not strong enough. Cannot be used to change your own
 /// password, use `PUT /api/v1/user/change_password` for that.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/user/{username}/password",
     tag = "user",
@@ -1276,7 +1282,7 @@ pub(crate) async fn change_self_password(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn change_password(
     _role: AdminRole,
     session: SessionInfo,
@@ -1344,7 +1350,7 @@ pub(crate) async fn change_password(
 ///
 /// Sends a new enrollment token to the user's email. You cannot reset your own password
 /// this way.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/reset_password",
     tag = "user",
@@ -1363,7 +1369,7 @@ pub(crate) async fn change_password(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn reset_password(
     _role: AdminRole,
     session: SessionInfo,
@@ -1435,7 +1441,7 @@ pub(crate) async fn reset_password(
 }
 
 /// Delete a security key of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/security_key/{id}",
     tag = "user",
@@ -1454,7 +1460,7 @@ pub(crate) async fn reset_password(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_security_key(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1496,7 +1502,7 @@ pub(crate) async fn delete_security_key(
 }
 
 /// Get the currently authenticated user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/me",
     tag = "user",
@@ -1535,7 +1541,7 @@ pub(crate) async fn delete_security_key(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let oidc_disable_password_management =
         OpenIdProvider::current_disables_password_management(&appstate.pool).await?;
@@ -1549,7 +1555,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 }
 
 /// Delete an authorized OAuth2 application of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/oauth_app/{oauth2client_id}",
     tag = "user",
@@ -1568,7 +1574,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -1612,7 +1618,7 @@ pub(crate) async fn delete_authorized_app(
 /// Bulk disable users
 ///
 /// The request is rejected when any of the given IDs does not exist or is your own.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/bulk-disable",
     tag = "user",
@@ -1628,7 +1634,7 @@ pub(crate) async fn delete_authorized_app(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_disable_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -1709,7 +1715,7 @@ pub(crate) async fn bulk_disable_users(
 /// Bulk enable users
 ///
 /// The request is rejected when any of the given IDs does not exist.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/bulk-enable",
     tag = "user",
@@ -1725,7 +1731,7 @@ pub(crate) async fn bulk_disable_users(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_enable_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -1820,7 +1826,7 @@ pub(crate) async fn bulk_enable_users(
 /// Bulk delete users
 ///
 /// The request is rejected when any of the given IDs does not exist or is your own.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/bulk-delete",
     tag = "user",
@@ -1836,7 +1842,7 @@ pub(crate) async fn bulk_enable_users(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_delete_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -1918,7 +1924,7 @@ pub(crate) async fn bulk_delete_users(
 /// Disabled users are skipped and counted in the `skipped` response field. Already
 /// enrolled users are enrolled again. The request is rejected when any of the given IDs
 /// does not exist or is your own.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/bulk-start-enrollment",
     tag = "user",
@@ -1934,7 +1940,7 @@ pub(crate) async fn bulk_delete_users(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_start_enrollment(
     _role: AdminRole,
     State(appstate): State<AppState>,

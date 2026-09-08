@@ -9,9 +9,10 @@ use defguard_common::db::models::{
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
-use utoipa::ToSchema;
 
 use super::LicenseInfo;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -20,10 +21,11 @@ use crate::{
         directory_sync::test_directory_sync_connection,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddProviderData {
     pub name: String,
     pub base_url: String,
@@ -52,7 +54,7 @@ pub struct AddProviderData {
 }
 
 /// Create an OpenID provider
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/openid/provider",
     tag = "OpenID",
@@ -68,7 +70,7 @@ pub struct AddProviderData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -216,7 +218,7 @@ pub(crate) async fn add_openid_provider(
 }
 
 /// Get an OpenID provider
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
@@ -234,7 +236,7 @@ pub(crate) async fn add_openid_provider(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_openid_provider(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -265,7 +267,7 @@ pub(crate) async fn get_openid_provider(
 /// Deletion always proceeds. Any location whose assigned MFA flows still reference OIDC is
 /// returned in `affected_locations`: those flows become unsatisfiable, so their users cannot
 /// complete MFA until an admin edits them. Callers should surface this as a warning.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
@@ -283,7 +285,7 @@ pub(crate) async fn get_openid_provider(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -353,7 +355,7 @@ pub(crate) async fn delete_openid_provider(
 }
 
 /// Update an OpenID provider
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/openid/provider/{name}",
     tag = "OpenID",
@@ -373,7 +375,7 @@ pub(crate) async fn delete_openid_provider(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn modify_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -503,7 +505,7 @@ pub(crate) async fn modify_openid_provider(
 }
 
 /// List OpenID providers
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/openid/provider",
     tag = "OpenID",
@@ -517,7 +519,7 @@ pub(crate) async fn modify_openid_provider(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_openid_providers(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -527,7 +529,7 @@ pub(crate) async fn list_openid_providers(
 }
 
 /// Get the current OpenID provider
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/openid/provider/current",
     tag = "OpenID",
@@ -542,7 +544,7 @@ pub(crate) async fn list_openid_providers(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_current_openid_provider(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -568,7 +570,7 @@ pub(crate) async fn get_current_openid_provider(
 }
 
 /// Test the directory sync connection of the current OpenID provider
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/test_directory_sync",
     tag = "OpenID",
@@ -582,7 +584,7 @@ pub(crate) async fn get_current_openid_provider(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn test_dirsync_connection(
     _license: LicenseInfo,
     _admin: AdminRole,

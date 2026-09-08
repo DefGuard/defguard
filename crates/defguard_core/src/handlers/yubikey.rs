@@ -4,13 +4,14 @@ use axum::{
     http::StatusCode,
 };
 use defguard_common::db::{Id, models::YubiKey};
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, user_for_admin_or_self};
+use super::{ApiResponse, ApiResult, user_for_admin_or_self};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
 
 /// Delete a YubiKey of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/yubikey/{key_id}",
     tag = "user",
@@ -29,7 +30,7 @@ use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -53,13 +54,14 @@ pub(crate) async fn delete_yubikey(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct RenameRequest {
     name: String,
 }
 
 /// Rename a YubiKey of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/yubikey/{key_id}/rename",
     tag = "user",
@@ -79,7 +81,7 @@ pub(crate) struct RenameRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn rename_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,

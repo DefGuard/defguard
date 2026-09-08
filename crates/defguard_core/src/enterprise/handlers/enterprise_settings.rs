@@ -6,6 +6,8 @@ use sqlx::{PgConnection, PgPool, query_scalar};
 use struct_patch::Patch;
 
 use super::LicenseInfo;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -18,7 +20,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult, settings::public_settings_message},
+    handlers::{ApiResponse, ApiResult, settings::public_settings_message},
 };
 
 #[derive(Deserialize)]
@@ -93,7 +95,7 @@ async fn settings_info(
 /// Get enterprise settings
 ///
 /// Available to every authenticated user.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/settings_enterprise",
     tag = "settings",
@@ -114,7 +116,7 @@ async fn settings_info(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_enterprise_settings(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -135,7 +137,7 @@ pub async fn get_enterprise_settings(
 }
 
 /// Update selected enterprise settings
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     patch,
     path = "/api/v1/settings_enterprise",
     tag = "settings",
@@ -151,7 +153,7 @@ pub async fn get_enterprise_settings(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn patch_enterprise_settings(
     _license: LicenseInfo,
     _admin: AdminRole,

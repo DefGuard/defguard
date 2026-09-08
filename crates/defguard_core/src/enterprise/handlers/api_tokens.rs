@@ -6,21 +6,23 @@ use axum::{
 use chrono::Utc;
 use defguard_common::{db::models::user::User, random::gen_alphanumeric};
 use serde_json::json;
-use utoipa::ToSchema;
 
 use super::LicenseInfo;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult, user_for_admin_or_self, validate_name},
+    handlers::{ApiResponse, ApiResult, user_for_admin_or_self, validate_name},
 };
 
 const API_TOKEN_LENGTH: usize = 32;
 
-#[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[derive(Deserialize, Serialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddApiTokenData {
     pub name: String,
 }
@@ -28,7 +30,7 @@ pub struct AddApiTokenData {
 /// Create an API token for a user
 ///
 /// The token value is returned only in this response and cannot be retrieved later.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/api_token",
     tag = "API token",
@@ -48,7 +50,7 @@ pub struct AddApiTokenData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn add_api_token(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -122,7 +124,7 @@ pub async fn add_api_token(
 /// List API tokens of a user
 ///
 /// Token values are never returned, only their metadata.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/user/{username}/api_token",
     tag = "API token",
@@ -140,7 +142,7 @@ pub async fn add_api_token(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn fetch_api_tokens(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -159,7 +161,7 @@ pub async fn fetch_api_tokens(
 }
 
 /// Delete an API token of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/api_token/{token_id}",
     tag = "API token",
@@ -179,7 +181,7 @@ pub async fn fetch_api_tokens(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_api_token(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -216,13 +218,14 @@ pub async fn delete_api_token(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RenameRequest {
     pub name: String,
 }
 
 /// Rename an API token of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/api_token/{token_id}/rename",
     tag = "API token",
@@ -243,7 +246,7 @@ pub struct RenameRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn rename_api_token(
     _license: LicenseInfo,
     _admin: AdminRole,

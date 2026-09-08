@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
 use tracing::{debug, info};
-use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
@@ -40,12 +39,13 @@ pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: use u32 once sqlx supports
 const DEFAULT_FWMARK: i64 = 0; // Zero means: don't use firewall mark.
 
 // Used in process of importing network from WireGuard config.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
     pub wireguard_pubkey: String,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub wireguard_ips: Vec<IpAddr>,
 }
 
@@ -68,7 +68,8 @@ impl DateTimeAggregation {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "location_mfa_mode", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum LocationMfaMode {
@@ -88,7 +89,8 @@ impl fmt::Display for LocationMfaMode {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "service_location_mode", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum ServiceLocationMode {
@@ -99,14 +101,15 @@ pub enum ServiceLocationMode {
 }
 
 /// Stores the configuration required to set up a WireGuard network.
-#[derive(Clone, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Deserialize, Eq, Hash, Model, PartialEq, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {
-    #[schema(value_type = i64)]
+    #[cfg_attr(feature = "openapi", schema(value_type = i64))]
     pub id: I,
     pub name: String,
     #[model(ref)]
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     address: Vec<IpNetwork>,
     pub port: i32, // Should be u16
     pub pubkey: String,
@@ -117,7 +120,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub mtu: i32,    // Should be u32, but sqlx won't allow that.
     pub fwmark: i64, // Should be u32, but sqlx won't allow that.
     #[model(ref)]
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub allowed_ips: Vec<IpNetwork>,
     pub allow_all_groups: bool,
     pub connected_at: Option<NaiveDateTime>,
@@ -1561,7 +1564,8 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, ToSchema)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,
@@ -1617,7 +1621,8 @@ pub struct WireguardNetworkStats {
     pub transfer_series: Vec<WireguardStatsRow>,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationConnectedUserStats {
     user_id: Id,
     first_name: String,
@@ -1626,7 +1631,7 @@ pub struct LocationConnectedUserStats {
     connected_devices_count: u16,
     // oldest active session data
     public_ip: String,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     vpn_ips: Vec<IpAddr>,
     connected_at: NaiveDateTime,
     // agregated traffic stats
@@ -1635,13 +1640,14 @@ pub struct LocationConnectedUserStats {
     stats: Vec<WireguardStatsRow>,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationConnectedNetworkDevice {
     device_id: Id,
     device_name: String,
     // active session data
     public_ip: String,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     vpn_ips: Vec<IpAddr>,
     connected_at: NaiveDateTime,
     // agregated traffic stats

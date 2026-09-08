@@ -4,13 +4,13 @@ use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, query, query_as};
-use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Deserialize, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Deserialize, Model, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Proxy<I = NoId> {
-    #[schema(value_type = i64)]
+    #[cfg_attr(feature = "openapi", schema(value_type = i64))]
     pub id: I,
     pub name: String,
     pub address: String,

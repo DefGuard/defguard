@@ -54,14 +54,15 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 use tracing::Instrument;
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     auth::{AdminRole, SessionInfo},
     cert_settings::ensure_https,
     enterprise::{LicenseFeature, has_enterprise_access},
     error::WebError,
-    handlers::{ApiErrorResponse, settings::broadcast_public_settings},
+    handlers::settings::broadcast_public_settings,
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -85,14 +86,16 @@ impl Drop for TaskGuard {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ProxySetupRequest {
     pub ip_or_domain: String,
     pub grpc_port: u16,
     pub common_name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GatewaySetupRequest {
     pub common_name: String,
     pub ip_or_domain: String,
@@ -100,7 +103,8 @@ pub struct GatewaySetupRequest {
 }
 
 /// Empty request body for the ACME stream endpoint.
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AcmeStreamRequest {}
 
 #[derive(Debug, Serialize, Copy, Clone)]
@@ -236,7 +240,7 @@ impl SetupFlow {
 /// Stream the progress of edge (proxy) TLS setup
 ///
 /// Drives the whole TLS setup flow and reports its progress as Server-Sent Events.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/proxy/setup/stream",
     tag = "proxy",
@@ -250,7 +254,7 @@ impl SetupFlow {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn setup_proxy_tls_stream(
     _admin: AdminRole,
     session: SessionInfo,
@@ -1021,7 +1025,7 @@ async fn perform_gateway_adoption(
 /// Stream the progress of gateway TLS setup
 ///
 /// Drives the whole TLS setup flow and reports its progress as Server-Sent Events.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/network/{network_id}/gateways/setup",
     tag = "gateway",
@@ -1038,7 +1042,7 @@ async fn perform_gateway_adoption(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn setup_gateway_tls_stream(
     _admin: AdminRole,
     session: SessionInfo,
@@ -1135,7 +1139,8 @@ pub async fn setup_gateway_tls_stream(
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GatewayAdoptRequest {
     pub name: String,
     pub ip_or_domain: String,
@@ -1146,7 +1151,7 @@ pub struct GatewayAdoptRequest {
 ///
 /// Registers the gateway, issues its client certificate and returns the created gateway.
 /// Use `GET /api/v1/network/{network_id}/gateways/setup` to follow the setup progress.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/network/{network_id}/gateways/adopt",
     tag = "gateway",
@@ -1166,7 +1171,7 @@ pub struct GatewayAdoptRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn adopt_gateway(
     _admin: AdminRole,
     session: SessionInfo,
@@ -1262,7 +1267,7 @@ async fn apply_acme_certificate(
 ///
 /// Reports progress as Server-Sent Events. The domain and credentials are taken from the
 /// settings, so no parameters are needed.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/proxy/acme/stream",
     tag = "proxy",
@@ -1276,7 +1281,7 @@ async fn apply_acme_certificate(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn stream_proxy_acme(
     _admin: AdminRole,
     Extension(pool): Extension<PgPool>,

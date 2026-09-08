@@ -2,7 +2,6 @@ use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query_as};
-use utoipa::ToSchema;
 
 use crate::db::{
     Id, NoId,
@@ -21,7 +20,8 @@ pub enum VpnClientSessionState {
     Disconnected,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "vpn_client_mfa_method", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum VpnClientMfaMethod {

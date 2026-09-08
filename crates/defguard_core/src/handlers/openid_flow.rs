@@ -44,7 +44,9 @@ use serde::{
 use sqlx::PgPool;
 use thiserror::Error;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, SESSION_COOKIE_NAME};
+use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
@@ -94,7 +96,7 @@ impl From<UserClaims> for StandardClaims<CoreGenderClaim> {
 }
 
 /// Get the JSON Web Key Set used to verify ID token signatures
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/oauth/discovery/keys",
     tag = "OAuth2",
@@ -104,7 +106,7 @@ impl From<UserClaims> for StandardClaims<CoreGenderClaim> {
         })),
         (status = 500, description = "Unable to build key set.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
     if let Some(openid_key) = runtime_openid_key()? {
@@ -475,7 +477,7 @@ fn login_redirect(
 /// Redirects to the login or consent page when the user is not authenticated or has not
 /// yet approved the client. Implements the
 /// [OpenID Connect authorization endpoint](https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint).
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/oauth/authorize",
     tag = "OAuth2",
@@ -496,7 +498,7 @@ fn login_redirect(
         (status = 400, description = "Invalid authorization request.", body = ApiErrorResponse, example = json!({"msg": "Invalid redirect URI"})),
         (status = 500, description = "Unable to handle authorization request.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn authorization(
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
@@ -678,7 +680,7 @@ async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims,
 ///
 /// Called by the consent screen once the user allows or denies the request. On approval it
 /// redirects back to the client with an authorization code.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/oauth/authorize",
     tag = "OAuth2",
@@ -704,7 +706,7 @@ async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims,
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn secure_authorization(
     session_info: SessionInfo,
     State(appstate): State<AppState>,
@@ -964,7 +966,7 @@ fn error_response(error: CoreErrorResponseType, status: StatusCode) -> ApiRespon
 /// `refresh_token` grants. The client authenticates with HTTP Basic auth or with
 /// `client_id`/`client_secret` in the form body. Implements the
 /// [OpenID Connect token endpoint](https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint).
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/oauth/token",
     tag = "OAuth2",
@@ -984,7 +986,7 @@ fn error_response(error: CoreErrorResponseType, status: StatusCode) -> ApiRespon
         (status = 401, description = "Invalid client credentials.", body = ApiErrorResponse, example = json!({"msg": "Invalid credentials"})),
         (status = 500, description = "Unable to issue token.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn token(
     State(appstate): State<AppState>,
     OAuth2ClientExtractor(oauth2client): OAuth2ClientExtractor,
@@ -1155,7 +1157,7 @@ pub async fn token(
 ///
 /// Requires an access token in the `Authorization: Bearer <token>` header. Implements the
 /// [OpenID Connect UserInfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo).
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/oauth/userinfo",
     tag = "OAuth2",
@@ -1171,7 +1173,7 @@ pub async fn token(
         (status = 401, description = "Access token is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Invalid token"})),
         (status = 500, description = "Unable to get user claims.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> ApiResult {
     let Some(token) = headers.get(AUTHORIZATION).and_then(|value| {
         if let Ok(value) = value.to_str() {
@@ -1223,7 +1225,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
 /// Get the OpenID Connect discovery document
 ///
 /// See [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html).
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/.well-known/openid-configuration",
     tag = "OAuth2",
@@ -1241,7 +1243,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
         })),
         (status = 500, description = "Unable to build discovery document.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn openid_configuration() -> ApiResult {
     let url = Settings::url().map_err(|e| OidcFlowError::Url(e.to_string()))?;
     let provider_metadata = CoreProviderMetadata::new(
