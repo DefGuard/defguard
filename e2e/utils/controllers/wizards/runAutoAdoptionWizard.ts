@@ -62,7 +62,7 @@ export const runAutoAdoptionWizard = async (page: Page) => {
   await vpnResp;
 
   // MFA setup
-  await page.getByText('Do not enforce MFA').waitFor({ state: 'visible' });
+  await page.getByTestId('toggle-mfa').waitFor({ state: 'visible' });
   const mfaResp = page.waitForResponse(
     (r) =>
       r.url().includes('/initial_setup/auto_wizard/mfa_settings') &&
