@@ -344,6 +344,100 @@ async fn test_auth_info_mfa_accepts_composite_state(_: PgPoolOptions, options: P
 }
 
 #[sqlx::test]
+async fn test_auth_info_mfa_rejects_invalid_composite_state_without_mutating_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let (_id, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+    let stale_state = MfaOidcState::build(&mfa_token, "stale-attempt-id");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 52,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            state: Some(stale_state),
+            auth_flow_type: AuthFlowType::Mfa as i32,
+            ..Default::default()
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_with_message(&response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "stale MFA attempt");
+
+    let session_after = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session after stale request")
+        .expect("stale request must not delete the active MFA session");
+    let after_attempt_id = session_after
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt to remain in progress")
+        .step_attempt_id
+        .clone();
+    assert_eq!(after_attempt_id, attempt_id);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 53,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            state: Some(format!("{mfa_token}.")),
+            auth_flow_type: AuthFlowType::Mfa as i32,
+            ..Default::default()
+        })),
+    });
+
+    let malformed_response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_with_message(&malformed_response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "invalid state data");
+
+    let session_after_malformed =
+        VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+            .await
+            .expect("failed to find active MFA session after malformed request")
+            .expect("malformed request must not delete the active MFA session");
+    let after_malformed_attempt_id = session_after_malformed
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt to remain in progress")
+        .step_attempt_id
+        .clone();
+    assert_eq!(after_malformed_attempt_id, attempt_id);
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_auth_info_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;

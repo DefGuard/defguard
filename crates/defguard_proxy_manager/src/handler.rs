@@ -90,10 +90,10 @@ const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 /// Compute the OIDC `state` payload for an `AuthInfo` request.
 ///
-/// The MFA flow's payload is the opaque session token plus the session's current
+/// Normalize the MFA AuthInfo payload to the opaque session token plus the active
 /// `step_attempt_id` (`<token>.<step_attempt_id>`), so the OIDC callback can bind to the attempt
-/// it was issued for rather than a superseded one. The enrollment and legacy flows have no such
-/// nonce and their payload is returned unchanged.
+/// it was issued for rather than a superseded one. Raw-token MFA input is enriched for legacy
+/// callers; non-MFA flows are returned unchanged.
 async fn build_auth_info_state(
     pool: &PgPool,
     auth_flow_type: ProtoAuthFlowType,
@@ -103,12 +103,20 @@ async fn build_auth_info_state(
         return Ok(state);
     }
 
-    let Some(token) = state.as_deref() else {
+    let Some(state) = state else {
         debug!("OIDC MFA AuthInfo request is missing the session token");
         return Err(CoreError::invalid_argument("missing MFA session token"));
     };
 
-    let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(pool, token)
+    let (token, requested_attempt_id) = if state.contains('.') {
+        let parsed = MfaOidcState::parse(&state)
+            .ok_or_else(|| CoreError::invalid_argument("invalid state data"))?;
+        (parsed.token, Some(parsed.attempt_id))
+    } else {
+        (state, None)
+    };
+
+    let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(pool, &token)
         .await
         .map_err(|err| {
             error!("Failed to find MFA session: {err}");
@@ -124,7 +132,17 @@ async fn build_auth_info_state(
         return Err(CoreError::invalid_argument("no MFA attempt in progress"));
     };
 
-    Ok(Some(MfaOidcState::build(token, &ephemeral.step_attempt_id)))
+    if let Some(requested_attempt_id) = requested_attempt_id {
+        if requested_attempt_id != ephemeral.step_attempt_id {
+            debug!("OIDC MFA AuthInfo request references a stale attempt");
+            return Err(CoreError::invalid_argument("stale MFA attempt"));
+        }
+    }
+
+    Ok(Some(MfaOidcState::build(
+        &token,
+        &ephemeral.step_attempt_id,
+    )))
 }
 
 /// The concrete OpenID Connect client `make_oidc_client` builds for the Core auth flow.
