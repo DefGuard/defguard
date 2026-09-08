@@ -14,6 +14,7 @@ type Props = {
   dragConstraints: RefObject<HTMLUListElement | null>;
   onEdit: () => void;
   onRemove: () => void;
+  unavailableText?: string;
 };
 
 export const MfaFlowOverrideRow = ({
@@ -25,6 +26,7 @@ export const MfaFlowOverrideRow = ({
   dragConstraints,
   onEdit,
   onRemove,
+  unavailableText,
 }: Props) => {
   const dragControls = useDragControls();
 
@@ -43,6 +45,7 @@ export const MfaFlowOverrideRow = ({
         title={title}
         steps={steps}
         chips={chips}
+        unavailableText={unavailableText}
         leading={
           <button
             type="button"

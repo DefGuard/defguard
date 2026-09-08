@@ -1335,3 +1335,43 @@ async fn test_location_mfa_flows_no_default_designated(
         "refused request must not emit an audit event"
     );
 }
+
+/// A saved flow reports when a prerequisite becomes unavailable after it is saved.
+#[sqlx::test]
+async fn test_mfa_flow_list_reports_unavailable_reason(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "Email Only",
+            "steps": [{ "methods": ["email"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    let flows: serde_json::Value = resp.json().await;
+    assert_eq!(flows[0]["unavailable_reason"], serde_json::Value::Null);
+
+    let mut settings = Settings::get_current_settings();
+    settings.smtp.server = None;
+    settings.smtp.port = None;
+    settings.smtp.sender = None;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let flows: serde_json::Value = resp.json().await;
+    assert_eq!(flows[0]["unavailable_reason"], "smtp_not_configured");
+}

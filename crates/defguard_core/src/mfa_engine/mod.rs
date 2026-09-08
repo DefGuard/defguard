@@ -151,6 +151,8 @@ impl MfaEngine {
     ) -> Result<StartResult, StartError> {
         let business = is_business_license_active();
 
+        // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`, which
+        // reports saved-flow availability.
         // A multi-step flow (2+ steps) requires a business license; fail closed.
         if steps.len() > 1 && !business {
             error!(
@@ -194,6 +196,8 @@ impl MfaEngine {
         {
             let chosen = *chosen;
             if allowed.is_empty() {
+                // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`,
+                // which reports saved-flow availability.
                 rejections.push(StepRejection {
                     step: index as u32,
                     reason: StartRejectionReason::StepEmptyAfterLicense,
