@@ -40,10 +40,17 @@ pub struct MfaFlowListItemResponse {
     pub steps: Vec<MfaFlowStepResponse>,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
+    /// The first license or configuration condition that prevents the flow from running.
+    /// `None` = usable
+    pub unavailable_reason: Option<MethodAvailabilityReason>,
 }
 
-impl From<(MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)> for MfaFlowListItemResponse {
-    fn from((flow, steps): (MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)) -> Self {
+impl MfaFlowListItemResponse {
+    fn new(
+        flow: MfaFlowWithStepCount,
+        steps: Vec<MfaFlowStep<Id>>,
+        unavailable_reason: Option<MethodAvailabilityReason>,
+    ) -> Self {
         Self {
             id: flow.id,
             title: flow.title,
@@ -51,6 +58,7 @@ impl From<(MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)> for MfaFlowListItemRespo
             steps: steps.into_iter().map(Into::into).collect(),
             created_at: flow.created_at,
             updated_at: flow.updated_at,
+            unavailable_reason,
         }
     }
 }
@@ -172,6 +180,8 @@ pub(crate) fn license_error_response(field: String, code: &str) -> ApiResponse {
 /// configured provider.
 #[must_use]
 fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<ApiResponse> {
+    // Keep these write-side gates in sync with `flow_unavailable_reason`, which reports saved-flow
+    // availability.
     if step_methods.len() > 1 && !is_business_license_active() {
         return Some(license_error_response(
             "steps".into(),
@@ -402,11 +412,16 @@ pub async fn list_mfa_flows(
     for step in MfaFlowStep::find_all(&appstate.pool).await? {
         steps_by_flow.entry(step.flow_id).or_default().push(step);
     }
+    let smtp_configured = Settings::get_current_settings().smtp_configured();
+    let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
+    let has_business = is_business_license_active();
     let response: Vec<MfaFlowListItemResponse> = items
         .into_iter()
         .map(|item| {
             let steps = steps_by_flow.remove(&item.id).unwrap_or_default();
-            (item, steps).into()
+            let reason =
+                flow_unavailable_reason(&steps, smtp_configured, oidc_configured, has_business);
+            MfaFlowListItemResponse::new(item, steps, reason)
         })
         .collect();
 
@@ -781,6 +796,41 @@ pub enum MethodAvailabilityReason {
     OidcProviderMissing,
 }
 
+/// Returns the first reason a saved flow cannot run under the active license or configuration.
+///
+/// Keep this in sync with [`check_flow_license_gates`] and the MFA engine's
+/// `StepEmptyAfterLicense` and `MultiStepNotAvailable` refusals.
+#[must_use]
+fn flow_unavailable_reason(
+    steps: &[MfaFlowStep<Id>],
+    smtp_configured: bool,
+    oidc_configured: bool,
+    has_business: bool,
+) -> Option<MethodAvailabilityReason> {
+    if steps.len() > 1 && !has_business {
+        return Some(MethodAvailabilityReason::Licensed);
+    }
+
+    let availability = compute_method_availability(smtp_configured, oidc_configured, has_business);
+    let entry = |method: VpnClientMfaMethod| {
+        availability
+            .iter()
+            .find(move |item| item.method == method)
+            .expect("every method is enumerated by compute_method_availability")
+    };
+
+    for step in steps {
+        if step.methods.iter().any(|m| entry(*m).available) {
+            continue;
+        }
+        if let Some(first) = step.methods.first() {
+            return Some(entry(*first).reason);
+        }
+    }
+
+    None
+}
+
 /// Compute per-method availability for the MFA flow editor.
 ///
 /// Checks license tier, SMTP configuration, and OIDC provider presence to
@@ -790,9 +840,8 @@ pub enum MethodAvailabilityReason {
 fn compute_method_availability(
     smtp_configured: bool,
     oidc_configured: bool,
+    has_business: bool,
 ) -> Vec<MethodAvailabilityResponse> {
-    let has_business = is_business_license_active();
-
     let methods = [
         (
             VpnClientMfaMethod::Totp,
@@ -868,6 +917,65 @@ pub async fn get_method_availability(
     );
     let smtp_configured = Settings::get_current_settings().smtp_configured();
     let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
-    let result = compute_method_availability(smtp_configured, oidc_configured);
+    let result = compute_method_availability(
+        smtp_configured,
+        oidc_configured,
+        is_business_license_active(),
+    );
     Ok(ApiResponse::json(result, StatusCode::OK))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn step(methods: &[VpnClientMfaMethod]) -> MfaFlowStep<Id> {
+        MfaFlowStep {
+            id: 1,
+            flow_id: 1,
+            position: 0,
+            methods: methods.to_vec(),
+        }
+    }
+
+    #[test]
+    fn test_flow_unavailable_reason() {
+        assert!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Totp])], false, false, false)
+                .is_none()
+        );
+
+        assert!(matches!(
+            flow_unavailable_reason(
+                &[
+                    step(&[VpnClientMfaMethod::Totp]),
+                    step(&[VpnClientMfaMethod::Totp])
+                ],
+                true,
+                true,
+                false,
+            ),
+            Some(MethodAvailabilityReason::Licensed)
+        ));
+
+        assert!(matches!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Email])], false, true, true),
+            Some(MethodAvailabilityReason::SmtpNotConfigured)
+        ));
+
+        assert!(matches!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Oidc])], true, false, true),
+            Some(MethodAvailabilityReason::OidcProviderMissing)
+        ));
+
+        assert!(
+            flow_unavailable_reason(
+                &[step(&[VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email])],
+                false,
+                true,
+                true,
+            )
+            .is_none()
+        );
+    }
 }

@@ -74,6 +74,10 @@
   border: var(--border-1) solid var(--border-default);
   border-radius: var(--radius-lg);
 
+  &:has(> .info-banner) {
+    border-color: var(--border-warning);
+  }
+
   .header {
     display: flex;
     flex-flow: row nowrap;
@@ -125,6 +129,14 @@
     display: flex;
     flex-flow: row wrap;
     gap: var(--spacing-sm);
+  }
+
+  .info-banner {
+    margin-top: var(--spacing-lg);
+
+    & > .inner {
+      align-items: center;
+    }
   }
 
   .fold-chips {

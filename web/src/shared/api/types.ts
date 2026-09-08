@@ -1503,6 +1503,7 @@ export interface MfaFlowListItemResponse {
   steps: MfaFlowStep[];
   created_at: string;
   updated_at: string;
+  unavailable_reason: MfaMethodAvailabilityReasonValue | null;
 }
 
 export interface MfaFlowErrorField {
