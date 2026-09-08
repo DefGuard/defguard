@@ -558,6 +558,8 @@ const api = {
         client.put(`/acl/destination/apply`, {
           destinations,
         }),
+      bulkDeleteDestinations: (destinations: number[]) =>
+        client.post('/acl/destination/bulk-delete', { destinations }),
     },
     alias: {
       getCount: () => client.get<AclCount>('acl/alias/count'),
@@ -571,6 +573,8 @@ const api = {
         client.put(`/acl/alias/apply`, {
           aliases,
         }),
+      bulkDeleteAliases: (aliases: number[]) =>
+        client.post('/acl/alias/bulk-delete', { aliases }),
     },
     rule: {
       getCount: () => client.get<AclCount>('acl/rule/count'),
@@ -583,6 +587,12 @@ const api = {
           rules,
         }),
       deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
+      bulkEnableRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-enable', { rules }),
+      bulkDisableRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-disable', { rules }),
+      bulkDeleteRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-delete', { rules }),
     },
   },
   activityLogStream: {

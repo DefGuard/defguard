@@ -4,6 +4,7 @@ import {
   createColumnHelper,
   getCoreRowModel,
   getSortedRowModel,
+  type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
 import { cloneDeep } from 'radashi';
@@ -27,6 +28,7 @@ import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { BadgeVariant } from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
+import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import type {
   MenuItemProps,
@@ -42,6 +44,7 @@ import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { useAclBulkActions } from '../Acl/hooks/useAclBulkActions';
 
 type RowData = AclRule;
 
@@ -59,9 +62,9 @@ type Props = {
   enableSearch?: boolean;
 };
 
-const toggleRulePromise = async (id: number) => {
+const setRuleEnabled = async (id: number, enabled: boolean) => {
   const rule = cloneDeep((await api.acl.rule.getRule(id)).data);
-  rule.enabled = !rule.enabled;
+  rule.enabled = enabled;
   return api.acl.rule.editRule(rule);
 };
 
@@ -99,7 +102,8 @@ export const RulesTable = ({
   });
 
   const { mutate: toggleRule } = useMutation({
-    mutationFn: toggleRulePromise,
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      setRuleEnabled(id, enabled),
     meta: {
       invalidate: ['acl'],
     },
@@ -116,6 +120,7 @@ export const RulesTable = ({
   });
 
   const [search, setSearch] = useState('');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const renderStatusCell = useCallback(
     (ruleState: AclStatusValue, isEnabled: boolean) => {
@@ -310,7 +315,7 @@ export const RulesTable = ({
                   text: m.controls_disable(),
                   onClick: () => {
                     licenseActionCheck(canUseBusinessFeature(license), () => {
-                      toggleRule(row.id);
+                      toggleRule({ id: row.id, enabled: false });
                     });
                   },
                 });
@@ -320,7 +325,7 @@ export const RulesTable = ({
                   text: m.controls_enable(),
                   onClick: () => {
                     licenseActionCheck(canUseBusinessFeature(license), () => {
-                      toggleRule(row.id);
+                      toggleRule({ id: row.id, enabled: true });
                     });
                   },
                 });
@@ -399,13 +404,29 @@ export const RulesTable = ({
         },
       ],
     },
+    state: {
+      rowSelection,
+    },
     sortingFns: tableSortingFns,
     columns,
     data: visibleRules,
-    enableRowSelection: false,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     columnResizeMode: 'onChange',
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
+  });
+
+  const selectedRules = table.getSelectedRowModel().rows.map((row) => row.original);
+
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+  const bulkMenuItems = useAclBulkActions({
+    kind: 'rule',
+    selected: selectedRules,
+    variant,
+    license,
+    clearSelection,
   });
 
   if (data.length === 0) return null;
@@ -413,6 +434,17 @@ export const RulesTable = ({
   return (
     <>
       <TableTop text={title}>
+        {selectedRules.length > 0 && (
+          <ButtonMenu
+            variant="outlined"
+            text={m.acl_rules_bulk_actions()}
+            iconRight="arrow-small"
+            iconRightRotation="down"
+            placement="bottom-start"
+            testId="rules-bulk-actions"
+            menuItems={bulkMenuItems}
+          />
+        )}
         {enableSearch && (
           <Search placeholder={m.controls_search()} value={search} onChange={setSearch} />
         )}

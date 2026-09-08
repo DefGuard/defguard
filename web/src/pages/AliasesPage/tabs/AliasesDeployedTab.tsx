@@ -1,17 +1,20 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import type { RowSelectionState } from '@tanstack/react-table';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { AclListTab } from '../../../shared/aclTabs';
 import { AclStatus } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
+import { ButtonMenu } from '../../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { getAliasesQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
+import { useAclBulkActions } from '../../Acl/hooks/useAclBulkActions';
 import { useRuleDeps } from '../../RulesPage/useRuleDeps';
 import { AliasTable } from '../AliasTable';
 
@@ -23,6 +26,7 @@ export const AliasesDeployedTab = () => {
   const isEmpty = aliases.length === 0;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const { license, loading } = useRuleDeps();
   const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
   const rulesByAliasId = useMemo(() => {
@@ -86,6 +90,19 @@ export const AliasesDeployedTab = () => {
 
   const visibleEmpty = filteredAliases.length === 0;
 
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+  const selectedAliases = useMemo(
+    () => filteredAliases.filter((alias) => rowSelection[String(alias.id)]),
+    [filteredAliases, rowSelection],
+  );
+  const bulkMenuItems = useAclBulkActions({
+    kind: 'alias',
+    selected: selectedAliases,
+    variant: AclListTab.Deployed,
+    license,
+    clearSelection,
+  });
+
   return (
     <>
       {isEmpty && (
@@ -99,6 +116,17 @@ export const AliasesDeployedTab = () => {
       {!isEmpty && (
         <>
           <TableTop text={m.acl_aliases_table_title_deployed()}>
+            {selectedAliases.length > 0 && (
+              <ButtonMenu
+                variant="outlined"
+                text={m.acl_aliases_bulk_actions()}
+                iconRight="arrow-small"
+                iconRightRotation="down"
+                placement="bottom-start"
+                testId="aliases-bulk-actions"
+                menuItems={bulkMenuItems}
+              />
+            )}
             <Search
               placeholder={m.controls_search()}
               initialValue={search}
@@ -109,7 +137,13 @@ export const AliasesDeployedTab = () => {
             <Button {...addButtonProps} />
           </TableTop>
           {!visibleEmpty && (
-            <AliasTable data={filteredAliases} rules={rules} tab={AclListTab.Deployed} />
+            <AliasTable
+              data={filteredAliases}
+              rules={rules}
+              tab={AclListTab.Deployed}
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
+            />
           )}
           {visibleEmpty && (
             <EmptyStateFlexible

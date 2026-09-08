@@ -31,8 +31,8 @@ test.describe('Test users bulk actions', () => {
     await firstUser.locator('.checkbox').click();
     await secondUser.locator('.checkbox').click();
 
-    await page.getByTestId('bulk-actions').click();
-    await page.getByTestId('bulk-disable').click();
+    await page.getByTestId('users-bulk-actions').click();
+    await page.getByTestId('users-bulk-disable').click();
     await page
       .locator('.modal')
       .getByRole('button', { name: 'Disable', exact: true })
@@ -65,8 +65,8 @@ test.describe('Test users bulk actions', () => {
 
     await firstUser.locator('.checkbox').click();
     await secondUser.locator('.checkbox').click();
-    await page.getByTestId('bulk-actions').click();
-    await page.getByTestId('bulk-disable').click();
+    await page.getByTestId('users-bulk-actions').click();
+    await page.getByTestId('users-bulk-disable').click();
     await page
       .locator('.modal')
       .getByRole('button', { name: 'Disable', exact: true })
@@ -76,8 +76,8 @@ test.describe('Test users bulk actions', () => {
     await expect(secondUser).toContainText('Disabled');
 
     // Row selection persists across bulk actions; re-clicking checkboxes would deselect.
-    await page.getByTestId('bulk-actions').click();
-    await page.getByTestId('bulk-enable').click();
+    await page.getByTestId('users-bulk-actions').click();
+    await page.getByTestId('users-bulk-enable').click();
     await page
       .locator('.modal')
       .getByRole('button', { name: 'Enable', exact: true })
@@ -112,8 +112,8 @@ test.describe('Test users bulk actions', () => {
 
     await firstUser.locator('.checkbox').click();
     await secondUser.locator('.checkbox').click();
-    await page.getByTestId('bulk-actions').click();
-    await page.getByTestId('bulk-delete').click();
+    await page.getByTestId('users-bulk-actions').click();
+    await page.getByTestId('users-bulk-delete').click();
     await page
       .locator('.modal')
       .getByRole('button', { name: 'Delete', exact: true })

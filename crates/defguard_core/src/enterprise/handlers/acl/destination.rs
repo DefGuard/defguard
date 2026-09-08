@@ -97,7 +97,7 @@ pub struct ApiAclDestination {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub(crate) struct ApplyAclDestinationsData {
+pub(crate) struct AclDestinationsData {
     destinations: Vec<Id>,
 }
 
@@ -461,15 +461,62 @@ pub(crate) async fn delete_acl_destination(
         "User {} deleting ACL destination {id}",
         session.user.username
     );
-    AclAlias::delete_by_kind(&appstate.pool, id, AliasKind::Destination)
+    let mut transaction = appstate.pool.begin().await?;
+    AclAlias::delete_by_kind(&mut transaction, id, AliasKind::Destination)
         .await
         .map_err(|err| {
             error!("Error deleting ACL destination {id}: {err}");
             err
         })?;
+    transaction.commit().await?;
     info!(
         "User {} deleted ACL destination {id}",
         session.user.username
+    );
+    Ok(ApiResponse::default())
+}
+
+/// Deletes multiple ACL destinations.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/destination/bulk-delete",
+    tag = "ACL",
+    request_body = AclDestinationsData,
+    responses(
+        (status = 200, description = "ACL destinations deleted."),
+        (status = 400, description = "A destination is used by an existing ACL rule.", body = ApiErrorResponse, example = json!({"msg": "Destination 1 is used by some existing ACL rules"})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 404, description = "ACL destination not found.", body = ApiErrorResponse, example = json!({"msg": "Destination 1 not found"})),
+        (status = 500, description = "Unable to delete ACL destinations.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn bulk_delete_acl_destinations(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(mut data): Json<AclDestinationsData>,
+) -> ApiResult {
+    data.destinations.sort_unstable();
+    data.destinations.dedup();
+    debug!(
+        "User {} deleting ACL destinations: {:?}",
+        session.user.username, data.destinations
+    );
+    AclAlias::delete_many_by_kind(&data.destinations, AliasKind::Destination, &appstate.pool)
+        .await
+        .map_err(|err| {
+            error!("Error deleting ACL destinations {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} deleted ACL destinations: {:?}",
+        session.user.username, data.destinations
     );
     Ok(ApiResponse::default())
 }
@@ -479,7 +526,7 @@ pub(crate) async fn delete_acl_destination(
     put,
     path = "/api/v1/acl/destination/apply",
     tag = "ACL",
-    request_body = ApplyAclDestinationsData,
+    request_body = AclDestinationsData,
     responses(
         (status = 200, description = "Pending destination changes applied."),
         (status = 400, description = "ACL destination is already applied.", body = ApiErrorResponse, example = json!({"msg": "Destination 1 already applied"})),
@@ -498,7 +545,7 @@ pub(crate) async fn apply_acl_destinations(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<ApplyAclDestinationsData>,
+    Json(data): Json<AclDestinationsData>,
 ) -> ApiResult {
     debug!(
         "User {} applying ACL destinations: {:?}",

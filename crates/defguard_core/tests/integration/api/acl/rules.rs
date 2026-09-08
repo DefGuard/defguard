@@ -1810,3 +1810,178 @@ async fn test_acl_count_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(counts["applied"], json!(2));
     assert_eq!(counts["pending"], json!(1));
 }
+
+#[sqlx::test]
+async fn test_bulk_rule_enable_disable(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    for _ in 0..3 {
+        let response = client
+            .post("/api/v1/acl/rule")
+            .json(&make_rule())
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let response = client
+        .post("/api/v1/acl/rule/bulk-disable")
+        .json(&json!({ "rules": [1, 2] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    for (id, enabled) in [(1, false), (2, false), (3, true)] {
+        let rule: ApiAclRule = client
+            .get(format!("/api/v1/acl/rule/{id}"))
+            .send()
+            .await
+            .json()
+            .await;
+        assert_eq!(rule.enabled, enabled, "rule {id} enabled state");
+    }
+
+    // Rules 1 and 2 are already disabled, so only rule 3 changes.
+    let response = client
+        .post("/api/v1/acl/rule/bulk-disable")
+        .json(&json!({ "rules": [1, 2, 3] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 3);
+
+    let response = client
+        .post("/api/v1/acl/rule/bulk-enable")
+        .json(&json!({ "rules": [1, 3] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    for (id, enabled) in [(1, true), (2, false), (3, true)] {
+        let rule: ApiAclRule = client
+            .get(format!("/api/v1/acl/rule/{id}"))
+            .send()
+            .await
+            .json()
+            .await;
+        assert_eq!(rule.enabled, enabled, "rule {id} enabled state");
+    }
+}
+
+#[sqlx::test]
+async fn test_bulk_rule_disable_applied_creates_pending_child(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let response = client
+        .post("/api/v1/acl/rule")
+        .json(&make_rule())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    set_rule_state(&pool, 1, RuleState::Applied, None).await;
+
+    let response = client
+        .post("/api/v1/acl/rule/bulk-disable")
+        .json(&json!({ "rules": [1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
+
+    let parent: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(parent.state, RuleState::Applied);
+    assert!(parent.enabled, "Applied rule must remain unchanged");
+
+    let child: ApiAclRule = client.get("/api/v1/acl/rule/2").send().await.json().await;
+    assert_eq!(child.state, RuleState::Modified);
+    assert_eq!(child.parent_id, Some(1));
+    assert!(!child.enabled);
+}
+
+#[sqlx::test]
+async fn test_bulk_rule_delete(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    for _ in 0..3 {
+        let response = client
+            .post("/api/v1/acl/rule")
+            .json(&make_rule())
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+    set_rule_state(&pool, 2, RuleState::Applied, None).await;
+
+    let response = client
+        .post("/api/v1/acl/rule/bulk-delete")
+        .json(&json!({ "rules": [1, 2] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Rule 1 was `New`, so it is removed; rule 2 was applied, so it gets a `Deleted` child.
+    let mut ids: Vec<Id> = AclRule::all(&pool)
+        .await
+        .unwrap()
+        .iter()
+        .map(|rule| rule.id)
+        .collect();
+    ids.sort_unstable();
+    assert_eq!(ids, vec![2, 3, 4]);
+
+    let child: ApiAclRule = client.get("/api/v1/acl/rule/4").send().await.json().await;
+    assert_eq!(child.state, RuleState::Deleted);
+    assert_eq!(child.parent_id, Some(2));
+}
+
+/// An unknown rule ID rolls back the entire bulk operation.
+#[sqlx::test]
+async fn test_bulk_rule_action_unknown_rule(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let response = client
+        .post("/api/v1/acl/rule")
+        .json(&make_rule())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    for path in [
+        "/api/v1/acl/rule/bulk-disable",
+        "/api/v1/acl/rule/bulk-enable",
+        "/api/v1/acl/rule/bulk-delete",
+    ] {
+        let response = client
+            .post(path)
+            .json(&json!({ "rules": [1, 999] }))
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
+    }
+
+    let rules = AclRule::all(&pool).await.unwrap();
+    assert_eq!(rules.len(), 1);
+    assert!(
+        rules[0].enabled,
+        "Rule 1 must remain unchanged after rollback"
+    );
+}
