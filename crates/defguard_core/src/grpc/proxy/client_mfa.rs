@@ -68,16 +68,18 @@ use crate::{
 // separate repositories and cannot be shared.
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(2);
 
-/// A remote MFA waiter can learn that an approval happened or advanced the flow, never receive a
-/// credential.
+/// A remote MFA waiter can learn that it was superseded, an approval happened, or the flow
+/// advanced, never receive a credential.
 #[derive(Debug)]
 pub enum RemoteAuthSignal {
+    Superseded,
     Approved,
     Advanced { next_step: u32 },
 }
 
 /// The parked relay's state. The legacy PSK is side state, not a channel payload.
 pub struct RemoteAuthWaiter {
+    generation: Arc<()>,
     signal_tx: oneshot::Sender<RemoteAuthSignal>,
     legacy_preshared_key: Arc<Mutex<Option<String>>>,
 }
@@ -99,13 +101,18 @@ async fn acquire_connection(pool: &PgPool) -> Result<PoolConnection<Postgres>, S
     })
 }
 
-/// Remove a remote-MFA waiter from the map, dropping the entry so a never-finishing client or a
-/// dropped sender cannot leak a map entry.
-fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str) {
-    waiters
+/// Remove a remote-MFA waiter only when the cleanup task still owns the registered generation,
+/// dropping the entry so a never-finishing client or a dropped sender cannot leak a map entry.
+fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, generation: &Arc<()>) {
+    let mut waiters = waiters
         .write()
-        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-        .remove(hash);
+        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses");
+    let owns_current_waiter = waiters
+        .get(hash)
+        .is_some_and(|waiter| Arc::ptr_eq(&waiter.generation, generation));
+    if owns_current_waiter {
+        waiters.remove(hash);
+    }
 }
 
 impl From<ClientMfaServerError> for Status {
@@ -554,10 +561,15 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
     ) -> Result<ClientMfaStartOutcome, Status> {
         if let Some(superseded_token_hash) = start_outcome.superseded_token_hash {
-            self.remote_mfa_responses
-                .write()
-                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                .remove(&superseded_token_hash);
+            let superseded_waiter = {
+                self.remote_mfa_responses
+                    .write()
+                    .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                    .remove(&superseded_token_hash)
+            };
+            if let Some(waiter) = superseded_waiter {
+                let _ = waiter.signal_tx.send(RemoteAuthSignal::Superseded);
+            }
 
             let context =
                 BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
@@ -692,16 +704,23 @@ impl ClientMfaServer {
         let hash = hash_token(&request.token);
         let (signal_tx, rx) = oneshot::channel();
         let legacy_preshared_key = Arc::new(Mutex::new(None));
-        self.remote_mfa_responses
-            .write()
-            .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-            .insert(
-                hash.clone(),
-                RemoteAuthWaiter {
-                    signal_tx,
-                    legacy_preshared_key: legacy_preshared_key.clone(),
-                },
-            );
+        let generation = Arc::new(());
+        let replaced_waiter = {
+            self.remote_mfa_responses
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                .insert(
+                    hash.clone(),
+                    RemoteAuthWaiter {
+                        generation: generation.clone(),
+                        signal_tx,
+                        legacy_preshared_key: legacy_preshared_key.clone(),
+                    },
+                )
+        };
+        if let Some(waiter) = replaced_waiter {
+            let _ = waiter.signal_tx.send(RemoteAuthSignal::Superseded);
+        }
 
         let waiters = self.remote_mfa_responses.clone();
         let engine = self.engine.clone();
@@ -709,6 +728,14 @@ impl ClientMfaServer {
         // The legacy path stores its key as waiter side state, never in the signal channel.
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
+                Ok(Ok(RemoteAuthSignal::Superseded)) => {
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(Payload::CoreError(
+                            Status::aborted("remote MFA wait superseded").into(),
+                        )),
+                    });
+                }
                 Ok(Ok(RemoteAuthSignal::Advanced { next_step })) => {
                     let _ = response_tx.send(CoreResponse {
                         id: request_id,
@@ -778,12 +805,12 @@ impl ClientMfaServer {
                 }
                 Ok(Err(err)) => {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
-                    remove_remote_mfa_waiter(&waiters, &hash);
-                    error!("Remote MFA response channel failed: {err:?}");
+                    remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                    debug!("Remote MFA response channel closed: {err:?}");
                 }
                 Err(_) => {
                     // Drop the waiter so a client that never finishes cannot leak map entries.
-                    remove_remote_mfa_waiter(&waiters, &hash);
+                    remove_remote_mfa_waiter(&waiters, &hash, &generation);
                     warn!("Remote MFA process with request_id {request_id} timed out");
                 }
             }
@@ -1298,8 +1325,8 @@ mod tests {
     use totp_lite::{Sha1, totp_custom};
 
     use super::{
-        AwaitRemoteMfaFinishRequest, ClientMfaServer, ClientMfaStartOutcome, hash_token,
-        mfa_step_result,
+        AwaitRemoteMfaFinishRequest, ClientMfaServer, ClientMfaStartOutcome, CoreResponse,
+        hash_token, mfa_step_result, remove_remote_mfa_waiter,
     };
     use crate::{
         enterprise::{
@@ -2609,6 +2636,209 @@ mod tests {
         .await
         .expect("failed to assign MFA flow to location");
         tx.commit().await.expect("failed to commit transaction");
+    }
+
+    #[allow(deprecated)]
+    async fn setup_totp_mfa_server(
+        options: PgConnectOptions,
+    ) -> (
+        ClientMfaServer,
+        Id,
+        String,
+        String,
+        tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
+        tokio::sync::broadcast::Receiver<GatewayCommand>,
+    ) {
+        set_enterprise_license();
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to init settings");
+        let location = create_mfa_location(&pool).await;
+        create_and_assign_mfa_flow(&pool, location.id).await;
+        let mut user = create_user(&pool).await;
+        user.enable_totp(&pool)
+            .await
+            .expect("failed to enable TOTP");
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+
+        let (mut server, event_rx, gateway_rx) = make_server(pool);
+        let start = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id: location.id,
+                    pubkey: device.wireguard_pubkey.clone(),
+                    method: MfaMethod::Totp as i32,
+                    posture_data: None,
+                    selected_methods: Vec::new(),
+                },
+                device_info(),
+            )
+            .await
+            .expect("start should succeed");
+        let token = match start {
+            ClientMfaStartOutcome::Approved(response) => response.token,
+            ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
+        };
+
+        (
+            server,
+            location.id,
+            device.wireguard_pubkey,
+            token,
+            event_rx,
+            gateway_rx,
+        )
+    }
+
+    fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
+        let response = response.expect("superseded waiter should receive a response");
+        assert_eq!(response.id, request_id);
+        let Some(super::Payload::CoreError(error)) = response.payload else {
+            panic!("expected a CoreError superseded response");
+        };
+        assert_eq!(error.status_code, Code::Aborted as i32);
+        assert_eq!(error.message, "remote MFA wait superseded");
+    }
+
+    #[test]
+    fn test_remove_remote_mfa_waiter_only_removes_owned_generation() {
+        let waiters: RemoteAuthWaiters = Arc::default();
+        let stale_generation = Arc::new(());
+        let current_generation = Arc::new(());
+        let (signal_tx, _signal_rx) = tokio::sync::oneshot::channel();
+
+        waiters.write().unwrap().insert(
+            "test-hash".to_owned(),
+            super::RemoteAuthWaiter {
+                generation: current_generation.clone(),
+                signal_tx,
+                legacy_preshared_key: Arc::new(std::sync::Mutex::new(None)),
+            },
+        );
+
+        remove_remote_mfa_waiter(&waiters, "test-hash", &stale_generation);
+        assert!(waiters.read().unwrap().contains_key("test-hash"));
+
+        remove_remote_mfa_waiter(&waiters, "test-hash", &current_generation);
+        assert!(!waiters.read().unwrap().contains_key("test-hash"));
+    }
+
+    #[sqlx::test]
+    async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newer(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let (mut server, _location_id, _pubkey, token, _event_rx, _gateway_rx) =
+            setup_totp_mfa_server(options).await;
+        let hash = hash_token(&token);
+
+        let (first_response_tx, mut first_response_rx) = mpsc::unbounded_channel();
+        server
+            .await_remote_mfa_login(
+                AwaitRemoteMfaFinishRequest {
+                    token: token.clone(),
+                },
+                first_response_tx,
+                1,
+                device_info(),
+            )
+            .await
+            .expect("first waiter should park");
+
+        let (second_response_tx, mut second_response_rx) = mpsc::unbounded_channel();
+        server
+            .await_remote_mfa_login(
+                AwaitRemoteMfaFinishRequest {
+                    token: token.clone(),
+                },
+                second_response_tx,
+                2,
+                device_info(),
+            )
+            .await
+            .expect("second waiter should replace the first");
+
+        let first_response = tokio::time::timeout(Duration::from_secs(1), first_response_rx.recv())
+            .await
+            .expect("old waiter should finish after replacement");
+        let newer_waiter_registered = server
+            .remote_mfa_responses
+            .read()
+            .expect("failed to read remote MFA waiters")
+            .contains_key(&hash);
+
+        server
+            .remote_mfa_responses
+            .write()
+            .expect("failed to write remote MFA waiters")
+            .remove(&hash);
+        let second_response =
+            tokio::time::timeout(Duration::from_secs(1), second_response_rx.recv())
+                .await
+                .expect("newer waiter cleanup should finish");
+
+        assert!(
+            second_response.is_none(),
+            "newer waiter should only be cleaned up here"
+        );
+        assert!(
+            newer_waiter_registered,
+            "old waiter cleanup must not remove the newer waiter"
+        );
+        assert_superseded_response(first_response, 1);
+    }
+
+    #[sqlx::test]
+    #[allow(deprecated)]
+    async fn test_start_client_mfa_login_supersedes_parked_waiter_with_defined_result(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let (mut server, location_id, pubkey, token, _event_rx, _gateway_rx) =
+            setup_totp_mfa_server(options).await;
+        let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+        server
+            .await_remote_mfa_login(
+                AwaitRemoteMfaFinishRequest {
+                    token: token.clone(),
+                },
+                response_tx,
+                1,
+                device_info(),
+            )
+            .await
+            .expect("waiter should park");
+        assert!(
+            server
+                .remote_mfa_responses
+                .read()
+                .expect("failed to read remote MFA waiters")
+                .contains_key(&hash_token(&token)),
+            "waiter should be registered before the replacement start"
+        );
+
+        let replacement = server
+            .start_client_mfa_login(
+                ClientMfaStartRequest {
+                    location_id,
+                    pubkey,
+                    #[allow(deprecated)]
+                    method: MfaMethod::Totp as i32,
+                    posture_data: None,
+                    selected_methods: Vec::new(),
+                },
+                device_info(),
+            )
+            .await
+            .expect("replacement start should succeed");
+        assert!(matches!(replacement, ClientMfaStartOutcome::Approved(_)));
+
+        let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+            .await
+            .expect("superseded waiter should finish after replacement start");
+        assert_superseded_response(response, 1);
     }
 
     #[sqlx::test]
