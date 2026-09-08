@@ -19,6 +19,9 @@ use crate::mail::templates;
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
+pub static MFA_CONFIG_TOKEN_TYPE: &str = "MFA_CONFIG";
+// One window covers both the time to authorize and the time to configure factors.
+pub const MFA_CONFIG_SESSION_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 
 #[derive(Error, Debug)]
 pub enum TokenError {
@@ -313,18 +316,28 @@ impl Token {
         transaction: &mut PgConnection,
         user_id: Id,
     ) -> Result<(), TokenError> {
-        debug!("Deleting unused password reset tokens for user {user_id}");
-        let result = query!(
-            "DELETE FROM token \
-            WHERE user_id = $1 \
-            AND token_type = 'PASSWORD_RESET' \
-            AND used_at IS NULL",
-            user_id
-        )
-        .execute(transaction)
-        .await?;
+        Self::delete_unused_user_tokens_of_type(transaction, user_id, PASSWORD_RESET_TOKEN_TYPE)
+            .await
+    }
+
+    pub async fn delete_unused_user_tokens_of_type<'e, E>(
+        executor: E,
+        user_id: Id,
+        token_type: &str,
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
+        debug!("Deleting unused {token_type} tokens for user {user_id}");
+        // Plain query: the token type is a runtime parameter and needs no cached query data.
+        let result =
+            query("DELETE FROM token WHERE user_id = $1 AND token_type = $2 AND used_at IS NULL")
+                .bind(user_id)
+                .bind(token_type)
+                .execute(executor)
+                .await?;
         debug!(
-            "Deleted {} unused password reset tokens for user {user_id}",
+            "Deleted {} unused {token_type} tokens for user {user_id}",
             result.rows_affected()
         );
 

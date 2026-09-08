@@ -81,7 +81,7 @@ use tonic::{
 use crate::ProxyManagerTestSupport;
 use crate::{
     HandlerTxMap, ProxyError, ProxyTxSet, TEN_SECS,
-    servers::{EnrollmentServer, PasswordResetServer},
+    servers::{EnrollmentServer, MfaConfigServer, PasswordResetServer},
 };
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -600,6 +600,18 @@ impl ProxyHandler {
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
                     let payload = match received.payload {
+                        // rpc MfaConfigStart return (MfaConfigStartResponse)
+                        Some(core_request::Payload::MfaConfigStart(request)) => {
+                            match self.services.mfa_config.mfa_config_start(request).await {
+                                Ok(response) => {
+                                    Some(core_response::Payload::MfaConfigStart(response))
+                                }
+                                Err(err) => {
+                                    error!("MFA config start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
                             match self
@@ -1346,6 +1358,7 @@ struct ProxyServices {
     password_reset: PasswordResetServer,
     client_mfa: ClientMfaServer,
     polling: PollingServer,
+    mfa_config: MfaConfigServer,
     ldap: UnboundedSender<LdapSyncEventType>,
     dirsync: UnboundedSender<DirectorySyncEvent>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -1372,12 +1385,14 @@ impl ProxyServices {
             remote_mfa_responses,
         );
         let polling = PollingServer::new(pool.clone());
+        let mfa_config = MfaConfigServer::new(pool.clone());
 
         Self {
             enrollment,
             password_reset,
             client_mfa,
             polling,
+            mfa_config,
             ldap: tx.ldap.clone(),
             dirsync: tx.dirsync.clone(),
             event_tx: tx.event_tx.clone(),
