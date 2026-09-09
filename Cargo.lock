@@ -1488,6 +1488,11 @@ dependencies = [
 [[package]]
 name = "defguard-load-generator"
 version = "0.1.0"
+dependencies = [
+ "clap",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "defguard_certs"
