@@ -35,7 +35,7 @@ use crate::{
             group_client_traffic_policy::GroupClientTrafficPolicy,
             openid_provider::OpenIdProvider,
         },
-        has_enterprise_access, is_business_license_active,
+        has_enterprise_access, is_business_license_active, is_oidc_mfa_available,
         license::LicenseTier,
     },
     grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
@@ -197,7 +197,7 @@ impl InstanceInfo {
     ) -> Result<Self, InstanceInfoBuildError> {
         let enterprise_settings = EnterpriseSettings::get(pool).await?;
         let smtp_configured = settings.smtp_configured();
-        let oidc_configured = is_business_license_active() && openid_provider.is_some();
+        let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
         let mut configured_methods = Vec::with_capacity(VpnClientMfaMethod::ALL.len());
         for method in VpnClientMfaMethod::ALL {
             if method

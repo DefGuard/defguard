@@ -25,7 +25,10 @@ use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider, is_business_license_active,
+        is_oidc_mfa_available,
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::GatewayCommand,
     mfa_engine::{
@@ -315,7 +318,9 @@ impl MfaEngine {
     /// Whether OIDC is available when a flow starts: a business license plus a configured OpenID
     /// provider. `start` freezes this decision into its snapshot.
     async fn oidc_available(&self) -> sqlx::Result<bool> {
-        Ok(is_business_license_active() && self.oidc_provider_configured().await?)
+        Ok(is_oidc_mfa_available(
+            self.oidc_provider_configured().await?,
+        ))
     }
 
     /// Whether the configured provider remains available to an already-started flow. This does

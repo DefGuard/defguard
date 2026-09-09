@@ -19,7 +19,7 @@ use defguard_core::{
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
-        is_business_license_active,
+        is_oidc_mfa_available,
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
@@ -987,7 +987,7 @@ impl EnrollmentServer {
                 error!("Failed to get OpenID provider: {err}");
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-        let oidc_configured = is_business_license_active() && openid_provider.is_some();
+        let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
 
         let instance_info = InstanceInfo::build(
             &self.pool,

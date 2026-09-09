@@ -115,6 +115,30 @@ fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, generation:
     }
 }
 
+/// Take the waiter registered under `hash`, so the caller can signal it once the lock is released.
+fn take_remote_mfa_waiter_by_hash(
+    waiters: &RemoteAuthWaiters,
+    hash: &str,
+) -> Option<RemoteAuthWaiter> {
+    waiters
+        .write()
+        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+        .remove(hash)
+}
+
+/// Take the waiter parked for `token`, if any.
+fn take_remote_mfa_waiter(waiters: &RemoteAuthWaiters, token: &str) -> Option<RemoteAuthWaiter> {
+    take_remote_mfa_waiter_by_hash(waiters, &hash_token(token))
+}
+
+/// Hand a signal to a parked waiter. A closed receiver means the desktop already gave up, which is
+/// expected rather than an error. The signal itself carries no credential.
+fn signal_remote_mfa_waiter(waiter: RemoteAuthWaiter, signal: RemoteAuthSignal) {
+    if let Err(unsent) = waiter.signal_tx.send(signal) {
+        debug!("Parked remote MFA waiter is gone, dropping signal {unsent:?}");
+    }
+}
+
 impl From<ClientMfaServerError> for Status {
     fn from(value: ClientMfaServerError) -> Self {
         Self::new(Code::Internal, value.to_string())
@@ -590,14 +614,10 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
     ) -> Result<ClientMfaStartOutcome, Status> {
         if let Some(superseded_token_hash) = start_outcome.superseded_token_hash {
-            let superseded_waiter = {
-                self.remote_mfa_responses
-                    .write()
-                    .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                    .remove(&superseded_token_hash)
-            };
-            if let Some(waiter) = superseded_waiter {
-                let _ = waiter.signal_tx.send(RemoteAuthSignal::Superseded);
+            if let Some(waiter) =
+                take_remote_mfa_waiter_by_hash(&self.remote_mfa_responses, &superseded_token_hash)
+            {
+                signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Superseded);
             }
 
             let context =
@@ -749,7 +769,7 @@ impl ClientMfaServer {
                 )
         };
         if let Some(waiter) = replaced_waiter {
-            let _ = waiter.signal_tx.send(RemoteAuthSignal::Superseded);
+            signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Superseded);
         }
 
         let waiters = self.remote_mfa_responses.clone();
@@ -880,45 +900,35 @@ impl ClientMfaServer {
         if !is_legacy_mobile_approval
             && is_mobile_signature
             && outcome == FinishOutcome::AwaitingExternal
-            && let Some(waiter) = self
-                .remote_mfa_responses
-                .write()
-                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                .remove(&hash_token(&request.token))
+            && let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)
         {
-            let _ = waiter.signal_tx.send(RemoteAuthSignal::Approved);
+            signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
         }
 
         if is_legacy_mobile_approval
             && is_mobile_signature
             && let FinishOutcome::Advanced { next_step } = &outcome
-            && let Some(waiter) = self
-                .remote_mfa_responses
-                .write()
-                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                .remove(&hash_token(&request.token))
+            && let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)
         {
-            let _ = waiter.signal_tx.send(RemoteAuthSignal::Advanced {
-                next_step: *next_step,
-            });
+            signal_remote_mfa_waiter(
+                waiter,
+                RemoteAuthSignal::Advanced {
+                    next_step: *next_step,
+                },
+            );
         }
 
         // The parked remote-MFA waiter is session-scoped. A legacy mobile approval at an
         // intermediate step resolves it with an `Advanced` result, never a key.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
-                if let Some(waiter) = self
-                    .remote_mfa_responses
-                    .write()
-                    .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                    .remove(&hash_token(&token))
-                {
+                if let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token) {
                     *waiter
                         .legacy_preshared_key
                         .lock()
                         .expect("Failed to lock legacy remote MFA preshared key") =
                         Some(preshared_key.clone());
-                    let _ = waiter.signal_tx.send(RemoteAuthSignal::Approved);
+                    signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
                 }
                 if is_mobile_signature {
                     String::new()

@@ -26,7 +26,7 @@ use tonic::Status;
 use super::InstanceInfo;
 use crate::{
     device_access::build_device_config,
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_oidc_mfa_available},
     grpc::{
         client_version::{ClientFeature, should_omit_location_for_device},
         should_prevent_mfa_location_usage, should_prevent_service_location_usage,
@@ -47,7 +47,7 @@ pub async fn build_device_config_response(
     })?;
 
     let smtp_configured = settings.smtp_configured();
-    let oidc_configured = is_business_license_active() && openid_provider.is_some();
+    let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
 
     let locations = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");

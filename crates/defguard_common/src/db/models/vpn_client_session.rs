@@ -34,12 +34,13 @@ pub enum VpnClientMfaMethod {
 }
 
 impl VpnClientMfaMethod {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Totp,
         Self::Email,
         Self::Oidc,
         Self::Biometric,
         Self::MobileApprove,
+        Self::Fido2,
     ];
 
     /// Returns whether this method is configured for `user` (and, for biometric, `device_id`).
