@@ -14,6 +14,8 @@ pub struct Config {
 pub enum Command {
     /// Seeds one device for every generated user.
     Seed(SeedArgs),
+    /// Exports credentials for a load-test scenario.
+    Export(ExportArgs),
     /// Runs a load-test scenario.
     Test(TestArgs),
 }
@@ -26,6 +28,30 @@ pub struct SeedArgs {
 
     #[arg(long)]
     pub network_id: i64,
+
+    #[command(flatten)]
+    pub database: DatabaseArgs,
+}
+
+#[derive(Debug, Args)]
+pub struct ExportArgs {
+    #[command(subcommand)]
+    pub command: ExportCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ExportCommand {
+    /// Exports actors for the config-polling scenario.
+    ConfigPolling(ConfigPollingExportArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ConfigPollingExportArgs {
+    #[arg(long)]
+    pub network_id: i64,
+
+    #[arg(long)]
+    pub output: std::path::PathBuf,
 
     #[command(flatten)]
     pub database: DatabaseArgs,
@@ -68,28 +94,4 @@ pub struct ConfigPollingArgs {
     requests_per_second: NonZeroU64,
 }
 
-#[cfg(test)]
-mod tests {
-    use clap::Parser;
 
-    use super::{Command, Config};
-
-    #[test]
-    fn parses_seed_network_and_user_count() {
-        let config = Config::parse_from([
-            "defguard-load-generator",
-            "seed",
-            "--users",
-            "100",
-            "--network-id",
-            "1",
-        ]);
-
-        let Command::Seed(seed) = config.command else {
-            panic!("expected seed command");
-        };
-
-        assert_eq!(seed.users.get(), 100);
-        assert_eq!(seed.network_id, 1);
-    }
-}

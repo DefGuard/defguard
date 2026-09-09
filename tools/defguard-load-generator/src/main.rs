@@ -2,6 +2,7 @@ use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
 mod config;
+mod export;
 mod seed;
 
 #[tokio::main]
@@ -16,6 +17,9 @@ async fn main() -> anyhow::Result<()> {
 
     match config.command {
         config::Command::Seed(args) => seed::run(args).await?,
+        config::Command::Export(config::ExportArgs {
+            command: config::ExportCommand::ConfigPolling(args),
+        }) => export::export_config_polling(args).await?,
         config::Command::Test(_) => tracing::warn!("test scenarios are not implemented yet"),
     }
 
