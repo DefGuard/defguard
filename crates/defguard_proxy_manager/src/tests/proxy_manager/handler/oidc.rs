@@ -270,6 +270,127 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
 }
 
 #[sqlx::test]
+async fn test_auth_info_mfa_enriches_legacy_raw_token_oidc_state_without_mutating_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let (_id, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+    assert!(
+        !mfa_token.contains('.'),
+        "legacy AuthInfo input must be a bare session token"
+    );
+
+    let session_before = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session_before
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 54,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            state: Some(mfa_token.clone()),
+            auth_flow_type: AuthFlowType::Mfa as i32,
+            ..Default::default()
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let auth_info = match &response.payload {
+        Some(core_response::Payload::AuthInfo(r)) => r,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "test_auth_info_mfa_enriches_legacy_raw_token_oidc_state_without_mutating_session: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "expected AuthInfo response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    };
+
+    let url = Url::parse(&auth_info.url).expect("failed to parse authorize URL");
+    let state_param = url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .map(|(_, value)| value.into_owned())
+        .expect("authorize URL must carry a state parameter");
+    let decoded = BASE64_STANDARD
+        .decode(state_param.as_bytes())
+        .expect("state must be base64");
+    let decoded = String::from_utf8(decoded).expect("state must be UTF-8");
+    let (csrf, state_data) = decoded
+        .split_once('.')
+        .expect("state must be <csrf>.<payload>");
+    assert!(!csrf.is_empty(), "state must carry a csrf prefix");
+
+    // `extract_state_data` is crate-private in core, so mirror its decoding before parsing here.
+    let parsed =
+        MfaOidcState::parse(state_data).expect("state payload must be a composite MFA state");
+    assert_eq!(parsed.token, mfa_token);
+    assert_eq!(parsed.attempt_id, attempt_id);
+
+    let session_after = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session after AuthInfo")
+        .expect("expected the MFA session to remain active");
+    assert_eq!(
+        (
+            &session_after.id,
+            &session_after.token_hash,
+            &session_after.location_id,
+            &session_after.device_id,
+            &session_after.user_id,
+            &session_after.steps_snapshot,
+            &session_after.current_step,
+            &session_after.ephemeral_state,
+            &session_after.failed_attempts,
+            &session_after.created_at,
+            &session_after.expires_at,
+        ),
+        (
+            &session_before.id,
+            &session_before.token_hash,
+            &session_before.location_id,
+            &session_before.device_id,
+            &session_before.user_id,
+            &session_before.steps_snapshot,
+            &session_before.current_step,
+            &session_before.ephemeral_state,
+            &session_before.failed_attempts,
+            &session_before.created_at,
+            &session_before.expires_at,
+        ),
+        "legacy AuthInfo request must not mutate the MFA session row"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_auth_info_mfa_accepts_composite_state(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
