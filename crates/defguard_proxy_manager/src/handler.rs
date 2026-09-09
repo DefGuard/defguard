@@ -612,6 +612,33 @@ impl ProxyHandler {
                                 }
                             }
                         }
+                        Some(core_request::Payload::MfaConfigSendCode(request)) => {
+                            match self.services.mfa_config.mfa_config_send_code(request).await {
+                                Ok(response) => {
+                                    Some(core_response::Payload::MfaConfigSendCode(response))
+                                }
+                                Err(err) => {
+                                    error!("MFA config send code error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        Some(core_request::Payload::MfaConfigAuthorize(request)) => {
+                            match self
+                                .services
+                                .mfa_config
+                                .mfa_config_authorize(request, received.device_info)
+                                .await
+                            {
+                                Ok(response) => {
+                                    Some(core_response::Payload::MfaConfigAuthorize(response))
+                                }
+                                Err(err) => {
+                                    error!("MFA config authorize error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
                             match self
@@ -634,7 +661,7 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .enrollment
-                                .register_code_mfa_finish(request)
+                                .register_code_mfa_finish(request, received.device_info)
                                 .await
                             {
                                 Ok(response) => Some(
@@ -1375,6 +1402,7 @@ impl ProxyServices {
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
             tx.ldap.clone(),
+            tx.event_tx.clone(),
         );
         let password_reset =
             PasswordResetServer::new(pool.clone(), tx.bidi_events.clone(), tx.ldap.clone());
@@ -1385,7 +1413,7 @@ impl ProxyServices {
             remote_mfa_responses,
         );
         let polling = PollingServer::new(pool.clone());
-        let mfa_config = MfaConfigServer::new(pool.clone());
+        let mfa_config = MfaConfigServer::new(pool.clone(), tx.event_tx.clone());
 
         Self {
             enrollment,
