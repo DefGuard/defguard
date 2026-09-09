@@ -1457,8 +1457,14 @@ dependencies = [
 name = "defguard-load-generator"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "base64 0.22.1",
  "clap",
+ "ipnetwork",
+ "rand 0.8.7",
  "secrecy",
+ "sqlx",
+ "tokio",
  "tracing",
  "tracing-subscriber",
 ]
