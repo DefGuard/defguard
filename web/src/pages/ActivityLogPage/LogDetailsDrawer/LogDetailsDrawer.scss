@@ -1,5 +1,8 @@
 #modals-root > .modal-root .drawer-modal.log-details-drawer {
-  --max-width: 780px;
+  --log-details-width: 780px;
+  --max-width: var(--log-details-width);
+
+  min-width: min(var(--log-details-width), 100dvw);
 
   > .modal-content {
     padding: 0;
