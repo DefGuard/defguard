@@ -203,7 +203,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
         .await;
 
     // First mock for proxy A - will be closed to trigger a reconnect.
-    let mut mock_a1 = MockProxyHarness::start_at(socket_a.clone()).await;
+    let mut mock_a1 = MockProxyHarness::start_at(socket_a.clone());
     mock_a1.wait_for_connection_count(1).await;
     complete_manager_proxy_handshake(&mut mock_a1).await;
 
@@ -219,7 +219,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
     wait_for_proxy_connection_state(&context.pool, proxy_a.id, false).await;
 
     // Start replacement mock for proxy A at the same socket path.
-    let mut mock_a2 = MockProxyHarness::start_at(socket_a).await;
+    let mut mock_a2 = MockProxyHarness::start_at(socket_a);
     mock_a2.wait_for_connection_count(1).await;
     complete_manager_proxy_handshake(&mut mock_a2).await;
     wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
@@ -396,7 +396,7 @@ async fn test_manager_retries_after_stream_close_single_supervisor(
         .await;
 
     // First mock server - accept one connection, then close the stream.
-    let mut mock_proxy = MockProxyHarness::start_at(socket_path.clone()).await;
+    let mut mock_proxy = MockProxyHarness::start_at(socket_path.clone());
     mock_proxy.wait_for_connection_count(1).await;
     complete_manager_proxy_handshake(&mut mock_proxy).await;
     wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
@@ -409,7 +409,7 @@ async fn test_manager_retries_after_stream_close_single_supervisor(
 
     // The handler should retry without spawning a new supervisor task.
     // Start a replacement mock server at the same socket path.
-    let mut replacement = MockProxyHarness::start_at(socket_path).await;
+    let mut replacement = MockProxyHarness::start_at(socket_path);
     replacement.wait_for_connection_count(1).await;
     complete_manager_proxy_handshake(&mut replacement).await;
     wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;

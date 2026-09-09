@@ -529,7 +529,7 @@ pub(crate) fn assert_firewall_modify_update(
     }
 }
 
-pub(crate) fn assert_firewall_disable_update(outbound: CoreResponse) {
+pub(crate) fn assert_firewall_disable_update(outbound: &CoreResponse) {
     match outbound.payload {
         Some(core_response::Payload::Update(Update {
             update_type,

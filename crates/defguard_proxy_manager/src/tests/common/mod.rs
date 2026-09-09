@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     env::temp_dir,
+    fs::remove_file,
     io,
     path::PathBuf,
     process,
@@ -208,11 +209,11 @@ pub(crate) struct MockProxyHarness {
 
 impl MockProxyHarness {
     pub(crate) async fn start() -> Self {
-        Self::start_at(mock_proxy_socket_path()).await
+        Self::start_at(mock_proxy_socket_path())
     }
 
-    pub(crate) async fn start_at(socket_path: PathBuf) -> Self {
-        let _ = std::fs::remove_file(&socket_path);
+    pub(crate) fn start_at(socket_path: PathBuf) -> Self {
+        let _ = remove_file(&socket_path);
 
         let listener =
             UnixListener::bind(&socket_path).expect("failed to bind mock proxy unix socket");
@@ -387,7 +388,7 @@ impl Drop for MockProxyHarness {
         if let Some(server_task) = self.server_task.take() {
             server_task.abort();
         }
-        let _ = std::fs::remove_file(&self.socket_path);
+        let _ = remove_file(&self.socket_path);
     }
 }
 
