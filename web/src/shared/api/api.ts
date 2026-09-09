@@ -11,6 +11,7 @@ import type {
   AclDestination,
   AclRule,
   ActivityLogEvent,
+  ActivityLogEventDetails,
   ActivityLogRequestParams,
   ActivityLogStream,
   AddAclAliasRequest,
@@ -639,6 +640,8 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
+  getActivityLogEvent: (id: number) =>
+    client.get<ActivityLogEventDetails>(`/activity_log/${id}`),
   getLicenseInfo: () =>
     client
       .get<LicenseInfoResponse>(`/enterprise_info`)
