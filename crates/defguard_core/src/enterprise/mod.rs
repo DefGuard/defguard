@@ -13,7 +13,7 @@ pub mod posture;
 pub mod snat;
 mod utils;
 
-use license::{License, get_cached_license, validate_license};
+use license::{License, get_cached_license};
 use limits::get_counts;
 use strum::VariantArray;
 
@@ -58,7 +58,7 @@ pub fn has_enterprise_access(feature: Option<LicenseFeature>) -> bool {
     let Some(license) = license.as_ref() else {
         return false;
     };
-    if validate_license(Some(license), &counts, LicenseTier::Business).is_err() {
+    if license.validate(&counts, LicenseTier::Business).is_err() {
         return false;
     }
     match feature {
@@ -75,7 +75,10 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
     let counts = get_counts();
 
     let license = get_cached_license();
-    let validation_result = validate_license(license.as_ref(), &counts, tier);
+    let Some(license) = license.as_ref() else {
+        return false;
+    };
+    let validation_result = license.validate(&counts, tier);
     trace!("License validation result: {validation_result:?}");
     validation_result.is_ok()
 }

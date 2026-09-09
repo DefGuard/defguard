@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     env::temp_dir,
+    fs::remove_file,
     io,
     path::PathBuf,
     process,
@@ -18,7 +19,7 @@ use defguard_common::{
             Settings,
             gateway::Gateway,
             settings::{initialize_current_settings, set_settings},
-            wireguard::WireguardNetwork,
+            wireguard::{ServiceLocationMode, WireguardNetwork},
         },
         setup_pool,
     },
@@ -167,11 +168,11 @@ pub(crate) struct MockGatewayHarness {
 
 impl MockGatewayHarness {
     pub(crate) async fn start() -> Self {
-        Self::start_at(unique_socket_path()).await
+        Self::start_at(unique_socket_path())
     }
 
-    pub(crate) async fn start_at(socket_path: PathBuf) -> Self {
-        let _ = std::fs::remove_file(&socket_path);
+    pub(crate) fn start_at(socket_path: PathBuf) -> Self {
+        let _ = remove_file(&socket_path);
 
         let listener =
             UnixListener::bind(&socket_path).expect("failed to bind mock gateway unix socket");
@@ -331,7 +332,7 @@ impl Drop for MockGatewayHarness {
         if let Some(server_task) = self.server_task.take() {
             server_task.abort();
         }
-        let _ = std::fs::remove_file(&self.socket_path);
+        let _ = remove_file(&self.socket_path);
     }
 }
 
@@ -779,8 +780,8 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
         false,
         false,
         false,
-        Default::default(),
-        Default::default(),
+        false,
+        ServiceLocationMode::default(),
     )
     .try_set_address("10.10.0.1/24")
     .expect("failed to set network address");

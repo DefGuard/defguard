@@ -500,7 +500,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
 
     let response = update_location_mfa_flows(
         &client,
-        999999,
+        999_999,
         json!([{"flow_id": flow_id, "is_default": true, "group_ids": []}]),
     )
     .await;
@@ -527,7 +527,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
         &client,
         location_id,
         json!([
-            {"flow_id": 999999, "is_default": true, "group_ids": []},
+            {"flow_id": 999_999, "is_default": true, "group_ids": []},
         ]),
     )
     .await;

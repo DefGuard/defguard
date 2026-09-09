@@ -18,7 +18,7 @@ use super::{
     LicenseFeature,
     db::models::enterprise_settings::EnterpriseSettings,
     effective_features, get_counts, has_enterprise_access, is_business_license_active,
-    license::{LicenseTier, get_cached_license, validate_license},
+    license::{LicenseTier, get_cached_license},
 };
 #[cfg(feature = "openapi")]
 use crate::handlers::ApiErrorResponse;
@@ -166,7 +166,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 }),
         });
 
-        let valid = validate_license(Some(license), &counts, LicenseTier::Business).is_ok();
+        let valid = license.validate(&counts, LicenseTier::Business).is_ok();
         let features = if valid {
             effective_features(license)
         } else {

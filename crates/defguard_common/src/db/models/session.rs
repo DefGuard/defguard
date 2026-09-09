@@ -10,10 +10,10 @@ use crate::{
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]
 pub enum SessionState {
-    NotVerified,
-    PasswordVerified,
-    MultiFactorVerified,
-    ApiTokenVerified,
+    // Discriminants are pinned because they are stored in the `session.state` column.
+    PasswordVerified = 1,
+    MultiFactorVerified = 2,
+    ApiTokenVerified = 3,
 }
 
 /// Representation of a Defguard server user session derived from session cookies.

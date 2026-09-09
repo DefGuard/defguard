@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     net::SocketAddr,
     sync::{Arc, Mutex, Once},
     time::Duration,
@@ -235,7 +235,7 @@ impl GatewaySetup for MockGatewaySetupService {
                     target: "mock_gateway".to_owned(),
                     message: format!("setup log {i}"),
                     timestamp: MOCK_LOG_TIMESTAMP.to_owned(),
-                    fields: Default::default(),
+                    fields: HashMap::default(),
                 };
                 if tx.send(Ok(entry)).is_err() {
                     break;

@@ -269,9 +269,8 @@ async fn test_posture_check_requires_a_token(_: PgPoolOptions, options: PgConnec
                 device_info(),
             )
             .await;
-        let err = match err {
-            Ok(_) => panic!("posture check without a token must be refused"),
-            Err(err) => err,
+        let Err(err) = err else {
+            panic!("posture check without a token must be refused")
         };
         assert_eq!(err.code(), Code::Unauthenticated);
     }
@@ -312,11 +311,9 @@ async fn test_posture_check_rejects_unknown_token(_: PgPoolOptions, options: PgC
             device_info(),
         )
         .await;
-    let err = match err {
-        Ok(_) => panic!("posture check with an unknown token must be refused"),
-        Err(err) => err,
+    let Err(err) = err else {
+        panic!("posture check with an unknown token must be refused")
     };
-
     assert_eq!(err.code(), Code::Unauthenticated);
 }
 
@@ -382,9 +379,8 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
             device_info(),
         )
         .await;
-    let err = match err {
-        Ok(_) => panic!("a token from another device must not authorize this one"),
-        Err(err) => err,
+    let Err(err) = err else {
+        panic!("a token from another device must not authorize this one")
     };
     assert_eq!(err.code(), Code::Unauthenticated);
 
@@ -418,7 +414,7 @@ async fn test_posture_check_rejects_mfa_enabled_location(
     let token = create_polling_token(&pool, device.id).await;
     let (mut server, _, _) = make_server(pool);
 
-    let err = match server
+    let Err(err) = server
         .handle_posture_check(
             DevicePostureCheckRequest {
                 location_id: location.id,
@@ -429,9 +425,8 @@ async fn test_posture_check_rejects_mfa_enabled_location(
             device_info(),
         )
         .await
-    {
-        Ok(_) => panic!("MFA-enabled location should reject posture-only flow"),
-        Err(err) => err,
+    else {
+        panic!("MFA-enabled location should reject posture-only flow");
     };
 
     assert_eq!(err.code(), Code::InvalidArgument);
@@ -511,7 +506,7 @@ async fn test_posture_check_without_postures_rejects_device_not_assigned_to_loca
     let token = create_polling_token(&pool, device.id).await;
     let (mut server, mut event_rx, mut gateway_rx) = make_server(pool);
 
-    let status = match server
+    let Err(status) = server
         .handle_posture_check(
             DevicePostureCheckRequest {
                 location_id: location.id,
@@ -522,9 +517,8 @@ async fn test_posture_check_without_postures_rejects_device_not_assigned_to_loca
             device_info(),
         )
         .await
-    {
-        Ok(_) => panic!("a device not assigned to the location must not be approved"),
-        Err(status) => status,
+    else {
+        panic!("a device not assigned to the location must not be approved");
     };
 
     assert_eq!(status.code(), Code::PermissionDenied);

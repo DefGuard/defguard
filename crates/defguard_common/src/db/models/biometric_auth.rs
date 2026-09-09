@@ -16,10 +16,6 @@ pub enum BiometricAuthError {
     InvalidPublicKey,
     #[error("Signature invalid")]
     InvalidSignature,
-    #[error("Verification of submitted challenge failed. {0}")]
-    ChallengeFailed(String),
-    #[error("Base64 decoding failed. {0}")]
-    Base64DecodeError(#[from] base64::DecodeError),
     #[error("Challenge had no owner")]
     ChallengeNotOwned,
 }

@@ -18,7 +18,7 @@ use defguard_common::db::{
     },
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::PgPool;
 
 #[cfg(feature = "openapi")]
@@ -254,7 +254,7 @@ fn check_method_prerequisites(
     if errors.is_empty() {
         None
     } else {
-        Some(validation_error_response(errors))
+        Some(validation_error_response(&errors))
     }
 }
 
@@ -322,17 +322,17 @@ pub(crate) fn assignment_error_response(
         MfaFlowAssignmentError::Sqlx(error) => return Err(WebError::from(error)),
     };
 
-    Ok(validation_error_response(vec![MfaFlowValidationField {
+    Ok(validation_error_response(&[MfaFlowValidationField {
         field,
         code: code.into(),
     }]))
 }
 
-fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse {
-    let fields: Vec<Value> = errors
+fn validation_error_response(errors: &[MfaFlowValidationField]) -> ApiResponse {
+    let fields = errors
         .iter()
         .map(|e| json!({"field": e.field, "code": e.code}))
-        .collect();
+        .collect::<Vec<_>>();
     ApiResponse::new(
         json!({"error": "validation_failed", "fields": fields}),
         StatusCode::BAD_REQUEST,
@@ -377,7 +377,7 @@ async fn validate_flow_request(
 
     let errors = validate_flow_input(title, step_methods);
     if !errors.is_empty() {
-        return Ok(Some(validation_error_response(errors)));
+        return Ok(Some(validation_error_response(&errors)));
     }
 
     if let Some(resp) = check_method_prerequisites(
@@ -613,7 +613,7 @@ pub async fn update_mfa_flow(
                     .iter()
                     .position(|s| s.id == Some(step_id))
                     .unwrap_or(0);
-                return Ok(validation_error_response(vec![MfaFlowValidationField {
+                return Ok(validation_error_response(&[MfaFlowValidationField {
                     field: format!("steps[{index}].id"),
                     code: "unknown_step".into(),
                 }]));
