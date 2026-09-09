@@ -29,9 +29,7 @@ use crate::{
         handlers::LicenseInfo,
         is_business_license_active,
         ldap::{LDAPConnection, sync::Authority},
-        license::{
-            License, LicenseTier, get_cached_license, update_cached_license, validate_license,
-        },
+        license::{License, LicenseTier, get_cached_license, update_cached_license},
         limits::{Counts, get_counts},
     },
     error::WebError,
@@ -258,10 +256,10 @@ fn is_license_reactivation(
     let Some(current_license) = current_license else {
         return false;
     };
-    let current_license_invalid =
-        validate_license(Some(current_license), counts, LicenseTier::Business).is_err();
-    let new_license_valid =
-        validate_license(Some(new_license), counts, LicenseTier::Business).is_ok();
+    let current_license_invalid = current_license
+        .validate(counts, LicenseTier::Business)
+        .is_err();
+    let new_license_valid = new_license.validate(counts, LicenseTier::Business).is_ok();
     current_license_invalid && new_license_valid
 }
 
