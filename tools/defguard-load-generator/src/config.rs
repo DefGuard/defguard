@@ -1,6 +1,7 @@
 use std::num::{NonZeroU64, NonZeroUsize};
 
 use clap::{Args, Parser, Subcommand};
+use secrecy::SecretString;
 
 #[derive(Debug, Parser)]
 #[command(name = "defguard-load-generator")]
@@ -21,7 +22,28 @@ pub enum Command {
 pub struct SeedArgs {
     /// Number of users and devices to create.
     #[arg(long)]
-    users: NonZeroUsize,
+    pub users: NonZeroUsize,
+
+    #[command(flatten)]
+    pub database: DatabaseArgs,
+}
+
+#[derive(Debug, Args)]
+pub struct DatabaseArgs {
+    #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
+    pub database_host: String,
+
+    #[arg(long, env = "DEFGUARD_DB_PORT", default_value_t = 5432)]
+    pub database_port: u16,
+
+    #[arg(long, env = "DEFGUARD_DB_NAME", default_value = "defguard")]
+    pub database_name: String,
+
+    #[arg(long, env = "DEFGUARD_DB_USER", default_value = "defguard")]
+    pub database_user: String,
+
+    #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
+    pub database_password: SecretString,
 }
 
 #[derive(Debug, Args)]
@@ -42,3 +64,4 @@ pub struct ConfigPollingArgs {
     #[arg(long)]
     requests_per_second: NonZeroU64,
 }
+

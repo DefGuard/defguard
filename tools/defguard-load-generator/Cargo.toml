@@ -9,5 +9,6 @@ publish = false
 
 [dependencies]
 clap.workspace = true
+secrecy.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
