@@ -1,25 +1,18 @@
 use defguard_common::db::{
     Id,
     models::{
-        Device, MFAMethod, Settings, User, polling_token::PollingToken,
-        vpn_client_session::VpnClientMfaMethod,
+        Device, Settings, User, polling_token::PollingToken, vpn_client_session::VpnClientMfaMethod,
     },
 };
 use defguard_core::{
     db::models::enrollment::{MFA_CONFIG_SESSION_TIMEOUT, MFA_CONFIG_TOKEN_TYPE, Token},
-    events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::utils::parse_client_ip_agent,
-    mail::templates::{mfa_activation_mail, mfa_code_mail, mfa_configured_mail},
+    mail::templates::mfa_code_mail,
 };
-use defguard_proto::{
-    client_types::{
-        MfaConfigAuthorizeRequest, MfaConfigAuthorizeResponse, MfaConfigSendCodeRequest,
-        MfaConfigSendCodeResponse, MfaConfigStartRequest, MfaConfigStartResponse, MfaMethod,
-    },
-    proxy::DeviceInfo,
+use defguard_proto::client_types::{
+    MfaConfigAuthorizeRequest, MfaConfigAuthorizeResponse, MfaConfigSendCodeRequest,
+    MfaConfigSendCodeResponse, MfaConfigStartRequest, MfaConfigStartResponse, MfaMethod,
 };
 use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
 /// An unauthorized MFA configuration session and its user's current factor state.
@@ -33,13 +26,12 @@ struct MfaConfigSession {
 /// Handles MFA factor configuration requested by an already enrolled desktop client.
 pub(crate) struct MfaConfigServer {
     pool: PgPool,
-    event_tx: UnboundedSender<ApiEvent>,
 }
 
 impl MfaConfigServer {
     #[must_use]
-    pub fn new(pool: PgPool, event_tx: UnboundedSender<ApiEvent>) -> Self {
-        Self { pool, event_tx }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 
     async fn is_configured(
@@ -65,7 +57,7 @@ impl MfaConfigServer {
     ///
     /// The returned token remains unused until the user proves an existing factor.
     /// The client requests an email code separately with `mfa_config_send_code`.
-    /// When no factor is configured, that code enables Email MFA.
+    /// When no factor is configured, an email code is the only authorization method.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_start(
         &self,
@@ -249,16 +241,12 @@ impl MfaConfigServer {
             error!("MFA config send code: failed to acquire connection: {err}");
             Status::internal("unexpected error")
         })?;
-        // Use the activation template because the fallback enables Email MFA.
-        let sent = if email_fallback {
-            mfa_activation_mail(&user.email, &mut conn, &user.first_name, &code, None, true).await
-        } else {
-            mfa_code_mail(&user.email, &mut conn, &user.first_name, &code, None, true).await
-        };
-        sent.map_err(|err| {
-            error!("MFA config send code: failed to send email code: {err}");
-            Status::internal("unexpected error")
-        })?;
+        mfa_code_mail(&user.email, &mut conn, &user.first_name, &code, None, true)
+            .await
+            .map_err(|err| {
+                error!("MFA config send code: failed to send email code: {err}");
+                Status::internal("unexpected error")
+            })?;
         info!(
             "Sent MFA configuration email code to user {}",
             user.username
@@ -269,18 +257,17 @@ impl MfaConfigServer {
 
     /// Authorizes an MFA configuration session with a TOTP or email code.
     ///
-    /// The token becomes a valid setup session after authorization. The email fallback also
-    /// enables Email MFA and returns recovery codes when they are generated.
+    /// Authorization turns the token into a setup session. The email fallback proves mailbox
+    /// access, but only MFA setup enables a factor.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_authorize(
         &self,
         request: MfaConfigAuthorizeRequest,
-        info: Option<DeviceInfo>,
     ) -> Result<MfaConfigAuthorizeResponse, Status> {
         debug!("Authorizing MFA configuration session");
         let MfaConfigSession {
             mut token,
-            mut user,
+            user,
             totp_configured,
             email_configured,
         } = self.load_session(&request.session_token).await?;
@@ -326,64 +313,11 @@ impl MfaConfigServer {
         let deadline = token
             .start_session(&mut transaction, MFA_CONFIG_SESSION_TIMEOUT.as_secs())
             .await?;
-        let mut recovery_codes = Vec::new();
-        if email_fallback {
-            recovery_codes = user
-                .get_recovery_codes(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!("MFA config authorize: failed to get recovery codes: {err}");
-                    Status::internal("unexpected error")
-                })?
-                .unwrap_or_default();
-            user.enable_email_mfa(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!("MFA config authorize: failed to enable email MFA: {err}");
-                    Status::internal("unexpected error")
-                })?;
-            if user.mfa_method == MFAMethod::None {
-                user.set_mfa_method(&mut *transaction, MFAMethod::Email)
-                    .await
-                    .map_err(|err| {
-                        error!("MFA config authorize: failed to set MFA method: {err}");
-                        Status::internal("unexpected error")
-                    })?;
-            }
-            if let Err(err) = mfa_configured_mail(
-                &user.email,
-                &mut transaction,
-                None,
-                &MFAMethod::Email,
-                &user.first_name,
-            )
-            .await
-            {
-                error!("MFA config authorize: failed to send MFA configured mail: {err}");
-            }
-        }
         transaction.commit().await.map_err(|err| {
             error!("MFA config authorize: failed to commit transaction: {err}");
             Status::internal("unexpected error")
         })?;
 
-        if email_fallback {
-            user.enable_mfa(&self.pool).await.map_err(|err| {
-                error!("MFA config authorize: failed to enable MFA: {err}");
-                Status::internal("unexpected error")
-            })?;
-            let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
-            let context = ApiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
-            self.event_tx
-                .send(ApiEvent {
-                    context,
-                    event: Box::new(ApiEventType::MfaEmailEnabled),
-                })
-                .map_err(|err| {
-                    error!("MFA config authorize: failed to send event: {err}");
-                    Status::internal("unexpected error")
-                })?;
-        }
         info!(
             "User {} authorized MFA configuration with {method} (email fallback: {email_fallback})",
             user.username
@@ -391,7 +325,6 @@ impl MfaConfigServer {
 
         Ok(MfaConfigAuthorizeResponse {
             deadline_timestamp: deadline.and_utc().timestamp(),
-            recovery_codes,
         })
     }
 }

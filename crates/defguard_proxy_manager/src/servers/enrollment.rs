@@ -1089,11 +1089,11 @@ impl EnrollmentServer {
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn register_code_mfa_start(
+    pub(crate) async fn mfa_setup_start(
         &self,
         request: CodeMfaSetupStartRequest,
     ) -> Result<CodeMfaSetupStartResponse, Status> {
-        debug!("Begin enrollment code MFA setup start");
+        debug!("Starting MFA setup");
         let method = request.method();
         if method != MfaMethod::Email && method != MfaMethod::Totp {
             return Err(Status::invalid_argument("Method not supported".to_owned()));
@@ -1156,12 +1156,12 @@ impl EnrollmentServer {
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn register_code_mfa_finish(
+    pub(crate) async fn mfa_setup_finish(
         &self,
         request: CodeMfaSetupFinishRequest,
         info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<CodeMfaSetupFinishResponse, Status> {
-        debug!("Begin enrollment code mfa setup finish");
+        debug!("Finishing MFA setup");
         let (token, is_enrollment) = self
             .validate_mfa_setup_session(Some(&request.token))
             .await?;
@@ -1203,18 +1203,29 @@ impl EnrollmentServer {
                 return Err(Status::invalid_argument("Method not supported"));
             }
         };
-        // Invalidate existing recovery codes in the same transaction as the factor change.
-        user.clear_recovery_codes(&mut *transaction)
+        // Enabling MFA invalidates all existing sessions in the same transaction.
+        user.logout_all_sessions(&mut *transaction)
             .await
             .map_err(|err| {
-                error!("Failed to clear recovery codes: {err}");
-                Status::internal("Failed to clear recovery codes".to_owned())
+                error!("Failed to log out user sessions: {err}");
+                Status::internal("Failed to log out user sessions".to_owned())
             })?;
+        // New enrollments get fresh recovery codes. Existing users keep their current
+        // codes when adding a factor.
+        if is_enrollment {
+            user.clear_recovery_codes(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!("Failed to clear recovery codes: {err}");
+                    Status::internal("Failed to clear recovery codes".to_owned())
+                })?;
+        }
+        // Existing recovery codes were already shown, so return an empty list.
         let recovery_codes = user
             .get_recovery_codes(&mut *transaction)
             .await
             .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
-            .ok_or_else(|| Status::internal("Recovery codes not found".to_owned()))?;
+            .unwrap_or_default();
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit database transaction: {err}");
             Status::internal("Failed to commit database transaction".to_owned())

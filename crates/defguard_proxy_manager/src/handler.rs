@@ -624,12 +624,7 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::MfaConfigAuthorize(request)) => {
-                            match self
-                                .services
-                                .mfa_config
-                                .mfa_config_authorize(request, received.device_info)
-                                .await
-                            {
+                            match self.services.mfa_config.mfa_config_authorize(request).await {
                                 Ok(response) => {
                                     Some(core_response::Payload::MfaConfigAuthorize(response))
                                 }
@@ -641,17 +636,12 @@ impl ProxyHandler {
                         }
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
-                            match self
-                                .services
-                                .enrollment
-                                .register_code_mfa_start(request)
-                                .await
-                            {
+                            match self.services.enrollment.mfa_setup_start(request).await {
                                 Ok(response) => Some(
                                     core_response::Payload::CodeMfaSetupStartResponse(response),
                                 ),
                                 Err(err) => {
-                                    error!("Register mfa start error {err}");
+                                    error!("MFA setup start error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -661,14 +651,14 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .enrollment
-                                .register_code_mfa_finish(request, received.device_info)
+                                .mfa_setup_finish(request, received.device_info)
                                 .await
                             {
                                 Ok(response) => Some(
                                     core_response::Payload::CodeMfaSetupFinishResponse(response),
                                 ),
                                 Err(err) => {
-                                    error!("Register MFA finish error {err}");
+                                    error!("MFA setup finish error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -1413,7 +1403,7 @@ impl ProxyServices {
             remote_mfa_responses,
         );
         let polling = PollingServer::new(pool.clone());
-        let mfa_config = MfaConfigServer::new(pool.clone(), tx.event_tx.clone());
+        let mfa_config = MfaConfigServer::new(pool.clone());
 
         Self {
             enrollment,
