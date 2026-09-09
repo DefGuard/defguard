@@ -1486,6 +1486,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "defguard-load-generator"
+version = "0.1.0"
+
+[[package]]
 name = "defguard_certs"
 version = "0.0.0"
 dependencies = [
