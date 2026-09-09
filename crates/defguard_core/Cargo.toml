@@ -84,8 +84,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 trait-variant.workspace = true
 # openapi
-utoipa.workspace = true
-utoipa-swagger-ui.workspace = true
+utoipa = { workspace = true, optional = true }
+utoipa-swagger-ui = { workspace = true, optional = true }
 uuid.workspace = true
 webauthn-authenticator-rs.workspace = true
 webauthn-rs.workspace = true
@@ -95,6 +95,19 @@ ammonia = "4.1"
 regex = "1.10"
 uaparser = "0.6"
 async-stream = "0.3"
+
+[features]
+default = ["openapi"]
+
+# Build the OpenAPI specification of the REST API (`openapi::ApiDoc`) and serve it
+# from `GET /api/v1/api-docs`, `GET /api-docs/openapi.json` and the Swagger UI at
+# `/api-docs`. Disabling it drops the `utoipa` dependencies and the routes above;
+# every other endpoint keeps working.
+openapi = ["dep:utoipa", "dep:utoipa-swagger-ui", "defguard_common/openapi"]
+
+[[example]]
+name = "openapi"
+required-features = ["openapi"]
 
 [dev-dependencies]
 # Enable the shared test-only helpers (mock SMTP server) for the test build.

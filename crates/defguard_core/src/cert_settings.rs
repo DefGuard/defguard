@@ -11,7 +11,6 @@ use defguard_common::db::models::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use thiserror::Error;
-use utoipa::ToSchema;
 
 /// Errors arising from certificate settings operations.
 #[derive(Debug, Error)]
@@ -80,7 +79,8 @@ fn extract_hostname(url: &str, label: &str) -> Result<String, CertSettingsError>
 }
 
 /// SSL configuration type for Defguard's internal (core) web server.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum InternalSslType {
     /// No SSL - plain HTTP, user manages reverse proxy / SSL termination themselves.
@@ -91,14 +91,16 @@ pub enum InternalSslType {
     OwnCert,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct InternalUrlSettingsConfig {
     pub ssl_type: InternalSslType,
     pub cert_pem: Option<String>,
     pub key_pem: Option<String>,
 }
 
-#[derive(Serialize, Debug, ToSchema)]
+#[derive(Serialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CertInfoResponse {
     pub common_name: String,
     pub valid_for_days: i64,
@@ -107,7 +109,8 @@ pub struct CertInfoResponse {
 }
 
 /// SSL configuration type for the external (proxy) web server.
-#[derive(Default, Serialize, Deserialize, Debug, Clone, PartialEq, ToSchema)]
+#[derive(Default, Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ExternalSslType {
     /// No SSL - plain HTTP, user manages reverse proxy / SSL termination themselves.
@@ -121,7 +124,8 @@ pub enum ExternalSslType {
     OwnCert,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ExternalUrlSettingsConfig {
     pub ssl_type: ExternalSslType,
     pub cert_pem: Option<String>,

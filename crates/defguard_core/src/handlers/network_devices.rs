@@ -22,9 +22,10 @@ use defguard_common::{
 };
 use serde_json::json;
 use sqlx::PgConnection;
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, WebError};
+use super::{ApiResponse, ApiResult, WebError};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -43,17 +44,19 @@ use crate::{
     mail::templates::{TemplateLocation, new_device_added_mail},
 };
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 struct NetworkDeviceLocation {
     id: Id,
     name: String,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct NetworkDeviceInfo {
     id: Id,
     name: String,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     assigned_ips: Vec<IpAddr>,
     description: Option<String>,
     added_by: String,
@@ -135,7 +138,7 @@ pub(crate) struct DeviceWireGuardConfig {
 /// Get the WireGuard configuration of a network device
 ///
 /// Returns one configuration per location the device belongs to.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/network/{device_id}/config",
     tag = "network device",
@@ -155,7 +158,7 @@ pub(crate) struct DeviceWireGuardConfig {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn network_device_configs(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -217,7 +220,7 @@ pub(crate) async fn network_device_configs(
 }
 
 /// Get a network device
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/network/{device_id}",
     tag = "network device",
@@ -235,7 +238,7 @@ pub(crate) async fn network_device_configs(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
@@ -265,7 +268,7 @@ pub(crate) async fn get_network_device(
 }
 
 /// List network devices
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/network",
     tag = "network device",
@@ -283,7 +286,7 @@ pub(crate) async fn get_network_device(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_network_devices(
     _admin_role: AdminRole,
     State(appstate): State<AppState>,
@@ -327,7 +330,8 @@ pub(crate) async fn list_network_devices(
     ))
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddNetworkDevice {
     pub name: String,
     pub description: Option<String>,
@@ -342,7 +346,8 @@ pub struct AddNetworkDeviceResult {
     device: NetworkDeviceInfo,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct IpAvailabilityCheck {
     ips: Vec<String>,
     device_id: Option<Id>,
@@ -362,7 +367,7 @@ impl IpAvailabilityCheckResult {
 }
 
 /// Check whether the given IP addresses are free in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/network/ip/{network_id}",
     tag = "network device",
@@ -381,7 +386,7 @@ impl IpAvailabilityCheckResult {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn check_ip_availability(
     _admin_role: AdminRole,
     Path(network_id): Path<Id>,
@@ -465,7 +470,7 @@ pub(crate) async fn check_ip_availability(
 }
 
 /// Suggest free IP addresses in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/network/ip/{network_id}",
     tag = "network device",
@@ -485,7 +490,7 @@ pub(crate) async fn check_ip_availability(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn find_available_ips(
     _admin_role: AdminRole,
     Path(network_id): Path<Id>,
@@ -544,7 +549,8 @@ pub(crate) async fn find_available_ips(
     Ok(ApiResponse::json(split_ips, StatusCode::OK))
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct StartNetworkDeviceSetup {
     name: String,
     description: Option<String>,
@@ -562,7 +568,7 @@ impl From<NetworkAddressError> for WebError {
 /// Start CLI setup for a new network device
 ///
 /// Returns an enrollment token the `defguard-cli` client uses to configure itself.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/network/start_cli",
     tag = "network device",
@@ -581,7 +587,7 @@ impl From<NetworkAddressError> for WebError {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn start_network_device_setup(
     _admin_role: AdminRole,
     session: SessionInfo,
@@ -688,7 +694,7 @@ pub(crate) async fn start_network_device_setup(
 
 // Make a new CLI configuration token for an already added network device
 /// Start CLI setup for an existing network device
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/network/start_cli/{device_id}",
     tag = "network device",
@@ -709,7 +715,7 @@ pub(crate) async fn start_network_device_setup(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn start_network_device_setup_for_device(
     _admin_role: AdminRole,
     session: SessionInfo,
@@ -777,7 +783,7 @@ pub(crate) async fn start_network_device_setup_for_device(
 /// Create a network device
 ///
 /// The device is created with the provided WireGuard public key.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/network",
     tag = "network device",
@@ -820,7 +826,7 @@ pub(crate) async fn start_network_device_setup_for_device(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
@@ -942,16 +948,17 @@ pub(crate) async fn add_network_device(
     Ok(ApiResponse::json(result, StatusCode::CREATED))
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ModifyNetworkDevice {
     name: String,
     description: Option<String>,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     assigned_ips: Vec<IpAddr>,
 }
 
 /// Update a network device
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/device/network/{device_id}",
     tag = "network device",
@@ -971,7 +978,7 @@ pub struct ModifyNetworkDevice {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn modify_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,

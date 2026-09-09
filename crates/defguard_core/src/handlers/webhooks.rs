@@ -3,9 +3,10 @@ use axum::{
     http::StatusCode,
 };
 use defguard_common::db::Id;
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, WebHookData};
+use super::{ApiResponse, ApiResult, WebHookData};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -14,7 +15,7 @@ use crate::{
 };
 
 /// Create a webhook
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/webhook",
     tag = "webhook",
@@ -30,7 +31,7 @@ use crate::{
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn add_webhook(
     _admin: AdminRole,
     session: SessionInfo,
@@ -58,7 +59,7 @@ pub async fn add_webhook(
 
 // TODO: paginate
 /// List webhooks
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/webhook",
     tag = "webhook",
@@ -72,7 +73,7 @@ pub async fn add_webhook(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let webhooks = WebHook::all(&appstate.pool).await?;
 
@@ -80,7 +81,7 @@ pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) 
 }
 
 /// Get a webhook
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/webhook/{id}",
     tag = "webhook",
@@ -98,7 +99,7 @@ pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) 
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_webhook(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -111,7 +112,7 @@ pub async fn get_webhook(
 }
 
 /// Update a webhook
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/webhook/{id}",
     tag = "webhook",
@@ -130,7 +131,7 @@ pub async fn get_webhook(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn change_webhook(
     _admin: AdminRole,
     session: SessionInfo,
@@ -170,7 +171,7 @@ pub async fn change_webhook(
 }
 
 /// Delete a webhook
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/webhook/{id}",
     tag = "webhook",
@@ -188,7 +189,7 @@ pub async fn change_webhook(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_webhook(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -212,13 +213,14 @@ pub async fn delete_webhook(
     Ok(ApiResponse::with_status(status))
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ChangeStateData {
     pub enabled: bool,
 }
 
 /// Enable or disable a webhook
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/webhook/{id}",
     tag = "webhook",
@@ -237,7 +239,7 @@ pub struct ChangeStateData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn change_enabled(
     _admin: AdminRole,
     session: SessionInfo,

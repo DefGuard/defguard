@@ -18,9 +18,9 @@ redundant_closure = "warn"
 [workspace.dependencies]
 # internal crates
 defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
-defguard_common = { path = "./crates/defguard_common", version = "2.2.0" }
+defguard_common = { path = "./crates/defguard_common", version = "2.2.0", default-features = false }
 defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
-defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
+defguard_core = { path = "./crates/defguard_core", version = "0.0.0", default-features = false }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_gateway_manager = { path = "./crates/defguard_gateway_manager", version = "0.0.0" }
 defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
@@ -143,7 +143,7 @@ tower-http = { version = "0.7", features = ["fs", "trace", "timeout"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
-# openapi
+# openapi (see the `openapi` feature of defguard_common / defguard_core / defguard)
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 uuid = { version = "1.24", features = ["v4"] }

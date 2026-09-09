@@ -10,8 +10,9 @@ use defguard_common::db::{
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -22,11 +23,11 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// List SNAT bindings in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/snat",
     tag = "SNAT",
@@ -44,7 +45,7 @@ use crate::{
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn list_snat_bindings(
     _license: LicenseInfo,
     _admin_role: AdminRole,
@@ -66,17 +67,18 @@ pub async fn list_snat_bindings(
     Ok(ApiResponse::json(bindings, StatusCode::OK))
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct NewUserSnatBinding {
     /// ID of the user bound to the public IP address.
     pub user_id: Id,
     /// Public IP address used for SNAT.
-    #[schema(value_type = String)]
+    #[cfg_attr(feature = "openapi", schema(value_type = String))]
     pub public_ip: IpAddr,
 }
 
 /// Create a SNAT binding for a user in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/network/{location_id}/snat",
     tag = "SNAT",
@@ -97,7 +99,7 @@ pub struct NewUserSnatBinding {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn create_snat_binding(
     _license: LicenseInfo,
     _admin_role: AdminRole,
@@ -156,15 +158,16 @@ pub async fn create_snat_binding(
     Ok(ApiResponse::json(binding, StatusCode::CREATED))
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EditUserSnatBinding {
     /// New public IP address used for SNAT.
-    #[schema(value_type = String)]
+    #[cfg_attr(feature = "openapi", schema(value_type = String))]
     pub public_ip: IpAddr,
 }
 
 /// Update a SNAT binding
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
     tag = "SNAT",
@@ -185,7 +188,7 @@ pub struct EditUserSnatBinding {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn modify_snat_binding(
     _license: LicenseInfo,
     _admin_role: AdminRole,
@@ -249,7 +252,7 @@ pub async fn modify_snat_binding(
 }
 
 /// Delete a SNAT binding
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
     tag = "SNAT",
@@ -268,7 +271,7 @@ pub async fn modify_snat_binding(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_snat_binding(
     _license: LicenseInfo,
     _admin_role: AdminRole,

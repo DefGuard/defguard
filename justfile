@@ -42,10 +42,14 @@ query-data:
 check-everything: check-rust check-web check-e2e
 
 # Rust lint checks (mirrors the `lint` job in ci.yml)
-check-rust:
+check-rust: check-no-openapi
     cargo +nightly --locked fmt --all -- --check
     SQLX_OFFLINE=true cargo clippy --all-targets --all-features -- -D warnings
     cargo deny check
+
+# lint the build without the default `openapi` feature (see CONTRIBUTING.md)
+check-no-openapi:
+    SQLX_OFFLINE=true cargo clippy --all-targets --no-default-features -- -D warnings
 
 # frontend build, lint and unit tests (mirrors lint-web.yml and test-web.yml)
 check-web:

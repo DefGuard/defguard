@@ -89,6 +89,11 @@ jobs:
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
 
+      # The `openapi` feature is on by default, so `--all-features` above never
+      # exercises the build without it. See CONTRIBUTING.md.
+      - name: Run clippy linter without default features
+        run: cargo clippy --all-targets --no-default-features -- -D warnings
+
       - name: Install cargo-deny
         uses: taiki-e/install-action@9e1e5806d4a4822de933115878265be9aaa786d9 # v2.82.2
         with:

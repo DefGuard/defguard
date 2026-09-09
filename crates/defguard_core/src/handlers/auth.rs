@@ -26,9 +26,11 @@ use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
-    ApiErrorResponse, ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode,
-    RecoveryCodes, SESSION_COOKIE_NAME, WebAuthnRegistration,
+    ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
+    SESSION_COOKIE_NAME, WebAuthnRegistration,
 };
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{
@@ -125,7 +127,7 @@ pub async fn create_session(
 }
 
 /// Authenticate a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth",
     tag = "auth",
@@ -146,7 +148,7 @@ pub async fn create_session(
         (status = 429, description = "Too many failed login attempts for this user.", body = ApiErrorResponse, example = json!({"msg": "Too many login attempts"})),
         (status = 500, description = "Unable to authenticate user.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn authenticate(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
@@ -316,7 +318,7 @@ pub async fn authenticate(
 }
 
 /// Log out and clear the session cookie
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/logout",
     tag = "auth",
@@ -334,7 +336,7 @@ pub async fn authenticate(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn logout(
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
@@ -371,7 +373,7 @@ pub async fn logout(
 /// Enable MFA
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/auth/mfa",
     tag = "auth",
@@ -385,7 +387,7 @@ pub async fn logout(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn mfa_enable(
     cookies: CookieJar,
     SessionExtractor(_session): SessionExtractor,
@@ -413,7 +415,7 @@ pub async fn mfa_enable(
 /// Disable MFA
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/auth/mfa",
     tag = "auth",
@@ -426,7 +428,7 @@ pub async fn mfa_enable(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn mfa_disable(
     session_info: SessionInfo,
     context: ApiRequestContext,
@@ -444,7 +446,7 @@ pub async fn mfa_disable(
 }
 
 /// Disable MFA of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/mfa",
     tag = "user",
@@ -462,7 +464,7 @@ pub async fn mfa_disable(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn disable_user_mfa(
     session_info: SessionInfo,
     context: ApiRequestContext,
@@ -483,7 +485,7 @@ pub async fn disable_user_mfa(
 /// Start WebAuthn registration
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/webauthn/init",
     tag = "auth",
@@ -503,7 +505,7 @@ pub async fn disable_user_mfa(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn webauthn_init(
     mut session_info: SessionInfo,
     State(appstate): State<AppState>,
@@ -540,7 +542,7 @@ pub async fn webauthn_init(
 /// Finish WebAuthn registration
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/webauthn/finish",
     tag = "auth",
@@ -555,7 +557,7 @@ pub async fn webauthn_init(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn webauthn_finish(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -621,7 +623,7 @@ pub async fn webauthn_finish(
 ///
 /// Returns the challenge for the session started by `POST /api/v1/auth`. Send the answer to
 /// `POST /api/v1/auth/webauthn`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/webauthn/start",
     tag = "auth",
@@ -642,7 +644,7 @@ pub async fn webauthn_finish(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn webauthn_start(
     SessionExtractor(mut session): SessionExtractor,
     State(appstate): State<AppState>,
@@ -664,7 +666,7 @@ pub async fn webauthn_start(
 /// Finish WebAuthn authentication
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/webauthn",
     tag = "auth",
@@ -679,7 +681,7 @@ pub async fn webauthn_start(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn webauthn_end(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
@@ -789,7 +791,7 @@ pub async fn webauthn_end(
 /// Generate a new TOTP secret
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/totp/init",
     tag = "auth",
@@ -802,7 +804,7 @@ pub async fn webauthn_end(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
@@ -815,7 +817,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
 /// Enable TOTP
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/totp",
     tag = "auth",
@@ -830,7 +832,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn totp_enable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -869,7 +871,7 @@ pub async fn totp_enable(
 }
 
 /// Disable TOTP of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/totp",
     tag = "user",
@@ -887,7 +889,7 @@ pub async fn totp_enable(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn totp_disable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -909,7 +911,7 @@ pub async fn totp_disable(
 /// Verify a TOTP code
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/totp/verify",
     tag = "auth",
@@ -925,7 +927,7 @@ pub async fn totp_disable(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn totp_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
@@ -1023,7 +1025,7 @@ pub async fn totp_code(
 /// Start email MFA setup
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/email/init",
     tag = "auth",
@@ -1037,7 +1039,7 @@ pub async fn totp_code(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     // check if SMTP is configured
     let settings = Settings::get_current_settings();
@@ -1073,7 +1075,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
 /// Enable email MFA
 ///
 /// Applies to the user of the current session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/email",
     tag = "auth",
@@ -1088,7 +1090,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn email_mfa_enable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1126,7 +1128,7 @@ pub async fn email_mfa_enable(
 }
 
 /// Disable email MFA of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/email",
     tag = "user",
@@ -1144,7 +1146,7 @@ pub async fn email_mfa_enable(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn email_mfa_disable(
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1166,7 +1168,7 @@ pub async fn email_mfa_disable(
 /// Send an email MFA code
 ///
 /// Sends the code to the user of the session started by `POST /api/v1/auth`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/auth/email",
     tag = "auth",
@@ -1181,7 +1183,7 @@ pub async fn email_mfa_disable(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn request_email_mfa_code(
     SessionExtractor(session): SessionExtractor,
     State(appstate): State<AppState>,
@@ -1213,7 +1215,7 @@ pub async fn request_email_mfa_code(
 /// Verify an email MFA code
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/email/verify",
     tag = "auth",
@@ -1229,7 +1231,7 @@ pub async fn request_email_mfa_code(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn email_mfa_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
@@ -1328,7 +1330,7 @@ pub async fn email_mfa_code(
 /// Authenticate with a recovery code
 ///
 /// Verifies the second factor of the session started by `POST /api/v1/auth`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/auth/recovery",
     tag = "auth",
@@ -1342,7 +1344,7 @@ pub async fn email_mfa_code(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,

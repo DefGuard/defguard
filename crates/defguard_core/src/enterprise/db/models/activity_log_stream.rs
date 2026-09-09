@@ -6,11 +6,11 @@ use model_derive::Model;
 use serde::Serialize;
 use sqlx::{FromRow, PgExecutor, Type, query_as};
 use strum_macros::{Display, EnumString};
-use utoipa::ToSchema;
 
 use crate::enterprise::activity_log_stream::error::ActivityLogStreamError;
 
-#[derive(Debug, Serialize, Deserialize, Type, EnumString, Display, Clone, PartialEq, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Type, EnumString, Display, Clone, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ActivityLogStreamType {

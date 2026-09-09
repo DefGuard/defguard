@@ -20,19 +20,21 @@ use defguard_common::db::{
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// Enriched list item returned by `GET /mfa-flow`.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowListItemResponse {
     pub id: Id,
     pub title: String,
@@ -64,7 +66,8 @@ impl MfaFlowListItemResponse {
 }
 
 /// Full flow detail returned by `GET /mfa-flow/{id}`, `POST`, and `PUT`.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowDetailResponse {
     pub id: Id,
     pub title: String,
@@ -74,7 +77,8 @@ pub struct MfaFlowDetailResponse {
 }
 
 /// A single step in a flow detail response.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowStepResponse {
     pub id: Id,
     pub position: i32,
@@ -104,7 +108,8 @@ impl From<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> for MfaFlowDetailResponse {
 }
 
 /// Request body for creating an MFA flow.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateMfaFlowRequest {
     pub title: String,
     pub steps: Vec<CreateMfaFlowStep>,
@@ -112,7 +117,8 @@ pub struct CreateMfaFlowRequest {
 
 /// A step within a create request: the server derives contiguous 0-based
 /// positions from array order, so `position` is accepted but ignored.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateMfaFlowStep {
     #[serde(default)]
     pub position: i32,
@@ -120,7 +126,8 @@ pub struct CreateMfaFlowStep {
 }
 
 /// Request body for updating an MFA flow.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UpdateMfaFlowRequest {
     pub title: String,
     pub steps: Vec<UpdateMfaFlowStep>,
@@ -128,7 +135,8 @@ pub struct UpdateMfaFlowRequest {
 
 /// A step within an update request: existing steps carry `id` for
 /// reconciliation; new steps omit `id` and are INSERTed.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UpdateMfaFlowStep {
     #[serde(default)]
     pub id: Option<Id>,
@@ -138,14 +146,16 @@ pub struct UpdateMfaFlowStep {
 }
 
 /// A group scoped to a location MFA flow assignment.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationMfaFlowGroupResponse {
     pub id: Id,
     pub name: String,
 }
 
 /// An MFA flow assignment rendered in the context of one location.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationMfaFlowResponse {
     pub id: Id,
     pub title: String,
@@ -385,7 +395,7 @@ async fn validate_flow_request(
 // Handlers
 
 /// List all MFA flows
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/mfa-flow",
     tag = "mfa flow",
@@ -399,7 +409,7 @@ async fn validate_flow_request(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn list_mfa_flows(
     _admin: AdminRole,
     session: SessionInfo,
@@ -429,7 +439,7 @@ pub async fn list_mfa_flows(
 }
 
 /// Create an MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/mfa-flow",
     tag = "mfa flow",
@@ -445,7 +455,7 @@ pub async fn list_mfa_flows(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn create_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -495,7 +505,7 @@ pub async fn create_mfa_flow(
 }
 
 /// Get a single MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/mfa-flow/{id}",
     tag = "mfa flow",
@@ -513,7 +523,7 @@ pub async fn create_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -533,7 +543,7 @@ pub async fn get_mfa_flow(
 }
 
 /// Update an MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/mfa-flow/{id}",
     tag = "mfa flow",
@@ -553,7 +563,7 @@ pub async fn get_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn update_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -632,7 +642,7 @@ pub async fn update_mfa_flow(
 }
 
 /// Delete an MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/mfa-flow/{id}",
     tag = "mfa flow",
@@ -651,7 +661,7 @@ pub async fn update_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -714,7 +724,7 @@ pub async fn delete_mfa_flow(
 }
 
 /// Get MFA flows assigned to a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/location/{id}/mfa-flows",
     tag = "mfa flow",
@@ -731,7 +741,7 @@ pub async fn delete_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_location_mfa_flows(
     _admin: AdminRole,
     session: SessionInfo,
@@ -775,7 +785,8 @@ pub async fn get_location_mfa_flows(
 }
 
 /// Method availability entry returned by the catalogue endpoint.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MethodAvailabilityResponse {
     pub method: VpnClientMfaMethod,
     pub available: bool,
@@ -783,7 +794,8 @@ pub struct MethodAvailabilityResponse {
 }
 
 /// Reason a method is (un)available.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum MethodAvailabilityReason {
     /// Method is usable.
@@ -896,7 +908,7 @@ fn compute_method_availability(
 }
 
 /// Get per-method MFA availability.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/mfa-flow/method-availability",
     tag = "mfa flow",
@@ -910,7 +922,7 @@ fn compute_method_availability(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_method_availability(
     _admin: AdminRole,
     session: SessionInfo,

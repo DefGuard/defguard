@@ -12,9 +12,10 @@ use defguard_common::db::{
     },
 };
 use sqlx::query_as;
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, EditGroupInfo, GroupInfo, Username};
+use super::{ApiResponse, ApiResult, EditGroupInfo, GroupInfo, Username};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -30,7 +31,8 @@ use crate::{
     location_management::sync_all_networks,
 };
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct BulkAssignToGroupsRequest {
     // groups by name
     groups: Vec<String>,
@@ -39,7 +41,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
 }
 
 /// Assign multiple users to multiple groups
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/groups-assign",
     tag = "group",
@@ -55,7 +57,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_assign_to_groups(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -132,7 +134,7 @@ pub(crate) async fn bulk_assign_to_groups(
 }
 
 /// List groups with their details
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/group-info",
     tag = "group",
@@ -154,7 +156,7 @@ pub(crate) async fn bulk_assign_to_groups(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_groups_info(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -182,7 +184,7 @@ pub(crate) async fn list_groups_info(
 ///
 /// Returns group names only. Use `GET /api/v1/group-info` for full details, including
 /// members and locations.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/group",
     tag = "group",
@@ -200,7 +202,7 @@ pub(crate) async fn list_groups_info(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_groups(
     _admin: AdminRole,
     session: SessionInfo,
@@ -228,7 +230,7 @@ pub(crate) async fn list_groups(
 }
 
 /// Get a group
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/group/{id}",
     tag = "group",
@@ -254,7 +256,7 @@ pub(crate) async fn list_groups(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_group(
     _admin: AdminRole,
     _session: SessionInfo,
@@ -283,7 +285,7 @@ pub(crate) async fn get_group(
 /// Create a group
 ///
 /// Set `is_admin` to grant admin privileges to the group's members.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/group",
     tag = "group",
@@ -305,7 +307,7 @@ pub(crate) async fn get_group(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn create_group(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -371,7 +373,7 @@ pub(crate) async fn create_group(
 ///
 /// Renames the group and replaces its members. Set `is_admin` to grant admin privileges
 /// to the group's members.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/group/{id}",
     tag = "group",
@@ -391,7 +393,7 @@ pub(crate) async fn create_group(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn modify_group(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -532,7 +534,7 @@ pub(crate) async fn modify_group(
 /// Delete a group
 ///
 /// Removes the group and the group memberships of its members.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/group/{id}",
     tag = "group",
@@ -551,7 +553,7 @@ pub(crate) async fn modify_group(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_group(
     _admin: AdminRole,
     session: SessionInfo,
@@ -607,7 +609,7 @@ pub(crate) async fn delete_group(
 }
 
 /// Add a member to a group
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/group/{id}",
     tag = "group",
@@ -626,7 +628,7 @@ pub(crate) async fn delete_group(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -675,7 +677,7 @@ pub(crate) async fn add_group_member(
 }
 
 /// Remove a member from a group
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/group/{id}/user/{username}",
     tag = "group",
@@ -694,7 +696,7 @@ pub(crate) async fn add_group_member(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn remove_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,

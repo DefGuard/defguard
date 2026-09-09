@@ -20,12 +20,10 @@ use defguard_common::{
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use utoipa::ToSchema;
 
-use super::{
-    ApiErrorResponse, ApiResponse, ApiResult, WebError, device_for_admin_or_self,
-    user_for_admin_or_self,
-};
+use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -55,7 +53,8 @@ use crate::{
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct WireguardNetworkInfo {
     #[serde(flatten)]
     network: WireguardNetwork<Id>,
@@ -68,12 +67,14 @@ pub(crate) struct WireguardNetworkInfo {
     mfa_required_tier: Option<LicenseTier>,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct LocationsCount {
     count: usize,
 }
 
-#[derive(Clone, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WireguardNetworkData {
     pub name: String,
     pub address: String, // comma-separated list of addresses
@@ -215,12 +216,14 @@ impl WireguardNetworkData {
 }
 
 // Used in process of importing network from WireGuard config.
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct MappedDevices {
     devices: Vec<MappedDevice>,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct ImportNetworkData {
     name: String,
     endpoint: String,
@@ -229,7 +232,8 @@ pub(crate) struct ImportNetworkData {
     allowed_groups: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ImportedNetworkData {
     pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
@@ -260,7 +264,7 @@ fn normalize_mfa_flow_assignments(
 }
 
 /// Create a network
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/network",
     tag = "network",
@@ -276,7 +280,7 @@ fn normalize_mfa_flow_assignments(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn create_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -434,7 +438,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
 }
 
 /// Update a network
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/network/{network_id}",
     tag = "network",
@@ -454,7 +458,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn modify_network(
     _role: AdminRole,
     Path(network_id): Path<Id>,
@@ -643,7 +647,7 @@ pub(crate) async fn modify_network(
 }
 
 /// Delete a network
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/network/{network_id}",
     tag = "network",
@@ -661,7 +665,7 @@ pub(crate) async fn modify_network(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_network(
     _role: AdminRole,
     Path(network_id): Path<Id>,
@@ -699,7 +703,7 @@ pub(crate) async fn delete_network(
 }
 
 /// List networks
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network",
     tag = "network",
@@ -713,7 +717,7 @@ pub(crate) async fn delete_network(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing WireGuard networks");
     let mut network_info = Vec::new();
@@ -744,7 +748,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
 }
 
 /// Count networks
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/count",
     tag = "network",
@@ -758,7 +762,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Counting WireGuard networks");
     let count = WireguardNetwork::count(&appstate.pool).await?;
@@ -771,7 +775,7 @@ pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) 
 }
 
 /// Get a network
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{network_id}",
     tag = "network",
@@ -789,7 +793,7 @@ pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) 
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn network_details(
     Path(network_id): Path<Id>,
     _role: AdminRole,
@@ -825,7 +829,7 @@ pub(crate) async fn network_details(
 }
 
 /// Get the state of gateways in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/gateways",
     tag = "gateway",
@@ -843,7 +847,7 @@ pub(crate) async fn network_details(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn gateway_status(
     Path(network_id): Path<Id>,
     _role: AdminRole,
@@ -861,7 +865,7 @@ pub(crate) async fn gateway_status(
 /// Get the state of gateways in all locations
 ///
 /// Each entry carries the ID of the location the gateway belongs to.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/gateways",
     tag = "gateway",
@@ -875,7 +879,7 @@ pub(crate) async fn gateway_status(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn all_gateways_status(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -891,7 +895,7 @@ pub(crate) async fn all_gateways_status(
 ///
 /// Devices found in the configuration are returned unmapped; use
 /// `POST /api/v1/network/{network_id}/devices` to assign them to users.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/network/import",
     tag = "network",
@@ -908,7 +912,7 @@ pub(crate) async fn all_gateways_status(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn import_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -970,7 +974,7 @@ pub(crate) async fn import_network(
 /// Assign imported devices to users
 ///
 /// Used to finish the network import started with `POST /api/v1/network/import`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/network/{network_id}/devices",
     tag = "network",
@@ -991,7 +995,7 @@ pub(crate) async fn import_network(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_user_devices(
     _role: AdminRole,
     session: SessionInfo,
@@ -1037,7 +1041,8 @@ pub(crate) async fn add_user_devices(
 }
 
 // assign IPs and generate configs for each network
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct AddDeviceResult {
     configs: Vec<DeviceConfig>,
     device: Device<Id>,
@@ -1047,7 +1052,7 @@ pub(crate) struct AddDeviceResult {
 ///
 /// The device is added to every location. `wireguard_pubkey` has to be unique. Devices of
 /// disabled users can only be added by an admin.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/{device_id}",
     tag = "device",
@@ -1095,7 +1100,7 @@ pub(crate) struct AddDeviceResult {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn add_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
@@ -1260,7 +1265,7 @@ pub(crate) async fn add_device(
 /// Update a device
 ///
 /// `wireguard_pubkey` has to be different from the public key of the location.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/device/{device_id}",
     tag = "device",
@@ -1291,7 +1296,7 @@ pub(crate) async fn add_device(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn modify_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
@@ -1389,7 +1394,7 @@ pub(crate) async fn modify_device(
 }
 
 /// Get a device
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/{device_id}",
     tag = "device",
@@ -1417,7 +1422,7 @@ pub(crate) async fn modify_device(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_device(
     session: SessionInfo,
     Path(device_id): Path<Id>,
@@ -1432,7 +1437,7 @@ pub(crate) async fn get_device(
 /// Delete a device
 ///
 /// The device is removed from every location and the gateways are updated.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/device/{device_id}",
     tag = "device",
@@ -1450,7 +1455,7 @@ pub(crate) async fn get_device(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
@@ -1539,7 +1544,7 @@ pub(crate) async fn delete_device(
 }
 
 /// List devices
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device",
     tag = "device",
@@ -1564,7 +1569,7 @@ pub(crate) async fn delete_device(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing devices");
     let devices = Device::all(&appstate.pool).await?;
@@ -1574,7 +1579,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
 }
 
 /// List the devices of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/user/{username}",
     tag = "device",
@@ -1602,7 +1607,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_user_devices(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -1624,7 +1629,7 @@ pub(crate) async fn list_user_devices(
 }
 
 /// Get the WireGuard configuration of a device in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/device/{device_id}/config",
     tag = "network",
@@ -1643,7 +1648,7 @@ pub(crate) async fn list_user_devices(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn download_config(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -1691,7 +1696,7 @@ pub(crate) async fn download_config(
 /// Get the WireGuard configuration of a user device
 ///
 /// Returns one configuration per location the device is allowed to connect to.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/{device_id}/config",
     tag = "device",
@@ -1711,7 +1716,7 @@ pub(crate) async fn download_config(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn user_device_configs(
     session: SessionInfo,
     State(appstate): State<AppState>,

@@ -3,7 +3,6 @@ use std::fmt;
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
-use utoipa::ToSchema;
 
 // The behavior when a user is deleted from the directory
 // Keep: Keep the user, despite being deleted from the external provider's directory
@@ -79,7 +78,8 @@ impl From<String> for DirectorySyncTarget {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "openid_provider_kind")]
 pub enum OpenIdProviderKind {
     Custom,

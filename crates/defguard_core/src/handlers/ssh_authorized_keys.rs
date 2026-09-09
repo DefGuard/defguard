@@ -9,9 +9,10 @@ use defguard_common::db::{
 };
 use sqlx::{PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult, user_for_admin_or_self};
+use super::{ApiResponse, ApiResult, user_for_admin_or_self};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -88,7 +89,7 @@ pub struct SshKeysRequestParams {
 ///
 /// Meant to be used as an `AuthorizedKeysCommand` in `sshd`. Filter the users with the
 /// `username` or `group` query parameter.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/ssh_authorized_keys",
     tag = "SSH key",
@@ -101,7 +102,7 @@ pub struct SshKeysRequestParams {
         (status = 400, description = "Neither username nor group was provided.", body = ApiErrorResponse, example = json!({"msg": "Bad Request"})),
         (status = 500, description = "Unable to get authorized keys.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn get_authorized_keys(
     params: Query<SshKeysRequestParams>,
     State(appstate): State<AppState>,
@@ -159,7 +160,8 @@ pub async fn get_authorized_keys(
     Ok(ssh_keys.join("\n"))
 }
 
-#[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[derive(Deserialize, Serialize, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddAuthenticationKeyData {
     key: String,
     name: String,
@@ -167,7 +169,7 @@ pub struct AddAuthenticationKeyData {
 }
 
 /// Add an SSH or GPG authentication key to a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/auth_key",
     tag = "SSH key",
@@ -187,7 +189,7 @@ pub struct AddAuthenticationKeyData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn add_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -255,7 +257,7 @@ pub async fn add_authentication_key(
 
 // GET on user, returns AuthenticationKeyInfo vector in JSON
 /// List SSH and GPG authentication keys of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/user/{username}/auth_key",
     tag = "SSH key",
@@ -282,7 +284,7 @@ pub async fn add_authentication_key(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn fetch_authentication_keys(
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -295,7 +297,7 @@ pub async fn fetch_authentication_keys(
 }
 
 /// Delete an authentication key of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/user/{username}/auth_key/{key_id}",
     tag = "SSH key",
@@ -315,7 +317,7 @@ pub async fn fetch_authentication_keys(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -344,13 +346,14 @@ pub async fn delete_authentication_key(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
-#[derive(Debug, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Deserialize, Clone)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RenameRequest {
     name: String,
 }
 
 /// Rename an authentication key of a user
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/user/{username}/auth_key/{key_id}/rename",
     tag = "SSH key",
@@ -371,7 +374,7 @@ pub struct RenameRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn rename_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,

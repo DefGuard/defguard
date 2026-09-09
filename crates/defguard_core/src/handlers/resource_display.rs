@@ -1,8 +1,10 @@
 use axum::{Extension, http::StatusCode};
 use serde::Serialize;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
 use crate::auth::AdminRole;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 
 #[derive(Serialize, Debug)]
 pub struct ResourceDisplay {
@@ -11,7 +13,7 @@ pub struct ResourceDisplay {
 }
 
 /// List networks reduced to their ID and name
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/display",
     tag = "network",
@@ -25,7 +27,7 @@ pub struct ResourceDisplay {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_locations_display(
     _admin: AdminRole,
     Extension(pool): Extension<sqlx::PgPool>,

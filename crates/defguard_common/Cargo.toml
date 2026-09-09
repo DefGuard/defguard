@@ -40,13 +40,19 @@ tonic.workspace = true
 tokio.workspace = true
 totp-lite.workspace = true
 tracing.workspace = true
-utoipa.workspace = true
+utoipa = { workspace = true, optional = true }
 uuid.workspace = true
 webauthn-rs.workspace = true
 x25519-dalek.workspace = true
 url = "2.5"
 
 [features]
+default = ["openapi"]
+
+# Derive `utoipa::ToSchema` for the API types defined here, so that
+# `defguard_core` can build an OpenAPI specification out of them.
+openapi = ["dep:utoipa"]
+
 # Test-only helpers (e.g. the mock SMTP server) meant to be shared with other
 # crates' test suites. Enable via `[dev-dependencies]` so it never reaches
 # production builds.

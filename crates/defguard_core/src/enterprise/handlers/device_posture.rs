@@ -9,8 +9,9 @@ use axum_extra::extract::Query as AxumExtraQuery;
 use defguard_common::db::{Id, NoId, models::WireguardNetwork};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgConnection, Postgres, QueryBuilder};
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -30,7 +31,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
     handlers::{
-        ApiErrorResponse, ApiResponse, ApiResult,
+        ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
     location_management::allowed_peers::get_location_allowed_peers,
@@ -78,7 +79,8 @@ async fn build_location_peer_refresh_commands(
 ///
 /// Adding this layer on top of the shared DB type allows us
 /// to require different fields for specific platforms.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "os_type", rename_all = "lowercase")]
 pub enum ApiOsRule {
     Windows {
@@ -241,7 +243,8 @@ impl From<DevicePostureOsRule<Id>> for ApiOsRule {
 }
 
 /// API response type for a device posture check policy.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiDevicePosture {
     pub id: Id,
     pub name: String,
@@ -269,7 +272,8 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DevicePostureOsVersionCatalog {
     pub windows: Vec<i32>,
     pub macos: Vec<i32>,
@@ -295,7 +299,8 @@ impl Default for DevicePostureOsVersionCatalog {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DevicePostureVersionMetadata {
     pub os_versions: DevicePostureOsVersionCatalog,
     pub linux_kernel_versions: Vec<i32>,
@@ -322,7 +327,8 @@ impl Default for DevicePostureVersionMetadata {
 }
 
 /// Request body for creating or updating a device posture check policy.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EditDevicePosture {
     pub name: String,
     pub description: Option<String>,
@@ -644,7 +650,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
 }
 
 /// Create a device posture check policy
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device-posture",
     tag = "device posture",
@@ -660,7 +666,7 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn create_device_posture(
     _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
@@ -723,7 +729,7 @@ pub async fn create_device_posture(
 }
 
 /// List available posture check versions
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device-posture/versions",
     tag = "device posture",
@@ -736,7 +742,7 @@ pub async fn create_device_posture(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo) -> ApiResult {
     debug!(
         "User {} fetching device posture version metadata",
@@ -750,7 +756,7 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
 }
 
 /// List device posture check policies
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device-posture",
     tag = "device posture",
@@ -768,7 +774,7 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn list_device_postures(
     _admin: AdminRole,
     session: SessionInfo,
@@ -827,7 +833,7 @@ pub async fn list_device_postures(
 }
 
 /// Get a device posture check policy
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device-posture/{id}",
     tag = "device posture",
@@ -845,7 +851,7 @@ pub async fn list_device_postures(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_device_posture(
     _admin: AdminRole,
     session: SessionInfo,
@@ -871,7 +877,7 @@ pub async fn get_device_posture(
 }
 
 /// Update a device posture check policy
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}",
     tag = "device posture",
@@ -891,7 +897,7 @@ pub async fn get_device_posture(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn update_device_posture(
     _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
@@ -965,7 +971,7 @@ pub async fn update_device_posture(
 }
 
 /// Delete a device posture check policy
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/device-posture/{id}",
     tag = "device posture",
@@ -983,7 +989,7 @@ pub async fn update_device_posture(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_device_posture(
     _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
@@ -1028,7 +1034,7 @@ pub async fn delete_device_posture(
 /// Duplicate a device posture check policy
 ///
 /// Creates a copy of the specified policy with the name `"{original} (copy)"`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device-posture/{id}/duplicate",
     tag = "device posture",
@@ -1046,7 +1052,7 @@ pub async fn delete_device_posture(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn duplicate_device_posture(
     _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,
@@ -1115,7 +1121,8 @@ pub async fn duplicate_device_posture(
 }
 
 /// Request body for assigning VPN locations to a posture check.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AssignLocationsData {
     pub locations: Vec<Id>,
 }
@@ -1123,7 +1130,7 @@ pub struct AssignLocationsData {
 /// Assign locations to a device posture check policy
 ///
 /// Replaces the current assignment.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/device-posture/{id}/locations",
     tag = "device posture",
@@ -1143,7 +1150,7 @@ pub struct AssignLocationsData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn set_locations_for_posture(
     _license: LicenseGated<DevicePostureFeature>,
     _admin: AdminRole,

@@ -1,6 +1,5 @@
 use chrono::NaiveDateTime;
 use serde::Serialize;
-use utoipa::ToSchema;
 
 use crate::db::{Id, models::proxy::Proxy};
 
@@ -23,7 +22,8 @@ pub enum ProxyControlMessage {
     },
 }
 
-#[derive(ToSchema, Serialize)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ProxyInfo {
     pub id: Id,
     pub name: String,

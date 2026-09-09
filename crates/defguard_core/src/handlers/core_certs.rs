@@ -7,6 +7,8 @@ use defguard_common::{
 use serde_json::json;
 use sqlx::PgPool;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -15,7 +17,7 @@ use crate::{
         apply_external_url_settings, apply_internal_url_settings,
     },
     error::WebError,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult, settings::broadcast_public_settings},
+    handlers::{ApiResponse, ApiResult, settings::broadcast_public_settings},
 };
 
 fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
@@ -53,7 +55,7 @@ fn reload_core_web_server(appstate: &AppState) {
 }
 
 /// Set up the certificate for the internal (core) URL
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/core/cert/internal_url_settings",
     tag = "certificates",
@@ -68,7 +70,7 @@ fn reload_core_web_server(appstate: &AppState) {
         (status = 500, description = "Unable to apply internal URL certificate settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
-)]
+))]
 pub(crate) async fn set_internal_url_settings(
     State(appstate): State<AppState>,
     _role: AdminRole,
@@ -95,7 +97,7 @@ pub(crate) async fn set_internal_url_settings(
 }
 
 /// Set up the certificate for the external (edge) URL
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/proxy/cert/external_url_settings",
     tag = "certificates",
@@ -110,7 +112,7 @@ pub(crate) async fn set_internal_url_settings(
         (status = 500, description = "Unable to apply external URL certificate settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
-)]
+))]
 pub(crate) async fn set_external_url_settings(
     State(appstate): State<AppState>,
     _role: AdminRole,
@@ -159,7 +161,7 @@ pub(crate) async fn set_external_url_settings(
 }
 
 /// Get the certificate of the internal certificate authority
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/core/cert/ca",
     tag = "certificates",
@@ -179,7 +181,7 @@ pub(crate) async fn set_external_url_settings(
         (status = 500, description = "Unable to get CA certificate.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
-)]
+))]
 pub(crate) async fn get_ca(
     _role: AdminRole,
     session: SessionInfo,
@@ -217,7 +219,7 @@ pub(crate) async fn get_ca(
 }
 
 /// Get the certificates currently used by core and edge
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/core/cert/certs",
     tag = "certificates",
@@ -235,7 +237,7 @@ pub(crate) async fn get_ca(
         (status = 500, description = "Unable to get certificates.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(("cookie" = []), ("api_token" = []))
-)]
+))]
 pub(crate) async fn get_certs(
     _role: AdminRole,
     session: SessionInfo,

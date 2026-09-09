@@ -11,14 +11,15 @@ use defguard_common::db::{
 };
 use defguard_static_ip::{DeviceLocationIp, LocationDevices, get_ips_for_device, get_ips_for_user};
 use serde::Serialize;
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::firewall::try_get_location_firewall_config,
     grpc::GatewayCommand,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 #[derive(Serialize)]
@@ -32,7 +33,7 @@ pub struct DeviceLocationIpsResponse {
 }
 
 /// List the IP addresses of all devices of a user, grouped by location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/user/{username}/ip",
     tag = "static IP",
@@ -56,7 +57,7 @@ pub struct DeviceLocationIpsResponse {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_all_user_device_ips(
     _admin_role: AdminRole,
     _session: SessionInfo,
@@ -71,7 +72,7 @@ pub async fn get_all_user_device_ips(
 }
 
 /// List the IP addresses of a user device, grouped by location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/device/user/{username}/ip/{device_id}",
     tag = "static IP",
@@ -92,7 +93,7 @@ pub async fn get_all_user_device_ips(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_device_ips(
     _admin_role: AdminRole,
     _session: SessionInfo,
@@ -106,16 +107,17 @@ pub async fn get_device_ips(
     ))
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct StaticIpAssignment {
     pub device_id: i64,
     pub location_id: Id,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub ips: Vec<IpAddr>,
 }
 
 /// Assign static IP addresses to user devices
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/user/{username}/ip",
     tag = "static IP",
@@ -134,7 +136,7 @@ pub struct StaticIpAssignment {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn assign_static_ips(
     _admin_role: AdminRole,
     _session: SessionInfo,
@@ -183,16 +185,17 @@ pub async fn assign_static_ips(
     })
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ValidateIpAssignmentRequest {
     pub device_id: i64,
-    #[schema(value_type = String)]
+    #[cfg_attr(feature = "openapi", schema(value_type = String))]
     pub ip: IpAddr,
     pub location: Id,
 }
 
 /// Check whether a single static IP assignment would be valid
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/device/user/{username}/ip/validate",
     tag = "static IP",
@@ -211,7 +214,7 @@ pub struct ValidateIpAssignmentRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn validate_ip_assignment(
     _admin_role: AdminRole,
     _session: SessionInfo,

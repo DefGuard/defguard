@@ -7,7 +7,9 @@ use axum_extra::extract::cookie::CookieJar;
 use defguard_common::db::models::{Session, SessionState, Settings, user::User};
 use reqwest::Url;
 
-use super::{ApiErrorResponse, SESSION_COOKIE_NAME};
+use super::SESSION_COOKIE_NAME;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{appstate::AppState, error::WebError};
 
 // Header names
@@ -65,7 +67,7 @@ where
 ///
 /// Meant to be used as a forward-auth endpoint, for example Traefik `forwardAuth`. The original
 /// request URL is read from the `X-Forwarded-*` headers.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/forward_auth",
     tag = "system",
@@ -74,7 +76,7 @@ where
         (status = 302, description = "User is not authenticated, redirect to the login page."),
         (status = 500, description = "Unable to authorize request.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn forward_auth(
     State(appstate): State<AppState>,
     cookies: CookieJar,

@@ -4,7 +4,9 @@ use defguard_common::{
     db::models::{Settings, WireguardNetwork},
 };
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
@@ -30,7 +32,7 @@ pub struct AppInfo {
 }
 
 /// Get information about this defguard instance
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/info",
     tag = "system",
@@ -49,7 +51,7 @@ pub struct AppInfo {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_app_info(State(appstate): State<AppState>, _session: SessionInfo) -> ApiResult {
     // both `await`s are executed upfront to avoid holding license `RwLock` across an await point
     let networks = WireguardNetwork::all(&appstate.pool).await?;

@@ -6,7 +6,6 @@ use axum::{
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Deserializer, Serialize, de};
-use utoipa::ToSchema;
 
 use crate::error::WebError;
 
@@ -153,7 +152,8 @@ impl fmt::Display for PaginationParams {
 }
 
 /// Pagination metadata included in the response.
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 struct PaginationMeta {
     /// Number of the returned page, starting from 1.
     current_page: u32,
@@ -192,7 +192,8 @@ impl PaginationMeta {
 pub type PaginatedApiResult<T> = Result<PaginatedApiResponse<T>, WebError>;
 
 /// Envelope returned by paginated endpoints.
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PaginatedApiResponse<T> {
     /// Items of the requested page.
     data: Vec<T>,
