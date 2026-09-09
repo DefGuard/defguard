@@ -10,14 +10,10 @@ use rsa::{
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
 };
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 use serde::Serialize;
 
-use crate::{
-    VERSION,
-    db::{Id, models::Settings},
-    rsa_jwk_thumbprint,
-};
+use crate::{VERSION, db::Id, rsa_jwk_thumbprint};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -332,13 +328,7 @@ pub struct AddUserToGroupArgs {
 impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
-        let config = Self::parse();
-        #[allow(deprecated)]
-        if let Some(secret_key) = &config.secret_key {
-            Settings::validate_secret_key(secret_key.expose_secret())
-                .expect("Invalid DEFGUARD_SECRET_KEY");
-        }
-        config
+        Self::parse()
     }
 
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`

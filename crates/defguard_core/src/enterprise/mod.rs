@@ -144,7 +144,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -162,7 +162,7 @@ mod test {
             None,
             LicenseTier::Enterprise,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -211,7 +211,7 @@ mod test {
     fn test_enterprise_tier_satisfies_strict_gate() {
         set_counts(Counts::new(1, 1, 5, 1));
 
-        set_cached_license(Some(make_license(LicenseTier::Enterprise, vec![])));
+        set_cached_license(Some(make_license(LicenseTier::Enterprise, Vec::new())));
         assert!(has_enterprise_access(None));
 
         // the None gate is tier-only: no set of additive flags can satisfy it
@@ -236,7 +236,7 @@ mod test {
     #[test]
     fn test_effective_features_folds_tier_baseline() {
         // Enterprise grants every feature via the tier baseline alone, with no explicit flags.
-        let enterprise = make_license(LicenseTier::Enterprise, vec![]);
+        let enterprise = make_license(LicenseTier::Enterprise, Vec::new());
         let effective = effective_features(&enterprise);
         assert_eq!(effective.len(), LicenseFeature::VARIANTS.len());
         for &feature in LicenseFeature::VARIANTS {
@@ -252,7 +252,7 @@ mod test {
             vec![LicenseFeature::ServiceLocations]
         );
 
-        let bare = make_license(LicenseTier::Business, vec![]);
+        let bare = make_license(LicenseTier::Business, Vec::new());
         assert!(effective_features(&bare).is_empty());
     }
 }

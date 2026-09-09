@@ -4,7 +4,7 @@ set -e
 USERNAME=defguard
 
 if ! id -u ${USERNAME} >/dev/null 2>&1; then
-	useradd --system --user-group --no-create-home ${USERNAME}
+	/usr/sbin/useradd --system --user-group --no-create-home ${USERNAME}
 fi
 
 mkdir -p /etc/defguard

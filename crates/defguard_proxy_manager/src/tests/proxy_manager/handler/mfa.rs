@@ -19,7 +19,7 @@ use tokio::{task, time::timeout};
 use tonic::Code;
 
 use super::support::{
-    assert_error_response, assert_error_response_with_message, assert_vpn_session_exists,
+    assert_error_response, assert_error_response_details, assert_vpn_session_exists,
     biometric_pub_key, clear_test_license, complete_proxy_handshake, configure_oidc_provider,
     create_external_mfa_network, create_mfa_network, create_multi_step_mfa_network,
     create_multi_step_mfa_network_with_steps, create_network, create_user_with_device,
@@ -151,12 +151,14 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::Unauthenticated);
     assert_eq!(message, "unauthorized");
 
@@ -268,7 +270,7 @@ async fn test_mfa_start_rejects_email_when_smtp_not_configured(
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "selected MFA method is not available");
 
@@ -352,7 +354,7 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
 
     // Send a clearly wrong code - use _raw so we can inspect the error response
     let response = send_mfa_finish_raw(&mut context, &token, Some("000000")).await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::Unauthenticated);
     assert_eq!(message, "unauthorized");
 
@@ -398,7 +400,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
     clear_test_license();
     context.mock_proxy().send_request(request(1));
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "selected MFA method is not supported by location");
 
@@ -407,7 +409,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
     set_test_license_business();
     context.mock_proxy().send_request(request(2));
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "selected MFA method is not available");
 
@@ -639,7 +641,7 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
 
     let stale_response =
         send_mfa_finish_with_attempt_id_raw(&mut context, &token, "superseded-attempt").await;
-    let (code, message) = assert_error_response_with_message(&stale_response);
+    let (code, message) = assert_error_response_details(&stale_response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "stale MFA attempt");
 
@@ -806,7 +808,7 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
         Some("stale-attempt"),
     )
     .await;
-    let (code, message) = assert_error_response_with_message(&stale_response);
+    let (code, message) = assert_error_response_details(&stale_response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "stale MFA attempt");
     let session_after_stale =
@@ -1281,6 +1283,8 @@ async fn test_parked_mobile_approval_completes_final_step(
                 code: Some(signature.clone()),
                 auth_pub_key: Some(auth_pub_key.clone()),
                 step_attempt_id: Some("stale-attempt".to_owned()),
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -1298,6 +1302,8 @@ async fn test_parked_mobile_approval_completes_final_step(
                 code: Some(signature),
                 auth_pub_key: Some(auth_pub_key),
                 step_attempt_id: Some(started.step_attempt_id),
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -1422,6 +1428,8 @@ async fn test_parked_mobile_approval_advances_non_final_step(
                 code: Some(signature),
                 auth_pub_key: Some(auth_pub_key),
                 step_attempt_id: Some(started.step_attempt_id),
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -1536,7 +1544,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
         Some(&step_started.step_attempt_id),
     )
     .await;
-    let (code, message) = assert_error_response_with_message(&invalid_response);
+    let (code, message) = assert_error_response_details(&invalid_response);
     assert_eq!(code, Code::Unauthenticated);
     assert_eq!(message, "unauthorized");
     let event = context

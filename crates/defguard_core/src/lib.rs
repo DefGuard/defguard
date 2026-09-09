@@ -51,7 +51,7 @@ use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     mfa_flow::{
         create_mfa_flow, delete_mfa_flow, get_location_mfa_flows, get_method_availability,
-        get_mfa_flow, list_mfa_flows, set_location_mfa_flows, update_mfa_flow,
+        get_mfa_flow, list_mfa_flows, update_mfa_flow,
     },
     network_devices::{
         add_network_device, check_ip_availability, find_available_ips, get_network_device,
@@ -102,14 +102,16 @@ use crate::{
         handlers::{
             acl::{
                 alias::{
-                    apply_acl_aliases, count_acl_aliases, create_acl_alias, delete_acl_alias,
-                    get_acl_alias, list_acl_aliases, update_acl_alias,
+                    apply_acl_aliases, bulk_delete_acl_aliases, count_acl_aliases,
+                    create_acl_alias, delete_acl_alias, get_acl_alias, list_acl_aliases,
+                    update_acl_alias,
                 },
-                apply_acl_rules, count_acl_rules, create_acl_rule, delete_acl_rule,
+                apply_acl_rules, bulk_delete_acl_rules, bulk_disable_acl_rules,
+                bulk_enable_acl_rules, count_acl_rules, create_acl_rule, delete_acl_rule,
                 destination::{
-                    apply_acl_destinations, count_acl_destinations, create_acl_destination,
-                    delete_acl_destination, get_acl_destination, list_acl_destinations,
-                    update_acl_destination,
+                    apply_acl_destinations, bulk_delete_acl_destinations, count_acl_destinations,
+                    create_acl_destination, delete_acl_destination, get_acl_destination,
+                    list_acl_destinations, update_acl_destination,
                 },
                 get_acl_rule, list_acl_rules, update_acl_rule,
             },
@@ -122,7 +124,7 @@ use crate::{
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_posture, get_device_posture_versions, list_device_postures,
-                set_locations_for_posture, set_postures_for_location, update_device_posture,
+                set_locations_for_posture, update_device_posture,
             },
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
@@ -542,6 +544,9 @@ pub fn build_webapp(
             .route("/rule", get(list_acl_rules).post(create_acl_rule))
             .route("/rule/count", get(count_acl_rules))
             .route("/rule/apply", put(apply_acl_rules))
+            .route("/rule/bulk-enable", post(bulk_enable_acl_rules))
+            .route("/rule/bulk-disable", post(bulk_disable_acl_rules))
+            .route("/rule/bulk-delete", post(bulk_delete_acl_rules))
             .route(
                 "/rule/{id}",
                 get(get_acl_rule)
@@ -557,6 +562,7 @@ pub fn build_webapp(
                     .delete(delete_acl_alias),
             )
             .route("/alias/apply", put(apply_acl_aliases))
+            .route("/alias/bulk-delete", post(bulk_delete_acl_aliases))
             .route(
                 "/destination",
                 get(list_acl_destinations).post(create_acl_destination),
@@ -568,7 +574,11 @@ pub fn build_webapp(
                     .put(update_acl_destination)
                     .delete(delete_acl_destination),
             )
-            .route("/destination/apply", put(apply_acl_destinations)),
+            .route("/destination/apply", put(apply_acl_destinations))
+            .route(
+                "/destination/bulk-delete",
+                post(bulk_delete_acl_destinations),
+            ),
     );
 
     let api_router = api_router.nest(
@@ -585,10 +595,7 @@ pub fn build_webapp(
                 "/mfa-flow/method-availability",
                 get(get_method_availability),
             )
-            .route(
-                "/location/{id}/mfa-flows",
-                get(get_location_mfa_flows).put(set_location_mfa_flows),
-            ),
+            .route("/location/{id}/mfa-flows", get(get_location_mfa_flows)),
     );
 
     let api_router = api_router.nest(
@@ -706,7 +713,6 @@ pub fn build_webapp(
                 "/network/{location_id}/snat",
                 get(list_snat_bindings).post(create_snat_binding),
             )
-            .route("/network/{id}/postures", put(set_postures_for_location))
             .route(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),
@@ -775,11 +781,11 @@ pub fn build_webapp(
     let sse_routes: Router<AppState> = Router::new().nest(
         "/api/v1",
         Router::new()
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-            .route("/proxy/acme/stream", get(stream_proxy_acme))
+            .route("/proxy/setup/stream", post(setup_proxy_tls_stream))
+            .route("/proxy/acme/stream", post(stream_proxy_acme))
             .route(
                 "/network/{network_id}/gateways/setup",
-                get(setup_gateway_tls_stream),
+                post(setup_gateway_tls_stream),
             ),
     );
     let sse_routes = if let Some(conf) = governor_config {

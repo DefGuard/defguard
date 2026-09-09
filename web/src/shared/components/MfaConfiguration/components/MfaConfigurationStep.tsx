@@ -5,6 +5,7 @@ import { Divider } from '../../../defguard-ui/components/Divider/Divider';
 import { FieldError } from '../../../defguard-ui/components/FieldError/FieldError';
 import { Helper } from '../../../defguard-ui/components/Helper/Helper';
 import { Icon } from '../../../defguard-ui/components/Icon';
+import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
 import type { MfaConfigurationStepProps } from '../types';
 import { MfaMethodsMenu } from './MfaMethodsMenu';
@@ -27,6 +28,7 @@ export const MfaConfigurationStep = ({
       buildOption(method, () => onAddMethod(step.id, method)),
     ),
   }));
+  const error = step.methods.length === 0 ? m.mfa_flow_method_required() : undefined;
 
   return (
     <Reorder.Item
@@ -96,9 +98,12 @@ export const MfaConfigurationStep = ({
           </Helper>
         </div>
       )}
-      <FieldError
-        error={step.methods.length === 0 ? m.mfa_flow_method_required() : undefined}
-      />
+      {error && (
+        <>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <FieldError error={error} />
+        </>
+      )}
     </Reorder.Item>
   );
 };

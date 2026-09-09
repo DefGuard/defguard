@@ -283,6 +283,8 @@ async fn test_mobile_approve_empty_proof_reads_approval_flag(
         code: None,
         auth_pub_key: None,
         step_attempt_id: None,
+        auth_data: None,
+        credential_id: None,
     };
 
     assert_eq!(
@@ -624,6 +626,8 @@ async fn test_step_start_oidc_survives_license_lapse(_: PgPoolOptions, options: 
                 code: Some(totp_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -956,6 +960,8 @@ async fn test_mfa_actions_reject_missing_session(_: PgPoolOptions, options: PgCo
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: Some("attempt".to_owned()),
+                    auth_data: None,
+                    credential_id: None,
                 },
                 test_ip(),
             )
@@ -1084,6 +1090,8 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
                 code: Some(totp_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1111,6 +1119,8 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
                 code: Some(email_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1216,6 +1226,8 @@ async fn test_finish_replayed_proof_cannot_skip_a_step(
                 code: Some(code.clone()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1231,6 +1243,8 @@ async fn test_finish_replayed_proof_cannot_skip_a_step(
                 code: Some(code),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1317,6 +1331,8 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
                 code: Some(totp_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1341,6 +1357,8 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
                 code: Some(email_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: Some(first.step_attempt_id),
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1358,6 +1376,8 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
                 code: Some(email_code(&user)),
                 auth_pub_key: None,
                 step_attempt_id: Some(second.step_attempt_id),
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )
@@ -1401,6 +1421,8 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
                         code: Some("000000".to_owned()),
                         auth_pub_key: None,
                         step_attempt_id: Some(attempt_id.clone()),
+                        auth_data: None,
+                        credential_id: None,
                     },
                     test_ip(),
                 )
@@ -1419,6 +1441,8 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: Some(attempt_id),
+                    auth_data: None,
+                    credential_id: None,
                 },
                 test_ip(),
             )
@@ -1439,6 +1463,8 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: None,
+                    auth_data: None,
+                    credential_id: None,
                 },
                 test_ip(),
             )
@@ -1493,6 +1519,8 @@ async fn test_finish_cap_emits_frozen_partial_abort_attribution(
                         code: Some("000000".to_owned()),
                         auth_pub_key: None,
                         step_attempt_id: Some(email_attempt.step_attempt_id.clone()),
+                        auth_data: None,
+                        credential_id: None,
                     },
                     test_ip(),
                 )
@@ -1509,6 +1537,8 @@ async fn test_finish_cap_emits_frozen_partial_abort_attribution(
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: Some(email_attempt.step_attempt_id),
+                    auth_data: None,
+                    credential_id: None,
                 },
                 test_ip(),
             )
@@ -1580,6 +1610,8 @@ async fn test_finish_legacy_cap_deletes_session_and_emits_abort(
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
                     step_attempt_id: None,
+                    auth_data: None,
+                    credential_id: None,
                 },
                 test_ip(),
             )
@@ -1651,6 +1683,8 @@ async fn test_finish_on_uninitialized_step(_: PgPoolOptions, options: PgConnectO
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
             test_ip(),
         )

@@ -585,7 +585,16 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
         .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
-    assert!(refresh_response.refresh_token().is_some());
+    assert_ne!(
+        refresh_response.access_token().secret(),
+        token_response.access_token().secret(),
+        "access token should be rotated",
+    );
+    assert_ne!(
+        refresh_response.refresh_token().unwrap().secret(),
+        token_response.refresh_token().unwrap().secret(),
+        "refresh token should be rotated",
+    );
 }
 
 #[sqlx::test]
@@ -959,11 +968,20 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
         .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
-    assert!(refresh_response.refresh_token().is_some());
+    assert_ne!(
+        refresh_response.access_token().secret(),
+        token_response.access_token().secret(),
+        "access token should be rotated",
+    );
+    assert_ne!(
+        refresh_response.refresh_token().unwrap().secret(),
+        token_response.refresh_token().unwrap().secret(),
+        "refresh token should be rotated",
+    );
 
     // userinfo
     let _userinfo_claims: UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim> = core_client
-        .user_info(token_response.access_token().clone(), None)
+        .user_info(refresh_response.access_token().clone(), None)
         .expect("Missing info endpoint")
         .request_async(&|r| http_client(r, &client))
         .await

@@ -3,9 +3,10 @@ import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
+  type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import type { AclListTabValue } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
@@ -17,6 +18,7 @@ import {
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
+import { ButtonMenu } from '../../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import type { MenuItemsGroup } from '../../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
@@ -30,6 +32,7 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
+import { useAclBulkActions } from '../../Acl/hooks/useAclBulkActions';
 
 type Props = {
   title: string;
@@ -69,6 +72,7 @@ export const DestinationsTable = ({
     return map;
   }, [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
@@ -169,6 +173,7 @@ export const DestinationsTable = ({
                 {
                   text: m.controls_edit(),
                   icon: 'edit',
+                  testId: 'destination-row-edit',
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -186,6 +191,7 @@ export const DestinationsTable = ({
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  testId: 'destination-row-delete',
                   disabled: disableBlockedModal && row.rules.length > 0,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
@@ -225,6 +231,7 @@ export const DestinationsTable = ({
             menuItems[0].items.splice(1, 0, {
               text: m.controls_deploy(),
               icon: 'deploy',
+              testId: 'destination-row-deploy',
               onClick: () => {
                 if (licenseInfo === undefined) return;
                 licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -233,7 +240,13 @@ export const DestinationsTable = ({
               },
             });
           }
-          return <TableEditCell menuItems={menuItems} disabled={licenseFetching} />;
+          return (
+            <TableEditCell
+              menuItems={menuItems}
+              disabled={licenseFetching}
+              testId="destination-row-menu"
+            />
+          );
         },
       }),
     ],
@@ -273,15 +286,41 @@ export const DestinationsTable = ({
   const table = useReactTable({
     columns,
     data: transformedData,
+    state: {
+      rowSelection,
+    },
+    getRowId: (row) => String(row.id),
     enableExpanding: false,
-    enableRowSelection: false,
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
+  });
+
+  const selected = table.getSelectedRowModel().rows.map((row) => row.original);
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+  const bulkMenuItems = useAclBulkActions({
+    kind: 'destination',
+    selected,
+    variant: tab,
+    license: licenseInfo,
+    clearSelection,
   });
 
   return (
     <>
       <TableTop text={title}>
+        {selected.length > 0 && (
+          <ButtonMenu
+            variant="outlined"
+            text={m.acl_destinations_bulk_actions()}
+            iconRight="arrow-small"
+            iconRightRotation="down"
+            placement="bottom-start"
+            testId="destinations-bulk-actions"
+            menuItems={bulkMenuItems}
+          />
+        )}
         {search && (
           <Search
             onChange={setSearchValue}

@@ -85,6 +85,7 @@ const ModalContent = ({ data }: { data: ModalData }) => {
           <Button
             text={m.controls_cancel()}
             variant="secondary"
+            testId="confirm-action-cancel"
             {...data.cancelProps}
             disabled={isPending}
             onClick={() => {
@@ -94,6 +95,7 @@ const ModalContent = ({ data }: { data: ModalData }) => {
           {isPresent(data.submitProps) && (
             <Button
               variant="primary"
+              testId="confirm-action-submit"
               {...data.submitProps}
               loading={isPending}
               onClick={() => {

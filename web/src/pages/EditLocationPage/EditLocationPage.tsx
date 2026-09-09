@@ -2,15 +2,17 @@ import './style.scss';
 
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { cloneDeep, omit } from 'lodash-es';
-import { useMemo } from 'react';
+import { cloneDeep, isEqual, omit } from 'lodash-es';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type EditNetworkLocation,
   LicenseFeature,
+  type LocationMfaFlowResponse,
   LocationServiceMode,
+  type MfaFlowAssignment,
   type NetworkLocation,
 } from '../../shared/api/types';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
@@ -37,7 +39,13 @@ import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
+import {
+  getGroupsInfoQueryOptions,
+  getLicenseInfoQueryOptions,
+  getLocationMfaFlowsQueryOptions,
+  getLocationQueryOptions,
+  getMfaFlowsQueryOptions,
+} from '../../shared/query';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
@@ -46,6 +54,7 @@ import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
+import { LocationMfaSection } from './components/LocationMfaSection/LocationMfaSection';
 import { getPostureChecksSectionState } from './postureChecksSection';
 
 export const EditLocationPage = () => {
@@ -53,6 +62,9 @@ export const EditLocationPage = () => {
     from: '/_authorized/_default/locations/$locationId/edit',
   });
   const { data: location } = useSuspenseQuery(getLocationQueryOptions(Number(paramsId)));
+  const { data: mfaFlows } = useSuspenseQuery(
+    getLocationMfaFlowsQueryOptions(location.id),
+  );
 
   return (
     <EditPage
@@ -62,7 +74,7 @@ export const EditLocationPage = () => {
         title: m.location_edit_title({ name: location.name }),
       }}
     >
-      <EditLocationForm location={location} />
+      <EditLocationForm location={location} mfaFlows={mfaFlows} />
     </EditPage>
   );
 };
@@ -234,10 +246,20 @@ const normalizeSelectedGroups = (groups: string[]) =>
 const areEqualStringArrays = (left: string[], right: string[]) =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
+// Sort group IDs because the server normalizes their order when comparing assignments.
+const toMfaFlowAssignments = (flows: LocationMfaFlowResponse[]): MfaFlowAssignment[] =>
+  flows.map((flow) => ({
+    flow_id: flow.id,
+    is_default: flow.is_default,
+    group_ids: flow.groups.map((group) => group.id).sort((left, right) => left - right),
+  }));
+
 // Builds the submitted location payload used for both save and warning comparisons.
 const buildLocationSubmissionData = (
   value: FormFields,
   location: NetworkLocation,
+  postureChecks: number[],
+  mfaFlows: MfaFlowAssignment[],
 ): EditNetworkLocation => {
   const normalizedValue = cloneDeep(value);
 
@@ -252,6 +274,8 @@ const buildLocationSubmissionData = (
     acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
     peer_disconnect_threshold:
       normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
+    posture_checks: postureChecks,
+    mfa_flows: mfaFlows,
   };
 };
 
@@ -344,43 +368,58 @@ const getDisconnectRelevantChangedFields = (
   return Array.from(changedFields);
 };
 
-const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
+const EditLocationForm = ({
+  location,
+  mfaFlows,
+}: {
+  location: NetworkLocation;
+  mfaFlows: LocationMfaFlowResponse[];
+}) => {
   const navigate = useNavigate();
 
-  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const canUseDevicePosture = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.DevicePosture).result;
-  }, [licenseInfo]);
-  const canUseServiceLocations = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.ServiceLocations).result;
-  }, [licenseInfo]);
-  const canUseAllowedIpsFromAcl = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseEnterpriseFeature(licenseInfo, LicenseFeature.AclAllowedIps).result;
-  }, [licenseInfo]);
-  const canUseBusiness = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseBusinessFeature(licenseInfo).result;
-  }, [licenseInfo]);
+  const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
+  const canUseDevicePosture = canUseEnterpriseFeature(
+    licenseInfo,
+    LicenseFeature.DevicePosture,
+  ).result;
+  const canUseServiceLocations = canUseEnterpriseFeature(
+    licenseInfo,
+    LicenseFeature.ServiceLocations,
+  ).result;
+  const canUseAllowedIpsFromAcl = canUseEnterpriseFeature(
+    licenseInfo,
+    LicenseFeature.AclAllowedIps,
+  ).result;
+  const canUseBusiness = canUseBusinessFeature(licenseInfo).result;
+  // Group-scoped MFA assignments require an Enterprise license.
+  const canUseMfaGroupOverrides = canUseEnterpriseFeature(licenseInfo).result;
   const { data: postureChecks = [] } = useQuery({
     queryKey: ['device-posture'],
     queryFn: api.devicePosture.getDevicePostures,
-    enabled: canUseDevicePosture === true,
+    enabled: canUseDevicePosture,
   });
-  const serviceLocationLocked =
-    isPresent(canUseServiceLocations) && !canUseServiceLocations;
+  const serviceLocationLocked = !canUseServiceLocations;
+  const [pendingPostureChecks, setPendingPostureChecks] = useState(
+    location.posture_checks ?? [],
+  );
   const postureChecksSectionState = useMemo(
     () =>
       getPostureChecksSectionState({
-        assignedPostureChecksCount: location.posture_checks?.length ?? 0,
+        assignedPostureChecksCount: pendingPostureChecks.length,
         canUseEnterprise: canUseDevicePosture,
         postureChecksCount: postureChecks.length,
       }),
-    [canUseDevicePosture, location.posture_checks?.length, postureChecks.length],
+    [canUseDevicePosture, pendingPostureChecks.length, postureChecks.length],
   );
-  const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
+  const firewallLocked = !canUseBusiness;
+  const hasPendingPostureCheckChanges =
+    pendingPostureChecks.length !== (location.posture_checks?.length ?? 0) ||
+    pendingPostureChecks.some((id) => !location.posture_checks?.includes(id));
+
+  const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
+  const [pendingMfaFlows, setPendingMfaFlows] =
+    useState<MfaFlowAssignment[]>(savedMfaFlows);
+  const hasPendingMfaFlowChanges = !isEqual(pendingMfaFlows, savedMfaFlows);
 
   const postureCheckOptions = useMemo(
     () =>
@@ -448,10 +487,22 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       ),
   });
 
+  const { data: mfaFlowCatalog = [] } = useQuery(getMfaFlowsQueryOptions);
+  const { data: mfaGroupOptions = [] } = useQuery({
+    ...getGroupsInfoQueryOptions,
+    select: (response) =>
+      response.data.map(
+        (group): SelectionOption<number> => ({
+          id: group.id,
+          label: group.name,
+        }),
+      ),
+  });
+
   const { mutateAsync: editLocation } = useMutation({
     mutationFn: api.location.editLocation,
     meta: {
-      invalidate: [['network'], ['gateway']],
+      invalidate: [['network'], ['gateway'], ['location', location.id]],
     },
     onSuccess: () => {
       navigate({
@@ -464,26 +515,10 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const { mutateAsync: setLocationPosturesAsync, isPending: isUpdatingLocationPostures } =
-    useMutation({
-      mutationFn: (data: { postures: number[] }) =>
-        api.devicePosture.setLocationPostures(location.id, data),
-      meta: {
-        invalidate: [['device-posture'], ['network'], ['activity-log']],
-      },
-      onError: () => {
-        Snackbar.error(m.location_posture_checks_update_failed());
-      },
-    });
-
   const handlePostureSelection = (values: (string | number)[]) => {
-    const next = values.filter((value): value is number => typeof value === 'number');
-    confirmLocationPostureChange({
-      current: location.posture_checks ?? [],
-      next,
-      options: postureCheckOptions,
-      actionPromise: () => setLocationPosturesAsync({ postures: next }),
-    });
+    setPendingPostureChecks(
+      values.filter((value): value is number => typeof value === 'number'),
+    );
   };
 
   const openPostureChecksSelection = () => {
@@ -499,7 +534,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         unknown
       >,
       searchPlaceholder: m.controls_search(),
-      selected: new Set(location.posture_checks),
+      selected: new Set(pendingPostureChecks),
       visibleItemsLimit: 4,
       onSubmit: handlePostureSelection,
     });
@@ -531,7 +566,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const submitLocationChanges = async (value: FormFields) => {
     await editLocation({
       id: location.id,
-      data: buildLocationSubmissionData(value, location),
+      data: buildLocationSubmissionData(
+        value,
+        location,
+        pendingPostureChecks,
+        pendingMfaFlows,
+      ),
     });
   };
 
@@ -554,9 +594,21 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
 
       const changedFields = getDisconnectRelevantChangedFields(
         getDisconnectRelevantLocationData(
-          buildLocationSubmissionData(defaultValues, location),
+          buildLocationSubmissionData(
+            defaultValues,
+            location,
+            location.posture_checks ?? [],
+            savedMfaFlows,
+          ),
         ),
-        getDisconnectRelevantLocationData(buildLocationSubmissionData(value, location)),
+        getDisconnectRelevantLocationData(
+          buildLocationSubmissionData(
+            value,
+            location,
+            pendingPostureChecks,
+            pendingMfaFlows,
+          ),
+        ),
       );
 
       if (changedFields.length > 0) {
@@ -573,6 +625,17 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             variant: 'critical',
           },
         });
+        return;
+      }
+
+      if (
+        confirmLocationPostureChange({
+          current: location.posture_checks ?? [],
+          next: pendingPostureChecks,
+          options: postureCheckOptions,
+          actionPromise: () => submitLocationChanges(value),
+        })
+      ) {
         return;
       }
 
@@ -660,7 +723,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          {isPresent(canUseAllowedIpsFromAcl) && !canUseAllowedIpsFromAcl && (
+          {!canUseAllowedIpsFromAcl && (
             <>
               <p className="acl-upsell-text">
                 <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
@@ -677,7 +740,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             {(field) => (
               <field.FormCheckbox
                 text={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-                disabled={isPresent(canUseAllowedIpsFromAcl) && !canUseAllowedIpsFromAcl}
+                disabled={!canUseAllowedIpsFromAcl}
                 helperBlock={
                   <Helper>
                     <p>
@@ -874,8 +937,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   )}
                 </form.AppField>
                 <form.Subscribe selector={(state) => state.values.mfa_enabled}>
-                  {(showDisconnectThreshold) =>
-                    showDisconnectThreshold ? (
+                  {(mfaEnabled) =>
+                    mfaEnabled ? (
                       <>
                         <SizedBox height={ThemeSpacing.Xl2} />
                         <form.AppField name="peer_disconnect_threshold">
@@ -888,6 +951,14 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                             />
                           )}
                         </form.AppField>
+                        <SizedBox height={ThemeSpacing.Xl2} />
+                        <LocationMfaSection
+                          assignments={pendingMfaFlows}
+                          flows={mfaFlowCatalog}
+                          groupOptions={mfaGroupOptions}
+                          canUseEnterprise={canUseMfaGroupOverrides}
+                          onChange={setPendingMfaFlows}
+                        />
                       </>
                     ) : null
                   }
@@ -901,8 +972,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           labelContent={postureChecksLabelContent}
         >
           {postureChecksSectionState.showEmptyState && (
-            <div className="posture-checks-empty-state">
-              <img src={postureCheckShield} alt="" className="posture-check-shield" />
+            <div className="location-empty-state">
+              <img src={postureCheckShield} alt="" className="shield" />
               <p>
                 {m.location_posture_checks_empty_state_before_link()}{' '}
                 <Link to="/acl/posture-checks">{m.cmp_nav_item_posture_checks()}</Link>{' '}
@@ -914,7 +985,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <div className="posture-checks-assigned-state">
               <SelectMultiple
                 options={postureCheckOptions}
-                selected={new Set(location.posture_checks)}
+                selected={new Set(pendingPostureChecks)}
                 modalTitle={m.location_posture_checks_select()}
                 editText={m.location_posture_checks_edit()}
                 editIcon={IconKind.Edit}
@@ -937,7 +1008,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <Button
               variant="outlined"
               iconLeft={IconKind.ConnectedDevices}
-              loading={isUpdatingLocationPostures}
               text={m.posture_checks_wizard_title()}
               onClick={openPostureChecksSelection}
             />
@@ -956,7 +1026,10 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         <form.Subscribe
           selector={(form) => ({
             isSubmitting: form.isSubmitting,
-            isDefault: form.isPristine || form.isDefaultValue,
+            isDefault:
+              (form.isPristine || form.isDefaultValue) &&
+              !hasPendingPostureCheckChanges &&
+              !hasPendingMfaFlowChanges,
           })}
         >
           {({ isDefault, isSubmitting }) => (

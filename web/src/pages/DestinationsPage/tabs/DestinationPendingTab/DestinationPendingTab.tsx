@@ -37,6 +37,7 @@ export const DestinationPendingTab = () => {
     (): ButtonProps => ({
       text: m.acl_destinations_button_deploy_all_pending({ count: destinations.length }),
       iconLeft: 'deploy',
+      testId: 'destinations-deploy-all-pending',
       loading: isPending,
       disabled: loading,
       onClick: () => {

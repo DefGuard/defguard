@@ -39,7 +39,7 @@ RUN cargo chef cook --bin defguard --release --recipe-path recipe.json
 
 # build project
 COPY --from=web /app/dist ./web/dist
-RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
+RUN apt-get update && apt-get -y install libudev-dev protobuf-compiler libprotobuf-dev
 COPY Cargo.toml Cargo.lock ./
 # for vergen
 COPY .git .git

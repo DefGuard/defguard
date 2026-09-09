@@ -1,4 +1,5 @@
 use defguard_common::db::{Id, models::Settings};
+use defguard_proto::proxy::PublicSettings;
 use sqlx::{PgExecutor, Type, query, query_as};
 use struct_patch::Patch;
 
@@ -100,6 +101,20 @@ impl EnterpriseSettings {
         self.display_password_reset && settings.smtp_configured()
     }
 
+    /// The `PublicSettings` an Edge component should be running with right now: the enterprise UI
+    /// controls folded together with the instance settings the Edge derives behaviour from.
+    ///
+    /// This is the only correct payload while a license applies. When it stops applying, use
+    /// [`unlicensed_edge_public_settings`] instead.
+    #[must_use]
+    pub fn edge_public_settings(&self, settings: &Settings) -> PublicSettings {
+        PublicSettings {
+            display_password_reset: self.edge_can_display_password_reset(),
+            display_download_step: self.display_download_step,
+            public_url: settings.configured_public_proxy_url(),
+        }
+    }
+
     pub(crate) async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
@@ -124,6 +139,22 @@ impl EnterpriseSettings {
         .await?;
 
         Ok(())
+    }
+}
+
+/// The `PublicSettings` for an instance whose license no longer applies.
+///
+/// Deliberately *not* [`EnterpriseSettings::edge_public_settings`]: it bypasses both
+/// [`EnterpriseSettings::edge_can_display_password_reset`] and the stored `display_download_step`,
+/// because an unlicensed instance must stop enforcing enterprise restrictions on the Edge UI
+/// rather than keep applying whatever toggles were last saved. Routing this through the licensed
+/// constructor would silently leave those restrictions in place.
+#[must_use]
+pub fn unlicensed_edge_public_settings(settings: &Settings) -> PublicSettings {
+    PublicSettings {
+        display_password_reset: settings.smtp_configured(),
+        display_download_step: true,
+        public_url: settings.configured_public_proxy_url(),
     }
 }
 

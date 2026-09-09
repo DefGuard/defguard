@@ -49,7 +49,7 @@ use defguard_proto::{
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, HttpsCerts,
-        InitialInfo, PublicSettings, core_request, core_response, proxy_client::ProxyClient,
+        InitialInfo, core_request, core_response, proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
@@ -132,11 +132,11 @@ async fn build_auth_info_state(
         return Err(CoreError::invalid_argument("no MFA attempt in progress"));
     };
 
-    if let Some(requested_attempt_id) = requested_attempt_id {
-        if requested_attempt_id != ephemeral.step_attempt_id {
-            debug!("OIDC MFA AuthInfo request references a stale attempt");
-            return Err(CoreError::invalid_argument("stale MFA attempt"));
-        }
+    if let Some(requested_attempt_id) = requested_attempt_id
+        && requested_attempt_id != ephemeral.step_attempt_id
+    {
+        debug!("OIDC MFA AuthInfo request references a stale attempt");
+        return Err(CoreError::invalid_argument("stale MFA attempt"));
     }
 
     Ok(Some(MfaOidcState::build(
@@ -519,10 +519,8 @@ impl ProxyHandler {
 
             // Push public settings (Edge UI controls) to the newly-connected proxy.
             if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
-                let public_settings = PublicSettings {
-                    display_password_reset: settings.edge_can_display_password_reset(),
-                    display_download_step: settings.display_download_step,
-                };
+                let public_settings =
+                    settings.edge_public_settings(&Settings::get_current_settings());
                 let _ = tx.send(CoreResponse {
                     id: 0,
                     payload: Some(core_response::Payload::PublicSettings(public_settings)),
@@ -1347,10 +1345,7 @@ impl ProxyHandler {
 
         // Push public settings to the test proxy.
         if let Ok(settings) = EnterpriseSettings::get(&self.pool).await {
-            let public_settings = PublicSettings {
-                display_password_reset: settings.edge_can_display_password_reset(),
-                display_download_step: settings.display_download_step,
-            };
+            let public_settings = settings.edge_public_settings(&Settings::get_current_settings());
             let _ = tx.send(CoreResponse {
                 id: 0,
                 payload: Some(core_response::Payload::PublicSettings(public_settings)),

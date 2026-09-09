@@ -40,6 +40,7 @@ export const routes = {
   firewall: {
     rules: '/acl/rules',
     aliases: '/acl/aliases',
+    destinations: '/acl/destinations',
   },
   locations: '/locations',
   enrollment: '/enrollment',

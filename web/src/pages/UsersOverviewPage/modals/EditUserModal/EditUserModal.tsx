@@ -22,7 +22,10 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenEditUserModal } from '../../../../shared/hooks/modalControls/types';
-import { patternSafeUsernameCharacters } from '../../../../shared/patterns';
+import {
+  patternSafeUsernameCharacters,
+  patternValidPhoneNumber,
+} from '../../../../shared/patterns';
 import { removeEmptyStrings } from '../../../../shared/utils/removeEmptyStrings';
 
 const modalName = ModalName.EditUserModal;
@@ -73,18 +76,34 @@ const ModalContent = ({ user }: ModalData) => {
 
   const formSchema = useMemo(
     () =>
-      z.object({
-        username: z
-          .string()
-          .trim()
-          .min(1, m.form_error_required())
-          .max(64, m.form_error_max_len({ length: 64 }))
-          .regex(patternSafeUsernameCharacters, m.form_error_forbidden_char()),
-        email: z.email().trim().min(1, m.form_error_required()),
-        last_name: z.string().trim().min(1, m.form_error_required()),
-        first_name: z.string().trim().min(1, m.form_error_required()),
-        phone: z.string().trim(),
-      }),
+      z
+        .object({
+          username: z
+            .string()
+            .trim()
+            .min(1, m.form_error_required())
+            .max(64, m.form_error_max_len({ length: 64 }))
+            .regex(patternSafeUsernameCharacters, m.form_error_forbidden_char()),
+          email: z.email().trim().min(1, m.form_error_required()),
+          last_name: z.string().trim().min(1, m.form_error_required()),
+          first_name: z.string().trim().min(1, m.form_error_required()),
+          phone: z.string().trim(),
+        })
+        .superRefine((val, ctx) => {
+          if (val.phone?.length) {
+            const phoneRes = z
+              .string()
+              .regex(patternValidPhoneNumber)
+              .safeParse(val.phone);
+            if (!phoneRes.success) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['phone'],
+                message: m.form_error_invalid(),
+              });
+            }
+          }
+        }),
     [],
   );
 
@@ -207,6 +226,7 @@ const ModalContent = ({ user }: ModalData) => {
           <form.AppField name="phone">
             {(field) => (
               <field.FormInput
+                notNull
                 label={m.form_label_phone()}
                 helper={m.form_helper_phone()}
               />

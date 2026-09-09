@@ -1134,3 +1134,64 @@ async fn test_destination_apply_rejects_alias(_: PgPoolOptions, options: PgConne
         .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+/// Verifies atomic bulk deletion for referenced and missing destinations.
+#[sqlx::test]
+async fn test_destination_bulk_delete(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let mut ids = Vec::new();
+    for name in ["destination-1", "destination-2", "destination-3"] {
+        let mut destination = make_destination();
+        destination.name = name.to_owned();
+        let response = client
+            .post("/api/v1/acl/destination")
+            .json(&destination)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+        ids.push(response.json::<Value>().await["id"].as_i64().unwrap());
+    }
+    assert_eq!(count_destinations(&pool).await, 3);
+
+    // A referenced destination rolls back the batch.
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = false;
+    rule.destinations = vec![ids[2]];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/acl/destination/bulk-delete")
+        .json(&json!({ "destinations": [ids[0], ids[2]] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(count_destinations(&pool).await, 3);
+
+    // A missing destination also rolls back the batch.
+    let response = client
+        .post("/api/v1/acl/destination/bulk-delete")
+        .json(&json!({ "destinations": [ids[0], 999] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(count_destinations(&pool).await, 3);
+
+    // Unused destinations are deleted as one batch.
+    let response = client
+        .post("/api/v1/acl/destination/bulk-delete")
+        .json(&json!({ "destinations": [ids[0], ids[1]] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let remaining = AclAlias::all_of_kind(&pool, AliasKind::Destination)
+        .await
+        .unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].id, ids[2]);
+}

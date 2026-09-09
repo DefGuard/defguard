@@ -1,11 +1,14 @@
-use std::net::IpAddr;
+use std::{collections::BTreeSet, net::IpAddr};
 
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
 };
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{Device, WireguardNetwork, device::DeviceInfo},
+};
 use defguard_static_ip::{DeviceLocationIp, LocationDevices, get_ips_for_device, get_ips_for_user};
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -13,6 +16,8 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    enterprise::firewall::try_get_location_firewall_config,
+    grpc::GatewayCommand,
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
 };
 
@@ -137,6 +142,8 @@ pub async fn assign_static_ips(
     Json(payload): Json<Vec<StaticIpAssignment>>,
 ) -> ApiResult {
     let mut transaction = state.pool.begin().await?;
+    let mut device_ids = BTreeSet::new();
+    let mut location_ids = BTreeSet::new();
     for assignment in payload {
         defguard_static_ip::assign_static_ips(
             assignment.device_id,
@@ -145,8 +152,31 @@ pub async fn assign_static_ips(
             &mut transaction,
         )
         .await?;
+        device_ids.insert(assignment.device_id);
+        location_ids.insert(assignment.location_id);
     }
     transaction.commit().await?;
+
+    let mut conn = state.pool.acquire().await?;
+    for device_id in device_ids {
+        if let Some(device) = Device::find_by_id(&mut *conn, device_id).await? {
+            let device_info = DeviceInfo::from_device(&mut *conn, device).await?;
+            state.send_gateway_command(GatewayCommand::DeviceModified(device_info));
+        }
+    }
+    // ACL rules embed peer addresses, so locations with ACLs need a firewall refresh too.
+    for location_id in location_ids {
+        if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await?
+            && let Some(firewall_config) =
+                try_get_location_firewall_config(&location, &mut conn).await?
+        {
+            state.send_gateway_command(GatewayCommand::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
+        }
+    }
+
     Ok(ApiResponse {
         json: serde_json::json!({"message": "Static IPs assigned successfully"}),
         status: StatusCode::OK,

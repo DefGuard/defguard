@@ -103,6 +103,7 @@ impl fmt::Display for MfaMethod {
             Self::Oidc => "OIDC",
             Self::Biometric => "Biometric",
             Self::MobileApprove => "MobileApprove",
+            Self::Fido2 => "FIDO2",
         })
     }
 }
@@ -120,6 +121,7 @@ impl Serialize for MfaMethod {
             Self::MobileApprove => {
                 serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
             }
+            Self::Fido2 => serializer.serialize_unit_variant("MfaMethod", 5, "Fido2"),
         }
     }
 }
@@ -132,6 +134,7 @@ impl From<MfaMethod> for VpnClientMfaMethod {
             MfaMethod::Oidc => Self::Oidc,
             MfaMethod::Biometric => Self::Biometric,
             MfaMethod::MobileApprove => Self::MobileApprove,
+            MfaMethod::Fido2 => Self::Fido2,
         }
     }
 }
@@ -144,6 +147,7 @@ impl From<VpnClientMfaMethod> for MfaMethod {
             VpnClientMfaMethod::Oidc => Self::Oidc,
             VpnClientMfaMethod::Biometric => Self::Biometric,
             VpnClientMfaMethod::MobileApprove => Self::MobileApprove,
+            VpnClientMfaMethod::Fido2 => Self::Fido2,
         }
     }
 }

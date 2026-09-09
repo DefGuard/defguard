@@ -1,3 +1,5 @@
+use std::assert_matches;
+
 use defguard_common::db::{
     models::{
         Settings, User, mfa_flow::MfaFlow, settings::update_current_settings,
@@ -9,13 +11,13 @@ use defguard_core::{
     enterprise::license::{get_cached_license, set_cached_license},
     events::ApiEventType,
 };
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
     authenticate_admin, configure_smtp, make_network, make_test_client, set_enterprise_license,
+    update_location_mfa_flows,
 };
 
 /// Single-step flow without OIDC - should succeed without any license.
@@ -280,48 +282,34 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
         .unwrap();
 
     // Default assignment (empty group_ids) + scoped assignment (non-empty)
-    let assignment_body = json!({
-        "assignments": [
-            {
-                "flow_id": flow1_id,
-                "is_default": true,
-                "group_ids": []
-            },
-            {
-                "flow_id": flow2_id,
-                "is_default": false,
-                "group_ids": [admin_group_id]
-            }
-        ]
-    });
+    let assignment_body = json!([
+        {
+            "flow_id": flow1_id,
+            "is_default": true,
+            "group_ids": []
+        },
+        {
+            "flow_id": flow2_id,
+            "is_default": false,
+            "group_ids": [admin_group_id]
+        }
+    ]);
 
-    // Drain the create/location events so the refusal assertion below is exact.
-    let _ = client.drain_all_events();
-
-    // Business license → 403 (group scoping needs enterprise), and no audit event on refusal.
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&assignment_body)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    assert!(
-        client.drain_all_events().is_empty(),
-        "refused request must not emit an audit event"
-    );
-
-    // Enterprise license → 200
     set_enterprise_license();
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&assignment_body)
-        .send()
-        .await;
+    let _ = client.drain_all_events();
+    let response = update_location_mfa_flows(&client, location_id, assignment_body).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1, "expected exactly 1 event after assign");
-    let (event_type, _user_id, _username) = &events[0];
+    assert_eq!(
+        events.len(),
+        2,
+        "location save must emit assignment and modification events"
+    );
+    let (event_type, _user_id, _username) = events
+        .iter()
+        .find(|event| matches!(event.0, ApiEventType::LocationMfaFlowsAssigned { .. }))
+        .expect("missing MFA assignment event");
     assert_matches!(
         event_type,
         ApiEventType::LocationMfaFlowsAssigned {
@@ -510,22 +498,24 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     let response = client.get("/api/v1/location/999999/mfa-flows").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
-    let response = client
-        .put("/api/v1/location/999999/mfa-flows")
-        .json(&json!({"assignments": [{"flow_id": flow_id, "is_default": true, "group_ids": []}]}))
-        .send()
-        .await;
+    let response = update_location_mfa_flows(
+        &client,
+        999999,
+        json!([{"flow_id": flow_id, "is_default": true, "group_ids": []}]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // The same flow twice would violate the (location_id, flow_id) primary key.
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
             {"flow_id": flow_id, "is_default": false, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
         response.json::<serde_json::Value>().await["fields"][0]["code"],
@@ -533,13 +523,14 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     );
 
     // A nonexistent flow would violate the foreign key.
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": 999999, "is_default": true, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
         response.json::<serde_json::Value>().await["fields"][0]["code"],
@@ -595,14 +586,15 @@ async fn test_location_mfa_flows_non_default_without_groups(
     // Clear the two create events before exercising the refusal path.
     let _ = client.drain_all_events();
 
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow1_id, "is_default": false, "group_ids": []},
             {"flow_id": flow2_id, "is_default": true, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body: serde_json::Value = response.json().await;
     assert_eq!(body["error"], "validation_failed");
@@ -642,18 +634,26 @@ async fn test_location_mfa_flows_clear_disabled_location(
     let _ = client.drain_all_events();
 
     // Assign a default, then clear it.
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let response = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1, "expected exactly 1 event after assign");
-    let (event_type, _user_id, _username) = &events[0];
+    assert_eq!(
+        events.len(),
+        2,
+        "location save must emit assignment and modification events"
+    );
+    let (event_type, _user_id, _username) = events
+        .iter()
+        .find(|event| matches!(event.0, ApiEventType::LocationMfaFlowsAssigned { .. }))
+        .expect("missing MFA assignment event");
     assert_matches!(
         event_type,
         ApiEventType::LocationMfaFlowsAssigned {
@@ -668,16 +668,19 @@ async fn test_location_mfa_flows_clear_disabled_location(
             && assignments[0].group_ids.is_empty()
     );
 
-    let response = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": []}))
-        .send()
-        .await;
+    let response = update_location_mfa_flows(&client, location_id, json!([])).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let events = client.drain_all_events();
-    assert_eq!(events.len(), 1, "expected exactly 1 event after clear");
-    let (event_type, _user_id, _username) = &events[0];
+    assert_eq!(
+        events.len(),
+        2,
+        "location save must emit assignment and modification events"
+    );
+    let (event_type, _user_id, _username) = events
+        .iter()
+        .find(|event| matches!(event.0, ApiEventType::LocationMfaFlowsAssigned { .. }))
+        .expect("missing MFA assignment event");
     assert_matches!(
         event_type,
         ApiEventType::LocationMfaFlowsAssigned {
@@ -703,7 +706,7 @@ async fn test_location_mfa_flows_clear_disabled_location(
     );
 }
 
-/// Method availability returns all five methods with correct availability.
+/// Method availability returns every method with correct availability.
 #[sqlx::test]
 async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -718,7 +721,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::OK);
     let items = response.json::<serde_json::Value>().await;
     let items = items.as_array().unwrap();
-    assert_eq!(items.len(), 5);
+    assert_eq!(items.len(), 6);
 
     let find = |method: &str| -> &serde_json::Value {
         items
@@ -740,6 +743,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     );
     assert_eq!(find("biometric")["available"].as_bool(), Some(true));
     assert_eq!(find("mobileapprove")["available"].as_bool(), Some(true));
+    assert_eq!(find("fido2")["available"].as_bool(), Some(true));
 
     set_cached_license(None);
     let response = client
@@ -859,7 +863,7 @@ async fn test_mfa_flow_update_preserves_backfilled_email(
 }
 
 /// The full `WireguardNetworkData` body used to toggle `mfa_enabled` on an existing location.
-fn network_body(name: &str, mfa_enabled: bool) -> serde_json::Value {
+fn network_body(name: &str, mfa_enabled: bool, flow_id: i64) -> serde_json::Value {
     json!({
         "name": name,
         "address": "10.1.1.1/24",
@@ -877,7 +881,9 @@ fn network_body(name: &str, mfa_enabled: bool) -> serde_json::Value {
         "acl_default_allow": false,
         "allowed_ips_from_acl": false,
         "mfa_enabled": mfa_enabled,
-        "service_location_mode": "disabled"
+        "service_location_mode": "disabled",
+        "posture_checks": [],
+        "mfa_flows": [{"flow_id": flow_id, "is_default": true, "group_ids": []}]
     })
 }
 
@@ -910,26 +916,30 @@ async fn test_mfa_enabled_disable_preserves_assignments(
         .unwrap();
 
     // Assign the flow as the location's default.
-    let resp = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let resp = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     // Enable MFA, then disable it: the assignment list must survive untouched.
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
-        .json(&network_body("mfa-lifecycle", true))
+        .json(&network_body("mfa-lifecycle", true, flow_id))
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+    let body = network_body("mfa-lifecycle", false, flow_id);
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
-        .json(&network_body("mfa-lifecycle", false))
+        .json(&body)
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -947,13 +957,13 @@ async fn test_mfa_enabled_disable_preserves_assignments(
         "disabling MFA must preserve the assignment list"
     );
     assert_eq!(assignments[0]["id"].as_i64(), Some(flow_id));
-    assert_eq!(assignments[0]["position"].as_i64(), Some(0));
     assert_eq!(assignments[0]["is_default"].as_bool(), Some(true));
 
     // Re-enable: the same policy must be in force, resolving the same flow for a user.
+    set_cached_license(license);
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
-        .json(&network_body("mfa-lifecycle", true))
+        .json(&network_body("mfa-lifecycle", true, flow_id))
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -998,19 +1008,20 @@ async fn test_mfa_flow_delete_location_requires_flow(_: PgPoolOptions, options: 
         .as_i64()
         .unwrap();
 
-    let resp = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let resp = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow_id, "is_default": true, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     // Enable MFA so the location requires this flow.
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
-        .json(&network_body("delete-orphan", true))
+        .json(&network_body("delete-orphan", true, flow_id))
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -1082,14 +1093,15 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
 
     // flow1 is the default, flow2 is group-scoped; group scoping needs Enterprise.
     set_enterprise_license();
-    let resp = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let resp = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow1_id, "is_default": true, "group_ids": []},
             {"flow_id": flow2_id, "is_default": false, "group_ids": [admin_group_id]},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let _ = client.drain_all_events();
@@ -1158,7 +1170,6 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
             if snapshot.flow.id == flow_id && snapshot.steps.len() == 2
     );
 
-    // List: the item must carry the server-computed step_count.
     let resp = client.get("/api/v1/mfa-flow").send().await;
     assert_eq!(resp.status(), StatusCode::OK);
     let items = resp.json::<serde_json::Value>().await;
@@ -1169,6 +1180,8 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .find(|i| i["id"].as_i64() == Some(flow_id))
         .expect("created flow must appear in list");
     assert_eq!(item["step_count"].as_i64(), Some(2));
+    assert_eq!(item["steps"][0]["methods"], json!(["totp"]));
+    assert_eq!(item["steps"][1]["methods"], json!(["biometric"]));
 
     // Fetch single.
     let resp = client
@@ -1219,6 +1232,63 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
     );
 }
 
+/// Lists each flow with its own steps in position order.
+#[sqlx::test]
+async fn test_mfa_flow_list_groups_steps_per_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let first = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({
+                "title": "FirstName",
+                "steps": [{"methods": ["totp"]}, {"methods": ["biometric"]}]
+            }))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+    let second = {
+        let resp = client
+            .post("/api/v1/mfa-flow")
+            .json(&json!({"title": "LastName", "steps": [{"methods": ["totp"]}]}))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.json::<serde_json::Value>().await["id"]
+            .as_i64()
+            .unwrap()
+    };
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let items = resp.json::<serde_json::Value>().await;
+    let by_id = |id: i64| {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["id"].as_i64() == Some(id))
+            .expect("flow must appear in list")
+            .clone()
+    };
+
+    let first_item = by_id(first);
+    assert_eq!(first_item["step_count"].as_i64(), Some(2));
+    assert_eq!(first_item["steps"][0]["methods"], json!(["totp"]));
+    assert_eq!(first_item["steps"][1]["methods"], json!(["biometric"]));
+
+    let second_item = by_id(second);
+    assert_eq!(second_item["step_count"].as_i64(), Some(1));
+    assert_eq!(second_item["steps"].as_array().unwrap().len(), 1);
+    assert_eq!(second_item["steps"][0]["methods"], json!(["totp"]));
+}
+
 /// Saving an assignment set with no designated default is refused over HTTP with
 /// `no_default_designated` (400), never silently normalised.
 #[sqlx::test]
@@ -1249,13 +1319,14 @@ async fn test_location_mfa_flows_no_default_designated(
 
     let _ = client.drain_all_events();
 
-    let resp = client
-        .put(format!("/api/v1/location/{location_id}/mfa-flows"))
-        .json(&json!({"assignments": [
+    let resp = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
             {"flow_id": flow_id, "is_default": false, "group_ids": []},
-        ]}))
-        .send()
-        .await;
+        ]),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     let body: serde_json::Value = resp.json().await;
     assert_eq!(body["error"], "validation_failed");
@@ -1265,4 +1336,44 @@ async fn test_location_mfa_flows_no_default_designated(
         client.drain_all_events().is_empty(),
         "refused request must not emit an audit event"
     );
+}
+
+/// A saved flow reports when a prerequisite becomes unavailable after it is saved.
+#[sqlx::test]
+async fn test_mfa_flow_list_reports_unavailable_reason(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "Email Only",
+            "steps": [{ "methods": ["email"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    let flows: serde_json::Value = resp.json().await;
+    assert_eq!(flows[0]["unavailable_reason"], serde_json::Value::Null);
+
+    let mut settings = Settings::get_current_settings();
+    settings.smtp.server = None;
+    settings.smtp.port = None;
+    settings.smtp.sender = None;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let flows: serde_json::Value = resp.json().await;
+    assert_eq!(flows[0]["unavailable_reason"], "smtp_not_configured");
 }

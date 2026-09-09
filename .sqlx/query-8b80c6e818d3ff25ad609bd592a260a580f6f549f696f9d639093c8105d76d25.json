@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings SET enrollment_token_timeout_hours = $1, enrollment_session_timeout_minutes = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8b80c6e818d3ff25ad609bd592a260a580f6f549f696f9d639093c8105d76d25"
+}

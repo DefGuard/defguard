@@ -1,4 +1,4 @@
-use std::{net::IpAddr, str::FromStr};
+use std::{assert_matches, net::IpAddr, str::FromStr};
 
 use defguard_common::db::{
     Id,
@@ -9,7 +9,6 @@ use defguard_core::{
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -17,7 +16,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
     client::{TestClient, TestResponse},
-    make_test_client, setup_pool,
+    make_test_client, setup_pool, update_location_mfa_flows,
 };
 
 async fn make_first_network(client: &TestClient) -> TestResponse {
@@ -40,7 +39,9 @@ async fn make_first_network(client: &TestClient) -> TestResponse {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -68,7 +69,9 @@ async fn make_second_network(client: &TestClient) -> TestResponse {
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
@@ -336,7 +339,9 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         "acl_default_allow": false,
             "allowed_ips_from_acl": false,
         "mfa_enabled": false,
-        "service_location_mode": "disabled"
+        "service_location_mode": "disabled",
+        "posture_checks": [],
+        "mfa_flows": []
     });
     let response = client.post("/api/v1/network").json(&location).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -464,18 +469,21 @@ async fn test_network_device_config_skips_mfa_location(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": false,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": []
         }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let location: WireguardNetwork<Id> = response.json().await;
 
-    let response = client
-        .put(format!("/api/v1/location/{}/mfa-flows", location.id))
-        .json(&json!({ "assignments": [{ "flow_id": flow_id, "is_default": true, "group_ids": [] }] }))
-        .send()
-        .await;
+    let response = update_location_mfa_flows(
+        &client,
+        location.id,
+        json!([{ "flow_id": flow_id, "is_default": true, "group_ids": [] }]),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
@@ -497,7 +505,9 @@ async fn test_network_device_config_skips_mfa_location(
             "acl_default_allow": false,
             "allowed_ips_from_acl": false,
             "mfa_enabled": true,
-            "service_location_mode": "disabled"
+            "service_location_mode": "disabled",
+            "posture_checks": [],
+            "mfa_flows": [{"flow_id": flow_id, "is_default": true, "group_ids": []}]
         }))
         .send()
         .await;

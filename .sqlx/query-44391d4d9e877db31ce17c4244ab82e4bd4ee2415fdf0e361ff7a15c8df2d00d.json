@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vpn_client_mfa_session SET steps_snapshot = CASE WHEN ephemeral_state IS NOT NULL THEN jsonb_set( jsonb_set( steps_snapshot, ARRAY['steps', current_step::text, 'satisfied'], $4 ), ARRAY['steps', current_step::text, 'mobile_auth_device_name'], CASE WHEN $5 = 'null'::jsonb THEN COALESCE(ephemeral_state->'mobile_auth_device_name', 'null'::jsonb) ELSE $5 END ) ELSE steps_snapshot END, ephemeral_state = NULL, current_step = current_step + 1, failed_attempts = 0 WHERE id = $1 AND current_step = $2 AND ($3::text IS NULL OR ephemeral_state->>'step_attempt_id' = $3) RETURNING current_step, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "current_step",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "steps_snapshot: Json<StepsSnapshot>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Text",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "44391d4d9e877db31ce17c4244ab82e4bd4ee2415fdf0e361ff7a15c8df2d00d"
+}

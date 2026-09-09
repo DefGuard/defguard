@@ -243,6 +243,7 @@ pub(super) fn compute_user_sync_changes(
     ldap_config: &LDAPConfig,
 ) -> UserSyncChanges {
     debug!("Computing user sync changes (user creation/deletion), authority: {authority:?}");
+    let sync_account_status = ldap_config.ldap_uses_ad && ldap_config.ldap_sync_account_status;
     let mut delete_defguard = Vec::new();
     let mut add_defguard = Vec::new();
     let mut delete_ldap = Vec::new();
@@ -292,11 +293,9 @@ pub(super) fn compute_user_sync_changes(
                 }
                 Authority::Defguard => {
                     // Skip inactive users when adding to LDAP
-                    if user.is_active && user.is_enrolled_or_ldap_pending() {
-                        debug!(
-                            "User {} is active and enrolled, adding to LDAP",
-                            user.username
-                        );
+                    if (user.is_active || sync_account_status) && user.is_enrolled_or_ldap_pending()
+                    {
+                        debug!("User {} is enrolled, adding to LDAP", user.username);
                         add_ldap.push(user);
                     } else {
                         debug!(
@@ -1008,19 +1007,21 @@ impl super::LDAPConnection {
                             member.username
                         );
                         admin_count -= 1;
-                        member.remove_from_group(&mut *transaction, &group).await?;
+                        if member.remove_from_group(&mut *transaction, &group).await? {
+                            events.push(LdapSyncEventType::GroupMemberRemoved {
+                                group: group.clone(),
+                                user: member,
+                            });
+                        }
+                    }
+                } else {
+                    debug!("Removing user {} from group {}", member.username, groupname);
+                    if member.remove_from_group(&mut *transaction, &group).await? {
                         events.push(LdapSyncEventType::GroupMemberRemoved {
                             group: group.clone(),
                             user: member,
                         });
                     }
-                } else {
-                    debug!("Removing user {} from group {}", member.username, groupname);
-                    member.remove_from_group(&mut *transaction, &group).await?;
-                    events.push(LdapSyncEventType::GroupMemberRemoved {
-                        group: group.clone(),
-                        user: member,
-                    });
                 }
             }
         }
@@ -1040,11 +1041,12 @@ impl super::LDAPConnection {
                 if let Some(user) =
                     User::find_by_username(&mut *transaction, &member.username).await?
                 {
-                    user.add_to_group(&mut *transaction, &group).await?;
-                    events.push(LdapSyncEventType::GroupMemberAdded {
-                        group: group.clone(),
-                        user,
-                    });
+                    if user.add_to_group(&mut *transaction, &group).await? {
+                        events.push(LdapSyncEventType::GroupMemberAdded {
+                            group: group.clone(),
+                            user,
+                        });
+                    }
                 } else {
                     warn!(
                         "LDAP user {} not found in Defguard, despite completing user sync earlier. \

@@ -52,7 +52,10 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     mutationFn: async () => {
       const { data: locations } = await api.location.getLocations();
       const availableLocations = orderBy(
-        locations.filter((location) => !location.mfa_enabled),
+        locations.filter(
+          (location) =>
+            !location.mfa_enabled && (location.posture_checks?.length ?? 0) === 0,
+        ),
         ['name'],
         ['asc'],
       );

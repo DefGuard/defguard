@@ -11,8 +11,11 @@ use defguard_common::{
 use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use serde_json::json;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::time::sleep;
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
+use tokio::{sync::mpsc, time::timeout};
 
 use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
@@ -299,7 +302,7 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
 
     // configure LDAP fields (without SMTP)
     let patch: SettingsPatch = serde_json::from_str(&format!(
-        r#"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"#
+        r"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"
     ))
     .unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
@@ -398,6 +401,62 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     );
 }
 
+/// The fields of a `BroadcastPublicSettings` control message, so assertions read by name rather
+/// than by tuple position.
+struct PublicSettingsBroadcast {
+    display_password_reset: bool,
+    display_download_step: bool,
+    public_url: Option<String>,
+}
+
+/// How long to wait for a broadcast the handler emits asynchronously.
+const BROADCAST_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Wait for the next `BroadcastPublicSettings`, skipping unrelated control messages. Awaits the
+/// channel rather than sleeping and polling, so the test neither races the handler nor pays a
+/// fixed delay. Panics on timeout so a missing broadcast fails instead of hanging.
+async fn next_public_settings_broadcast(
+    proxy_control_rx: &mut mpsc::Receiver<ProxyControlMessage>,
+) -> PublicSettingsBroadcast {
+    timeout(BROADCAST_TIMEOUT, async {
+        loop {
+            match proxy_control_rx.recv().await {
+                Some(ProxyControlMessage::BroadcastPublicSettings {
+                    display_password_reset,
+                    display_download_step,
+                    public_url,
+                }) => {
+                    return PublicSettingsBroadcast {
+                        display_password_reset,
+                        display_download_step,
+                        public_url,
+                    };
+                }
+                Some(_) => {} // ignore other control messages
+                None => panic!("Proxy control channel closed before PublicSettings was broadcast"),
+            }
+        }
+    })
+    .await
+    .expect("Timed out waiting for BroadcastPublicSettings")
+}
+
+/// Store `public_proxy_url` and drain any control messages emitted while getting there, so a test
+/// asserts only on the broadcast its own request triggers.
+async fn seed_public_proxy_url(
+    pool: &PgPool,
+    proxy_control_rx: &mut mpsc::Receiver<ProxyControlMessage>,
+    public_proxy_url: &str,
+) {
+    let mut current_settings = Settings::get_current_settings();
+    current_settings.public_proxy_url = public_proxy_url.to_owned();
+    update_current_settings(pool, current_settings)
+        .await
+        .unwrap();
+
+    while proxy_control_rx.try_recv().is_ok() {}
+}
+
 /// When SMTP settings change from unconfigured to configured via the settings
 /// API, a `BroadcastPublicSettings` control message must be sent so connected
 /// proxies receive the updated password-reset visibility.
@@ -417,9 +476,10 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
 
     // Drain any messages sent during setup (e.g. from app startup).
     while proxy_control_rx.try_recv().is_ok() {}
+    let expected_public_url = Settings::get_current_settings().public_proxy_url;
 
     // Patch settings to enable SMTP.  Previously SMTP is unconfigured, so
-    // smtp_configured() transitions from false → true and the handler must
+    // smtp_configured() transitions from false -> true and the handler must
     // broadcast the updated public settings.
     let settings = json!({
         "smtp_server": "smtp.example.com",
@@ -433,32 +493,130 @@ async fn test_smtp_change_triggers_public_settings_broadcast(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Allow the async broadcast to land.
-    sleep(Duration::from_millis(100)).await;
-
-    let mut found = false;
-    loop {
-        match proxy_control_rx.try_recv() {
-            Ok(ProxyControlMessage::BroadcastPublicSettings {
-                display_password_reset,
-                display_download_step,
-            }) => {
-                assert!(
-                    display_password_reset,
-                    "with SMTP configured, display_password_reset should be true"
-                );
-                assert!(
-                    display_download_step,
-                    "display_download_step should remain the enterprise default"
-                );
-                found = true;
-            }
-            Ok(_) => {} // ignore other control messages
-            Err(_) => break,
-        }
-    }
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
     assert!(
-        found,
-        "BroadcastPublicSettings should have been sent after SMTP config change"
+        broadcast.display_password_reset,
+        "with SMTP configured, display_password_reset should be true"
+    );
+    assert!(
+        broadcast.display_download_step,
+        "display_download_step should remain the enterprise default"
+    );
+    assert_eq!(
+        broadcast.public_url.as_deref(),
+        Some(expected_public_url.as_str()),
+        "public_url should match the configured proxy URL"
+    );
+}
+
+/// Changing only the public proxy URL through the PATCH settings API must
+/// broadcast the new URL to connected proxies.
+#[sqlx::test]
+async fn test_public_proxy_url_patch_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+    seed_public_proxy_url(
+        &client_state.pool,
+        &mut proxy_control_rx,
+        "https://proxy.example.com",
+    )
+    .await;
+
+    let expected_public_url = "http://proxy.example.com";
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({ "public_proxy_url": expected_public_url }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
+    assert_eq!(
+        broadcast.public_url.as_deref(),
+        Some(expected_public_url),
+        "public_url should match the patched proxy URL"
+    );
+}
+
+/// Changing only the public proxy URL through the PUT settings API must
+/// broadcast the new URL to connected proxies.
+#[sqlx::test]
+async fn test_public_proxy_url_update_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+    seed_public_proxy_url(
+        &client_state.pool,
+        &mut proxy_control_rx,
+        "https://proxy.example.com",
+    )
+    .await;
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut settings: Settings = response.json().await;
+    let expected_public_url = "http://proxy.example.com";
+    settings.public_proxy_url = expected_public_url.to_owned();
+
+    let response = client.put("/api/v1/settings").json(&settings).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
+    assert_eq!(
+        broadcast.public_url.as_deref(),
+        Some(expected_public_url),
+        "public_url should match the updated proxy URL"
+    );
+}
+
+/// Removing the license through the PATCH settings API changes the effective Edge payload even
+/// though no SMTP or proxy URL field changed, so the handler must broadcast the unlicensed
+/// defaults to the still-connected Edge.
+#[sqlx::test]
+async fn test_license_removal_triggers_public_settings_broadcast(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut proxy_control_rx = client_state.proxy_control_rx;
+
+    exceed_enterprise_limits(&client).await;
+
+    // Hide the download step while licensed, so the unlicensed broadcast is observable.
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&json!({ "display_download_step": false }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    while proxy_control_rx.try_recv().is_ok() {}
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({ "license": "" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let broadcast = next_public_settings_broadcast(&mut proxy_control_rx).await;
+    assert!(
+        broadcast.display_download_step,
+        "unlicensed Edge must fall back to showing the download step"
+    );
+    assert!(
+        !broadcast.display_password_reset,
+        "SMTP is not configured, so password reset stays hidden"
     );
 }

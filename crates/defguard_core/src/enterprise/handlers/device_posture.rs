@@ -1114,82 +1114,10 @@ pub async fn duplicate_device_posture(
     Ok(ApiResponse::json(response, StatusCode::CREATED))
 }
 
-/// Request body for assigning posture checks to a VPN location.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
-pub struct AssignPosturesData {
-    pub postures: Vec<Id>,
-}
-
 /// Request body for assigning VPN locations to a posture check.
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct AssignLocationsData {
     pub locations: Vec<Id>,
-}
-
-/// Assign device posture check policies to a location
-///
-/// Replaces the current assignment.
-#[utoipa::path(
-    put,
-    path = "/api/v1/network/{id}/postures",
-    tag = "device posture",
-    params(
-        ("id" = i64, Path, description = "ID of the location.")
-    ),
-    request_body = AssignPosturesData,
-    responses(
-        (status = 200, description = "Device posture check policies assigned to the location.", body = [Id]),
-        (status = 400, description = "Posture checks cannot be assigned to a service location.", body = ApiErrorResponse, example = json!({"msg": "Posture checks cannot be assigned to service locations"})),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Location not found.", body = ApiErrorResponse, example = json!({"msg": "Location 1 not found"})),
-        (status = 500, description = "Unable to assign device posture check policies to the location.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
-    ),
-    security(
-        ("cookie" = []),
-        ("api_token" = [])
-    )
-)]
-pub async fn set_postures_for_location(
-    _license: LicenseGated<DevicePostureFeature>,
-    _admin: AdminRole,
-    session: SessionInfo,
-    context: ApiRequestContext,
-    Path(location_id): Path<Id>,
-    State(appstate): State<AppState>,
-    Json(data): Json<AssignPosturesData>,
-) -> ApiResult {
-    debug!(
-        "User {} assigning device posture checks {:?} to location {location_id}",
-        session.user.username, data.postures
-    );
-
-    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
-        .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
-
-    let mut tx = appstate.pool.begin().await?;
-    let old_postures = DevicePostureLocation::find_by_location(&mut *tx, location_id).await?;
-    let result =
-        DevicePostureLocation::set_for_location(&mut tx, location_id, &data.postures).await?;
-    let gateway_commands = if same_id_set(&old_postures, &result) {
-        Vec::new()
-    } else {
-        build_location_peer_refresh_commands(&mut tx, [location_id]).await?
-    };
-    tx.commit().await?;
-
-    appstate.send_multiple_gateway_commands(gateway_commands);
-
-    appstate.emit_event(ApiEvent {
-        context,
-        event: Box::new(ApiEventType::LocationPosturesAssigned {
-            location,
-            posture_ids: result.clone(),
-        }),
-    })?;
-
-    Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
 /// Assign locations to a device posture check policy

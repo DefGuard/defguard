@@ -9,13 +9,14 @@
         padding-top: 0;
       }
 
-      .posture-checks-empty-state {
+      .location-empty-state {
         display: flex;
         align-items: center;
         gap: var(--spacing-2xl);
 
-        .posture-check-shield {
+        .shield {
           display: block;
+          flex-shrink: 0;
           width: 40px;
           height: 44px;
         }

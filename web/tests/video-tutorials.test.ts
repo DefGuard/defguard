@@ -998,27 +998,18 @@ describe('parseVideoTutorials', () => {
 
     const result = parseVideoTutorials(raw);
 
+    const placement = result['2.2'].placements?.migrationWizard as Record<
+      string,
+      unknown
+    >;
+    const content = result['2.2'].placements?.migrationWizard?.default;
+    const video = content?.video as Record<string, unknown>;
+    const docs = content?.docs?.[0] as Record<string, unknown>;
+
     expect((result['2.2'] as Record<string, unknown>).extraVersionField).toBeUndefined();
-    expect(
-      (result['2.2'].placements?.migrationWizard as Record<string, unknown>)
-        .extraPlacementField,
-    ).toBeUndefined();
-    expect(
-      (
-        result['2.2'].placements?.migrationWizard?.default?.video as Record<
-          string,
-          unknown
-        >
-      ).ignoredVideoField,
-    ).toBeUndefined();
-    expect(
-      (
-        result['2.2'].placements?.migrationWizard?.default?.docs?.[0] as Record<
-          string,
-          unknown
-        >
-      ).ignoredDocsField,
-    ).toBeUndefined();
+    expect(placement.extraPlacementField).toBeUndefined();
+    expect(video.ignoredVideoField).toBeUndefined();
+    expect(docs.ignoredDocsField).toBeUndefined();
   });
 
   it('should reject an empty placement docsTitle', () => {

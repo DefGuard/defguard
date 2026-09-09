@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mf.id, mf.title, COALESCE(s.step_count, 0) AS \"step_count!: i64\", COALESCE(array_agg(lmfg.group_id ORDER BY lmfg.group_id) FILTER (WHERE lmfg.group_id IS NOT NULL), '{}') AS \"group_ids!: Vec<Id>\", COALESCE(array_agg(g.name ORDER BY lmfg.group_id) FILTER (WHERE g.name IS NOT NULL), '{}') AS \"group_names!: Vec<String>\", lmf.position, lmf.is_default FROM location_mfa_flow lmf JOIN mfa_flow mf ON mf.id = lmf.flow_id LEFT JOIN ( SELECT flow_id, COUNT(*) AS step_count FROM mfa_flow_step GROUP BY flow_id ) s ON s.flow_id = mf.id LEFT JOIN location_mfa_flow_group lmfg ON lmfg.location_id = lmf.location_id AND lmfg.flow_id = lmf.flow_id LEFT JOIN \"group\" g ON g.id = lmfg.group_id WHERE lmf.location_id = $1 GROUP BY mf.id, mf.title, s.step_count, lmf.position, lmf.is_default ORDER BY lmf.position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "step_count!: i64",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "group_ids!: Vec<Id>",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 4,
+        "name": "group_names!: Vec<String>",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "position",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_default",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "c2ae1735ee44ce964580e17ac3c0fdb9f80fd38c47ca9b5c9ff10a0f50e7b00e"
+}

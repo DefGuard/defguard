@@ -179,11 +179,11 @@ where
                 && let Some((client_id, client_secret)) = auth_pair.split_once(':')
             {
                 let appstate = AppState::from_ref(state);
-                return Ok(Self(
-                    OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
-                        .await
-                        .map_err(WebError::from)?,
-                ));
+                let client = OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
+                    .await
+                    .map_err(WebError::from)?
+                    .ok_or_else(|| WebError::Authorization("Invalid credentials".into()))?;
+                return Ok(Self(Some(client)));
             }
             Err(WebError::Authorization("Invalid credentials".into()))
         } else {
@@ -954,6 +954,10 @@ impl TokenRequest {
     }
 }
 
+fn error_response(error: CoreErrorResponseType, status: StatusCode) -> ApiResponse {
+    ApiResponse::json(StandardErrorResponse::new(error, None, None), status)
+}
+
 /// Exchange an authorization code or a refresh token for tokens
 ///
 /// Accepts `application/x-www-form-urlencoded` and supports the `authorization_code` and
@@ -1029,15 +1033,12 @@ pub async fn token(
                                     "Issuing new token for user {} client {}",
                                     user.username, client.name
                                 );
-                                // Remove existing token in case the same client asks for new token.
-                                if let Some(token) = OAuth2Token::find_by_authorized_app_id(
+                                // Remove existing tokens in case the same client asks for a new token.
+                                OAuth2Token::delete_all_by_authorized_app_id(
                                     &appstate.pool,
                                     authorized_app.id,
                                 )
-                                .await?
-                                {
-                                    token.delete(&appstate.pool).await?;
-                                }
+                                .await?;
                                 let token = OAuth2Token::new(
                                     authorized_app.id,
                                     auth_code.redirect_uri.clone(),
@@ -1102,33 +1103,46 @@ pub async fn token(
         }
         CoreGrantType::RefreshToken => {
             debug!("Starting refresh_token flow");
-            if let Some(refresh_token) = form.refresh_token
-                && let Ok(Some(mut token)) =
-                    OAuth2Token::find_refresh_token(&appstate.pool, &refresh_token).await
-            {
-                let Some(client) = OAuth2Client::find_by_token(&appstate.pool, &token).await?
-                else {
-                    error!("OAuth client not found for provided refresh_token");
-                    let err = CoreErrorResponseType::InvalidClient;
-                    let response = StandardErrorResponse::new(err, None, None);
-                    return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-                };
+            let client = match oauth2client {
+                Some(client) => client,
+                None => match form.oauth2client(&appstate.pool).await {
+                    Some(client) => client,
+                    None => {
+                        return Ok(error_response(
+                            CoreErrorResponseType::InvalidClient,
+                            StatusCode::UNAUTHORIZED,
+                        ));
+                    }
+                },
+            };
 
-                if !client.enabled {
-                    error!("OAuth client id `{}` is disabled", client.name);
-                    let response = StandardErrorResponse::new(
-                        CoreErrorResponseType::UnauthorizedClient,
-                        None,
-                        None,
-                    );
-                    return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
-                }
+            let Some(refresh_token) = form.refresh_token else {
+                return Ok(error_response(
+                    CoreErrorResponseType::InvalidGrant,
+                    StatusCode::BAD_REQUEST,
+                ));
+            };
+            let Some(mut token) = OAuth2Token::find_by_refresh_token_for_client(
+                &appstate.pool,
+                &refresh_token,
+                client.id,
+            )
+            .await?
+            else {
+                return Ok(error_response(
+                    CoreErrorResponseType::InvalidGrant,
+                    StatusCode::BAD_REQUEST,
+                ));
+            };
 
-                token.refresh_and_save(&appstate.pool).await?;
-                let response = TokenRequest::refresh_token_flow(&token);
-                token.save(&appstate.pool).await?;
-                return Ok(ApiResponse::json(response, StatusCode::OK));
+            if !token.refresh_and_save(&appstate.pool).await? {
+                return Ok(error_response(
+                    CoreErrorResponseType::InvalidGrant,
+                    StatusCode::BAD_REQUEST,
+                ));
             }
+            let response = TokenRequest::refresh_token_flow(&token);
+            return Ok(ApiResponse::json(response, StatusCode::OK));
         }
         _ => (), // TODO: Err(CoreErrorResponseType::UnsupportedGrantType),
     }
@@ -1173,7 +1187,7 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
         return Err(WebError::Authorization("Invalid session".into()));
     };
 
-    let Some(oauth2token) = OAuth2Token::find_access_token(&appstate.pool, token).await? else {
+    let Some(oauth2token) = OAuth2Token::find_by_access_token(&appstate.pool, token).await? else {
         return Err(WebError::Authorization("Invalid token".into()));
     };
 

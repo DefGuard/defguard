@@ -52,6 +52,13 @@ export const getMfaFlowsQueryOptions = queryOptions({
   select: (response) => response.data,
 });
 
+export const getLocationMfaFlowsQueryOptions = (locationId: number) =>
+  queryOptions({
+    queryFn: () => api.mfaFlow.getLocationAssignments(locationId),
+    queryKey: ['location', locationId, 'mfa-flows'],
+    select: (response) => response.data,
+  });
+
 export const getMfaMethodAvailabilityQueryOptions = queryOptions({
   queryFn: api.mfaFlow.methodAvailability,
   queryKey: ['mfa-flow', 'method-availability'],

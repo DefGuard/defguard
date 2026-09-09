@@ -10,9 +10,9 @@ use defguard_common::db::{
     models::{
         Settings, WireguardNetwork,
         mfa_flow::{
-            LocationMfaFlowAssignment, LocationMfaFlowItem, MfaFlow, MfaFlowAssignmentError,
-            MfaFlowDeleteError, MfaFlowSnapshot, MfaFlowStep, MfaFlowUpdateError,
-            MfaFlowValidationField, MfaFlowWithStepCount, validate_flow_input,
+            LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentError, MfaFlowDeleteError,
+            MfaFlowSnapshot, MfaFlowStep, MfaFlowUpdateError, MfaFlowValidationField,
+            MfaFlowWithStepCount, validate_flow_input,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -25,10 +25,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{
-        db::models::openid_provider::OpenIdProvider, has_enterprise_access,
-        is_business_license_active,
-    },
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiErrorResponse, ApiResponse, ApiResult},
@@ -40,18 +37,28 @@ pub struct MfaFlowListItemResponse {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
+    pub steps: Vec<MfaFlowStepResponse>,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
+    /// The first license or configuration condition that prevents the flow from running.
+    /// `None` = usable
+    pub unavailable_reason: Option<MethodAvailabilityReason>,
 }
 
-impl From<MfaFlowWithStepCount> for MfaFlowListItemResponse {
-    fn from(f: MfaFlowWithStepCount) -> Self {
+impl MfaFlowListItemResponse {
+    fn new(
+        flow: MfaFlowWithStepCount,
+        steps: Vec<MfaFlowStep<Id>>,
+        unavailable_reason: Option<MethodAvailabilityReason>,
+    ) -> Self {
         Self {
-            id: f.id,
-            title: f.title,
-            step_count: f.step_count,
-            created_at: f.created_at,
-            updated_at: f.updated_at,
+            id: flow.id,
+            title: flow.title,
+            step_count: flow.step_count,
+            steps: steps.into_iter().map(Into::into).collect(),
+            created_at: flow.created_at,
+            updated_at: flow.updated_at,
+            unavailable_reason,
         }
     }
 }
@@ -130,43 +137,21 @@ pub struct UpdateMfaFlowStep {
     pub methods: Vec<VpnClientMfaMethod>,
 }
 
-/// Request body for assigning flows to a location.
+/// A group scoped to a location MFA flow assignment.
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
-pub struct AssignMfaFlowsRequest {
-    pub assignments: Vec<AssignMfaFlowEntry>,
+pub struct LocationMfaFlowGroupResponse {
+    pub id: Id,
+    pub name: String,
 }
 
-/// A single entry in an assignment list.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
-pub struct AssignMfaFlowEntry {
-    pub flow_id: Id,
-    pub is_default: bool,
-    #[serde(default)]
-    pub group_ids: Vec<Id>,
-}
-
-/// Assignment item returned by `GET /location/{id}/mfa-flows`.
+/// An MFA flow assignment rendered in the context of one location.
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct LocationMfaFlowResponse {
     pub id: Id,
     pub title: String,
-    pub step_count: i64,
-    pub group_names: Vec<String>,
-    pub position: i32,
+    pub steps: Vec<MfaFlowStepResponse>,
     pub is_default: bool,
-}
-
-impl From<LocationMfaFlowItem> for LocationMfaFlowResponse {
-    fn from(item: LocationMfaFlowItem) -> Self {
-        Self {
-            id: item.id,
-            title: item.title,
-            step_count: item.step_count,
-            group_names: item.group_names,
-            position: item.position,
-            is_default: item.is_default,
-        }
-    }
+    pub groups: Vec<LocationMfaFlowGroupResponse>,
 }
 
 // Helpers
@@ -177,7 +162,7 @@ impl From<LocationMfaFlowItem> for LocationMfaFlowResponse {
 /// The status stays `403` rather than the `400` the impl spec tabulates: a licence refusal is not
 /// a malformed request, and the rest of the codebase answers licence gates with `403`. The
 /// top-level `error` discriminator distinguishes it from `validation_failed`.
-fn license_error_response(field: String, code: &str) -> ApiResponse {
+pub(crate) fn license_error_response(field: String, code: &str) -> ApiResponse {
     ApiResponse::new(
         json!({
             "error": "license_required",
@@ -195,6 +180,8 @@ fn license_error_response(field: String, code: &str) -> ApiResponse {
 /// configured provider.
 #[must_use]
 fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<ApiResponse> {
+    // Keep these write-side gates in sync with `flow_unavailable_reason`, which reports saved-flow
+    // availability.
     if step_methods.len() > 1 && !is_business_license_active() {
         return Some(license_error_response(
             "steps".into(),
@@ -261,36 +248,14 @@ fn check_method_prerequisites(
     }
 }
 
-/// Check licence gates for flow assignment: group scoping requires Enterprise.
-///
-/// Uses `has_enterprise_access(None)` (raw Enterprise tier) rather than
-/// `has_enterprise_access(Some(LicenseFeature::MfaFlowGroupScoping))` because
-/// adding a `LicenseFeature` variant would require coordination outside this
-/// repo: the proto enum in the `proto` repo and license issuance must both
-/// recognise the new variant. The `None` form gates strictly on the Enterprise
-/// tier, which is the correct behaviour for this feature.
-#[must_use]
-fn check_assignment_license_gates(assignments: &[AssignMfaFlowEntry]) -> Option<ApiResponse> {
-    let scoped = assignments.iter().position(|a| !a.group_ids.is_empty());
-    if let Some(index) = scoped
-        && !has_enterprise_access(None)
-    {
-        return Some(license_error_response(
-            format!("assignments[{index}].group_ids"),
-            "enterprise_license_required",
-        ));
-    }
-    None
-}
-
 /// Field path for the first assignment entry matching `predicate`, suffixed with `suffix`.
 ///
 /// Errors point at the row the admin submitted rather than at the list as a whole. When no entry
 /// matches, the path degrades to the bare `assignments` list, which is the best available anchor.
 fn assignment_field_path(
-    assignments: &[AssignMfaFlowEntry],
+    assignments: &[LocationMfaFlowAssignment],
     suffix: &str,
-    predicate: impl Fn(&AssignMfaFlowEntry) -> bool,
+    predicate: impl Fn(&LocationMfaFlowAssignment) -> bool,
 ) -> String {
     assignments.iter().position(predicate).map_or_else(
         || "assignments".to_owned(),
@@ -299,12 +264,12 @@ fn assignment_field_path(
 }
 
 /// Field path for the assignment entry referencing `flow_id`.
-fn assignment_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
+fn assignment_field(assignments: &[LocationMfaFlowAssignment], flow_id: Id) -> String {
     assignment_field_path(assignments, "flow_id", |a| a.flow_id == flow_id)
 }
 
 /// Field path for the assignment entry referencing `group_id`.
-fn group_field(assignments: &[AssignMfaFlowEntry], group_id: Id) -> String {
+fn group_field(assignments: &[LocationMfaFlowAssignment], group_id: Id) -> String {
     assignment_field_path(assignments, "group_ids", |a| {
         a.group_ids.contains(&group_id)
     })
@@ -312,11 +277,47 @@ fn group_field(assignments: &[AssignMfaFlowEntry], group_id: Id) -> String {
 
 /// Field path for the assignment entry whose empty group set made it inert, pointing at the
 /// `group_ids` the admin must populate rather than at the flow as a whole.
-fn non_default_group_field(assignments: &[AssignMfaFlowEntry], flow_id: Id) -> String {
+fn non_default_group_field(assignments: &[LocationMfaFlowAssignment], flow_id: Id) -> String {
     assignment_field_path(assignments, "group_ids", |a| a.flow_id == flow_id)
 }
 
 /// Build a `400` response with structured `fields[]` errors.
+pub(crate) fn assignment_error_response(
+    assignments: &[LocationMfaFlowAssignment],
+    error: MfaFlowAssignmentError,
+) -> Result<ApiResponse, WebError> {
+    let (field, code) = match error {
+        MfaFlowAssignmentError::NoDefaultDesignated => {
+            ("mfa_flows".to_owned(), "no_default_designated")
+        }
+        MfaFlowAssignmentError::MultipleDefaultsDesignated => {
+            ("mfa_flows".to_owned(), "multiple_defaults_designated")
+        }
+        MfaFlowAssignmentError::DefaultHasGroups => {
+            ("mfa_flows".to_owned(), "default_must_have_no_groups")
+        }
+        MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
+            non_default_group_field(assignments, flow_id),
+            "non_default_must_have_groups",
+        ),
+        MfaFlowAssignmentError::DuplicateFlow(flow_id) => {
+            (assignment_field(assignments, flow_id), "duplicate")
+        }
+        MfaFlowAssignmentError::UnknownFlow(flow_id) => {
+            (assignment_field(assignments, flow_id), "unknown_flow")
+        }
+        MfaFlowAssignmentError::UnknownGroup(group_id) => {
+            (group_field(assignments, group_id), "unknown_group")
+        }
+        MfaFlowAssignmentError::Sqlx(error) => return Err(WebError::from(error)),
+    };
+
+    Ok(validation_error_response(vec![MfaFlowValidationField {
+        field,
+        code: code.into(),
+    }]))
+}
+
 fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse {
     let fields: Vec<Value> = errors
         .iter()
@@ -389,7 +390,7 @@ async fn validate_flow_request(
     path = "/api/v1/mfa-flow",
     tag = "mfa flow",
     responses(
-        (status = 200, description = "List of MFA flows.", body = [MfaFlowListItemResponse]),
+        (status = 200, description = "List of MFA flows, each with its ordered steps.", body = [MfaFlowListItemResponse]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to list MFA flows.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
@@ -407,7 +408,22 @@ pub async fn list_mfa_flows(
     debug!("User {} listing MFA flows", session.user.username);
 
     let items = MfaFlow::list_with_step_count(&appstate.pool).await?;
-    let response: Vec<MfaFlowListItemResponse> = items.into_iter().map(Into::into).collect();
+    let mut steps_by_flow: HashMap<Id, Vec<MfaFlowStep<Id>>> = HashMap::new();
+    for step in MfaFlowStep::find_all(&appstate.pool).await? {
+        steps_by_flow.entry(step.flow_id).or_default().push(step);
+    }
+    let smtp_configured = Settings::get_current_settings().smtp_configured();
+    let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
+    let has_business = is_business_license_active();
+    let response: Vec<MfaFlowListItemResponse> = items
+        .into_iter()
+        .map(|item| {
+            let steps = steps_by_flow.remove(&item.id).unwrap_or_default();
+            let reason =
+                flow_unavailable_reason(&steps, smtp_configured, oidc_configured, has_business);
+            MfaFlowListItemResponse::new(item, steps, reason)
+        })
+        .collect();
 
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
@@ -706,7 +722,7 @@ pub async fn delete_mfa_flow(
         ("id" = i64, Path, description = "ID of the location.")
     ),
     responses(
-        (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
+        (status = 200, description = "MFA flow assignments for the location.", body = [LocationMfaFlowResponse]),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse),
         (status = 500, description = "Unable to list assigned flows.", body = ApiErrorResponse)
@@ -736,112 +752,24 @@ pub async fn get_location_mfa_flows(
         return Err(WebError::ObjectNotFound(format!("Location {id} not found")));
     }
 
-    let items = MfaFlow::for_location(&appstate.pool, id).await?;
-    let response: Vec<LocationMfaFlowResponse> = items.into_iter().map(Into::into).collect();
-
-    Ok(ApiResponse::json(response, StatusCode::OK))
-}
-
-/// Assign MFA flows to a location (full replace)
-#[utoipa::path(
-    put,
-    path = "/api/v1/location/{id}/mfa-flows",
-    tag = "mfa flow",
-    params(
-        ("id" = i64, Path, description = "ID of the location.")
-    ),
-    request_body = AssignMfaFlowsRequest,
-    responses(
-        (status = 200, description = "MFA flows assigned to the location.", body = [LocationMfaFlowResponse]),
-        (status = 400, description = "Invalid assignment: `no_default_designated`, `multiple_defaults_designated`, `default_must_have_no_groups`, or `non_default_must_have_groups`.", body = ApiErrorResponse, example = json!({"error": "validation_failed", "fields": [{"field": "mfa_flows", "code": "no_default_designated"}]})),
-        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse),
-        (status = 403, description = "Requires admin privileges, or group scoping without an enterprise license (`enterprise_license_required`).", body = ApiErrorResponse, example = json!({"error": "license_required", "fields": [{"field": "assignments[0].group_ids", "code": "enterprise_license_required"}]})),
-        (status = 500, description = "Unable to assign flows.", body = ApiErrorResponse)
-    ),
-    security(
-        ("cookie" = []),
-        ("api_token" = [])
-    )
-)]
-pub async fn set_location_mfa_flows(
-    _admin: AdminRole,
-    session: SessionInfo,
-    context: ApiRequestContext,
-    Path(location_id): Path<Id>,
-    State(appstate): State<AppState>,
-    Json(data): Json<AssignMfaFlowsRequest>,
-) -> ApiResult {
-    debug!(
-        "User {} assigning MFA flows to location {location_id}",
-        session.user.username
-    );
-
-    // The location has to exist before we can replace its assignments, and its name is needed for
-    // the audit event.
-    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
-        .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
-
-    let assignments: Vec<LocationMfaFlowAssignment> = data
-        .assignments
-        .iter()
-        .map(|a| LocationMfaFlowAssignment {
-            flow_id: a.flow_id,
-            is_default: a.is_default,
-            group_ids: a.group_ids.clone(),
-        })
-        .collect();
-
-    if let Some(resp) = check_assignment_license_gates(&data.assignments) {
-        return Ok(resp);
+    let assignments = MfaFlow::for_location(&appstate.pool, id).await?;
+    let mut response = Vec::with_capacity(assignments.len());
+    for assignment in assignments {
+        let steps = MfaFlowStep::find_by_flow(&appstate.pool, assignment.id).await?;
+        let groups = assignment
+            .group_ids
+            .into_iter()
+            .zip(assignment.group_names)
+            .map(|(id, name)| LocationMfaFlowGroupResponse { id, name })
+            .collect();
+        response.push(LocationMfaFlowResponse {
+            id: assignment.id,
+            title: assignment.title,
+            steps: steps.into_iter().map(Into::into).collect(),
+            is_default: assignment.is_default,
+            groups,
+        });
     }
-
-    let mut tx = appstate.pool.begin().await?;
-    if let Err(e) = MfaFlow::assign_to_location(&mut tx, location_id, &assignments).await {
-        let (field, code) = match e {
-            MfaFlowAssignmentError::NoDefaultDesignated => {
-                ("mfa_flows".to_owned(), "no_default_designated")
-            }
-            MfaFlowAssignmentError::MultipleDefaultsDesignated => {
-                ("mfa_flows".to_owned(), "multiple_defaults_designated")
-            }
-            MfaFlowAssignmentError::DefaultHasGroups => {
-                ("mfa_flows".to_owned(), "default_must_have_no_groups")
-            }
-            MfaFlowAssignmentError::NonDefaultWithoutGroups(flow_id) => (
-                non_default_group_field(&data.assignments, flow_id),
-                "non_default_must_have_groups",
-            ),
-            MfaFlowAssignmentError::DuplicateFlow(flow_id) => {
-                (assignment_field(&data.assignments, flow_id), "duplicate")
-            }
-            MfaFlowAssignmentError::UnknownFlow(flow_id) => {
-                (assignment_field(&data.assignments, flow_id), "unknown_flow")
-            }
-            MfaFlowAssignmentError::UnknownGroup(group_id) => {
-                (group_field(&data.assignments, group_id), "unknown_group")
-            }
-            MfaFlowAssignmentError::Sqlx(e) => return Err(WebError::from(e)),
-        };
-
-        return Ok(validation_error_response(vec![MfaFlowValidationField {
-            field,
-            code: code.into(),
-        }]));
-    }
-    tx.commit().await?;
-
-    let items = MfaFlow::for_location(&appstate.pool, location_id).await?;
-    let response: Vec<LocationMfaFlowResponse> = items.into_iter().map(Into::into).collect();
-
-    appstate.emit_event(ApiEvent {
-        context,
-        event: Box::new(ApiEventType::LocationMfaFlowsAssigned {
-            location_id,
-            location_name: location.name,
-            assignments: LocationMfaFlowAssignment::snapshot(&assignments),
-        }),
-    })?;
 
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
@@ -868,18 +796,52 @@ pub enum MethodAvailabilityReason {
     OidcProviderMissing,
 }
 
+/// Returns the first reason a saved flow cannot run under the active license or configuration.
+///
+/// Keep this in sync with [`check_flow_license_gates`] and the MFA engine's
+/// `StepEmptyAfterLicense` and `MultiStepNotAvailable` refusals.
+#[must_use]
+fn flow_unavailable_reason(
+    steps: &[MfaFlowStep<Id>],
+    smtp_configured: bool,
+    oidc_configured: bool,
+    has_business: bool,
+) -> Option<MethodAvailabilityReason> {
+    if steps.len() > 1 && !has_business {
+        return Some(MethodAvailabilityReason::Licensed);
+    }
+
+    let availability = compute_method_availability(smtp_configured, oidc_configured, has_business);
+    let entry = |method: VpnClientMfaMethod| {
+        availability
+            .iter()
+            .find(move |item| item.method == method)
+            .expect("every method is enumerated by compute_method_availability")
+    };
+
+    for step in steps {
+        if step.methods.iter().any(|m| entry(*m).available) {
+            continue;
+        }
+        if let Some(first) = step.methods.first() {
+            return Some(entry(*first).reason);
+        }
+    }
+
+    None
+}
+
 /// Compute per-method availability for the MFA flow editor.
 ///
 /// Checks license tier, SMTP configuration, and OIDC provider presence to
-/// determine which methods are currently usable. All five methods in
-/// [`VpnClientMfaMethod`] are always enumerated; unavailable methods carry
+/// determine which methods are currently usable. Every method in
+/// [`VpnClientMfaMethod`] is always enumerated; unavailable methods carry
 /// a `reason` that the UI maps to an appropriate CTA.
 fn compute_method_availability(
     smtp_configured: bool,
     oidc_configured: bool,
+    has_business: bool,
 ) -> Vec<MethodAvailabilityResponse> {
-    let has_business = is_business_license_active();
-
     let methods = [
         (
             VpnClientMfaMethod::Totp,
@@ -913,6 +875,11 @@ fn compute_method_availability(
         ),
         (
             VpnClientMfaMethod::MobileApprove,
+            true,
+            MethodAvailabilityReason::Available,
+        ),
+        (
+            VpnClientMfaMethod::Fido2,
             true,
             MethodAvailabilityReason::Available,
         ),
@@ -955,6 +922,65 @@ pub async fn get_method_availability(
     );
     let smtp_configured = Settings::get_current_settings().smtp_configured();
     let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
-    let result = compute_method_availability(smtp_configured, oidc_configured);
+    let result = compute_method_availability(
+        smtp_configured,
+        oidc_configured,
+        is_business_license_active(),
+    );
     Ok(ApiResponse::json(result, StatusCode::OK))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn step(methods: &[VpnClientMfaMethod]) -> MfaFlowStep<Id> {
+        MfaFlowStep {
+            id: 1,
+            flow_id: 1,
+            position: 0,
+            methods: methods.to_vec(),
+        }
+    }
+
+    #[test]
+    fn test_flow_unavailable_reason() {
+        assert!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Totp])], false, false, false)
+                .is_none()
+        );
+
+        assert!(matches!(
+            flow_unavailable_reason(
+                &[
+                    step(&[VpnClientMfaMethod::Totp]),
+                    step(&[VpnClientMfaMethod::Totp])
+                ],
+                true,
+                true,
+                false,
+            ),
+            Some(MethodAvailabilityReason::Licensed)
+        ));
+
+        assert!(matches!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Email])], false, true, true),
+            Some(MethodAvailabilityReason::SmtpNotConfigured)
+        ));
+
+        assert!(matches!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Oidc])], true, false, true),
+            Some(MethodAvailabilityReason::OidcProviderMissing)
+        ));
+
+        assert!(
+            flow_unavailable_reason(
+                &[step(&[VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email])],
+                false,
+                true,
+                true,
+            )
+            .is_none()
+        );
+    }
 }

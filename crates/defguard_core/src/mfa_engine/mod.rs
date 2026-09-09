@@ -31,7 +31,7 @@ use crate::{
     mfa_engine::{
         authorize::{EventChannels, build_authorized_gateway_network_info, create_new_session},
         error::{FinishError, StartError, StepError},
-        method::{InitiateError, Verdict, VerifyError, initiate, verify},
+        method::{InitiateError, Verdict, VerifyError, initiate, offered_credential_ids, verify},
         types::{
             FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
             StepStarted,
@@ -159,6 +159,8 @@ impl MfaEngine {
     ) -> Result<StartResult, StartError> {
         let business = is_business_license_active();
 
+        // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`, which
+        // reports saved-flow availability.
         // A multi-step flow (2+ steps) requires a business license; fail closed.
         if steps.len() > 1 && !business {
             error!(
@@ -179,7 +181,7 @@ impl MfaEngine {
         }
 
         // Freeze the license-filtered snapshot: OIDC is a business-tier method.
-        let filtered_steps: Vec<Vec<VpnClientMfaMethod>> = steps
+        let filtered_steps = steps
             .iter()
             .map(|step| {
                 step.iter()
@@ -187,7 +189,7 @@ impl MfaEngine {
                     .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
                     .collect()
             })
-            .collect();
+            .collect::<Vec<Vec<_>>>();
 
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_available().await.map_err(|err| {
@@ -202,6 +204,8 @@ impl MfaEngine {
         {
             let chosen = *chosen;
             if allowed.is_empty() {
+                // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`,
+                // which reports saved-flow availability.
                 rejections.push(StepRejection {
                     step: index as u32,
                     reason: StartRejectionReason::StepEmptyAfterLicense,
@@ -272,6 +276,12 @@ impl MfaEngine {
         let response_challenge = challenge
             .as_ref()
             .map(|challenge| challenge.challenge.clone());
+        let credential_ids = offered_credential_ids(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| {
+                error!("Failed to load FIDO2 credentials: {err}");
+                StartError::Internal
+            })?;
 
         let mut conn = self.pool.acquire().await.map_err(|_| {
             error!("Failed to acquire DB connection");
@@ -297,6 +307,7 @@ impl MfaEngine {
         Ok(StartOutcome {
             token: outcome.token,
             challenge: response_challenge,
+            credential_ids,
             superseded_token_hash: outcome.superseded_token_hash,
         })
     }
@@ -383,6 +394,12 @@ impl MfaEngine {
             log_initiate_error(&err, &ctx.user.username);
             StepError::from(err)
         })?;
+        let credential_ids = offered_credential_ids(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| {
+                error!("Failed to load FIDO2 credentials: {err}");
+                StepError::Internal
+            })?;
 
         let mut conn = self.pool.acquire().await.map_err(|_| {
             error!("Failed to acquire DB connection");
@@ -398,9 +415,8 @@ impl MfaEngine {
 
         Ok(StepStarted {
             step_attempt_id,
-            challenge: challenge
-                .as_ref()
-                .map(|challenge| challenge.challenge.clone()),
+            challenge: challenge.map(|challenge| challenge.challenge),
+            credential_ids,
         })
     }
 
@@ -473,7 +489,9 @@ impl MfaEngine {
 
         let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
 
-        let mut mobile_auth_device_name: Option<String> = None;
+        let method = ephemeral.selected_method;
+
+        let mut mobile_auth_device_name = None;
         match verdict {
             Ok(Verdict::Proved) => {
                 if is_mobile_signature
@@ -485,7 +503,7 @@ impl MfaEngine {
                         FinishError::Internal
                     })?;
                     mobile_auth_device_name =
-                        BiometricAuth::find_device(&self.pool, ctx.user.id, auth_pub_key)
+                        BiometricAuth::find_device_name(&self.pool, ctx.user.id, auth_pub_key)
                             .await
                             .map_err(|err| {
                                 error!(
@@ -493,8 +511,7 @@ impl MfaEngine {
                                     ctx.user.id
                                 );
                                 FinishError::Internal
-                            })?
-                            .map(|auth_device| auth_device.name);
+                            })?;
                 }
                 if is_mobile_signature && let Some(attempt_id) = proof.step_attempt_id.as_deref() {
                     let mut transaction = self.pool.begin().await.map_err(|err| {
@@ -585,6 +602,10 @@ impl MfaEngine {
             }
             Err(VerifyError::Db(err)) => {
                 error!("Failed to verify MFA proof: {err}");
+                return Err(FinishError::Internal);
+            }
+            Err(VerifyError::MissingRPID) => {
+                error!("Failed to verify FIDO2: missing RP ID");
                 return Err(FinishError::Internal);
             }
         }
@@ -839,11 +860,14 @@ fn log_initiate_error(err: &InitiateError, username: &str) {
         InitiateError::EmailCode(e) => error!("Failed to generate email MFA code: {e}"),
         InitiateError::Database(e) => error!("Database error: {e}"),
         InitiateError::Mail(e) => {
-            error!("Failed to send email MFA code for user {username}: {e}")
+            error!("Failed to send email MFA code for user {username}: {e}");
         }
         InitiateError::BiometricNotConfigured => {}
         InitiateError::InvalidPublicKey(e) => {
-            error!("Start biometric MFA failed. Challenge creation failed. Reason: {e}")
+            error!("Start biometric MFA failed. Challenge creation failed. Reason: {e}");
+        }
+        InitiateError::UnsupportedMethod => {
+            error!("MFA start for user {username} selected a method Core does not support");
         }
     }
 }

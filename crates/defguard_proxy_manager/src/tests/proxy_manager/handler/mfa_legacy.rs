@@ -19,7 +19,7 @@ use tokio::{task, time::timeout};
 use tonic::Code;
 
 use super::support::{
-    assert_error_response_with_message, assert_vpn_session_exists, biometric_pub_key,
+    assert_error_response_details, assert_vpn_session_exists, biometric_pub_key,
     complete_proxy_handshake, configure_oidc_provider, create_external_mfa_network,
     create_mfa_network, create_user_with_device, expect_bidi_mfa_success, generate_totp_code,
     link_user_oidc_identity, make_device_info, register_biometric_key, send_mfa_finish,
@@ -157,7 +157,7 @@ async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     let response = send_mfa_finish_raw(&mut context, &token, None).await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "Signature not found in request");
     assert!(gateway_rx.try_recv().is_err());
@@ -223,6 +223,8 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
                 code: Some(signature),
                 auth_pub_key: Some(auth_pub_key),
                 step_attempt_id: None,
+                auth_data: None,
+                credential_id: None,
             },
         )),
     });
@@ -369,7 +371,7 @@ async fn test_mfa_finish_succeeds_after_oidc_completion(
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     let response = send_mfa_finish_raw(&mut context, &token, None).await;
-    let (code, message) = assert_error_response_with_message(&response);
+    let (code, message) = assert_error_response_details(&response);
     assert_eq!(code, Code::FailedPrecondition);
     assert_eq!(message, "OIDC authentication not completed yet");
     assert!(

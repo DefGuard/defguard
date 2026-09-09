@@ -385,6 +385,7 @@ impl ProxyManager {
                         Some(ProxyControlMessage::BroadcastPublicSettings {
                             display_password_reset,
                             display_download_step,
+                            public_url,
                         }) => {
                             debug!("Broadcasting PublicSettings to all connected proxies");
                             let msg = CoreResponse {
@@ -393,6 +394,7 @@ impl ProxyManager {
                                     PublicSettings {
                                         display_password_reset,
                                         display_download_step,
+                                        public_url,
                                     },
                                 )),
                             };

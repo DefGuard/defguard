@@ -19,6 +19,18 @@ impl SecretStringWrapper {
     }
 }
 
+impl From<SecretString> for SecretStringWrapper {
+    fn from(value: SecretString) -> Self {
+        Self(value)
+    }
+}
+
+impl From<String> for SecretStringWrapper {
+    fn from(value: String) -> Self {
+        Self(SecretString::from(value))
+    }
+}
+
 impl FromStr for SecretStringWrapper {
     type Err = Infallible;
 

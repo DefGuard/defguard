@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
+import { isPresent } from '../defguard-ui/utils/isPresent';
 import { narrowLicenseSupport } from '../utils/license';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
@@ -32,7 +33,6 @@ import type {
   ApiDevicePosture,
   ApiToken,
   ApplicationInfo,
-  AssignPosturesData,
   AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
@@ -84,6 +84,7 @@ import type {
   LocationConnectedUserDevicesRequest,
   LocationConnectedUsersRequest,
   LocationDevicesResponse,
+  LocationMfaFlowResponse,
   LocationStats,
   LocationStatsRequest,
   LoginRequest,
@@ -472,8 +473,6 @@ const api = {
       fetchPage<ApiDevicePosture>('/device-posture', params),
     setLocationsForDevicePosture: (id: number, locations: number[]) =>
       client.put<number[]>(`/device-posture/${id}/locations`, { locations }),
-    setLocationPostures: (locationId: number, data: AssignPosturesData) =>
-      client.put<number[]>(`/network/${locationId}/postures`, data),
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
@@ -538,6 +537,8 @@ const api = {
     create: (data: CreateMfaFlowRequest) =>
       client.post<MfaFlowDetailResponse>('/mfa-flow', data),
     get: (id: number) => client.get<MfaFlowDetailResponse>(`/mfa-flow/${id}`),
+    getLocationAssignments: (locationId: number) =>
+      client.get<LocationMfaFlowResponse[]>(`/location/${locationId}/mfa-flows`),
     update: (id: number, data: UpdateMfaFlowRequest) =>
       client.put<MfaFlowDetailResponse>(`/mfa-flow/${id}`, data),
     delete: (id: number) => client.delete(`/mfa-flow/${id}`),
@@ -557,6 +558,8 @@ const api = {
         client.put(`/acl/destination/apply`, {
           destinations,
         }),
+      bulkDeleteDestinations: (destinations: number[]) =>
+        client.post('/acl/destination/bulk-delete', { destinations }),
     },
     alias: {
       getCount: () => client.get<AclCount>('acl/alias/count'),
@@ -570,6 +573,8 @@ const api = {
         client.put(`/acl/alias/apply`, {
           aliases,
         }),
+      bulkDeleteAliases: (aliases: number[]) =>
+        client.post('/acl/alias/bulk-delete', { aliases }),
     },
     rule: {
       getCount: () => client.get<AclCount>('acl/rule/count'),
@@ -582,6 +587,12 @@ const api = {
           rules,
         }),
       deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
+      bulkEnableRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-enable', { rules }),
+      bulkDisableRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-disable', { rules }),
+      bulkDeleteRules: (rules: number[]) =>
+        client.post('/acl/rule/bulk-delete', { rules }),
     },
   },
   activityLogStream: {
@@ -632,10 +643,11 @@ const api = {
     client
       .get<LicenseInfoResponse>(`/enterprise_info`)
       .then((res): LicenseInfo | null => {
-        if (res.data.license_info === null) return null;
+        const licenseInfo = res.data?.license_info;
+        if (!isPresent(licenseInfo)) return null;
         return {
-          ...res.data.license_info,
-          support_type_narrow: narrowLicenseSupport(res.data.license_info),
+          ...licenseInfo,
+          support_type_narrow: narrowLicenseSupport(licenseInfo),
         };
       }),
   support: {

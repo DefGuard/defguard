@@ -3,61 +3,97 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // biome-ignore lint/suspicious/noExplicitAny: SSE hook accepts various data types
 export interface SSEHookOptions<T = any> {
   onMessage?: (data: T) => void;
-  onError?: (error: Event) => void;
+  onError?: (error: unknown) => void;
   onOpen?: () => void;
   parseJSON?: boolean;
   params?: Record<string, string | number | boolean>;
 }
 
 // SSE (Server-Sent Events) controller hook for processing real-time events received from the backend.
+// The setup streams are POST + JSON so that a cross-site form cannot trigger them, and EventSource
+// can only issue GET, so the stream is read from a fetch response body instead.
 // biome-ignore lint/suspicious/noExplicitAny: SSE hook accepts various data types
 export function useSSEController<T = any>(
   url: string,
   params: Record<string, string | number | boolean | null>,
   options: SSEHookOptions<T> = {},
 ) {
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<Event | null>(null);
-
-  const buildUrl = useCallback(() => {
-    const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) qs.append(k, String(v));
-    });
-    return qs.toString() ? `${url}?${qs}` : url;
-  }, [url, params]);
+  const [error, setError] = useState<unknown>(null);
 
   const stop = useCallback(() => {
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
+    abortRef.current?.abort();
+    abortRef.current = null;
     setIsConnected(false);
   }, []);
 
   const start = useCallback(() => {
-    if (eventSourceRef.current) return;
+    if (abortRef.current) return;
 
-    const es = new EventSource(buildUrl());
-    eventSourceRef.current = es;
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-    es.onopen = () => {
+    const body = Object.fromEntries(
+      Object.entries(params).filter(([, value]) => value !== undefined && value !== null),
+    );
+
+    const run = async () => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!response.ok || response.body === null) {
+        throw new Error(`SSE request to ${url} failed with status ${response.status}`);
+      }
+
       setIsConnected(true);
       setError(null);
       options.onOpen?.();
+
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      // A blank line terminates an SSE frame, so the text after the last blank line is
+      // an incomplete frame and has to wait for the next chunk.
+      let carry = '';
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        carry += value;
+        const frames = carry.split('\n\n');
+        carry = frames.pop() ?? '';
+
+        for (const frame of frames) {
+          const data = frame
+            .split('\n')
+            .filter((line) => line.startsWith('data:'))
+            .map((line) => line.slice(5).replace(/^ /, ''))
+            .join('\n');
+          if (data.length === 0) continue;
+          options.onMessage?.(
+            options.parseJSON === false ? (data as T) : JSON.parse(data),
+          );
+        }
+      }
     };
 
-    es.onmessage = (e) => {
-      const data = options.parseJSON === false ? e.data : JSON.parse(e.data);
-      options.onMessage?.(data);
-    };
-
-    es.onerror = (e) => {
-      setError(e);
-      setIsConnected(false);
-      options.onError?.(e);
-      stop();
-    };
-  }, [buildUrl, options, stop]);
+    run()
+      .then(() => {
+        if (abortRef.current === controller) abortRef.current = null;
+        setIsConnected(false);
+      })
+      .catch((e: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(e);
+        setIsConnected(false);
+        options.onError?.(e);
+        stop();
+      });
+  }, [url, params, options, stop]);
 
   const restart = useCallback(() => {
     stop();

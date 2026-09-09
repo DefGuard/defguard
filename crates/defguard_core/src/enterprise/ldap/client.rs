@@ -15,6 +15,7 @@ use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{extract_rdn_value, is_search_entry};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
+const LDAP_RC_NO_SUCH_OBJECT: u32 = 32;
 
 /// Decodes a raw result entry, logging and dropping entries that fail.
 fn try_construct_entry(entry: ResultEntry) -> Option<SearchEntry> {
@@ -231,9 +232,13 @@ impl LDAPConnection {
     pub(super) async fn delete(&mut self, dn: &str) -> Result<(), LdapError> {
         debug!("Deleting LDAP object {dn}");
         let result = self.ldap.delete(dn).await?;
-        debug!("LDAP deletion result: {result:?}");
-        info!("Deleted LDAP object {dn}");
-
+        if result.rc == LDAP_RC_NO_SUCH_OBJECT {
+            warn!("LDAP object {dn} doesn't exist, nothing to delete");
+        } else {
+            let result = result.success()?;
+            debug!("LDAP deletion result: {result:?}");
+            info!("Deleted LDAP object {dn}");
+        }
         Ok(())
     }
 

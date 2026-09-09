@@ -1,30 +1,12 @@
-use defguard_common::db::{Id, models::gateway::Gateway};
-use defguard_proto::gateway::core_response;
+use defguard_common::db::models::gateway::Gateway;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;
 
 use crate::tests::common::{
-    ManagerTestContext, MockGatewayHarness, build_gateway_with_enabled, create_gateway,
-    create_gateway_with_enabled, create_network, reload_gateway, unique_mock_gateway_socket_path,
-    wait_for_gateway_connection_state,
+    ManagerTestContext, MockGatewayHarness, build_gateway_with_enabled, complete_manager_handshake,
+    create_gateway, create_gateway_with_enabled, create_network, reload_gateway,
+    unique_mock_gateway_socket_path, wait_for_gateway_connection_state,
 };
-
-async fn complete_manager_handshake(
-    context: &ManagerTestContext,
-    gateway: &Gateway<Id>,
-    mock_gateway: &mut MockGatewayHarness,
-) {
-    mock_gateway.wait_connected().await;
-    mock_gateway.send_config_request();
-    let outbound = mock_gateway.recv_outbound().await;
-    assert!(matches!(
-        outbound.payload,
-        Some(core_response::Payload::Config(_))
-    ));
-
-    let gateway_after = wait_for_gateway_connection_state(&context.pool, gateway.id, true).await;
-    assert!(gateway_after.is_connected());
-}
 
 #[sqlx::test]
 async fn test_starts_existing_enabled_gateway_on_startup(
