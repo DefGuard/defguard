@@ -16,7 +16,6 @@ pub enum ClaimsType {
     Auth,
     Gateway,
     YubiBridge,
-    DesktopClient,
 }
 
 #[derive(Debug, Error)]

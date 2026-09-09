@@ -9,8 +9,6 @@ pub(crate) enum GatewayError {
     #[error("gRPC communication error: {0}")]
     GrpcCommunicationError(#[from] tonic::Status),
     #[error(transparent)]
-    CertificateError(#[from] defguard_certs::CertificateError),
-    #[error(transparent)]
     SqlxError(#[from] sqlx::Error),
     #[error("Not found: {0}")]
     NotFound(String),

@@ -26,8 +26,6 @@ pub enum CertificateError {
     RCGenError(#[from] rcgen::Error),
     #[error("Failed to parse: {0}")]
     ParsingError(String),
-    #[error(transparent)]
-    IoError(#[from] std::io::Error),
     #[error("CSR hostname mismatch: {0}")]
     HostnameMismatch(String),
     #[error("CA certificate is not present; generate a CA first")]

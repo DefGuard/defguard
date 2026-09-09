@@ -80,9 +80,6 @@ pub static SYSTEM_INFO_HEADER: &str = "defguard-component-system";
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
-    #[error(transparent)]
-    SemverError(#[from] semver::Error),
-
     #[error("Failed to parse SystemInfo header: {0}")]
     SystemInfoParseError(String),
 
