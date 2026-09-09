@@ -1490,6 +1490,7 @@ name = "defguard-load-generator"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "secrecy",
  "tracing",
  "tracing-subscriber",
 ]

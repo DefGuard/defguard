@@ -1,5 +1,5 @@
-use tracing_subscriber::EnvFilter;
 use clap::Parser;
+use tracing_subscriber::EnvFilter;
 
 mod config;
 
