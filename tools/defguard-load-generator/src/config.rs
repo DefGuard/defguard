@@ -78,7 +78,7 @@ pub struct DatabaseArgs {
 #[derive(Debug, Args)]
 pub struct TestArgs {
     #[command(subcommand)]
-    command: TestCommand,
+    pub command: TestCommand,
 }
 
 #[derive(Debug, Subcommand)]
@@ -89,9 +89,15 @@ pub enum TestCommand {
 
 #[derive(Debug, Args)]
 pub struct ConfigPollingArgs {
+    /// Base URL of the proxy, without the polling path.
+    #[arg(long)]
+    pub proxy_url: String,
+
+    /// Path to the JSONL file containing polling actors (devices).
+    #[arg(long)]
+    pub devices_file: std::path::PathBuf,
+
     /// Target polling request rate.
     #[arg(long)]
-    requests_per_second: NonZeroU64,
+    pub requests_per_second: NonZeroU64,
 }
-
-
