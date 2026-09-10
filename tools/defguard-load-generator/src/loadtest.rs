@@ -1,21 +1,22 @@
 use std::{
-    collections::HashSet,
-    fs::File,
-    io::{BufRead, BufReader},
     num::NonZeroU64,
-    path::PathBuf,
     time::{Duration, Instant},
 };
 
-use anyhow::{Context, bail};
+use anyhow::bail;
 use reqwest::{Client, StatusCode};
-use serde::Deserialize;
+use secrecy::ExposeSecret;
+use sqlx::{
+    FromRow,
+    postgres::{PgConnectOptions, PgPoolOptions},
+    query_as,
+};
 use tokio::{
     task::{JoinError, JoinSet},
     time::{Interval, MissedTickBehavior},
 };
 
-use crate::config::ConfigPollingArgs;
+use crate::config::{ConfigPollingArgs, DatabaseArgs};
 
 const POLLING_PATH: &str = "/api/v1/poll";
 const CLIENT_VERSION: &str = "2.1.0";
@@ -23,10 +24,8 @@ const CLIENT_PLATFORM: &str = "linux";
 const USER_AGENT: &str = "defguard-load-generator/0.1.0";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, FromRow)]
 struct PollingActor {
-    #[serde(skip)]
-    source_line: usize,
     user_id: i64,
     device_id: i64,
     polling_token: String,
@@ -74,7 +73,8 @@ struct SharedLoadTestState {
 
 pub struct ConfigPollingLoadTest {
     proxy_url: String,
-    actors_file: PathBuf,
+    network_id: i64,
+    database: DatabaseArgs,
     requests_per_second: NonZeroU64,
     duration: Option<Duration>,
     max_in_flight: usize,
@@ -85,7 +85,8 @@ impl ConfigPollingLoadTest {
     pub fn new(args: ConfigPollingArgs) -> Self {
         Self {
             proxy_url: args.proxy_url,
-            actors_file: args.devices_file,
+            network_id: args.network_id,
+            database: args.database,
             requests_per_second: args.requests_per_second,
             duration: args.duration,
             max_in_flight: args.max_in_flight,
@@ -93,7 +94,7 @@ impl ConfigPollingLoadTest {
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
-        let state = self.initialize_state()?;
+        let state = self.initialize_state().await?;
         tracing::info!(
             polling_url = %state.polling_url,
             actors = state.actors.len(),
@@ -106,13 +107,12 @@ impl ConfigPollingLoadTest {
         run_load_loop(state).await
     }
 
-    fn initialize_state(&self) -> anyhow::Result<SharedLoadTestState> {
+    async fn initialize_state(&self) -> anyhow::Result<SharedLoadTestState> {
         if self.max_in_flight == 0 {
             bail!("max-in-flight must be greater than zero");
         }
 
-        let actors = load_actors(&self.actors_file)?;
-        validate_actors(&actors)?;
+        let actors = load_actors(&self.database, self.network_id).await?;
         if actors.is_empty() {
             bail!("actors file contains no actors");
         }
@@ -173,22 +173,34 @@ async fn execute_polling_request(
     }
 }
 
-fn load_actors(path: &PathBuf) -> anyhow::Result<Vec<PollingActor>> {
-    let file = File::open(path)
-        .with_context(|| format!("failed to open actors file {}", path.display()))?;
-    BufReader::new(file)
-        .lines()
-        .enumerate()
-        .map(|(line_number, line)| {
-            let line_number = line_number + 1;
-            let line = line?;
-            let mut actor: PollingActor = serde_json::from_str(&line).with_context(|| {
-                format!("invalid actor JSON at {}:{line_number}", path.display())
-            })?;
-            actor.source_line = line_number;
-            Ok(actor)
-        })
-        .collect()
+async fn load_actors(
+    database: &DatabaseArgs,
+    network_id: i64,
+) -> anyhow::Result<Vec<PollingActor>> {
+    let options = PgConnectOptions::new()
+        .host(&database.database_host)
+        .port(database.database_port)
+        .database(&database.database_name)
+        .username(&database.database_user)
+        .password(database.database_password.expose_secret());
+    let pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await?;
+
+    Ok(query_as(
+        "SELECT u.id AS user_id, d.id AS device_id, p.token AS polling_token \
+         FROM pollingtoken p \
+         JOIN device d ON d.id = p.device_id \
+         JOIN \"user\" u ON u.id = d.user_id \
+         JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
+         WHERE wnd.wireguard_network_id = $1 AND u.username LIKE $2 \
+         ORDER BY d.id, p.created_at DESC",
+    )
+    .bind(network_id)
+    .bind("load-test-user-%")
+    .fetch_all(&pool)
+    .await?)
 }
 
 async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
@@ -296,46 +308,6 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
             tracing::error!(%error, "polling request task failed");
         }
     }
-}
-
-fn validate_actors(actors: &[PollingActor]) -> anyhow::Result<()> {
-    let mut user_ids = HashSet::with_capacity(actors.len());
-    let mut device_ids = HashSet::with_capacity(actors.len());
-    let mut polling_tokens = HashSet::with_capacity(actors.len());
-
-    for actor in actors {
-        if actor.user_id <= 0 {
-            bail!("line {}: user_id must be positive", actor.source_line);
-        }
-        if actor.device_id <= 0 {
-            bail!("line {}: device_id must be positive", actor.source_line);
-        }
-        if actor.polling_token.is_empty() {
-            bail!(
-                "line {}: polling_token must not be empty",
-                actor.source_line
-            );
-        }
-        if !user_ids.insert(actor.user_id) {
-            bail!(
-                "line {}: duplicate user_id {}",
-                actor.source_line,
-                actor.user_id
-            );
-        }
-        if !device_ids.insert(actor.device_id) {
-            bail!(
-                "line {}: duplicate device_id {}",
-                actor.source_line,
-                actor.device_id
-            );
-        }
-        if !polling_tokens.insert(&actor.polling_token) {
-            bail!("line {}: duplicate polling_token", actor.source_line);
-        }
-    }
-
-    Ok(())
 }
 
 fn report_final_results(metrics: &LoadTestMetrics, state: &SharedLoadTestState) {

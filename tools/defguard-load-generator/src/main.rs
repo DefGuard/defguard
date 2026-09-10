@@ -2,7 +2,6 @@ use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
 mod config;
-mod export;
 mod loadtest;
 mod seed;
 
@@ -18,9 +17,6 @@ async fn main() -> anyhow::Result<()> {
 
     match config.command {
         config::Command::Seed(args) => seed::run(args).await?,
-        config::Command::Export(config::ExportArgs {
-            command: config::ExportCommand::ConfigPolling(args),
-        }) => export::export_config_polling(args).await?,
         config::Command::Test(config::TestArgs { command }) => match command {
             config::TestCommand::ConfigPolling(args) => {
                 loadtest::ConfigPollingLoadTest::new(args).run().await?
