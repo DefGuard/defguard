@@ -1462,6 +1462,7 @@ dependencies = [
  "clap",
  "ipnetwork",
  "rand 0.8.7",
+ "reqwest",
  "secrecy",
  "serde",
  "serde_json",
