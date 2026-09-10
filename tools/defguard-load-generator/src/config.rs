@@ -14,8 +14,6 @@ pub struct Config {
 pub enum Command {
     /// Seeds one device for every generated user.
     Seed(SeedArgs),
-    /// Exports credentials for a load-test scenario.
-    Export(ExportArgs),
     /// Runs a load-test scenario.
     Test(TestArgs),
 }
@@ -28,30 +26,6 @@ pub struct SeedArgs {
 
     #[arg(long)]
     pub network_id: i64,
-
-    #[command(flatten)]
-    pub database: DatabaseArgs,
-}
-
-#[derive(Debug, Args)]
-pub struct ExportArgs {
-    #[command(subcommand)]
-    pub command: ExportCommand,
-}
-
-#[derive(Debug, Subcommand)]
-pub enum ExportCommand {
-    /// Exports actors for the config-polling scenario.
-    ConfigPolling(ConfigPollingExportArgs),
-}
-
-#[derive(Debug, Args)]
-pub struct ConfigPollingExportArgs {
-    #[arg(long)]
-    pub network_id: i64,
-
-    #[arg(long)]
-    pub output: std::path::PathBuf,
 
     #[command(flatten)]
     pub database: DatabaseArgs,
@@ -93,9 +67,12 @@ pub struct ConfigPollingArgs {
     #[arg(long)]
     pub proxy_url: String,
 
-    /// Path to the JSONL file containing polling actors (devices).
+    /// WireGuard network whose seeded devices should be polled.
     #[arg(long)]
-    pub devices_file: std::path::PathBuf,
+    pub network_id: i64,
+
+    #[command(flatten)]
+    pub database: DatabaseArgs,
 
     /// Target polling request rate.
     #[arg(long)]
