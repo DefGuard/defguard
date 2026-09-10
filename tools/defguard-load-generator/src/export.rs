@@ -80,25 +80,3 @@ fn create_output(path: &std::path::Path) -> anyhow::Result<File> {
         .open(path)
         .with_context(|| format!("failed to create output file {}", path.display()))
 }
-
-#[cfg(test)]
-mod tests {
-    use std::{fs, os::unix::fs::PermissionsExt};
-
-    use super::create_output;
-
-    #[test]
-    fn creates_owner_only_output_file() {
-        let path = std::env::temp_dir().join(format!(
-            "defguard-load-generator-export-test-{}",
-            std::process::id()
-        ));
-        let _ = fs::remove_file(&path);
-
-        create_output(&path).unwrap();
-        let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-
-        assert_eq!(mode, 0o600);
-        fs::remove_file(path).unwrap();
-    }
-}

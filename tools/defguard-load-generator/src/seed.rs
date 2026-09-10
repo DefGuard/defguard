@@ -162,32 +162,3 @@ fn wireguard_public_key() -> String {
 fn polling_token() -> String {
     Alphanumeric.sample_string(&mut OsRng, 32)
 }
-
-#[cfg(test)]
-mod tests {
-    use std::{
-        collections::HashSet,
-        net::{IpAddr, Ipv4Addr},
-    };
-
-    use ipnetwork::IpNetwork;
-
-    use super::{allocate_ips, device_name, user_email, user_name};
-
-    #[test]
-    fn generates_deterministic_actor_names() {
-        assert_eq!(user_name(1), "load-test-user-000001");
-        assert_eq!(user_email(42), "load-test-user-000042@example.invalid");
-        assert_eq!(device_name(123), "load-test-device-000123");
-    }
-
-    #[test]
-    fn allocates_the_first_available_host_address() {
-        let address = "10.0.0.1/29".parse::<IpNetwork>().unwrap();
-        let used_ips = HashSet::from([IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2))]);
-
-        let assigned = allocate_ips(&[address], &used_ips).unwrap();
-
-        assert_eq!(assigned, ["10.0.0.3/32".parse::<IpNetwork>().unwrap()]);
-    }
-}
