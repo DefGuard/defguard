@@ -11,6 +11,7 @@ publish = false
 anyhow.workspace = true
 base64.workspace = true
 clap.workspace = true
+humantime.workspace = true
 ipnetwork.workspace = true
 rand.workspace = true
 reqwest.workspace = true

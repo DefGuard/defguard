@@ -100,4 +100,12 @@ pub struct ConfigPollingArgs {
     /// Target polling request rate.
     #[arg(long)]
     pub requests_per_second: NonZeroU64,
+
+    /// Maximum number of polling requests running concurrently.
+    #[arg(long, default_value_t = 1024)]
+    pub max_in_flight: usize,
+
+    /// Optional test duration. Without it, the test runs until Ctrl-C.
+    #[arg(long, value_parser = humantime::parse_duration)]
+    pub duration: Option<std::time::Duration>,
 }
