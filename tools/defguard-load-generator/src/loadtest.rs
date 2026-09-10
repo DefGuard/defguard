@@ -23,6 +23,7 @@ const CLIENT_VERSION: &str = "2.1.0";
 const CLIENT_PLATFORM: &str = "linux";
 const USER_AGENT: &str = "defguard-load-generator/0.1.0";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const PROGRESS_INTERVAL: Duration = Duration::from_secs(5);
 
 #[derive(Debug, FromRow)]
 struct PollingActor {
@@ -210,6 +211,11 @@ async fn load_actors(
 async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
     let mut request_tasks = JoinSet::new();
     let mut metrics = LoadTestMetrics::default();
+    let mut progress_interval = tokio::time::interval_at(
+        tokio::time::Instant::now() + PROGRESS_INTERVAL,
+        PROGRESS_INTERVAL,
+    );
+    progress_interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let duration = state.duration;
     let shutdown_timer = async move {
         match duration {
@@ -235,6 +241,11 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
 
                 let actor = &state.actors[state.next_actor_index];
                 state.next_actor_index = (state.next_actor_index + 1) % state.actors.len();
+                tracing::trace!(
+                    user_id = actor.user_id,
+                    device_id = actor.device_id,
+                    "scheduling polling request"
+                );
                 metrics.scheduled_requests += 1;
                 metrics.started_requests += 1;
 
@@ -248,6 +259,9 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
             }
             Some(result) = request_tasks.join_next() => {
                 handle_completed_task(result, &mut metrics);
+            }
+            _ = progress_interval.tick() => {
+                report_progress(&metrics, &state);
             }
             _ = &mut first_ctrl_c => {
                 tracing::info!("stopping request scheduling; waiting for in-flight requests");
@@ -312,6 +326,23 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
             tracing::error!(%error, "polling request task failed");
         }
     }
+}
+
+fn report_progress(metrics: &LoadTestMetrics, state: &SharedLoadTestState) {
+    let elapsed = state.started_at.elapsed();
+    let actual_rps = metrics.started_requests as f64 / elapsed.as_secs_f64();
+    tracing::info!(
+        elapsed = ?elapsed,
+        actual_rps,
+        in_flight = metrics.started_requests.saturating_sub(metrics.completed_requests),
+        completed = metrics.completed_requests,
+        successful = metrics.successful_requests,
+        http_errors = metrics.http_errors,
+        timeout_errors = metrics.timeout_errors,
+        transport_errors = metrics.transport_errors,
+        dropped = metrics.dropped_requests,
+        "config-polling progress"
+    );
 }
 
 fn report_final_results(metrics: &LoadTestMetrics, state: &SharedLoadTestState) {
