@@ -470,7 +470,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
             id: 1,
             flow_id: 1,
             position: 0,
-            methods: vec![VpnClientMfaMethod::Totp],
+            methods: [VpnClientMfaMethod::Totp].into_iter().collect(),
         }],
     };
     let mfa_flow_snapshot2 = MfaFlowSnapshot {
@@ -485,13 +485,13 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 id: 1,
                 flow_id: 1,
                 position: 0,
-                methods: vec![VpnClientMfaMethod::Totp],
+                methods: [VpnClientMfaMethod::Totp].into_iter().collect(),
             },
             MfaFlowStep {
                 id: 2,
                 flow_id: 1,
                 position: 1,
-                methods: vec![VpnClientMfaMethod::Email],
+                methods: [VpnClientMfaMethod::Email].into_iter().collect(),
             },
         ],
     };
@@ -1375,7 +1375,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                         snapshot: StepsSnapshot {
                             flow_id: 1,
                             steps: vec![Step {
-                                methods: vec![VpnClientMfaMethod::MobileApprove],
+                                methods: [VpnClientMfaMethod::MobileApprove].into_iter().collect(),
                                 satisfied: Some(VpnClientMfaMethod::MobileApprove),
                                 mobile_auth_device_name: Some("pixel-7".to_owned()),
                             }],
@@ -1416,7 +1416,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                         snapshot: StepsSnapshot {
                             flow_id: 1,
                             steps: vec![Step {
-                                methods: vec![VpnClientMfaMethod::Totp],
+                                methods: [VpnClientMfaMethod::Totp].into_iter().collect(),
                                 satisfied: None,
                                 mobile_auth_device_name: None,
                             }],

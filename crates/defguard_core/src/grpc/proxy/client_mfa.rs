@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     net::IpAddr,
     sync::{Arc, Mutex, RwLock},
     time::Duration,
@@ -521,7 +521,7 @@ impl ClientMfaServer {
                 .filter(|method| {
                     *method != VpnClientMfaMethod::Oidc || is_business_license_active()
                 })
-                .collect::<Vec<_>>();
+                .collect::<HashSet<_>>();
 
             let selected_client_method: VpnClientMfaMethod = selected_method.into();
             if !first_step_methods.contains(&selected_client_method) {

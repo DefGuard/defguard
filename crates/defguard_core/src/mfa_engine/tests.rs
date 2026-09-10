@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     net::{IpAddr, Ipv4Addr},
     time::SystemTime,
 };
@@ -180,7 +181,7 @@ async fn resolve_flow(
     pool: &PgPool,
     location_id: Id,
     user_id: Id,
-) -> (Id, Vec<Vec<VpnClientMfaMethod>>) {
+) -> (Id, Vec<HashSet<VpnClientMfaMethod>>) {
     let mut conn = pool.acquire().await.expect("failed to acquire conn");
     let (flow, steps) = MfaFlow::resolve_for_user(&mut conn, location_id, user_id)
         .await
@@ -500,7 +501,10 @@ async fn test_start_and_step_start_reject_unconfigured_biometric_method(
         device.id,
         user.id,
         flow_id,
-        step_methods,
+        step_methods
+            .iter()
+            .map(VpnClientMfaMethod::ordered_set)
+            .collect(),
         VpnClientMfaMethod::Totp,
         None,
         VPN_MFA_SESSION_TIMEOUT,

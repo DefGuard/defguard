@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
@@ -14,8 +14,11 @@ use crate::{
     db::{
         Id, NoId,
         models::{
-            biometric_auth::BiometricChallenge, device::Device, user::User,
-            vpn_client_session::VpnClientMfaMethod, wireguard::WireguardNetwork,
+            biometric_auth::BiometricChallenge,
+            device::Device,
+            user::User,
+            vpn_client_session::{VpnClientMfaMethod, mfa_method_set_serde},
+            wireguard::WireguardNetwork,
         },
     },
     random::gen_alphanumeric,
@@ -54,7 +57,8 @@ pub struct MfaAttribution {
 /// A single step within a frozen flow snapshot.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Step {
-    pub methods: Vec<VpnClientMfaMethod>,
+    #[serde(with = "mfa_method_set_serde")]
+    pub methods: HashSet<VpnClientMfaMethod>,
     /// The method that satisfied this step, recorded by `advance` from the method its caller
     /// verified.
     #[serde(default)]
@@ -162,6 +166,21 @@ fn new_attempt_state(
     Ok((step_attempt_id, state_json))
 }
 
+fn collect_mfa_methods(
+    methods: Vec<VpnClientMfaMethod>,
+) -> sqlx::Result<HashSet<VpnClientMfaMethod>> {
+    let mut set = HashSet::with_capacity(methods.len());
+    for method in methods {
+        if !set.insert(method) {
+            return Err(sqlx::Error::Decode(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "MFA step methods must be unique",
+            ))));
+        }
+    }
+    Ok(set)
+}
+
 impl VpnClientMfaSession<Id> {
     /// Begin a new in-progress MFA session, superseding any existing session for the same
     /// `(location_id, device_id)`.
@@ -193,12 +212,14 @@ impl VpnClientMfaSession<Id> {
             flow_id,
             steps: steps
                 .into_iter()
-                .map(|methods| Step {
-                    methods,
-                    satisfied: None,
-                    mobile_auth_device_name: None,
+                .map(|methods| {
+                    Ok(Step {
+                        methods: collect_mfa_methods(methods)?,
+                        satisfied: None,
+                        mobile_auth_device_name: None,
+                    })
                 })
-                .collect(),
+                .collect::<sqlx::Result<Vec<_>>>()?,
         };
         let snapshot_json =
             serde_json::to_value(&snapshot).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
@@ -318,12 +339,12 @@ impl VpnClientMfaSession<Id> {
 
     /// The methods available on the current step.
     #[must_use]
-    pub fn current_step_methods(&self) -> &[VpnClientMfaMethod] {
+    pub fn current_step_methods(&self) -> Option<&HashSet<VpnClientMfaMethod>> {
         self.steps_snapshot
             .0
             .steps
             .get(self.current_step as usize)
-            .map_or(&[], |step| step.methods.as_slice())
+            .map(|step| &step.methods)
     }
 
     /// Begin (or re-issue) an attempt on the current step, overwriting any prior attempt.

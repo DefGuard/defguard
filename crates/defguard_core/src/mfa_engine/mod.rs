@@ -5,7 +5,7 @@
 //! store. The gRPC handlers in `grpc::proxy::client_mfa` are thin adapters converting proto
 //! messages to and from the domain types here; the engine never sees a proto message.
 
-use std::net::IpAddr;
+use std::{collections::HashSet, net::IpAddr};
 
 use defguard_common::db::{
     Id,
@@ -102,7 +102,7 @@ impl MfaEngine {
         device: &Device<Id>,
         user: &User<Id>,
         flow_id: Id,
-        steps: Vec<Vec<VpnClientMfaMethod>>,
+        steps: Vec<HashSet<VpnClientMfaMethod>>,
         selected_method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
         // Reject a selected method the user has not set up. `is_configured` is shared with
@@ -157,7 +157,7 @@ impl MfaEngine {
         device: &Device<Id>,
         user: &User<Id>,
         flow_id: Id,
-        steps: Vec<Vec<VpnClientMfaMethod>>,
+        steps: Vec<HashSet<VpnClientMfaMethod>>,
         selected_methods: Vec<VpnClientMfaMethod>,
     ) -> Result<StartResult, StartError> {
         let business = is_business_license_active();
@@ -190,9 +190,9 @@ impl MfaEngine {
                 step.iter()
                     .copied()
                     .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
-                    .collect()
+                    .collect::<HashSet<_>>()
             })
-            .collect::<Vec<Vec<_>>>();
+            .collect::<Vec<HashSet<_>>>();
 
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_available().await.map_err(|err| {
@@ -264,7 +264,7 @@ impl MfaEngine {
         device: &Device<Id>,
         user: &User<Id>,
         flow_id: Id,
-        steps: Vec<Vec<VpnClientMfaMethod>>,
+        steps: Vec<HashSet<VpnClientMfaMethod>>,
         method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
         let ctx = MfaSessionContext {
@@ -290,13 +290,14 @@ impl MfaEngine {
             error!("Failed to acquire DB connection");
             StartError::Internal
         })?;
+        let step_methods = steps.iter().map(VpnClientMfaMethod::ordered_set).collect();
         let (_session, outcome) = VpnClientMfaSession::<Id>::start(
             &mut conn,
             location.id,
             device.id,
             user.id,
             flow_id,
-            steps,
+            step_methods,
             method,
             challenge,
             VPN_MFA_SESSION_TIMEOUT,
@@ -355,7 +356,10 @@ impl MfaEngine {
             return Err(StepError::SessionNotFound);
         };
 
-        if !session.current_step_methods().contains(&method) {
+        if !session
+            .current_step_methods()
+            .is_some_and(|methods| methods.contains(&method))
+        {
             error!("MFA method {method:?} is not in the current step");
             return Err(StepError::MethodNotInStep);
         }

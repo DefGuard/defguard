@@ -265,7 +265,7 @@ pub async fn build_wire_steps(
     let mut wire_steps = Vec::with_capacity(steps.len());
     for step in steps {
         let mut methods = Vec::with_capacity(step.methods.len());
-        for &method in &step.methods {
+        for method in VpnClientMfaMethod::ordered_set(&step.methods) {
             let configured = method
                 .is_configured(
                     pool,

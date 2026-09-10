@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
@@ -43,6 +45,15 @@ impl VpnClientMfaMethod {
         Self::Fido2,
     ];
 
+    /// Returns a stable vector representation of an unordered method set.
+    #[must_use]
+    pub fn ordered_set(methods: &HashSet<Self>) -> Vec<Self> {
+        Self::ALL
+            .into_iter()
+            .filter(|method| methods.contains(method))
+            .collect()
+    }
+
     /// Returns whether this method is configured for `user` (and, for biometric, `device_id`).
     ///
     /// Per-user/per-device setup state is ANDed with deployment-level availability:
@@ -84,6 +95,40 @@ impl VpnClientMfaMethod {
             Self::Fido2 => WebAuthn::exists_for_user(executor, user.id).await?,
         };
         Ok(configured)
+    }
+}
+
+/// Serde adapter for unordered MFA method sets. JSON remains an array for wire compatibility,
+/// while serialization is canonical and duplicate input is rejected.
+pub(crate) mod mfa_method_set_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
+    use super::{HashSet, VpnClientMfaMethod};
+
+    pub(crate) fn serialize<S>(
+        methods: &HashSet<VpnClientMfaMethod>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        VpnClientMfaMethod::ordered_set(methods).serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<HashSet<VpnClientMfaMethod>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let methods = Vec::<VpnClientMfaMethod>::deserialize(deserializer)?;
+        let mut set = HashSet::with_capacity(methods.len());
+        for method in methods {
+            if !set.insert(method) {
+                return Err(de::Error::custom("MFA step methods must be unique"));
+            }
+        }
+        Ok(set)
     }
 }
 

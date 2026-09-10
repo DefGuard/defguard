@@ -1,11 +1,36 @@
 use std::{
+    collections::HashSet,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
 
+use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
+#[test]
+fn step_methods_serde_is_canonical_and_rejects_duplicates() {
+    let step = Step {
+        methods: HashSet::from([VpnClientMfaMethod::Fido2, VpnClientMfaMethod::Totp]),
+        satisfied: None,
+        mobile_auth_device_name: None,
+    };
+
+    let serialized = serde_json::to_value(&step).unwrap();
+    assert_eq!(serialized["methods"], json!(["totp", "fido2"]));
+
+    let decoded: Step = serde_json::from_value(json!({
+        "methods": ["fido2", "totp"]
+    }))
+    .unwrap();
+    assert_eq!(decoded.methods, step.methods);
+
+    let duplicate = serde_json::from_value::<Step>(json!({
+        "methods": ["totp", "totp"]
+    }));
+    assert!(duplicate.is_err());
+}
+
 use crate::db::{
     Id,
     models::{
@@ -130,7 +155,10 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
     .unwrap();
     tx.commit().await.unwrap();
 
-    assert_eq!(first.current_step_methods(), [VpnClientMfaMethod::Totp]);
+    assert_eq!(
+        first.current_step_methods(),
+        Some(&HashSet::from([VpnClientMfaMethod::Totp]))
+    );
     // The raw token is never stored; only its hash is.
     assert_eq!(first.token_hash, hash_token(&first_outcome.token));
     assert_ne!(first.token_hash, first_outcome.token);
