@@ -213,6 +213,104 @@ mod test {
         assert!(gateway_rx.try_recv().is_err());
     }
 
+    #[sqlx::test]
+    async fn test_users_state_reenable_refreshes_firewall(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config);
+        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            false,
+        )
+        .await;
+
+        let mut network = get_test_network(&pool).await;
+        network.acl_enabled = true;
+        let network_id = network.id;
+        network.save(&pool).await.unwrap();
+
+        let mut user = make_test_user_and_device("reenabled_user", &pool).await;
+        user.is_active = false;
+        user.save(&pool).await.unwrap();
+
+        let license = License::new(
+            "test".to_owned(),
+            false,
+            None,
+            Some(LicenseLimits {
+                users: 100,
+                devices: 100,
+                locations: 100,
+                network_devices: Some(100),
+            }),
+            None,
+            LicenseTier::Business,
+            SupportType::Basic,
+            vec![],
+        );
+        set_cached_license(Some(license));
+        update_counts(&pool).await.unwrap();
+
+        let directory_user = DirectoryUser {
+            id: None,
+            email: user.email.clone(),
+            active: true,
+            user_details: None,
+        };
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[directory_user],
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            get_test_user(&pool, "reenabled_user")
+                .await
+                .unwrap()
+                .is_active
+        );
+        let firewall_updates = std::iter::from_fn(|| gateway_rx.try_recv().ok())
+            .filter(|event| {
+                matches!(event, GatewayCommand::FirewallConfigChanged(id, _) if *id == network_id)
+            })
+            .count();
+        assert_eq!(firewall_updates, 1);
+
+        let (ldap_tx, _ldap_rx) = ldap_test_channel();
+        let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
+        sync_all_users_state(
+            &pool,
+            &gateway_tx,
+            &ldap_tx,
+            &dirsync_tx,
+            &[DirectoryUser {
+                id: None,
+                email: user.email,
+                active: true,
+                user_details: None,
+            }],
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(gateway_rx.try_recv().is_err());
+    }
+
     // Delete users, keep admins
     #[sqlx::test]
     async fn test_users_state_delete_users(_: PgPoolOptions, options: PgConnectOptions) {
