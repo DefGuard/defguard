@@ -4,11 +4,11 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 use tracing::info;
-use utoipa::ToSchema;
 
 pub mod models;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq, Default, Hash)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct NoId;
 pub type Id = i64;
 

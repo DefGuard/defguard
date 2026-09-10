@@ -73,10 +73,6 @@ pub enum DirectorySyncError {
     UnsupportedProvider(String),
     #[error("Directory sync is not configured")]
     NotConfigured,
-    #[error(
-        "Couldn't map provider's group to a Defguard group as it doesn't exist. There may be an issue with automatic group creation. Error details: {0}"
-    )]
-    DefGuardGroupNotFound(String),
     #[error("The provided provider configuration is invalid: {0}")]
     InvalidProviderConfiguration(String),
     #[error("Couldn't construct URL from the given string: {0}")]

@@ -27,8 +27,6 @@ static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Debug, Error)]
 pub enum TemplateError {
-    #[error("Failed to generate email MFA code")]
-    MfaError,
     #[error(transparent)]
     DatabaseError(#[from] sqlx::Error),
     #[error(transparent)]

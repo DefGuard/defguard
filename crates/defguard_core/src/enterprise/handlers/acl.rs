@@ -10,22 +10,24 @@ use chrono::NaiveDateTime;
 use defguard_common::db::Id;
 use serde_json::{Value, json};
 use sqlx::{PgConnection, query_as};
-use utoipa::ToSchema;
 
 use super::LicenseInfo;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol, RuleState},
     error::WebError,
     handlers::{
-        ApiErrorResponse, ApiResponse, ApiResult,
+        ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
 };
 
 /// An ACL rule. All relations represented as arrays of IDs.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiAclRule {
     pub id: Id,
     pub parent_id: Option<Id>,
@@ -102,7 +104,8 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
 }
 
 /// An ACL rule, as accepted when creating or updating one.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EditAclRule {
     pub name: String,
     pub all_locations: bool,
@@ -240,19 +243,21 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct AclRulesData {
     rules: Vec<Id>,
 }
 
-#[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AclStateCount {
     pub applied: i64,
     pub pending: i64,
 }
 
 /// List ACL rules
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/rule",
     tag = "ACL",
@@ -270,7 +275,7 @@ pub struct AclStateCount {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_acl_rules(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -309,7 +314,7 @@ pub(crate) async fn list_acl_rules(
 }
 
 /// Count ACL rules by state
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/rule/count",
     tag = "ACL",
@@ -323,7 +328,7 @@ pub(crate) async fn list_acl_rules(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn count_acl_rules(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -343,7 +348,7 @@ pub(crate) async fn count_acl_rules(
 }
 
 /// Get an ACL rule
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/rule/{id}",
     tag = "ACL",
@@ -361,7 +366,7 @@ pub(crate) async fn count_acl_rules(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -389,7 +394,7 @@ pub(crate) async fn get_acl_rule(
 }
 
 /// Create an ACL rule
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/rule",
     tag = "ACL",
@@ -406,7 +411,7 @@ pub(crate) async fn get_acl_rule(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn create_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -433,7 +438,7 @@ pub(crate) async fn create_acl_rule(
 }
 
 /// Update an ACL rule
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/acl/rule/{id}",
     tag = "ACL",
@@ -454,7 +459,7 @@ pub(crate) async fn create_acl_rule(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn update_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -479,7 +484,7 @@ pub(crate) async fn update_acl_rule(
 }
 
 /// Delete an ACL rule
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/acl/rule/{id}",
     tag = "ACL",
@@ -497,7 +502,7 @@ pub(crate) async fn update_acl_rule(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -519,7 +524,7 @@ pub(crate) async fn delete_acl_rule(
 }
 
 /// Apply ACL rules
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/acl/rule/apply",
     tag = "ACL",
@@ -536,7 +541,7 @@ pub(crate) async fn delete_acl_rule(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn apply_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -571,7 +576,7 @@ pub(crate) async fn apply_acl_rules(
 /// Each listed rule that is already enabled is skipped. As with a single-rule update,
 /// enabling an applied rule creates a pending change that takes effect after
 /// `PUT /api/v1/acl/rule/apply`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/rule/bulk-enable",
     tag = "ACL",
@@ -588,7 +593,7 @@ pub(crate) async fn apply_acl_rules(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_enable_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -604,7 +609,7 @@ pub(crate) async fn bulk_enable_acl_rules(
 /// Each listed rule that is already disabled is skipped. As with a single-rule update,
 /// disabling an applied rule creates a pending change that takes effect after
 /// `PUT /api/v1/acl/rule/apply`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/rule/bulk-disable",
     tag = "ACL",
@@ -621,7 +626,7 @@ pub(crate) async fn bulk_enable_acl_rules(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_disable_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -663,7 +668,7 @@ async fn set_acl_rules_enabled(
 ///
 /// An unapplied rule is deleted immediately. An applied rule is marked for deletion and
 /// removed after `PUT /api/v1/acl/rule/apply`.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/rule/bulk-delete",
     tag = "ACL",
@@ -679,7 +684,7 @@ async fn set_acl_rules_enabled(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_delete_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,

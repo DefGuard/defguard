@@ -283,7 +283,7 @@ async fn test_retries_failed_connection_without_notification_or_duplicate_handle
         "manager reconnect retries should reuse the existing handler task"
     );
 
-    let mut mock_gateway = MockGatewayHarness::start_at(socket_path).await;
+    let mut mock_gateway = MockGatewayHarness::start_at(socket_path);
     mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut mock_gateway).await;
 
@@ -333,7 +333,7 @@ async fn test_retries_after_stream_close_with_single_handler_supervisor(
         "stream closure retries should keep a single handler supervisor"
     );
 
-    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
     replacement_mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
 
@@ -383,7 +383,7 @@ async fn test_retries_after_stream_error_with_single_handler_supervisor(
         "stream failure retries should keep a single handler supervisor"
     );
 
-    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
     replacement_mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
 

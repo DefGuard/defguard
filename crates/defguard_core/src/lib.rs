@@ -9,8 +9,10 @@ use std::{
 };
 
 use anyhow::anyhow;
+#[cfg(feature = "openapi")]
+use axum::Json;
 use axum::{
-    Extension, Json, Router,
+    Extension, Router,
     extract::DefaultBodyLimit,
     http::{Request, StatusCode},
     middleware,
@@ -89,7 +91,9 @@ use tower_http::{
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
+#[cfg(feature = "openapi")]
 use utoipa::OpenApi;
+#[cfg(feature = "openapi")]
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
@@ -255,17 +259,18 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("Failed to parse phone number regex")
 });
 
+#[cfg(feature = "openapi")]
 pub mod openapi;
 
 /// Check instance health
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/health",
     tag = "system",
     responses(
         (status = 200, description = "Core is running.", body = String, example = json!("alive")),
     )
-)]
+))]
 pub async fn health_check() -> &'static str {
     "alive"
 }
@@ -278,8 +283,20 @@ pub async fn handle_404() -> (StatusCode, &'static str) {
 ///
 /// Not listed in the specification itself, because the handler name collides with the
 /// `openapi` module holding `ApiDoc`.
+#[cfg(feature = "openapi")]
 async fn openapi() -> Json<utoipa::openapi::OpenApi> {
     Json(openapi::ApiDoc::openapi())
+}
+
+/// The `GET /api/v1/api-docs` route, or nothing when built without the `openapi` feature.
+#[cfg(feature = "openapi")]
+fn openapi_route() -> Router<AppState> {
+    Router::new().route("/api-docs", get(openapi))
+}
+
+#[cfg(not(feature = "openapi"))]
+fn openapi_route() -> Router<AppState> {
+    Router::new()
 }
 
 pub fn build_webapp(
@@ -315,7 +332,7 @@ pub fn build_webapp(
             .route("/info", get(get_app_info))
             .route("/session-info", get(get_session_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
-            .route("/api-docs", get(openapi))
+            .merge(openapi_route())
             .route("/updates", get(check_new_version))
             // /auth
             .route("/auth", post(authenticate))
@@ -819,16 +836,19 @@ pub fn build_webapp(
         ))
         .merge(sse_routes);
 
-    let swagger =
-        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
-
-    webapp
+    let webapp = webapp
         .with_state(app_state)
         .layer(Extension(pool))
-        .layer(Extension(proxy_control_tx))
-        // swagger is merged before TraceLayer and DefaultBodyLimit so that those
-        // middleware layers cover swagger routes too.
-        .merge(swagger)
+        .layer(Extension(proxy_control_tx));
+
+    // swagger is merged before TraceLayer and DefaultBodyLimit so that those
+    // middleware layers cover swagger routes too.
+    #[cfg(feature = "openapi")]
+    let webapp = webapp.merge(
+        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi()),
+    );
+
+    webapp
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

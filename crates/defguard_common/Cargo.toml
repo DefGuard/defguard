@@ -18,7 +18,9 @@ base64.workspace = true
 chrono.workspace = true
 claims.workspace = true
 clap.workspace = true
-ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+ctap-hid-fido2.workspace = true
+ed25519-dalek.workspace = true
+getrandom.workspace = true
 humantime.workspace = true
 ipnetwork.workspace = true
 jsonwebtoken.workspace = true
@@ -38,20 +40,25 @@ tonic.workspace = true
 tokio.workspace = true
 totp-lite.workspace = true
 tracing.workspace = true
-utoipa.workspace = true
+utoipa = { workspace = true, optional = true }
 uuid.workspace = true
 webauthn-rs.workspace = true
 x25519-dalek.workspace = true
 url = "2.5"
 
 [features]
+default = ["openapi"]
+
+# Derive `utoipa::ToSchema` for the API types defined here, so that
+# `defguard_core` can build an OpenAPI specification out of them.
+openapi = ["dep:utoipa"]
+
 # Test-only helpers (e.g. the mock SMTP server) meant to be shared with other
 # crates' test suites. Enable via `[dev-dependencies]` so it never reaches
 # production builds.
 test-support = ["tokio/net", "tokio/io-util"]
 
 [dev-dependencies]
-matches.workspace = true
 
 [build-dependencies]
 vergen-git2 = "10.0"

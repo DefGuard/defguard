@@ -4,9 +4,10 @@ use axum::{
 };
 use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
-use utoipa::ToSchema;
 
 use super::LicenseInfo;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -14,11 +15,11 @@ use crate::{
         ActivityLogStream, ActivityLogStreamConfig, ActivityLogStreamType,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// List activity log streams
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/activity_log_stream/",
     tag = "activity log",
@@ -34,7 +35,7 @@ use crate::{
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_activity_log_stream(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -53,7 +54,8 @@ pub async fn get_activity_log_stream(
     Ok(ApiResponse::json(streams, StatusCode::OK))
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ActivityLogStreamModificationRequest {
     pub name: String,
     pub stream_type: ActivityLogStreamType,
@@ -61,7 +63,7 @@ pub struct ActivityLogStreamModificationRequest {
 }
 
 /// Create an activity log stream
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/activity_log_stream/",
     tag = "activity log",
@@ -77,7 +79,7 @@ pub struct ActivityLogStreamModificationRequest {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn create_activity_log_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -107,7 +109,7 @@ pub async fn create_activity_log_stream(
 }
 
 /// Update an activity log stream
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/activity_log_stream/{id}",
     tag = "activity log",
@@ -127,7 +129,7 @@ pub async fn create_activity_log_stream(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn modify_activity_log_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -167,7 +169,7 @@ pub async fn modify_activity_log_stream(
 }
 
 /// Delete an activity log stream
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/activity_log_stream/{id}",
     tag = "activity log",
@@ -185,7 +187,7 @@ pub async fn modify_activity_log_stream(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_activity_log_stream(
     _license: LicenseInfo,
     _admin: AdminRole,

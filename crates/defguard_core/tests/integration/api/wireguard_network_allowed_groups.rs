@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{assert_matches, net::IpAddr};
 
 use claims::assert_err;
 use defguard_common::{
@@ -23,7 +23,6 @@ use defguard_core::{
     },
     location_management::allowed_peers::get_location_allowed_peers,
 };
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::{

@@ -1,7 +1,9 @@
 use axum::{extract::State, http::StatusCode};
 use serde_json::{Value, json};
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -10,7 +12,7 @@ use crate::{
 };
 
 /// Get information about a newer defguard release, if any
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/updates",
     tag = "system",
@@ -31,7 +33,7 @@ use crate::{
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -> ApiResult {
     debug!(
         "User {} is checking if there is a new version available",
@@ -50,7 +52,7 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
 
 // FIXME: Switch to SSE and generally make it better.
 /// List connected components whose version is incompatible with this Core
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/outdated",
     tag = "system",
@@ -67,7 +69,7 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn outdated_components(
     _admin: AdminRole,
     State(appstate): State<AppState>,

@@ -18,7 +18,6 @@ use sqlx::{
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
-use utoipa::ToSchema;
 
 use crate::{
     enterprise::{
@@ -145,7 +144,8 @@ impl From<PortRange> for PgRange<i32> {
 /// Applied state does NOT guarantee that all locations have received the rule
 /// and performed appropriate operations, only that the next time configuration
 /// is being sent it will include this rule.
-#[derive(Clone, Debug, Default, Deserialize, Hash, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Hash, Serialize, PartialEq, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
 pub enum RuleState {
     #[default]
@@ -243,7 +243,8 @@ impl<I> AclRuleInfo<I> {
 /// Those objects have their dedicated tables and structures so we provide
 /// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
 /// to combine all the related objects for easier downstream processing.
-#[derive(Clone, Debug, FromRow, Model, PartialEq, ToSchema)]
+#[derive(Clone, Debug, FromRow, Model, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AclRule<I = NoId> {
     pub id: I,
     // if present points to the original rule before modification / deletion
@@ -259,10 +260,10 @@ pub struct AclRule<I = NoId> {
     pub deny_all_network_devices: bool,
     pub all_locations: bool,
     #[model(ref)]
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub addresses: Vec<IpNetwork>,
     #[model(ref)]
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
@@ -1574,17 +1575,18 @@ impl AclRuleInfo<Id> {
 
 /// Helper struct combining all database objects related to given [`AclAlias`].
 /// All related objects are stored in vectors.
-#[derive(Clone, Debug, ToSchema)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct AclAliasInfo {
     pub id: Id,
     pub parent_id: Option<Id>,
     pub name: String,
     pub kind: AliasKind,
     pub state: AliasState,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub addresses: Vec<IpNetwork>,
     pub address_ranges: Vec<AclAliasDestinationRange<Id>>,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<AclRule<Id>>,
@@ -1625,7 +1627,8 @@ impl AclAliasInfo {
 /// since they do not cause any changes to locations until they
 /// are used by a rule.
 /// `Deleted` state is also omitted since we don't allow deleting if an alias is used by any rules.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "aclalias_state", rename_all = "lowercase")]
 pub enum AliasState {
     #[default]
@@ -1637,7 +1640,8 @@ pub enum AliasState {
 /// - `destination`: the alias defines a complete destination that an ACL rule applies to.
 /// - `component`: the alias defines parts of a destination and is combined with the parts
 ///   defined in the ACL rule itself.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "aclalias_kind", rename_all = "lowercase")]
 pub enum AliasKind {
     #[default]
@@ -2266,13 +2270,14 @@ impl<I> From<&AclRuleDestinationRange<I>> for RangeInclusive<IpAddr> {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct AclAliasDestinationRange<I = NoId> {
     pub id: I,
     pub alias_id: Id,
-    #[schema(value_type = String)]
+    #[cfg_attr(feature = "openapi", schema(value_type = String))]
     pub start: IpAddr,
-    #[schema(value_type = String)]
+    #[cfg_attr(feature = "openapi", schema(value_type = String))]
     pub end: IpAddr,
 }
 

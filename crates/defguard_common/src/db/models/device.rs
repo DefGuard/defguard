@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
 use tracing::{debug, error, info};
-use utoipa::ToSchema;
 
 use crate::{
     KEY_LENGTH,
@@ -29,15 +28,16 @@ use crate::{
     },
 };
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeviceConfig {
     pub network_id: Id,
     pub network_name: String,
     pub config: String,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub address: Vec<IpAddr>,
     pub endpoint: String,
-    #[schema(value_type = Vec<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub allowed_ips: Vec<IpNetwork>,
     pub pubkey: String,
     pub dns: Option<String>,
@@ -61,7 +61,8 @@ pub struct DeviceConfig {
 // The type of a device:
 // User: A device of a user, which may be in multiple networks, e.g. a laptop
 // Network: A stand-alone device added by a user permanently bound to one network, e.g. a printer
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "device_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DeviceType {
@@ -84,9 +85,10 @@ impl From<DeviceType> for String {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Device<I = NoId> {
-    #[schema(value_type = i64)]
+    #[cfg_attr(feature = "openapi", schema(value_type = i64))]
     pub id: I,
     pub name: String,
     pub wireguard_pubkey: String,
@@ -225,14 +227,16 @@ impl DeviceInfo {
 
 // helper struct which includes full device info
 // including network activity metadata
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UserDevice {
     #[serde(flatten)]
     pub device: Device<Id>,
     pub networks: Vec<UserDeviceNetworkInfo>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UserDeviceNetworkInfo {
     pub network_id: Id,
     pub network_name: String,
@@ -327,13 +331,15 @@ pub struct WireguardNetworkDevice {
     pub device_id: Id,
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddDevice {
     pub name: String,
     pub wireguard_pubkey: String,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ModifyDevice {
     pub name: String,
     pub wireguard_pubkey: String,

@@ -6,6 +6,7 @@ import { Chip } from '../../../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon/Icon';
+import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 
@@ -20,6 +21,7 @@ type Props = {
   onEdit: () => void;
   removeLabel?: string;
   onRemove?: () => void;
+  unavailableText?: string;
 };
 
 export const MfaFlowAssignmentCard = ({
@@ -31,6 +33,7 @@ export const MfaFlowAssignmentCard = ({
   onEdit,
   removeLabel,
   onRemove,
+  unavailableText,
 }: Props) => {
   const [expanded, setExpanded] = useState(false);
   const foldable = chips.length > collapsedChipLimit;
@@ -70,6 +73,9 @@ export const MfaFlowAssignmentCard = ({
           <Chip text={chip} key={chip} />
         ))}
       </div>
+      {isPresent(unavailableText) && (
+        <InfoBanner icon="lock-closed" variant="warning" text={unavailableText} />
+      )}
       {foldable && (
         <button
           type="button"

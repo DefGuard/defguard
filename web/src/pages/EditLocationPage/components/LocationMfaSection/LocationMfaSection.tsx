@@ -18,6 +18,7 @@ import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon/Icon';
 import { ThemeSpacing, ThemeVariable } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import { mfaFlowUnavailableText } from '../../../../shared/utils/mfaFlowSteps';
 import postureCheckShield from '../../assets/posture_check_shield.png';
 import {
   overrideKey,
@@ -133,6 +134,9 @@ export const LocationMfaSection = ({
               title={flowsById.get(override.flow_id)?.title ?? ''}
               steps={flowsById.get(override.flow_id)?.steps ?? []}
               chips={override.group_ids.map((id) => groupNameById.get(id) ?? String(id))}
+              unavailableText={mfaFlowUnavailableText(
+                flowsById.get(override.flow_id)?.unavailable_reason ?? null,
+              )}
               dragConstraints={overridesTrackRef}
               onEdit={() => openEditor({ kind: 'override', index })}
               onRemove={() => onChange(removeOverride(assignments, index))}
@@ -154,6 +158,9 @@ export const LocationMfaSection = ({
                   ? m.location_mfa_default_chip_everyone_else()
                   : m.location_mfa_default_chip_all_groups(),
               ]}
+              unavailableText={mfaFlowUnavailableText(
+                flowsById.get(defaultAssignment.flow_id)?.unavailable_reason ?? null,
+              )}
               leading={
                 <Icon
                   icon={IconKind.Groups}

@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query_as};
-use utoipa::ToSchema;
 
 use crate::db::{
     Id,
     models::{MFAMethod, user::User},
 };
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MFAInfo {
     pub mfa_method: MFAMethod,
     totp_available: bool,

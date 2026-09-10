@@ -928,7 +928,8 @@ async fn test_register_mobile_auth_happy_path(_: PgPoolOptions, options: PgConne
         .expect("DB query for BiometricAuth failed")
         .expect("expected a BiometricAuth row after RegisterMobileAuth");
     assert_eq!(
-        bio_auth.pub_key, VALID_ED25519_PUBKEY_B64,
+        bio_auth.pub_key(),
+        VALID_ED25519_PUBKEY_B64,
         "BiometricAuth.pub_key must equal the submitted auth_pub_key"
     );
 

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, pub_key, device_id FROM biometric_auth WHERE device_id=$1",
+  "query": "SELECT id, pub_key, device_id FROM biometric_auth WHERE device_id = $1",
   "describe": {
     "columns": [
       {
@@ -30,5 +30,5 @@
       false
     ]
   },
-  "hash": "41d50b33737847c6a7639125b3d04d1d499ee1defd1557b08ec0f48d9bbd1ac3"
+  "hash": "eaf01227119c12908f63db143840c952892fc5a2d575fbe0b0ec0b01cc64fe37"
 }

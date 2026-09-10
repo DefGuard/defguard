@@ -42,7 +42,7 @@ async fn test_matching_location_firewall_disabled_event_produces_disable_update(
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
-    assert_firewall_disable_update(outbound);
+    assert_firewall_disable_update(&outbound);
     context.mock_gateway_mut().expect_no_outbound().await;
 
     context.finish().await.expect_server_finished().await;

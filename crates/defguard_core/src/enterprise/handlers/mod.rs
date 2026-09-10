@@ -18,13 +18,15 @@ use super::{
     LicenseFeature,
     db::models::enterprise_settings::EnterpriseSettings,
     effective_features, get_counts, has_enterprise_access, is_business_license_active,
-    license::{LicenseTier, get_cached_license, validate_license},
+    license::{LicenseTier, get_cached_license},
 };
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 pub struct LicenseInfo {
@@ -99,7 +101,7 @@ where
 }
 
 /// Get information about the enterprise license and enabled features
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/enterprise_info",
     tag = "license",
@@ -131,7 +133,7 @@ where
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let license = get_cached_license();
     let license_info = license.as_ref().map(|license| {
@@ -164,7 +166,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 }),
         });
 
-        let valid = validate_license(Some(license), &counts, LicenseTier::Business).is_ok();
+        let valid = license.validate(&counts, LicenseTier::Business).is_ok();
         let features = if valid {
             effective_features(license)
         } else {

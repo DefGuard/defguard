@@ -18,21 +18,23 @@ use defguard_common::db::{
     },
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::PgPool;
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// Enriched list item returned by `GET /mfa-flow`.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowListItemResponse {
     pub id: Id,
     pub title: String,
@@ -40,10 +42,17 @@ pub struct MfaFlowListItemResponse {
     pub steps: Vec<MfaFlowStepResponse>,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
+    /// The first license or configuration condition that prevents the flow from running.
+    /// `None` = usable
+    pub unavailable_reason: Option<MethodAvailabilityReason>,
 }
 
-impl From<(MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)> for MfaFlowListItemResponse {
-    fn from((flow, steps): (MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)) -> Self {
+impl MfaFlowListItemResponse {
+    fn new(
+        flow: MfaFlowWithStepCount,
+        steps: Vec<MfaFlowStep<Id>>,
+        unavailable_reason: Option<MethodAvailabilityReason>,
+    ) -> Self {
         Self {
             id: flow.id,
             title: flow.title,
@@ -51,12 +60,14 @@ impl From<(MfaFlowWithStepCount, Vec<MfaFlowStep<Id>>)> for MfaFlowListItemRespo
             steps: steps.into_iter().map(Into::into).collect(),
             created_at: flow.created_at,
             updated_at: flow.updated_at,
+            unavailable_reason,
         }
     }
 }
 
 /// Full flow detail returned by `GET /mfa-flow/{id}`, `POST`, and `PUT`.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowDetailResponse {
     pub id: Id,
     pub title: String,
@@ -66,7 +77,8 @@ pub struct MfaFlowDetailResponse {
 }
 
 /// A single step in a flow detail response.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowStepResponse {
     pub id: Id,
     pub position: i32,
@@ -96,7 +108,8 @@ impl From<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> for MfaFlowDetailResponse {
 }
 
 /// Request body for creating an MFA flow.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateMfaFlowRequest {
     pub title: String,
     pub steps: Vec<CreateMfaFlowStep>,
@@ -104,7 +117,8 @@ pub struct CreateMfaFlowRequest {
 
 /// A step within a create request: the server derives contiguous 0-based
 /// positions from array order, so `position` is accepted but ignored.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateMfaFlowStep {
     #[serde(default)]
     pub position: i32,
@@ -112,7 +126,8 @@ pub struct CreateMfaFlowStep {
 }
 
 /// Request body for updating an MFA flow.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UpdateMfaFlowRequest {
     pub title: String,
     pub steps: Vec<UpdateMfaFlowStep>,
@@ -120,7 +135,8 @@ pub struct UpdateMfaFlowRequest {
 
 /// A step within an update request: existing steps carry `id` for
 /// reconciliation; new steps omit `id` and are INSERTed.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UpdateMfaFlowStep {
     #[serde(default)]
     pub id: Option<Id>,
@@ -130,14 +146,16 @@ pub struct UpdateMfaFlowStep {
 }
 
 /// A group scoped to a location MFA flow assignment.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationMfaFlowGroupResponse {
     pub id: Id,
     pub name: String,
 }
 
 /// An MFA flow assignment rendered in the context of one location.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationMfaFlowResponse {
     pub id: Id,
     pub title: String,
@@ -172,6 +190,8 @@ pub(crate) fn license_error_response(field: String, code: &str) -> ApiResponse {
 /// configured provider.
 #[must_use]
 fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<ApiResponse> {
+    // Keep these write-side gates in sync with `flow_unavailable_reason`, which reports saved-flow
+    // availability.
     if step_methods.len() > 1 && !is_business_license_active() {
         return Some(license_error_response(
             "steps".into(),
@@ -234,7 +254,7 @@ fn check_method_prerequisites(
     if errors.is_empty() {
         None
     } else {
-        Some(validation_error_response(errors))
+        Some(validation_error_response(&errors))
     }
 }
 
@@ -302,17 +322,17 @@ pub(crate) fn assignment_error_response(
         MfaFlowAssignmentError::Sqlx(error) => return Err(WebError::from(error)),
     };
 
-    Ok(validation_error_response(vec![MfaFlowValidationField {
+    Ok(validation_error_response(&[MfaFlowValidationField {
         field,
         code: code.into(),
     }]))
 }
 
-fn validation_error_response(errors: Vec<MfaFlowValidationField>) -> ApiResponse {
-    let fields: Vec<Value> = errors
+fn validation_error_response(errors: &[MfaFlowValidationField]) -> ApiResponse {
+    let fields = errors
         .iter()
         .map(|e| json!({"field": e.field, "code": e.code}))
-        .collect();
+        .collect::<Vec<_>>();
     ApiResponse::new(
         json!({"error": "validation_failed", "fields": fields}),
         StatusCode::BAD_REQUEST,
@@ -357,7 +377,7 @@ async fn validate_flow_request(
 
     let errors = validate_flow_input(title, step_methods);
     if !errors.is_empty() {
-        return Ok(Some(validation_error_response(errors)));
+        return Ok(Some(validation_error_response(&errors)));
     }
 
     if let Some(resp) = check_method_prerequisites(
@@ -375,7 +395,7 @@ async fn validate_flow_request(
 // Handlers
 
 /// List all MFA flows
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/mfa-flow",
     tag = "mfa flow",
@@ -389,7 +409,7 @@ async fn validate_flow_request(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn list_mfa_flows(
     _admin: AdminRole,
     session: SessionInfo,
@@ -402,11 +422,16 @@ pub async fn list_mfa_flows(
     for step in MfaFlowStep::find_all(&appstate.pool).await? {
         steps_by_flow.entry(step.flow_id).or_default().push(step);
     }
+    let smtp_configured = Settings::get_current_settings().smtp_configured();
+    let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
+    let has_business = is_business_license_active();
     let response: Vec<MfaFlowListItemResponse> = items
         .into_iter()
         .map(|item| {
             let steps = steps_by_flow.remove(&item.id).unwrap_or_default();
-            (item, steps).into()
+            let reason =
+                flow_unavailable_reason(&steps, smtp_configured, oidc_configured, has_business);
+            MfaFlowListItemResponse::new(item, steps, reason)
         })
         .collect();
 
@@ -414,7 +439,7 @@ pub async fn list_mfa_flows(
 }
 
 /// Create an MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/mfa-flow",
     tag = "mfa flow",
@@ -430,7 +455,7 @@ pub async fn list_mfa_flows(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn create_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -480,7 +505,7 @@ pub async fn create_mfa_flow(
 }
 
 /// Get a single MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/mfa-flow/{id}",
     tag = "mfa flow",
@@ -498,7 +523,7 @@ pub async fn create_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -518,7 +543,7 @@ pub async fn get_mfa_flow(
 }
 
 /// Update an MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/mfa-flow/{id}",
     tag = "mfa flow",
@@ -538,7 +563,7 @@ pub async fn get_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn update_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -588,7 +613,7 @@ pub async fn update_mfa_flow(
                     .iter()
                     .position(|s| s.id == Some(step_id))
                     .unwrap_or(0);
-                return Ok(validation_error_response(vec![MfaFlowValidationField {
+                return Ok(validation_error_response(&[MfaFlowValidationField {
                     field: format!("steps[{index}].id"),
                     code: "unknown_step".into(),
                 }]));
@@ -617,7 +642,7 @@ pub async fn update_mfa_flow(
 }
 
 /// Delete an MFA flow
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/mfa-flow/{id}",
     tag = "mfa flow",
@@ -636,7 +661,7 @@ pub async fn update_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn delete_mfa_flow(
     _admin: AdminRole,
     session: SessionInfo,
@@ -699,7 +724,7 @@ pub async fn delete_mfa_flow(
 }
 
 /// Get MFA flows assigned to a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/location/{id}/mfa-flows",
     tag = "mfa flow",
@@ -716,7 +741,7 @@ pub async fn delete_mfa_flow(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_location_mfa_flows(
     _admin: AdminRole,
     session: SessionInfo,
@@ -760,7 +785,8 @@ pub async fn get_location_mfa_flows(
 }
 
 /// Method availability entry returned by the catalogue endpoint.
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MethodAvailabilityResponse {
     pub method: VpnClientMfaMethod,
     pub available: bool,
@@ -768,7 +794,8 @@ pub struct MethodAvailabilityResponse {
 }
 
 /// Reason a method is (un)available.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum MethodAvailabilityReason {
     /// Method is usable.
@@ -781,18 +808,52 @@ pub enum MethodAvailabilityReason {
     OidcProviderMissing,
 }
 
+/// Returns the first reason a saved flow cannot run under the active license or configuration.
+///
+/// Keep this in sync with [`check_flow_license_gates`] and the MFA engine's
+/// `StepEmptyAfterLicense` and `MultiStepNotAvailable` refusals.
+#[must_use]
+fn flow_unavailable_reason(
+    steps: &[MfaFlowStep<Id>],
+    smtp_configured: bool,
+    oidc_configured: bool,
+    has_business: bool,
+) -> Option<MethodAvailabilityReason> {
+    if steps.len() > 1 && !has_business {
+        return Some(MethodAvailabilityReason::Licensed);
+    }
+
+    let availability = compute_method_availability(smtp_configured, oidc_configured, has_business);
+    let entry = |method: VpnClientMfaMethod| {
+        availability
+            .iter()
+            .find(move |item| item.method == method)
+            .expect("every method is enumerated by compute_method_availability")
+    };
+
+    for step in steps {
+        if step.methods.iter().any(|m| entry(*m).available) {
+            continue;
+        }
+        if let Some(first) = step.methods.first() {
+            return Some(entry(*first).reason);
+        }
+    }
+
+    None
+}
+
 /// Compute per-method availability for the MFA flow editor.
 ///
 /// Checks license tier, SMTP configuration, and OIDC provider presence to
-/// determine which methods are currently usable. All five methods in
-/// [`VpnClientMfaMethod`] are always enumerated; unavailable methods carry
+/// determine which methods are currently usable. Every method in
+/// [`VpnClientMfaMethod`] is always enumerated; unavailable methods carry
 /// a `reason` that the UI maps to an appropriate CTA.
 fn compute_method_availability(
     smtp_configured: bool,
     oidc_configured: bool,
+    has_business: bool,
 ) -> Vec<MethodAvailabilityResponse> {
-    let has_business = is_business_license_active();
-
     let methods = [
         (
             VpnClientMfaMethod::Totp,
@@ -829,6 +890,11 @@ fn compute_method_availability(
             true,
             MethodAvailabilityReason::Available,
         ),
+        (
+            VpnClientMfaMethod::Fido2,
+            true,
+            MethodAvailabilityReason::Available,
+        ),
     ];
 
     methods
@@ -842,7 +908,7 @@ fn compute_method_availability(
 }
 
 /// Get per-method MFA availability.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/mfa-flow/method-availability",
     tag = "mfa flow",
@@ -856,7 +922,7 @@ fn compute_method_availability(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_method_availability(
     _admin: AdminRole,
     session: SessionInfo,
@@ -868,6 +934,65 @@ pub async fn get_method_availability(
     );
     let smtp_configured = Settings::get_current_settings().smtp_configured();
     let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
-    let result = compute_method_availability(smtp_configured, oidc_configured);
+    let result = compute_method_availability(
+        smtp_configured,
+        oidc_configured,
+        is_business_license_active(),
+    );
     Ok(ApiResponse::json(result, StatusCode::OK))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn step(methods: &[VpnClientMfaMethod]) -> MfaFlowStep<Id> {
+        MfaFlowStep {
+            id: 1,
+            flow_id: 1,
+            position: 0,
+            methods: methods.to_vec(),
+        }
+    }
+
+    #[test]
+    fn test_flow_unavailable_reason() {
+        assert!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Totp])], false, false, false)
+                .is_none()
+        );
+
+        assert!(matches!(
+            flow_unavailable_reason(
+                &[
+                    step(&[VpnClientMfaMethod::Totp]),
+                    step(&[VpnClientMfaMethod::Totp])
+                ],
+                true,
+                true,
+                false,
+            ),
+            Some(MethodAvailabilityReason::Licensed)
+        ));
+
+        assert!(matches!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Email])], false, true, true),
+            Some(MethodAvailabilityReason::SmtpNotConfigured)
+        ));
+
+        assert!(matches!(
+            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Oidc])], true, false, true),
+            Some(MethodAvailabilityReason::OidcProviderMissing)
+        ));
+
+        assert!(
+            flow_unavailable_reason(
+                &[step(&[VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email])],
+                false,
+                true,
+                true,
+            )
+            .is_none()
+        );
+    }
 }

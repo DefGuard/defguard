@@ -8,17 +8,19 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{PgPool, query_as};
-use utoipa::ToSchema;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GatewayInfo {
     pub id: Id,
     pub location_id: Id,
@@ -83,7 +85,8 @@ impl GatewayInfo {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields)]
 pub struct GatewayUpdateData {
     pub name: String,
@@ -91,7 +94,7 @@ pub struct GatewayUpdateData {
 }
 
 /// List gateways in all locations
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/gateway",
     tag = "gateway",
@@ -105,7 +108,7 @@ pub struct GatewayUpdateData {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn gateway_list(
     _role: AdminRole,
     session: SessionInfo,
@@ -119,7 +122,7 @@ pub async fn gateway_list(
 }
 
 /// Get a gateway
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/gateway/{gateway_id}",
     tag = "gateway",
@@ -137,7 +140,7 @@ pub async fn gateway_list(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn gateway_details(
     Path(gateway_id): Path<Id>,
     _role: AdminRole,
@@ -162,7 +165,7 @@ pub(crate) async fn gateway_details(
 }
 
 /// Rename a gateway, or enable or disable it
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/gateway/{gateway_id}",
     tag = "gateway",
@@ -182,7 +185,7 @@ pub(crate) async fn gateway_details(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn update_gateway(
     _role: AdminRole,
     Path(gateway_id): Path<Id>,
@@ -233,7 +236,7 @@ pub(crate) async fn update_gateway(
 }
 
 /// Delete a gateway
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/gateway/{gateway_id}",
     tag = "gateway",
@@ -251,7 +254,7 @@ pub(crate) async fn update_gateway(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_gateway(
     _role: AdminRole,
     Path(gateway_id): Path<Id>,

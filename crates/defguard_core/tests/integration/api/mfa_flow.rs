@@ -1,3 +1,5 @@
+use std::assert_matches;
+
 use defguard_common::db::{
     models::{
         Settings, User, mfa_flow::MfaFlow, settings::update_current_settings,
@@ -9,7 +11,6 @@ use defguard_core::{
     enterprise::license::{get_cached_license, set_cached_license},
     events::ApiEventType,
 };
-use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -499,7 +500,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
 
     let response = update_location_mfa_flows(
         &client,
-        999999,
+        999_999,
         json!([{"flow_id": flow_id, "is_default": true, "group_ids": []}]),
     )
     .await;
@@ -526,7 +527,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
         &client,
         location_id,
         json!([
-            {"flow_id": 999999, "is_default": true, "group_ids": []},
+            {"flow_id": 999_999, "is_default": true, "group_ids": []},
         ]),
     )
     .await;
@@ -705,7 +706,7 @@ async fn test_location_mfa_flows_clear_disabled_location(
     );
 }
 
-/// Method availability returns all five methods with correct availability.
+/// Method availability returns every method with correct availability.
 #[sqlx::test]
 async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -720,7 +721,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::OK);
     let items = response.json::<serde_json::Value>().await;
     let items = items.as_array().unwrap();
-    assert_eq!(items.len(), 5);
+    assert_eq!(items.len(), 6);
 
     let find = |method: &str| -> &serde_json::Value {
         items
@@ -742,6 +743,7 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     );
     assert_eq!(find("biometric")["available"].as_bool(), Some(true));
     assert_eq!(find("mobileapprove")["available"].as_bool(), Some(true));
+    assert_eq!(find("fido2")["available"].as_bool(), Some(true));
 
     set_cached_license(None);
     let response = client
@@ -1334,4 +1336,44 @@ async fn test_location_mfa_flows_no_default_designated(
         client.drain_all_events().is_empty(),
         "refused request must not emit an audit event"
     );
+}
+
+/// A saved flow reports when a prerequisite becomes unavailable after it is saved.
+#[sqlx::test]
+async fn test_mfa_flow_list_reports_unavailable_reason(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "Email Only",
+            "steps": [{ "methods": ["email"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    let flows: serde_json::Value = resp.json().await;
+    assert_eq!(flows[0]["unavailable_reason"], serde_json::Value::Null);
+
+    let mut settings = Settings::get_current_settings();
+    settings.smtp.server = None;
+    settings.smtp.port = None;
+    settings.smtp.sender = None;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let flows: serde_json::Value = resp.json().await;
+    assert_eq!(flows[0]["unavailable_reason"], "smtp_not_configured");
 }

@@ -521,7 +521,7 @@ mod tests {
             &[LocationMfaFlowAssignment {
                 flow_id: flow.id,
                 is_default: true,
-                group_ids: vec![],
+                group_ids: Vec::new(),
             }],
         )
         .await
@@ -599,11 +599,11 @@ mod tests {
         .expect("failed to attach device");
     }
 
-    fn device_info(version: &str) -> Option<DeviceInfo> {
-        Some(DeviceInfo {
+    fn device_info(version: &str) -> DeviceInfo {
+        DeviceInfo {
             version: Some(version.to_owned()),
             ..Default::default()
-        })
+        }
     }
 
     /// Builds a valid Business-tier license for tests that exercise licensed behavior.
@@ -620,7 +620,7 @@ mod tests {
             version_date_limit: None,
             tier: LicenseTier::Business,
             support_type: SupportType::Basic,
-            features: vec![],
+            features: Vec::new(),
         }
     }
 
@@ -665,7 +665,7 @@ mod tests {
 
         // Legacy client (2.1.0): the multi-step location is omitted, the internal one retained.
         let response =
-            build_device_config_response(&pool, device.clone(), None, device_info("2.1.0"))
+            build_device_config_response(&pool, device.clone(), None, Some(device_info("2.1.0")))
                 .await
                 .expect("failed to build config for legacy client");
         let names: Vec<&str> = response
@@ -684,7 +684,7 @@ mod tests {
 
         // Capable client (2.2.0): both locations are retained.
         let response =
-            build_device_config_response(&pool, device.clone(), None, device_info("2.2.0"))
+            build_device_config_response(&pool, device.clone(), None, Some(device_info("2.2.0")))
                 .await
                 .expect("failed to build config for capable client");
         let names: Vec<&str> = response
@@ -830,7 +830,7 @@ mod tests {
         // Legacy client (2.1.0): multi-step location omitted; others carry `location_mfa_mode`
         // and no `steps`.
         let response =
-            build_device_config_response(&pool, device.clone(), None, device_info("2.1.0"))
+            build_device_config_response(&pool, device.clone(), None, Some(device_info("2.1.0")))
                 .await
                 .expect("failed to build config for legacy client");
         let names: Vec<&str> = response
@@ -882,7 +882,7 @@ mod tests {
         // Capable client (2.2.0): every location present; `location_mfa_mode` carries the
         // derived value (same as legacy) and `steps` is populated from the resolved flow.
         let response =
-            build_device_config_response(&pool, device.clone(), None, device_info("2.2.0"))
+            build_device_config_response(&pool, device.clone(), None, Some(device_info("2.2.0")))
                 .await
                 .expect("failed to build config for capable client");
 
@@ -956,7 +956,7 @@ mod tests {
         attach_device(&pool, no_flow.id, device.id).await;
 
         // Capable client (2.2.0): the no-flow location must be rejected.
-        let error = build_device_config_response(&pool, device, None, device_info("2.2.0"))
+        let error = build_device_config_response(&pool, device, None, Some(device_info("2.2.0")))
             .await
             .err()
             .expect("MFA-enabled location without a flow must be rejected");

@@ -14,12 +14,14 @@ use defguard_common::db::{
 };
 use reqwest::StatusCode;
 
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::AdminRole,
     error::WebError,
     handlers::{
-        ApiErrorResponse, ApiResponse, ApiResult,
+        ApiResponse, ApiResult,
         pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
 };
@@ -53,7 +55,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
 }
 
 /// Get traffic statistics for all locations
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/stats",
     tag = "location stats",
@@ -80,7 +82,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn locations_overview_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -95,7 +97,7 @@ pub(crate) async fn locations_overview_stats(
 }
 
 /// Get traffic statistics for a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{network_id}/stats",
     tag = "location stats",
@@ -124,7 +126,7 @@ pub(crate) async fn locations_overview_stats(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn location_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -148,7 +150,7 @@ pub(crate) async fn location_stats(
 }
 
 /// List connected users in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users",
     tag = "location stats",
@@ -169,7 +171,7 @@ pub(crate) async fn location_stats(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn location_connected_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -209,7 +211,7 @@ pub(crate) async fn location_connected_users(
 }
 
 /// List connected network devices in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_network_devices",
     tag = "location stats",
@@ -230,7 +232,7 @@ pub(crate) async fn location_connected_users(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn location_connected_network_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -276,7 +278,7 @@ pub(crate) struct ConnectedUserDevicesPath {
 }
 
 /// List the connected devices of a user in a location
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/stats/connected_users/{user_id}/devices",
     tag = "location stats",
@@ -305,7 +307,7 @@ pub(crate) struct ConnectedUserDevicesPath {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn location_connected_user_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,

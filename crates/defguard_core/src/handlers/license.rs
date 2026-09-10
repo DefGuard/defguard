@@ -1,7 +1,8 @@
 use axum::{Json, http::StatusCode};
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     enterprise::{
         license::License,
@@ -10,7 +11,8 @@ use crate::{
     grpc::proto::enterprise::license::LicenseLimits,
 };
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CheckParams {
     license: String,
 }
@@ -22,7 +24,7 @@ pub struct CheckResult {
 }
 
 /// Check a license key and return its limits
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/license/check",
     tag = "license",
@@ -45,7 +47,7 @@ pub struct CheckResult {
         (status = 404, description = "License not found.", body = ApiErrorResponse, example = json!({"msg": "License not found"})),
         (status = 500, description = "Unable to check license.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
     )
-)]
+))]
 pub(crate) async fn license_check(Json(params): Json<CheckParams>) -> ApiResult {
     let license = License::from_base64(params.license.trim())?;
 

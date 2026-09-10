@@ -6,12 +6,10 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
-use utoipa::ToSchema;
 
-use super::{
-    ApiErrorResponse,
-    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
-};
+use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
 
 #[derive(Debug, Deserialize, Default)]
@@ -99,14 +97,15 @@ impl fmt::Display for SortOrder {
 }
 
 /// Activity log event as returned by the API.
-#[derive(Serialize, FromRow, ToSchema)]
+#[derive(Serialize, FromRow)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiActivityLogEvent {
     pub id: Id,
     pub timestamp: NaiveDateTime,
     pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
-    #[schema(value_type = Option<String>)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     pub ip: Option<IpNetwork>,
     pub event: String,
     pub module: ActivityLogModule,
@@ -118,7 +117,7 @@ pub struct ApiActivityLogEvent {
 ///
 /// Supports filtering by time range, module, event type and username, plus a free-text search
 /// over event descriptions.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/activity_log",
     tag = "activity log",
@@ -143,7 +142,7 @@ pub struct ApiActivityLogEvent {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn get_activity_log_events(
     session_info: SessionInfo,
     State(appstate): State<AppState>,

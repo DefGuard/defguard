@@ -9,22 +9,29 @@ rust-version.workspace = true
 
 [dependencies]
 # internal crates
-defguard_common = { workspace = true }
-defguard_core = { workspace = true }
-defguard_event_logger = { workspace = true }
-defguard_gateway_manager = { workspace = true }
-defguard_proxy_manager = { workspace = true }
-defguard_session_manager = { workspace = true }
-defguard_version = { workspace = true }
-defguard_vpn_stats_purge = { workspace = true }
-defguard_setup = { workspace = true }
+defguard_common.workspace = true
+defguard_core.workspace = true
+defguard_event_logger.workspace = true
+defguard_gateway_manager.workspace = true
+defguard_proxy_manager.workspace = true
+defguard_session_manager.workspace = true
+defguard_version.workspace = true
+defguard_vpn_stats_purge.workspace = true
+defguard_setup.workspace = true
 
 # external dependencies
-anyhow = { workspace = true }
-bytes = { workspace = true }
+anyhow.workspace = true
+bytes.workspace = true
 dotenvy = "0.15"
-rustls = { workspace = true }
-secrecy = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+rustls.workspace = true
+secrecy.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[features]
+default = ["openapi"]
+
+# Serve the OpenAPI specification and the Swagger UI. See the `openapi` feature of
+# `defguard_core`. Build with `--no-default-features` to leave it out.
+openapi = ["defguard_core/openapi", "defguard_common/openapi"]

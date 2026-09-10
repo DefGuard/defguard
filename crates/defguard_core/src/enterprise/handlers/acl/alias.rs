@@ -6,9 +6,10 @@ use axum::{
 use defguard_common::db::{Id, NoId};
 use serde_json::{Value, json};
 use sqlx::{PgConnection, PgPool, query, query_as};
-use utoipa::ToSchema;
 
 use super::{AclStateCount, LicenseInfo};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -17,11 +18,12 @@ use crate::{
         Protocol, acl_delete_related_objects, parse_destination_addresses,
     },
     error::WebError,
-    handlers::{ApiErrorResponse, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// An ACL alias, as accepted when creating or updating one.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EditAclAlias {
     pub name: String,
     pub addresses: String,
@@ -68,7 +70,8 @@ impl EditAclAlias {
 
 /// An ACL alias component.
 /// All relations represented as arrays of IDs.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiAclAlias {
     #[serde(default)]
     pub id: Id,
@@ -82,7 +85,8 @@ pub struct ApiAclAlias {
     pub rules: Vec<Id>,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub(crate) struct AclAliasesData {
     aliases: Vec<Id>,
 }
@@ -200,7 +204,7 @@ impl From<AclAliasInfo> for ApiAclAlias {
 }
 
 /// List ACL aliases
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/alias",
     tag = "ACL",
@@ -214,7 +218,7 @@ impl From<AclAliasInfo> for ApiAclAlias {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn list_acl_aliases(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -236,7 +240,7 @@ pub(crate) async fn list_acl_aliases(
 }
 
 /// Count ACL aliases by state
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/alias/count",
     tag = "ACL",
@@ -250,7 +254,7 @@ pub(crate) async fn list_acl_aliases(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn count_acl_aliases(
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -270,7 +274,7 @@ pub(crate) async fn count_acl_aliases(
 }
 
 /// Get an ACL alias
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/acl/alias/{id}",
     tag = "ACL",
@@ -288,7 +292,7 @@ pub(crate) async fn count_acl_aliases(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn get_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -316,7 +320,7 @@ pub(crate) async fn get_acl_alias(
 }
 
 /// Create an ACL alias
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/alias",
     tag = "ACL",
@@ -333,7 +337,7 @@ pub(crate) async fn get_acl_alias(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn create_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -357,7 +361,7 @@ pub(crate) async fn create_acl_alias(
 }
 
 /// Update an ACL alias
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/acl/alias/{id}",
     tag = "ACL",
@@ -378,7 +382,7 @@ pub(crate) async fn create_acl_alias(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn update_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -400,7 +404,7 @@ pub(crate) async fn update_acl_alias(
 }
 
 /// Delete an ACL alias
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     delete,
     path = "/api/v1/acl/alias/{id}",
     tag = "ACL",
@@ -419,7 +423,7 @@ pub(crate) async fn update_acl_alias(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn delete_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -441,7 +445,7 @@ pub(crate) async fn delete_acl_alias(
 }
 
 /// Deletes multiple ACL aliases.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/acl/alias/bulk-delete",
     tag = "ACL",
@@ -458,7 +462,7 @@ pub(crate) async fn delete_acl_alias(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn bulk_delete_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -486,7 +490,7 @@ pub(crate) async fn bulk_delete_acl_aliases(
 }
 
 /// Apply ACL aliases
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/api/v1/acl/alias/apply",
     tag = "ACL",
@@ -503,7 +507,7 @@ pub(crate) async fn bulk_delete_acl_aliases(
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn apply_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,

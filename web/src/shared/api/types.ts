@@ -1421,6 +1421,7 @@ export const MfaFlowMethod = {
   OpenId: 'oidc',
   Biometric: 'biometric',
   MobileApprove: 'mobileapprove',
+  Fido2: 'fido2',
 } as const;
 
 export type MfaFlowMethodValue = (typeof MfaFlowMethod)[keyof typeof MfaFlowMethod];
@@ -1503,6 +1504,7 @@ export interface MfaFlowListItemResponse {
   steps: MfaFlowStep[];
   created_at: string;
   updated_at: string;
+  unavailable_reason: MfaMethodAvailabilityReasonValue | null;
 }
 
 export interface MfaFlowErrorField {

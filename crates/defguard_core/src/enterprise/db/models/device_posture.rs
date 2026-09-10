@@ -2,11 +2,11 @@ use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgExecutor, query, query_as, query_scalar};
-use utoipa::ToSchema;
 
 /// Device posture check policy. Defines the security requirements a client
 /// device must satisfy before being allowed to connect to an assigned VPN location.
-#[derive(Clone, Debug, FromRow, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, FromRow, Model, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[table(device_posture)]
 pub struct DevicePosture<I = NoId> {
     pub id: I,
@@ -17,7 +17,8 @@ pub struct DevicePosture<I = NoId> {
     pub allow_prerelease_client: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, PartialEq, sqlx::Type)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, sqlx::Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "os_type", rename_all = "lowercase")]
 pub enum OsType {
     Windows,
@@ -28,7 +29,8 @@ pub enum OsType {
 }
 
 /// Per-OS security rule row belonging to a [`DevicePosture`] policy.
-#[derive(Clone, Debug, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, Model, Serialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[table(device_posture_os_rule)]
 pub struct DevicePostureOsRule<I = NoId> {
     pub id: I,

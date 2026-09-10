@@ -21,7 +21,6 @@ use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, que
 use thiserror::Error;
 use totp_lite::{Sha1, totp_custom};
 use tracing::{debug, error, info, warn};
-use utoipa::ToSchema;
 
 use super::{
     device::{Device, DeviceType, UserDevice},
@@ -51,13 +50,15 @@ pub enum UserError {
     EmailMfaError(String),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, ToSchema, Type, Copy)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, Type, Copy)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
     OneTimePassword,
     Webauthn,
     Email,
+    Fido2,
 }
 
 // Web MFA methods
@@ -68,12 +69,14 @@ impl fmt::Display for MFAMethod {
             Self::OneTimePassword => "TOTP",
             Self::Webauthn => "WebAuthn",
             Self::Email => "Email",
+            Self::Fido2 => "FIDO2",
         })
     }
 }
 
 /// A registered security key.
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SecurityKey {
     pub id: Id,
     pub name: String,

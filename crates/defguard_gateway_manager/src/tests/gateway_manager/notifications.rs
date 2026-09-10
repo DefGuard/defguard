@@ -51,7 +51,7 @@ async fn test_reconnect_inside_inactivity_threshold_sends_no_notifications(
     mock_gateway.expect_server_finished().await;
 
     // The Gateway comes back well inside the inactivity threshold.
-    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
     replacement_mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
 
@@ -105,7 +105,7 @@ async fn test_outage_past_inactivity_threshold_sends_disconnect_then_reconnect_n
         "reconnect email must not precede the Gateway coming back"
     );
 
-    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
     replacement_mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
 
@@ -157,7 +157,7 @@ async fn test_disabled_notifications_send_nothing_across_a_full_outage(
         "disabled notifications should not schedule a disconnect email"
     );
 
-    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
     replacement_mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
 
@@ -199,7 +199,7 @@ async fn test_reconnect_notification_disabled_sends_only_disconnect_email(
         .wait_for_disconnect_notification_count(gateway.id, 1)
         .await;
 
-    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path).await;
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
     replacement_mock_gateway.wait_for_connection_count(1).await;
     complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
 

@@ -743,25 +743,25 @@ async fn test_finish_setup_rolls_back_when_session_invalidation_fails(
         .expect("Failed to fetch initial setup state before finish");
 
     sqlx::query(
-        r#"
+        r"
         CREATE FUNCTION fail_session_delete() RETURNS trigger
         LANGUAGE plpgsql AS $$
         BEGIN
             RAISE EXCEPTION 'session deletion blocked';
         END;
         $$;
-        "#,
+        ",
     )
     .execute(&pool)
     .await
     .expect("Failed to create session delete trigger function");
     sqlx::query(
-        r#"
+        r"
         CREATE TRIGGER fail_session_delete
         BEFORE DELETE ON session
         FOR EACH ROW
         EXECUTE FUNCTION fail_session_delete();
-        "#,
+        ",
     )
     .execute(&pool)
     .await

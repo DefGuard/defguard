@@ -5,7 +5,6 @@ use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use thiserror::Error;
-use utoipa::ToSchema;
 
 use crate::db::{
     Id, NoId,
@@ -13,7 +12,8 @@ use crate::db::{
 };
 
 /// An MFA flow is a named, ordered list of MFA steps.
-#[derive(Clone, Debug, Deserialize, FromRow, Model, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, PartialEq, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[table(mfa_flow)]
 pub struct MfaFlow<I = NoId> {
     pub id: I,
@@ -23,7 +23,8 @@ pub struct MfaFlow<I = NoId> {
 }
 
 /// A single step within an MFA flow.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MfaFlowStep<I = NoId> {
     pub id: I,
     pub flow_id: Id,
@@ -62,7 +63,8 @@ pub struct LocationMfaFlowItem {
 }
 
 /// Input for a single flow assignment to a location.
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LocationMfaFlowAssignment {
     pub flow_id: Id,
     pub is_default: bool,
@@ -787,17 +789,23 @@ impl MfaFlow<Id> {
         }
 
         // Collect step rows that actually have methods (NULL for locations with no flows).
-        let steps: Vec<&Vec<VpnClientMfaMethod>> =
-            rows.iter().filter_map(|r| r.methods.as_ref()).collect();
+        let steps = rows
+            .iter()
+            .filter_map(|r| r.methods.as_ref())
+            .collect::<Vec<_>>();
 
         if steps.len() != 1 {
             return Ok(None);
         }
 
-        let methods = steps[0];
-        let set: HashSet<VpnClientMfaMethod> = methods.iter().copied().collect();
+        // Legacy clients cannot see FIDO2, so filter it out.
+        let set = steps[0]
+            .iter()
+            .copied()
+            .filter(|method| *method != VpnClientMfaMethod::Fido2)
+            .collect::<HashSet<_>>();
 
-        let all_internal: HashSet<VpnClientMfaMethod> = [
+        let all_internal = [
             VpnClientMfaMethod::Totp,
             VpnClientMfaMethod::Email,
             VpnClientMfaMethod::Biometric,
@@ -806,14 +814,12 @@ impl MfaFlow<Id> {
         .into();
 
         if set == all_internal {
-            return Ok(Some(LocationMfaMode::Internal));
+            Ok(Some(LocationMfaMode::Internal))
+        } else if set == HashSet::from([VpnClientMfaMethod::Oidc]) {
+            Ok(Some(LocationMfaMode::External))
+        } else {
+            Ok(None)
         }
-
-        if set == HashSet::from([VpnClientMfaMethod::Oidc]) {
-            return Ok(Some(LocationMfaMode::External));
-        }
-
-        Ok(None)
     }
 }
 

@@ -9,9 +9,10 @@ use sqlx::query_scalar;
 use tera::Context;
 use thiserror::Error;
 use tokio::fs::read_to_string;
-use utoipa::ToSchema;
 
-use super::{ApiErrorResponse, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult};
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     PgPool,
     appstate::AppState,
@@ -24,13 +25,14 @@ use crate::{
     support::dump_config,
 };
 
-#[derive(Clone, Deserialize, ToSchema)]
+#[derive(Clone, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TestMail {
     pub to: String,
 }
 
 /// Send a test email to verify the SMTP configuration
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/mail/test",
     tag = "support",
@@ -46,7 +48,7 @@ pub struct TestMail {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub(crate) async fn test_mail(
     _admin: AdminRole,
     session: SessionInfo,
@@ -95,7 +97,7 @@ async fn read_logs() -> String {
 }
 
 /// Send the support data bundle to the defguard support address
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/mail/support",
     tag = "support",
@@ -110,7 +112,7 @@ async fn read_logs() -> String {
         ("cookie" = []),
         ("api_token" = [])
     )
-)]
+))]
 pub async fn send_support_data(
     _admin: AdminRole,
     session: SessionInfo,

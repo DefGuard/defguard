@@ -10,11 +10,13 @@ use axum_extra::{
     headers::UserAgent,
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
+#[cfg(feature = "openapi")]
+use defguard_common::db::models::MFAInfo;
 use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{MFAInfo, Settings, settings::OpenIdUsernameHandling, user::User},
+        models::{Settings, settings::OpenIdUsernameHandling, user::User},
     },
 };
 use openidconnect::{
@@ -36,6 +38,8 @@ static NONCE_COOKIE_NAME: &str = "nonce";
 pub const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 
 use super::LicenseInfo;
+#[cfg(feature = "openapi")]
+use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     enterprise::{
@@ -48,8 +52,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
-        ApiErrorResponse, ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME,
-        SIGN_IN_COOKIE_NAME,
+        ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
         cookie_domain,
         mail::send_user_import_blocked_email,
@@ -626,7 +629,7 @@ pub async fn user_from_claims(
 /// Start login through the external OpenID provider
 ///
 /// Returns the provider authorization URL the user should be redirected to.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/openid/auth_info",
     tag = "OpenID",
@@ -636,7 +639,7 @@ pub async fn user_from_claims(
         (status = 404, description = "No external OpenID provider is configured.", body = ApiErrorResponse, example = json!({"msg": "OpenID provider not set"})),
         (status = 500, description = "Unable to build authorization URL.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn get_auth_info(
     _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
@@ -717,7 +720,7 @@ pub struct AuthenticationResponse {
 /// Finish login through the external OpenID provider
 ///
 /// Exchanges the authorization code for tokens and creates a defguard session.
-#[utoipa::path(
+#[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/api/v1/openid/callback",
     tag = "OpenID",
@@ -738,7 +741,7 @@ pub struct AuthenticationResponse {
         (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to finish external login.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
     ),
-)]
+))]
 pub async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,
@@ -1073,7 +1076,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -1096,7 +1099,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -1114,7 +1117,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
 
@@ -1236,7 +1239,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         )));
 
         let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());

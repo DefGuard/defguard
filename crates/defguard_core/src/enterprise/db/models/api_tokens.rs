@@ -2,7 +2,6 @@ use chrono::NaiveDateTime;
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{PgExecutor, query_as};
-use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 #[table(api_token)]
@@ -69,7 +68,8 @@ impl ApiToken<Id> {
     }
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiTokenInfo {
     pub id: Id,
     pub name: String,
