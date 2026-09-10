@@ -97,9 +97,7 @@ use crate::{
     grpc::GatewayCommand,
     hashset,
     location_management::sync_all_networks,
-    user_management::{
-        delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices,
-    },
+    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
 fn emit_ldap_sync_events(
@@ -716,7 +714,9 @@ impl super::LDAPConnection {
                     }
                 }
                 Err(err) => {
-                    error!("Failed to acquire a connection to sync networks after LDAP membership changes: {err}");
+                    error!(
+                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                    );
                 }
             }
         }
@@ -908,7 +908,9 @@ impl super::LDAPConnection {
                     }
                 }
                 Err(err) => {
-                    error!("Failed to acquire a connection to sync networks after LDAP membership changes: {err}");
+                    error!(
+                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                    );
                 }
             }
         }
