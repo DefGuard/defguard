@@ -352,7 +352,7 @@ async fn test_auth_info_mfa_enriches_legacy_raw_token_oidc_state_without_mutatin
     assert_eq!(parsed.token, mfa_token);
     assert_eq!(parsed.attempt_id, attempt_id);
 
-    let session_after = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+    let session_after = VpnClientMfaSession::find_active_by_token(&context.pool, &mfa_token)
         .await
         .expect("failed to find active MFA session after AuthInfo")
         .expect("expected the MFA session to remain active");
