@@ -94,6 +94,7 @@ impl ConfigPollingLoadTest {
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
+        tracing::info!("Starting load-testing run");
         let state = self.initialize_state().await?;
         tracing::info!(
             polling_url = %state.polling_url,
@@ -177,6 +178,7 @@ async fn load_actors(
     database: &DatabaseArgs,
     network_id: i64,
 ) -> anyhow::Result<Vec<PollingActor>> {
+    tracing::debug!("Loading devices from DB");
     let options = PgConnectOptions::new()
         .host(&database.database_host)
         .port(database.database_port)
@@ -188,7 +190,7 @@ async fn load_actors(
         .connect_with(options)
         .await?;
 
-    Ok(query_as(
+    let result = query_as(
         "SELECT u.id AS user_id, d.id AS device_id, p.token AS polling_token \
          FROM pollingtoken p \
          JOIN device d ON d.id = p.device_id \
@@ -200,7 +202,9 @@ async fn load_actors(
     .bind(network_id)
     .bind("load-test-user-%")
     .fetch_all(&pool)
-    .await?)
+    .await?;
+    tracing::info!("Loaded devices from DB");
+    Ok(result)
 }
 
 async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
