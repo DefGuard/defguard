@@ -88,12 +88,7 @@ use crate::{
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
-/// Compute the OIDC `state` payload for an `AuthInfo` request.
-///
-/// Normalize the MFA AuthInfo payload to the opaque session token plus the active
-/// `step_attempt_id` (`<token>.<step_attempt_id>`), so the OIDC callback can bind to the attempt
-/// it was issued for rather than a superseded one. Raw-token MFA input is enriched for legacy
-/// callers; non-MFA flows are returned unchanged.
+/// Builds OIDC state with the current MFA attempt, leaving legacy and non-MFA inputs unchanged.
 async fn build_auth_info_state(
     pool: &PgPool,
     auth_flow_type: ProtoAuthFlowType,

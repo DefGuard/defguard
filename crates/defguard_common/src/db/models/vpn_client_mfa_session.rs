@@ -63,7 +63,7 @@ pub struct Step {
     /// verified.
     #[serde(default)]
     pub satisfied: Option<VpnClientMfaMethod>,
-    /// The approving mobile device name, recorded by `advance` with the satisfied method.
+    /// Name of the device that approved this step.
     #[serde(default)]
     pub mobile_auth_device_name: Option<String>,
 }
@@ -410,8 +410,7 @@ impl VpnClientMfaSession<Id> {
         .await
     }
 
-    /// Merge a state patch into the current attempt, gated on a matching `step_attempt_id`.
-    /// Returns `true` if the patch applied (0 rows otherwise).
+    /// Updates the current attempt when `step_attempt_id` matches.
     async fn mark_attempt_state(
         &self,
         conn: &mut PgConnection,
@@ -433,9 +432,7 @@ impl VpnClientMfaSession<Id> {
 
     /// Advance to the next step, clearing `ephemeral_state` and resetting `failed_attempts`.
     ///
-    /// Records the closing step's proof and approving mobile device name into the snapshot first.
-    /// The writes and clear land in one statement so the attribution cannot be lost between them.
-    /// A NULL `ephemeral_state` leaves the snapshot unchanged rather than erroring.
+    /// Saves how the step completed before clearing its temporary state.
     ///
     /// The write is guarded by `current_step`, and by `step_attempt_id` when the client supplied
     /// one, so a stale or duplicate advance matches zero rows rather than skipping a step and

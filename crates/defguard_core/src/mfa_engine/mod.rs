@@ -316,16 +316,14 @@ impl MfaEngine {
         })
     }
 
-    /// Whether OIDC is available when a flow starts: a business license plus a configured OpenID
-    /// provider. `start` freezes this decision into its snapshot.
+    /// Checks whether OIDC is available when the flow starts. The session keeps this result.
     async fn oidc_available(&self) -> sqlx::Result<bool> {
         Ok(is_oidc_mfa_available(
             self.oidc_provider_configured().await?,
         ))
     }
 
-    /// Whether the configured provider remains available to an already-started flow. This does
-    /// not recheck the license: a session accepted at `start` completes through a license lapse.
+    /// Checks whether the OIDC provider is still available. Started sessions continue after a license lapse.
     async fn oidc_provider_configured(&self) -> sqlx::Result<bool> {
         Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
     }
@@ -473,8 +471,7 @@ impl MfaEngine {
             return Err(FinishError::StaleAttempt);
         }
 
-        // Empty proof guard for legacy clients.
-        // Otherwise `verify` would return `AwaitingExternal`.
+        // Legacy clients send no proof here; otherwise verification would stay pending.
         if method == VpnClientMfaMethod::MobileApprove
             && proof.step_attempt_id.is_none()
             && proof.code.is_none()
@@ -690,11 +687,9 @@ impl MfaEngine {
         Ok((completed.outcome, method))
     }
 
-    /// Complete the flow: mint the preshared key, create the VPN client session, and delete the
-    /// MFA session. This is the single place a preshared key is minted or a peer is authorized.
-    ///
-    /// Everything here is transactional. The gateway command and the success event are not, so
-    /// they are returned in [`CompletedFlow`] for the caller to dispatch after the commit.
+    /// Completes the flow by creating the preshared key and VPN session, then removing the MFA
+    /// session. Database changes happen together; [`CompletedFlow`] carries events for dispatch
+    /// after the commit.
     async fn complete_flow(
         &self,
         transaction: &mut PgConnection,
@@ -754,9 +749,7 @@ impl MfaEngine {
             gateway_network_info,
         );
 
-        // A flow can have multiple mobile-approve steps. The last satisfied one wins because it
-        // is the final mobile approval in the sequential flow. Do not fall back when that step
-        // has no name: the event must describe that actual final mobile approval.
+        // Use the last mobile approval's name; do not fall back to an earlier one.
         let mobile_auth_device_name = snapshot
             .steps
             .iter()

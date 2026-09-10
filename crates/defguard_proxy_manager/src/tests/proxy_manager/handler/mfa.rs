@@ -860,8 +860,7 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
     )
     .await;
     assert!(preshared_key.is_empty());
-    // New-protocol approvers only mark the session and receive AwaitingExternal, never Completed.
-    // This is a behavioral guarantee, not a regression test for the Completed-key blanking.
+    // New-protocol approval marks the session and returns AwaitingExternal.
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(result)) => {
             assert!(result.preshared_key.is_empty());
@@ -1316,8 +1315,7 @@ async fn test_parked_mobile_approval_completes_final_step(
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, 7003);
                 assert!(result.preshared_key.is_empty());
-                // New-protocol approvers only mark the session, return AwaitingExternal, and never
-                // receive Completed. This guarantee would still pass with Completed-key blanking removed.
+                // New-protocol approval marks the session and returns AwaitingExternal.
                 assert!(matches!(
                     result.result,
                     Some(MfaStepResult {

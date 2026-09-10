@@ -256,8 +256,7 @@ fn test_status_table_messages() {
         assert_eq!(status.message(), message);
     }
 
-    // OIDC's unresolved new-protocol outcome and legal method switching return OK, not a status.
-    // License validation is frozen at Start, so the old StepStart license-loss row is obsolete.
+    // New OIDC and method-switching flows return OK; license checks happen at start.
 }
 
 #[sqlx::test]

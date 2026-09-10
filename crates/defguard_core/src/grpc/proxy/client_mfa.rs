@@ -64,12 +64,10 @@ use crate::{
     },
 };
 
-// Keep this at least as long as the client's MOBILE_APPROVE_TIMEOUT. These constants live in
-// separate repositories and cannot be shared.
+// Must cover the client's MOBILE_APPROVE_TIMEOUT.
 const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(2);
 
-/// A remote MFA waiter can learn that it was superseded, an approval happened, or the flow
-/// advanced, never receive a credential.
+/// Messages for a client waiting for remote MFA. The message never contains the VPN key.
 #[derive(Debug)]
 pub enum RemoteAuthSignal {
     Superseded,
@@ -77,7 +75,7 @@ pub enum RemoteAuthSignal {
     Advanced { next_step: u32 },
 }
 
-/// The parked relay's state. The legacy PSK is side state, not a channel payload.
+/// State for a client waiting for remote MFA. The legacy key stays out of the message.
 pub struct RemoteAuthWaiter {
     generation: Arc<()>,
     signal_tx: oneshot::Sender<RemoteAuthSignal>,
@@ -101,8 +99,7 @@ async fn acquire_connection(pool: &PgPool) -> Result<PoolConnection<Postgres>, S
     })
 }
 
-/// Remove a remote-MFA waiter only when the cleanup task still owns the registered generation,
-/// dropping the entry so a never-finishing client or a dropped sender cannot leak a map entry.
+/// Removes a waiting client only if it still belongs to this cleanup task.
 fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, generation: &Arc<()>) {
     let mut waiters = waiters
         .write()
@@ -115,7 +112,7 @@ fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, generation:
     }
 }
 
-/// Take the waiter registered under `hash`, so the caller can signal it once the lock is released.
+/// Removes and returns the waiting client for `hash`; signal it after unlocking.
 fn take_remote_mfa_waiter_by_hash(
     waiters: &RemoteAuthWaiters,
     hash: &str,
@@ -126,13 +123,12 @@ fn take_remote_mfa_waiter_by_hash(
         .remove(hash)
 }
 
-/// Take the waiter parked for `token`, if any.
+/// Takes the waiting client for `token`, if any.
 fn take_remote_mfa_waiter(waiters: &RemoteAuthWaiters, token: &str) -> Option<RemoteAuthWaiter> {
     take_remote_mfa_waiter_by_hash(waiters, &hash_token(token))
 }
 
-/// Hand a signal to a parked waiter. A closed receiver means the desktop already gave up, which is
-/// expected rather than an error. The signal itself carries no credential.
+/// Sends a message to a waiting client. Closed receivers are normal; the message never contains the VPN key.
 fn signal_remote_mfa_waiter(waiter: RemoteAuthWaiter, signal: RemoteAuthSignal) {
     if let Err(unsent) = waiter.signal_tx.send(signal) {
         debug!("Parked remote MFA waiter is gone, dropping signal {unsent:?}");
@@ -775,7 +771,7 @@ impl ClientMfaServer {
         let waiters = self.remote_mfa_responses.clone();
         let engine = self.engine.clone();
         let token = request.token;
-        // The legacy path stores its key as waiter side state, never in the signal channel.
+        // Legacy keys stay with the waiting client, not in the message.
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
                 Ok(Ok(RemoteAuthSignal::Superseded)) => {
@@ -895,8 +891,7 @@ impl ClientMfaServer {
 
         let is_mobile_signature = is_mobile_approve_request(method, auth_pub_key.as_deref());
 
-        // A non-legacy mobile approval only marks the session. Signal a parked desktop after
-        // that durable mark succeeds.
+        // Persist non-legacy approval before signaling the parked desktop.
         if !is_legacy_mobile_approval
             && is_mobile_signature
             && outcome == FinishOutcome::AwaitingExternal
@@ -918,8 +913,7 @@ impl ClientMfaServer {
             );
         }
 
-        // The parked remote-MFA waiter is session-scoped. A legacy mobile approval at an
-        // intermediate step resolves it with an `Advanced` result, never a key.
+        // Legacy intermediate approvals advance the session without sending a key.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
                 if let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token) {

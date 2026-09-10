@@ -45,7 +45,7 @@ impl VpnClientMfaMethod {
         Self::Fido2,
     ];
 
-    /// Returns a stable vector representation of an unordered method set.
+    /// Returns the methods in a fixed order.
     #[must_use]
     pub fn ordered_set(methods: &HashSet<Self>) -> Vec<Self> {
         Self::ALL
@@ -98,8 +98,7 @@ impl VpnClientMfaMethod {
     }
 }
 
-/// Serde adapter for unordered MFA method sets. JSON remains an array for wire compatibility,
-/// while serialization is canonical and duplicate input is rejected.
+/// Serializes method sets in a fixed order and rejects duplicates.
 pub(crate) mod mfa_method_set_serde {
     use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 

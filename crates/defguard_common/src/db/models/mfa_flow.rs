@@ -235,7 +235,7 @@ struct ResolveAssignmentRow {
     group_ids: Vec<Id>,
 }
 
-/// Internal row type for PostgreSQL's ordered method array.
+/// Database row for a flow step.
 struct MfaFlowStepRow {
     id: Id,
     flow_id: Id,
@@ -840,7 +840,7 @@ impl MfaFlow<Id> {
             return Ok(None);
         }
 
-        // Legacy clients cannot see FIDO2, so filter it out after validating the stored set.
+        // Legacy clients cannot see FIDO2, so filter it out.
         let set = collect_mfa_methods(steps[0].iter().copied())?
             .into_iter()
             .filter(|method| *method != VpnClientMfaMethod::Fido2)

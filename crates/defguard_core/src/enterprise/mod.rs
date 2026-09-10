@@ -45,9 +45,7 @@ pub fn is_business_license_active() -> bool {
     is_license_tier_active(LicenseTier::Business)
 }
 
-/// Whether OIDC is available as a client MFA method: a business license plus a configured OpenID
-/// provider. Callers supply provider presence, so every site agrees on the license half of the
-/// rule. `MfaEngine::start` freezes the answer into its snapshot.
+/// Returns whether this setup can use OIDC for client MFA.
 #[must_use]
 pub fn is_oidc_mfa_available(openid_provider_present: bool) -> bool {
     is_business_license_active() && openid_provider_present

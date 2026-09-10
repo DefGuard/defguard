@@ -167,8 +167,7 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::MobileApprove => {
-            // Multi-step mobile approval uses the WebSocket as the fast path; the desktop
-            // can poll Finish with an empty proof as a fallback after disconnect or restart.
+            // WebSocket is the fast path; empty-proof Finish is the reconnect fallback.
             if proof.code.is_none() && proof.auth_pub_key.is_none() {
                 return Ok(if ephemeral.mobile_approved {
                     Verdict::Proved

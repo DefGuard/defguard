@@ -1834,8 +1834,7 @@ async fn test_client_mfa_step_start_returns_well_formed_response(
         .expect("step start should succeed");
     assert!(!response.step_attempt_id.is_empty());
     assert!(response.challenge.is_none());
-    // The initial step is born initialized, so this re-call must supersede the attempt minted
-    // by `start` rather than hand the same one back.
+    // Starting the step again replaces the previous attempt.
     assert_ne!(response.step_attempt_id, started.step_attempt_id);
 }
 
@@ -2191,8 +2190,7 @@ async fn test_auth_mfa_session_with_oidc_rejects_invalid_state_without_mutating_
         .clone();
     let before_step = before.current_step;
 
-    // This is a valid encoded OIDC state envelope whose payload is only the token. It is
-    // missing the MFA attempt id required by the callback contract.
+    // Valid OIDC state missing the required attempt ID.
     let state = build_state(Some(token.clone())).secret().to_owned();
     let status = server
         .auth_mfa_session_with_oidc(
@@ -2410,8 +2408,7 @@ async fn setup_mobile_mfa_test(
     }
 }
 
-/// A legacy mobile approval at a non-final step signals the parked desktop waiter with an
-/// `Advanced` result so the desktop can continue the flow.
+/// A non-final legacy mobile approval advances the desktop login.
 #[sqlx::test]
 #[allow(deprecated)]
 async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advanced(
@@ -2425,7 +2422,7 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
         .expect("failed to init settings");
 
     let location = create_mfa_location(&pool).await;
-    // Mobile-approve first, TOTP second: the mobile step is deliberately NOT the last.
+    // Put mobile approval before TOTP to exercise a non-final step.
     create_and_assign_multi_step_flow(
         &pool,
         location.id,
@@ -2445,7 +2442,6 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    // Register the phone as a mobile authenticator for this device.
     let mut csprng = UnwrapErr(SysRng);
     let signing_key = SigningKey::generate(&mut csprng);
     let auth_pub_key = B64.encode(signing_key.verifying_key().as_bytes());
@@ -2456,7 +2452,6 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
 
     let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
 
-    // Start the multi-step flow. `start` initiates the first step and returns its challenge.
     let start = server
         .start_client_mfa_login(
             ClientMfaStartRequest {
@@ -2480,7 +2475,6 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
         ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
     };
 
-    // The desktop parks its WebSocket waiter.
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
         .await_remote_mfa_login(
@@ -2502,7 +2496,7 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
         "waiter should be registered before the approval"
     );
 
-    // The legacy phone approves: a real signature, but NO step_attempt_id.
+    // Legacy approval: valid signature, no step_attempt_id.
     let signature = B64.encode(signing_key.sign(challenge.as_bytes()).to_bytes());
     let response = server
         .finish_client_mfa_login(
@@ -2519,7 +2513,7 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
         .await
         .expect("legacy mobile approval should succeed");
 
-    // Reachability: the proof advanced the flow to step 1 and minted no key.
+    // Legacy approval advances the flow without minting a key.
     match response.result.and_then(|r| r.outcome) {
         Some(mfa_step_result::Outcome::Advanced(advanced)) => {
             assert_eq!(advanced.next_step, 1, "should advance to the second step");
@@ -2531,7 +2525,6 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
         "a non-final step must not mint a preshared key"
     );
 
-    // The desktop receives an advancement result without a preshared key.
     assert!(
         !server
             .remote_mfa_responses
@@ -2559,7 +2552,6 @@ async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advan
         other => panic!("expected Advanced, got {other:?}"),
     }
 
-    // The session really is sitting on step 1, waiting for a TOTP code.
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
         .await
         .expect("query should succeed")

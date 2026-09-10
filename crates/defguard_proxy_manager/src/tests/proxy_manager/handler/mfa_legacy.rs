@@ -1,4 +1,4 @@
-//! Pins the deprecated single-step MFA wire contract for pre-2.2 clients.
+//! Tests old single-step MFA behavior for pre-2.2 clients.
 
 use defguard_common::{
     db::{
@@ -47,8 +47,7 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     )
     .await;
 
-    // Subscribe before finish so the handler's gateway_tx.send() has a receiver,
-    // and keep the receiver alive so we can assert on the event.
+    // Subscribe before finish so the gateway send has a receiver.
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     let code = generate_totp_code(&user);
@@ -58,12 +57,10 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
         "PSK must not be empty after successful TOTP MFA"
     );
 
-    // Verify VpnClientSession was persisted.
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
-    // Verify GatewayCommand::VpnSessionAuthorized was broadcast.
-    // Use the already-subscribed receiver - subscribing after send_mfa_finish would miss the event.
+    // Reuse the receiver; subscribing after send_mfa_finish would miss the event.
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayCommand::VpnSessionAuthorized")
@@ -74,17 +71,13 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     };
     assert_eq!(gateway_loc_id, network.id);
 
-    // Verify BidiStreamEvent::DesktopClientMfa(Success) was emitted.
     let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
     assert_eq!(event_loc_id, network.id);
 
     context.finish().await.expect_server_finished().await;
 }
 
-/// The legacy single-step biometric flow completes end-to-end against the DB-backed session.
-///
-/// `start` issues a challenge bound to the device's enrolled key; `finish` returns the signature
-/// as `code` and the handler verifies it against that key.
+/// Old biometric MFA completes through Start and Finish.
 #[sqlx::test]
 async fn test_mfa_finish_succeeds_with_biometric_signature(
     _: PgPoolOptions,
@@ -172,11 +165,7 @@ async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
     context.finish().await.expect_server_finished().await;
 }
 
-/// The legacy single-step mobile-approve flow completes end-to-end against the DB-backed session.
-///
-/// This is the fused path: the approving device's key rides in `auth_pub_key` on `finish` and the
-/// handler verifies the signature and authorizes in one call. A non-legacy request instead marks
-/// the approval durably, then the connecting desktop completes through a later `finish` request.
+/// Old mobile approval verifies and connects in one Finish call.
 #[sqlx::test]
 #[allow(deprecated)]
 async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
@@ -297,8 +286,7 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
 
     let network = create_mfa_network(&context.pool).await;
     let (mut user, device) = create_user_with_device(&context.pool).await;
-    // Setup email MFA - the code is the same one that start_client_mfa_login
-    // will regenerate internally, so we can generate it once here.
+    // Set up email MFA; start and finish reuse the same secret.
     let code = setup_user_email_mfa(&context.pool, &mut user).await;
 
     let (_, token) = send_mfa_start(
@@ -309,26 +297,19 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     )
     .await;
 
-    // Subscribe to the gateway broadcast BEFORE calling finish, so that the
-    // handler's gateway_tx.send() has at least one active receiver (without
-    // one the send would fail with SendError and return Internal).
+    // Subscribe before finish so the gateway send has a receiver.
     let mut gateway_rx = context.gateway_tx.subscribe();
 
-    // The start handler has already called generate_email_mfa_code internally
-    // and the in-memory secret is still the same, so regenerating here gives
-    // the same code.
     let _ = code; // keep binding so the setup_user_email_mfa call is not dead
-    // Regenerate for the finish call (same secret → same code while within window)
+    // Generate the finish code from the same secret.
     let finish_code = user.generate_email_mfa_code().expect("generate email code");
 
     let (_, psk) = send_mfa_finish(&mut context, &token, Some(&finish_code)).await;
     assert!(!psk.is_empty(), "preshared key must not be empty");
 
-    // Verify VpnClientSession was persisted
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
-    // Verify GatewayCommand::VpnSessionAuthorized was broadcast
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayCommand::VpnSessionAuthorized")
@@ -339,15 +320,13 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     };
     assert_eq!(loc_id, network.id);
 
-    // Verify BidiStreamEvent::DesktopClientMfa(Success) was sent
     let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
     assert_eq!(event_loc_id, network.id);
 
     context.finish().await.expect_server_finished().await;
 }
 
-/// The callback itself is covered by the core OIDC handler. This pins the legacy Start/Finish
-/// contract around its durable completion mark without needing an external identity provider.
+/// Old OIDC Finish completes after the callback marks the session.
 #[sqlx::test]
 async fn test_mfa_finish_succeeds_after_oidc_completion(
     _: PgPoolOptions,
@@ -479,7 +458,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     )
     .await;
 
-    // Send AwaitRemoteMfaFinish first - no immediate response expected
+    // Park the waiter; no immediate response is expected.
     context.mock_proxy().send_request(CoreRequest {
         id: AWAIT_ID,
         device_info: None,
@@ -490,21 +469,17 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
         )),
     });
 
-    // Give the handler one poll cycle to register the oneshot receiver before
-    // we proceed with the finish call.
+    // Let the handler register the waiter.
     task::yield_now().await;
 
-    // Subscribe before finish so the handler's gateway_tx.send() has a receiver
+    // Subscribe before finish so the gateway send has a receiver.
     let _gateway_rx = context.gateway_tx.subscribe();
 
-    // Now finish the MFA login with the correct code.  Use the no-recv variant
-    // because two responses will arrive (ClientMfaFinish + AwaitRemoteMfaFinish)
-    // and we collect them both below.
+    // Finish without receiving so both responses can be collected below.
     let code = user.generate_email_mfa_code().expect("generate email code");
     send_mfa_finish_no_recv(&mut context, &token, Some(&code)).await;
 
-    // Two responses should arrive: one ClientMfaFinish and one
-    // AwaitRemoteMfaFinish - order is not guaranteed.
+    // Collect both responses in either order.
     let r1 = context.mock_proxy_mut().recv_outbound().await;
     let r2 = context.mock_proxy_mut().recv_outbound().await;
 
