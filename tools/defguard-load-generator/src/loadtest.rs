@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader},
     num::NonZeroU64,
@@ -7,7 +8,7 @@ use std::{
 };
 
 use anyhow::{Context, bail};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tokio::{
     task::{JoinError, JoinSet},
@@ -24,9 +25,39 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Deserialize)]
 struct PollingActor {
+    #[serde(skip)]
+    source_line: usize,
     user_id: i64,
     device_id: i64,
     polling_token: String,
+}
+
+#[derive(Debug)]
+enum RequestError {
+    Timeout,
+    Transport(reqwest::Error),
+    Http(StatusCode),
+}
+
+#[derive(Debug)]
+struct RequestResult {
+    duration: Duration,
+    result: Result<StatusCode, RequestError>,
+}
+
+#[derive(Default)]
+struct LoadTestMetrics {
+    scheduled_requests: u64,
+    started_requests: u64,
+    completed_requests: u64,
+    successful_requests: u64,
+    http_errors: u64,
+    timeout_errors: u64,
+    transport_errors: u64,
+    panicked_tasks: u64,
+    dropped_requests: u64,
+    peak_in_flight: usize,
+    latencies: Vec<Duration>,
 }
 
 struct SharedLoadTestState {
@@ -38,6 +69,7 @@ struct SharedLoadTestState {
     started_at: Instant,
     duration: Option<Duration>,
     max_in_flight: usize,
+    requests_per_second: NonZeroU64,
 }
 
 pub struct ConfigPollingLoadTest {
@@ -99,6 +131,7 @@ impl ConfigPollingLoadTest {
             started_at: Instant::now(),
             duration: self.duration,
             max_in_flight: self.max_in_flight,
+            requests_per_second: self.requests_per_second,
         })
     }
 }
@@ -107,20 +140,37 @@ async fn execute_polling_request(
     client: Client,
     polling_url: String,
     polling_token: String,
-) -> anyhow::Result<()> {
-    let response = client
+) -> RequestResult {
+    let started_at = Instant::now();
+    let result = match client
         .post(polling_url)
         .header("defguard-client-version", CLIENT_VERSION)
         .header("defguard-client-platform", CLIENT_PLATFORM)
         .header("user-agent", USER_AGENT)
         .json(&serde_json::json!({ "token": polling_token }))
         .send()
-        .await?;
+        .await
+    {
+        Ok(response) => {
+            let status = response.status();
+            if !status.is_success() {
+                Err(RequestError::Http(status))
+            } else {
+                match response.bytes().await {
+                    Ok(_) => Ok(status),
+                    Err(error) if error.is_timeout() => Err(RequestError::Timeout),
+                    Err(error) => Err(RequestError::Transport(error)),
+                }
+            }
+        }
+        Err(error) if error.is_timeout() => Err(RequestError::Timeout),
+        Err(error) => Err(RequestError::Transport(error)),
+    };
 
-    let status = response.status();
-    response.error_for_status()?.bytes().await?;
-    tracing::debug!(%status, "polling request completed");
-    Ok(())
+    RequestResult {
+        duration: started_at.elapsed(),
+        result,
+    }
 }
 
 fn load_actors(path: &PathBuf) -> anyhow::Result<Vec<PollingActor>> {
@@ -130,20 +180,20 @@ fn load_actors(path: &PathBuf) -> anyhow::Result<Vec<PollingActor>> {
         .lines()
         .enumerate()
         .map(|(line_number, line)| {
+            let line_number = line_number + 1;
             let line = line?;
-            serde_json::from_str(&line).with_context(|| {
-                format!(
-                    "invalid actor JSON at {}:{}",
-                    path.display(),
-                    line_number + 1
-                )
-            })
+            let mut actor: PollingActor = serde_json::from_str(&line).with_context(|| {
+                format!("invalid actor JSON at {}:{line_number}", path.display())
+            })?;
+            actor.source_line = line_number;
+            Ok(actor)
         })
         .collect()
 }
 
 async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
     let mut request_tasks = JoinSet::new();
+    let mut metrics = LoadTestMetrics::default();
     let duration = state.duration;
     let shutdown_timer = async move {
         match duration {
@@ -159,6 +209,7 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
         tokio::select! {
             _ = state.request_interval.tick() => {
                 if request_tasks.len() >= state.max_in_flight {
+                    metrics.dropped_requests += 1;
                     tracing::warn!(
                         max_in_flight = state.max_in_flight,
                         "maximum number of in-flight requests reached; skipping request"
@@ -168,13 +219,8 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
 
                 let actor = &state.actors[state.next_actor_index];
                 state.next_actor_index = (state.next_actor_index + 1) % state.actors.len();
-
-                tracing::debug!(
-                    user_id = actor.user_id,
-                    device_id = actor.device_id,
-                    elapsed = ?state.started_at.elapsed(),
-                    "scheduling polling request"
-                );
+                metrics.scheduled_requests += 1;
+                metrics.started_requests += 1;
 
                 let client = state.http_client.clone();
                 let polling_url = state.polling_url.clone();
@@ -182,9 +228,10 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
                 request_tasks.spawn(async move {
                     execute_polling_request(client, polling_url, polling_token).await
                 });
+                metrics.peak_in_flight = metrics.peak_in_flight.max(request_tasks.len());
             }
             Some(result) = request_tasks.join_next() => {
-                handle_completed_task(result);
+                handle_completed_task(result, &mut metrics);
             }
             _ = &mut first_ctrl_c => {
                 tracing::info!("stopping request scheduling; waiting for in-flight requests");
@@ -197,18 +244,21 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
         }
     }
 
-    drain_request_tasks(&mut request_tasks).await;
-    report_final_results();
+    drain_request_tasks(&mut request_tasks, &mut metrics).await;
+    report_final_results(&metrics, &state);
     Ok(())
 }
 
-async fn drain_request_tasks(request_tasks: &mut JoinSet<anyhow::Result<()>>) {
+async fn drain_request_tasks(
+    request_tasks: &mut JoinSet<RequestResult>,
+    metrics: &mut LoadTestMetrics,
+) {
     let second_ctrl_c = tokio::signal::ctrl_c();
     tokio::pin!(second_ctrl_c);
 
     while !request_tasks.is_empty() {
         tokio::select! {
-            Some(result) = request_tasks.join_next() => handle_completed_task(result),
+            Some(result) = request_tasks.join_next() => handle_completed_task(result, metrics),
             _ = &mut second_ctrl_c => {
                 tracing::warn!("second Ctrl-C received; exiting immediately");
                 std::process::exit(130);
@@ -217,17 +267,112 @@ async fn drain_request_tasks(request_tasks: &mut JoinSet<anyhow::Result<()>>) {
     }
 }
 
-fn handle_completed_task(result: Result<anyhow::Result<()>, JoinError>) {
-    // TODO: update metrics and classify successful responses, HTTP errors, timeouts, and panics.
-    let _ = result;
+fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut LoadTestMetrics) {
+    metrics.completed_requests += 1;
+
+    match result {
+        Ok(request) => {
+            metrics.latencies.push(request.duration);
+            match request.result {
+                Ok(status) if status.is_success() => metrics.successful_requests += 1,
+                Ok(status) if !status.is_success() => {
+                    metrics.http_errors += 1;
+                    tracing::warn!(%status, "polling request returned an HTTP error");
+                }
+                Ok(_) => metrics.successful_requests += 1,
+                Err(RequestError::Http(status)) => {
+                    metrics.http_errors += 1;
+                    tracing::warn!(%status, "polling request returned an HTTP error");
+                }
+                Err(RequestError::Timeout) => metrics.timeout_errors += 1,
+                Err(RequestError::Transport(error)) => {
+                    metrics.transport_errors += 1;
+                    tracing::warn!(%error, "polling request failed at transport level");
+                }
+            }
+        }
+        Err(error) => {
+            metrics.panicked_tasks += 1;
+            tracing::error!(%error, "polling request task failed");
+        }
+    }
 }
 
 fn validate_actors(actors: &[PollingActor]) -> anyhow::Result<()> {
-    // TODO: validate actor fields and report the source JSONL line for malformed input.
-    let _ = actors;
+    let mut user_ids = HashSet::with_capacity(actors.len());
+    let mut device_ids = HashSet::with_capacity(actors.len());
+    let mut polling_tokens = HashSet::with_capacity(actors.len());
+
+    for actor in actors {
+        if actor.user_id <= 0 {
+            bail!("line {}: user_id must be positive", actor.source_line);
+        }
+        if actor.device_id <= 0 {
+            bail!("line {}: device_id must be positive", actor.source_line);
+        }
+        if actor.polling_token.is_empty() {
+            bail!(
+                "line {}: polling_token must not be empty",
+                actor.source_line
+            );
+        }
+        if !user_ids.insert(actor.user_id) {
+            bail!(
+                "line {}: duplicate user_id {}",
+                actor.source_line,
+                actor.user_id
+            );
+        }
+        if !device_ids.insert(actor.device_id) {
+            bail!(
+                "line {}: duplicate device_id {}",
+                actor.source_line,
+                actor.device_id
+            );
+        }
+        if !polling_tokens.insert(&actor.polling_token) {
+            bail!("line {}: duplicate polling_token", actor.source_line);
+        }
+    }
+
     Ok(())
 }
 
-fn report_final_results() {
-    // TODO: print the final load-test report and latency statistics.
+fn report_final_results(metrics: &LoadTestMetrics, state: &SharedLoadTestState) {
+    let elapsed = state.started_at.elapsed();
+    let actual_rps = metrics.started_requests as f64 / elapsed.as_secs_f64();
+    tracing::info!(
+        elapsed = ?elapsed,
+        target_rps = state.requests_per_second.get(),
+        actual_rps,
+        scheduled = metrics.scheduled_requests,
+        started = metrics.started_requests,
+        completed = metrics.completed_requests,
+        successful = metrics.successful_requests,
+        http_errors = metrics.http_errors,
+        timeout_errors = metrics.timeout_errors,
+        transport_errors = metrics.transport_errors,
+        panicked_tasks = metrics.panicked_tasks,
+        dropped = metrics.dropped_requests,
+        peak_in_flight = metrics.peak_in_flight,
+        "config-polling load test complete"
+    );
+
+    if metrics.latencies.is_empty() {
+        tracing::info!("latency percentiles: n/a");
+    } else {
+        let mut latencies = metrics.latencies.clone();
+        latencies.sort_unstable();
+        tracing::info!(
+            p50 = ?percentile(&latencies, 0.50),
+            p95 = ?percentile(&latencies, 0.95),
+            p99 = ?percentile(&latencies, 0.99),
+            "latency percentiles"
+        );
+    }
+}
+
+fn percentile(values: &[Duration], percentile: f64) -> Duration {
+    let index = ((values.len() - 1) as f64 * percentile).round() as usize;
+    values[index]
 }
