@@ -1128,6 +1128,7 @@ impl super::LDAPConnection {
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
+        wg_tx: &Sender<GatewayCommand>,
         mut changes: UserSyncChanges,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
@@ -1152,13 +1153,17 @@ impl super::LDAPConnection {
                     admin_count -= 1;
                     debug!("Deleting admin user {} from Defguard", user.username);
                     let deleted_user = user.clone();
-                    user.delete(&mut *transaction).await?;
+                    delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                        .await
+                        .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                     events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
                 }
             } else {
                 debug!("Deleting user {} from Defguard", user.username);
                 let deleted_user = user.clone();
-                user.delete(&mut *transaction).await?;
+                delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                    .await
+                    .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                 events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
             }
         }
