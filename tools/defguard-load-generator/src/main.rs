@@ -3,6 +3,7 @@ use tracing_subscriber::EnvFilter;
 
 mod config;
 mod export;
+mod loadtest;
 mod seed;
 
 #[tokio::main]
@@ -20,7 +21,11 @@ async fn main() -> anyhow::Result<()> {
         config::Command::Export(config::ExportArgs {
             command: config::ExportCommand::ConfigPolling(args),
         }) => export::export_config_polling(args).await?,
-        config::Command::Test(_) => tracing::warn!("test scenarios are not implemented yet"),
+        config::Command::Test(config::TestArgs { command }) => match command {
+            config::TestCommand::ConfigPolling(args) => {
+                loadtest::ConfigPollingLoadTest::new(args).run().await?
+            }
+        },
     }
 
     Ok(())
