@@ -14,6 +14,9 @@ use tokio::time::{Interval, MissedTickBehavior};
 use crate::config::ConfigPollingArgs;
 
 const POLLING_PATH: &str = "/api/v1/poll";
+const CLIENT_VERSION: &str = "2.1.0";
+const CLIENT_PLATFORM: &str = "linux";
+const USER_AGENT: &str = "defguard-load-generator/0.1.0";
 
 #[derive(Debug, Deserialize)]
 struct PollingActor {
@@ -81,6 +84,26 @@ impl ConfigPollingLoadTest {
     }
 }
 
+async fn execute_polling_request(
+    client: Client,
+    polling_url: String,
+    polling_token: String,
+) -> anyhow::Result<()> {
+    let response = client
+        .post(polling_url)
+        .header("defguard-client-version", CLIENT_VERSION)
+        .header("defguard-client-platform", CLIENT_PLATFORM)
+        .header("user-agent", USER_AGENT)
+        .json(&serde_json::json!({ "token": polling_token }))
+        .send()
+        .await?;
+
+    let status = response.status();
+    response.error_for_status()?.bytes().await?;
+    tracing::debug!(%status, "polling request completed");
+    Ok(())
+}
+
 fn load_actors(path: &PathBuf) -> anyhow::Result<Vec<PollingActor>> {
     let file = File::open(path)
         .with_context(|| format!("failed to open actors file {}", path.display()))?;
@@ -114,8 +137,13 @@ async fn run_load_loop(mut state: SharedLoadTestState) -> anyhow::Result<()> {
             "scheduling polling request"
         );
 
-        // TODO: spawn the request task and update the shared result metrics.
-        let _ = (&state.http_client, &state.polling_url, &actor.polling_token);
-        todo!();
+        let client = state.http_client.clone();
+        let polling_url = state.polling_url.clone();
+        let polling_token = actor.polling_token.clone();
+        tokio::spawn(async move {
+            if let Err(error) = execute_polling_request(client, polling_url, polling_token).await {
+                tracing::error!(%error, "polling request failed");
+            }
+        });
     }
 }
