@@ -21,7 +21,7 @@ use defguard_core::{
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
-        is_business_license_active,
+        is_oidc_mfa_available,
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
@@ -239,12 +239,18 @@ impl EnrollmentServer {
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
             let smtp_configured = settings.smtp_configured();
-            let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
-                .await
-                .map_err(|err| {
-                    error!("Failed to create instance info: {err}");
-                    Status::internal("unexpected error")
-                })?;
+            let instance_info = InstanceInfo::build(
+                &self.pool,
+                &settings,
+                &user,
+                openid_provider,
+                enrollment.device_id,
+            )
+            .await
+            .map_err(|err| {
+                error!("Failed to create instance info: {err}");
+                Status::internal("unexpected error")
+            })?;
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -1005,14 +1011,20 @@ impl EnrollmentServer {
                 error!("Failed to get OpenID provider: {err}");
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-        let oidc_configured = is_business_license_active() && openid_provider.is_some();
+        let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
 
-        let instance_info = InstanceInfo::build(&self.pool, &settings, &user, openid_provider)
-            .await
-            .map_err(|err| {
-                error!("Failed to create instance info: {err}");
-                Status::internal("unexpected error")
-            })?;
+        let instance_info = InstanceInfo::build(
+            &self.pool,
+            &settings,
+            &user,
+            openid_provider,
+            Some(device.id),
+        )
+        .await
+        .map_err(|err| {
+            error!("Failed to create instance info: {err}");
+            Status::internal("unexpected error")
+        })?;
 
         let supports_multi_step_mfa =
             ClientFeature::MultiStepMfa.is_supported_by_device(req_device_info.as_ref());

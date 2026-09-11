@@ -90,7 +90,7 @@ impl From<MfaFlowStep<Id>> for MfaFlowStepResponse {
         Self {
             id: s.id,
             position: s.position,
-            methods: s.methods,
+            methods: VpnClientMfaMethod::ordered_set(&s.methods),
         }
     }
 }
@@ -835,8 +835,11 @@ fn flow_unavailable_reason(
         if step.methods.iter().any(|m| entry(*m).available) {
             continue;
         }
-        if let Some(first) = step.methods.first() {
-            return Some(entry(*first).reason);
+        if let Some(first) = VpnClientMfaMethod::ALL
+            .into_iter()
+            .find(|method| step.methods.contains(method))
+        {
+            return Some(entry(first).reason);
         }
     }
 
@@ -951,7 +954,7 @@ mod tests {
             id: 1,
             flow_id: 1,
             position: 0,
-            methods: methods.to_vec(),
+            methods: methods.iter().copied().collect(),
         }
     }
 

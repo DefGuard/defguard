@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
@@ -64,6 +66,26 @@ async fn assign_three(
 }
 
 #[sqlx::test]
+async fn test_create_rejects_duplicate_methods(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut tx = pool.begin().await.unwrap();
+
+    let error = MfaFlow::create(
+        &mut tx,
+        "Duplicate methods".into(),
+        vec![vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Totp]],
+    )
+    .await
+    .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("MFA step methods must be unique")
+    );
+}
+
+#[sqlx::test]
 async fn test_insert_new_step(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (flow, original_steps) = create_flow(&pool).await;
@@ -85,9 +107,18 @@ async fn test_insert_new_step(_: PgPoolOptions, options: PgConnectOptions) {
     tx.commit().await.unwrap();
 
     assert_eq!(updated_steps.len(), 3);
-    assert_eq!(updated_steps[0].methods, vec![VpnClientMfaMethod::Totp]);
-    assert_eq!(updated_steps[1].methods, vec![VpnClientMfaMethod::Email]);
-    assert_eq!(updated_steps[2].methods, vec![VpnClientMfaMethod::Oidc]);
+    assert_eq!(
+        updated_steps[0].methods,
+        HashSet::from([VpnClientMfaMethod::Totp])
+    );
+    assert_eq!(
+        updated_steps[1].methods,
+        HashSet::from([VpnClientMfaMethod::Email])
+    );
+    assert_eq!(
+        updated_steps[2].methods,
+        HashSet::from([VpnClientMfaMethod::Oidc])
+    );
     assert_eq!(updated_steps[0].position, 0);
     assert_eq!(updated_steps[1].position, 1);
     assert_eq!(updated_steps[2].position, 2);
@@ -120,13 +151,16 @@ async fn test_update_kept_step(_: PgPoolOptions, options: PgConnectOptions) {
     tx.commit().await.unwrap();
 
     assert_eq!(updated_steps.len(), 2);
-    assert_eq!(updated_steps[0].methods, vec![VpnClientMfaMethod::Totp]);
+    assert_eq!(
+        updated_steps[0].methods,
+        HashSet::from([VpnClientMfaMethod::Totp])
+    );
     assert_eq!(
         updated_steps[1].methods,
-        vec![
+        HashSet::from([
             VpnClientMfaMethod::Biometric,
-            VpnClientMfaMethod::MobileApprove
-        ]
+            VpnClientMfaMethod::MobileApprove,
+        ])
     );
 
     let flow = MfaFlow::find_by_id(&pool, flow.id).await.unwrap().unwrap();
@@ -142,7 +176,8 @@ async fn test_delete_removed_step(_: PgPoolOptions, options: PgConnectOptions) {
     // Add a third step at position 2 (the flow already has steps at positions 0 and 1, so this
     // must not collide with the `UNIQUE (flow_id, position)` constraint).
     let mut tx = pool.begin().await.unwrap();
-    MfaFlowStep::insert_single(&mut tx, flow.id, 2, &[VpnClientMfaMethod::Oidc])
+    let methods = HashSet::from([VpnClientMfaMethod::Oidc]);
+    MfaFlowStep::insert_single(&mut tx, flow.id, 2, &methods)
         .await
         .unwrap();
     tx.commit().await.unwrap();
@@ -157,8 +192,14 @@ async fn test_delete_removed_step(_: PgPoolOptions, options: PgConnectOptions) {
         flow.id,
         "Test Flow".into(),
         vec![
-            (Some(all_steps[0].id), all_steps[0].methods.clone()),
-            (Some(all_steps[2].id), all_steps[2].methods.clone()),
+            (
+                Some(all_steps[0].id),
+                VpnClientMfaMethod::ordered_set(&all_steps[0].methods),
+            ),
+            (
+                Some(all_steps[2].id),
+                VpnClientMfaMethod::ordered_set(&all_steps[2].methods),
+            ),
         ],
     )
     .await
@@ -193,8 +234,14 @@ async fn test_position_swap(_: PgPoolOptions, options: PgConnectOptions) {
         flow.id,
         "Test Flow".into(),
         vec![
-            (Some(step1_id), step1_methods.clone()),
-            (Some(step0_id), step0_methods.clone()),
+            (
+                Some(step1_id),
+                VpnClientMfaMethod::ordered_set(&step1_methods),
+            ),
+            (
+                Some(step0_id),
+                VpnClientMfaMethod::ordered_set(&step0_methods),
+            ),
         ],
     )
     .await
@@ -238,9 +285,18 @@ async fn test_position_reorder_three_steps(_: PgPoolOptions, options: PgConnectO
         flow.id,
         "Reorder".into(),
         vec![
-            (Some(steps[2].id), steps[2].methods.clone()),
-            (Some(steps[1].id), steps[1].methods.clone()),
-            (Some(steps[0].id), steps[0].methods.clone()),
+            (
+                Some(steps[2].id),
+                VpnClientMfaMethod::ordered_set(&steps[2].methods),
+            ),
+            (
+                Some(steps[1].id),
+                VpnClientMfaMethod::ordered_set(&steps[1].methods),
+            ),
+            (
+                Some(steps[0].id),
+                VpnClientMfaMethod::ordered_set(&steps[0].methods),
+            ),
         ],
     )
     .await

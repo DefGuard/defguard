@@ -214,6 +214,14 @@ pub struct VpnClientMfaFailedMetadata {
 }
 
 #[derive(Serialize)]
+pub struct VpnClientMfaAbortedMetadata {
+    pub location: WireguardNetwork<Id>,
+    pub device: Device<Id>,
+    #[serde(flatten)]
+    pub attribution: MfaAttribution,
+}
+
+#[derive(Serialize)]
 pub struct EnrollmentDeviceAddedMetadata {
     pub device: Device<Id>,
 }

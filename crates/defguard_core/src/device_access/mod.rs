@@ -156,7 +156,10 @@ pub async fn join_device_to_all_networks(
 
 #[cfg(test)]
 mod tests {
-    use std::net::{IpAddr, Ipv4Addr};
+    use std::{
+        collections::HashSet,
+        net::{IpAddr, Ipv4Addr},
+    };
 
     use defguard_common::db::{
         Id,
@@ -283,8 +286,14 @@ mod tests {
                 .await
                 .expect("failed to build config");
         assert_eq!(config.steps.len(), 2);
-        assert_eq!(config.steps[0].methods, vec![VpnClientMfaMethod::Totp]);
-        assert_eq!(config.steps[1].methods, vec![VpnClientMfaMethod::Email]);
+        assert_eq!(
+            config.steps[0].methods,
+            HashSet::from([VpnClientMfaMethod::Totp])
+        );
+        assert_eq!(
+            config.steps[1].methods,
+            HashSet::from([VpnClientMfaMethod::Email])
+        );
 
         // The default user falls through to the default flow's single step.
         let default_device = create_device(&pool, default_user.id).await;
@@ -303,6 +312,9 @@ mod tests {
         .await
         .expect("failed to build config");
         assert_eq!(config.steps.len(), 1);
-        assert_eq!(config.steps[0].methods, vec![VpnClientMfaMethod::Oidc]);
+        assert_eq!(
+            config.steps[0].methods,
+            HashSet::from([VpnClientMfaMethod::Oidc])
+        );
     }
 }

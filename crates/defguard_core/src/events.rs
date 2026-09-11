@@ -474,6 +474,13 @@ pub enum DesktopClientMfaEvent {
         method: ClientMFAMethod,
         message: String,
     },
+    /// An MFA login used too many tries for a step.
+    Aborted {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        /// Saved step details and the flow name.
+        attribution: MfaAttribution,
+    },
     Disconnected {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
