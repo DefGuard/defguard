@@ -26,7 +26,7 @@ use tokio::sync::Notify;
 use tokio::{
     select,
     sync::{
-        Mutex,
+        Mutex, Semaphore,
         broadcast::Sender,
         mpsc::{Receiver, UnboundedSender, unbounded_channel},
         oneshot, watch,
@@ -49,6 +49,7 @@ mod tests;
 extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
+const BIDI_CONCURRENCY: usize = 256;
 
 #[cfg(test)]
 #[derive(Clone, Default)]
@@ -153,6 +154,8 @@ pub struct ProxyManager {
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control: Receiver<ProxyControlMessage>,
     proxy_cookie_key: Key,
+    /// Limits the number of requests processed concurrently across all proxy bidi streams.
+    semaphore: Arc<Semaphore>,
     #[cfg(test)]
     test_support: Option<ProxyManagerTestSupport>,
 }
@@ -171,6 +174,7 @@ impl ProxyManager {
             incompatible_components,
             proxy_control: proxy_control_rx,
             proxy_cookie_key: Key::derive_from(core_secret_key.as_bytes()),
+            semaphore: Arc::new(Semaphore::new(BIDI_CONCURRENCY)),
             #[cfg(test)]
             test_support: None,
         }
@@ -192,6 +196,7 @@ impl ProxyManager {
             incompatible_components,
             proxy_control: proxy_control_rx,
             proxy_cookie_key: Key::derive_from(core_secret_key.as_bytes()),
+            semaphore: Arc::new(Semaphore::new(BIDI_CONCURRENCY)),
             test_support: Some(test_support),
         }
     }
@@ -204,6 +209,7 @@ impl ProxyManager {
         handler_tx_map: HandlerTxMap,
         shutdown_rx: Arc<Mutex<oneshot::Receiver<bool>>>,
         proxy_cookie_key: Key,
+        semaphore: Arc<Semaphore>,
     ) -> Result<ProxyHandler, ProxyError> {
         #[cfg(test)]
         if let Some(test_support) = self.test_support.clone() {
@@ -228,6 +234,7 @@ impl ProxyManager {
                 shutdown_rx,
                 proxy_cookie_key,
                 handler_tx_map,
+                semaphore,
             )?;
 
             if let Some(path) = socket_path {
@@ -246,6 +253,7 @@ impl ProxyManager {
             shutdown_rx,
             proxy_cookie_key,
             handler_tx_map,
+            semaphore,
         )
     }
 
@@ -285,6 +293,7 @@ impl ProxyManager {
                     Arc::clone(&handler_tx_map),
                     Arc::new(Mutex::new(shutdown_rx)),
                     self.proxy_cookie_key.clone(),
+                    Arc::clone(&self.semaphore),
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -332,6 +341,7 @@ impl ProxyManager {
                                     Arc::clone(&handler_tx_map),
                                     Arc::new(Mutex::new(shutdown_rx)),
                                     self.proxy_cookie_key.clone(),
+                                    Arc::clone(&self.semaphore),
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);

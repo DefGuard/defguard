@@ -466,6 +466,7 @@ impl HandlerTestContext {
                 b"test-secret-key-at-least-64-bytes-long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             ),
             mock_proxy.socket_path(),
+            Arc::new(tokio::sync::Semaphore::new(crate::BIDI_CONCURRENCY)),
         );
 
         let incompatible_components_clone = incompatible_components.clone();
