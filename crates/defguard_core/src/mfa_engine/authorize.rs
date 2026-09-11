@@ -46,6 +46,7 @@ pub enum SessionDisconnectReason {
 }
 
 /// The two outbound channels the MFA engine and the posture path push to.
+#[derive(Clone)]
 pub struct EventChannels {
     pub gateway_tx: Sender<GatewayCommand>,
     pub bidi_event_tx: UnboundedSender<BidiStreamEvent>,

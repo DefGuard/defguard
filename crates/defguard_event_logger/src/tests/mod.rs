@@ -470,7 +470,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
             id: 1,
             flow_id: 1,
             position: 0,
-            methods: vec![VpnClientMfaMethod::Totp],
+            methods: [VpnClientMfaMethod::Totp].into_iter().collect(),
         }],
     };
     let mfa_flow_snapshot2 = MfaFlowSnapshot {
@@ -485,13 +485,13 @@ fn api_event_cases() -> Vec<EventTestCase> {
                 id: 1,
                 flow_id: 1,
                 position: 0,
-                methods: vec![VpnClientMfaMethod::Totp],
+                methods: [VpnClientMfaMethod::Totp].into_iter().collect(),
             },
             MfaFlowStep {
                 id: 2,
                 flow_id: 1,
                 position: 1,
-                methods: vec![VpnClientMfaMethod::Email],
+                methods: [VpnClientMfaMethod::Email].into_iter().collect(),
             },
         ],
     };
@@ -1375,8 +1375,9 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
                         snapshot: StepsSnapshot {
                             flow_id: 1,
                             steps: vec![Step {
-                                methods: vec![VpnClientMfaMethod::MobileApprove],
+                                methods: [VpnClientMfaMethod::MobileApprove].into_iter().collect(),
                                 satisfied: Some(VpnClientMfaMethod::MobileApprove),
+                                mobile_auth_device_name: Some("pixel-7".to_owned()),
                             }],
                         },
                         flow_name: Some("flow".to_owned()),
@@ -1404,6 +1405,30 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             event_type: EventType::VpnClientMfaFailed,
             module: ActivityLogModule::Vpn,
             description_contains: Some("failed"),
+        },
+        EventTestCase {
+            name: "ClientMfaAborted",
+            message: bidi_msg(
+                BidiStreamEventType::DesktopClientMfa(Box::new(DesktopClientMfaEvent::Aborted {
+                    location: location.clone(),
+                    device: device.clone(),
+                    attribution: MfaAttribution {
+                        snapshot: StepsSnapshot {
+                            flow_id: 1,
+                            steps: vec![Step {
+                                methods: [VpnClientMfaMethod::Totp].into_iter().collect(),
+                                satisfied: None,
+                                mobile_auth_device_name: None,
+                            }],
+                        },
+                        flow_name: Some("flow".to_owned()),
+                    },
+                })),
+                Some(location.clone()),
+            ),
+            event_type: EventType::VpnClientMfaAborted,
+            module: ActivityLogModule::Vpn,
+            description_contains: Some("attempt limit reached"),
         },
         EventTestCase {
             name: "ClientMfaDisconnected",

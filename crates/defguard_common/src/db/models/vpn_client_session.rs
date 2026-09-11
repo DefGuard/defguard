@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
@@ -34,6 +36,24 @@ pub enum VpnClientMfaMethod {
 }
 
 impl VpnClientMfaMethod {
+    pub const ALL: [Self; 6] = [
+        Self::Totp,
+        Self::Email,
+        Self::Oidc,
+        Self::Biometric,
+        Self::MobileApprove,
+        Self::Fido2,
+    ];
+
+    /// Returns the methods in a fixed order.
+    #[must_use]
+    pub fn ordered_set(methods: &HashSet<Self>) -> Vec<Self> {
+        Self::ALL
+            .into_iter()
+            .filter(|method| methods.contains(method))
+            .collect()
+    }
+
     /// Returns whether this method is configured for `user` (and, for biometric, `device_id`).
     ///
     /// Per-user/per-device setup state is ANDed with deployment-level availability:
@@ -44,6 +64,7 @@ impl VpnClientMfaMethod {
     /// Per-user setup reads `User::totp_enabled` (TOTP), `User::email_mfa_enabled` (email),
     /// `User::openid_sub` (OIDC), and the `biometric_auth` table - keyed on the device for
     /// biometric and on any of the user's devices for mobile-approve.
+    /// `device_id` may be absent during initial enrollment, before the device is created.
     ///
     /// OIDC requires `openid_sub` because MFA re-verifies an existing link rather than creating
     /// one: linking happens at web login or enrollment, so a user must pass through one of those
@@ -52,7 +73,7 @@ impl VpnClientMfaMethod {
         self,
         executor: E,
         user: &User<Id>,
-        device_id: Id,
+        device_id: Option<Id>,
         smtp_configured: bool,
         oidc_configured: bool,
     ) -> sqlx::Result<bool> {
@@ -60,15 +81,53 @@ impl VpnClientMfaMethod {
             Self::Totp => user.totp_enabled,
             Self::Email => smtp_configured && user.email_mfa_enabled,
             Self::Oidc => oidc_configured && user.openid_sub.is_some(),
-            Self::Biometric => BiometricAuth::find_by_device_id(executor, device_id)
-                .await?
-                .is_some(),
+            Self::Biometric => {
+                let Some(device_id) = device_id else {
+                    return Ok(false);
+                };
+                BiometricAuth::find_by_device_id(executor, device_id)
+                    .await?
+                    .is_some()
+            }
             Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
                 .await?
                 .is_empty(),
             Self::Fido2 => WebAuthn::exists_for_user(executor, user.id).await?,
         };
         Ok(configured)
+    }
+}
+
+/// Serializes method sets in a fixed order and rejects duplicates.
+pub(crate) mod mfa_method_set_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
+    use super::{HashSet, VpnClientMfaMethod};
+
+    pub(crate) fn serialize<S>(
+        methods: &HashSet<VpnClientMfaMethod>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        VpnClientMfaMethod::ordered_set(methods).serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<HashSet<VpnClientMfaMethod>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let methods = Vec::<VpnClientMfaMethod>::deserialize(deserializer)?;
+        let mut set = HashSet::with_capacity(methods.len());
+        for method in methods {
+            if !set.insert(method) {
+                return Err(de::Error::custom("MFA step methods must be unique"));
+            }
+        }
+        Ok(set)
     }
 }
 
@@ -273,37 +332,37 @@ mod tests {
         // Nothing set up: every method is unconfigured regardless of deployment availability.
         assert!(
             !VpnClientMfaMethod::Totp
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Email
-                .is_configured(&pool, &user, device.id, true, false)
+                .is_configured(&pool, &user, Some(device.id), true, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, true)
+                .is_configured(&pool, &user, Some(device.id), false, true)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Biometric
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::MobileApprove
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
         assert!(
             !VpnClientMfaMethod::Fido2
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -312,7 +371,7 @@ mod tests {
         user.totp_enabled = true;
         assert!(
             VpnClientMfaMethod::Totp
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -321,14 +380,14 @@ mod tests {
         user.email_mfa_enabled = true;
         assert!(
             VpnClientMfaMethod::Email
-                .is_configured(&pool, &user, device.id, true, false)
+                .is_configured(&pool, &user, Some(device.id), true, false)
                 .await
                 .unwrap()
         );
         // Email set up but SMTP not configured -> unconfigured.
         assert!(
             !VpnClientMfaMethod::Email
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -337,14 +396,14 @@ mod tests {
         user.openid_sub = Some("oidc-sub".to_owned());
         assert!(
             VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, true)
+                .is_configured(&pool, &user, Some(device.id), false, true)
                 .await
                 .unwrap()
         );
         // OIDC identity present but oidc_configured false -> unconfigured.
         assert!(
             !VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -352,7 +411,7 @@ mod tests {
         user.openid_sub = None;
         assert!(
             !VpnClientMfaMethod::Oidc
-                .is_configured(&pool, &user, device.id, false, true)
+                .is_configured(&pool, &user, Some(device.id), false, true)
                 .await
                 .unwrap()
         );
@@ -364,7 +423,7 @@ mod tests {
             .expect("failed to save biometric auth");
         assert!(
             VpnClientMfaMethod::Biometric
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -372,7 +431,7 @@ mod tests {
         // MobileApprove: the user has a device with a registered biometric auth -> configured.
         assert!(
             VpnClientMfaMethod::MobileApprove
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );
@@ -390,7 +449,7 @@ mod tests {
         .expect("failed to save security key");
         assert!(
             VpnClientMfaMethod::Fido2
-                .is_configured(&pool, &user, device.id, false, false)
+                .is_configured(&pool, &user, Some(device.id), false, false)
                 .await
                 .unwrap()
         );

@@ -113,6 +113,8 @@ required-features = ["openapi"]
 # Enable the shared test-only helpers (mock SMTP server) for the test build.
 defguard_common = { workspace = true, features = ["test-support"] }
 claims.workspace = true
+ed25519-dalek.workspace = true
+getrandom.workspace = true
 hyper-util = "0.1"
 reqwest = { version = "0.12", features = [
     "cookies",

@@ -45,6 +45,12 @@ pub fn is_business_license_active() -> bool {
     is_license_tier_active(LicenseTier::Business)
 }
 
+/// Returns whether this setup can use OIDC for client MFA.
+#[must_use]
+pub fn is_oidc_mfa_available(openid_provider_present: bool) -> bool {
+    is_business_license_active() && openid_provider_present
+}
+
 /// Helper function to gate an enterprise feature.
 ///
 /// Requires a valid base license (present, not past its maximum overdue date, within limits).

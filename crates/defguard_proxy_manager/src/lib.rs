@@ -16,6 +16,7 @@ use defguard_core::{
     events::{
         ApiEvent, BidiStreamEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent,
     },
+    grpc::proxy::client_mfa::RemoteAuthWaiters,
     version::IncompatibleComponents,
 };
 use defguard_proto::proxy::{CoreResponse, HttpsCerts, PublicSettings, core_response};
@@ -198,7 +199,7 @@ impl ProxyManager {
     fn build_handler(
         &self,
         proxy: &Proxy<Id>,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         handler_tx_map: HandlerTxMap,
         shutdown_rx: Arc<Mutex<oneshot::Receiver<bool>>>,
         proxy_cookie_key: Key,

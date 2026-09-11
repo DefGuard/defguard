@@ -21,9 +21,10 @@ use defguard_core::{
             PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata,
             SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserImportBlockedMetadata,
             UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
-            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
-            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
-            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
+            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaAbortedMetadata,
+            VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+            VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
+            WebHookStateChangedMetadata,
         },
     },
     events::{
@@ -723,6 +724,11 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 } => Some(format!(
                     "Device {device} failed to connect to MFA location {location} using {method} with: {message}"
                 )),
+                DesktopClientMfaEvent::Aborted {
+                    location, device, ..
+                } => Some(format!(
+                    "Device {device} failed to complete MFA authorization for location {location}: attempt limit reached"
+                )),
                 DesktopClientMfaEvent::Disconnected {
                     location,
                     device,
@@ -786,6 +792,19 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         device,
                         method,
                         message,
+                    })
+                    .ok(),
+                ),
+                DesktopClientMfaEvent::Aborted {
+                    location,
+                    device,
+                    attribution,
+                } => (
+                    EventType::VpnClientMfaAborted,
+                    serde_json::to_value(VpnClientMfaAbortedMetadata {
+                        location,
+                        device,
+                        attribution,
                     })
                     .ok(),
                 ),

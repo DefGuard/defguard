@@ -1,11 +1,36 @@
 use std::{
+    collections::HashSet,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
 
+use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
+#[test]
+fn step_methods_serde_is_canonical_and_rejects_duplicates() {
+    let step = Step {
+        methods: HashSet::from([VpnClientMfaMethod::Fido2, VpnClientMfaMethod::Totp]),
+        satisfied: None,
+        mobile_auth_device_name: None,
+    };
+
+    let serialized = serde_json::to_value(&step).unwrap();
+    assert_eq!(serialized["methods"], json!(["totp", "fido2"]));
+
+    let decoded: Step = serde_json::from_value(json!({
+        "methods": ["fido2", "totp"]
+    }))
+    .unwrap();
+    assert_eq!(decoded.methods, step.methods);
+
+    let duplicate = serde_json::from_value::<Step>(json!({
+        "methods": ["totp", "totp"]
+    }));
+    assert!(duplicate.is_err());
+}
+
 use crate::db::{
     Id,
     models::{
@@ -130,7 +155,10 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
     .unwrap();
     tx.commit().await.unwrap();
 
-    assert_eq!(first.current_step_methods(), [VpnClientMfaMethod::Totp]);
+    assert_eq!(
+        first.current_step_methods(),
+        Some(&HashSet::from([VpnClientMfaMethod::Totp]))
+    );
     // The raw token is never stored; only its hash is.
     assert_eq!(first.token_hash, hash_token(&first_outcome.token));
     assert_ne!(first.token_hash, first_outcome.token);
@@ -370,6 +398,7 @@ async fn test_advance_clears_ephemeral_state(_: PgPoolOptions, options: PgConnec
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap()
@@ -390,7 +419,7 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
 
     let mut tx = pool.begin().await.unwrap();
     session
-        .begin_attempt(&mut tx, VpnClientMfaMethod::Totp, None)
+        .begin_attempt(&mut tx, VpnClientMfaMethod::MobileApprove, None)
         .await
         .unwrap();
     tx.commit().await.unwrap();
@@ -402,7 +431,8 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
             &mut tx,
             session.current_step,
             None,
-            VpnClientMfaMethod::Totp,
+            VpnClientMfaMethod::MobileApprove,
+            Some("phone"),
         )
         .await
         .unwrap()
@@ -411,8 +441,16 @@ async fn test_advance_records_satisfied_method(_: PgPoolOptions, options: PgConn
     assert_eq!(result, StepOutcome::Advanced { next_step: 1 });
 
     let snapshot = &refetch(&pool, &outcome.token).await.steps_snapshot.0;
-    assert_eq!(snapshot.steps[0].satisfied, Some(VpnClientMfaMethod::Totp));
+    assert_eq!(
+        snapshot.steps[0].satisfied,
+        Some(VpnClientMfaMethod::MobileApprove)
+    );
+    assert_eq!(
+        snapshot.steps[0].mobile_auth_device_name.as_deref(),
+        Some("phone")
+    );
     assert_eq!(snapshot.steps[1].satisfied, None);
+    assert_eq!(snapshot.steps[1].mobile_auth_device_name, None);
 }
 
 #[sqlx::test]
@@ -428,6 +466,7 @@ async fn test_advance_does_not_extend_expiry(_: PgPoolOptions, options: PgConnec
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap()
@@ -454,6 +493,7 @@ async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgCon
             session.current_step,
             Some("not-the-attempt-id"),
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap();
@@ -468,6 +508,7 @@ async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgCon
             session.current_step,
             Some(&outcome.step_attempt_id),
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap();
@@ -483,6 +524,7 @@ async fn test_advance_guards_against_stale_step(_: PgPoolOptions, options: PgCon
             session.current_step,
             None,
             VpnClientMfaMethod::Totp,
+            None,
         )
         .await
         .unwrap();
@@ -581,7 +623,7 @@ async fn test_mark_mobile_approved_ignores_stale_attempt(
     let mut tx = pool.begin().await.unwrap();
     assert!(
         !session
-            .mark_mobile_approved(&mut tx, "stale-id")
+            .mark_mobile_approved(&mut tx, "stale-id", Some("phone"))
             .await
             .unwrap()
     );
@@ -598,18 +640,17 @@ async fn test_mark_mobile_approved_ignores_stale_attempt(
     let mut tx = pool.begin().await.unwrap();
     assert!(
         session
-            .mark_mobile_approved(&mut tx, &attempt_id)
+            .mark_mobile_approved(&mut tx, &attempt_id, Some("phone"))
             .await
             .unwrap()
     );
     tx.commit().await.unwrap();
-    assert!(
-        refetch(&pool, &outcome.token)
-            .await
-            .ephemeral_state
-            .unwrap()
-            .mobile_approved
-    );
+    let state = refetch(&pool, &outcome.token)
+        .await
+        .ephemeral_state
+        .unwrap();
+    assert!(state.mobile_approved);
+    assert_eq!(state.mobile_auth_device_name.as_deref(), Some("phone"));
 }
 
 #[sqlx::test]

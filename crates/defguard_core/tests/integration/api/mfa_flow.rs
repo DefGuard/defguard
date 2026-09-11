@@ -1,4 +1,4 @@
-use std::assert_matches;
+use std::{assert_matches, collections::HashSet};
 
 use defguard_common::db::{
     models::{
@@ -50,7 +50,7 @@ async fn test_mfa_flow_single_step_no_license(_: PgPoolOptions, options: PgConne
             if snapshot.flow.id == created_id
                 && snapshot.flow.title == "Test Flow"
                 && snapshot.steps.len() == 1
-                && snapshot.steps[0].methods == vec![VpnClientMfaMethod::Totp]
+                && snapshot.steps[0].methods == HashSet::from([VpnClientMfaMethod::Totp])
     );
 
     set_cached_license(saved);
