@@ -1494,7 +1494,7 @@ dependencies = [
  "clap",
  "humantime",
  "ipnetwork",
- "rand 0.8.7",
+ "rand 0.8.8",
  "reqwest",
  "secrecy",
  "serde_json",
