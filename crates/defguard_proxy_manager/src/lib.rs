@@ -49,7 +49,7 @@ mod tests;
 extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
-const BIDI_CONCURRENCY: usize = 256;
+const BIDI_CONCURRENCY: usize = 1024;
 
 #[cfg(test)]
 #[derive(Clone, Default)]
