@@ -42,7 +42,7 @@ impl MfaConfigServer {
         smtp_configured: bool,
     ) -> Result<bool, Status> {
         method
-            .is_configured(&self.pool, user, device_id, smtp_configured, false)
+            .is_configured(&self.pool, user, Some(device_id), smtp_configured, false)
             .await
             .map_err(|err| {
                 error!(
