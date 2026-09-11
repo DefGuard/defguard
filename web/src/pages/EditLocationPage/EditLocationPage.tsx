@@ -54,6 +54,7 @@ import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
+import { knownFlowAssignments } from './components/LocationMfaSection/assignments';
 import { LocationMfaSection } from './components/LocationMfaSection/LocationMfaSection';
 import { getPostureChecksSectionState } from './postureChecksSection';
 
@@ -419,7 +420,6 @@ const EditLocationForm = ({
   const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
   const [pendingMfaFlows, setPendingMfaFlows] =
     useState<MfaFlowAssignment[]>(savedMfaFlows);
-  const hasPendingMfaFlowChanges = !isEqual(pendingMfaFlows, savedMfaFlows);
 
   const postureCheckOptions = useMemo(
     () =>
@@ -488,6 +488,11 @@ const EditLocationForm = ({
   });
 
   const { data: mfaFlowCatalog = [] } = useQuery(getMfaFlowsQueryOptions);
+  const editedMfaFlows = useMemo(
+    () => knownFlowAssignments(pendingMfaFlows, mfaFlowCatalog),
+    [pendingMfaFlows, mfaFlowCatalog],
+  );
+  const hasPendingMfaFlowChanges = !isEqual(editedMfaFlows, savedMfaFlows);
   const { data: mfaGroupOptions = [] } = useQuery({
     ...getGroupsInfoQueryOptions,
     select: (response) =>
@@ -570,7 +575,7 @@ const EditLocationForm = ({
         value,
         location,
         pendingPostureChecks,
-        pendingMfaFlows,
+        editedMfaFlows,
       ),
     });
   };
@@ -606,7 +611,7 @@ const EditLocationForm = ({
             value,
             location,
             pendingPostureChecks,
-            pendingMfaFlows,
+            editedMfaFlows,
           ),
         ),
       );
@@ -953,7 +958,7 @@ const EditLocationForm = ({
                         </form.AppField>
                         <SizedBox height={ThemeSpacing.Xl2} />
                         <LocationMfaSection
-                          assignments={pendingMfaFlows}
+                          assignments={editedMfaFlows}
                           flows={mfaFlowCatalog}
                           groupOptions={mfaGroupOptions}
                           canUseEnterprise={canUseMfaGroupOverrides}

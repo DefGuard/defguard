@@ -14,6 +14,14 @@ export const splitAssignments = (assignments: MfaFlowAssignment[]): SplitAssignm
 export const overrideKey = (override: MfaFlowAssignment) =>
   `${override.flow_id}:${override.group_ids.join(',')}`;
 
+export const knownFlowAssignments = <T extends { id: number }>(
+  assignments: MfaFlowAssignment[],
+  flows: T[],
+): MfaFlowAssignment[] =>
+  assignments.filter((assignment) =>
+    flows.some((flow) => flow.id === assignment.flow_id),
+  );
+
 /** Returns unassigned flows and keeps the current flow selectable. */
 export const selectableFlows = <T extends { id: number }>(
   flows: T[],
