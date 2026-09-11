@@ -21,7 +21,7 @@ use crate::{
 impl ClientMfaServer {
     #[instrument(skip_all)]
     pub async fn auth_mfa_session_with_oidc(
-        &mut self,
+        &self,
         request: ClientMfaOidcAuthenticateRequest,
         info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
