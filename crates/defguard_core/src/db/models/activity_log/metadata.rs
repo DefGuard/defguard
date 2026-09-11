@@ -8,7 +8,10 @@ use defguard_common::db::{
         group::Group,
         oauth2client::OAuth2Client,
         proxy::Proxy,
-        settings::{LdapSyncStatus, OpenIdUsernameHandling, smtp::SmtpEncryption},
+        settings::{
+            LdapSyncStatus, OpenIdUsernameHandling, SecretFieldChange,
+            smtp::{SmtpAuthentication, SmtpEncryption},
+        },
         user::User,
         vpn_client_mfa_session::MfaAttribution,
     },
@@ -363,8 +366,23 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
 
 #[derive(Serialize)]
 pub struct SettingsUpdateMetadata {
-    pub before: SettingsNoSecrets,
-    pub after: SettingsNoSecrets,
+    pub(crate) before: SettingsNoSecrets,
+    pub(crate) after: SettingsNoSecrets,
+    /// Changes in protected fields.
+    pub protected_fields: Vec<SecretFieldChange>,
+}
+
+impl SettingsUpdateMetadata {
+    #[must_use]
+    pub fn new(before: Settings, after: Settings) -> Self {
+        let protected_fields = Settings::secret_changes(&before, &after);
+
+        Self {
+            before: before.into(),
+            after: after.into(),
+            protected_fields,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -391,7 +409,14 @@ pub struct SettingsNoSecrets {
     pub smtp_port: Option<i32>,
     pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
+    pub smtp_password: bool, // anonymized
     pub smtp_sender: Option<String>,
+    pub smtp_authentication: SmtpAuthentication,
+    pub smtp_oauth_issuer_url: Option<String>,
+    pub smtp_oauth_client_id: Option<String>,
+    pub smtp_oauth_client_secret: bool, // anonymized
+    pub smtp_oauth_refresh_token: bool, // anonymized
+    pub smtp_oauth_tenant_id: Option<String>,
     pub smtp_tls_verify_cert: bool,
     // Enrollment
     pub enrollment_vpn_step_optional: bool,
@@ -402,6 +427,7 @@ pub struct SettingsNoSecrets {
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
+    pub ldap_bind_password: bool, // anonymized
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
     // The structural user class
@@ -420,20 +446,37 @@ pub struct SettingsNoSecrets {
     pub ldap_is_authoritative: bool,
     pub ldap_uses_ad: bool,
     pub ldap_sync_account_status: bool,
+    pub ldap_disable_password_management: bool,
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
     // The attribute which is used to map LDAP usernames to Defguard usernames
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
+    pub ldap_remote_enrollment_enabled: bool,
+    pub ldap_remote_enrollment_send_invite: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
-    pub license: Option<String>,
+    pub license: bool, // anonymized
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
     pub gateway_disconnect_notifications_inactivity_threshold: i32,
     pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
+    // General settings
+    pub defguard_url: String,
+    pub default_admin_group_name: String,
+    pub authentication_period_days: i32,
+    pub mfa_code_timeout_seconds: i32,
+    pub public_proxy_url: String,
+    pub default_admin_id: Option<Id>,
+    pub enable_stats_purge: bool,
+    pub stats_purge_frequency_hours: i32,
+    pub stats_purge_threshold_days: i32,
+    pub enrollment_token_timeout_hours: i32,
+    pub password_reset_token_timeout_hours: i32,
+    pub enrollment_session_timeout_minutes: i32,
+    pub password_reset_session_timeout_minutes: i32,
 }
 
 impl From<Settings> for SettingsNoSecrets {
@@ -447,11 +490,19 @@ impl From<Settings> for SettingsNoSecrets {
             instance_name: value.instance_name,
             main_logo_url: value.main_logo_url,
             nav_logo_url: value.nav_logo_url,
+            // from `SmtpSettings`
             smtp_server: value.smtp.server,
             smtp_port: value.smtp.port,
             smtp_encryption: value.smtp.encryption,
             smtp_user: value.smtp.user,
+            smtp_password: value.smtp.password.is_some(),
             smtp_sender: value.smtp.sender,
+            smtp_authentication: value.smtp.authentication,
+            smtp_oauth_issuer_url: value.smtp.oauth_issuer_url,
+            smtp_oauth_client_id: value.smtp.oauth_client_id,
+            smtp_oauth_client_secret: value.smtp.oauth_client_secret.is_some(),
+            smtp_oauth_refresh_token: value.smtp.oauth_refresh_token.is_some(),
+            smtp_oauth_tenant_id: value.smtp.oauth_tenant_id,
             smtp_tls_verify_cert: value.smtp.tls_verify_cert,
             enrollment_vpn_step_optional: value.enrollment_vpn_step_optional,
             enrollment_welcome_message: value.enrollment_welcome_message,
@@ -460,13 +511,14 @@ impl From<Settings> for SettingsNoSecrets {
             enrollment_use_welcome_message_as_email: value.enrollment_use_welcome_message_as_email,
             ldap_url: value.ldap_url,
             ldap_bind_username: value.ldap_bind_username,
+            ldap_bind_password: value.ldap_bind_password.is_some(),
             ldap_group_search_base: value.ldap_group_search_base,
             ldap_user_search_base: value.ldap_user_search_base,
             ldap_user_obj_class: value.ldap_user_obj_class,
             ldap_group_obj_class: value.ldap_group_obj_class,
             ldap_username_attr: value.ldap_username_attr,
-            ldap_groupname_attr: value.ldap_groupname_attr,
             ldap_group_member_attr: value.ldap_group_member_attr,
+            ldap_groupname_attr: value.ldap_groupname_attr,
             ldap_member_attr: value.ldap_member_attr,
             ldap_use_starttls: value.ldap_use_starttls,
             ldap_tls_verify_cert: value.ldap_tls_verify_cert,
@@ -476,19 +528,35 @@ impl From<Settings> for SettingsNoSecrets {
             ldap_is_authoritative: value.ldap_is_authoritative,
             ldap_uses_ad: value.ldap_uses_ad,
             ldap_sync_account_status: value.ldap_sync_account_status,
+            ldap_disable_password_management: value.ldap_disable_password_management,
             ldap_sync_interval: value.ldap_sync_interval,
             ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes,
             ldap_user_rdn_attr: value.ldap_user_rdn_attr,
             ldap_sync_groups: value.ldap_sync_groups,
+            ldap_remote_enrollment_enabled: value.ldap_remote_enrollment_enabled,
+            ldap_remote_enrollment_send_invite: value.ldap_remote_enrollment_send_invite,
             openid_create_account: value.openid_create_account,
             openid_username_handling: value.openid_username_handling,
-            license: value.license,
+            license: value.license.is_some(),
             gateway_disconnect_notifications_enabled: value
                 .gateway_disconnect_notifications_enabled,
             gateway_disconnect_notifications_inactivity_threshold: value
                 .gateway_disconnect_notifications_inactivity_threshold,
             gateway_disconnect_notifications_reconnect_notification_enabled: value
                 .gateway_disconnect_notifications_reconnect_notification_enabled,
+            defguard_url: value.defguard_url,
+            default_admin_group_name: value.default_admin_group_name,
+            authentication_period_days: value.authentication_period_days,
+            mfa_code_timeout_seconds: value.mfa_code_timeout_seconds,
+            public_proxy_url: value.public_proxy_url,
+            default_admin_id: value.default_admin_id,
+            enable_stats_purge: value.enable_stats_purge,
+            stats_purge_frequency_hours: value.stats_purge_frequency_hours,
+            stats_purge_threshold_days: value.stats_purge_threshold_days,
+            enrollment_token_timeout_hours: value.enrollment_token_timeout_hours,
+            password_reset_token_timeout_hours: value.password_reset_token_timeout_hours,
+            enrollment_session_timeout_minutes: value.enrollment_session_timeout_minutes,
+            password_reset_session_timeout_minutes: value.password_reset_session_timeout_minutes,
         }
     }
 }

@@ -159,6 +159,10 @@ where
 }
 
 /// Instance settings.
+///
+/// Fields annotated with `#[serde(skip)]` mean they are not required for the web interface.
+///
+/// IMPORTANT: On update, also revise `SettingsNoSecrets`.
 #[derive(Clone, Default, Deserialize, FromRow, PartialEq, Patch, Serialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[patch(attribute(derive(Deserialize, Serialize)))]
@@ -245,12 +249,12 @@ pub struct Settings {
     #[serde(skip)]
     pub openid_signing_key_der: Option<Vec<u8>>,
     pub enable_stats_purge: bool,
-    stats_purge_frequency_hours: i32,
-    stats_purge_threshold_days: i32,
-    enrollment_token_timeout_hours: i32,
-    password_reset_token_timeout_hours: i32,
-    enrollment_session_timeout_minutes: i32,
-    password_reset_session_timeout_minutes: i32,
+    pub stats_purge_frequency_hours: i32,
+    pub stats_purge_threshold_days: i32,
+    pub enrollment_token_timeout_hours: i32,
+    pub password_reset_token_timeout_hours: i32,
+    pub enrollment_session_timeout_minutes: i32,
+    pub password_reset_session_timeout_minutes: i32,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -349,7 +353,55 @@ impl fmt::Debug for Settings {
     }
 }
 
+#[derive(Serialize)]
+pub struct SecretFieldChange {
+    field: &'static str,
+    changed: bool,
+    was_set: bool,
+    is_set: bool,
+}
+
+impl SecretFieldChange {
+    #[must_use]
+    pub fn new(
+        field: &'static str,
+        before: &Option<SecretStringWrapper>,
+        after: &Option<SecretStringWrapper>,
+    ) -> Self {
+        Self {
+            field,
+            changed: before != after,
+            was_set: before.is_some(),
+            is_set: after.is_some(),
+        }
+    }
+}
+
 impl Settings {
+    /// The credential settings, paired with whether each one changed. Their values are never
+    /// recorded in the activity log.
+    #[must_use]
+    pub fn secret_changes(before: &Self, after: &Self) -> Vec<SecretFieldChange> {
+        vec![
+            SecretFieldChange::new("smtp_password", &before.smtp.password, &after.smtp.password),
+            SecretFieldChange::new(
+                "smtp_oauth_client_secret",
+                &before.smtp.oauth_client_secret,
+                &after.smtp.oauth_client_secret,
+            ),
+            SecretFieldChange::new(
+                "smtp_oauth_refresh_token",
+                &before.smtp.oauth_refresh_token,
+                &after.smtp.oauth_refresh_token,
+            ),
+            SecretFieldChange::new(
+                "ldap_bind_password",
+                &before.ldap_bind_password,
+                &after.ldap_bind_password,
+            ),
+        ]
+    }
+
     fn validate_secret_key(&self) -> Result<&str, SettingsInitializationError> {
         let secret_key = self
             .secret_key()
@@ -676,7 +728,7 @@ impl Settings {
             self.smtp.oauth_issuer_url,
             self.smtp.oauth_client_id,
             &self.smtp.oauth_client_secret as &Option<SecretStringWrapper>,
-            self.smtp.oauth_refresh_token,
+            &self.smtp.oauth_refresh_token as &Option<SecretStringWrapper>,
             self.enrollment_vpn_step_optional,
             self.enrollment_welcome_message,
             self.enrollment_welcome_email,
@@ -1072,44 +1124,6 @@ impl SettingsEssentials {
     }
 }
 
-pub mod defaults {
-    pub static WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
-
-By completing the enrollment process, you now have access to all company systems.
-
-Your login to all systems is: {{ username }}
-
-## Company systems
-
-Here are the most important company systems:
-
-- Defguard: {{ defguard_url }} - where you can change your password and manage your VPN devices
-- our chat system: https://chat.example.com - join our default room #TownHall
-- knowledge base: https://example.com ...
-- our JIRA: https://example.atlassian.net...
-
-## Governance
-
-To kickoff your onboarding, please get familiar with:
-
-- our employee handbook: https://knowledgebase.example.com/Welcome
-- security policy: https://knowledgebase.example.com/security
-
-If you have any questions contact our HR:
-John Hary - mobile +48 123 123 123
-
-The person that enrolled you is:
-{{ admin_first_name }} {{ admin_last_name }},
-email: {{ admin_email }}
-mobile: {{ admin_phone }}
-
---
-Sent by Defguard {{ defguard_version }}
-Star us on GitHub! https://github.com/defguard/defguard\
-";
-
-    pub static WELCOME_EMAIL_SUBJECT: &str = "Defguard: Welcome message after enrollment";
-}
-
+pub mod defaults;
 #[cfg(test)]
 mod tests;

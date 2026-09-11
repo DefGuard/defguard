@@ -43,7 +43,7 @@ async fn google_access_token(smtp_settings: &mut SmtpSettings) -> Result<String,
     let issuer_url = IssuerUrl::new(issuer_url.into())?;
     let client_id = ClientId::new(client_id.into());
     let client_secret = ClientSecret::new(client_secret.expose_secret().into());
-    let refresh_token = RefreshToken::new(refresh_token.into());
+    let refresh_token = RefreshToken::new(refresh_token.expose_secret().into());
 
     let http_client = ClientBuilder::new()
         // Following redirects opens the client up to SSRF vulnerabilities.
@@ -76,8 +76,8 @@ async fn google_access_token(smtp_settings: &mut SmtpSettings) -> Result<String,
     }
     if let Some(refresh_token) = token_response.refresh_token() {
         debug!("Got refresh token");
-        // TODO: use `self.set_oauth_refresh_token`
-        smtp_settings.oauth_refresh_token = Some(refresh_token.secret().into());
+        // TODO: use `self.set_oauth_refresh_token`, but get the database connection from somewhere.
+        smtp_settings.oauth_refresh_token = Some(refresh_token.secret().clone().into());
     }
     Ok(access_token.clone())
 }

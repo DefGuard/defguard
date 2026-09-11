@@ -1,6 +1,9 @@
 use std::fmt;
 
-use axum::extract::State;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+};
 use axum_extra::extract::Query;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use defguard_common::db::Id;
@@ -10,37 +13,26 @@ use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
 #[cfg(feature = "openapi")]
 use crate::handlers::ApiErrorResponse;
-use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
+use crate::{
+    appstate::AppState,
+    auth::SessionInfo,
+    db::models::activity_log::ActivityLogModule,
+    handlers::{ApiResponse, ApiResult},
+};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct FilterParams {
     pub from: Option<DateTime<Utc>>,
     pub until: Option<DateTime<Utc>>,
-    #[serde(default = "default_username")]
+    #[serde(default)]
     pub username: Vec<String>,
-    #[serde(default = "default_location")]
+    #[serde(default)]
     pub location: Vec<String>,
-    #[serde(default = "default_event")]
+    #[serde(default)]
     pub event: Vec<String>,
-    #[serde(default = "default_module")]
+    #[serde(default)]
     pub module: Vec<ActivityLogModule>,
     pub search: Option<String>,
-}
-
-fn default_username() -> Vec<String> {
-    Vec::new()
-}
-
-fn default_location() -> Vec<String> {
-    Vec::new()
-}
-
-fn default_event() -> Vec<String> {
-    Vec::new()
-}
-
-fn default_module() -> Vec<ActivityLogModule> {
-    Vec::new()
 }
 
 #[derive(Debug, Deserialize)]
@@ -113,6 +105,64 @@ pub struct ApiActivityLogEvent {
     pub description: Option<String>,
 }
 
+/// Activity log event with its full metadata, as returned by the API.
+#[derive(Serialize, FromRow)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ApiActivityLogEventDetails {
+    #[serde(flatten)]
+    #[sqlx(flatten)]
+    pub event: ApiActivityLogEvent,
+    /// Event specific payload, its shape depends on the event type.
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<Object>))]
+    pub metadata: Option<serde_json::Value>,
+}
+
+/// Get a single activity log event
+///
+/// Returns one event together with its metadata, which holds the event specific payload,
+/// e.g. the `before` and `after` state of a settings update.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/api/v1/activity_log/{id}",
+    tag = "activity log",
+    params(
+        ("id" = i64, Path, description = "ID of the activity log event."),
+    ),
+    responses(
+        (status = 200, description = "Activity log event details.", body = ApiActivityLogEventDetails),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Activity log event not found."),
+        (status = 500, description = "Unable to fetch activity log event.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+))]
+pub async fn get_activity_log_event(
+    session_info: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(id): Path<Id>,
+) -> ApiResult {
+    debug!("Fetching activity log event {id}");
+    let mut query_builder = QueryBuilder::new(
+        "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description, metadata \
+        FROM activity_log_event WHERE id = ",
+    );
+    query_builder.push_bind(id);
+    apply_user_scope(&mut query_builder, session_info);
+
+    let event = query_builder
+        .build_query_as::<ApiActivityLogEventDetails>()
+        .fetch_optional(&appstate.pool)
+        .await?;
+
+    match event {
+        Some(event) => Ok(ApiResponse::json(event, StatusCode::OK)),
+        None => Ok(ApiResponse::with_status(StatusCode::NOT_FOUND)),
+    }
+}
+
 /// List activity log events
 ///
 /// Supports filtering by time range, module, event type and username, plus a free-text search
@@ -159,13 +209,7 @@ pub async fn get_activity_log_events(
         FROM activity_log_event WHERE 1=1 ",
     );
 
-    // filter events for non-admin users to show only their own events
-    if !session_info.is_admin {
-        query_builder
-            .push(" AND username = ")
-            .push_bind(session_info.user.username)
-            .push(" ");
-    }
+    apply_user_scope(&mut query_builder, session_info);
 
     // add optional filters
     apply_filters(&mut query_builder, &filters);
@@ -189,7 +233,7 @@ pub async fn get_activity_log_events(
 
     // execute count query
     // fetch total number of filtered events
-    let mut count_query_builder: QueryBuilder<Postgres> =
+    let mut count_query_builder =
         QueryBuilder::new("SELECT COUNT(*) FROM activity_log_event WHERE 1=1 ");
     apply_filters(&mut count_query_builder, &filters);
     let total_items: i64 = count_query_builder
@@ -202,6 +246,16 @@ pub async fn get_activity_log_events(
         pagination,
         total_items as u32,
     ))
+}
+
+/// Restricts the query to the session user's own events unless they are an admin
+fn apply_user_scope(query_builder: &mut QueryBuilder<Postgres>, session_info: SessionInfo) {
+    if !session_info.is_admin {
+        query_builder
+            .push(" AND username = ")
+            .push_bind(session_info.user.username)
+            .push(" ");
+    }
 }
 
 /// Adds optional filtering statements to SQL query based on request query params
