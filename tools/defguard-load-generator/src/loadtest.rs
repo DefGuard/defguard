@@ -317,7 +317,7 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
                 Err(RequestError::Timeout) => metrics.timeout_errors += 1,
                 Err(RequestError::Transport(error)) => {
                     metrics.transport_errors += 1;
-                    tracing::warn!(%error, "polling request failed at transport level");
+                    tracing::warn!(error = ?error, "polling request failed at transport level");
                 }
             }
         }
