@@ -55,7 +55,6 @@ pub async fn delete_user_and_cleanup_devices(
     let was_default_admin = Settings::get_current_settings().default_admin_id == Some(user.id);
 
     user.delete(&mut *conn).await?;
-    update_counts(&mut *conn).await?;
 
     // Update settings because they may also change due to a DB constraint.
     if was_default_admin && let Some(settings) = Settings::get(&mut *conn).await? {

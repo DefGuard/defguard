@@ -96,7 +96,8 @@ use crate::{
     events::LdapSyncEventType,
     grpc::GatewayCommand,
     hashset,
-    user_management::{disable_user, sync_allowed_user_devices},
+    location_management::sync_all_networks,
+    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
 fn emit_ldap_sync_events(
@@ -701,8 +702,24 @@ impl super::LDAPConnection {
             authority,
             &self.config,
         );
-        self.apply_user_group_sync_changes(pool, changes, ldap_tx)
+        let memberships_changed = self
+            .apply_user_group_sync_changes(pool, changes, ldap_tx)
             .await?;
+
+        if memberships_changed {
+            match pool.acquire().await {
+                Ok(mut conn) => {
+                    if let Err(err) = sync_all_networks(&mut conn, wg_tx).await {
+                        error!("Failed to sync all networks after LDAP membership changes: {err}");
+                    }
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                    );
+                }
+            }
+        }
 
         Ok(())
     }
@@ -877,10 +894,26 @@ impl super::LDAPConnection {
             &self.config,
         );
 
-        self.apply_user_sync_changes(pool, user_changes, ldap_tx)
+        self.apply_user_sync_changes(pool, wg_tx, user_changes, ldap_tx)
             .await?;
-        self.apply_user_group_sync_changes(pool, membership_changes, ldap_tx)
+        let memberships_changed = self
+            .apply_user_group_sync_changes(pool, membership_changes, ldap_tx)
             .await?;
+
+        if memberships_changed {
+            match pool.acquire().await {
+                Ok(mut conn) => {
+                    if let Err(err) = sync_all_networks(&mut conn, wg_tx).await {
+                        error!("Failed to sync all networks after LDAP membership changes: {err}");
+                    }
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                    );
+                }
+            }
+        }
 
         if full {
             debug!("Full LDAP sync completed");
@@ -976,10 +1009,11 @@ impl super::LDAPConnection {
         pool: &PgPool,
         changes: GroupSyncChanges<'_>,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
-    ) -> Result<(), LdapError> {
+    ) -> Result<bool, LdapError> {
         debug!("Applying group memberships sync changes");
         let mut transaction = pool.begin().await?;
         let mut admin_count = User::find_admins(&mut *transaction).await?.len();
+        let mut memberships_changed = false;
         let mut events = Vec::new();
         for (groupname, members) in changes.delete_defguard {
             if members.is_empty() {
@@ -1008,6 +1042,7 @@ impl super::LDAPConnection {
                         );
                         admin_count -= 1;
                         if member.remove_from_group(&mut *transaction, &group).await? {
+                            memberships_changed = true;
                             events.push(LdapSyncEventType::GroupMemberRemoved {
                                 group: group.clone(),
                                 user: member,
@@ -1017,6 +1052,7 @@ impl super::LDAPConnection {
                 } else {
                     debug!("Removing user {} from group {}", member.username, groupname);
                     if member.remove_from_group(&mut *transaction, &group).await? {
+                        memberships_changed = true;
                         events.push(LdapSyncEventType::GroupMemberRemoved {
                             group: group.clone(),
                             user: member,
@@ -1042,6 +1078,7 @@ impl super::LDAPConnection {
                     User::find_by_username(&mut *transaction, &member.username).await?
                 {
                     if user.add_to_group(&mut *transaction, &group).await? {
+                        memberships_changed = true;
                         events.push(LdapSyncEventType::GroupMemberAdded {
                             group: group.clone(),
                             user,
@@ -1087,12 +1124,13 @@ impl super::LDAPConnection {
             }
         }
 
-        Ok(())
+        Ok(memberships_changed)
     }
 
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
+        wg_tx: &Sender<GatewayCommand>,
         mut changes: UserSyncChanges,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
@@ -1117,13 +1155,17 @@ impl super::LDAPConnection {
                     admin_count -= 1;
                     debug!("Deleting admin user {} from Defguard", user.username);
                     let deleted_user = user.clone();
-                    user.delete(&mut *transaction).await?;
+                    delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                        .await
+                        .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                     events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
                 }
             } else {
                 debug!("Deleting user {} from Defguard", user.username);
                 let deleted_user = user.clone();
-                user.delete(&mut *transaction).await?;
+                delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                    .await
+                    .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                 events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
             }
         }
