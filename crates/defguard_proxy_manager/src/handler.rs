@@ -57,12 +57,15 @@ use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
-    select, sync::{
-        Mutex,
+    select,
+    sync::{
+        Mutex, Semaphore,
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
         oneshot, watch,
-    }, task::JoinSet, time::sleep
+    },
+    task::JoinSet,
+    time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 #[cfg(test)]
@@ -120,6 +123,7 @@ pub(super) struct ProxyHandler {
     /// can push messages to a specific proxy.
     handler_tx_map: HandlerTxMap,
     connection_events_tx: UnboundedSender<ProxyConnectionEvent>,
+    semaphore: Arc<Semaphore>,
     #[cfg(test)]
     test_transport: ProxyTestTransport,
     #[cfg(test)]
@@ -138,6 +142,7 @@ impl ProxyHandler {
         proxy_id: Id,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
+        semaphore: Arc<Semaphore>,
     ) -> Self {
         // Instantiate gRPC servers.
         let services = Arc::new(ProxyServices::new(
@@ -156,6 +161,7 @@ impl ProxyHandler {
             proxy_cookie_key,
             client: None,
             handler_tx_map,
+            semaphore,
             connection_events_tx: tx.connection_events.clone(),
             #[cfg(test)]
             test_transport: ProxyTestTransport::default(),
@@ -174,6 +180,7 @@ impl ProxyHandler {
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
+        semaphore: Arc<Semaphore>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -187,6 +194,7 @@ impl ProxyHandler {
             proxy_id,
             proxy_cookie_key,
             handler_tx_map,
+            semaphore,
         ))
     }
 
@@ -1049,7 +1057,14 @@ impl ProxyHandler {
                     let pool = self.pool.clone();
                     let tx = tx.clone();
                     let request_id = request.id;
+
+                    let semaphore = Arc::clone(&self.semaphore);
+                    let permit = semaphore
+                        .acquire_owned()
+                        .await
+                        .expect("ProxyManager semaphore closed");
                     tasks.spawn(async move {
+                        let _permit = permit;
                         let result = Self::handle_request(
                             pool,
                             request,
@@ -1057,7 +1072,8 @@ impl ProxyHandler {
                             services,
                             gateway_tx,
                             handler_tx_map,
-                        ).await;
+                        )
+                        .await;
                         (request_id, result)
                     });
                 }
@@ -1086,6 +1102,7 @@ impl ProxyHandler {
         proxy_id: Id,
         proxy_cookie_key: Key,
         socket_path: PathBuf,
+        semaphore: Arc<Semaphore>,
     ) -> Self {
         let handler_tx_map: HandlerTxMap = Arc::new(RwLock::new(HashMap::new()));
         let mut handler = Self::new(
@@ -1098,6 +1115,7 @@ impl ProxyHandler {
             proxy_id,
             proxy_cookie_key,
             handler_tx_map,
+            semaphore,
         );
         handler.test_transport = ProxyTestTransport::with_socket_path(socket_path);
         handler
