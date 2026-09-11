@@ -138,7 +138,7 @@
   "activity_log_details_title": "Log details",
   "activity_log_details_label_date": "Date",
   "activity_log_details_label_changed_by": "Changed by",
-  "activity_log_details_label_ip": "User’s IP",
+  "activity_log_details_label_ip": "User’s IP address",
   "activity_log_details_label_location": "Location",
   "activity_log_details_label_module": "Module",
   "activity_log_details_section_title": "Details",
@@ -197,5 +197,9 @@
   "activity_log_field_disable_tunnels": "Disable WireGuard tunnels",
   "activity_log_field_display_download_step": "Display client download step",
   "activity_log_field_display_password_reset": "Display password reset option",
-  "activity_log_field_group_client_traffic_policies": "Group traffic policies"
+  "activity_log_field_group_client_traffic_policies": "Group traffic policies",
+  "activity_log_field_smtp_password": "Server password",
+  "activity_log_field_smtp_oauth_client_secret": "OAuth client secret",
+  "activity_log_field_smtp_oauth_refresh_token": "OAuth refresh token",
+  "activity_log_field_ldap_bind_password": "Bind password"
 }

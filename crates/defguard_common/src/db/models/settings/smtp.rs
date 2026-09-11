@@ -86,7 +86,8 @@ pub struct SmtpSettings {
     #[serde(rename = "smtp_oauth_refresh_token")]
     #[sqlx(rename = "smtp_oauth_refresh_token")]
     #[patch(attribute(serde(rename = "smtp_oauth_refresh_token")))]
-    pub oauth_refresh_token: Option<String>,
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    pub oauth_refresh_token: Option<SecretStringWrapper>,
     #[serde(rename = "smtp_oauth_tenant_id")]
     #[sqlx(rename = "smtp_oauth_tenant_id")]
     #[patch(attribute(serde(rename = "smtp_oauth_tenant_id")))]
@@ -114,7 +115,7 @@ impl SmtpSettings {
         .execute(executor)
         .await?;
 
-        self.oauth_refresh_token = Some(refresh_token);
+        self.oauth_refresh_token = Some(refresh_token.into());
 
         Ok(())
     }

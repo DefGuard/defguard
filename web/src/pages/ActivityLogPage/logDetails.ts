@@ -34,6 +34,8 @@ const fieldLabel = (field: string): string =>
   fieldMessages[`activity_log_field_${field}`]?.() ?? sentenceCase(field);
 
 export const missingValuePlaceholder = '—';
+/** Stand-in for a credential's value, which the backend never records. */
+const protectedValuePlaceholder = '••••••';
 
 const formatValue = (value: unknown): string => {
   if (!isPresent(value)) return missingValuePlaceholder;
@@ -63,9 +65,40 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
   return value as Record<string, unknown>;
 };
 
+type ProtectedFieldState = {
+  changed: boolean;
+  wasSet: boolean;
+  isSet: boolean;
+};
+
 /**
- * Turns the `before`/`after` state stored in the event metadata into display ready rows.
- * Fields keep the order in which the backend serialized them.
+ * Credential state by field name. `before`/`after` anonymize these to "is it set" booleans,
+ * so whether one actually changed can only come from here — a rotated password reads as set
+ * on both sides.
+ */
+const readProtectedFields = (
+  metadata: ActivityLogEventMetadata,
+): Map<string, ProtectedFieldState> => {
+  const entries = metadata.protected_fields;
+  if (!Array.isArray(entries)) return new Map();
+
+  const states = new Map<string, ProtectedFieldState>();
+  for (const entry of entries) {
+    const record = asRecord(entry);
+    if (!isPresent(record) || typeof record.field !== 'string') continue;
+    states.set(record.field, {
+      changed: record.changed === true,
+      wasSet: record.was_set === true,
+      isSet: record.is_set === true,
+    });
+  }
+  return states;
+};
+
+/**
+ * Turns the `before`/`after` state stored in the event metadata into display ready rows,
+ * in the order the backend serialized them. Credentials keep their place among the settings
+ * they belong to, showing a mask instead of a value.
  */
 export const buildLogDetailsChanges = (
   metadata: ActivityLogEventMetadata | null,
@@ -75,17 +108,32 @@ export const buildLogDetailsChanges = (
   const after = asRecord(metadata.after);
   if (!isPresent(before) || !isPresent(after)) return [];
 
-  const fields = Object.keys({ ...before, ...after });
+  const protectedFields = readProtectedFields(metadata);
+  // A field is listed once, even when both the snapshots and the credential list name it.
+  const fields = [
+    ...new Set([
+      ...Object.keys(before),
+      ...Object.keys(after),
+      ...protectedFields.keys(),
+    ]),
+  ];
 
   return fields.map((field) => {
+    const label = fieldLabel(field);
+    const state = protectedFields.get(field);
+
+    if (isPresent(state)) {
+      return {
+        field,
+        label,
+        from: state.wasSet ? protectedValuePlaceholder : missingValuePlaceholder,
+        to: state.isSet ? protectedValuePlaceholder : missingValuePlaceholder,
+        changed: state.changed,
+      };
+    }
+
     const from = formatValue(before[field]);
     const to = formatValue(after[field]);
-    return {
-      field,
-      label: fieldLabel(field),
-      from,
-      to,
-      changed: from !== to,
-    };
+    return { field, label, from, to, changed: from !== to };
   });
 };

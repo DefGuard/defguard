@@ -114,6 +114,89 @@ describe('activity log details', () => {
     ]);
   });
 
+  it('shows changed credentials as masked without revealing their values', () => {
+    // the snapshots anonymize credentials to "is it set", and protected_fields carries
+    // whether each actually changed
+    const changes = buildLogDetailsChanges({
+      before: {
+        smtp_user: 'mailer',
+        smtp_password: true,
+        smtp_oauth_client_secret: true,
+        ldap_bind_password: false,
+      },
+      after: {
+        smtp_user: 'mailer',
+        smtp_password: true,
+        smtp_oauth_client_secret: false,
+        ldap_bind_password: true,
+      },
+      protected_fields: [
+        { field: 'smtp_password', changed: true, was_set: true, is_set: true },
+        {
+          field: 'smtp_oauth_client_secret',
+          changed: true,
+          was_set: true,
+          is_set: false,
+        },
+        { field: 'ldap_bind_password', changed: true, was_set: false, is_set: true },
+      ],
+    });
+
+    // each credential is listed once, in its place among the settings, masked rather than
+    // rendered as the "is it set" boolean the snapshots carry
+    expect(changes).toEqual([
+      {
+        field: 'smtp_user',
+        label: 'Server username',
+        from: 'mailer',
+        to: 'mailer',
+        changed: false,
+      },
+      {
+        field: 'smtp_password',
+        label: 'Server password',
+        from: '••••••',
+        to: '••••••',
+        changed: true,
+      },
+      {
+        field: 'smtp_oauth_client_secret',
+        label: 'OAuth client secret',
+        from: '••••••',
+        to: '—',
+        changed: true,
+      },
+      {
+        field: 'ldap_bind_password',
+        label: 'Bind password',
+        from: '—',
+        to: '••••••',
+        changed: true,
+      },
+    ]);
+  });
+
+  it('lists every field once, so hiding unchanged rows removes them all', () => {
+    const changes = buildLogDetailsChanges({
+      before: { smtp_password: true, smtp_oauth_refresh_token: true },
+      after: { smtp_password: true, smtp_oauth_refresh_token: true },
+      protected_fields: [
+        { field: 'smtp_password', changed: true, was_set: true, is_set: true },
+        {
+          field: 'smtp_oauth_refresh_token',
+          changed: false,
+          was_set: true,
+          is_set: true,
+        },
+      ],
+    });
+
+    const fields = changes.map((change) => change.field);
+    expect(fields).toEqual(['smtp_password', 'smtp_oauth_refresh_token']);
+    // an unchanged credential is still listed, for the "show unchanged items" toggle
+    expect(changes.filter((change) => change.changed)).toHaveLength(1);
+  });
+
   it('returns no rows when the event carries no before/after metadata', () => {
     expect(buildLogDetailsChanges(null)).toEqual([]);
     expect(buildLogDetailsChanges({ stream: { id: 1 } })).toEqual([]);

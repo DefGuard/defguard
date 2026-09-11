@@ -458,19 +458,11 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ),
                 ApiEventType::SettingsUpdatedPartial { before, after } => (
                     EventType::SettingsUpdatedPartial,
-                    serde_json::to_value(SettingsUpdateMetadata {
-                        before: before.into(),
-                        after: after.into(),
-                    })
-                    .ok(),
+                    serde_json::to_value(SettingsUpdateMetadata::new(before, after)).ok(),
                 ),
                 ApiEventType::SettingsUpdated { before, after } => (
                     EventType::SettingsUpdated,
-                    serde_json::to_value(SettingsUpdateMetadata {
-                        before: before.into(),
-                        after: after.into(),
-                    })
-                    .ok(),
+                    serde_json::to_value(SettingsUpdateMetadata::new(before, after)).ok(),
                 ),
                 ApiEventType::SettingsDefaultBrandingRestored => {
                     (EventType::SettingsDefaultBrandingRestored, None)
