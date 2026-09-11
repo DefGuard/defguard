@@ -505,6 +505,20 @@ impl ProxyHandler {
         Ok(())
     }
 
+    fn send_internal_error(tx: &UnboundedSender<CoreResponse>, request_id: u64) {
+        let response = CoreResponse {
+            id: request_id,
+            payload: Some(core_response::Payload::CoreError(CoreError {
+                status_code: Code::Internal as i32,
+                message: "internal server error".to_owned(),
+            })),
+        };
+
+        if tx.send(response).is_err() {
+            debug!("Failed to send internal error response for request {request_id}");
+        }
+    }
+
     async fn handle_request(
         pool: PgPool,
         received: CoreRequest,
@@ -1055,6 +1069,7 @@ impl ProxyHandler {
                         }
                         Ok((request_id, Err(err))) => {
                             error!("Request {request_id} failed: {err}");
+                            Self::send_internal_error(&tx, request_id);
                         }
                         Err(err) => {
                             error!("Request task failed or panicked: {err}");
