@@ -33,13 +33,14 @@ ENV DEFGUARD_BUILD_VERSION=$DEFGUARD_BUILD_VERSION
 # the compiled binary won't pick up the correct DEFGUARD_BUILD_VERSION.
 RUN echo "Building Defguard version: ${DEFGUARD_BUILD_VERSION}"
 
+RUN apt-get update && apt-get -y install libudev-dev protobuf-compiler libprotobuf-dev
+
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --bin defguard --release --recipe-path recipe.json
 
 # build project
 COPY --from=web /app/dist ./web/dist
-RUN apt-get update && apt-get -y install libudev-dev protobuf-compiler libprotobuf-dev
 COPY Cargo.toml Cargo.lock ./
 # for vergen
 COPY .git .git
