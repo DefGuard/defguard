@@ -1046,43 +1046,81 @@ impl ProxyHandler {
     ) -> Result<(), ProxyError> {
         let mut tasks = JoinSet::new();
         'message: loop {
-            match resp_stream.message().await {
-                Ok(None) => {
-                    info!("stream was closed by the sender");
-                    break 'message;
-                }
-                Ok(Some(request)) => {
-                    debug!("Received message from proxy; ID={}", request.id);
-                    let services = Arc::clone(&self.services);
-                    let handler_tx_map = Arc::clone(&self.handler_tx_map);
-                    let gateway_tx = gateway_tx.clone();
-                    let pool = self.pool.clone();
-                    let tx = tx.clone();
-                    let request_id = request.id;
+            tokio::select! {
+                biased;
 
-                    let semaphore = Arc::clone(&self.semaphore);
-                    let permit = semaphore
-                        .acquire_owned()
-                        .await
-                        .expect("ProxyManager semaphore closed");
-                    tasks.spawn(async move {
-                        let _permit = permit;
-                        let result = Self::handle_request(
-                            pool,
-                            request,
-                            tx,
-                            services,
-                            gateway_tx,
-                            handler_tx_map,
-                        )
-                        .await;
-                        (request_id, result)
-                    });
+                // handle completed requests
+                Some(result) = tasks.join_next(), if !tasks.is_empty() => {
+                    match result {
+                        Ok((request_id, Ok(()))) => {
+                            debug!("Request {request_id} completed");
+                        }
+                        Ok((request_id, Err(err))) => {
+                            error!("Request {request_id} failed: {err}");
+                        }
+                        Err(err) => {
+                            error!("Request task failed or panicked: {err}");
+                        }
+                    }
+                }
+
+                // handle incoming requests
+                message = resp_stream.message() => {
+                    match message {
+                        Ok(None) => {
+                            info!("stream was closed by the sender");
+                            break 'message;
+                        }
+                        Ok(Some(request)) => {
+                            debug!("Received message from proxy; ID={}", request.id);
+                            let services = Arc::clone(&self.services);
+                            let handler_tx_map = Arc::clone(&self.handler_tx_map);
+                            let gateway_tx = gateway_tx.clone();
+                            let pool = self.pool.clone();
+                            let tx = tx.clone();
+                            let request_id = request.id;
+
+                            let semaphore = Arc::clone(&self.semaphore);
+                            let permit = semaphore
+                                .acquire_owned()
+                                .await
+                                .expect("ProxyManager semaphore closed");
+                            tasks.spawn(async move {
+                                let _permit = permit;
+                                let result = Self::handle_request(
+                                    pool,
+                                    request,
+                                    tx,
+                                    services,
+                                    gateway_tx,
+                                    handler_tx_map,
+                                )
+                                .await;
+                                (request_id, result)
+                            });
+                        }
+                        Err(err) => {
+                            error!("Disconnected from proxy at {}: {err}", self.url);
+                            self.mark_disconnected().await?;
+                            break 'message;
+                        }
+                    }
+                }
+            }
+        }
+
+        // cleanup pending tasks
+        tasks.abort_all();
+        while let Some(result) = tasks.join_next().await {
+            match result {
+                Ok((request_id, Ok(()))) => {
+                    debug!("Request {request_id} completed during shutdown");
+                }
+                Ok((request_id, Err(err))) => {
+                    error!("Request {request_id} failed during shutdown: {err}");
                 }
                 Err(err) => {
-                    error!("Disconnected from proxy at {}: {err}", self.url);
-                    self.mark_disconnected().await?;
-                    break 'message;
+                    debug!("Request task cancelled during shutdown: {err}");
                 }
             }
         }
