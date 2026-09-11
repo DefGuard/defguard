@@ -2,6 +2,8 @@
 use std::path::PathBuf;
 use std::{
     collections::HashMap,
+    future::Future,
+    pin::Pin,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
@@ -45,11 +47,12 @@ use defguard_core::{
 };
 use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
-    client_types::AuthFlowType as ProtoAuthFlowType,
+    client_types::{AuthFlowType as ProtoAuthFlowType, AuthInfoRequest},
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
-        AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, HttpsCerts,
-        InitialInfo, core_request, core_response, proxy_client::ProxyClient,
+        AuthCallbackRequest, AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest,
+        CoreResponse, HttpsCerts, InitialInfo, core_request, core_response,
+        proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
@@ -617,7 +620,7 @@ impl ProxyHandler {
                     let payload = match received.payload {
                         // rpc MfaConfigStart return (MfaConfigStartResponse)
                         Some(core_request::Payload::MfaConfigStart(request)) => {
-                            match self.services.mfa_config.mfa_config_start(request).await {
+                            match boxed(self.services.mfa_config.mfa_config_start(request)).await {
                                 Ok(response) => {
                                     Some(core_response::Payload::MfaConfigStart(response))
                                 }
@@ -628,7 +631,9 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::MfaConfigSendCode(request)) => {
-                            match self.services.mfa_config.mfa_config_send_code(request).await {
+                            match boxed(self.services.mfa_config.mfa_config_send_code(request))
+                                .await
+                            {
                                 Ok(response) => {
                                     Some(core_response::Payload::MfaConfigSendCode(response))
                                 }
@@ -639,7 +644,9 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::MfaConfigAuthorize(request)) => {
-                            match self.services.mfa_config.mfa_config_authorize(request).await {
+                            match boxed(self.services.mfa_config.mfa_config_authorize(request))
+                                .await
+                            {
                                 Ok(response) => {
                                     Some(core_response::Payload::MfaConfigAuthorize(response))
                                 }
@@ -651,7 +658,7 @@ impl ProxyHandler {
                         }
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
-                            match self.services.enrollment.mfa_setup_start(request).await {
+                            match boxed(self.services.enrollment.mfa_setup_start(request)).await {
                                 Ok(response) => Some(
                                     core_response::Payload::CodeMfaSetupStartResponse(response),
                                 ),
@@ -663,11 +670,12 @@ impl ProxyHandler {
                         }
                         // rpc CodeMfaSetupFinish return (CodeMfaSetupFinishResponse)
                         Some(core_request::Payload::CodeMfaSetupFinish(request)) => {
-                            match self
-                                .services
-                                .enrollment
-                                .mfa_setup_finish(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .enrollment
+                                    .mfa_setup_finish(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(response) => Some(
                                     core_response::Payload::CodeMfaSetupFinishResponse(response),
@@ -680,7 +688,8 @@ impl ProxyHandler {
                         }
                         // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
                         Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                            match self.services.client_mfa.validate_mfa_token(request).await {
+                            match boxed(self.services.client_mfa.validate_mfa_token(request)).await
+                            {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::ClientMfaTokenValidation(
                                         response_payload,
@@ -694,7 +703,9 @@ impl ProxyHandler {
                         }
                         // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
                         Some(core_request::Payload::RegisterMobileAuth(request)) => {
-                            match self.services.enrollment.register_mobile_auth(request).await {
+                            match boxed(self.services.enrollment.register_mobile_auth(request))
+                                .await
+                            {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("Register mobile auth error {err}");
@@ -704,11 +715,12 @@ impl ProxyHandler {
                         }
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match self
-                                .services
-                                .enrollment
-                                .start_enrollment(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .enrollment
+                                    .start_enrollment(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::EnrollmentStart(response_payload))
@@ -721,11 +733,12 @@ impl ProxyHandler {
                         }
                         // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::ActivateUser(request)) => {
-                            match self
-                                .services
-                                .enrollment
-                                .activate_user(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .enrollment
+                                    .activate_user(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
@@ -736,11 +749,12 @@ impl ProxyHandler {
                         }
                         // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::NewDevice(request)) => {
-                            match self
-                                .services
-                                .enrollment
-                                .create_device(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .enrollment
+                                    .create_device(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::DeviceConfig(response_payload))
@@ -753,11 +767,12 @@ impl ProxyHandler {
                         }
                         // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::ExistingDevice(request)) => {
-                            match self
-                                .services
-                                .enrollment
-                                .get_network_info(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .enrollment
+                                    .get_network_info(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::DeviceConfig(response_payload))
@@ -770,11 +785,12 @@ impl ProxyHandler {
                         }
                         // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordResetInit(request)) => {
-                            match self
-                                .services
-                                .password_reset
-                                .request_password_reset(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .password_reset
+                                    .request_password_reset(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
@@ -785,11 +801,12 @@ impl ProxyHandler {
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match self
-                                .services
-                                .password_reset
-                                .start_password_reset(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .password_reset
+                                    .start_password_reset(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(response_payload) => Some(
                                     core_response::Payload::PasswordResetStart(response_payload),
@@ -802,11 +819,12 @@ impl ProxyHandler {
                         }
                         // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordReset(request)) => {
-                            match self
-                                .services
-                                .password_reset
-                                .reset_password(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .password_reset
+                                    .reset_password(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
@@ -817,11 +835,12 @@ impl ProxyHandler {
                         }
                         // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
                         Some(core_request::Payload::ClientMfaStart(request)) => {
-                            match self
-                                .services
-                                .client_mfa
-                                .start_client_mfa_login(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .start_client_mfa_login(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
                                     Some(core_response::Payload::ClientMfaStart(response_payload))
@@ -841,16 +860,13 @@ impl ProxyHandler {
                         }
                         // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
                         Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
-                            match self
-                                .services
-                                .client_mfa
-                                .await_remote_mfa_login(
-                                    request,
-                                    tx.clone(),
-                                    received.id,
-                                    received.device_info,
-                                )
-                                .await
+                            match boxed(self.services.client_mfa.await_remote_mfa_login(
+                                request,
+                                tx.clone(),
+                                received.id,
+                                received.device_info,
+                            ))
+                            .await
                             {
                                 Ok(()) => None,
                                 Err(err) => {
@@ -861,11 +877,12 @@ impl ProxyHandler {
                         }
                         // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                         Some(core_request::Payload::ClientMfaFinish(request)) => {
-                            match self
-                                .services
-                                .client_mfa
-                                .finish_client_mfa_login(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .finish_client_mfa_login(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
@@ -887,11 +904,12 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
-                            match self
-                                .services
-                                .client_mfa
-                                .auth_mfa_session_with_oidc(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .auth_mfa_session_with_oidc(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
@@ -902,10 +920,7 @@ impl ProxyHandler {
                         }
                         // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
                         Some(core_request::Payload::InstanceInfo(request)) => {
-                            match self
-                                .services
-                                .polling
-                                .info(request, received.device_info)
+                            match boxed(self.services.polling.info(request, received.device_info))
                                 .await
                             {
                                 Ok(response_payload) => {
@@ -919,7 +934,7 @@ impl ProxyHandler {
 
                                         debug!(
                                             "A client tried to fetch the instance config, but we are \
-                                        not enterprise."
+                                            not enterprise."
                                         );
                                         Some(core_response::Payload::CoreError(err.into()))
                                     } else {
@@ -930,209 +945,16 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
-                            if is_business_license_active() {
-                                let auth_flow_type = request.auth_flow_type();
-                                let redirect_url = match auth_flow_type {
-                                    ProtoAuthFlowType::Enrollment => {
-                                        let settings = Settings::get_current_settings();
-                                        settings.edge_callback_url(AuthFlowType::Enrollment)
-                                    }
-                                    ProtoAuthFlowType::Mfa => {
-                                        let settings = Settings::get_current_settings();
-                                        settings.edge_callback_url(AuthFlowType::Mfa)
-                                    }
-                                    // fall back for legacy pre-2.0 clients
-                                    ProtoAuthFlowType::Unspecified =>
-                                    {
-                                        #[allow(deprecated)]
-                                        Url::parse(&request.redirect_url)
-                                    }
-                                };
-
-                                if let Ok(redirect_url) = redirect_url {
-                                    if let Some(provider) =
-                                        OpenIdProvider::get_current(&pool).await?
-                                    {
-                                        match make_oidc_client(redirect_url, &provider).await {
-                                            Ok((_client_id, client)) => {
-                                                match build_auth_info_state(
-                                                    &pool,
-                                                    auth_flow_type,
-                                                    request.state,
-                                                )
-                                                .await
-                                                {
-                                                    Ok(state_data) => {
-                                                        Some(build_auth_info_payload(
-                                                            &client, &provider, state_data,
-                                                        ))
-                                                    }
-                                                    Err(err) => {
-                                                        error!(
-                                                            "Failed to build OIDC state: {}",
-                                                            err.message
-                                                        );
-                                                        Some(core_response::Payload::CoreError(err))
-                                                    }
-                                                }
-                                            }
-                                            Err(err) => {
-                                                error!(
-                                                    "Failed to setup external OIDC provider client: {err}"
-                                                );
-                                                Some(core_response::Payload::CoreError(
-                                                    CoreError::internal(
-                                                        "failed to build OIDC client",
-                                                    ),
-                                                ))
-                                            }
-                                        }
-                                    } else {
-                                        error!("Failed to get current OpenID provider");
-                                        Some(core_response::Payload::CoreError(
-                                            CoreError::not_found(
-                                                "failed to get current OpenID provider",
-                                            ),
-                                        ))
-                                    }
-                                } else {
-                                    error!("Invalid redirect URL in authentication info request");
-                                    Some(core_response::Payload::CoreError(CoreError::internal(
-                                        "invalid redirect URL",
-                                    )))
-                                }
-                            } else {
-                                warn!("Enterprise license required");
-                                Some(core_response::Payload::CoreError(
-                                    CoreError::failed_precondition("no valid license"),
-                                ))
-                            }
+                            boxed(self.handle_auth_info(request)).await?
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {
-                            match Settings::get_current_settings()
-                                .edge_callback_url(AuthFlowType::Enrollment)
-                            {
-                                Ok(callback_url) => {
-                                    let code = AuthorizationCode::new(request.code);
-                                    match user_from_claims(
-                                        &pool,
-                                        Nonce::new(request.nonce),
-                                        code,
-                                        callback_url,
-                                        None,
-                                        None,
-                                        Some(&self.services.event_tx),
-                                        // Enrollment provisions the account.
-                                        ClaimsUserResolution::GetOrCreate,
-                                    )
-                                    .await
-                                    {
-                                        Ok(mut user) => {
-                                            clear_unused_enrollment_tokens(&user, &pool).await?;
-                                            if let Err(err) = sync_user_groups_if_configured(
-                                                &user,
-                                                &pool,
-                                                &gateway_tx,
-                                                &self.services.ldap,
-                                                &self.services.dirsync,
-                                            )
-                                            .await
-                                            {
-                                                error!(
-                                                    "Failed to sync user groups for user {} with the \
-                                                directory while the user was logging in through an \
-                                                external provider: {err}",
-                                                    user.username,
-                                                );
-                                            } else {
-                                                ldap_update_user_state(
-                                                    &mut user,
-                                                    &pool,
-                                                    &gateway_tx,
-                                                    &self.services.ldap,
-                                                )
-                                                .await;
-                                            }
-                                            debug!("Cleared unused tokens for {}.", user.username);
-                                            debug!(
-                                                "Creating a new desktop activation token for user {} \
-                                            as a result of proxy OpenID auth callback.",
-                                                user.username
-                                            );
-                                            let settings = Settings::get_current_settings();
-                                            let desktop_configuration = Token::new(
-                                                user.id,
-                                                Some(user.id),
-                                                Some(user.email),
-                                                settings.enrollment_token_timeout().as_secs(),
-                                                Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
-                                            );
-                                            debug!("Saving a new desktop configuration token...");
-                                            desktop_configuration.save(&pool).await?;
-                                            debug!(
-                                                "Saved desktop configuration token. Responding to \
-                                            proxy with the token."
-                                            );
-                                            let public_proxy_url = settings.proxy_public_url()?;
-
-                                            Some(core_response::Payload::AuthCallback(
-                                                AuthCallbackResponse {
-                                                    url: public_proxy_url.into(),
-                                                    token: desktop_configuration.id,
-                                                },
-                                            ))
-                                        }
-                                        Err(err) => {
-                                            error!("OpenID auth error {err}");
-                                            let (status_code, message) = match err {
-                                                WebError::Authorization(message) => {
-                                                    (Code::PermissionDenied as i32, message)
-                                                }
-                                                WebError::ObjectNotFound(message) => {
-                                                    (Code::NotFound as i32, message)
-                                                }
-                                                WebError::Forbidden(message) => (
-                                                    Code::PermissionDenied as i32,
-                                                    message.to_owned(),
-                                                ),
-                                                WebError::BadRequest(message) => {
-                                                    (Code::InvalidArgument as i32, message)
-                                                }
-                                                WebError::LicenseLimitReached(message) => {
-                                                    (Code::ResourceExhausted as i32, message)
-                                                }
-                                                _ => (
-                                                    Code::Internal as i32,
-                                                    "OpenID authentication failed".to_owned(),
-                                                ),
-                                            };
-                                            Some(core_response::Payload::CoreError(CoreError {
-                                                status_code,
-                                                message,
-                                            }))
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    error!(
-                                        "Proxy requested an OpenID authentication info for a \
-                                        callback URL that couldn't be built. Details: {err}"
-                                    );
-                                    Some(core_response::Payload::CoreError(CoreError::internal(
-                                        "invalid callback URL",
-                                    )))
-                                }
-                            }
+                            boxed(self.handle_auth_callback(request, &gateway_tx)).await?
                         }
-                        // Reply without payload.
                         None => None,
-                        // rpc AcmeCertificate: proxy completed ACME issuance.
                         Some(core_request::Payload::AcmeCertificate(cert)) => {
                             info!("Received AcmeCertificate from proxy, saving and broadcasting");
-                            // Parse the cert expiry from the PEM so we can store it.
                             let acme_cert_expiry = parse_cert_expiry(&cert.cert_pem);
-                            // Load current certificates row, patch ACME fields, and save.
-                            match Certificates::get_or_default(&pool).await {
+                            match boxed(Certificates::get_or_default(&pool)).await {
                                 Ok(mut certs) => {
                                     certs.proxy_http_cert_pem = Some(cert.cert_pem.clone());
                                     certs.proxy_http_cert_key_pem = Some(cert.key_pem.clone());
@@ -1141,13 +963,12 @@ impl ProxyHandler {
                                     certs.proxy_http_cert_expiry = acme_cert_expiry;
                                     certs.proxy_http_cert_source =
                                         defguard_common::db::models::ProxyCertSource::LetsEncrypt;
-                                    if let Err(err) = certs.save(&pool).await {
+                                    if let Err(err) = boxed(certs.save(&pool)).await {
                                         error!(
                                             "Failed to save ACME certificate to certificates: {err}"
                                         );
                                     } else {
                                         info!("ACME certificate saved to certificates");
-                                        // Broadcast HttpsCerts to ALL connected proxies.
                                         let https_certs = CoreResponse {
                                             id: 0,
                                             payload: Some(core_response::Payload::HttpsCerts(
@@ -1172,11 +993,12 @@ impl ProxyHandler {
                             None
                         }
                         Some(core_request::Payload::DevicePostureCheck(request)) => {
-                            match self
-                                .services
-                                .client_mfa
-                                .handle_posture_check(request, received.device_info)
-                                .await
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .handle_posture_check(request, received.device_info),
+                            )
+                            .await
                             {
                                 Ok(PostureCheckOutcome::Approved { preshared_key }) => {
                                     Some(core_response::Payload::DevicePostureCheck(
@@ -1196,12 +1018,8 @@ impl ProxyHandler {
                                 }
                             }
                         }
-                        // rpc ClientMfaStepStart (ClientMfaStepStartRequest) returns (ClientMfaStepStartResponse)
                         Some(core_request::Payload::ClientMfaStepStart(request)) => {
-                            match self
-                                .services
-                                .client_mfa
-                                .client_mfa_step_start(request)
+                            match boxed(self.services.client_mfa.client_mfa_step_start(request))
                                 .await
                             {
                                 Ok(response) => {
@@ -1233,6 +1051,196 @@ impl ProxyHandler {
 
         Ok(())
     }
+
+    async fn handle_auth_info(
+        &self,
+        request: AuthInfoRequest,
+    ) -> Result<Option<core_response::Payload>, ProxyError> {
+        let pool = &self.pool;
+        let payload = if is_business_license_active() {
+            let auth_flow_type = request.auth_flow_type();
+            let redirect_url = match auth_flow_type {
+                ProtoAuthFlowType::Enrollment => {
+                    let settings = Settings::get_current_settings();
+                    settings.edge_callback_url(AuthFlowType::Enrollment)
+                }
+                ProtoAuthFlowType::Mfa => {
+                    let settings = Settings::get_current_settings();
+                    settings.edge_callback_url(AuthFlowType::Mfa)
+                }
+                // fall back for legacy pre-2.0 clients
+                ProtoAuthFlowType::Unspecified =>
+                {
+                    #[allow(deprecated)]
+                    Url::parse(&request.redirect_url)
+                }
+            };
+
+            if let Ok(redirect_url) = redirect_url {
+                if let Some(provider) = OpenIdProvider::get_current(pool).await? {
+                    match make_oidc_client(redirect_url, &provider).await {
+                        Ok((_client_id, client)) => {
+                            match build_auth_info_state(pool, auth_flow_type, request.state).await {
+                                Ok(state_data) => {
+                                    Some(build_auth_info_payload(&client, &provider, state_data))
+                                }
+                                Err(err) => {
+                                    error!("Failed to build OIDC state: {}", err.message);
+                                    Some(core_response::Payload::CoreError(err))
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            error!("Failed to setup external OIDC provider client: {err}");
+                            Some(core_response::Payload::CoreError(CoreError::internal(
+                                "failed to build OIDC client",
+                            )))
+                        }
+                    }
+                } else {
+                    error!("Failed to get current OpenID provider");
+                    Some(core_response::Payload::CoreError(CoreError::not_found(
+                        "failed to get current OpenID provider",
+                    )))
+                }
+            } else {
+                error!("Invalid redirect URL in authentication info request");
+                Some(core_response::Payload::CoreError(CoreError::internal(
+                    "invalid redirect URL",
+                )))
+            }
+        } else {
+            warn!("Enterprise license required");
+            Some(core_response::Payload::CoreError(
+                CoreError::failed_precondition("no valid license"),
+            ))
+        };
+        Ok(payload)
+    }
+
+    async fn handle_auth_callback(
+        &self,
+        request: AuthCallbackRequest,
+        gateway_tx: &Sender<GatewayCommand>,
+    ) -> Result<Option<core_response::Payload>, ProxyError> {
+        let pool = &self.pool;
+        let payload = match Settings::get_current_settings()
+            .edge_callback_url(AuthFlowType::Enrollment)
+        {
+            Ok(callback_url) => {
+                let code = AuthorizationCode::new(request.code);
+                match user_from_claims(
+                    pool,
+                    Nonce::new(request.nonce),
+                    code,
+                    callback_url,
+                    None,
+                    None,
+                    Some(&self.services.event_tx),
+                    // Enrollment provisions the account.
+                    ClaimsUserResolution::GetOrCreate,
+                )
+                .await
+                {
+                    Ok(mut user) => {
+                        clear_unused_enrollment_tokens(&user, pool).await?;
+                        if let Err(err) = sync_user_groups_if_configured(
+                            &user,
+                            pool,
+                            gateway_tx,
+                            &self.services.ldap,
+                            &self.services.dirsync,
+                        )
+                        .await
+                        {
+                            error!(
+                                "Failed to sync user groups for user {} with the \
+                                                directory while the user was logging in through an \
+                                                external provider: {err}",
+                                user.username,
+                            );
+                        } else {
+                            ldap_update_user_state(
+                                &mut user,
+                                pool,
+                                gateway_tx,
+                                &self.services.ldap,
+                            )
+                            .await;
+                        }
+                        debug!("Cleared unused tokens for {}.", user.username);
+                        debug!(
+                            "Creating a new desktop activation token for user {} \
+                                            as a result of proxy OpenID auth callback.",
+                            user.username
+                        );
+                        let settings = Settings::get_current_settings();
+                        let desktop_configuration = Token::new(
+                            user.id,
+                            Some(user.id),
+                            Some(user.email),
+                            settings.enrollment_token_timeout().as_secs(),
+                            Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
+                        );
+                        debug!("Saving a new desktop configuration token...");
+                        desktop_configuration.save(pool).await?;
+                        debug!(
+                            "Saved desktop configuration token. Responding to \
+                                            proxy with the token."
+                        );
+                        let public_proxy_url = settings.proxy_public_url()?;
+
+                        Some(core_response::Payload::AuthCallback(AuthCallbackResponse {
+                            url: public_proxy_url.into(),
+                            token: desktop_configuration.id,
+                        }))
+                    }
+                    Err(err) => {
+                        error!("OpenID auth error {err}");
+                        let (status_code, message) = match err {
+                            WebError::Authorization(message) => {
+                                (Code::PermissionDenied as i32, message)
+                            }
+                            WebError::ObjectNotFound(message) => (Code::NotFound as i32, message),
+                            WebError::Forbidden(message) => {
+                                (Code::PermissionDenied as i32, message.to_owned())
+                            }
+                            WebError::BadRequest(message) => {
+                                (Code::InvalidArgument as i32, message)
+                            }
+                            WebError::LicenseLimitReached(message) => {
+                                (Code::ResourceExhausted as i32, message)
+                            }
+                            _ => (
+                                Code::Internal as i32,
+                                "OpenID authentication failed".to_owned(),
+                            ),
+                        };
+                        Some(core_response::Payload::CoreError(CoreError {
+                            status_code,
+                            message,
+                        }))
+                    }
+                }
+            }
+            Err(err) => {
+                error!(
+                    "Proxy requested an OpenID authentication info for a \
+                                        callback URL that couldn't be built. Details: {err}"
+                );
+                Some(core_response::Payload::CoreError(CoreError::internal(
+                    "invalid callback URL",
+                )))
+            }
+        };
+        Ok(payload)
+    }
+}
+
+fn boxed<'a, T>(
+    fut: impl Future<Output = T> + Send + 'a,
+) -> Pin<Box<dyn Future<Output = T> + Send + 'a>> {
+    Box::pin(fut)
 }
 
 #[cfg(test)]

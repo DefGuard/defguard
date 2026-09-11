@@ -1,7 +1,3 @@
-// The message loop match in handler.rs nests one future per RPC; the default limit of 128
-// overflows the Send trait
-#![recursion_limit = "256"]
-
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
