@@ -1,6 +1,7 @@
 use std::{collections::HashSet, net::IpAddr};
 
 use anyhow::Context;
+use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use ipnetwork::IpNetwork;
 use rand::{
@@ -19,6 +20,8 @@ use crate::config::SeedArgs;
 
 const USERNAME_PREFIX: &str = "load-test-user-";
 const DEVICE_PREFIX: &str = "load-test-device-";
+const LOAD_TEST_PASSWORD: &str = "Password123!1";
+const TOTP_SECRET_BYTES: usize = 20;
 
 #[derive(FromRow)]
 struct Network {
@@ -58,16 +61,23 @@ pub async fn run(args: SeedArgs) -> anyhow::Result<()> {
         network_id = args.network_id,
         "seeding users and devices"
     );
+    let password_hash = password_hash()?;
 
     for index in 1..=args.users.get() {
+        let totp_secret = totp_secret();
         let user_id: i64 = query_scalar(
-            "INSERT INTO \"user\" (username, last_name, first_name, email, ldap_rdn) \
-             VALUES ($1, $2, $3, $4, $1) RETURNING id",
+            "INSERT INTO \"user\" \
+             (username, password_hash, last_name, first_name, email, ldap_rdn, \
+              mfa_enabled, totp_enabled, totp_secret, mfa_method, is_active, enrollment_pending) \
+             VALUES ($1, $2, $3, $4, $5, $1, TRUE, TRUE, $6, 'one_time_password'::mfa_method, TRUE, FALSE) \
+             RETURNING id",
         )
         .bind(user_name(index))
+        .bind(&password_hash)
         .bind("Load test")
         .bind("User")
         .bind(user_email(index))
+        .bind(&totp_secret)
         .fetch_one(&mut *connection)
         .await?;
 
@@ -161,4 +171,17 @@ fn wireguard_public_key() -> String {
 
 fn polling_token() -> String {
     Alphanumeric.sample_string(&mut OsRng, 32)
+}
+
+fn password_hash() -> anyhow::Result<String> {
+    let salt = SaltString::generate(&mut OsRng);
+    Ok(Argon2::default()
+        .hash_password(LOAD_TEST_PASSWORD.as_bytes(), &salt)?
+        .to_string())
+}
+
+fn totp_secret() -> Vec<u8> {
+    let mut secret = vec![0_u8; TOTP_SECRET_BYTES];
+    OsRng.fill(&mut secret[..]);
+    secret
 }
