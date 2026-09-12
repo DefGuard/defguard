@@ -3,6 +3,8 @@ use tracing_subscriber::EnvFilter;
 
 mod config;
 mod loadtest;
+mod mfa;
+mod runner;
 mod seed;
 
 #[tokio::main]
@@ -21,6 +23,7 @@ async fn main() -> anyhow::Result<()> {
             config::TestCommand::ConfigPolling(args) => {
                 loadtest::ConfigPollingLoadTest::new(args).run().await?
             }
+            config::TestCommand::ClientMfa(args) => mfa::run(args).await?,
         },
     }
 

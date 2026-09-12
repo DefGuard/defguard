@@ -59,6 +59,34 @@ pub struct TestArgs {
 pub enum TestCommand {
     /// Polls the Edge configuration endpoint.
     ConfigPolling(ConfigPollingArgs),
+    /// Runs the desktop-client TOTP MFA flow.
+    ClientMfa(ClientMfaArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ClientMfaArgs {
+    /// Base URL of the proxy, without the client-mfa path.
+    #[arg(long)]
+    pub proxy_url: String,
+
+    /// WireGuard network/location with internal MFA enabled.
+    #[arg(long)]
+    pub location_id: i64,
+
+    #[command(flatten)]
+    pub database: DatabaseArgs,
+
+    /// Target logical MFA flow rate. Each flow makes two HTTP requests.
+    #[arg(long)]
+    pub requests_per_second: NonZeroU64,
+
+    /// Maximum number of MFA flows running concurrently.
+    #[arg(long, default_value_t = 1024)]
+    pub max_in_flight: usize,
+
+    /// Optional test duration. Without it, the test runs until Ctrl-C.
+    #[arg(long, value_parser = humantime::parse_duration)]
+    pub duration: Option<std::time::Duration>,
 }
 
 #[derive(Debug, Args)]
