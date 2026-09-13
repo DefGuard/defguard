@@ -968,7 +968,7 @@ impl ClientMfaServer {
 
         // Ensure user is active
         if !user.is_active {
-            error!("Posture check: user {} is inactive", device.user_id);
+            error!("Posture check: user {} is inactive", user.username);
             return Err(Status::invalid_argument("user is inactive"));
         }
 

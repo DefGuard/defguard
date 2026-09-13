@@ -561,8 +561,8 @@ pub async fn authorization(
                                         && session.state != SessionState::MultiFactorVerified
                                     {
                                         info!(
-                                            "MFA not verified for user id {}, redirecting to login",
-                                            session.user_id
+                                            "MFA not verified for user {}, redirecting to login",
+                                            user.username
                                         );
                                         return login_redirect(&data, private_cookies)
                                             .map_err(WebError::from);
@@ -580,9 +580,9 @@ pub async fn authorization(
                                         .await?
                                     {
                                         info!(
-                                            "OAuth client id {} authorized by user id {}, \
+                                            "OAuth client id {} authorized by user {}, \
                                             returning auth code",
-                                            app.oauth2client_id, session.user_id
+                                            app.oauth2client_id, user.username
                                         );
                                         let private_cookies = private_cookies
                                             .remove(Cookie::from(SIGN_IN_COOKIE_NAME));
@@ -596,9 +596,9 @@ pub async fn authorization(
                                     } else {
                                         // If authorized app not found redirect to consent form
                                         info!(
-                                            "OAuth client id {} not yet authorized by user id {}, \
+                                            "OAuth client id {} not yet authorized by user {}, \
                                             redirecting to consent form",
-                                            oauth2client.id, session.user_id
+                                            oauth2client.id, user.username
                                         );
                                         Ok(redirect_to(
                                             format!(
