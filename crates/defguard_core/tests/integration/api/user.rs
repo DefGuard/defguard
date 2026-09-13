@@ -93,7 +93,7 @@ async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
         (ApiEventType::UserLogin, 2, "hpotter"),
         (
             ApiEventType::UserLoginFailed {
-                message: "Authentication for hpotter failed: invalid password".into(),
+                message: "Authentication for hpotter failed: invalid username or password".into(),
             },
             2,
             "hpotter",
@@ -180,7 +180,7 @@ async fn test_change_self_password(_: PgPoolOptions, options: PgConnectOptions) 
         (ApiEventType::PasswordChanged, 2, "hpotter"),
         (
             ApiEventType::UserLoginFailed {
-                message: "Authentication for hpotter failed: invalid password".into(),
+                message: "Authentication for hpotter failed: invalid username or password".into(),
             },
             2,
             "hpotter",
