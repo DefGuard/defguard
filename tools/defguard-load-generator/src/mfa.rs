@@ -33,7 +33,7 @@ struct MfaActor {
 struct StartRequest<'a> {
     location_id: i64,
     pubkey: &'a str,
-    method: &'static str,
+    method: i32,
 }
 
 #[derive(Deserialize)]
@@ -131,7 +131,7 @@ async fn execute(client: Client, base_url: String, location_id: i64, actor: MfaA
         .json(&StartRequest {
             location_id,
             pubkey: &actor.wireguard_pubkey,
-            method: "Totp",
+            method: 0, // MfaMethod::TOTP
         })
         .send()
         .await;
