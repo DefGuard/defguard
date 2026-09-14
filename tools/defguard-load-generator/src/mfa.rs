@@ -17,8 +17,8 @@ use crate::{
     runner::{LoadLoopConfig, run_load_loop},
 };
 
-const START_PATH: &str = "/client-mfa/start";
-const FINISH_PATH: &str = "/client-mfa/finish";
+const START_PATH: &str = "/api/v1/client-mfa/start";
+const FINISH_PATH: &str = "/api/v1/client-mfa/finish";
 const TOTP_PERIOD: u64 = 30;
 const TOTP_DIGITS: u32 = 6;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
