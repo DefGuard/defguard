@@ -239,6 +239,15 @@ export const getDevicePostureVersionMetadataQueryOptions = queryOptions({
   refetchOnReconnect: true,
 });
 
+// Logged events are append-only, so a fetched event never needs refreshing. The key is
+// kept outside the `activity-log` prefix so list invalidations don't refetch it either.
+export const getActivityLogEventQueryOptions = (id: number) =>
+  queryOptions({
+    queryFn: () => api.getActivityLogEvent(id).then((resp) => resp.data),
+    queryKey: ['activity-log-event', id],
+    staleTime: Infinity,
+  });
+
 export const getDevicePostureQueryOptions = (id: number) =>
   queryOptions({
     queryFn: () => api.devicePosture.getDevicePosture(id).then((resp) => resp.data),

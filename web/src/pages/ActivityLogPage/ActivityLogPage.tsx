@@ -7,7 +7,7 @@ import type {
   ActivityLogModuleValue,
 } from '../../shared/api/activity-log-types';
 import api from '../../shared/api/api';
-import type { ActivityLogSortKey } from '../../shared/api/types';
+import type { ActivityLogEvent, ActivityLogSortKey } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import type { DateRange } from '../../shared/defguard-ui/components/DateInput/types';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -16,6 +16,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getLocationsQueryOptions } from '../../shared/query';
 import { ActivityLogTable } from './ActivityLogTable';
+import { LogDetailsDrawer } from './LogDetailsDrawer/LogDetailsDrawer';
 
 const mapColumnFiltersToApiParams = (
   columnFilters: ColumnFiltersState,
@@ -38,6 +39,7 @@ export const ActivityLogPage = () => {
     { id: 'timestamp', desc: true },
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [selectedRow, setSelectedRow] = useState<ActivityLogEvent | null>(null);
 
   const { data: locations } = useQuery(getLocationsQueryOptions);
   const locationFilterOptions = useMemo(
@@ -116,9 +118,16 @@ export const ActivityLogPage = () => {
             locationFilterOptions={locationFilterOptions}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
+            onRowClick={setSelectedRow}
           />
         )}
       </TablePageLayout>
+      <LogDetailsDrawer
+        selectedRow={selectedRow}
+        onClose={() => {
+          setSelectedRow(null);
+        }}
+      />
     </Page>
   );
 };

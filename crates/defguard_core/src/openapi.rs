@@ -199,6 +199,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         settings::test_ldap_settings,
         settings::test_submitted_ldap_settings,
         // activity log
+        activity_log::get_activity_log_event,
         activity_log::get_activity_log_events,
         activity_log_stream::get_activity_log_stream,
         activity_log_stream::create_activity_log_stream,

@@ -208,11 +208,13 @@ mod tests {
             .expect("failed to fetch settings")
             .expect("settings should exist");
         settings.instance_name = "test instance".into();
-        settings.smtp.password = Some(SecretStringWrapper::from(SMTP_PASSWORD.to_owned()));
+        settings.smtp.password = Some(SecretStringWrapper::from(String::from(SMTP_PASSWORD)));
         settings.smtp.oauth_client_secret = Some(SecretStringWrapper::from(
             SMTP_OAUTH_CLIENT_SECRET.to_owned(),
         ));
-        settings.smtp.oauth_refresh_token = Some(SMTP_OAUTH_REFRESH_TOKEN.to_owned());
+        settings.smtp.oauth_refresh_token = Some(SecretStringWrapper::from(String::from(
+            SMTP_OAUTH_REFRESH_TOKEN,
+        )));
         settings.ldap_bind_password =
             Some(SecretStringWrapper::from(LDAP_BIND_PASSWORD.to_owned()));
         settings.license = Some(LICENSE.into());

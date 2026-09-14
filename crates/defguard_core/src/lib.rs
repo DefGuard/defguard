@@ -47,7 +47,7 @@ use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType};
 use handlers::{
-    activity_log::get_activity_log_events,
+    activity_log::{get_activity_log_event, get_activity_log_events},
     auth::disable_user_mfa,
     component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
@@ -466,6 +466,7 @@ pub fn build_webapp(
             .route("/ldap/dry_run", post(ldap_dry_run))
             // activity log
             .route("/activity_log", get(get_activity_log_events))
+            .route("/activity_log/{id}", get(get_activity_log_event))
             // Proxy routes
             .route("/proxy", get(proxy_list))
             .route(

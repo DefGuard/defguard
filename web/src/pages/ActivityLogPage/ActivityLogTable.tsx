@@ -1,3 +1,4 @@
+import './style.scss';
 import {
   type ColumnFiltersState,
   createColumnHelper,
@@ -27,11 +28,11 @@ import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/Tab
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../shared/utils/displayDate';
 import { formatIpForDisplay } from '../../shared/utils/formatIpForDisplay';
+import { hasLogDetails, missingValuePlaceholder } from './logDetails';
 
 type RowData = ActivityLogEvent;
 
 const columnHelper = createColumnHelper<RowData>();
-const missingValuePlaceholder = '—';
 const activityLogTimestampFormat = 'DD/MM/YYYY | HH:mm:ss';
 
 const eventFilterOptions: SelectionOption<ActivityLogEventTypeValue>[] = Object.values(
@@ -75,6 +76,7 @@ interface Props {
   locationFilterOptions: SelectionOption<string>[];
   dateRange: DateRange | null;
   onDateRangeChange: (value: DateRange | null) => void;
+  onRowClick: (row: RowData) => void;
 }
 
 export const ActivityLogTable = ({
@@ -91,6 +93,7 @@ export const ActivityLogTable = ({
   locationFilterOptions,
   dateRange,
   onDateRangeChange,
+  onRowClick,
 }: Props) => {
   const tableFilterMessages = useMemo(
     () => ({
@@ -168,9 +171,22 @@ export const ActivityLogTable = ({
         },
         cell: (info) => {
           const event = info.getValue();
+          const label = activityLogEventDisplay[event];
           return (
             <TableCell>
-              <span>{activityLogEventDisplay[event]}</span>
+              {hasLogDetails(event) ? (
+                <button
+                  type="button"
+                  className="activity-log-details-link"
+                  onClick={() => {
+                    onRowClick(info.row.original);
+                  }}
+                >
+                  {label}
+                </button>
+              ) : (
+                <span>{label}</span>
+              )}
             </TableCell>
           );
         },
@@ -221,7 +237,7 @@ export const ActivityLogTable = ({
         ),
       }),
     ],
-    [locationFilterOptions],
+    [locationFilterOptions, onRowClick],
   );
 
   const table = useReactTable({

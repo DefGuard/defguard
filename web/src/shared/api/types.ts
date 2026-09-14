@@ -1616,6 +1616,13 @@ export interface ActivityLogEvent {
   description?: string;
 }
 
+/** Event specific payload, its shape depends on the event type. */
+export type ActivityLogEventMetadata = Record<string, unknown>;
+
+export interface ActivityLogEventDetails extends ActivityLogEvent {
+  metadata: ActivityLogEventMetadata | null;
+}
+
 export const ActivityLogStreamType = {
   VectorHttp: 'vector_http',
   LogstashHttp: 'logstash_http',
