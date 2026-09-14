@@ -1,5 +1,10 @@
 import './LogDetailsDrawer.scss';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import { Suspense, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { activityLogEventDisplay } from '../../../shared/api/activity-log-types';
@@ -9,13 +14,21 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { DrawerModal } from '../../../shared/defguard-ui/components/DrawerModal/DrawerModal';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/LoaderSpinner/LoaderSpinner';
 import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
+import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
+import { renderTableCellValue } from '../../../shared/defguard-ui/components/table/utils/renderTableCellValue';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getActivityLogEventQueryOptions } from '../../../shared/query';
 import { displayDate } from '../../../shared/utils/displayDate';
 import { formatIpForDisplay } from '../../../shared/utils/formatIpForDisplay';
-import { buildLogDetailsChanges, missingValuePlaceholder } from '../logDetails';
+import {
+  buildLogDetailsChanges,
+  type LogDetailsChange,
+  missingValuePlaceholder,
+} from '../logDetails';
 
 const logDetailsDateFormat = 'DD/MM/YYYY HH:mm';
+
+const columnHelper = createColumnHelper<LogDetailsChange>();
 
 /**
  * The changed settings live in the event metadata, which only the details endpoint
@@ -26,14 +39,51 @@ const LogDetailsChanges = ({ eventId }: { eventId: number }) => {
   const { data: event } = useSuspenseQuery(getActivityLogEventQueryOptions(eventId));
 
   const changes = useMemo(() => buildLogDetailsChanges(event.metadata), [event.metadata]);
-  const visibleChanges = showUnchanged
-    ? changes
-    : changes.filter((change) => change.changed);
+  const visibleChanges = useMemo(
+    () => (showUnchanged ? changes : changes.filter((change) => change.changed)),
+    [changes, showUnchanged],
+  );
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('label', {
+        header: m.activity_log_details_col_changed(),
+        size: 180,
+        minSize: 120,
+        meta: { flex: true },
+        cell: renderTableCellValue,
+      }),
+      columnHelper.accessor('from', {
+        header: m.activity_log_details_col_from(),
+        size: 240,
+        minSize: 140,
+        meta: { flex: true },
+        cell: renderTableCellValue,
+      }),
+      columnHelper.accessor('to', {
+        header: m.activity_log_details_col_to(),
+        size: 240,
+        minSize: 140,
+        meta: { flex: true },
+        cell: renderTableCellValue,
+      }),
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    columns,
+    data: visibleChanges,
+    enableRowSelection: false,
+    columnResizeMode: 'onChange',
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (change) => change.field,
+  });
 
   return (
     <>
-      <div className="changes-header">
-        <p className="changes-title">{m.activity_log_details_section_title()}</p>
+      <div className="header">
+        <p className="title">{m.activity_log_details_section_title()}</p>
         {changes.length > 0 && (
           <Toggle
             active={showUnchanged}
@@ -46,28 +96,9 @@ const LogDetailsChanges = ({ eventId }: { eventId: number }) => {
         )}
       </div>
       {visibleChanges.length > 0 ? (
-        <div className="changes-table-container">
-          <table className="changes-table">
-            <thead>
-              <tr>
-                <th>{m.activity_log_details_col_changed()}</th>
-                <th>{m.activity_log_details_col_from()}</th>
-                <th>{m.activity_log_details_col_to()}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleChanges.map((change) => (
-                <tr key={change.field}>
-                  <td>{change.label}</td>
-                  <td>{change.from}</td>
-                  <td>{change.to}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableBody table={table} maxVisibleRows={8} />
       ) : (
-        <p className="changes-empty">
+        <p className="empty">
           {changes.length > 0
             ? m.activity_log_details_no_changes()
             : m.activity_log_details_no_metadata()}
@@ -104,9 +135,9 @@ const LogDetailsInfo = ({ event }: { event: ActivityLogEvent }) => {
   return (
     <>
       {rows.map((row) => (
-        <div className="info-row" key={row.label}>
-          <span className="info-label">{row.label}</span>
-          <span className="info-value">{row.value}</span>
+        <div className="row" key={row.label}>
+          <span className="label">{row.label}</span>
+          <span className="value">{row.value}</span>
         </div>
       ))}
     </>
@@ -128,22 +159,22 @@ export const LogDetailsDrawer = ({ selectedRow, onClose }: Props) => {
     >
       {selectedRow && (
         <>
-          <div className="log-details-drawer-body">
-            <div className="drawer-block log-details-event">
-              <p className="event-name">{activityLogEventDisplay[selectedRow.event]}</p>
+          <div className="body">
+            <div className="block event">
+              <p className="name">{activityLogEventDisplay[selectedRow.event]}</p>
               {isPresent(selectedRow.description) && (
-                <p className="event-description">{selectedRow.description}</p>
+                <p className="description">{selectedRow.description}</p>
               )}
             </div>
             <Divider />
-            <div className="drawer-block log-details-info">
+            <div className="block info">
               <LogDetailsInfo event={selectedRow} />
             </div>
             <Divider />
-            <div className="drawer-block log-details-changes">
+            <div className="block changes">
               <Suspense
                 fallback={
-                  <div className="changes-loader">
+                  <div className="loader">
                     <LoaderSpinner size={24} />
                   </div>
                 }
@@ -152,7 +183,7 @@ export const LogDetailsDrawer = ({ selectedRow, onClose }: Props) => {
               </Suspense>
             </div>
           </div>
-          <div className="log-details-drawer-footer">
+          <div className="footer">
             <Button variant="secondary" text={m.controls_close()} onClick={onClose} />
           </div>
         </>

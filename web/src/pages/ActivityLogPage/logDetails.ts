@@ -52,7 +52,7 @@ const formatValue = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
-type LogDetailsChange = {
+export type LogDetailsChange = {
   field: string;
   label: string;
   from: string;
