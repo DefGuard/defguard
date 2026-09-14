@@ -84,6 +84,10 @@ pub struct ClientMfaArgs {
     #[arg(long, default_value_t = 1024)]
     pub max_in_flight: usize,
 
+    /// Include synthetic passing Linux posture data in each MFA start request.
+    #[arg(long)]
+    pub with_posture_checks: bool,
+
     /// Optional test duration. Without it, the test runs until Ctrl-C.
     #[arg(long, value_parser = humantime::parse_duration)]
     pub duration: Option<std::time::Duration>,

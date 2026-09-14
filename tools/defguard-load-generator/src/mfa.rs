@@ -34,6 +34,26 @@ struct StartRequest<'a> {
     location_id: i64,
     pubkey: &'a str,
     method: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    posture_data: Option<DevicePostureData>,
+}
+
+#[derive(Serialize)]
+struct DevicePostureData {
+    defguard_client_version: String,
+    os_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    disk_encryption: Option<BoolCheck>,
+}
+
+#[derive(Serialize)]
+struct BoolCheck {
+    result: Option<BoolCheckResult>,
+}
+
+#[derive(Serialize)]
+enum BoolCheckResult {
+    Value(bool),
 }
 
 #[derive(Deserialize)]
@@ -93,6 +113,7 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     let client = Client::builder().timeout(REQUEST_TIMEOUT).build()?;
     let base_url = args.proxy_url.trim_end_matches('/').to_owned();
     let location_id = args.network_id;
+    let with_posture_checks = args.with_posture_checks;
     let mut metrics = Metrics::default();
     let stats = run_load_loop(
         actors,
@@ -102,7 +123,15 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
             max_in_flight: args.max_in_flight,
         },
         false,
-        move |actor| execute(client.clone(), base_url.clone(), location_id, actor),
+        move |actor| {
+            execute(
+                client.clone(),
+                base_url.clone(),
+                location_id,
+                with_posture_checks,
+                actor,
+            )
+        },
         |result, _| handle_result(result, &mut metrics),
     )
     .await?;
@@ -123,7 +152,13 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn execute(client: Client, base_url: String, location_id: i64, actor: MfaActor) -> MfaResult {
+async fn execute(
+    client: Client,
+    base_url: String,
+    location_id: i64,
+    with_posture_checks: bool,
+    actor: MfaActor,
+) -> MfaResult {
     let started = Instant::now();
     let start = client
         .post(format!("{base_url}{START_PATH}"))
@@ -132,6 +167,7 @@ async fn execute(client: Client, base_url: String, location_id: i64, actor: MfaA
             location_id,
             pubkey: &actor.wireguard_pubkey,
             method: 0, // MfaMethod::TOTP
+            posture_data: with_posture_checks.then(passing_posture_data),
         })
         .send()
         .await;
@@ -248,6 +284,16 @@ fn failure(started: Instant, error: MfaError) -> MfaResult {
     MfaResult {
         duration: started.elapsed(),
         result: Err(error),
+    }
+}
+
+fn passing_posture_data() -> DevicePostureData {
+    DevicePostureData {
+        defguard_client_version: "2.1.0".to_owned(),
+        os_type: "linux".to_owned(),
+        disk_encryption: Some(BoolCheck {
+            result: Some(BoolCheckResult::Value(true)),
+        }),
     }
 }
 
