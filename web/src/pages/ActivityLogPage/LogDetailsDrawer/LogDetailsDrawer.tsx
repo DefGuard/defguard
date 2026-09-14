@@ -82,8 +82,8 @@ const LogDetailsChanges = ({ eventId }: { eventId: number }) => {
 
   return (
     <>
-      <div className="changes-header">
-        <p className="changes-title">{m.activity_log_details_section_title()}</p>
+      <div className="header">
+        <p className="title">{m.activity_log_details_section_title()}</p>
         {changes.length > 0 && (
           <Toggle
             active={showUnchanged}
@@ -98,7 +98,7 @@ const LogDetailsChanges = ({ eventId }: { eventId: number }) => {
       {visibleChanges.length > 0 ? (
         <TableBody table={table} maxVisibleRows={8} />
       ) : (
-        <p className="changes-empty">
+        <p className="empty">
           {changes.length > 0
             ? m.activity_log_details_no_changes()
             : m.activity_log_details_no_metadata()}
@@ -135,9 +135,9 @@ const LogDetailsInfo = ({ event }: { event: ActivityLogEvent }) => {
   return (
     <>
       {rows.map((row) => (
-        <div className="info-row" key={row.label}>
-          <span className="info-label">{row.label}</span>
-          <span className="info-value">{row.value}</span>
+        <div className="row" key={row.label}>
+          <span className="label">{row.label}</span>
+          <span className="value">{row.value}</span>
         </div>
       ))}
     </>
@@ -159,22 +159,22 @@ export const LogDetailsDrawer = ({ selectedRow, onClose }: Props) => {
     >
       {selectedRow && (
         <>
-          <div className="log-details-drawer-body">
-            <div className="drawer-block log-details-event">
-              <p className="event-name">{activityLogEventDisplay[selectedRow.event]}</p>
+          <div className="body">
+            <div className="block event">
+              <p className="name">{activityLogEventDisplay[selectedRow.event]}</p>
               {isPresent(selectedRow.description) && (
-                <p className="event-description">{selectedRow.description}</p>
+                <p className="description">{selectedRow.description}</p>
               )}
             </div>
             <Divider />
-            <div className="drawer-block log-details-info">
+            <div className="block info">
               <LogDetailsInfo event={selectedRow} />
             </div>
             <Divider />
-            <div className="drawer-block log-details-changes">
+            <div className="block changes">
               <Suspense
                 fallback={
-                  <div className="changes-loader">
+                  <div className="loader">
                     <LoaderSpinner size={24} />
                   </div>
                 }
@@ -183,7 +183,7 @@ export const LogDetailsDrawer = ({ selectedRow, onClose }: Props) => {
               </Suspense>
             </div>
           </div>
-          <div className="log-details-drawer-footer">
+          <div className="footer">
             <Button variant="secondary" text={m.controls_close()} onClick={onClose} />
           </div>
         </>
