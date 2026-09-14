@@ -1495,6 +1495,7 @@ dependencies = [
  "clap",
  "humantime",
  "ipnetwork",
+ "ldap3",
  "rand 0.8.8",
  "reqwest",
  "secrecy",

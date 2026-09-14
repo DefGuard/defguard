@@ -14,6 +14,8 @@ pub struct Config {
 pub enum Command {
     /// Seeds one device for every generated user.
     Seed(SeedArgs),
+    /// Seeds users and a group in the dedicated OpenLDAP load-test OU.
+    SeedLdap(SeedLdapArgs),
     /// Runs a load-test scenario.
     Test(TestArgs),
 }
@@ -29,6 +31,44 @@ pub struct SeedArgs {
 
     #[command(flatten)]
     pub database: DatabaseArgs,
+}
+
+#[derive(Debug, Args)]
+pub struct SeedLdapArgs {
+    /// Number of LDAP users to create.
+    #[arg(long)]
+    pub users: NonZeroUsize,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LDAP_URL",
+        default_value = "ldap://localhost:389"
+    )]
+    pub ldap_url: String,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LDAP_ADMIN_DN",
+        default_value = "cn=admin,dc=example,dc=com"
+    )]
+    pub admin_dn: String,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LDAP_ADMIN_PASSWORD",
+        default_value = "defguard-ldap"
+    )]
+    pub admin_password: SecretString,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LDAP_USER_PASSWORD",
+        default_value = "Password123!1"
+    )]
+    pub user_password: SecretString,
+
+    #[arg(long, default_value = "dc=example,dc=com")]
+    pub base_dn: String,
 }
 
 #[derive(Debug, Args)]

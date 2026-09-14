@@ -2,6 +2,7 @@ use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
 mod config;
+mod ldap_seed;
 mod loadtest;
 mod mfa;
 mod runner;
@@ -19,6 +20,7 @@ async fn main() -> anyhow::Result<()> {
 
     match config.command {
         config::Command::Seed(args) => seed::run(args).await?,
+        config::Command::SeedLdap(args) => ldap_seed::run(args).await?,
         config::Command::Test(config::TestArgs { command }) => match command {
             config::TestCommand::ConfigPolling(args) => {
                 loadtest::ConfigPollingLoadTest::new(args).run().await?
