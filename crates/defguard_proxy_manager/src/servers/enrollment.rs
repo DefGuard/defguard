@@ -353,9 +353,7 @@ impl EnrollmentServer {
         request: RegisterMobileAuthRequest,
     ) -> Result<(), Status> {
         debug!("Register mobile auth started");
-        let (enrollment, _) = self
-            .validate_mfa_setup_session(Some(&request.token))
-            .await?;
+        let enrollment = self.validate_session(Some(&request.token)).await?;
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
