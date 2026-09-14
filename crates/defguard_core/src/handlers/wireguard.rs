@@ -250,7 +250,7 @@ fn assignment_license_error_response(
         }
         MfaFlowAssignmentLicenseError::Database(error) => return Err(WebError::from(error)),
     };
-    Ok(license_error_response("mfa_flows".into(), code))
+    Ok(license_error_response("mfa_flows", code))
 }
 
 /// Prepare assignments for equality check.

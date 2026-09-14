@@ -172,7 +172,7 @@ pub struct LocationMfaFlowResponse {
 /// The status stays `403` rather than the `400` the impl spec tabulates: a licence refusal is not
 /// a malformed request, and the rest of the codebase answers licence gates with `403`. The
 /// top-level `error` discriminator distinguishes it from `validation_failed`.
-pub(crate) fn license_error_response(field: String, code: &str) -> ApiResponse {
+pub(crate) fn license_error_response(field: &str, code: &str) -> ApiResponse {
     ApiResponse::new(
         json!({
             "error": "license_required",
@@ -193,10 +193,7 @@ fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<
     // Keep these write-side gates in sync with `flow_unavailable_reason`, which reports saved-flow
     // availability.
     if step_methods.len() > 1 && !is_business_license_active() {
-        return Some(license_error_response(
-            "steps".into(),
-            "business_license_required",
-        ));
+        return Some(license_error_response("steps", "business_license_required"));
     }
 
     let oidc_step = step_methods
@@ -206,7 +203,7 @@ fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<
         && !is_business_license_active()
     {
         return Some(license_error_response(
-            format!("steps[{index}].methods"),
+            &format!("steps[{index}].methods"),
             "business_license_required",
         ));
     }
@@ -478,7 +475,7 @@ pub async fn create_mfa_flow(
 
     if !is_business_license_active() && MfaFlow::any_exist(&appstate.pool).await? {
         return Ok(license_error_response(
-            "flow".into(),
+            "flow",
             "additional_flow_business_license_required",
         ));
     }

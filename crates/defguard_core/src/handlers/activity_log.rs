@@ -150,7 +150,7 @@ pub async fn get_activity_log_event(
         FROM activity_log_event WHERE id = ",
     );
     query_builder.push_bind(id);
-    apply_user_scope(&mut query_builder, session_info);
+    apply_user_scope(&mut query_builder, &session_info);
 
     let event = query_builder
         .build_query_as::<ApiActivityLogEventDetails>()
@@ -204,12 +204,12 @@ pub async fn get_activity_log_events(
     debug!("Fetching activity log with filters {filters:?} and pagination {pagination}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
-    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+    let mut query_builder = QueryBuilder::<Postgres>::new(
         "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description \
         FROM activity_log_event WHERE 1=1 ",
     );
 
-    apply_user_scope(&mut query_builder, session_info);
+    apply_user_scope(&mut query_builder, &session_info);
 
     // add optional filters
     apply_filters(&mut query_builder, &filters);
@@ -235,9 +235,10 @@ pub async fn get_activity_log_events(
     // fetch total number of filtered events
     let mut count_query_builder =
         QueryBuilder::new("SELECT COUNT(*) FROM activity_log_event WHERE 1=1 ");
+    apply_user_scope(&mut count_query_builder, &session_info);
     apply_filters(&mut count_query_builder, &filters);
-    let total_items: i64 = count_query_builder
-        .build_query_scalar()
+    let total_items = count_query_builder
+        .build_query_scalar::<i64>()
         .fetch_one(&appstate.pool)
         .await?;
 
@@ -248,17 +249,17 @@ pub async fn get_activity_log_events(
     ))
 }
 
-/// Restricts the query to the session user's own events unless they are an admin
-fn apply_user_scope(query_builder: &mut QueryBuilder<Postgres>, session_info: SessionInfo) {
+/// Restricts the query to the session user's own events unless they are an admin.
+fn apply_user_scope(query_builder: &mut QueryBuilder<Postgres>, session_info: &SessionInfo) {
     if !session_info.is_admin {
         query_builder
             .push(" AND username = ")
-            .push_bind(session_info.user.username)
+            .push_bind(session_info.user.username.clone())
             .push(" ");
     }
 }
 
-/// Adds optional filtering statements to SQL query based on request query params
+/// Adds optional filtering statements to SQL query based on request query params.
 fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterParams) {
     debug!("Applying query filters: {filters:?}");
 
