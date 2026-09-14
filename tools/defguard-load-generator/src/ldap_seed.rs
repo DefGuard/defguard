@@ -106,10 +106,15 @@ async fn add_user(
 }
 
 async fn delete_subtree(ldap: &mut ldap3::Ldap, base_dn: &str) -> anyhow::Result<()> {
-    let (entries, _) = ldap
+    let (entries, _) = match ldap
         .search(base_dn, Scope::Subtree, "(objectClass=*)", vec!["1.1"])
         .await?
-        .success()?;
+        .success()
+    {
+        Ok(result) => result,
+        Err(ldap3::LdapError::LdapResult { ref result }) if result.rc == 32 => return Ok(()),
+        Err(error) => return Err(error.into()),
+    };
     let mut dns: Vec<String> = entries
         .into_iter()
         .map(SearchEntry::construct)
