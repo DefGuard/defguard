@@ -71,7 +71,7 @@ pub struct ClientMfaArgs {
 
     /// WireGuard network/location with internal MFA enabled.
     #[arg(long)]
-    pub location_id: i64,
+    pub network_id: i64,
 
     #[command(flatten)]
     pub database: DatabaseArgs,

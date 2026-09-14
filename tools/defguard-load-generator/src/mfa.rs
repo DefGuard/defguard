@@ -85,14 +85,14 @@ struct Metrics {
 }
 
 pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
-    let actors = load_actors(&args.database, args.location_id).await?;
+    let actors = load_actors(&args.database, args.network_id).await?;
     if actors.is_empty() {
         anyhow::bail!("no seeded MFA actors found");
     }
 
     let client = Client::builder().timeout(REQUEST_TIMEOUT).build()?;
     let base_url = args.proxy_url.trim_end_matches('/').to_owned();
-    let location_id = args.location_id;
+    let location_id = args.network_id;
     let mut metrics = Metrics::default();
     let stats = run_load_loop(
         actors,
