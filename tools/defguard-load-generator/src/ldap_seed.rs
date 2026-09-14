@@ -83,21 +83,28 @@ async fn add_user(
     uid: &str,
     password: &str,
 ) -> anyhow::Result<()> {
-    let object_classes = HashSet::from(["top", "person", "organizationalPerson", "inetOrgPerson"]);
-    let uid_values = HashSet::from([uid]);
-    let cn_values = HashSet::from([uid]);
-    let sn_values = HashSet::from(["LoadTest"]);
-    let given_name_values = HashSet::from(["User"]);
-    let password_values = HashSet::from([password]);
+    let object_classes = HashSet::from([
+        "top".to_owned(),
+        "person".to_owned(),
+        "organizationalPerson".to_owned(),
+        "inetOrgPerson".to_owned(),
+    ]);
+    let uid_values = HashSet::from([uid.to_owned()]);
+    let cn_values = HashSet::from([uid.to_owned()]);
+    let sn_values = HashSet::from(["LoadTest".to_owned()]);
+    let given_name_values = HashSet::from(["User".to_owned()]);
+    let password_values = HashSet::from([password.to_owned()]);
+    let mail_values = HashSet::from([format!("{uid}@defguard.test")]);
     ldap.add(
         dn,
         vec![
-            ("objectClass", object_classes),
-            ("uid", uid_values),
-            ("cn", cn_values),
-            ("sn", sn_values),
-            ("givenName", given_name_values),
-            (USER_PASSWORD, password_values),
+            ("objectClass".to_owned(), object_classes),
+            ("uid".to_owned(), uid_values),
+            ("cn".to_owned(), cn_values),
+            ("sn".to_owned(), sn_values),
+            ("givenName".to_owned(), given_name_values),
+            ("mail".to_owned(), mail_values),
+            (USER_PASSWORD.to_owned(), password_values),
         ],
     )
     .await?
