@@ -1,8 +1,7 @@
 #modals-root > .modal-root .drawer-modal.log-details-drawer {
-  --log-details-width: 780px;
-  --max-width: var(--log-details-width);
+  --max-width: min(780px, 100dvw);
 
-  min-width: min(var(--log-details-width), 100dvw);
+  min-width: var(--max-width);
 
   > .modal-content {
     padding: 0;
@@ -28,7 +27,6 @@
 
   .event-name {
     font: var(--t-body-primary-400);
-    color: var(--fg-default);
   }
 
   .event-description {
@@ -59,7 +57,6 @@
     flex: 1;
     min-width: 0;
     font: var(--t-body-sm-400);
-    color: var(--fg-default);
     overflow-wrap: anywhere;
   }
 }
@@ -77,7 +74,6 @@
 
     .changes-title {
       font: var(--t-body-primary-500);
-      color: var(--fg-default);
     }
   }
 
@@ -91,55 +87,8 @@
     color: var(--fg-disabled);
   }
 
-  .changes-table-container {
-    border: 1px solid var(--border-disabled);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-
-  .changes-table {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-
-    th,
-    td {
-      padding: var(--spacing-md);
-      text-align: left;
-      vertical-align: top;
-      overflow-wrap: anywhere;
-      white-space: pre-wrap;
-    }
-
-    th {
-      background-color: var(--bg-disabled);
-      font: var(--t-body-sm-500);
-      color: var(--fg-default);
-      border-bottom: 1px solid var(--border-disabled);
-
-      &:not(:last-child) {
-        border-right: 1px solid var(--border-disabled);
-      }
-    }
-
-    td {
-      font: var(--t-body-sm-400);
-      color: var(--fg-default);
-    }
-
-    tbody tr:not(:last-child) td {
-      border-bottom: 1px solid var(--border-disabled);
-    }
-
-    th:first-child,
-    td:first-child {
-      width: 26%;
-    }
-
-    th:nth-child(2),
-    td:nth-child(2) {
-      width: 37%;
-    }
+  .table {
+    padding: 0;
   }
 }
 

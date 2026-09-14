@@ -1,5 +1,10 @@
 import './LogDetailsDrawer.scss';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import { Suspense, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { activityLogEventDisplay } from '../../../shared/api/activity-log-types';
@@ -9,13 +14,21 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { DrawerModal } from '../../../shared/defguard-ui/components/DrawerModal/DrawerModal';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/LoaderSpinner/LoaderSpinner';
 import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
+import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
+import { renderTableCellValue } from '../../../shared/defguard-ui/components/table/utils/renderTableCellValue';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getActivityLogEventQueryOptions } from '../../../shared/query';
 import { displayDate } from '../../../shared/utils/displayDate';
 import { formatIpForDisplay } from '../../../shared/utils/formatIpForDisplay';
-import { buildLogDetailsChanges, missingValuePlaceholder } from '../logDetails';
+import {
+  buildLogDetailsChanges,
+  type LogDetailsChange,
+  missingValuePlaceholder,
+} from '../logDetails';
 
 const logDetailsDateFormat = 'DD/MM/YYYY HH:mm';
+
+const columnHelper = createColumnHelper<LogDetailsChange>();
 
 /**
  * The changed settings live in the event metadata, which only the details endpoint
@@ -26,9 +39,46 @@ const LogDetailsChanges = ({ eventId }: { eventId: number }) => {
   const { data: event } = useSuspenseQuery(getActivityLogEventQueryOptions(eventId));
 
   const changes = useMemo(() => buildLogDetailsChanges(event.metadata), [event.metadata]);
-  const visibleChanges = showUnchanged
-    ? changes
-    : changes.filter((change) => change.changed);
+  const visibleChanges = useMemo(
+    () => (showUnchanged ? changes : changes.filter((change) => change.changed)),
+    [changes, showUnchanged],
+  );
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('label', {
+        header: m.activity_log_details_col_changed(),
+        size: 180,
+        minSize: 120,
+        meta: { flex: true },
+        cell: renderTableCellValue,
+      }),
+      columnHelper.accessor('from', {
+        header: m.activity_log_details_col_from(),
+        size: 240,
+        minSize: 140,
+        meta: { flex: true },
+        cell: renderTableCellValue,
+      }),
+      columnHelper.accessor('to', {
+        header: m.activity_log_details_col_to(),
+        size: 240,
+        minSize: 140,
+        meta: { flex: true },
+        cell: renderTableCellValue,
+      }),
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    columns,
+    data: visibleChanges,
+    enableRowSelection: false,
+    columnResizeMode: 'onChange',
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (change) => change.field,
+  });
 
   return (
     <>
@@ -46,26 +96,7 @@ const LogDetailsChanges = ({ eventId }: { eventId: number }) => {
         )}
       </div>
       {visibleChanges.length > 0 ? (
-        <div className="changes-table-container">
-          <table className="changes-table">
-            <thead>
-              <tr>
-                <th>{m.activity_log_details_col_changed()}</th>
-                <th>{m.activity_log_details_col_from()}</th>
-                <th>{m.activity_log_details_col_to()}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleChanges.map((change) => (
-                <tr key={change.field}>
-                  <td>{change.label}</td>
-                  <td>{change.from}</td>
-                  <td>{change.to}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableBody table={table} maxVisibleRows={8} />
       ) : (
         <p className="changes-empty">
           {changes.length > 0
