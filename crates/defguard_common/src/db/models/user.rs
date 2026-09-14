@@ -614,7 +614,7 @@ impl User<Id> {
             self.totp_secret = None;
 
             query!(
-                "UPDATE \"user\" SET mfa_enabled = $2, totp_enabled = $3 AND totp_secret = $4 \
+                "UPDATE \"user\" SET mfa_enabled = $2, totp_enabled = $3, totp_secret = $4 \
                 WHERE id = $1",
                 self.id,
                 self.mfa_enabled,
@@ -655,7 +655,7 @@ impl User<Id> {
             self.email_mfa_secret = None;
 
             query!(
-                "UPDATE \"user\" SET mfa_enabled = $2, email_mfa_enabled = $3 AND email_mfa_secret = $4 \
+                "UPDATE \"user\" SET mfa_enabled = $2, email_mfa_enabled = $3, email_mfa_secret = $4 \
                 WHERE id = $1",
                 self.id,
                 self.mfa_enabled,
@@ -1976,5 +1976,43 @@ mod test {
         let user = make_user(true, Some("sub"), None);
         let settings = settings_with_ldap_password_management(false);
         assert!(!user.password_management_disabled(false, &settings, false));
+    }
+
+    #[sqlx::test]
+    async fn test_disable_mfa_method_clears_its_secret(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config);
+
+        let mut user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        user.new_totp_secret(&pool).await.unwrap();
+        user.new_email_secret(&pool).await.unwrap();
+        user.enable_totp(&pool).await.unwrap();
+        user.enable_email_mfa(&pool).await.unwrap();
+
+        user.disable_totp(&pool).await.unwrap();
+        user.disable_email_mfa(&pool).await.unwrap();
+
+        // Clear the secret as well as the flag so stale authenticator entries cannot re-enable
+        // the factor.
+        let stored = User::find_by_id(&pool, user.id).await.unwrap().unwrap();
+        assert!(!stored.totp_enabled);
+        assert!(!stored.email_mfa_enabled);
+        assert!(stored.totp_secret.is_none());
+        assert!(stored.email_mfa_secret.is_none());
     }
 }

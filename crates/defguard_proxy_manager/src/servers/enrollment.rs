@@ -14,7 +14,9 @@ use defguard_common::{
     },
 };
 use defguard_core::{
-    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    db::models::enrollment::{
+        ENROLLMENT_TOKEN_TYPE, MFA_CONFIG_SESSION_TIMEOUT, MFA_CONFIG_TOKEN_TYPE, Token,
+    },
     device_access::{build_device_config, join_device_to_all_networks},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
@@ -24,8 +26,8 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{
-        BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent,
-        LdapSyncEventType,
+        ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
+        BidiStreamEventType, EnrollmentEvent, LdapSyncEventType,
     },
     grpc::{
         GatewayCommand, InstanceInfo,
@@ -58,6 +60,7 @@ pub(crate) struct EnrollmentServer {
     gateway_tx: Sender<GatewayCommand>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ldap_tx: UnboundedSender<LdapSyncEventType>,
+    event_tx: UnboundedSender<ApiEvent>,
 }
 
 impl EnrollmentServer {
@@ -67,43 +70,62 @@ impl EnrollmentServer {
         gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         ldap_tx: UnboundedSender<LdapSyncEventType>,
+        event_tx: UnboundedSender<ApiEvent>,
     ) -> Self {
         Self {
             pool,
             gateway_tx,
             bidi_event_tx,
             ldap_tx,
+            event_tx,
         }
     }
 
-    /// Checks if token provided with request corresponds to a valid enrollment session
+    /// Validates an enrollment session token.
     async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
-        info!("Validating enrollment session.");
+        let (token, is_enrollment) = self.validate_mfa_setup_session(token).await?;
+        if !is_enrollment {
+            error!(
+                "Invalid token type used in enrollment process: {:?}",
+                token.token_type
+            );
+            return Err(Status::permission_denied("invalid token"));
+        }
+        Ok(token)
+    }
+
+    /// Validates an enrollment or MFA configuration session.
+    ///
+    /// The returned flag is `true` for an enrollment session.
+    async fn validate_mfa_setup_session(
+        &self,
+        token: Option<&String>,
+    ) -> Result<(Token, bool), Status> {
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
         };
-        let enrollment = Token::find_by_id(&self.pool, token).await?;
-        debug!("Found matching token, verifying validity: {enrollment:?}.");
-        if enrollment
-            .token_type
-            .as_ref()
-            .is_none_or(|token_type| token_type != ENROLLMENT_TOKEN_TYPE)
-        {
-            error!(
-                "Invalid token type used in enrollment process: {:?}",
-                enrollment.token_type
-            );
-            return Err(Status::permission_denied("invalid token"));
-        }
-        let settings = Settings::get_current_settings();
-        if enrollment.is_session_valid(settings.enrollment_session_timeout().as_secs()) {
-            info!("Enrollment session validated: {enrollment:?}");
-            Ok(enrollment)
+        let token = Token::find_by_id(&self.pool, token).await?;
+        let token_type = token.token_type.as_deref();
+        let (is_enrollment, timeout) = if token_type == Some(ENROLLMENT_TOKEN_TYPE) {
+            (
+                true,
+                Settings::get_current_settings()
+                    .enrollment_session_timeout()
+                    .as_secs(),
+            )
+        } else if token_type == Some(MFA_CONFIG_TOKEN_TYPE) {
+            (false, MFA_CONFIG_SESSION_TIMEOUT.as_secs())
         } else {
-            error!("Enrollment session expired: {enrollment:?}");
-            Err(Status::unauthenticated("Session expired"))
+            error!("Invalid token type used in MFA setup: {token_type:?}");
+            return Err(Status::permission_denied("invalid token"));
+        };
+        // Setup tokens are valid only after authorization, when `used_at` is set.
+        if !token.is_session_valid(timeout) {
+            error!("MFA setup session is not valid: {token:?}");
+            return Err(Status::unauthenticated("Session expired"));
         }
+        Ok((token, is_enrollment))
     }
 
     /// Sends given `GatewayCommand` to be handled by gateway manager service
@@ -331,7 +353,9 @@ impl EnrollmentServer {
         request: RegisterMobileAuthRequest,
     ) -> Result<(), Status> {
         debug!("Register mobile auth started");
-        let enrollment = self.validate_session(Some(&request.token)).await?;
+        let (enrollment, _) = self
+            .validate_mfa_setup_session(Some(&request.token))
+            .await?;
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
@@ -1075,21 +1099,22 @@ impl EnrollmentServer {
         build_device_config_response(&self.pool, device, Some(token), device_info).await
     }
 
-    // TODO: Add events
     #[instrument(skip_all)]
-    pub(crate) async fn register_code_mfa_start(
+    pub(crate) async fn mfa_setup_start(
         &self,
         request: CodeMfaSetupStartRequest,
     ) -> Result<CodeMfaSetupStartResponse, Status> {
-        debug!("Begin enrollment code MFA setup start");
+        debug!("Starting MFA setup");
         let method = request.method();
         if method != MfaMethod::Email && method != MfaMethod::Totp {
             return Err(Status::invalid_argument("Method not supported".to_owned()));
         }
-        let enrollment = Token::find_by_id(&self.pool, &request.token).await?;
-        let mut user = enrollment.fetch_user(&self.pool).await?;
-        // available only for unenrolled users
-        if user.is_enrolled() {
+        let (token, is_enrollment) = self
+            .validate_mfa_setup_session(Some(&request.token))
+            .await?;
+        let mut user = token.fetch_user(&self.pool).await?;
+        // Enrollment cannot configure an already enrolled user; MFA configuration can.
+        if is_enrollment && user.is_enrolled() {
             return Err(Status::permission_denied("User is already enrolled"));
         }
         match method {
@@ -1102,10 +1127,6 @@ impl EnrollmentServer {
                 user.new_email_secret(&self.pool).await.map_err(|_| {
                     error!("Failed to create email secret");
                     Status::internal("Failed to setup email mfa".to_owned())
-                })?;
-                user.clear_recovery_codes(&self.pool).await.map_err(|e| {
-                    error!("Failed to clear recovery codes: {e}");
-                    Status::internal("Failed to clear recovery codes".to_owned())
                 })?;
                 info!("Created email secret for {}", &user.username);
                 let mut transaction = self.pool.begin().await.map_err(|err| {
@@ -1136,10 +1157,6 @@ impl EnrollmentServer {
                     error!("Failed to make new TOTP secret");
                     Status::internal("Failed to make new TOTP secret".to_owned())
                 })?;
-                user.clear_recovery_codes(&self.pool).await.map_err(|e| {
-                    error!("Failed to clear recovery codes: {e}");
-                    Status::internal("Failed to clear recovery codes".to_owned())
-                })?;
                 info!("New TOTP secret created for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
                     totp_secret: Some(secret),
@@ -1149,66 +1166,108 @@ impl EnrollmentServer {
         }
     }
 
-    // TODO: Add events
     #[instrument(skip_all)]
-    pub(crate) async fn register_code_mfa_finish(
+    pub(crate) async fn mfa_setup_finish(
         &self,
         request: CodeMfaSetupFinishRequest,
+        info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<CodeMfaSetupFinishResponse, Status> {
-        debug!("Begin enrollment code mfa setup finish");
-        let enrollment = self.validate_session(Some(&request.token)).await?;
+        debug!("Finishing MFA setup");
+        let (token, is_enrollment) = self
+            .validate_mfa_setup_session(Some(&request.token))
+            .await?;
         let method = request.method();
         if method != MfaMethod::Totp && method != MfaMethod::Email {
             return Err(Status::invalid_argument("Method not supported"));
         }
-        let mut user = enrollment.fetch_user(&self.pool).await?;
-        // available only for unenrolled users
-        if user.is_enrolled() {
+        let mut user = token.fetch_user(&self.pool).await?;
+        // Enrollment cannot configure an already enrolled user; MFA configuration can.
+        if is_enrollment && user.is_enrolled() {
             return Err(Status::permission_denied("User is already enrolled"));
         }
 
-        // enable corresponding MFA
-        let mfa_method: MFAMethod = match method {
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin database transaction: {err}");
+            Status::internal("Failed to begin database transaction".to_owned())
+        })?;
+
+        let (mfa_method, event) = match method {
             MfaMethod::Email => {
                 if !user.verify_email_mfa_code(&request.code) {
                     return Err(Status::invalid_argument("Email code invalid".to_owned()));
                 }
-                user.enable_email_mfa(&self.pool)
+                user.enable_email_mfa(&mut *transaction)
                     .await
                     .map_err(|_| Status::internal("Enabling method failed.".to_owned()))?;
-                MFAMethod::Email
+                (MFAMethod::Email, ApiEventType::MfaEmailEnabled)
             }
             MfaMethod::Totp => {
                 if !user.verify_totp_code(&request.code) {
                     return Err(Status::invalid_argument("Code invalid".to_owned()));
                 }
-                user.enable_totp(&self.pool)
+                user.enable_totp(&mut *transaction)
                     .await
                     .map_err(|_| Status::internal("Enabling method failed.".to_owned()))?;
-                MFAMethod::OneTimePassword
+                (MFAMethod::OneTimePassword, ApiEventType::MfaTotpEnabled)
             }
             _ => {
                 return Err(Status::invalid_argument("Method not supported"));
             }
         };
+        // Enabling MFA invalidates all existing sessions in the same transaction.
+        user.logout_all_sessions(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to log out user sessions: {err}");
+                Status::internal("Failed to log out user sessions".to_owned())
+            })?;
+        // New enrollments get fresh recovery codes. Existing users keep their current
+        // codes when adding a factor.
+        if is_enrollment {
+            user.clear_recovery_codes(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!("Failed to clear recovery codes: {err}");
+                    Status::internal("Failed to clear recovery codes".to_owned())
+                })?;
+        }
+        // Existing recovery codes were already shown, so return an empty list.
+        let recovery_codes = user
+            .get_recovery_codes(&mut *transaction)
+            .await
+            .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
+            .unwrap_or_default();
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit database transaction: {err}");
+            Status::internal("Failed to commit database transaction".to_owned())
+        })?;
+
+        // Commit before reading the saved factor state or sending the confirmation email.
         user.enable_mfa(&self.pool)
             .await
             .map_err(|_| Status::internal("Enabling MFA on the account failed.".to_owned()))?;
-        let recovery_codes = user
-            .get_recovery_codes(&self.pool)
-            .await
-            .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
-            .ok_or_else(|| Status::internal("Recovery codes not found".to_owned()))?;
-        if let Ok(mut conn) = self.pool.begin().await {
-            if let Err(err) =
-                mfa_configured_mail(&user.email, &mut conn, None, &mfa_method, &user.first_name)
-                    .await
-            {
-                error!("Failed to send MFA configured email\nReason: {err}");
+        match self.pool.acquire().await {
+            Ok(mut conn) => {
+                if let Err(err) =
+                    mfa_configured_mail(&user.email, &mut conn, None, &mfa_method, &user.first_name)
+                        .await
+                {
+                    error!("Failed to send MFA configured email\nReason: {err}");
+                }
             }
-        } else {
-            error!("Failed to begin database session");
+            Err(err) => error!("Failed to acquire database connection: {err}"),
         }
+        let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+        let context = ApiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
+        self.event_tx
+            .send(ApiEvent {
+                context,
+                event: Box::new(event),
+            })
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}");
+                Status::internal("unexpected error")
+            })?;
         info!(
             "Successfully enabled MFA method {} for user {}",
             method.as_str_name(),
@@ -1337,7 +1396,9 @@ mod test {
         let (gateway_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
         let (ldap_tx, _) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx);
+        let (event_tx, _) = unbounded_channel();
+        let server =
+            EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx, event_tx);
 
         let mut transaction = pool.begin().await.unwrap();
         let result = server
@@ -1392,7 +1453,9 @@ mod test {
         let (gateway_tx, _gateway_rx) = broadcast::channel(1);
         let (bidi_event_tx, _bidi_events_rx) = unbounded_channel();
         let (ldap_tx, _ldap_rx) = unbounded_channel();
-        let server = EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx);
+        let (event_tx, _event_rx) = unbounded_channel();
+        let server =
+            EnrollmentServer::new(pool.clone(), gateway_tx, bidi_event_tx, ldap_tx, event_tx);
 
         let request = EnrollmentStartRequest {
             token: token.id.clone(),
