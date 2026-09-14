@@ -26,7 +26,7 @@ use tonic::Status;
 use super::InstanceInfo;
 use crate::{
     device_access::build_device_config,
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_oidc_mfa_available},
     grpc::{
         client_version::{ClientFeature, should_omit_location_for_device},
         should_prevent_mfa_location_usage, should_prevent_service_location_usage,
@@ -47,7 +47,7 @@ pub async fn build_device_config_response(
     })?;
 
     let smtp_configured = settings.smtp_configured();
-    let oidc_configured = is_business_license_active() && openid_provider.is_some();
+    let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
 
     let locations = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
@@ -236,12 +236,13 @@ pub async fn build_device_config_response(
         user.username, user.id, device.name, device.id
     );
 
-    let instance_info = InstanceInfo::build(pool, &settings, &user, openid_provider)
-        .await
-        .map_err(|err| {
-            error!("Failed to build instance info: {err}");
-            Status::internal(format!("unexpected error: {err}"))
-        })?;
+    let instance_info =
+        InstanceInfo::build(pool, &settings, &user, openid_provider, Some(device.id))
+            .await
+            .map_err(|err| {
+                error!("Failed to build instance info: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
 
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
@@ -264,9 +265,15 @@ pub async fn build_wire_steps(
     let mut wire_steps = Vec::with_capacity(steps.len());
     for step in steps {
         let mut methods = Vec::with_capacity(step.methods.len());
-        for &method in &step.methods {
+        for method in VpnClientMfaMethod::ordered_set(&step.methods) {
             let configured = method
-                .is_configured(pool, user, device_id, smtp_configured, oidc_configured)
+                .is_configured(
+                    pool,
+                    user,
+                    Some(device_id),
+                    smtp_configured,
+                    oidc_configured,
+                )
                 .await
                 .map_err(|err| {
                     error!("Failed to compute MFA method configuration: {err}");
@@ -416,7 +423,7 @@ mod tests {
     };
     use tonic::Code;
 
-    use super::{build_device_config_response, build_wire_steps};
+    use super::{InstanceInfo, build_device_config_response, build_wire_steps};
     use crate::enterprise::license::{
         License, LicenseTier, SupportType, get_cached_license, set_cached_license,
     };
@@ -1031,5 +1038,48 @@ mod tests {
         assert!(wire[1].methods[1].configured);
         assert_eq!(wire[1].methods[2].method, MfaMethod::MobileApprove as i32);
         assert!(wire[1].methods[2].configured);
+
+        let settings = Settings::get_current_settings();
+        let instance: defguard_proto::client_types::InstanceInfo =
+            InstanceInfo::build(&pool, &settings, &user, None, Some(device.id))
+                .await
+                .expect("failed to build instance info")
+                .into();
+        let configured_from_instance = instance
+            .mfa_user_state
+            .expect("InstanceInfo should contain MFA user state")
+            .configured_methods;
+        let configured_from_steps = wire
+            .iter()
+            .flat_map(|step| &step.methods)
+            .filter(|method| method.configured)
+            .map(|method| method.method)
+            .collect::<Vec<_>>();
+        assert_eq!(configured_from_instance, configured_from_steps);
+    }
+
+    #[sqlx::test]
+    async fn test_instance_info_has_empty_mfa_user_state_when_unconfigured(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let settings = Settings::get_current_settings();
+
+        let instance: defguard_proto::client_types::InstanceInfo =
+            InstanceInfo::build(&pool, &settings, &user, None, None)
+                .await
+                .expect("failed to build instance info")
+                .into();
+
+        assert!(
+            instance
+                .mfa_user_state
+                .expect("InstanceInfo should contain MFA user state")
+                .configured_methods
+                .is_empty()
+        );
     }
 }

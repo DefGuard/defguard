@@ -147,7 +147,11 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
     set_test_license_business();
 
     let _network = create_network(&context.pool).await;
-    let (_user, device) = create_user_with_device(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    user.totp_enabled = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to enable TOTP for test user");
     let token_str = create_polling_token(&context.pool, device.id).await;
 
     context.mock_proxy().send_request(CoreRequest {
@@ -163,9 +167,21 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
     let response = context.mock_proxy_mut().recv_outbound().await;
     match &response.payload {
         Some(core_response::Payload::InstanceInfo(info)) => {
-            assert!(
-                info.device_config.is_some(),
-                "InstanceInfoResponse should contain a DeviceConfigResponse"
+            let device_config = info
+                .device_config
+                .as_ref()
+                .expect("InstanceInfoResponse should contain a DeviceConfigResponse");
+            let instance = device_config
+                .instance
+                .as_ref()
+                .expect("DeviceConfigResponse should contain instance info");
+            assert_eq!(
+                instance
+                    .mfa_user_state
+                    .as_ref()
+                    .expect("InstanceInfo should contain MFA user state")
+                    .configured_methods,
+                vec![client_types::MfaMethod::Totp as i32]
             );
         }
         other => panic!(

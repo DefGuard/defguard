@@ -8,7 +8,10 @@ use thiserror::Error;
 
 use crate::db::{
     Id, NoId,
-    models::{vpn_client_session::VpnClientMfaMethod, wireguard::LocationMfaMode},
+    models::{
+        vpn_client_session::{VpnClientMfaMethod, mfa_method_set_serde},
+        wireguard::LocationMfaMode,
+    },
 };
 
 /// An MFA flow is a named, ordered list of MFA steps.
@@ -29,7 +32,8 @@ pub struct MfaFlowStep<I = NoId> {
     pub id: I,
     pub flow_id: Id,
     pub position: i32,
-    pub methods: Vec<VpnClientMfaMethod>,
+    #[serde(with = "mfa_method_set_serde")]
+    pub methods: HashSet<VpnClientMfaMethod>,
 }
 
 /// DB query result: a flow row plus its server-computed `step_count`.
@@ -233,6 +237,42 @@ struct ResolveAssignmentRow {
     group_ids: Vec<Id>,
 }
 
+/// Database row for a flow step.
+struct MfaFlowStepRow {
+    id: Id,
+    flow_id: Id,
+    position: i32,
+    methods: Vec<VpnClientMfaMethod>,
+}
+
+fn duplicate_mfa_method_error() -> sqlx::Error {
+    sqlx::Error::Decode(Box::new(std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "MFA step methods must be unique",
+    )))
+}
+
+fn collect_mfa_methods(
+    methods: impl IntoIterator<Item = VpnClientMfaMethod>,
+) -> sqlx::Result<HashSet<VpnClientMfaMethod>> {
+    let mut set = HashSet::new();
+    for method in methods {
+        if !set.insert(method) {
+            return Err(duplicate_mfa_method_error());
+        }
+    }
+    Ok(set)
+}
+
+fn step_from_row(row: MfaFlowStepRow) -> sqlx::Result<MfaFlowStep<Id>> {
+    Ok(MfaFlowStep {
+        id: row.id,
+        flow_id: row.flow_id,
+        position: row.position,
+        methods: collect_mfa_methods(row.methods)?,
+    })
+}
+
 impl MfaFlow<NoId> {
     /// Creates a new flow with its steps in a single transaction.
     /// `step_methods` is one `Vec` per step; positions are assigned 0-based
@@ -344,6 +384,10 @@ impl MfaFlow<Id> {
         title: String,
         step_updates: Vec<(Option<Id>, Vec<VpnClientMfaMethod>)>,
     ) -> Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>), MfaFlowUpdateError> {
+        let step_updates = step_updates
+            .into_iter()
+            .map(|(id, methods)| collect_mfa_methods(methods).map(|methods| (id, methods)))
+            .collect::<sqlx::Result<Vec<_>>>()?;
         let incoming_ids: Vec<Id> = step_updates.iter().filter_map(|(id, _)| *id).collect();
 
         // Every submitted step id must already belong to this flow. Without this check an id
@@ -799,9 +843,8 @@ impl MfaFlow<Id> {
         }
 
         // Legacy clients cannot see FIDO2, so filter it out.
-        let set = steps[0]
-            .iter()
-            .copied()
+        let set = collect_mfa_methods(steps[0].iter().copied())?
+            .into_iter()
             .filter(|method| *method != VpnClientMfaMethod::Fido2)
             .collect::<HashSet<_>>();
 
@@ -829,14 +872,15 @@ impl MfaFlowStep<NoId> {
         conn: &mut PgConnection,
         flow_id: Id,
         position: i32,
-        methods: &[VpnClientMfaMethod],
+        methods: &HashSet<VpnClientMfaMethod>,
     ) -> sqlx::Result<Id> {
+        let methods = VpnClientMfaMethod::ordered_set(methods);
         let id = query_scalar!(
             "INSERT INTO mfa_flow_step (flow_id, position, methods) \
              VALUES ($1, $2, $3::vpn_client_mfa_method[]) RETURNING id",
             flow_id,
             position,
-            methods as &[VpnClientMfaMethod],
+            methods.as_slice() as &[VpnClientMfaMethod],
         )
         .fetch_one(&mut *conn)
         .await?;
@@ -852,13 +896,14 @@ impl MfaFlowStep<NoId> {
     ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
         let mut steps = Vec::with_capacity(step_methods.len());
         for (i, methods) in step_methods.iter().enumerate() {
-            let id = Self::insert_single(&mut *conn, flow_id, i as i32, methods).await?;
+            let methods = collect_mfa_methods(methods.iter().copied())?;
+            let id = Self::insert_single(&mut *conn, flow_id, i as i32, &methods).await?;
 
             steps.push(MfaFlowStep {
                 id,
                 flow_id,
                 position: i as i32,
-                methods: methods.clone(),
+                methods,
             });
         }
         Ok(steps)
@@ -872,7 +917,7 @@ impl MfaFlowStep<Id> {
         flow_id: Id,
     ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
         query_as!(
-            MfaFlowStep,
+            MfaFlowStepRow,
             "SELECT id, flow_id, position, \
              methods AS \"methods: Vec<VpnClientMfaMethod>\" \
              FROM mfa_flow_step \
@@ -881,7 +926,10 @@ impl MfaFlowStep<Id> {
             flow_id
         )
         .fetch_all(executor)
-        .await
+        .await?
+        .into_iter()
+        .map(step_from_row)
+        .collect()
     }
 
     /// Returns all flow steps ordered by flow ID and position.
@@ -889,14 +937,17 @@ impl MfaFlowStep<Id> {
         executor: E,
     ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
         query_as!(
-            MfaFlowStep,
+            MfaFlowStepRow,
             "SELECT id, flow_id, position, \
              methods AS \"methods: Vec<VpnClientMfaMethod>\" \
              FROM mfa_flow_step \
              ORDER BY flow_id, position"
         )
         .fetch_all(executor)
-        .await
+        .await?
+        .into_iter()
+        .map(step_from_row)
+        .collect()
     }
 
     /// Deletes all steps for a given flow except those whose id is in `keep_ids`.
@@ -945,14 +996,15 @@ impl MfaFlowStep<Id> {
         flow_id: Id,
         step_id: Id,
         position: i32,
-        methods: &[VpnClientMfaMethod],
+        methods: &HashSet<VpnClientMfaMethod>,
     ) -> sqlx::Result<()> {
+        let methods = VpnClientMfaMethod::ordered_set(methods);
         query!(
             "UPDATE mfa_flow_step \
              SET position = $1, methods = $2::vpn_client_mfa_method[] \
              WHERE id = $3 AND flow_id = $4",
             position,
-            methods as &[VpnClientMfaMethod],
+            methods.as_slice() as &[VpnClientMfaMethod],
             step_id,
             flow_id,
         )

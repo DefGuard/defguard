@@ -1054,8 +1054,9 @@ fn build_vpn_event(
             let snapshot = StepsSnapshot {
                 flow_id: 1,
                 steps: vec![Step {
-                    methods: vec![satisfied],
+                    methods: [satisfied].into_iter().collect(),
                     satisfied: Some(satisfied),
+                    mobile_auth_device_name: None,
                 }],
             };
             (

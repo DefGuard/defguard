@@ -37,7 +37,9 @@ use defguard_core::{
     events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent},
     grpc::{
         GatewayCommand,
-        proxy::client_mfa::{ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome},
+        proxy::client_mfa::{
+            ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome, RemoteAuthWaiters,
+        },
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -66,7 +68,7 @@ use tokio::{
         Mutex,
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
-        oneshot, watch,
+        watch,
     },
     time::sleep,
 };
@@ -86,12 +88,7 @@ use crate::{
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
-/// Compute the OIDC `state` payload for an `AuthInfo` request.
-///
-/// The MFA flow's payload is the opaque session token plus the session's current
-/// `step_attempt_id` (`<token>.<step_attempt_id>`), so the OIDC callback can bind to the attempt
-/// it was issued for rather than a superseded one. The enrollment and legacy flows have no such
-/// nonce and their payload is returned unchanged.
+/// Builds OIDC state with the current MFA attempt, leaving legacy and non-MFA inputs unchanged.
 async fn build_auth_info_state(
     pool: &PgPool,
     auth_flow_type: ProtoAuthFlowType,
@@ -101,12 +98,20 @@ async fn build_auth_info_state(
         return Ok(state);
     }
 
-    let Some(token) = state.as_deref() else {
+    let Some(state) = state else {
         debug!("OIDC MFA AuthInfo request is missing the session token");
         return Err(CoreError::invalid_argument("missing MFA session token"));
     };
 
-    let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(pool, token)
+    let (token, requested_attempt_id) = if state.contains('.') {
+        let parsed = MfaOidcState::parse(&state)
+            .ok_or_else(|| CoreError::invalid_argument("invalid state data"))?;
+        (parsed.token, Some(parsed.attempt_id))
+    } else {
+        (state, None)
+    };
+
+    let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(pool, &token)
         .await
         .map_err(|err| {
             error!("Failed to find MFA session: {err}");
@@ -122,7 +127,17 @@ async fn build_auth_info_state(
         return Err(CoreError::invalid_argument("no MFA attempt in progress"));
     };
 
-    Ok(Some(MfaOidcState::build(token, &ephemeral.step_attempt_id)))
+    if let Some(requested_attempt_id) = requested_attempt_id
+        && requested_attempt_id != ephemeral.step_attempt_id
+    {
+        debug!("OIDC MFA AuthInfo request references a stale attempt");
+        return Err(CoreError::invalid_argument("stale MFA attempt"));
+    }
+
+    Ok(Some(MfaOidcState::build(
+        &token,
+        &ephemeral.step_attempt_id,
+    )))
 }
 
 /// The concrete OpenID Connect client `make_oidc_client` builds for the Core auth flow.
@@ -221,7 +236,7 @@ impl ProxyHandler {
         pool: PgPool,
         url: Url,
         tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
@@ -252,7 +267,7 @@ impl ProxyHandler {
         proxy: &Proxy<Id>,
         pool: PgPool,
         tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
@@ -800,7 +815,12 @@ impl ProxyHandler {
                             match self
                                 .services
                                 .client_mfa
-                                .await_remote_mfa_login(request, tx.clone(), received.id)
+                                .await_remote_mfa_login(
+                                    request,
+                                    tx.clone(),
+                                    received.id,
+                                    received.device_info,
+                                )
                                 .await
                             {
                                 Ok(()) => None,
@@ -1193,7 +1213,7 @@ impl ProxyHandler {
         pool: PgPool,
         url: Url,
         tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
@@ -1352,11 +1372,7 @@ struct ProxyServices {
 }
 
 impl ProxyServices {
-    pub fn new(
-        pool: &PgPool,
-        tx: &ProxyTxSet,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
-    ) -> Self {
+    pub fn new(pool: &PgPool, tx: &ProxyTxSet, remote_mfa_responses: RemoteAuthWaiters) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
             tx.wireguard.clone(),

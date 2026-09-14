@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  knownFlowAssignments,
   overrideKey,
   removeOverride,
   reorderOverrides,
@@ -176,5 +177,16 @@ describe('selectableFlows', () => {
       { id: 2 },
       { id: 3 },
     ]);
+  });
+});
+
+describe('knownFlowAssignments', () => {
+  it('drops an assignment whose flow was deleted and keeps the rest', () => {
+    const assignments: MfaFlowAssignment[] = [
+      { flow_id: 1, is_default: false, group_ids: [7] },
+      { flow_id: 2, is_default: true, group_ids: [] },
+    ];
+
+    expect(knownFlowAssignments(assignments, [{ id: 2 }])).toEqual([assignments[1]]);
   });
 });

@@ -1,7 +1,7 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     net::IpAddr,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
     time::Duration,
 };
 
@@ -24,8 +24,8 @@ use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
         ClientMfaStartResponse, ClientMfaStepStartRequest, ClientMfaStepStartResponse, MfaAdvanced,
-        MfaCompleted, MfaMethod, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
-        mfa_step_result,
+        MfaAwaitingExternal, MfaCompleted, MfaMethod, MfaStartRejectionReason, MfaStepRejection,
+        MfaStepResult, mfa_step_result,
     },
     enterprise::posture::DevicePostureCheckRequest,
     proxy::{
@@ -55,6 +55,7 @@ use crate::{
             build_authorized_gateway_network_info, create_new_session,
         },
         error::{FinishError, StartError, StepError},
+        is_mobile_approve_request,
         method::InitiateError,
         types::{
             FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
@@ -63,13 +64,30 @@ use crate::{
     },
 };
 
-// How much time the user has to approve remote MFA with mobile device
-const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(1);
+// Must cover the client's MOBILE_APPROVE_TIMEOUT.
+const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_mins(2);
+
+/// Messages for a client waiting for remote MFA. The message never contains the VPN key.
+#[derive(Debug)]
+pub enum RemoteAuthSignal {
+    Superseded,
+    Approved,
+    Advanced { next_step: u32 },
+}
+
+/// State for a client waiting for remote MFA. The legacy key stays out of the message.
+pub struct RemoteAuthWaiter {
+    generation: Arc<()>,
+    signal_tx: oneshot::Sender<RemoteAuthSignal>,
+    legacy_preshared_key: Arc<Mutex<Option<String>>>,
+}
+
+pub type RemoteAuthWaiters = Arc<RwLock<HashMap<String, RemoteAuthWaiter>>>;
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     channels: EventChannels,
-    remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+    remote_mfa_responses: RemoteAuthWaiters,
     engine: MfaEngine,
 }
 
@@ -81,16 +99,40 @@ async fn acquire_connection(pool: &PgPool) -> Result<PoolConnection<Postgres>, S
     })
 }
 
-/// Remove a remote-MFA waiter from the map, dropping the entry so a never-finishing client or a
-/// dropped sender cannot leak a map entry.
-fn remove_remote_mfa_waiter(
-    waiters: &Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+/// Removes a waiting client only if it still belongs to this cleanup task.
+fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, generation: &Arc<()>) {
+    let mut waiters = waiters
+        .write()
+        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses");
+    let owns_current_waiter = waiters
+        .get(hash)
+        .is_some_and(|waiter| Arc::ptr_eq(&waiter.generation, generation));
+    if owns_current_waiter {
+        waiters.remove(hash);
+    }
+}
+
+/// Removes and returns the waiting client for `hash`; signal it after unlocking.
+fn take_remote_mfa_waiter_by_hash(
+    waiters: &RemoteAuthWaiters,
     hash: &str,
-) {
+) -> Option<RemoteAuthWaiter> {
     waiters
         .write()
         .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-        .remove(hash);
+        .remove(hash)
+}
+
+/// Takes the waiting client for `token`, if any.
+fn take_remote_mfa_waiter(waiters: &RemoteAuthWaiters, token: &str) -> Option<RemoteAuthWaiter> {
+    take_remote_mfa_waiter_by_hash(waiters, &hash_token(token))
+}
+
+/// Sends a message to a waiting client. Closed receivers are normal; the message never contains the VPN key.
+fn signal_remote_mfa_waiter(waiter: RemoteAuthWaiter, signal: RemoteAuthSignal) {
+    if let Err(unsent) = waiter.signal_tx.send(signal) {
+        debug!("Parked remote MFA waiter is gone, dropping signal {unsent:?}");
+    }
 }
 
 impl From<ClientMfaServerError> for Status {
@@ -129,7 +171,6 @@ impl From<InitiateError> for Status {
 
 // The engine's domain types carry no proto, so the conversions live here rather than in
 // `mfa_engine`.
-
 impl From<FinishOutcome> for MfaStepResult {
     fn from(value: FinishOutcome) -> Self {
         let outcome = match value {
@@ -138,6 +179,9 @@ impl From<FinishOutcome> for MfaStepResult {
             }
             FinishOutcome::Completed { preshared_key } => {
                 mfa_step_result::Outcome::Completed(MfaCompleted { preshared_key })
+            }
+            FinishOutcome::AwaitingExternal => {
+                mfa_step_result::Outcome::AwaitingExternal(MfaAwaitingExternal {})
             }
         };
         MfaStepResult {
@@ -217,6 +261,7 @@ impl From<FinishError> for Status {
             | FinishError::MalformedProof { .. } => Code::InvalidArgument,
             FinishError::OidcNotCompleted => Code::FailedPrecondition,
             FinishError::Unauthorized => Code::Unauthenticated,
+            FinishError::AttemptLimit => Code::PermissionDenied,
             FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
             FinishError::Event(e) => return Status::from(e),
         };
@@ -240,7 +285,7 @@ impl ClientMfaServer {
         pool: PgPool,
         gateway_tx: Sender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
-        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: RemoteAuthWaiters,
     ) -> Self {
         let engine = MfaEngine::new(pool.clone(), gateway_tx.clone(), bidi_event_tx.clone());
         Self {
@@ -472,7 +517,7 @@ impl ClientMfaServer {
                 .filter(|method| {
                     *method != VpnClientMfaMethod::Oidc || is_business_license_active()
                 })
-                .collect::<Vec<_>>();
+                .collect::<HashSet<_>>();
 
             let selected_client_method: VpnClientMfaMethod = selected_method.into();
             if !first_step_methods.contains(&selected_client_method) {
@@ -565,10 +610,11 @@ impl ClientMfaServer {
         location: &WireguardNetwork<Id>,
     ) -> Result<ClientMfaStartOutcome, Status> {
         if let Some(superseded_token_hash) = start_outcome.superseded_token_hash {
-            self.remote_mfa_responses
-                .write()
-                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                .remove(&superseded_token_hash);
+            if let Some(waiter) =
+                take_remote_mfa_waiter_by_hash(&self.remote_mfa_responses, &superseded_token_hash)
+            {
+                signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Superseded);
+            }
 
             let context =
                 BidiRequestContext::new(user.id, user.username.clone(), ip, device.name.clone());
@@ -679,56 +725,140 @@ impl ClientMfaServer {
         request: AwaitRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Awaiting remote MFA finish for request_id {request_id}");
 
         // Register a waiter only for a token that maps to a live in-progress session, so an
         // unauthenticated caller cannot grow the waiter map without bound.
-        if VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
-            .await
-            .map_err(|err| {
-                error!("Failed to find MFA session: {err}");
-                Status::internal("unexpected error")
-            })?
-            .is_none()
-        {
+        let Some(session) =
+            VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &request.token)
+                .await
+                .map_err(|err| {
+                    error!("Failed to find MFA session: {err}");
+                    Status::internal("unexpected error")
+                })?
+        else {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
+        };
+
+        let parked_step_attempt_id = session
+            .ephemeral_state
+            .as_ref()
+            .map(|state| state.step_attempt_id.clone());
+        let hash = hash_token(&request.token);
+        let (signal_tx, rx) = oneshot::channel();
+        let legacy_preshared_key = Arc::new(Mutex::new(None));
+        let generation = Arc::new(());
+        let replaced_waiter = {
+            self.remote_mfa_responses
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                .insert(
+                    hash.clone(),
+                    RemoteAuthWaiter {
+                        generation: generation.clone(),
+                        signal_tx,
+                        legacy_preshared_key: legacy_preshared_key.clone(),
+                    },
+                )
+        };
+        if let Some(waiter) = replaced_waiter {
+            signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Superseded);
         }
 
-        let hash = hash_token(&request.token);
-        let (tx, rx) = oneshot::channel();
-        self.remote_mfa_responses
-            .write()
-            .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-            .insert(hash.clone(), tx);
-
         let waiters = self.remote_mfa_responses.clone();
-        // Spawn a task that waits for remote MFA process to conclude to get the preshared key.
+        let engine = self.engine.clone();
+        let token = request.token;
+        // Legacy keys stay with the waiting client, not in the message.
         tokio::spawn(async move {
             match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
-                Ok(Ok(preshared_key)) => {
-                    let req = CoreResponse {
+                Ok(Ok(RemoteAuthSignal::Superseded)) => {
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(Payload::CoreError(
+                            Status::aborted("remote MFA wait superseded").into(),
+                        )),
+                    });
+                }
+                Ok(Ok(RemoteAuthSignal::Advanced { next_step })) => {
+                    let _ = response_tx.send(CoreResponse {
                         id: request_id,
                         payload: Some(Payload::AwaitRemoteMfaFinish(
                             AwaitRemoteMfaFinishResponse {
                                 #[allow(deprecated)]
-                                preshared_key,
-                                result: None,
+                                preshared_key: String::new(),
+                                result: Some(FinishOutcome::Advanced { next_step }.into()),
                             },
                         )),
+                    });
+                }
+                Ok(Ok(RemoteAuthSignal::Approved)) => {
+                    if let Some(preshared_key) = legacy_preshared_key
+                        .lock()
+                        .expect("Failed to lock legacy remote MFA preshared key")
+                        .take()
+                    {
+                        let req = CoreResponse {
+                            id: request_id,
+                            payload: Some(Payload::AwaitRemoteMfaFinish(
+                                AwaitRemoteMfaFinishResponse {
+                                    #[allow(deprecated)]
+                                    preshared_key,
+                                    result: None,
+                                },
+                            )),
+                        };
+                        let _ = response_tx.send(req);
+                        return;
+                    }
+
+                    let (ip, _) = match parse_client_ip_agent(&info) {
+                        Ok(info) => info,
+                        Err(err) => {
+                            let _ = response_tx.send(CoreResponse {
+                                id: request_id,
+                                payload: Some(Payload::CoreError(Status::internal(err).into())),
+                            });
+                            return;
+                        }
                     };
-                    // Once the key is here, send it back to proxy.
-                    let _ = response_tx.send(req);
+                    let proof = Proof {
+                        code: None,
+                        auth_pub_key: None,
+                        step_attempt_id: parked_step_attempt_id,
+                        auth_data: None,
+                        credential_id: None,
+                    };
+                    let payload = match engine.finish(token, proof, ip).await {
+                        Ok((outcome, _)) => {
+                            let preshared_key = match &outcome {
+                                FinishOutcome::Completed { preshared_key } => preshared_key.clone(),
+                                FinishOutcome::Advanced { .. }
+                                | FinishOutcome::AwaitingExternal => String::new(),
+                            };
+                            Payload::AwaitRemoteMfaFinish(AwaitRemoteMfaFinishResponse {
+                                #[allow(deprecated)]
+                                preshared_key,
+                                result: Some(outcome.into()),
+                            })
+                        }
+                        Err(err) => Payload::CoreError(Status::from(err).into()),
+                    };
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(payload),
+                    });
                 }
                 Ok(Err(err)) => {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
-                    remove_remote_mfa_waiter(&waiters, &hash);
-                    error!("Remote MFA response channel failed: {err:?}");
+                    remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                    debug!("Remote MFA response channel closed: {err:?}");
                 }
                 Err(_) => {
                     // Drop the waiter so a client that never finishes cannot leak map entries.
-                    remove_remote_mfa_waiter(&waiters, &hash);
+                    remove_remote_mfa_waiter(&waiters, &hash, &generation);
                     warn!("Remote MFA process with request_id {request_id} timed out");
                 }
             }
@@ -745,7 +875,9 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login");
 
+        let is_legacy_mobile_approval = request.step_attempt_id.is_none();
         let token = request.token.clone();
+        let auth_pub_key = request.auth_pub_key.clone();
         let proof = Proof {
             code: request.code,
             auth_pub_key: request.auth_pub_key,
@@ -757,32 +889,64 @@ impl ClientMfaServer {
 
         let (outcome, method) = self.engine.finish(token.clone(), proof, ip).await?;
 
-        // The parked remote-MFA waiter is session-scoped, so resolve it only once the flow
-        // completes. An intermediate step (`Advanced`) must not terminate it: a pre-2.2 client
-        // reads an empty preshared key as success.
+        let is_mobile_signature = is_mobile_approve_request(method, auth_pub_key.as_deref());
+
+        // Persist non-legacy approval before signaling the parked desktop.
+        if !is_legacy_mobile_approval
+            && is_mobile_signature
+            && outcome == FinishOutcome::AwaitingExternal
+            && let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)
+        {
+            signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
+        }
+
+        if is_legacy_mobile_approval
+            && is_mobile_signature
+            && let FinishOutcome::Advanced { next_step } = &outcome
+            && let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)
+        {
+            signal_remote_mfa_waiter(
+                waiter,
+                RemoteAuthSignal::Advanced {
+                    next_step: *next_step,
+                },
+            );
+        }
+
+        // Legacy intermediate approvals advance the session without sending a key.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
-                if let Some(tx) = self
-                    .remote_mfa_responses
-                    .write()
-                    .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                    .remove(&hash_token(&token))
-                {
-                    let _ = tx.send(preshared_key.clone());
+                if let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token) {
+                    *waiter
+                        .legacy_preshared_key
+                        .lock()
+                        .expect("Failed to lock legacy remote MFA preshared key") =
+                        Some(preshared_key.clone());
+                    signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
                 }
-                preshared_key.clone()
+                if is_mobile_signature {
+                    String::new()
+                } else {
+                    preshared_key.clone()
+                }
             }
-            FinishOutcome::Advanced { .. } => String::new(),
+            FinishOutcome::Advanced { .. } | FinishOutcome::AwaitingExternal => String::new(),
+        };
+        let response_outcome = match &outcome {
+            FinishOutcome::Completed { .. } if is_mobile_signature => FinishOutcome::Completed {
+                preshared_key: String::new(),
+            },
+            _ => outcome,
         };
 
         let response = ClientMfaFinishResponse {
             #[allow(deprecated)]
-            preshared_key: preshared_key.clone(),
+            preshared_key,
             token: match method {
                 VpnClientMfaMethod::MobileApprove => Some(token),
                 _ => None,
             },
-            result: Some(outcome.into()),
+            result: Some(response_outcome.into()),
         };
 
         Ok(response)

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
@@ -14,8 +14,11 @@ use crate::{
     db::{
         Id, NoId,
         models::{
-            biometric_auth::BiometricChallenge, device::Device, user::User,
-            vpn_client_session::VpnClientMfaMethod, wireguard::WireguardNetwork,
+            biometric_auth::BiometricChallenge,
+            device::Device,
+            user::User,
+            vpn_client_session::{VpnClientMfaMethod, mfa_method_set_serde},
+            wireguard::WireguardNetwork,
         },
     },
     random::gen_alphanumeric,
@@ -54,11 +57,15 @@ pub struct MfaAttribution {
 /// A single step within a frozen flow snapshot.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Step {
-    pub methods: Vec<VpnClientMfaMethod>,
+    #[serde(with = "mfa_method_set_serde")]
+    pub methods: HashSet<VpnClientMfaMethod>,
     /// The method that satisfied this step, recorded by `advance` from the method its caller
     /// verified.
     #[serde(default)]
     pub satisfied: Option<VpnClientMfaMethod>,
+    /// Name of the device that approved this step.
+    #[serde(default)]
+    pub mobile_auth_device_name: Option<String>,
 }
 
 /// Per-step ephemeral attempt state, cleared to NULL on `advance`.
@@ -70,6 +77,8 @@ pub struct EphemeralState {
     pub openid_auth_completed: bool,
     #[serde(default)]
     pub mobile_approved: bool,
+    #[serde(default)]
+    pub mobile_auth_device_name: Option<String>,
     #[serde(default)]
     pub biometric_challenge: Option<BiometricChallenge>,
 }
@@ -148,12 +157,28 @@ fn new_attempt_state(
         selected_method: method,
         openid_auth_completed: false,
         mobile_approved: false,
+        mobile_auth_device_name: None,
         biometric_challenge: challenge,
     };
     let state_json =
         serde_json::to_value(&state).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
     Ok((step_attempt_id, state_json))
+}
+
+fn collect_mfa_methods(
+    methods: Vec<VpnClientMfaMethod>,
+) -> sqlx::Result<HashSet<VpnClientMfaMethod>> {
+    let mut set = HashSet::with_capacity(methods.len());
+    for method in methods {
+        if !set.insert(method) {
+            return Err(sqlx::Error::Decode(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "MFA step methods must be unique",
+            ))));
+        }
+    }
+    Ok(set)
 }
 
 impl VpnClientMfaSession<Id> {
@@ -187,11 +212,14 @@ impl VpnClientMfaSession<Id> {
             flow_id,
             steps: steps
                 .into_iter()
-                .map(|methods| Step {
-                    methods,
-                    satisfied: None,
+                .map(|methods| {
+                    Ok(Step {
+                        methods: collect_mfa_methods(methods)?,
+                        satisfied: None,
+                        mobile_auth_device_name: None,
+                    })
                 })
-                .collect(),
+                .collect::<sqlx::Result<Vec<_>>>()?,
         };
         let snapshot_json =
             serde_json::to_value(&snapshot).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
@@ -311,12 +339,12 @@ impl VpnClientMfaSession<Id> {
 
     /// The methods available on the current step.
     #[must_use]
-    pub fn current_step_methods(&self) -> &[VpnClientMfaMethod] {
+    pub fn current_step_methods(&self) -> Option<&HashSet<VpnClientMfaMethod>> {
         self.steps_snapshot
             .0
             .steps
             .get(self.current_step as usize)
-            .map_or(&[], |step| step.methods.as_slice())
+            .map(|step| &step.methods)
     }
 
     /// Begin (or re-issue) an attempt on the current step, overwriting any prior attempt.
@@ -353,8 +381,12 @@ impl VpnClientMfaSession<Id> {
         conn: &mut PgConnection,
         step_attempt_id: &str,
     ) -> sqlx::Result<bool> {
-        self.mark_flag(conn, step_attempt_id, "openid_auth_completed")
-            .await
+        self.mark_attempt_state(
+            conn,
+            step_attempt_id,
+            serde_json::json!({ "openid_auth_completed": true }),
+        )
+        .await
     }
 
     /// Mark the current attempt's mobile approval complete.
@@ -365,26 +397,33 @@ impl VpnClientMfaSession<Id> {
         &self,
         conn: &mut PgConnection,
         step_attempt_id: &str,
+        mobile_auth_device_name: Option<&str>,
     ) -> sqlx::Result<bool> {
-        self.mark_flag(conn, step_attempt_id, "mobile_approved")
-            .await
+        self.mark_attempt_state(
+            conn,
+            step_attempt_id,
+            serde_json::json!({
+                "mobile_approved": true,
+                "mobile_auth_device_name": mobile_auth_device_name,
+            }),
+        )
+        .await
     }
 
-    /// Set a named completion flag on the current attempt, gated on a matching
-    /// `step_attempt_id`. Returns `true` if the flag was set (0 rows otherwise).
-    async fn mark_flag(
+    /// Updates the current attempt when `step_attempt_id` matches.
+    async fn mark_attempt_state(
         &self,
         conn: &mut PgConnection,
         step_attempt_id: &str,
-        flag: &str,
+        patch: serde_json::Value,
     ) -> sqlx::Result<bool> {
         let result = query!(
             "UPDATE vpn_client_mfa_session \
-             SET ephemeral_state = jsonb_set(ephemeral_state, ARRAY[$2]::text[], 'true'::jsonb) \
-             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $3",
+             SET ephemeral_state = ephemeral_state || $3 \
+             WHERE id = $1 AND ephemeral_state IS NOT NULL AND ephemeral_state->>'step_attempt_id' = $2",
             self.id,
-            flag,
             step_attempt_id,
+            patch,
         )
         .execute(&mut *conn)
         .await?;
@@ -393,10 +432,7 @@ impl VpnClientMfaSession<Id> {
 
     /// Advance to the next step, clearing `ephemeral_state` and resetting `failed_attempts`.
     ///
-    /// Records the closing step's proof into the snapshot first:
-    /// `steps[current_step].satisfied = ephemeral_state.selected_method`. The write and the
-    /// clear land in one statement so the proof cannot be lost between them. A NULL
-    /// `ephemeral_state` leaves `satisfied` unset rather than erroring.
+    /// Saves how the step completed before clearing its temporary state.
     ///
     /// The write is guarded by `current_step`, and by `step_attempt_id` when the client supplied
     /// one, so a stale or duplicate advance matches zero rows rather than skipping a step and
@@ -407,12 +443,15 @@ impl VpnClientMfaSession<Id> {
         current_step: i32,
         step_attempt_id: Option<&str>,
         satisfied_method: VpnClientMfaMethod,
+        mobile_auth_device_name: Option<&str>,
     ) -> sqlx::Result<Option<(StepOutcome, StepsSnapshot)>> {
         // Record the method the caller actually verified rather than re-reading
         // `ephemeral_state->'selected_method'`: a concurrent `begin_attempt` can overwrite that
         // field between the verification and this statement, attributing the step to a method the
         // user never proved.
         let satisfied = serde_json::to_value(satisfied_method)
+            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let mobile_auth_device_name = serde_json::to_value(mobile_auth_device_name)
             .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
         // The `WHERE` clause is the guard that stops a proof advancing a step it was not minted
         // for. `$3` is NULL for a pre-2.2 client that cannot send an attempt id, which degrades to
@@ -422,9 +461,16 @@ impl VpnClientMfaSession<Id> {
             "UPDATE vpn_client_mfa_session \
              SET steps_snapshot = CASE \
                  WHEN ephemeral_state IS NOT NULL THEN jsonb_set( \
-                     steps_snapshot, \
-                     ARRAY['steps', current_step::text, 'satisfied'], \
-                     $4 \
+                     jsonb_set( \
+                         steps_snapshot, \
+                         ARRAY['steps', current_step::text, 'satisfied'], \
+                         $4 \
+                     ), \
+                     ARRAY['steps', current_step::text, 'mobile_auth_device_name'], \
+                     CASE WHEN $5 = 'null'::jsonb \
+                         THEN COALESCE(ephemeral_state->'mobile_auth_device_name', 'null'::jsonb) \
+                         ELSE $5 \
+                     END \
                  ) \
                  ELSE steps_snapshot \
              END, \
@@ -438,6 +484,7 @@ impl VpnClientMfaSession<Id> {
             current_step,
             step_attempt_id,
             satisfied,
+            mobile_auth_device_name,
         )
         .fetch_optional(&mut *conn)
         .await?;

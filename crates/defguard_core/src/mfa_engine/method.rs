@@ -167,6 +167,15 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::MobileApprove => {
+            // WebSocket is the fast path; empty-proof Finish is the reconnect fallback.
+            if proof.code.is_none() && proof.auth_pub_key.is_none() {
+                return Ok(if ephemeral.mobile_approved {
+                    Verdict::Proved
+                } else {
+                    Verdict::NotYet
+                });
+            }
+
             let challenge = ephemeral
                 .biometric_challenge
                 .as_ref()
