@@ -1,5 +1,8 @@
 use defguard_common::{
-    db::models::{Session, SessionState, User},
+    db::{
+        Id,
+        models::{Session, SessionState, User},
+    },
     testing::smtp::configure_working_smtp,
 };
 use defguard_proto::{client_types::MfaMethod, proxy::core_response};
@@ -8,8 +11,8 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use super::support::{
     assert_error_response, complete_proxy_handshake, create_polling_token, create_user_with_device,
     generate_totp_code, send_code_mfa_setup_finish, send_code_mfa_setup_start,
-    send_mfa_config_authorize, send_mfa_config_send_code, send_mfa_config_start,
-    setup_user_totp_mfa, totp_code_from_base32_secret,
+    send_mfa_config_authorize, send_mfa_config_end, send_mfa_config_send_code,
+    send_mfa_config_start, setup_user_totp_mfa, totp_code_from_base32_secret,
 };
 use crate::tests::common::HandlerTestContext;
 
@@ -222,4 +225,82 @@ async fn test_email_fallback_authorizes_without_enabling_a_factor(
     );
 
     context.finish().await.expect_server_finished().await;
+}
+
+/// Starting a new session invalidates the previous one. Ending the current
+/// session invalidates its token.
+#[sqlx::test]
+async fn test_mfa_config_end_kills_the_session(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let polling_token = create_polling_token(&context.pool, device.id).await;
+    let pubkey = device.wireguard_pubkey.clone();
+
+    // Authorize both sessions before setup because setup rotates the TOTP secret.
+    let abandoned = start_authorized_session(&mut context, &polling_token, &pubkey, &user).await;
+    let session = start_authorized_session(&mut context, &polling_token, &pubkey, &user).await;
+    assert_ne!(
+        abandoned, session,
+        "each start must mint a new session token"
+    );
+
+    let after_restart = send_code_mfa_setup_start(&mut context, &abandoned, MfaMethod::Totp).await;
+    assert_error_response(&after_restart);
+
+    let setup = send_code_mfa_setup_start(&mut context, &session, MfaMethod::Totp).await;
+    assert!(
+        matches!(
+            setup.payload,
+            Some(core_response::Payload::CodeMfaSetupStartResponse(_))
+        ),
+        "an authorized session must allow factor setup"
+    );
+
+    let ended = send_mfa_config_end(&mut context, &session).await;
+    assert!(
+        matches!(ended.payload, Some(core_response::Payload::Empty(()))),
+        "ending an authorized session must succeed, got: {:?}",
+        ended.payload.as_ref().map(std::mem::discriminant)
+    );
+
+    let after_end = send_code_mfa_setup_start(&mut context, &session, MfaMethod::Totp).await;
+    assert_error_response(&after_end);
+
+    // A repeated request must return a client error, not an internal error.
+    let ended_again = send_mfa_config_end(&mut context, &session).await;
+    assert_error_response(&ended_again);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Starts an MFA configuration session and authorizes it with the user's current TOTP code.
+async fn start_authorized_session(
+    context: &mut HandlerTestContext,
+    polling_token: &str,
+    device_pubkey: &str,
+    user: &User<Id>,
+) -> String {
+    let started = send_mfa_config_start(context, polling_token, device_pubkey).await;
+    let session_token = match &started.payload {
+        Some(core_response::Payload::MfaConfigStart(response)) => response.session_token.clone(),
+        _ => panic!("expected MfaConfigStartResponse"),
+    };
+    let authorized = send_mfa_config_authorize(
+        context,
+        &session_token,
+        MfaMethod::Totp,
+        &generate_totp_code(user),
+    )
+    .await;
+    assert!(
+        matches!(
+            authorized.payload,
+            Some(core_response::Payload::MfaConfigAuthorize(_))
+        ),
+        "a valid TOTP code must authorize the session"
+    );
+    session_token
 }

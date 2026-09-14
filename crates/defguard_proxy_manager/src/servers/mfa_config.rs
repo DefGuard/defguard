@@ -9,8 +9,9 @@ use defguard_core::{
     mail::templates::mfa_code_mail,
 };
 use defguard_proto::client_types::{
-    MfaConfigAuthorizeRequest, MfaConfigAuthorizeResponse, MfaConfigSendCodeRequest,
-    MfaConfigSendCodeResponse, MfaConfigStartRequest, MfaConfigStartResponse, MfaMethod,
+    MfaConfigAuthorizeRequest, MfaConfigAuthorizeResponse, MfaConfigEndRequest,
+    MfaConfigSendCodeRequest, MfaConfigSendCodeResponse, MfaConfigStartRequest,
+    MfaConfigStartResponse, MfaMethod,
 };
 use sqlx::PgPool;
 use tonic::Status;
@@ -140,7 +141,7 @@ impl MfaConfigServer {
                 })?;
         }
 
-        Token::delete_unused_user_tokens_of_type(&mut *transaction, user.id, MFA_CONFIG_TOKEN_TYPE)
+        Token::delete_user_tokens_of_type(&mut *transaction, user.id, MFA_CONFIG_TOKEN_TYPE)
             .await?;
         let mut token = Token::new(
             user.id,
@@ -326,5 +327,23 @@ impl MfaConfigServer {
         Ok(MfaConfigAuthorizeResponse {
             deadline_timestamp: deadline.and_utc().timestamp(),
         })
+    }
+
+    /// Ends the user's MFA configuration session.
+    #[instrument(skip_all)]
+    pub(crate) async fn mfa_config_end(&self, request: MfaConfigEndRequest) -> Result<(), Status> {
+        let token = Token::find_by_id(&self.pool, &request.session_token).await?;
+        // Only MFA configuration tokens may be deleted here.
+        if token.token_type.as_deref() != Some(MFA_CONFIG_TOKEN_TYPE) {
+            error!(
+                "MFA config end: token {} has type {:?}, expected {MFA_CONFIG_TOKEN_TYPE}",
+                token.id, token.token_type
+            );
+            return Err(Status::permission_denied("invalid token"));
+        }
+        Token::delete_user_tokens_of_type(&self.pool, token.user_id, MFA_CONFIG_TOKEN_TYPE).await?;
+        info!("Ended MFA configuration session for user {}", token.user_id);
+
+        Ok(())
     }
 }

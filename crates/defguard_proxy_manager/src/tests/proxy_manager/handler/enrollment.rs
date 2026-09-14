@@ -29,9 +29,10 @@ use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,
     complete_proxy_handshake, configure_ldap, configure_smtp, create_acl_network,
     create_enrollment_token, create_mfa_network, create_multi_step_mfa_network, create_network,
-    create_polling_token, create_user, create_user_with_device, insert_acl_rule_for_network,
-    make_device_info, send_activate_user, send_activate_user_without_password,
-    send_code_mfa_setup_finish, send_code_mfa_setup_start, set_test_license_business,
+    create_polling_token, create_user, create_user_with_device, generate_totp_code,
+    insert_acl_rule_for_network, make_device_info, send_activate_user,
+    send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
+    send_mfa_config_authorize, send_mfa_config_start, set_test_license_business,
     set_test_license_enterprise, setup_user_totp_mfa, start_enrollment_session,
     totp_code_from_base32_secret,
 };
@@ -1072,6 +1073,71 @@ async fn test_register_mobile_auth_foreign_device(_: PgPoolOptions, options: PgC
             .expect("DB query for BiometricAuth failed")
             .is_none(),
         "no BiometricAuth row may be created for a device owned by another user"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Rejects biometric registration when the session token belongs to MFA configuration.
+#[sqlx::test]
+async fn test_register_mobile_auth_rejects_mfa_config_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let polling_token = create_polling_token(&context.pool, device.id).await;
+
+    let started =
+        send_mfa_config_start(&mut context, &polling_token, &device.wireguard_pubkey).await;
+    let session_token = match &started.payload {
+        Some(core_response::Payload::MfaConfigStart(response)) => response.session_token.clone(),
+        _ => panic!("expected MfaConfigStartResponse"),
+    };
+    let authorized = send_mfa_config_authorize(
+        &mut context,
+        &session_token,
+        MfaMethod::Totp,
+        &generate_totp_code(&user),
+    )
+    .await;
+    assert!(
+        matches!(
+            authorized.payload,
+            Some(core_response::Payload::MfaConfigAuthorize(_))
+        ),
+        "a valid TOTP code must authorize the session"
+    );
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 304,
+        device_info: None,
+        payload: Some(core_request::Payload::RegisterMobileAuth(
+            RegisterMobileAuthRequest {
+                token: session_token,
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_owned(),
+                device_pub_key: device.wireguard_pubkey.clone(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::PermissionDenied,
+        "an MFA config session must not register a biometric device"
+    );
+
+    assert!(
+        BiometricAuth::find_by_device_id(&context.pool, device.id)
+            .await
+            .expect("DB query for BiometricAuth failed")
+            .is_none(),
+        "no BiometricAuth row may be created from an MFA config session"
     );
 
     context.finish().await.expect_server_finished().await;

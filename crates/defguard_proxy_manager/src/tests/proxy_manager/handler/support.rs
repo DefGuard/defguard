@@ -42,7 +42,8 @@ use defguard_proto::{
         ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
         ClientMfaStepStartRequest, ClientMfaStepStartResponse, CodeMfaSetupFinishRequest,
         CodeMfaSetupStartRequest, DeviceConfigResponse, EnrollmentStartRequest,
-        MfaConfigAuthorizeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest, MfaMethod,
+        MfaConfigAuthorizeRequest, MfaConfigEndRequest, MfaConfigSendCodeRequest,
+        MfaConfigStartRequest, MfaMethod,
     },
     proxy::{
         ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
@@ -1389,6 +1390,23 @@ pub(crate) async fn send_mfa_config_authorize(
                 code: code.to_owned(),
             },
         )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Sends an `MfaConfigEnd` request for the given session token.
+pub(crate) async fn send_mfa_config_end(
+    context: &mut HandlerTestContext,
+    session_token: &str,
+) -> CoreResponse {
+    static MFA_CONFIG_END_CTR: AtomicU64 = AtomicU64::new(4750);
+    let id = MFA_CONFIG_END_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaConfigEnd(MfaConfigEndRequest {
+            session_token: session_token.to_owned(),
+        })),
     });
     context.mock_proxy_mut().recv_outbound().await
 }
