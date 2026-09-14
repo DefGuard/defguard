@@ -10,7 +10,7 @@ const LOADTEST_OU: &str = "ou=loadtest";
 const USERS_OU: &str = "ou=users,ou=loadtest";
 const GROUPS_OU: &str = "ou=groups,ou=loadtest";
 const GROUP_NAME: &str = "load-test-users";
-const USER_PREFIX: &str = "load-test-user-";
+const USER_PREFIX: &str = "ldap-load-test-user-";
 const USER_PASSWORD: &str = "userPassword";
 
 pub async fn run(args: SeedLdapArgs) -> anyhow::Result<()> {
