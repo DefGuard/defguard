@@ -416,7 +416,8 @@ pub struct SettingsNoSecrets {
     pub enrollment_welcome_email: Option<String>,
     pub enrollment_welcome_email_subject: Option<String>,
     pub enrollment_use_welcome_message_as_email: bool,
-    // LDAP
+    pub enrollment_send_welcome_email: bool,
+    pub enrollment_display_welcome_message: bool, // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
     pub ldap_bind_password: bool, // anonymized
@@ -501,6 +502,8 @@ impl From<Settings> for SettingsNoSecrets {
             enrollment_welcome_email: value.enrollment_welcome_email,
             enrollment_welcome_email_subject: value.enrollment_welcome_email_subject,
             enrollment_use_welcome_message_as_email: value.enrollment_use_welcome_message_as_email,
+            enrollment_send_welcome_email: value.enrollment_send_welcome_email,
+            enrollment_display_welcome_message: value.enrollment_display_welcome_message,
             ldap_url: value.ldap_url,
             ldap_bind_username: value.ldap_bind_username,
             ldap_bind_password: value.ldap_bind_password.is_some(),
