@@ -37,7 +37,7 @@ impl AuthenticationKeyInfo {
     where
         E: PgExecutor<'e>,
     {
-        let res = query_as!(
+        query_as!(
             AuthenticationKeyInfo,
             "SELECT k.id, k.name, k.key_type \"key_type: AuthenticationKeyType\", k.key, \
             k.user_id, k.yubikey_id, y.name yubikey_name, y.serial yubikey_serial \
@@ -47,9 +47,7 @@ impl AuthenticationKeyInfo {
             user_id
         )
         .fetch_all(executor)
-        .await?;
-
-        Ok(res)
+        .await
     }
 }
 
@@ -58,10 +56,10 @@ async fn add_user_ssh_keys_to_list(pool: &PgPool, user: &User<Id>, ssh_keys: &mu
         AuthenticationKey::find_by_user_id(pool, user.id, Some(AuthenticationKeyType::Ssh)).await;
 
     if let Ok(authentication_keys) = keys_result {
-        let mut keys: Vec<String> = authentication_keys
+        let mut keys = authentication_keys
             .into_iter()
             .map(|item| item.key)
-            .collect();
+            .collect::<Vec<_>>();
         ssh_keys.append(&mut keys);
     }
 }
