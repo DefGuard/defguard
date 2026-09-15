@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\" WHERE id = $1",
+  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\"",
   "describe": {
     "columns": [
       {
@@ -30,41 +30,55 @@
       },
       {
         "ordinal": 5,
+        "name": "flow_kind: _",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_mfa_flow_kind",
+            "kind": {
+              "Enum": [
+                "legacy",
+                "multi_step"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "steps_snapshot: _",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "current_step",
         "type_info": "Int4"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "ephemeral_state: _",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "failed_attempts",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "expires_at",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -78,5 +92,5 @@
       false
     ]
   },
-  "hash": "3f9af4ef27a9865648c24b1fb4f34670ce43deb3af46fbabebf23c8be9d54357"
+  "hash": "4aacd660b6d18499b737d9145e3d843a8f54a0f6d24d271155cb3ad867ca3428"
 }

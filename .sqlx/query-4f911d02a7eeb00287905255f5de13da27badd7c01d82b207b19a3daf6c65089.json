@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"vpn_client_mfa_session\" (\"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\",\"steps_snapshot\",\"current_step\",\"ephemeral_state\",\"failed_attempts\",\"created_at\",\"expires_at\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "vpn_mfa_flow_kind",
+            "kind": {
+              "Enum": [
+                "legacy",
+                "multi_step"
+              ]
+            }
+          }
+        },
+        "Jsonb",
+        "Int4",
+        "Jsonb",
+        "Int4",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4f911d02a7eeb00287905255f5de13da27badd7c01d82b207b19a3daf6c65089"
+}

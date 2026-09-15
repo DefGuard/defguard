@@ -114,6 +114,7 @@ async fn start_session_with_ttl(
             vec![VpnClientMfaMethod::Totp],
             vec![VpnClientMfaMethod::Email],
         ],
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         ttl,
@@ -121,6 +122,7 @@ async fn start_session_with_ttl(
     .await
     .unwrap();
     tx.commit().await.unwrap();
+    assert_eq!(result.0.flow_kind, VpnMfaFlowKind::Legacy);
     result
 }
 
@@ -147,6 +149,7 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
         user.id,
         1,
         steps.clone(),
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         Duration::from_mins(10),
@@ -177,6 +180,7 @@ async fn test_start_supersedes_existing_session(_: PgPoolOptions, options: PgCon
         user.id,
         1,
         steps,
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         Duration::from_mins(10),
@@ -220,6 +224,7 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
         user.id,
         1,
         steps.clone(),
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         Duration::from_mins(10),
@@ -236,6 +241,7 @@ async fn test_start_returns_superseded_token_hash(_: PgPoolOptions, options: PgC
         user.id,
         1,
         steps,
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         Duration::from_mins(10),
@@ -270,6 +276,7 @@ async fn test_start_mints_first_attempt_with_row(_: PgPoolOptions, options: PgCo
         user.id,
         1,
         steps.clone(),
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::MobileApprove,
         Some(challenge.clone()),
         Duration::from_mins(10),
@@ -311,6 +318,7 @@ async fn test_start_mints_first_attempt_with_row(_: PgPoolOptions, options: PgCo
         user.id,
         1,
         steps,
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         Duration::from_mins(10),
@@ -345,6 +353,7 @@ async fn test_find_active_by_token_rejects_expired(_: PgPoolOptions, options: Pg
         user.id,
         1,
         vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         Duration::ZERO,
@@ -719,6 +728,7 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
             user.id,
             1,
             steps.clone(),
+            VpnMfaFlowKind::Legacy,
             VpnClientMfaMethod::Totp,
             None,
             Duration::from_mins(10),
@@ -730,6 +740,7 @@ async fn test_concurrent_starts_leave_single_row(_: PgPoolOptions, options: PgCo
             user.id,
             1,
             steps.clone(),
+            VpnMfaFlowKind::Legacy,
             VpnClientMfaMethod::Totp,
             None,
             Duration::from_mins(10),
@@ -783,6 +794,7 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
             user.id,
             1,
             steps.clone(),
+            VpnMfaFlowKind::Legacy,
             VpnClientMfaMethod::Totp,
             None,
             Duration::from_mins(10),
@@ -794,6 +806,7 @@ async fn test_same_device_two_locations_both_live(_: PgPoolOptions, options: PgC
             user.id,
             1,
             steps.clone(),
+            VpnMfaFlowKind::Legacy,
             VpnClientMfaMethod::Totp,
             None,
             Duration::from_mins(10),

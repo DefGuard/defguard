@@ -6,7 +6,7 @@ use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{
-    Connection, PgConnection, PgExecutor, PgPool, query, query_as, query_scalar, types::Json,
+    Connection, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar, types::Json,
 };
 use tracing::debug;
 
@@ -34,6 +34,13 @@ pub const VPN_MFA_SESSION_TIMEOUT: Duration = Duration::from_mins(10);
 
 /// Per-step cap on proof-verification failures. A sanity/abuse limit, not a lockout.
 pub const MFA_FAILED_ATTEMPT_CAP: i32 = 5;
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[sqlx(type_name = "vpn_mfa_flow_kind", rename_all = "snake_case")]
+pub enum VpnMfaFlowKind {
+    Legacy,
+    MultiStep,
+}
 
 /// Point-in-time snapshot of the resolved MFA flow, frozen at `start`.
 ///
@@ -123,6 +130,8 @@ pub struct VpnClientMfaSession<I = NoId> {
     pub location_id: Id,
     pub device_id: Id,
     pub user_id: Id,
+    #[model(enum)]
+    pub flow_kind: VpnMfaFlowKind,
     /// `#[model(json)]` makes the derive emit a `"steps_snapshot: _"` type override so the
     /// generated queries decode the `jsonb` column into `Json<StepsSnapshot>`, and binds it by
     /// reference with a no-op cast so sqlx's compile-time type check (which maps `jsonb` to
@@ -202,6 +211,7 @@ impl VpnClientMfaSession<Id> {
         user_id: Id,
         flow_id: Id,
         steps: Vec<Vec<VpnClientMfaMethod>>,
+        flow_kind: VpnMfaFlowKind,
         method: VpnClientMfaMethod,
         challenge: Option<BiometricChallenge>,
         ttl: Duration,
@@ -252,19 +262,20 @@ impl VpnClientMfaSession<Id> {
         let session = query_as!(
             Self,
             "INSERT INTO vpn_client_mfa_session \
-                (token_hash, location_id, device_id, user_id, steps_snapshot, current_step, ephemeral_state, failed_attempts, created_at, expires_at) \
-             VALUES ($1, $2, $3, $4, $5, 0, $6, 0, $7, $8) \
+                (token_hash, location_id, device_id, user_id, steps_snapshot, current_step, ephemeral_state, flow_kind, failed_attempts, created_at, expires_at) \
+             VALUES ($1, $2, $3, $4, $5, 0, $6, $7::vpn_mfa_flow_kind, 0, $8, $9) \
              ON CONFLICT (location_id, device_id) DO UPDATE SET \
                 token_hash = EXCLUDED.token_hash, \
                 user_id = EXCLUDED.user_id, \
                 steps_snapshot = EXCLUDED.steps_snapshot, \
                 current_step = EXCLUDED.current_step, \
                 ephemeral_state = EXCLUDED.ephemeral_state, \
+                flow_kind = EXCLUDED.flow_kind, \
                 failed_attempts = EXCLUDED.failed_attempts, \
                 created_at = EXCLUDED.created_at, \
                 expires_at = EXCLUDED.expires_at \
              RETURNING \
-                id, token_hash, location_id, device_id, user_id, \
+                id, token_hash, location_id, device_id, user_id, flow_kind \"flow_kind: VpnMfaFlowKind\", \
                 steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, \
                 ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, \
                 created_at, expires_at",
@@ -274,6 +285,7 @@ impl VpnClientMfaSession<Id> {
             user_id,
             snapshot_json,
             state_json,
+            flow_kind as VpnMfaFlowKind,
             created_at,
             expires_at,
         )
@@ -305,6 +317,7 @@ impl VpnClientMfaSession<Id> {
         query_as!(
             Self,
             "SELECT id, token_hash, location_id, device_id, user_id, \
+             flow_kind \"flow_kind: VpnMfaFlowKind\", \
              steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, \
              ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, \
              created_at, expires_at \

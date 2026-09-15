@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO vpn_client_mfa_session (token_hash, location_id, device_id, user_id, steps_snapshot, current_step, ephemeral_state, failed_attempts, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, 0, $6, 0, $7, $8) ON CONFLICT (location_id, device_id) DO UPDATE SET token_hash = EXCLUDED.token_hash, user_id = EXCLUDED.user_id, steps_snapshot = EXCLUDED.steps_snapshot, current_step = EXCLUDED.current_step, ephemeral_state = EXCLUDED.ephemeral_state, failed_attempts = EXCLUDED.failed_attempts, created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at RETURNING id, token_hash, location_id, device_id, user_id, steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, created_at, expires_at",
+  "query": "SELECT id, token_hash, location_id, device_id, user_id, flow_kind \"flow_kind: VpnMfaFlowKind\", steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", failed_attempts, created_at, expires_at FROM vpn_client_mfa_session WHERE token_hash = $1 AND expires_at > (now() AT TIME ZONE 'UTC')",
   "describe": {
     "columns": [
       {
@@ -30,48 +30,57 @@
       },
       {
         "ordinal": 5,
+        "name": "flow_kind: VpnMfaFlowKind",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_mfa_flow_kind",
+            "kind": {
+              "Enum": [
+                "legacy",
+                "multi_step"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "steps_snapshot: Json<StepsSnapshot>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "current_step",
         "type_info": "Int4"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "ephemeral_state: Json<EphemeralState>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "failed_attempts",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "expires_at",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Int8",
-        "Int8",
-        "Int8",
-        "Jsonb",
-        "Jsonb",
-        "Timestamp",
-        "Timestamp"
+        "Text"
       ]
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -85,5 +94,5 @@
       false
     ]
   },
-  "hash": "76aa712da8fdec30ac4316d8d7c085667c53bb675a3326ddc37c0dea9aebc9fe"
+  "hash": "a7f516e561ce3c74f29e5d853eba0afcd239603ac8c146f1264991ad855b214d"
 }

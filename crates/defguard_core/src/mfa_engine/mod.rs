@@ -16,7 +16,7 @@ use defguard_common::db::{
         mfa_flow::MfaFlow,
         vpn_client_mfa_session::{
             MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepOutcome, StepsSnapshot,
-            VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
+            VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, VpnMfaFlowKind,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -144,8 +144,16 @@ impl MfaEngine {
             return Err(StartError::MethodNotAvailable);
         }
 
-        self.start_session(location, device, user, flow_id, steps, selected_method)
-            .await
+        self.start_session(
+            location,
+            device,
+            user,
+            flow_id,
+            steps,
+            VpnMfaFlowKind::Legacy,
+            selected_method,
+        )
+        .await
     }
 
     /// Begin a multi-step login: validate the submitted plan against the resolved flow and the
@@ -250,6 +258,7 @@ impl MfaEngine {
                 user,
                 flow_id,
                 filtered_steps,
+                VpnMfaFlowKind::MultiStep,
                 selected_methods[0],
             )
             .await?;
@@ -265,6 +274,7 @@ impl MfaEngine {
         user: &User<Id>,
         flow_id: Id,
         steps: Vec<HashSet<VpnClientMfaMethod>>,
+        flow_kind: VpnMfaFlowKind,
         method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
         let ctx = MfaSessionContext {
@@ -298,6 +308,7 @@ impl MfaEngine {
             user.id,
             flow_id,
             step_methods,
+            flow_kind,
             method,
             challenge,
             VPN_MFA_SESSION_TIMEOUT,

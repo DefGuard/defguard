@@ -21,6 +21,7 @@ use defguard_common::db::{
         user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
         vpn_client_mfa_session::{
             MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
+            VpnMfaFlowKind,
         },
         vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
         wireguard::ServiceLocationMode,
@@ -1745,6 +1746,7 @@ async fn start_mfa_session_direct(pool: &PgPool, ttl: Duration) -> String {
         user.id,
         1,
         vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         ttl,
@@ -1810,6 +1812,7 @@ async fn test_client_mfa_step_start_returns_well_formed_response(
         user.id,
         1,
         vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         VPN_MFA_SESSION_TIMEOUT,
@@ -1870,12 +1873,11 @@ async fn test_start_client_mfa_login_supersedes_existing_session(
         ClientMfaStartOutcome::Approved(response) => response.token,
         ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
     };
-    assert!(
-        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_token)
-            .await
-            .unwrap()
-            .is_some()
-    );
+    let first_session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_token)
+        .await
+        .unwrap()
+        .expect("legacy start must persist a session");
+    assert_eq!(first_session.flow_kind, VpnMfaFlowKind::Legacy);
 
     let second = server
         .start_client_mfa_login(request(), device_info())

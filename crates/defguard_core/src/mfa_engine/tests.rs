@@ -17,7 +17,7 @@ use defguard_common::{
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_mfa_session::{
                 EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaSessionContext, VPN_MFA_SESSION_TIMEOUT,
-                VpnClientMfaSession, hash_token,
+                VpnClientMfaSession, VpnMfaFlowKind, hash_token,
             },
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
             wireguard::ServiceLocationMode,
@@ -354,12 +354,11 @@ async fn test_start_multi_step_valid_totp_email_plan_returns_token(
     };
     assert!(!outcome.token.is_empty());
     assert!(outcome.superseded_token_hash.is_none());
-    assert!(
-        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
-            .await
-            .unwrap()
-            .is_some()
-    );
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
+        .await
+        .unwrap()
+        .expect("multi-step start must persist a session");
+    assert_eq!(session.flow_kind, VpnMfaFlowKind::MultiStep);
 }
 
 #[sqlx::test]
@@ -504,6 +503,7 @@ async fn test_start_and_step_start_reject_unconfigured_biometric_method(
             .iter()
             .map(VpnClientMfaMethod::ordered_set)
             .collect(),
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         VPN_MFA_SESSION_TIMEOUT,
@@ -814,6 +814,7 @@ async fn start_two_step_session(pool: &PgPool, user_id: Id) -> (VpnClientMfaSess
             vec![VpnClientMfaMethod::Totp],
             vec![VpnClientMfaMethod::Email],
         ],
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         VPN_MFA_SESSION_TIMEOUT,
@@ -844,6 +845,7 @@ async fn start_session_with_flow(
         user_id,
         flow.id,
         steps.clone(),
+        VpnMfaFlowKind::Legacy,
         steps[0][0],
         None,
         VPN_MFA_SESSION_TIMEOUT,
