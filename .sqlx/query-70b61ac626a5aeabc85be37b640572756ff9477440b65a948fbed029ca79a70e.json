@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" WHERE id = $1",
+  "query": "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, client_mtu, allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, mfa_enabled \"mfa_enabled!: bool\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM aclrulenetwork r JOIN wireguard_network n ON n.id = r.network_id WHERE r.rule_id = $1",
   "describe": {
     "columns": [
       {
@@ -27,7 +27,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address: _",
+        "name": "address",
         "type_info": "InetArray",
         "origin": {
           "Table": {
@@ -115,7 +115,18 @@
       },
       {
         "ordinal": 10,
-        "name": "allowed_ips: _",
+        "name": "client_mtu",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "client_mtu"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "allowed_ips",
         "type_info": "InetArray",
         "origin": {
           "Table": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "allow_all_groups",
         "type_info": "Bool",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "connected_at",
         "type_info": "Timestamp",
         "origin": {
@@ -147,40 +158,7 @@
         }
       },
       {
-        "ordinal": 13,
-        "name": "acl_enabled",
-        "type_info": "Bool",
-        "origin": {
-          "Table": {
-            "table": "wireguard_network",
-            "name": "acl_enabled"
-          }
-        }
-      },
-      {
         "ordinal": 14,
-        "name": "acl_default_allow",
-        "type_info": "Bool",
-        "origin": {
-          "Table": {
-            "table": "wireguard_network",
-            "name": "acl_default_allow"
-          }
-        }
-      },
-      {
-        "ordinal": 15,
-        "name": "allowed_ips_from_acl",
-        "type_info": "Bool",
-        "origin": {
-          "Table": {
-            "table": "wireguard_network",
-            "name": "allowed_ips_from_acl"
-          }
-        }
-      },
-      {
-        "ordinal": 16,
         "name": "keepalive_interval",
         "type_info": "Int4",
         "origin": {
@@ -191,7 +169,7 @@
         }
       },
       {
-        "ordinal": 17,
+        "ordinal": 15,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4",
         "origin": {
@@ -202,8 +180,41 @@
         }
       },
       {
+        "ordinal": 16,
+        "name": "acl_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "acl_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "acl_default_allow",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "acl_default_allow"
+          }
+        }
+      },
+      {
         "ordinal": 18,
-        "name": "mfa_enabled",
+        "name": "allowed_ips_from_acl",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allowed_ips_from_acl"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "mfa_enabled!: bool",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -213,8 +224,8 @@
         }
       },
       {
-        "ordinal": 19,
-        "name": "service_location_mode: _",
+        "ordinal": 20,
+        "name": "service_location_mode: ServiceLocationMode",
         "type_info": {
           "Custom": {
             "name": "service_location_mode",
@@ -251,6 +262,7 @@
       true,
       false,
       false,
+      true,
       false,
       false,
       true,
@@ -263,5 +275,5 @@
       false
     ]
   },
-  "hash": "1b6f751f828ffca3381a344360397c845462b176941775b32ca04d2d5c6aee4c"
+  "hash": "70b61ac626a5aeabc85be37b640572756ff9477440b65a948fbed029ca79a70e"
 }

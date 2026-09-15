@@ -17,6 +17,7 @@ use defguard_common::{
             vpn_client_mfa_session::{VpnClientMfaSession, hash_token},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
         },
+        wireguard_key::WireguardKey,
     },
     types::user_info::UserInfo,
 };
@@ -1145,8 +1146,8 @@ impl ClientMfaServer {
             error!("Failed to emit DevicePostureCheckPassed event: {err}");
         }
 
-        // Posture check succeeded - create a vpn session
-        let key = WireguardNetwork::genkey();
+        // Posture check succeeded - create a VPN session.
+        let key = WireguardKey::generate();
 
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction for posture session: {err}");
@@ -1163,7 +1164,7 @@ impl ClientMfaServer {
         };
 
         let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public.clone());
+            build_authorized_gateway_network_info(network_device, key.public());
 
         create_new_session(
             &self.channels,
@@ -1172,7 +1173,7 @@ impl ClientMfaServer {
             &user,
             &device,
             false,
-            key.public.clone(),
+            key.public(),
         )
         .await?;
 
@@ -1194,7 +1195,7 @@ impl ClientMfaServer {
         );
 
         Ok(PostureCheckOutcome::Approved {
-            preshared_key: key.public,
+            preshared_key: key.public(),
         })
     }
 

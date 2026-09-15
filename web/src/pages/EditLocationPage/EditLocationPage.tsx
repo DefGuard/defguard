@@ -172,6 +172,8 @@ const formSchema = z
       .min(1, m.form_error_keepalive_min())
       .max(65535, m.form_error_port_max()),
     mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+    client_mtu_enabled: z.boolean(),
+    client_mtu: z.number().nullable(),
     fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
     allow_all_groups: z.boolean(),
     allowed_groups: z.array(
@@ -195,6 +197,22 @@ const formSchema = z
           code: 'custom',
           path: ['peer_disconnect_threshold'],
           message: m.form_error_min({ value: peerDisconnectThresholdMinimum }),
+        });
+      }
+    }
+
+    if (value.client_mtu_enabled) {
+      if (value.client_mtu === null) {
+        context.addIssue({
+          code: 'custom',
+          path: ['client_mtu'],
+          message: m.form_error_required(),
+        });
+      } else if (value.client_mtu < 72 || value.client_mtu > 0xffffffff) {
+        context.addIssue({
+          code: 'custom',
+          path: ['client_mtu'],
+          message: m.form_error_invalid(),
         });
       }
     }
@@ -269,7 +287,8 @@ const buildLocationSubmissionData = (
   }
 
   return {
-    ...omit(normalizedValue, ['firewall']),
+    ...omit(normalizedValue, ['firewall', 'client_mtu_enabled']),
+    client_mtu: normalizedValue.client_mtu_enabled ? normalizedValue.client_mtu : null,
     allowed_ips: normalizedValue.allowed_ips ?? '',
     acl_default_allow: normalizedValue.firewall === LocationFirewall.Allow,
     acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
@@ -556,6 +575,8 @@ const EditLocationForm = ({
       endpoint: location.endpoint,
       keepalive_interval: location.keepalive_interval,
       mtu: location.mtu,
+      client_mtu_enabled: isPresent(location.client_mtu),
+      client_mtu: location.client_mtu,
       fwmark: location.fwmark,
       mfa_enabled: location.mfa_enabled,
       peer_disconnect_threshold: location.peer_disconnect_threshold,
@@ -778,6 +799,25 @@ const EditLocationForm = ({
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="client_mtu_enabled">
+            {(field) => <field.FormCheckbox text={m.location_network_set_client_mtu()} />}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Md} />
+          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
+            {(clientMtuEnabled) => (
+              <form.AppField name="client_mtu">
+                {(field) => (
+                  <field.FormInput
+                    label={m.location_network_label_client_mtu()}
+                    type="number"
+                    disabled={!clientMtuEnabled}
+                    helper={m.location_network_helper_client_mtu()}
+                  />
+                )}
+              </form.AppField>
+            )}
+          </form.Subscribe>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="fwmark">
             {(field) => (
