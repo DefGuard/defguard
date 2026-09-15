@@ -33,7 +33,7 @@ use crate::{
     grpc::GatewayCommand,
     mfa_engine::{
         authorize::{EventChannels, build_authorized_gateway_network_info, create_new_session},
-        error::{FinishError, StartError, StepError},
+        error::{FinishCoreError, FinishError, StartError, StepError},
         method::{InitiateError, Verdict, VerifyError, initiate, offered_credential_ids, verify},
         types::{
             FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
@@ -589,7 +589,10 @@ impl MfaEngine {
                         },
                     )),
                 })?;
-                let at_cap = self.record_failure(session, &ctx, ip).await?;
+                let at_cap = self
+                    .record_failure(session, &ctx, ip)
+                    .await
+                    .map_err(map_finish_core_error)?;
                 if at_cap && proof.step_attempt_id.is_some() {
                     return Err(FinishError::AttemptLimit);
                 }
@@ -671,7 +674,8 @@ impl MfaEngine {
 
         let completed = self
             .complete_flow(&mut transaction, session, snapshot, &ctx, context)
-            .await?;
+            .await
+            .map_err(map_finish_core_error)?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction while finishing desktop client login.");
@@ -708,7 +712,7 @@ impl MfaEngine {
         snapshot: StepsSnapshot,
         ctx: &MfaSessionContext,
         context: BidiRequestContext,
-    ) -> Result<CompletedFlow, FinishError> {
+    ) -> Result<CompletedFlow, FinishCoreError> {
         let Ok(Some(network_device)) =
             WireguardNetworkDevice::find(&mut *transaction, ctx.device.id, ctx.location.id).await
         else {
@@ -716,14 +720,14 @@ impl MfaEngine {
                 "Failed to fetch network config for device {} and location {}",
                 ctx.device, ctx.location
             );
-            return Err(FinishError::Internal);
+            return Err(FinishCoreError::Internal);
         };
 
         let flow_name = MfaFlow::find_by_id(&mut *transaction, snapshot.flow_id)
             .await
             .map_err(|err| {
                 error!("Failed to resolve MFA flow for attribution: {err}");
-                FinishError::Internal
+                FinishCoreError::Internal
             })?
             .map(|flow| flow.title);
 
@@ -744,7 +748,7 @@ impl MfaEngine {
                 "Failed to create new VPN client session for device {} in location {}: {err}",
                 ctx.device, ctx.location
             );
-            FinishError::Internal
+            FinishCoreError::Internal
         })?;
         debug!(
             "Created new VPN client session with id {}",
@@ -785,7 +789,7 @@ impl MfaEngine {
 
         session.delete(&mut *transaction).await.map_err(|err| {
             error!("Failed to delete MFA session: {err}");
-            FinishError::Internal
+            FinishCoreError::Internal
         })?;
 
         Ok(CompletedFlow {
@@ -804,24 +808,24 @@ impl MfaEngine {
         session: VpnClientMfaSession<Id>,
         ctx: &MfaSessionContext,
         ip: IpAddr,
-    ) -> Result<bool, FinishError> {
+    ) -> Result<bool, FinishCoreError> {
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction while recording MFA failure: {err}");
-            FinishError::Internal
+            FinishCoreError::Internal
         })?;
         let at_cap = session
             .increment_failed_attempts(&mut transaction)
             .await
             .map_err(|err| {
                 error!("Failed to record MFA failure: {err}");
-                FinishError::Internal
+                FinishCoreError::Internal
             })?;
         let abort_event = if at_cap {
             let flow_name = MfaFlow::find_by_id(&mut *transaction, session.steps_snapshot.flow_id)
                 .await
                 .map_err(|err| {
                     error!("Failed to resolve MFA flow for abort attribution: {err}");
-                    FinishError::Internal
+                    FinishCoreError::Internal
                 })?
                 .map(|flow| flow.title);
             Some(BidiStreamEvent {
@@ -852,17 +856,24 @@ impl MfaEngine {
             );
             session.delete(&mut *transaction).await.map_err(|err| {
                 error!("Failed to delete MFA session: {err}");
-                FinishError::Internal
+                FinishCoreError::Internal
             })?;
         }
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit MFA failure record: {err}");
-            FinishError::Internal
+            FinishCoreError::Internal
         })?;
         if let Some(event) = abort_event {
             self.channels.emit_event(event)?;
         }
         Ok(at_cap)
+    }
+}
+
+fn map_finish_core_error(error: FinishCoreError) -> FinishError {
+    match error {
+        FinishCoreError::Internal => FinishError::Internal,
+        FinishCoreError::Event(error) => FinishError::Event(error),
     }
 }
 

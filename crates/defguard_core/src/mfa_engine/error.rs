@@ -67,3 +67,79 @@ pub enum FinishError {
     #[error(transparent)]
     Event(#[from] ClientMfaServerError),
 }
+
+/// Errors reachable from the multi-step finish and mobile-approval methods.
+#[derive(Debug, Error)]
+pub enum StepFinishError {
+    #[error("login session not found")]
+    SessionNotFound,
+    #[error("no MFA attempt in progress")]
+    UninitializedStep,
+    #[error("unauthorized")]
+    Unauthorized,
+    #[error("Too many failed MFA attempts. Please try connecting again.")]
+    AttemptLimit,
+    #[error("stale MFA attempt")]
+    StaleAttempt,
+    #[error("Challenge not found in session")]
+    MissingChallenge,
+    #[error("Challenge not found in MFA session")]
+    MissingBiometricChallenge,
+    #[error("{message}")]
+    MalformedProof { message: &'static str },
+    #[error("unexpected error")]
+    Internal,
+    #[error(transparent)]
+    Event(#[from] ClientMfaServerError),
+}
+
+/// Internal failures shared by the contract-specific finish methods.
+#[derive(Debug, Error)]
+pub(super) enum FinishCoreError {
+    #[error("unexpected error")]
+    Internal,
+    #[error(transparent)]
+    Event(#[from] ClientMfaServerError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_finish_error_messages_are_frozen() {
+        let cases = [
+            (FinishError::SessionNotFound, "login session not found"),
+            (FinishError::UninitializedStep, "no MFA attempt in progress"),
+            (
+                FinishError::OidcNotCompleted,
+                "OIDC authentication not completed yet",
+            ),
+            (FinishError::Unauthorized, "unauthorized"),
+            (
+                FinishError::AttemptLimit,
+                "Too many failed MFA attempts. Please try connecting again.",
+            ),
+            (FinishError::StaleAttempt, "stale MFA attempt"),
+            (
+                FinishError::MissingChallenge,
+                "Challenge not found in session",
+            ),
+            (
+                FinishError::MissingBiometricChallenge,
+                "Challenge not found in MFA session",
+            ),
+            (
+                FinishError::MalformedProof {
+                    message: "malformed",
+                },
+                "malformed",
+            ),
+            (FinishError::Internal, "unexpected error"),
+        ];
+
+        for (error, expected) in cases {
+            assert_eq!(error.to_string(), expected);
+        }
+    }
+}
