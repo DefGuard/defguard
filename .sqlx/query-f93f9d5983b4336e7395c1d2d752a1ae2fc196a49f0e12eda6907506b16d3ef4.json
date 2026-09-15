@@ -6,97 +6,211 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "address: _",
-        "type_info": "InetArray"
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "address"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "port",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "port"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "pubkey",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "pubkey"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "prvkey",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "prvkey"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "endpoint",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "endpoint"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "dns",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "dns"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "mtu",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "mtu"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "fwmark",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "fwmark"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "allowed_ips: _",
-        "type_info": "InetArray"
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allowed_ips"
+          }
+        }
       },
       {
         "ordinal": 11,
         "name": "allow_all_groups",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allow_all_groups"
+          }
+        }
       },
       {
         "ordinal": 12,
         "name": "connected_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "connected_at"
+          }
+        }
       },
       {
         "ordinal": 13,
         "name": "acl_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "acl_enabled"
+          }
+        }
       },
       {
         "ordinal": 14,
         "name": "acl_default_allow",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "acl_default_allow"
+          }
+        }
       },
       {
         "ordinal": 15,
         "name": "allowed_ips_from_acl",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allowed_ips_from_acl"
+          }
+        }
       },
       {
         "ordinal": 16,
         "name": "keepalive_interval",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "keepalive_interval"
+          }
+        }
       },
       {
         "ordinal": 17,
         "name": "peer_disconnect_threshold",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "peer_disconnect_threshold"
+          }
+        }
       },
       {
         "ordinal": 18,
         "name": "mfa_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 19,
@@ -111,6 +225,12 @@
                 "alwayson"
               ]
             }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "service_location_mode"
           }
         }
       }

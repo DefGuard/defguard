@@ -6,22 +6,46 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "mfa_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "totp_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "totp_enabled"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "email_mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 4,
@@ -39,37 +63,79 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "mfa_method"
+          }
         }
       },
       {
         "ordinal": 5,
         "name": "password_hash",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "password_hash"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "is_active",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "is_active"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "openid_sub",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "openid_sub"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "from_ldap",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "from_ldap"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "ldap_pass_randomized",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "ldap_pass_randomized"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "ldap_rdn",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "ldap_rdn"
+          }
+        }
       }
     ],
     "parameters": {

@@ -7,7 +7,7 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, AuthenticationKeyType, User, group::Group},
 };
-use sqlx::{PgExecutor, PgPool, query};
+use sqlx::{PgExecutor, PgPool, query, query_as};
 use ssh_key::PublicKey;
 
 use super::{ApiResponse, ApiResult, user_for_admin_or_self};
@@ -37,10 +37,10 @@ impl AuthenticationKeyInfo {
     where
         E: PgExecutor<'e>,
     {
-        let q_res = query!(
-            "SELECT k.id key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
-            k.key, k.user_id, k.yubikey_id, \
-            y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
+        let res = query_as!(
+            AuthenticationKeyInfo,
+            "SELECT k.id, k.name, k.key_type \"key_type: AuthenticationKeyType\", k.key, \
+            k.user_id, k.yubikey_id, y.name yubikey_name, y.serial yubikey_serial \
             FROM \"authentication_key\" k \
             LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id \
             WHERE k.user_id = $1",
@@ -48,19 +48,6 @@ impl AuthenticationKeyInfo {
         )
         .fetch_all(executor)
         .await?;
-        let res = q_res
-            .iter()
-            .map(|q| Self {
-                id: q.key_id,
-                key: q.key.clone(),
-                key_type: q.key_type.clone(),
-                user_id: q.user_id,
-                name: q.name.clone(),
-                yubikey_id: q.yubikey_id,
-                yubikey_name: q.yubikey_name.clone(),
-                yubikey_serial: q.serial.clone(),
-            })
-            .collect();
 
         Ok(res)
     }

@@ -6,22 +6,46 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yubikey",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yubikey",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "serial",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yubikey",
+            "name": "serial"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yubikey",
+            "name": "user_id"
+          }
+        }
       }
     ],
     "parameters": {

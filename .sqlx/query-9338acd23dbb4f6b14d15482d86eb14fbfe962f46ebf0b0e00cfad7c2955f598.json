@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "wireguard_ips: Vec<IpAddr>",
-        "type_info": "InetArray"
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network_device",
+            "name": "wireguard_ips"
+          }
+        }
       }
     ],
     "parameters": {

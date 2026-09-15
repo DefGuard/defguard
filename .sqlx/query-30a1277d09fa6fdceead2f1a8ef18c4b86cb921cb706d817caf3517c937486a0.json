@@ -6,37 +6,79 @@
       {
         "ordinal": 0,
         "name": "instance_name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "instance_name"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "main_logo_url",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "main_logo_url"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "nav_logo_url",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "nav_logo_url"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "wireguard_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "wireguard_enabled"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "webhooks_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "webhooks_enabled"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "worker_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "worker_enabled"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "openid_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "openid_enabled"
+          }
+        }
       }
     ],
     "parameters": {

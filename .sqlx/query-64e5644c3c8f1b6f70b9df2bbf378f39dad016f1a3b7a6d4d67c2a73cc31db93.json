@@ -6,17 +6,30 @@
       {
         "ordinal": 0,
         "name": "flow_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "location_mfa_flow",
+            "name": "flow_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "is_default",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "location_mfa_flow",
+            "name": "is_default"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "group_ids!: Vec<Id>",
-        "type_info": "Int8Array"
+        "type_info": "Int8Array",
+        "origin": "Expression"
       }
     ],
     "parameters": {

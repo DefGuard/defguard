@@ -6,22 +6,46 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclruledevice",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "rule_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclruledevice",
+            "name": "rule_id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "device_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclruledevice",
+            "name": "device_id"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "allow",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclruledevice",
+            "name": "allow"
+          }
+        }
       }
     ],
     "parameters": {

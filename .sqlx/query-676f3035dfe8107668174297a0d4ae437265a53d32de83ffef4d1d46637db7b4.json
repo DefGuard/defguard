@@ -6,57 +6,123 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "token_hash",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "token_hash"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "location_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "location_id"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "device_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "device_id"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "steps_snapshot: Json<StepsSnapshot>",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "steps_snapshot"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "current_step",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "current_step"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "ephemeral_state: Json<EphemeralState>",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "ephemeral_state"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "failed_attempts",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "failed_attempts"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "created_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "created_at"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "expires_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "expires_at"
+          }
+        }
       }
     ],
     "parameters": {

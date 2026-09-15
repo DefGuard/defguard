@@ -6,22 +6,31 @@
       {
         "ordinal": 0,
         "name": "device_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "device_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "collected_at!: NaiveDateTime",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": "Expression"
       },
       {
         "ordinal": 2,
         "name": "download!",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": "Expression"
       },
       {
         "ordinal": 3,
         "name": "upload!",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
