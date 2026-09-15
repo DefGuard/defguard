@@ -19,22 +19,41 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "mfa_method"
+          }
         }
       },
       {
         "ordinal": 1,
         "name": "totp_available",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "totp_enabled"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "email_available",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "email_mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "webauthn_available!",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {

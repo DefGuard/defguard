@@ -427,16 +427,17 @@ impl From<WebError> for ApiResponse {
                     )
                 }
             },
-            WebError::IpNetwork(err) => match err {
-                IpNetworkError::InvalidAddr(msg) | IpNetworkError::InvalidCidrFormat(msg) => {
-                    warn!(msg);
-                    Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
-                }
-                IpNetworkError::InvalidPrefix => {
-                    warn!("Invalid prefix");
-                    Self::new(json!({"msg": "invalid prefix"}), StatusCode::BAD_REQUEST)
-                }
-            },
+            WebError::IpNetwork(err) => {
+                let msg = match err {
+                    IpNetworkError::InvalidAddr(msg) | IpNetworkError::InvalidCidrFormat(msg) => {
+                        msg
+                    }
+                    IpNetworkError::InvalidPrefix => String::from("invalid prefix"),
+                    _ => String::from("unknown error"),
+                };
+                warn!(msg);
+                Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+            }
         }
     }
 }

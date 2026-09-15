@@ -6,32 +6,68 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "description",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "description"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "min_desktop_client_version",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "min_desktop_client_version"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "min_mobile_client_version",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "min_mobile_client_version"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "allow_prerelease_client",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "allow_prerelease_client"
+          }
+        }
       }
     ],
     "parameters": {

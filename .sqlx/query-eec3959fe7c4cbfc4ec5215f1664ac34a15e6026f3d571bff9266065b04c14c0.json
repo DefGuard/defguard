@@ -6,17 +6,35 @@
       {
         "ordinal": 0,
         "name": "device_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network_device",
+            "name": "device_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "wireguard_network_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network_device",
+            "name": "wireguard_network_id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "wireguard_ips: Vec<IpAddr>",
-        "type_info": "InetArray"
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network_device",
+            "name": "wireguard_ips"
+          }
+        }
       }
     ],
     "parameters": {

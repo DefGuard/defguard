@@ -6,27 +6,57 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "yubikey_id?",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "yubikey_id"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "key",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "key"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 5,
@@ -40,6 +70,12 @@
                 "gpg"
               ]
             }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "key_type"
           }
         }
       }

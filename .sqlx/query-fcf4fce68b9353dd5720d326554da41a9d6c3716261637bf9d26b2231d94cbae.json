@@ -6,12 +6,24 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "parent_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "parent_id"
+          }
+        }
       },
       {
         "ordinal": 2,
@@ -29,102 +41,222 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "state"
+          }
         }
       },
       {
         "ordinal": 3,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "allow_all_users",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "allow_all_users"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "deny_all_users",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "deny_all_users"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "allow_all_groups",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "allow_all_groups"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "deny_all_groups",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "deny_all_groups"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "allow_all_network_devices",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "allow_all_network_devices"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "deny_all_network_devices",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "deny_all_network_devices"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "all_locations",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "all_locations"
+          }
+        }
       },
       {
         "ordinal": 11,
         "name": "addresses",
-        "type_info": "InetArray"
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "addresses"
+          }
+        }
       },
       {
         "ordinal": 12,
         "name": "ports",
-        "type_info": "Int4RangeArray"
+        "type_info": "Int4RangeArray",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "ports"
+          }
+        }
       },
       {
         "ordinal": 13,
         "name": "protocols",
-        "type_info": "Int4Array"
+        "type_info": "Int4Array",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "protocols"
+          }
+        }
       },
       {
         "ordinal": 14,
         "name": "enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "enabled"
+          }
+        }
       },
       {
         "ordinal": 15,
         "name": "expires",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "expires"
+          }
+        }
       },
       {
         "ordinal": 16,
         "name": "any_address",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "any_address"
+          }
+        }
       },
       {
         "ordinal": 17,
         "name": "any_port",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "any_port"
+          }
+        }
       },
       {
         "ordinal": 18,
         "name": "any_protocol",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "any_protocol"
+          }
+        }
       },
       {
         "ordinal": 19,
         "name": "use_manual_destination_settings",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "use_manual_destination_settings"
+          }
+        }
       },
       {
         "ordinal": 20,
         "name": "modified_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "modified_at"
+          }
+        }
       },
       {
         "ordinal": 21,
         "name": "modified_by",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "aclrule",
+            "name": "modified_by"
+          }
+        }
       }
     ],
     "parameters": {

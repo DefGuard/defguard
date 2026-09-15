@@ -3,7 +3,7 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use model_derive::Model;
-use sqlx::{FromRow, PgPool, query_as};
+use sqlx::{AssertSqlSafe, FromRow, PgPool, query_as};
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -72,7 +72,7 @@ impl WebHook<Id> {
             on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook \
             WHERE enabled AND {column_name}"
         );
-        query_as(&query).fetch_all(pool).await
+        query_as(AssertSqlSafe(query)).fetch_all(pool).await
     }
 
     /// Find [`WebHook`] by URL.
