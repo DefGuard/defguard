@@ -439,7 +439,7 @@ async fn test_mfa_finish_succeeds_after_oidc_completion(
 
 #[sqlx::test]
 #[allow(deprecated)]
-async fn test_mfa_await_remote_receives_psk_after_finish(
+async fn test_mfa_await_remote_does_not_receive_psk_after_email_finish(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -475,34 +475,21 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     // Subscribe before finish so the gateway send has a receiver.
     let _gateway_rx = context.gateway_tx.subscribe();
 
-    // Finish without receiving so both responses can be collected below.
+    // Finish without receiving so the response can be checked below.
     let code = user.generate_email_mfa_code().expect("generate email code");
     send_mfa_finish_no_recv(&mut context, &token, Some(&code)).await;
 
-    // Collect both responses in either order.
-    let r1 = context.mock_proxy_mut().recv_outbound().await;
-    let r2 = context.mock_proxy_mut().recv_outbound().await;
-
-    let mut got_finish = false;
-    let mut got_await = false;
-    for r in [&r1, &r2] {
-        match &r.payload {
-            Some(core_response::Payload::ClientMfaFinish(fr)) => {
-                assert!(!fr.preshared_key.is_empty());
-                got_finish = true;
-            }
-            Some(core_response::Payload::AwaitRemoteMfaFinish(ar)) => {
-                assert!(!ar.preshared_key.is_empty());
-                got_await = true;
-            }
-            other => panic!(
-                "unexpected response payload: {:?}",
-                other.as_ref().map(std::mem::discriminant)
-            ),
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    match response.payload {
+        Some(core_response::Payload::ClientMfaFinish(response)) => {
+            assert!(!response.preshared_key.is_empty());
         }
+        other => panic!(
+            "expected ClientMfaFinish response, got {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
     }
-    assert!(got_finish, "missing ClientMfaFinish response");
-    assert!(got_await, "missing AwaitRemoteMfaFinish response");
+    context.mock_proxy_mut().expect_no_outbound().await;
 
     context.finish().await.expect_server_finished().await;
 }

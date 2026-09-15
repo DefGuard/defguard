@@ -28,7 +28,10 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::{ApiEvent, BidiStreamEvent, ProxyConnectionEvent};
+use defguard_core::{
+    events::{ApiEvent, BidiStreamEvent, ProxyConnectionEvent},
+    grpc::proxy::client_mfa::RemoteAuthWaiters,
+};
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
     proxy_server,
@@ -404,6 +407,7 @@ pub(crate) struct HandlerTestContext {
     pub(crate) event_rx: UnboundedReceiver<ApiEvent>,
     pub(crate) connection_events_rx: UnboundedReceiver<ProxyConnectionEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
+    remote_mfa_responses: RemoteAuthWaiters,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
     /// Keep-alive handle: holds the sender so the handler's shutdown receiver
     /// does not see a premature cancellation.
@@ -458,7 +462,7 @@ impl HandlerTestContext {
             pool.clone(),
             url,
             &tx_set,
-            remote_mfa_responses,
+            Arc::clone(&remote_mfa_responses),
             Arc::new(tokio::sync::Mutex::new(shutdown_rx)),
             proxy.id,
             axum_extra::extract::cookie::Key::derive_from(
@@ -484,6 +488,7 @@ impl HandlerTestContext {
             event_rx,
             connection_events_rx,
             mock_proxy: Some(mock_proxy),
+            remote_mfa_responses,
             handler_task: Some(handler_task),
             _shutdown_tx: Some(shutdown_tx),
         }
@@ -509,6 +514,11 @@ impl HandlerTestContext {
     }
 
     pub(crate) async fn finish(mut self) -> MockProxyHarness {
+        self.remote_mfa_responses
+            .write()
+            .expect("failed to lock remote MFA waiters")
+            .clear();
+
         let mut mock_proxy = assert_some!(
             self.mock_proxy.take(),
             "mock proxy already taken from context"
@@ -524,6 +534,15 @@ impl HandlerTestContext {
             .expect("proxy handler task panicked");
         result.expect("proxy handler returned an unexpected error");
         self.handler_task.take();
+
+        timeout(TEST_TIMEOUT, async {
+            while Arc::strong_count(&self.remote_mfa_responses) > 1 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("timed out waiting for remote MFA waiter tasks");
+
         mock_proxy
     }
 

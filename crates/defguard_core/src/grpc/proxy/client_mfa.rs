@@ -916,15 +916,16 @@ impl ClientMfaServer {
         // Legacy intermediate approvals advance the session without sending a key.
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
-                if let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token) {
-                    *waiter
-                        .legacy_preshared_key
-                        .lock()
-                        .expect("Failed to lock legacy remote MFA preshared key") =
-                        Some(preshared_key.clone());
-                    signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
-                }
                 if is_mobile_signature {
+                    if let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)
+                    {
+                        *waiter
+                            .legacy_preshared_key
+                            .lock()
+                            .expect("Failed to lock legacy remote MFA preshared key") =
+                            Some(preshared_key.clone());
+                        signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
+                    }
                     String::new()
                 } else {
                     preshared_key.clone()
