@@ -22,6 +22,13 @@ struct DeviceTarget {
     gateway_id: Option<i64>,
 }
 
+struct SeedTarget {
+    session_id: i64,
+    gateway_id: i64,
+    total_upload: i64,
+    total_download: i64,
+}
+
 pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
     let options = PgConnectOptions::new()
         .host(&args.database.database_host)
@@ -50,12 +57,14 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
 
     let started_at = Utc::now().naive_utc();
     let first_sample = started_at - HORIZON;
-    let mut seeded_devices = 0_u64;
     let mut skipped_devices = 0_u64;
     let mut inserted_stats = 0_u64;
+    let mut seed_targets = Vec::with_capacity(targets.len());
 
     tracing::info!(targets = targets.len(), horizon = ?HORIZON, interval = ?SAMPLE_INTERVAL, "seeding VPN statistics");
 
+    // Resolve sessions first. The sample loop below then advances all targets together,
+    // keeping one batch in memory instead of a full series for one target.
     for target in targets {
         let existing_session: Option<i64> = query_scalar(
             "SELECT id
@@ -84,17 +93,6 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             }
             session_id
         } else {
-            0
-        };
-
-        let gateway_id = match target.gateway_id {
-            Some(gateway_id) => gateway_id,
-            None => ensure_gateway(&pool, target.location_id).await?,
-        };
-
-        let session_id: i64 = if session_id != 0 {
-            session_id
-        } else {
             query_scalar(
                 "INSERT INTO vpn_client_session
                     (location_id, user_id, device_id, connected_at, state)
@@ -109,26 +107,37 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             .with_context(|| format!("failed to create session for device {}", target.device_id))?
         };
 
-        let mut batch = Vec::with_capacity(BATCH_SIZE);
-        let mut collected_at = first_sample;
-        let mut total_upload = 0_i64;
-        let mut total_download = 0_i64;
+        let gateway_id = match target.gateway_id {
+            Some(gateway_id) => gateway_id,
+            None => ensure_gateway(&pool, target.location_id).await?,
+        };
+        seed_targets.push(SeedTarget {
+            session_id,
+            gateway_id,
+            total_upload: 0,
+            total_download: 0,
+        });
+    }
 
-        while collected_at <= started_at {
-            let upload_diff =
-                50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64;
-            let download_diff =
-                75_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 150_000) as i64;
-            total_upload += upload_diff;
-            total_download += download_diff;
+    let mut batch = Vec::with_capacity(BATCH_SIZE);
+    let mut collected_at = first_sample;
+    while collected_at <= started_at {
+        let upload_diff =
+            50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64;
+        let download_diff =
+            75_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 150_000) as i64;
+
+        for target in &mut seed_targets {
+            target.total_upload += upload_diff;
+            target.total_download += download_diff;
             batch.push((
-                session_id,
-                gateway_id,
+                target.session_id,
+                target.gateway_id,
                 collected_at,
                 collected_at,
                 ENDPOINT,
-                total_upload,
-                total_download,
+                target.total_upload,
+                target.total_download,
                 upload_diff,
                 download_diff,
             ));
@@ -138,19 +147,16 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
                 inserted_stats += batch.len() as u64;
                 batch.clear();
             }
-            collected_at += SAMPLE_INTERVAL;
         }
 
-        if !batch.is_empty() {
-            insert_batch(&pool, &batch).await?;
-            inserted_stats += batch.len() as u64;
-        }
-
-        seeded_devices += 1;
-        if seeded_devices % 100 == 0 {
-            tracing::info!(seeded_devices, inserted_stats, "seed progress");
-        }
+        collected_at += SAMPLE_INTERVAL;
     }
+
+    if !batch.is_empty() {
+        insert_batch(&pool, &batch).await?;
+        inserted_stats += batch.len() as u64;
+    }
+    let seeded_devices = seed_targets.len() as u64;
 
     tracing::info!(
         seeded_devices,
