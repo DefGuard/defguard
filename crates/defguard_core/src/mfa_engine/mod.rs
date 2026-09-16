@@ -550,20 +550,11 @@ impl MfaEngine {
                 if proof.step_attempt_id.is_some() {
                     return Ok((FinishOutcome::AwaitingExternal, method));
                 }
-                // Preserve pre-2.2 OIDC behavior.
-                self.channels.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location: ctx.location.clone(),
-                            device: ctx.device.clone(),
-                            method: method.into(),
-                            message: "tried to finish OIDC MFA login but they haven't \
-                                completed OIDC authentication yet"
-                                .to_owned(),
-                        },
-                    )),
-                })?;
+                debug!(
+                    "User {} polled MFA finish for location {} before completing OIDC \
+                    authentication",
+                    ctx.user.username, ctx.location
+                );
                 return Err(FinishError::OidcNotCompleted);
             }
             Ok(Verdict::Failed { message }) => {
