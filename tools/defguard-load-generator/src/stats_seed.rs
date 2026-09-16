@@ -57,39 +57,57 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
     tracing::info!(targets = targets.len(), horizon = ?HORIZON, interval = ?SAMPLE_INTERVAL, "seeding VPN statistics");
 
     for target in targets {
-        let has_session: bool = query_scalar(
-            "SELECT EXISTS(
-                SELECT 1 FROM vpn_client_session
-                WHERE device_id = $1 AND location_id = $2
-            )",
+        let existing_session: Option<i64> = query_scalar(
+            "SELECT id
+             FROM vpn_client_session
+             WHERE device_id = $1 AND location_id = $2
+             ORDER BY (state = 'connected'::vpn_client_session_state) DESC, created_at DESC
+             LIMIT 1",
         )
         .bind(target.device_id)
         .bind(target.location_id)
-        .fetch_one(&pool)
+        .fetch_optional(&pool)
         .await?;
 
-        if has_session {
-            skipped_devices += 1;
-            continue;
-        }
+        let session_id = if let Some(session_id) = existing_session {
+            let has_stats: bool = query_scalar(
+                "SELECT EXISTS(
+                    SELECT 1 FROM vpn_session_stats WHERE session_id = $1
+                )",
+            )
+            .bind(session_id)
+            .fetch_one(&pool)
+            .await?;
+            if has_stats {
+                skipped_devices += 1;
+                continue;
+            }
+            session_id
+        } else {
+            0
+        };
 
         let gateway_id = match target.gateway_id {
             Some(gateway_id) => gateway_id,
             None => ensure_gateway(&pool, target.location_id).await?,
         };
 
-        let session_id: i64 = query_scalar(
-            "INSERT INTO vpn_client_session
-                (location_id, user_id, device_id, connected_at, state)
-             VALUES ($1, $2, $3, NOW(), 'connected'::vpn_client_session_state)
-             RETURNING id",
-        )
-        .bind(target.location_id)
-        .bind(target.user_id)
-        .bind(target.device_id)
-        .fetch_one(&pool)
-        .await
-        .with_context(|| format!("failed to create session for device {}", target.device_id))?;
+        let session_id: i64 = if session_id != 0 {
+            session_id
+        } else {
+            query_scalar(
+                "INSERT INTO vpn_client_session
+                    (location_id, user_id, device_id, connected_at, state)
+                 VALUES ($1, $2, $3, NOW(), 'connected'::vpn_client_session_state)
+                 RETURNING id",
+            )
+            .bind(target.location_id)
+            .bind(target.user_id)
+            .bind(target.device_id)
+            .fetch_one(&pool)
+            .await
+            .with_context(|| format!("failed to create session for device {}", target.device_id))?
+        };
 
         let mut batch = Vec::with_capacity(BATCH_SIZE);
         let mut collected_at = first_sample;
