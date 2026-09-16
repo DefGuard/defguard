@@ -1,0 +1,171 @@
+use anyhow::Context;
+use chrono::{Duration as ChronoDuration, Utc};
+use secrecy::ExposeSecret;
+use sqlx::{
+    FromRow, PgPool, QueryBuilder,
+    postgres::{PgConnectOptions, PgPoolOptions},
+    query_as, query_scalar,
+};
+
+use crate::config::SeedStatsArgs;
+
+const HORIZON: ChronoDuration = ChronoDuration::days(30);
+const SAMPLE_INTERVAL: ChronoDuration = ChronoDuration::seconds(30);
+const BATCH_SIZE: usize = 1_000;
+const ENDPOINT: &str = "198.18.0.1:51820";
+
+#[derive(Debug, FromRow)]
+struct DeviceTarget {
+    device_id: i64,
+    user_id: i64,
+    location_id: i64,
+    gateway_id: i64,
+}
+
+pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
+    let options = PgConnectOptions::new()
+        .host(&args.database.database_host)
+        .port(args.database.database_port)
+        .database(&args.database.database_name)
+        .username(&args.database.database_user)
+        .password(args.database.database_password.expose_secret());
+    let pool = PgPoolOptions::new()
+        .max_connections(4)
+        .connect_with(options)
+        .await?;
+
+    let targets = query_as::<_, DeviceTarget>(
+        "SELECT DISTINCT ON (d.id, wnd.wireguard_network_id)
+             d.id AS device_id, d.user_id, wnd.wireguard_network_id AS location_id, g.id AS gateway_id
+         FROM device d
+         JOIN wireguard_network_device wnd ON wnd.device_id = d.id
+         JOIN gateway g ON g.location_id = wnd.wireguard_network_id
+         ORDER BY d.id, wnd.wireguard_network_id, g.id",
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    let started_at = Utc::now().naive_utc();
+    let first_sample = started_at - HORIZON;
+    let mut seeded_devices = 0_u64;
+    let mut skipped_devices = 0_u64;
+    let mut inserted_stats = 0_u64;
+
+    tracing::info!(targets = targets.len(), horizon = ?HORIZON, interval = ?SAMPLE_INTERVAL, "seeding VPN statistics");
+
+    for target in targets {
+        let has_session: bool = query_scalar(
+            "SELECT EXISTS(
+                SELECT 1 FROM vpn_client_session
+                WHERE device_id = $1 AND location_id = $2
+            )",
+        )
+        .bind(target.device_id)
+        .bind(target.location_id)
+        .fetch_one(&pool)
+        .await?;
+
+        if has_session {
+            skipped_devices += 1;
+            continue;
+        }
+
+        let session_id: i64 = query_scalar(
+            "INSERT INTO vpn_client_session
+                (location_id, user_id, device_id, connected_at, state)
+             VALUES ($1, $2, $3, NOW(), 'connected'::vpn_client_session_state)
+             RETURNING id",
+        )
+        .bind(target.location_id)
+        .bind(target.user_id)
+        .bind(target.device_id)
+        .fetch_one(&pool)
+        .await
+        .with_context(|| format!("failed to create session for device {}", target.device_id))?;
+
+        let mut batch = Vec::with_capacity(BATCH_SIZE);
+        let mut collected_at = first_sample;
+        let mut total_upload = 0_i64;
+        let mut total_download = 0_i64;
+
+        while collected_at <= started_at {
+            let upload_diff =
+                50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64;
+            let download_diff =
+                75_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 150_000) as i64;
+            total_upload += upload_diff;
+            total_download += download_diff;
+            batch.push((
+                session_id,
+                target.gateway_id,
+                collected_at,
+                collected_at,
+                ENDPOINT,
+                total_upload,
+                total_download,
+                upload_diff,
+                download_diff,
+            ));
+
+            if batch.len() == BATCH_SIZE {
+                insert_batch(&pool, &batch).await?;
+                inserted_stats += batch.len() as u64;
+                batch.clear();
+            }
+            collected_at += SAMPLE_INTERVAL;
+        }
+
+        if !batch.is_empty() {
+            insert_batch(&pool, &batch).await?;
+            inserted_stats += batch.len() as u64;
+        }
+
+        seeded_devices += 1;
+        if seeded_devices % 100 == 0 {
+            tracing::info!(seeded_devices, inserted_stats, "seed progress");
+        }
+    }
+
+    tracing::info!(
+        seeded_devices,
+        skipped_devices,
+        inserted_stats,
+        "VPN statistics seeding complete"
+    );
+    Ok(())
+}
+
+async fn insert_batch(
+    pool: &PgPool,
+    batch: &[(
+        i64,
+        i64,
+        chrono::NaiveDateTime,
+        chrono::NaiveDateTime,
+        &str,
+        i64,
+        i64,
+        i64,
+        i64,
+    )],
+) -> anyhow::Result<()> {
+    let mut builder = QueryBuilder::new(
+        "INSERT INTO vpn_session_stats
+            (session_id, gateway_id, collected_at, latest_handshake, endpoint,
+             total_upload, total_download, upload_diff, download_diff) ",
+    );
+    builder.push_values(batch, |mut values, row| {
+        values
+            .push_bind(row.0)
+            .push_bind(row.1)
+            .push_bind(row.2)
+            .push_bind(row.3)
+            .push_bind(row.4)
+            .push_bind(row.5)
+            .push_bind(row.6)
+            .push_bind(row.7)
+            .push_bind(row.8);
+    });
+    builder.build().execute(pool).await?;
+    Ok(())
+}

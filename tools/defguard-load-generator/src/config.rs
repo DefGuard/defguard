@@ -16,6 +16,8 @@ pub enum Command {
     Seed(SeedArgs),
     /// Seeds users and a group in the dedicated OpenLDAP load-test OU.
     SeedLdap(SeedLdapArgs),
+    /// Seeds VPN statistics for existing devices.
+    SeedStats(SeedStatsArgs),
     /// Runs a load-test scenario.
     Test(TestArgs),
 }
@@ -29,6 +31,12 @@ pub struct SeedArgs {
     #[arg(long)]
     pub network_id: i64,
 
+    #[command(flatten)]
+    pub database: DatabaseArgs,
+}
+
+#[derive(Debug, Args)]
+pub struct SeedStatsArgs {
     #[command(flatten)]
     pub database: DatabaseArgs,
 }

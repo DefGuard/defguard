@@ -7,6 +7,7 @@ mod loadtest;
 mod mfa;
 mod runner;
 mod seed;
+mod stats_seed;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -21,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
     match config.command {
         config::Command::Seed(args) => seed::run(args).await?,
         config::Command::SeedLdap(args) => ldap_seed::run(args).await?,
+        config::Command::SeedStats(args) => stats_seed::run(args).await?,
         config::Command::Test(config::TestArgs { command }) => match command {
             config::TestCommand::ConfigPolling(args) => {
                 loadtest::ConfigPollingLoadTest::new(args).run().await?
