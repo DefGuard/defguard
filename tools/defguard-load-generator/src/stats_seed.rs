@@ -119,17 +119,28 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
         });
     }
 
+    // Calculate the final counters first, so samples can be inserted newest-first
+    // while retaining monotonically increasing WireGuard counters over time.
+    let mut final_upload = 0_i64;
+    let mut final_download = 0_i64;
+    let mut timestamp = first_sample;
+    while timestamp <= started_at {
+        let (upload_diff, download_diff) = sample_diffs(timestamp);
+        final_upload += upload_diff;
+        final_download += download_diff;
+        timestamp += SAMPLE_INTERVAL;
+    }
+    for target in &mut seed_targets {
+        target.total_upload = final_upload;
+        target.total_download = final_download;
+    }
+
     let mut batch = Vec::with_capacity(BATCH_SIZE);
-    let mut collected_at = first_sample;
-    while collected_at <= started_at {
-        let upload_diff =
-            50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64;
-        let download_diff =
-            75_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 150_000) as i64;
+    let mut collected_at = started_at;
+    while collected_at >= first_sample {
+        let (upload_diff, download_diff) = sample_diffs(collected_at);
 
         for target in &mut seed_targets {
-            target.total_upload += upload_diff;
-            target.total_download += download_diff;
             batch.push((
                 target.session_id,
                 target.gateway_id,
@@ -141,6 +152,8 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
                 upload_diff,
                 download_diff,
             ));
+            target.total_upload -= upload_diff;
+            target.total_download -= download_diff;
 
             if batch.len() == BATCH_SIZE {
                 insert_batch(&pool, &batch).await?;
@@ -149,7 +162,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             }
         }
 
-        collected_at += SAMPLE_INTERVAL;
+        collected_at -= SAMPLE_INTERVAL;
     }
 
     if !batch.is_empty() {
@@ -165,6 +178,13 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
         "VPN statistics seeding complete"
     );
     Ok(())
+}
+
+fn sample_diffs(collected_at: chrono::NaiveDateTime) -> (i64, i64) {
+    (
+        50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64,
+        75_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 150_000) as i64,
+    )
 }
 
 async fn ensure_gateway(pool: &PgPool, location_id: i64) -> anyhow::Result<i64> {
