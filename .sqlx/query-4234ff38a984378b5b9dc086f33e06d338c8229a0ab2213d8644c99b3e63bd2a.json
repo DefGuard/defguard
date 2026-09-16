@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, allowed_ips_from_acl, mfa_enabled \"mfa_enabled!: bool\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE name = $1",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"client_mtu\",\"allowed_ips\" \"allowed_ips: _\",\"allow_all_groups\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"allowed_ips_from_acl\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"mfa_enabled\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -27,7 +27,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "address: _",
         "type_info": "InetArray",
         "origin": {
           "Table": {
@@ -115,7 +115,18 @@
       },
       {
         "ordinal": 10,
-        "name": "allowed_ips",
+        "name": "client_mtu",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "client_mtu"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "allowed_ips: _",
         "type_info": "InetArray",
         "origin": {
           "Table": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "allow_all_groups",
         "type_info": "Bool",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "connected_at",
         "type_info": "Timestamp",
         "origin": {
@@ -147,29 +158,7 @@
         }
       },
       {
-        "ordinal": 13,
-        "name": "keepalive_interval",
-        "type_info": "Int4",
-        "origin": {
-          "Table": {
-            "table": "wireguard_network",
-            "name": "keepalive_interval"
-          }
-        }
-      },
-      {
         "ordinal": 14,
-        "name": "peer_disconnect_threshold",
-        "type_info": "Int4",
-        "origin": {
-          "Table": {
-            "table": "wireguard_network",
-            "name": "peer_disconnect_threshold"
-          }
-        }
-      },
-      {
-        "ordinal": 15,
         "name": "acl_enabled",
         "type_info": "Bool",
         "origin": {
@@ -180,7 +169,7 @@
         }
       },
       {
-        "ordinal": 16,
+        "ordinal": 15,
         "name": "acl_default_allow",
         "type_info": "Bool",
         "origin": {
@@ -191,7 +180,7 @@
         }
       },
       {
-        "ordinal": 17,
+        "ordinal": 16,
         "name": "allowed_ips_from_acl",
         "type_info": "Bool",
         "origin": {
@@ -202,8 +191,30 @@
         }
       },
       {
+        "ordinal": 17,
+        "name": "keepalive_interval",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "keepalive_interval"
+          }
+        }
+      },
+      {
         "ordinal": 18,
-        "name": "mfa_enabled!: bool",
+        "name": "peer_disconnect_threshold",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "peer_disconnect_threshold"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "mfa_enabled",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -213,8 +224,8 @@
         }
       },
       {
-        "ordinal": 19,
-        "name": "service_location_mode: ServiceLocationMode",
+        "ordinal": 20,
+        "name": "service_location_mode: _",
         "type_info": {
           "Custom": {
             "name": "service_location_mode",
@@ -237,7 +248,8 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -251,6 +263,7 @@
       true,
       false,
       false,
+      true,
       false,
       false,
       true,
@@ -263,5 +276,5 @@
       false
     ]
   },
-  "hash": "931a75c03a58f37a5cf2c3e090990b37a9ae0ab99d541b75d92c4e9e47ff9c1c"
+  "hash": "4234ff38a984378b5b9dc086f33e06d338c8229a0ab2213d8644c99b3e63bd2a"
 }

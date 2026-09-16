@@ -119,6 +119,8 @@ pub struct WireguardNetwork<I = NoId> {
     pub dns: Option<String>,
     pub mtu: i32,    // Should be u32, but sqlx won't allow that.
     pub fwmark: i64, // Should be u32, but sqlx won't allow that.
+    /// If set, force MTU on Defguard Client.
+    pub client_mtu: Option<i32>, // Should be Option<u32>, but sqlx won't allow that.
     #[model(ref)]
     #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub allowed_ips: Vec<IpNetwork>,
@@ -132,11 +134,6 @@ pub struct WireguardNetwork<I = NoId> {
     pub mfa_enabled: bool,
     #[model(enum)]
     pub service_location_mode: ServiceLocationMode,
-}
-
-pub struct WireguardKey {
-    pub private: String,
-    pub public: String,
 }
 
 impl fmt::Display for WireguardNetwork<NoId> {
@@ -245,6 +242,7 @@ impl WireguardNetwork {
             dns,
             mtu: DEFAULT_WIREGUARD_MTU,
             fwmark: DEFAULT_FWMARK,
+            client_mtu: None,
             allowed_ips: allowed_ips.into(),
             allow_all_groups,
             connected_at: None,
@@ -349,7 +347,7 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            client_mtu, allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
             mfa_enabled \"mfa_enabled!: bool\", \
@@ -378,7 +376,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            client_mtu, allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
             mfa_enabled \"mfa_enabled!: bool\", \
@@ -405,7 +403,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            client_mtu, allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
             mfa_enabled \"mfa_enabled!: bool\", \
@@ -428,7 +426,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             Self,
             "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            client_mtu, allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
             peer_disconnect_threshold, acl_enabled, acl_default_allow, \
             allowed_ips_from_acl, \
             mfa_enabled \"mfa_enabled!: bool\", \
@@ -440,17 +438,6 @@ impl WireguardNetwork<Id> {
         )
         .fetch_all(executor)
         .await
-    }
-
-    /// Utility method to create WireGuard keypair
-    #[must_use]
-    pub fn genkey() -> WireguardKey {
-        let private = StaticSecret::random();
-        let public = PublicKey::from(&private);
-        WireguardKey {
-            private: BASE64_STANDARD.encode(private.to_bytes()),
-            public: BASE64_STANDARD.encode(public.to_bytes()),
-        }
     }
 
     /// Get a list of all devices belonging to active users in allowed groups.
@@ -1339,7 +1326,7 @@ impl WireguardNetwork<Id> {
         let locations = query_as!(
             WireguardNetwork,
             "SELECT DISTINCT wn.id, wn.name, wn.address, wn.port, wn.pubkey, wn.prvkey, \
-             wn.endpoint, wn.dns, wn.mtu, wn.fwmark, \
+             wn.endpoint, wn.dns, wn.mtu, wn.fwmark, wn.client_mtu, \
              wn.allowed_ips, wn.allow_all_groups, wn.connected_at, wn.keepalive_interval, \
              wn.peer_disconnect_threshold, wn.acl_enabled, wn.acl_default_allow, \
              wn.allowed_ips_from_acl, \
@@ -1550,6 +1537,7 @@ impl Default for WireguardNetwork {
             dns: Option::default(),
             mtu: DEFAULT_WIREGUARD_MTU,
             fwmark: 0,
+            client_mtu: None,
             allowed_ips: Vec::default(),
             allow_all_groups: false,
             connected_at: Option::default(),

@@ -6,6 +6,7 @@ use sqlx::{
 use tracing::info;
 
 pub mod models;
+pub mod wireguard_key;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq, Default, Hash)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

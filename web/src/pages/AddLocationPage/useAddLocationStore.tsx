@@ -25,6 +25,7 @@ const defaults: StoreValues = {
   port: 50051,
   keepalive_interval: 25,
   mtu: 1420,
+  client_mtu: null,
   fwmark: 0,
   allow_all_groups: true,
   peer_disconnect_threshold: 300,
