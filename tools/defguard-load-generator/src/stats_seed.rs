@@ -19,7 +19,7 @@ struct DeviceTarget {
     device_id: i64,
     user_id: i64,
     location_id: i64,
-    gateway_id: i64,
+    gateway_id: Option<i64>,
 }
 
 pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
@@ -36,10 +36,13 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
 
     let targets = query_as::<_, DeviceTarget>(
         "SELECT DISTINCT ON (d.id, wnd.wireguard_network_id)
-             d.id AS device_id, d.user_id, wnd.wireguard_network_id AS location_id, g.id AS gateway_id
+             d.id AS device_id,
+             d.user_id,
+             wnd.wireguard_network_id AS location_id,
+             g.id AS gateway_id
          FROM device d
          JOIN wireguard_network_device wnd ON wnd.device_id = d.id
-         JOIN gateway g ON g.location_id = wnd.wireguard_network_id
+         LEFT JOIN gateway g ON g.location_id = wnd.wireguard_network_id
          ORDER BY d.id, wnd.wireguard_network_id, g.id",
     )
     .fetch_all(&pool)
@@ -70,6 +73,11 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             continue;
         }
 
+        let gateway_id = match target.gateway_id {
+            Some(gateway_id) => gateway_id,
+            None => ensure_gateway(&pool, target.location_id).await?,
+        };
+
         let session_id: i64 = query_scalar(
             "INSERT INTO vpn_client_session
                 (location_id, user_id, device_id, connected_at, state)
@@ -97,7 +105,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             total_download += download_diff;
             batch.push((
                 session_id,
-                target.gateway_id,
+                gateway_id,
                 collected_at,
                 collected_at,
                 ENDPOINT,
@@ -133,6 +141,30 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
         "VPN statistics seeding complete"
     );
     Ok(())
+}
+
+async fn ensure_gateway(pool: &PgPool, location_id: i64) -> anyhow::Result<i64> {
+    if let Some(gateway_id) = query_scalar::<_, i64>(
+        "INSERT INTO gateway (location_id, name, modified_by, enabled)
+         SELECT $1, $2, 'stats-seeder', false
+         WHERE NOT EXISTS (
+             SELECT 1 FROM gateway WHERE location_id = $1
+         )
+         RETURNING id",
+    )
+    .bind(location_id)
+    .bind(format!("load-test-stats-{location_id}"))
+    .fetch_optional(pool)
+    .await?
+    {
+        return Ok(gateway_id);
+    }
+
+    query_scalar("SELECT id FROM gateway WHERE location_id = $1 ORDER BY id LIMIT 1")
+        .bind(location_id)
+        .fetch_one(pool)
+        .await
+        .map_err(Into::into)
 }
 
 async fn insert_batch(
