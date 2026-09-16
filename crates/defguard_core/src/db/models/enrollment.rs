@@ -5,15 +5,16 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, user::User},
+        models::{Settings, WebAuthn, user::User},
     },
     random::gen_alphanumeric,
     types::UrlParseError,
 };
-use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as};
+use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, types::Uuid};
 use tera::Context;
 use thiserror::Error;
 use tonic::{Code, Status};
+use webauthn_rs::prelude::{PasskeyRegistration, RegisterPublicKeyCredential};
 
 use crate::mail::templates;
 
@@ -53,6 +54,12 @@ pub enum TokenError {
     TemplateError(#[from] templates::TemplateError),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
+    #[error("Failed to serialize MFA setup state: {0}")]
+    MfaSetupStateSerialization(String),
+    #[error("WebAuthn configuration error: {0}")]
+    WebauthnConfig(String),
+    #[error("WebAuthn registration error: {0}")]
+    WebauthnRegistration(String),
 }
 
 impl From<TokenError> for Status {
@@ -68,11 +75,14 @@ impl From<TokenError> for Status {
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
-            | TokenError::TemplateErrorInternal(_) => (Code::Internal, unexpected_err_msg.as_str()),
+            | TokenError::TemplateErrorInternal(_)
+            | TokenError::MfaSetupStateSerialization(_)
+            | TokenError::WebauthnConfig(_) => (Code::Internal, unexpected_err_msg.as_str()),
             TokenError::NotFound | TokenError::SessionExpired | TokenError::TokenUsed => {
                 (Code::Unauthenticated, "invalid token")
             }
             TokenError::AlreadyActive => (Code::InvalidArgument, "already active"),
+            TokenError::WebauthnRegistration(ref msg) => (Code::InvalidArgument, msg.as_str()),
             TokenError::TokenExpired => (Code::Unauthenticated, "token expired"),
         };
         Self::new(code, msg)
@@ -91,6 +101,10 @@ pub struct Token {
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
+    // In-progress WebAuthn PasskeyRegistration (CBOR-serialized) for a FIDO2
+    // CodeMfaSetup ceremony; NULL for code-based methods and once a ceremony
+    // completes. See `set_passkey_registration` / `get_passkey_registration`.
+    pub mfa_setup_state: Option<Vec<u8>>,
 }
 
 impl fmt::Debug for Token {
@@ -128,6 +142,7 @@ impl Token {
             used_at: None,
             token_type,
             device_id: None,
+            mfa_setup_state: None,
         }
     }
 
@@ -159,6 +174,114 @@ impl Token {
         .execute(executor)
         .await?;
         Ok(())
+    }
+
+    /// Persist the in-progress WebAuthn `PasskeyRegistration` for a FIDO2
+    /// CodeMfaSetup ceremony (CBOR-serialized), mirroring
+    /// `Session::set_passkey_registration` on the REST path.
+    pub async fn set_passkey_registration<'e, E>(
+        &mut self,
+        executor: E,
+        passkey_reg: &PasskeyRegistration,
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let mfa_setup_state = serde_cbor::to_vec(passkey_reg)
+            .map_err(|err| TokenError::MfaSetupStateSerialization(err.to_string()))?;
+        query!(
+            "UPDATE token SET mfa_setup_state = $1 WHERE id = $2",
+            mfa_setup_state,
+            self.id
+        )
+        .execute(executor)
+        .await?;
+        self.mfa_setup_state = Some(mfa_setup_state);
+        Ok(())
+    }
+
+    /// Deserialize the stored in-progress `PasskeyRegistration`, if any.
+    #[must_use]
+    pub fn get_passkey_registration(&self) -> Option<PasskeyRegistration> {
+        self.mfa_setup_state
+            .as_ref()
+            .and_then(|state| serde_cbor::from_slice(state).ok())
+    }
+
+    /// Clear the stored ceremony state, e.g. after a successful FIDO2 setup.
+    pub async fn clear_mfa_setup_state<'e, E>(&mut self, executor: E) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "UPDATE token SET mfa_setup_state = NULL WHERE id = $1",
+            self.id
+        )
+        .execute(executor)
+        .await?;
+        self.mfa_setup_state = None;
+        Ok(())
+    }
+
+    /// Begin a FIDO2 (WebAuthn) registration ceremony for the setup session.
+    ///
+    /// Builds a creation challenge, stores the in-progress `PasskeyRegistration`
+    /// on this token, and returns the `CreationChallengeResponse` as a JSON
+    /// string to hand to the client's authenticator. Mirrors the REST
+    /// `webauthn_init` handler but persists state on the token, not a session.
+    pub async fn start_fido2_setup(
+        &mut self,
+        pool: &PgPool,
+        user: &User<Id>,
+    ) -> Result<String, TokenError> {
+        let passkeys = WebAuthn::passkeys_for_user(pool, user.id).await?;
+        let webauthn = Settings::get_current_settings()
+            .build_webauthn()
+            .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
+        let (ccr, passkey_reg) = webauthn
+            .start_passkey_registration(
+                Uuid::new_v4(),
+                &user.username,
+                &user.username,
+                Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
+            )
+            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
+        self.set_passkey_registration(pool, &passkey_reg).await?;
+        serde_json::to_string(&ccr).map_err(|err| TokenError::WebauthnRegistration(err.to_string()))
+    }
+
+    /// Complete a FIDO2 (WebAuthn) registration ceremony for the setup session.
+    ///
+    /// Verifies the client's attestation against the stored challenge, persists
+    /// the new security key, and clears the ceremony state. Returns the saved
+    /// [`WebAuthn`] record. Mirrors the REST `webauthn_finish` handler.
+    pub async fn finish_fido2_setup(
+        &mut self,
+        pool: &PgPool,
+        user_id: Id,
+        name: String,
+        attestation_json: &str,
+    ) -> Result<WebAuthn<Id>, TokenError> {
+        let webauthn = Settings::get_current_settings()
+            .build_webauthn()
+            .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
+        let passkey_reg = self.get_passkey_registration().ok_or_else(|| {
+            TokenError::WebauthnRegistration("Passkey registration session not found".into())
+        })?;
+        let rpkc: RegisterPublicKeyCredential =
+            serde_json::from_str(attestation_json).map_err(|_| {
+                TokenError::WebauthnRegistration("Failed to parse registration attestation".into())
+            })?;
+        let passkey = webauthn
+            .finish_passkey_registration(&rpkc, &passkey_reg)
+            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
+        let webauthn_key = WebAuthn::new(user_id, name, &passkey)
+            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?
+            .save(pool)
+            .await
+            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
+        self.clear_mfa_setup_state(pool).await?;
+        Ok(webauthn_key)
     }
 
     // check if token has already expired
@@ -227,7 +350,8 @@ impl Token {
     pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
         if let Some(enrollment) = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, \
+            mfa_setup_state \
             FROM token WHERE id = $1",
             id
         )
@@ -245,7 +369,8 @@ impl Token {
     pub async fn fetch_all(pool: &PgPool) -> Result<Vec<Self>, TokenError> {
         let tokens = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, \
+            mfa_setup_state \
             FROM token",
         )
         .fetch_all(pool)

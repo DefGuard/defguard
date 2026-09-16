@@ -1,19 +1,27 @@
 use defguard_common::db::{
     Id,
     models::{
-        Device, Settings, User, polling_token::PollingToken, vpn_client_session::VpnClientMfaMethod,
+        Device, MFAMethod, Settings, User, polling_token::PollingToken,
+        vpn_client_session::VpnClientMfaMethod,
     },
 };
 use defguard_core::{
     db::models::enrollment::{MFA_CONFIG_SESSION_TIMEOUT, MFA_CONFIG_TOKEN_TYPE, Token},
+    events::{ApiEvent, ApiEventType},
     mail::templates::mfa_code_mail,
 };
-use defguard_proto::client_types::{
-    MfaConfigAuthorizeRequest, MfaConfigAuthorizeResponse, MfaConfigSendCodeRequest,
-    MfaConfigSendCodeResponse, MfaConfigStartRequest, MfaConfigStartResponse, MfaMethod,
+use defguard_proto::{
+    client_types::{
+        MfaConfigAuthorizeRequest, MfaConfigAuthorizeResponse, MfaConfigSendCodeRequest,
+        MfaConfigSendCodeResponse, MfaConfigStartRequest, MfaConfigStartResponse, MfaMethod,
+    },
+    proxy::DeviceInfo,
 };
 use sqlx::PgPool;
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
+
+use super::mfa_setup::finalize_mfa_factor;
 
 /// An unauthorized MFA configuration session and its user's current factor state.
 struct MfaConfigSession {
@@ -21,17 +29,22 @@ struct MfaConfigSession {
     user: User<Id>,
     totp_configured: bool,
     email_configured: bool,
+    // A registered security key counts as a factor even though FIDO2 cannot
+    // authorize this code-based flow: it keeps a security-key-only user out of
+    // the no-factor email fallback (which would clobber their recovery codes).
+    fido2_configured: bool,
 }
 
 /// Handles MFA factor configuration requested by an already enrolled desktop client.
 pub(crate) struct MfaConfigServer {
     pool: PgPool,
+    event_tx: UnboundedSender<ApiEvent>,
 }
 
 impl MfaConfigServer {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, event_tx: UnboundedSender<ApiEvent>) -> Self {
+        Self { pool, event_tx }
     }
 
     async fn is_configured(
@@ -116,13 +129,19 @@ impl MfaConfigServer {
                 available_methods.push(MfaMethod::from(method) as i32);
             }
         }
+        // FIDO2 is a real factor, but it cannot authorize this code-based flow,
+        // so it is left out of `available_methods` yet still counted below so a
+        // security-key-only user is not treated as no-factor.
+        let fido2_configured = self
+            .is_configured(VpnClientMfaMethod::Fido2, &user, device.id, smtp_configured)
+            .await?;
 
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("MFA config start: failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
 
-        let email_fallback = available_methods.is_empty();
+        let email_fallback = available_methods.is_empty() && !fido2_configured;
         if email_fallback {
             if !smtp_configured {
                 error!(
@@ -204,12 +223,19 @@ impl MfaConfigServer {
         let email_configured = self
             .is_configured(VpnClientMfaMethod::Email, &user, device_id, smtp_configured)
             .await?;
+        // FIDO2 counts as a factor here so a security-key-only user is not
+        // treated as no-factor; biometric/mobile-approve are mobile-only, carry
+        // no recovery codes, and never reach this flow, so they stay ignored.
+        let fido2_configured = self
+            .is_configured(VpnClientMfaMethod::Fido2, &user, device_id, smtp_configured)
+            .await?;
 
         Ok(MfaConfigSession {
             token,
             user,
             totp_configured,
             email_configured,
+            fido2_configured,
         })
     }
 
@@ -224,7 +250,8 @@ impl MfaConfigServer {
         debug!("Sending MFA configuration email code");
         let session = self.load_session(&request.session_token).await?;
         let user = &session.user;
-        let email_fallback = !session.totp_configured && !session.email_configured;
+        let email_fallback =
+            !session.totp_configured && !session.email_configured && !session.fido2_configured;
         if !session.email_configured && !email_fallback {
             error!(
                 "MFA config send code: user {} has no configured email MFA",
@@ -257,22 +284,28 @@ impl MfaConfigServer {
 
     /// Authorizes an MFA configuration session with a TOTP or email code.
     ///
-    /// Authorization turns the token into a setup session. The email fallback proves mailbox
-    /// access, but only MFA setup enables a factor.
+    /// Authorization turns the token into a setup session. In the no-factor email
+    /// fallback, a valid email code also enables the email factor: the same
+    /// verification that proves mailbox access completes the setup and returns
+    /// recovery codes.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_authorize(
         &self,
         request: MfaConfigAuthorizeRequest,
+        device_info: Option<DeviceInfo>,
     ) -> Result<MfaConfigAuthorizeResponse, Status> {
         debug!("Authorizing MFA configuration session");
         let MfaConfigSession {
             mut token,
-            user,
+            mut user,
             totp_configured,
             email_configured,
+            fido2_configured,
         } = self.load_session(&request.session_token).await?;
         // With no configured factor, Email is the fallback authorization method.
-        let email_fallback = !totp_configured && !email_configured;
+        // A registered security key counts as a factor, so a FIDO2-only user is
+        // not offered the fallback and keeps their existing recovery codes.
+        let email_fallback = !totp_configured && !email_configured && !fido2_configured;
 
         let method = MfaMethod::try_from(request.method).map_err(|_| {
             error!("MFA config authorize: unknown method {}", request.method);
@@ -313,10 +346,37 @@ impl MfaConfigServer {
         let deadline = token
             .start_session(&mut transaction, MFA_CONFIG_SESSION_TIMEOUT.as_secs())
             .await?;
-        transaction.commit().await.map_err(|err| {
-            error!("MFA config authorize: failed to commit transaction: {err}");
-            Status::internal("unexpected error")
-        })?;
+
+        // In the no-factor fallback the verified email code also enables the email
+        // factor: the same verification completes the setup. Otherwise authorization
+        // only opens the setup session and configuring a factor is a separate step.
+        let recovery_codes = if email_fallback {
+            user.enable_email_mfa(&mut *transaction).await.map_err(|err| {
+                error!("MFA config authorize: failed to enable email MFA: {err}");
+                Status::internal("unexpected error")
+            })?;
+            // Shared tail: log out other sessions, resolve recovery codes, commit,
+            // flip mfa_enabled, send the confirmation email, and emit the event.
+            finalize_mfa_factor(
+                &self.pool,
+                &self.event_tx,
+                transaction,
+                &mut user,
+                MFAMethod::Email,
+                ApiEventType::MfaEmailEnabled,
+                device_info,
+                // The fallback is reached only with no prior factor, so email is
+                // the first one and its recovery codes are freshly issued here.
+                true,
+            )
+            .await?
+        } else {
+            transaction.commit().await.map_err(|err| {
+                error!("MFA config authorize: failed to commit transaction: {err}");
+                Status::internal("unexpected error")
+            })?;
+            Vec::new()
+        };
 
         info!(
             "User {} authorized MFA configuration with {method} (email fallback: {email_fallback})",
@@ -325,6 +385,7 @@ impl MfaConfigServer {
 
         Ok(MfaConfigAuthorizeResponse {
             deadline_timestamp: deadline.and_utc().timestamp(),
+            recovery_codes,
         })
     }
 }

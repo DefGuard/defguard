@@ -1,5 +1,6 @@
 mod enrollment;
 mod mfa_config;
+mod mfa_setup;
 mod password_reset;
 
 pub(crate) use enrollment::EnrollmentServer;

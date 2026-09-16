@@ -26,7 +26,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{
-        ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
+        ApiEvent, ApiEventType, BidiRequestContext, BidiStreamEvent,
         BidiStreamEventType, EnrollmentEvent, LdapSyncEventType,
     },
     grpc::{
@@ -38,7 +38,7 @@ use defguard_core::{
     headers::get_device_info,
     is_valid_phone_number,
     mail::templates::{
-        TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
+        TemplateLocation, enrollment_admin_notification, mfa_activation_mail,
         new_device_added_mail,
     },
 };
@@ -1106,10 +1106,10 @@ impl EnrollmentServer {
     ) -> Result<CodeMfaSetupStartResponse, Status> {
         debug!("Starting MFA setup");
         let method = request.method();
-        if method != MfaMethod::Email && method != MfaMethod::Totp {
+        if method != MfaMethod::Email && method != MfaMethod::Totp && method != MfaMethod::Fido2 {
             return Err(Status::invalid_argument("Method not supported".to_owned()));
         }
-        let (token, is_enrollment) = self
+        let (mut token, is_enrollment) = self
             .validate_mfa_setup_session(Some(&request.token))
             .await?;
         let mut user = token.fetch_user(&self.pool).await?;
@@ -1150,7 +1150,10 @@ impl EnrollmentServer {
                     error!("Failed to send MFA activation email\nReason:{err}");
                     Status::internal("Failed to send activation email".to_owned())
                 })?;
-                Ok(CodeMfaSetupStartResponse { totp_secret: None })
+                Ok(CodeMfaSetupStartResponse {
+                    totp_secret: None,
+                    fido2_creation_challenge: None,
+                })
             }
             MfaMethod::Totp => {
                 let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
@@ -1160,6 +1163,17 @@ impl EnrollmentServer {
                 info!("New TOTP secret created for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
                     totp_secret: Some(secret),
+                    fido2_creation_challenge: None,
+                })
+            }
+            MfaMethod::Fido2 => {
+                // Begin a WebAuthn registration ceremony. The challenge is
+                // persisted on the token and completed in `mfa_setup_finish`.
+                let challenge = token.start_fido2_setup(&self.pool, &user).await?;
+                info!("Started FIDO2 setup for {}", &user.username);
+                Ok(CodeMfaSetupStartResponse {
+                    totp_secret: None,
+                    fido2_creation_challenge: Some(challenge),
                 })
             }
             _ => Err(Status::invalid_argument("Method not supported".to_owned())),
@@ -1173,11 +1187,11 @@ impl EnrollmentServer {
         info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<CodeMfaSetupFinishResponse, Status> {
         debug!("Finishing MFA setup");
-        let (token, is_enrollment) = self
+        let (mut token, is_enrollment) = self
             .validate_mfa_setup_session(Some(&request.token))
             .await?;
         let method = request.method();
-        if method != MfaMethod::Totp && method != MfaMethod::Email {
+        if method != MfaMethod::Totp && method != MfaMethod::Email && method != MfaMethod::Fido2 {
             return Err(Status::invalid_argument("Method not supported"));
         }
         let mut user = token.fetch_user(&self.pool).await?;
@@ -1210,64 +1224,44 @@ impl EnrollmentServer {
                     .map_err(|_| Status::internal("Enabling method failed.".to_owned()))?;
                 (MFAMethod::OneTimePassword, ApiEventType::MfaTotpEnabled)
             }
+            MfaMethod::Fido2 => {
+                // FIDO2 has no code to verify: the attestation is the proof.
+                // The security key is saved on the pool (not `transaction`),
+                // mirroring the REST WebAuthn finish; `enable_mfa` below then
+                // detects the new factor and turns MFA on.
+                let name = request.name.clone().ok_or_else(|| {
+                    Status::invalid_argument("Missing security key name".to_owned())
+                })?;
+                let attestation = request.fido2_attestation.as_deref().ok_or_else(|| {
+                    Status::invalid_argument("Missing FIDO2 attestation".to_owned())
+                })?;
+                let key = token
+                    .finish_fido2_setup(&self.pool, user.id, name, attestation)
+                    .await?;
+                (
+                    MFAMethod::Webauthn,
+                    ApiEventType::MfaSecurityKeyAdded { key },
+                )
+            }
             _ => {
                 return Err(Status::invalid_argument("Method not supported"));
             }
         };
-        // Enabling MFA invalidates all existing sessions in the same transaction.
-        user.logout_all_sessions(&mut *transaction)
-            .await
-            .map_err(|err| {
-                error!("Failed to log out user sessions: {err}");
-                Status::internal("Failed to log out user sessions".to_owned())
-            })?;
-        // New enrollments get fresh recovery codes. Existing users keep their current
-        // codes when adding a factor.
-        if is_enrollment {
-            user.clear_recovery_codes(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!("Failed to clear recovery codes: {err}");
-                    Status::internal("Failed to clear recovery codes".to_owned())
-                })?;
-        }
-        // Existing recovery codes were already shown, so return an empty list.
-        let recovery_codes = user
-            .get_recovery_codes(&mut *transaction)
-            .await
-            .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
-            .unwrap_or_default();
-        transaction.commit().await.map_err(|err| {
-            error!("Failed to commit database transaction: {err}");
-            Status::internal("Failed to commit database transaction".to_owned())
-        })?;
-
-        // Commit before reading the saved factor state or sending the confirmation email.
-        user.enable_mfa(&self.pool)
-            .await
-            .map_err(|_| Status::internal("Enabling MFA on the account failed.".to_owned()))?;
-        match self.pool.acquire().await {
-            Ok(mut conn) => {
-                if let Err(err) =
-                    mfa_configured_mail(&user.email, &mut conn, None, &mfa_method, &user.first_name)
-                        .await
-                {
-                    error!("Failed to send MFA configured email\nReason: {err}");
-                }
-            }
-            Err(err) => error!("Failed to acquire database connection: {err}"),
-        }
-        let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
-        let context = ApiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
-        self.event_tx
-            .send(ApiEvent {
-                context,
-                event: Box::new(event),
-            })
-            .map_err(|err| {
-                error!("Failed to send event. Reason: {err}");
-                Status::internal("unexpected error")
-            })?;
+        // New enrollments get fresh recovery codes; existing users keep their
+        // current codes when adding a factor. The shared tail logs out other
+        // sessions, resolves recovery codes, commits, enables MFA on the account,
+        // sends the confirmation email, and emits the event.
+        let recovery_codes = super::mfa_setup::finalize_mfa_factor(
+            &self.pool,
+            &self.event_tx,
+            transaction,
+            &mut user,
+            mfa_method,
+            event,
+            info,
+            is_enrollment,
+        )
+        .await?;
         info!(
             "Successfully enabled MFA method {} for user {}",
             method.as_str_name(),

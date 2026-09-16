@@ -675,6 +675,19 @@ pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
     user.enable_totp(pool).await.expect("enable_totp");
 }
 
+/// Register a security-key (`webauthn`) row for `user_id` so the FIDO2 factor
+/// reads as configured. The stored `passkey` blob is a placeholder: the paths
+/// exercised here only check `WebAuthn::exists_for_user`, not the credential.
+pub(crate) async fn register_webauthn_key(pool: &PgPool, user_id: Id) {
+    sqlx::query("INSERT INTO webauthn (user_id, name, passkey) VALUES ($1, $2, $3)")
+        .bind(user_id)
+        .bind("test key")
+        .bind(vec![0_u8])
+        .execute(pool)
+        .await
+        .expect("insert webauthn key");
+}
+
 /// Generate a valid 6-digit TOTP code for `user` using the current timestamp.
 ///
 /// Mirrors the logic in `User::verify_totp_code`.  Call this immediately before
@@ -1324,6 +1337,34 @@ pub(crate) async fn send_code_mfa_setup_finish(
                 code: code.to_owned(),
                 token: token.to_owned(),
                 method: method as i32,
+                name: None,
+                fido2_attestation: None,
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send a `CodeMfaSetupFinish` request carrying a FIDO2 attestation (and key
+/// name) instead of a code, and return the raw `CoreResponse`.
+pub(crate) async fn send_code_mfa_setup_finish_fido2(
+    context: &mut HandlerTestContext,
+    token: &str,
+    name: Option<&str>,
+    attestation: Option<&str>,
+) -> CoreResponse {
+    static MFA_FINISH_FIDO2_CTR: AtomicU64 = AtomicU64::new(3700);
+    let id = MFA_FINISH_FIDO2_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::CodeMfaSetupFinish(
+            CodeMfaSetupFinishRequest {
+                code: String::new(),
+                token: token.to_owned(),
+                method: MfaMethod::Fido2 as i32,
+                name: name.map(str::to_owned),
+                fido2_attestation: attestation.map(str::to_owned),
             },
         )),
     });

@@ -2,6 +2,7 @@ pub(crate) mod support;
 
 mod acme;
 mod enrollment;
+mod fido2_setup;
 mod lifecycle;
 mod mfa;
 mod mfa_config;
