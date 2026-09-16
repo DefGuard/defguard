@@ -3,9 +3,9 @@
 //! These are proto-free: the conversions to and from the proto messages live in the gRPC handler
 //! (`grpc::proxy::client_mfa`), so the engine can be exercised without a transport.
 
-/// Result of `start`. `token` is returned exactly once, `challenge` is `Some` only for a method
-/// the client must sign against (biometric or mobile approve), and `superseded_token_hash` names
-/// the session this start replaced so the handler can cancel its waiter.
+/// Result returned by a start method. `token` is returned exactly once, `challenge` is `Some`
+/// only for a method the client must sign against, and `superseded_token_hash` identifies a
+/// waiter the handler must cancel.
 #[derive(Debug)]
 pub struct StartOutcome {
     pub token: String,
@@ -17,7 +17,7 @@ pub struct StartOutcome {
     pub superseded_token_hash: Option<String>,
 }
 
-/// Transitional fused proof used while `finish` still serves both contracts.
+/// Compatibility proof shared by the legacy and attempt-bound finish paths.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Proof {
     pub code: Option<String>,
@@ -31,7 +31,7 @@ pub struct Proof {
     pub credential_id: Option<Vec<u8>>,
 }
 
-/// Outcome of `finish`.
+/// Outcome returned by a finish operation.
 #[derive(Debug, PartialEq)]
 pub enum FinishOutcome {
     /// The step just submitted advanced the flow to `next_step` (0-indexed).

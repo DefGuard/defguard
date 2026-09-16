@@ -257,7 +257,7 @@ fn test_status_table_messages() {
         assert_eq!(status.message(), message);
     }
 
-    // New OIDC and method-switching flows return OK; license checks happen at start.
+    // OIDC and method-switching flows return OK; license checks happen at start.
 }
 
 #[sqlx::test]
@@ -720,7 +720,7 @@ async fn test_start_multi_step_rejects_unconfigured_method(
         ],
     )
     .await;
-    // TOTP is configured; email is not, so only the email step is unavailable.
+    // The unconfigured Email step should be the only rejection.
     let mut user = create_user(&pool).await;
     user.enable_totp(&pool)
         .await
@@ -1088,7 +1088,7 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
     };
     let token = outcome.token;
 
-    // Step 0 (TOTP) is not final: finish returns Advanced without authorizing.
+    // The first TOTP proof advances without authorizing the peer.
     let (outcome, _) = engine
         .finish(
             token.clone(),
@@ -1113,7 +1113,6 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
     );
     assert!(event_rx.try_recv().is_err());
 
-    // Initialize and finish step 1 (Email): this completes the flow.
     engine
         .step_start(token.clone(), VpnClientMfaMethod::Email)
         .await

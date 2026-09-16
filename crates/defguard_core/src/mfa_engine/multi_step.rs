@@ -26,7 +26,7 @@ use crate::{
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
 };
 
-/// Proof fields accepted by the multi-step finish contract.
+/// Proof fields accepted by an attempt-bound finish.
 #[derive(Debug, Eq, PartialEq)]
 pub struct StepProof {
     pub step_attempt_id: String,
@@ -50,7 +50,7 @@ pub struct Fido2Assertion {
     pub credential_id: Vec<u8>,
 }
 
-/// Error converting a typed proof to the transitional fused representation.
+/// Error converting a typed proof to the compatibility representation.
 #[derive(Debug, Eq, Error, PartialEq)]
 pub enum ProofConversionError {
     #[error("FIDO2 authenticator data is too short")]
@@ -119,7 +119,7 @@ pub enum StepFinishError {
     Event(#[from] ClientMfaServerError),
 }
 
-/// Why a step of the submitted plan was refused at `start`.
+/// Why a submitted step is rejected.
 #[derive(Debug, PartialEq, Eq)]
 pub enum StartRejectionReason {
     /// The chosen method is not in this step's allowed set.
@@ -137,7 +137,7 @@ pub struct StepRejection {
     pub reason: StartRejectionReason,
 }
 
-/// Result of the multi-step `start`. A refused plan creates no session, token, or event.
+/// Result of a multi-step start. Rejected plans create no session, token, or event.
 #[derive(Debug)]
 pub enum StartResult {
     Accepted(StartOutcome),
@@ -194,9 +194,9 @@ impl TryFrom<StepProof> for Proof {
 }
 
 impl MfaEngine {
-    /// Begin a multi-step login: validate the submitted plan against the resolved flow and the
-    /// user's configuration, then initiate step 0 and persist the durable session. A refused plan
-    /// returns sparse rejections and creates no session, token, or event.
+    /// Validate and start a selected multi-step plan.
+    ///
+    /// Rejected plans return sparse reasons without creating a session, token, or event.
     pub async fn start_multi_step(
         &self,
         location: &WireguardNetwork<Id>,
@@ -208,9 +208,7 @@ impl MfaEngine {
     ) -> Result<StartResult, StartError> {
         let business = is_business_license_active();
 
-        // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`, which
-        // reports saved-flow availability.
-        // A multi-step flow (2+ steps) requires a business license; fail closed.
+        // A multi-step flow requires a Business license; fail closed.
         if steps.len() > 1 && !business {
             error!(
                 "Multi-step MFA requires a business license; location {} has a {}-step flow",
@@ -253,8 +251,7 @@ impl MfaEngine {
         {
             let chosen = *chosen;
             if allowed.is_empty() {
-                // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`,
-                // which reports saved-flow availability.
+                // License filtering removed every method from this step.
                 rejections.push(StepRejection {
                     step: index as u32,
                     reason: StartRejectionReason::StepEmptyAfterLicense,
@@ -303,16 +300,12 @@ impl MfaEngine {
         Ok(StartResult::Accepted(outcome))
     }
 
-    /// Initiate the current step: send the email code or mint the challenge and bind it to a
-    /// fresh attempt.
+    /// Initiate or reissue the current step and bind it to a fresh attempt.
     ///
-    /// There is no branch for an already-initialized step: a re-call is a legal switch to a
-    /// different method or a retry of the same one, and either way it re-runs `initiate` and mints
-    /// a fresh attempt id, which is what makes "resend the code" work. The abandoned attempt's
-    /// side effects are not cancelled; stale callbacks no-op on the superseded attempt id.
+    /// Reissuing a step repeats initiation and supersedes the prior attempt, so a same-method
+    /// call resends the code. Callbacks for the superseded attempt are ignored.
     ///
-    /// A re-call does not touch `failed_attempts` - that counter bounds wrong proofs, not
-    /// initialization. Bounding re-initiation is tracked in DefGuard/defguard#3585.
+    /// Reissuing does not change `failed_attempts`; that counter tracks rejected proofs.
     pub async fn step_start(
         &self,
         token: String,
@@ -404,9 +397,8 @@ impl MfaEngine {
         })
     }
 
-    /// Temporary fused compatibility finish path. It remains here until the typed Core finish
-    /// adapter is added; attempt-bound callers use it while omitted-attempt requests retain the
-    /// old behavior.
+    /// Finish a compatibility proof using cursor checks for omitted attempt IDs and attempt checks
+    /// for supplied IDs.
     pub async fn finish(
         &self,
         token: String,
@@ -440,9 +432,7 @@ impl MfaEngine {
         let ephemeral = ephemeral_state.0.clone();
         let method = ephemeral.selected_method;
 
-        // The temporary fused adapter still accepts the legacy shape until the typed finish
-        // contract lands. A supplied attempt id is checked; an omitted one follows the legacy
-        // behavior below.
+        // A supplied attempt ID must match the current attempt; an omitted ID uses cursor checks.
         if let Some(attempt_id) = proof.step_attempt_id.as_deref()
             && attempt_id != ephemeral.step_attempt_id
         {
@@ -523,7 +513,7 @@ impl MfaEngine {
                 if proof.step_attempt_id.is_some() {
                     return Ok((FinishOutcome::AwaitingExternal, method));
                 }
-                // Preserve pre-2.2 OIDC behavior.
+                // The omitted-attempt form keeps the legacy OIDC response.
                 self.channels.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(

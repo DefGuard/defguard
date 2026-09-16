@@ -22,14 +22,14 @@ use crate::events::{
     BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
 };
 
-/// Proof fields accepted by the frozen legacy finish contract.
+/// Proof fields accepted by the legacy finish contract.
 #[derive(Debug, Eq, PartialEq)]
 pub struct LegacyProof {
     pub code: Option<String>,
     pub auth_pub_key: Option<String>,
 }
 
-/// Error surfaced by [`MfaEngine::finish_legacy`].
+/// Errors returned by the legacy finish operation.
 #[derive(Debug, Error)]
 pub enum FinishError {
     #[error("login session not found")]
@@ -79,13 +79,8 @@ impl MfaEngine {
         steps: Vec<HashSet<VpnClientMfaMethod>>,
         selected_method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
-        // Reject a selected method the user has not set up. `is_configured` is shared with
-        // `start_multi_step` and `step_start` so the paths cannot disagree.
-        //
-        // Email needs `smtp_configured`: `initiate` hands the code to `send_and_forget`, so a
-        // send failure has no way back to the client and an unusable mailer must be caught here.
-        // OIDC needs no license check here - the caller's first-step filter drops it when
-        // unlicensed.
+        // Email initiation sends asynchronously, so require SMTP configuration before starting.
+        // The adapter filters unlicensed OIDC before calling the legacy path.
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_available().await.map_err(|err| {
             tracing::error!("Failed to get current OpenID provider: {err}");
@@ -105,8 +100,7 @@ impl MfaEngine {
                 StartError::Internal
             })?
         {
-            // Biometric reports a device-scoped message, the rest a generic one. Which method
-            // gets which string is client-visible.
+            // Keep the device-specific biometric message; other methods use the generic message.
             if selected_method == VpnClientMfaMethod::Biometric {
                 tracing::error!("Biometric MFA is not configured for device {}", device.id);
                 return Err(StartError::BiometricNotConfigured);
@@ -165,8 +159,7 @@ impl MfaEngine {
         let ephemeral = ephemeral_state.0.clone();
         let method = ephemeral.selected_method;
 
-        // Legacy clients cannot poll MobileApprove with an empty proof. Preserve the existing
-        // malformed-proof and missing-challenge responses.
+        // Legacy MobileApprove requires a signature; an empty proof is not a polling request.
         if method == VpnClientMfaMethod::MobileApprove
             && proof.code.is_none()
             && proof.auth_pub_key.is_none()
@@ -212,7 +205,7 @@ impl MfaEngine {
                 }
             }
             Ok(Verdict::NotYet) => {
-                // Preserve pre-2.2 OIDC behavior.
+                // Legacy OIDC reports incomplete authentication as a failed finish.
                 self.channels.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(

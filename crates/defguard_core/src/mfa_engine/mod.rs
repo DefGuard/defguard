@@ -1,4 +1,4 @@
-//! Connect-time multi-step MFA engine.
+//! Connect-time MFA engine for legacy and multi-step flows.
 //!
 //! The engine owns the step cursor and attempt lifecycle over the durable
 //! [`VpnClientMfaSession`](defguard_common::db::models::vpn_client_mfa_session::VpnClientMfaSession)
@@ -50,10 +50,10 @@ pub(crate) fn is_mobile_approve_request(
     method == VpnClientMfaMethod::MobileApprove && auth_pub_key.is_some()
 }
 
-/// The connect-time MFA engine.
+/// Owns connect-time MFA session state and final authorization.
 ///
-/// Mints the session, verifies proofs, advances the step cursor, and - at the final step -
-/// authorizes the peer, sends the gateway command, and emits the audit events.
+/// It mints sessions, verifies proofs, advances the step cursor, and authorizes the peer at the
+/// final step.
 #[derive(Clone)]
 pub struct MfaEngine {
     pool: PgPool,
@@ -86,8 +86,7 @@ impl MfaEngine {
         }
     }
 
-    /// Initiate step 0 and persist the durable session, shared by the single-step and multi-step
-    /// paths.
+    /// Create and persist the initial MFA session and attempt.
     async fn start_session(
         &self,
         location: &WireguardNetwork<Id>,
@@ -148,14 +147,15 @@ impl MfaEngine {
         })
     }
 
-    /// Checks whether OIDC is available when the flow starts. The session keeps this result.
+    /// Resolve and snapshot OIDC availability for a new session.
     async fn oidc_available(&self) -> sqlx::Result<bool> {
         Ok(is_oidc_mfa_available(
             self.oidc_provider_configured().await?,
         ))
     }
 
-    /// Checks whether the OIDC provider is still available. Started sessions continue after a license lapse.
+    /// Check whether the OIDC provider still exists. Started sessions remain valid after a license
+    /// lapse.
     async fn oidc_provider_configured(&self) -> sqlx::Result<bool> {
         Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
     }
@@ -328,8 +328,7 @@ impl MfaEngine {
     }
 }
 
-/// Log an [`InitiateError`] with the context it needs, so `start_legacy`, `start_multi_step`, and
-/// `step_start` can each wrap it into their own error type without duplicating the logging.
+/// Log an initiation error with the username needed by the email case.
 fn log_initiate_error(err: &InitiateError, username: &str) {
     match err {
         InitiateError::EmailCode(e) => error!("Failed to generate email MFA code: {e}"),

@@ -167,7 +167,7 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::MobileApprove => {
-            // WebSocket is the fast path; empty-proof Finish is the reconnect fallback.
+            // WebSocket is the fast path; empty proofs are the reconnect fallback.
             if proof.code.is_none() && proof.auth_pub_key.is_none() {
                 return Ok(if ephemeral.mobile_approved {
                     Verdict::Proved
@@ -192,7 +192,6 @@ pub async fn verify(
                         message: "Authorization device key missing in request",
                         event: None,
                     })?;
-            // FIXME: probably not needed
             if !BiometricAuth::verify_owner(pool, ctx.user.id, auth_device_pub_key).await? {
                 // A signing device not owned by the user is indistinguishable from a wrong
                 // signature, so the "does this pubkey belong to user X" oracle cannot be probed
@@ -237,10 +236,7 @@ pub async fn verify(
             }
             let rpid_hash = auth_data[..RP_ID_HASH_LEN].to_vec();
 
-            // The key names the credential it signed with, so verification goes
-            // straight to that public key. A client that names none - a pre-FIDO2
-            // build - falls back to trying every registered key; one that names a
-            // credential this user does not own matches nothing and fails.
+            // With no credential ID, try every registered key. An unknown ID matches nothing.
             let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
 
             let assertion = Assertion {
@@ -250,7 +246,6 @@ pub async fn verify(
                 ..Default::default()
             };
             for passkey in &passkeys {
-                // Skip the keys the client did not name, if it named one.
                 if proof.credential_id.as_ref().is_some_and(|credential_id| {
                     passkey.cred_id().as_ref() != credential_id.as_slice()
                 }) {
@@ -276,14 +271,9 @@ pub async fn verify(
     }
 }
 
-/// Decode a base64 value the client sent as part of a FIDO2 proof.
-///
-/// webauthn-rs writes binary as URL-safe base64 without padding and reads
-/// either alphabet, padded or not; be equally forgiving rather than assuming
-/// one.
+/// Decode a client-supplied base64 value, accepting both alphabets and optional padding.
 fn decode_base64(value: &str) -> Result<Vec<u8>, base64::DecodeError> {
-    /// Padding is accepted but not required, so one engine covers both the
-    /// padded and unpadded spelling of its alphabet.
+    // Accept padded and unpadded spellings.
     fn engine(alphabet: alphabet::Alphabet) -> GeneralPurpose {
         GeneralPurpose::new(
             &alphabet,
@@ -296,8 +286,7 @@ fn decode_base64(value: &str) -> Result<Vec<u8>, base64::DecodeError> {
         .or_else(|err| engine(alphabet::STANDARD).decode(value).map_err(|_| err))
 }
 
-/// Decode a required base64 field of a FIDO2 proof, naming it if it is absent
-/// or malformed.
+/// Decode a required FIDO2 proof field and name missing or malformed input.
 fn decode_proof_field(value: Option<&String>, field: &'static str) -> Result<Vec<u8>, VerifyError> {
     let value = value.ok_or(VerifyError::MalformedProof {
         message: field,
@@ -309,8 +298,7 @@ fn decode_proof_field(value: Option<&String>, field: &'static str) -> Result<Vec
     })
 }
 
-/// The credentials to offer the security key: every one this user has
-/// registered, base64url as webauthn-rs serializes them. Only FIDO2 needs them.
+/// Return this user's registered FIDO2 credential IDs in webauthn-rs base64url form.
 pub async fn offered_credential_ids(
     pool: &PgPool,
     ctx: &MfaSessionContext,

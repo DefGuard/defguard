@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use super::{authorize::ClientMfaServerError, method::InitiateError};
 
-/// Error surfaced by [`super::MfaEngine::start_legacy`] and [`super::MfaEngine::start_multi_step`].
+/// Errors returned by the legacy and multi-step start methods.
 #[derive(Debug, Error)]
 pub enum StartError {
     /// A multi-step (2+ step) flow requires a business license.
@@ -26,7 +26,7 @@ pub enum StartError {
     Initiate(#[from] InitiateError),
 }
 
-/// Internal failures shared by the contract-specific finish methods.
+/// Internal failures returned by shared finish helpers.
 #[derive(Debug, Error)]
 pub(super) enum FinishCoreError {
     #[error("unexpected error")]
