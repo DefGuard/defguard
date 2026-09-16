@@ -675,9 +675,8 @@ pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
     user.enable_totp(pool).await.expect("enable_totp");
 }
 
-/// Register a security-key (`webauthn`) row for `user_id` so the FIDO2 factor
-/// reads as configured. The stored `passkey` blob is a placeholder: the paths
-/// exercised here only check `WebAuthn::exists_for_user`, not the credential.
+/// Make the FIDO2 factor read as configured for `user_id`. The `passkey` blob is a
+/// placeholder: the paths exercised here only check `WebAuthn::exists_for_user`.
 pub(crate) async fn register_webauthn_key(pool: &PgPool, user_id: Id) {
     sqlx::query("INSERT INTO webauthn (user_id, name, passkey) VALUES ($1, $2, $3)")
         .bind(user_id)
@@ -1345,8 +1344,7 @@ pub(crate) async fn send_code_mfa_setup_finish(
     context.mock_proxy_mut().recv_outbound().await
 }
 
-/// Send a `CodeMfaSetupFinish` request carrying a FIDO2 attestation (and key
-/// name) instead of a code, and return the raw `CoreResponse`.
+/// Send a `CodeMfaSetupFinish` request carrying a FIDO2 attestation instead of a code.
 pub(crate) async fn send_code_mfa_setup_finish_fido2(
     context: &mut HandlerTestContext,
     token: &str,

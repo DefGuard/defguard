@@ -29,9 +29,8 @@ struct MfaConfigSession {
     user: User<Id>,
     totp_configured: bool,
     email_configured: bool,
-    // A registered security key counts as a factor even though FIDO2 cannot
-    // authorize this code-based flow: it keeps a security-key-only user out of
-    // the no-factor email fallback (which would clobber their recovery codes).
+    /// Counts as a factor although it cannot authorize this code-based flow, keeping a
+    /// security-key-only user out of the email fallback (which would clobber their codes).
     fido2_configured: bool,
 }
 
@@ -129,9 +128,8 @@ impl MfaConfigServer {
                 available_methods.push(MfaMethod::from(method) as i32);
             }
         }
-        // FIDO2 is a real factor, but it cannot authorize this code-based flow,
-        // so it is left out of `available_methods` yet still counted below so a
-        // security-key-only user is not treated as no-factor.
+        // Deliberately not in `available_methods`: FIDO2 cannot authorize this flow,
+        // it only rules out the email fallback below.
         let fido2_configured = self
             .is_configured(VpnClientMfaMethod::Fido2, &user, device.id, smtp_configured)
             .await?;
@@ -223,9 +221,8 @@ impl MfaConfigServer {
         let email_configured = self
             .is_configured(VpnClientMfaMethod::Email, &user, device_id, smtp_configured)
             .await?;
-        // FIDO2 counts as a factor here so a security-key-only user is not
-        // treated as no-factor; biometric/mobile-approve are mobile-only, carry
-        // no recovery codes, and never reach this flow, so they stay ignored.
+        // Biometric and mobile-approve are mobile-only, carry no recovery codes and never
+        // reach this flow, so unlike FIDO2 they stay ignored.
         let fido2_configured = self
             .is_configured(VpnClientMfaMethod::Fido2, &user, device_id, smtp_configured)
             .await?;
@@ -284,10 +281,8 @@ impl MfaConfigServer {
 
     /// Authorizes an MFA configuration session with a TOTP or email code.
     ///
-    /// Authorization turns the token into a setup session. In the no-factor email
-    /// fallback, a valid email code also enables the email factor: the same
-    /// verification that proves mailbox access completes the setup and returns
-    /// recovery codes.
+    /// Authorization turns the token into a setup session. In the no-factor email fallback
+    /// a valid code also enables the email factor and returns recovery codes.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_authorize(
         &self,
@@ -303,8 +298,6 @@ impl MfaConfigServer {
             fido2_configured,
         } = self.load_session(&request.session_token).await?;
         // With no configured factor, Email is the fallback authorization method.
-        // A registered security key counts as a factor, so a FIDO2-only user is
-        // not offered the fallback and keeps their existing recovery codes.
         let email_fallback = !totp_configured && !email_configured && !fido2_configured;
 
         let method = MfaMethod::try_from(request.method).map_err(|_| {
@@ -347,16 +340,13 @@ impl MfaConfigServer {
             .start_session(&mut transaction, MFA_CONFIG_SESSION_TIMEOUT.as_secs())
             .await?;
 
-        // In the no-factor fallback the verified email code also enables the email
-        // factor: the same verification completes the setup. Otherwise authorization
+        // In the fallback the verified code also enables email MFA; otherwise authorization
         // only opens the setup session and configuring a factor is a separate step.
         let recovery_codes = if email_fallback {
             user.enable_email_mfa(&mut *transaction).await.map_err(|err| {
                 error!("MFA config authorize: failed to enable email MFA: {err}");
                 Status::internal("unexpected error")
             })?;
-            // Shared tail: log out other sessions, resolve recovery codes, commit,
-            // flip mfa_enabled, send the confirmation email, and emit the event.
             finalize_mfa_factor(
                 &self.pool,
                 &self.event_tx,
@@ -365,8 +355,7 @@ impl MfaConfigServer {
                 MFAMethod::Email,
                 ApiEventType::MfaEmailEnabled,
                 device_info,
-                // The fallback is reached only with no prior factor, so email is
-                // the first one and its recovery codes are freshly issued here.
+                // Email is the user's first factor here, so issue fresh recovery codes.
                 true,
             )
             .await?

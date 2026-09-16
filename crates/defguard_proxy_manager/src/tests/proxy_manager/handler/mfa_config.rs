@@ -73,8 +73,7 @@ async fn test_mfa_config_session_gates_factor_setup(_: PgPoolOptions, options: P
     context.finish().await.expect_server_finished().await;
 }
 
-/// In the no-factor email fallback, completing the email verification enables the
-/// email factor and returns recovery codes, without a second setup round-trip.
+/// The fallback's email verification enables the factor without a second setup round-trip.
 #[sqlx::test]
 async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -132,7 +131,6 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
         "the fallback must issue recovery codes when it enables the factor"
     );
 
-    // Completing the email verification enabled the email factor.
     let user = User::find_by_id(&context.pool, user.id)
         .await
         .expect("find user")
@@ -159,7 +157,6 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
         "enabling MFA must end password-only web sessions"
     );
 
-    // A `MfaEmailEnabled` audit event is emitted.
     let event = context
         .event_rx
         .try_recv()
@@ -186,8 +183,6 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
         &totp_code_from_base32_secret(&secret),
     )
     .await;
-    // The email factor was already enabled by the fallback, so adding TOTP is a
-    // second factor: it must not reissue recovery codes.
     match &finish.payload {
         Some(core_response::Payload::CodeMfaSetupFinishResponse(response)) => assert!(
             response.recovery_codes.is_empty(),
@@ -212,9 +207,7 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
     context.finish().await.expect_server_finished().await;
 }
 
-/// A registered security key counts as a factor: a FIDO2-only user must not be
-/// offered the no-factor email fallback, so their existing recovery codes are
-/// never clobbered by an email code.
+/// A security key counts as a factor, so the fallback must not clobber the user's codes.
 #[sqlx::test]
 async fn test_fido2_only_user_is_not_treated_as_no_factor(
     _: PgPoolOptions,
@@ -225,8 +218,7 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
     let _smtp = configure_working_smtp(&context.pool).await;
 
     let (mut user, device) = create_user_with_device(&context.pool).await;
-    // The user's only factor is a security key, and they already hold recovery
-    // codes (issued when the key was first registered).
+    // The security key is the user's only factor; its registration issued recovery codes.
     register_webauthn_key(&context.pool, user.id).await;
     let issued = user
         .get_recovery_codes(&context.pool)
@@ -236,8 +228,7 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
     assert!(!issued.is_empty(), "the user must start with recovery codes");
     let polling_token = create_polling_token(&context.pool, device.id).await;
 
-    // FIDO2 cannot authorize this code-based flow, so no method is offered, but
-    // the user is not in the email fallback either.
+    // FIDO2 cannot authorize this flow, so no method is offered — but no fallback either.
     let start_response =
         send_mfa_config_start(&mut context, &polling_token, &device.wireguard_pubkey).await;
     let session = match &start_response.payload {
@@ -251,11 +242,9 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
     );
     let session_token = session.session_token.clone();
 
-    // Requesting an email code is refused; the fallback is not available.
     let sent = send_mfa_config_send_code(&mut context, &session_token).await;
     assert_eq!(assert_error_response(&sent), tonic::Code::PermissionDenied);
 
-    // The user's recovery codes and factor state are untouched.
     let user = User::find_by_id(&context.pool, user.id)
         .await
         .expect("find user")

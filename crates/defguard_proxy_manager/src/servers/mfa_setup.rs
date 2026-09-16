@@ -1,6 +1,5 @@
-//! Shared tail for enabling an MFA factor, used by both the enrollment/config
-//! setup-finish path ([`super::EnrollmentServer::mfa_setup_finish`]) and the
-//! MFA-config email fallback ([`super::MfaConfigServer::mfa_config_authorize`]).
+//! Shared tail for enabling an MFA factor, used by both [`super::EnrollmentServer::mfa_setup_finish`]
+//! and the email fallback in [`super::MfaConfigServer::mfa_config_authorize`].
 
 use defguard_common::db::{
     Id,
@@ -16,14 +15,9 @@ use sqlx::{PgPool, Postgres, Transaction};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
-/// Finishes enabling an MFA factor after the caller has run the factor-specific
-/// enable inside `transaction`.
-///
-/// Logs out the user's other sessions, resolves the recovery codes (freshly
-/// regenerated when `fresh_recovery_codes` is set), commits, flips `mfa_enabled`
-/// on the account, sends the "MFA configured" confirmation email, and emits
-/// `event`. Returns the recovery codes to surface to the client (empty when the
-/// user already had codes and `fresh_recovery_codes` is false).
+/// Called after the caller has run the factor-specific enable inside `transaction`: logs out
+/// other sessions, commits, flips `mfa_enabled`, sends the confirmation email and emits `event`.
+/// Returns the recovery codes to show the client, empty unless `fresh_recovery_codes` is set.
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn finalize_mfa_factor(
     pool: &PgPool,
@@ -42,7 +36,6 @@ pub(super) async fn finalize_mfa_factor(
             error!("Failed to log out user sessions: {err}");
             Status::internal("Failed to log out user sessions".to_owned())
         })?;
-    // Regenerate recovery codes for a fresh factor; existing users keep theirs.
     if fresh_recovery_codes {
         user.clear_recovery_codes(&mut *transaction)
             .await

@@ -101,9 +101,7 @@ pub struct Token {
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
-    // In-progress WebAuthn PasskeyRegistration (CBOR-serialized) for a FIDO2
-    // CodeMfaSetup ceremony; NULL for code-based methods and once a ceremony
-    // completes. See `set_passkey_registration` / `get_passkey_registration`.
+    /// CBOR-serialized `PasskeyRegistration`; set only while a FIDO2 ceremony is in progress.
     pub mfa_setup_state: Option<Vec<u8>>,
 }
 
@@ -176,9 +174,7 @@ impl Token {
         Ok(())
     }
 
-    /// Persist the in-progress WebAuthn `PasskeyRegistration` for a FIDO2
-    /// CodeMfaSetup ceremony (CBOR-serialized), mirroring
-    /// `Session::set_passkey_registration` on the REST path.
+    /// Token-based counterpart of `Session::set_passkey_registration` on the REST path.
     pub async fn set_passkey_registration<'e, E>(
         &mut self,
         executor: E,
@@ -200,7 +196,6 @@ impl Token {
         Ok(())
     }
 
-    /// Deserialize the stored in-progress `PasskeyRegistration`, if any.
     #[must_use]
     pub fn get_passkey_registration(&self) -> Option<PasskeyRegistration> {
         self.mfa_setup_state
@@ -208,7 +203,6 @@ impl Token {
             .and_then(|state| serde_cbor::from_slice(state).ok())
     }
 
-    /// Clear the stored ceremony state, e.g. after a successful FIDO2 setup.
     pub async fn clear_mfa_setup_state<'e, E>(&mut self, executor: E) -> Result<(), TokenError>
     where
         E: PgExecutor<'e>,
@@ -223,12 +217,8 @@ impl Token {
         Ok(())
     }
 
-    /// Begin a FIDO2 (WebAuthn) registration ceremony for the setup session.
-    ///
-    /// Builds a creation challenge, stores the in-progress `PasskeyRegistration`
-    /// on this token, and returns the `CreationChallengeResponse` as a JSON
-    /// string to hand to the client's authenticator. Mirrors the REST
-    /// `webauthn_init` handler but persists state on the token, not a session.
+    /// Like the REST `webauthn_init`, but stores the ceremony state on the token.
+    /// Returns the `CreationChallengeResponse` as JSON for the client's authenticator.
     pub async fn start_fido2_setup(
         &mut self,
         pool: &PgPool,
@@ -250,11 +240,8 @@ impl Token {
         serde_json::to_string(&ccr).map_err(|err| TokenError::WebauthnRegistration(err.to_string()))
     }
 
-    /// Complete a FIDO2 (WebAuthn) registration ceremony for the setup session.
-    ///
-    /// Verifies the client's attestation against the stored challenge, persists
-    /// the new security key, and clears the ceremony state. Returns the saved
-    /// [`WebAuthn`] record. Mirrors the REST `webauthn_finish` handler.
+    /// Like the REST `webauthn_finish`: verifies the attestation against the stored
+    /// challenge, saves the security key and clears the ceremony state.
     pub async fn finish_fido2_setup(
         &mut self,
         pool: &PgPool,

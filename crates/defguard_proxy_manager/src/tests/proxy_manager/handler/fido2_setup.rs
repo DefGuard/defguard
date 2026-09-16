@@ -1,8 +1,5 @@
-//! Integration tests for configuring a FIDO2 (WebAuthn) factor through the gRPC
-//! Configure-MFA flow (`CodeMfaSetupStart`/`Finish` with `MfaMethod::Fido2`).
-//!
-//! The ceremony is driven with an in-memory software authenticator
-//! (`SoftPasskey`), mirroring the REST WebAuthn test in
+//! Integration tests for configuring a FIDO2 factor through the gRPC Configure-MFA flow.
+//! The ceremony is driven with a `SoftPasskey`, like the REST WebAuthn test in
 //! `defguard_core/tests/integration/api/auth.rs`.
 
 use defguard_common::db::{
@@ -29,8 +26,7 @@ use crate::tests::common::HandlerTestContext;
 /// A domain-based URL so the derived WebAuthn `rp_id` is stable across the test.
 const TEST_DEFGUARD_URL: &str = "http://localhost:8000";
 
-/// Point `defguard_url` at a known origin so the WebAuthn ceremony's relying
-/// party id matches the origin we hand the authenticator.
+/// Makes the ceremony's relying party id match the origin we hand the authenticator.
 async fn set_webauthn_origin(context: &HandlerTestContext) -> Url {
     let mut settings = Settings::get_current_settings();
     settings.defguard_url = TEST_DEFGUARD_URL.to_owned();
@@ -40,8 +36,7 @@ async fn set_webauthn_origin(context: &HandlerTestContext) -> Url {
     Url::parse(TEST_DEFGUARD_URL).expect("valid origin url")
 }
 
-/// Authorize an MFA-config session with TOTP and return the session token that
-/// gates factor setup, together with the user id it belongs to.
+/// Authorize a session with TOTP, returning the token gating factor setup and its user id.
 async fn authorized_session(context: &mut HandlerTestContext) -> (String, Id) {
     let (mut user, device) = create_user_with_device(&context.pool).await;
     setup_user_totp_mfa(&context.pool, &mut user).await;
@@ -91,8 +86,6 @@ async fn fido2_setup_start(
     }
 }
 
-/// End-to-end: gate the session with TOTP, register a security key over gRPC,
-/// and assert the credential, MFA state and audit event.
 #[sqlx::test]
 async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -101,7 +94,6 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
 
     let (session_token, user_id) = authorized_session(&mut context).await;
 
-    // Start the ceremony; the challenge must be persisted on the token.
     let ccr = fido2_setup_start(&mut context, &session_token).await;
     let token = Token::find_by_id(&context.pool, &session_token)
         .await
@@ -129,7 +121,6 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         "FIDO2 setup must finish successfully"
     );
 
-    // The credential is saved and MFA is enabled for the user.
     assert!(
         WebAuthn::exists_for_user(&context.pool, user_id)
             .await
@@ -142,7 +133,6 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         .expect("user exists");
     assert!(user.mfa_enabled, "registering a key must enable MFA");
 
-    // The ceremony state is cleared once the key is registered.
     let token = Token::find_by_id(&context.pool, &session_token)
         .await
         .expect("token exists");
@@ -151,7 +141,6 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         "the ceremony state must be cleared after a successful finish"
     );
 
-    // A `MfaSecurityKeyAdded` audit event is emitted.
     let event = context.event_rx.try_recv().expect("an event must be emitted");
     assert!(
         matches!(*event.event, ApiEventType::MfaSecurityKeyAdded { .. }),
@@ -161,8 +150,6 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
     context.finish().await.expect_server_finished().await;
 }
 
-/// Finishing without a prior start (no stored challenge) is rejected and saves
-/// no credential.
 #[sqlx::test]
 async fn test_fido2_finish_without_start_is_rejected(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -171,7 +158,7 @@ async fn test_fido2_finish_without_start_is_rejected(_: PgPoolOptions, options: 
 
     let (session_token, user_id) = authorized_session(&mut context).await;
 
-    // A syntactically valid but unexpected attestation, with no ceremony started.
+    // Syntactically valid JSON, but no ceremony was started.
     let response = send_code_mfa_setup_finish_fido2(
         &mut context,
         &session_token,
@@ -191,7 +178,6 @@ async fn test_fido2_finish_without_start_is_rejected(_: PgPoolOptions, options: 
     context.finish().await.expect_server_finished().await;
 }
 
-/// A missing key name or attestation on finish is rejected.
 #[sqlx::test]
 async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -206,12 +192,10 @@ async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options:
         .expect("software authenticator registration");
     let attestation = serde_json::to_string(&rpkc).expect("serialize attestation");
 
-    // Missing name.
     let response =
         send_code_mfa_setup_finish_fido2(&mut context, &session_token, None, Some(&attestation)).await;
     assert_eq!(assert_error_response(&response), tonic::Code::InvalidArgument);
 
-    // Missing attestation.
     let response =
         send_code_mfa_setup_finish_fido2(&mut context, &session_token, Some("my key"), None).await;
     assert_eq!(assert_error_response(&response), tonic::Code::InvalidArgument);

@@ -1167,8 +1167,6 @@ impl EnrollmentServer {
                 })
             }
             MfaMethod::Fido2 => {
-                // Begin a WebAuthn registration ceremony. The challenge is
-                // persisted on the token and completed in `mfa_setup_finish`.
                 let challenge = token.start_fido2_setup(&self.pool, &user).await?;
                 info!("Started FIDO2 setup for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
@@ -1225,10 +1223,8 @@ impl EnrollmentServer {
                 (MFAMethod::OneTimePassword, ApiEventType::MfaTotpEnabled)
             }
             MfaMethod::Fido2 => {
-                // FIDO2 has no code to verify: the attestation is the proof.
-                // The security key is saved on the pool (not `transaction`),
-                // mirroring the REST WebAuthn finish; `enable_mfa` below then
-                // detects the new factor and turns MFA on.
+                // No code to verify: the attestation is the proof. Like the REST WebAuthn
+                // finish, the key is saved on the pool rather than in `transaction`.
                 let name = request.name.clone().ok_or_else(|| {
                     Status::invalid_argument("Missing security key name".to_owned())
                 })?;
@@ -1247,10 +1243,7 @@ impl EnrollmentServer {
                 return Err(Status::invalid_argument("Method not supported"));
             }
         };
-        // New enrollments get fresh recovery codes; existing users keep their
-        // current codes when adding a factor. The shared tail logs out other
-        // sessions, resolves recovery codes, commits, enables MFA on the account,
-        // sends the confirmation email, and emits the event.
+        // New enrollments get fresh recovery codes; existing users keep their current ones.
         let recovery_codes = super::mfa_setup::finalize_mfa_factor(
             &self.pool,
             &self.event_tx,
