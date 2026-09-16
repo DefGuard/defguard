@@ -54,13 +54,12 @@ use crate::{
             AuthorizeError, ClientMfaServerError, EventChannels,
             build_authorized_gateway_network_info, create_new_session,
         },
-        error::{FinishError, StartError, StepError},
+        error::StartError,
         is_mobile_approve_request,
+        legacy::{FinishError, LegacyProof},
         method::InitiateError,
-        types::{
-            FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
-            StepStarted,
-        },
+        multi_step::{StartRejectionReason, StartResult, StepError, StepRejection, StepStarted},
+        types::{FinishOutcome, Proof, StartOutcome},
     },
 };
 
@@ -532,7 +531,7 @@ impl ClientMfaServer {
 
             let start_outcome = self
                 .engine
-                .start(
+                .start_legacy(
                     &location,
                     &device,
                     &user,
@@ -875,9 +874,13 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login");
 
-        let is_legacy_mobile_approval = request.step_attempt_id.is_none();
+        let is_legacy_request = request.step_attempt_id.is_none();
         let token = request.token.clone();
         let auth_pub_key = request.auth_pub_key.clone();
+        let legacy_proof = LegacyProof {
+            code: request.code.clone(),
+            auth_pub_key: request.auth_pub_key.clone(),
+        };
         let proof = Proof {
             code: request.code,
             auth_pub_key: request.auth_pub_key,
@@ -887,12 +890,18 @@ impl ClientMfaServer {
         };
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
 
-        let (outcome, method) = self.engine.finish(token.clone(), proof, ip).await?;
+        let (outcome, method) = if is_legacy_request {
+            self.engine
+                .finish_legacy(token.clone(), legacy_proof, ip)
+                .await?
+        } else {
+            self.engine.finish(token.clone(), proof, ip).await?
+        };
 
         let is_mobile_signature = is_mobile_approve_request(method, auth_pub_key.as_deref());
 
         // Persist non-legacy approval before signaling the parked desktop.
-        if !is_legacy_mobile_approval
+        if !is_legacy_request
             && is_mobile_signature
             && outcome == FinishOutcome::AwaitingExternal
             && let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)
@@ -900,7 +909,7 @@ impl ClientMfaServer {
             signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
         }
 
-        if is_legacy_mobile_approval
+        if is_legacy_request
             && is_mobile_signature
             && let FinishOutcome::Advanced { next_step } = &outcome
             && let Some(waiter) = take_remote_mfa_waiter(&self.remote_mfa_responses, &token)

@@ -48,9 +48,10 @@ use crate::{
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
     mfa_engine::{
-        error::{FinishError, StepError},
+        legacy::{FinishError, LegacyProof},
         method::{Verdict, verify},
-        types::{FinishOutcome, Proof, StartRejectionReason, StartResult},
+        multi_step::{StartRejectionReason, StartResult, StepError},
+        types::{FinishOutcome, Proof},
     },
 };
 
@@ -1609,14 +1610,11 @@ async fn test_finish_legacy_cap_deletes_session_and_emits_abort(
     let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
     for _ in 0..MFA_FAILED_ATTEMPT_CAP {
         let err = engine
-            .finish(
+            .finish_legacy(
                 token.clone(),
-                Proof {
+                LegacyProof {
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
-                    step_attempt_id: None,
-                    auth_data: None,
-                    credential_id: None,
                 },
                 test_ip(),
             )

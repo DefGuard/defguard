@@ -10,12 +10,11 @@ use std::{collections::HashSet, net::IpAddr};
 use defguard_common::db::{
     Id,
     models::{
-        Device, Settings, User, WireguardNetwork,
-        biometric_auth::BiometricAuth,
+        Device, User, WireguardNetwork,
         device::WireguardNetworkDevice,
         mfa_flow::MfaFlow,
         vpn_client_mfa_session::{
-            MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepOutcome, StepsSnapshot,
+            MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepsSnapshot,
             VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, VpnMfaFlowKind,
         },
         vpn_client_session::VpnClientMfaMethod,
@@ -23,28 +22,25 @@ use defguard_common::db::{
 };
 use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tracing::{debug, error, warn};
 
 use crate::{
-    enterprise::{
-        db::models::openid_provider::OpenIdProvider, is_business_license_active,
-        is_oidc_mfa_available,
-    },
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_oidc_mfa_available},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::GatewayCommand,
     mfa_engine::{
         authorize::{EventChannels, build_authorized_gateway_network_info, create_new_session},
-        error::{FinishCoreError, FinishError, StartError, StepError},
-        method::{InitiateError, Verdict, VerifyError, initiate, offered_credential_ids, verify},
-        types::{
-            FinishOutcome, Proof, StartOutcome, StartRejectionReason, StartResult, StepRejection,
-            StepStarted,
-        },
+        error::{FinishCoreError, StartError},
+        method::{InitiateError, initiate, offered_credential_ids},
+        types::{FinishOutcome, StartOutcome},
     },
 };
 
 pub mod authorize;
 pub mod error;
+pub mod legacy;
 pub mod method;
+pub mod multi_step;
 pub mod types;
 
 pub(crate) fn is_mobile_approve_request(
@@ -58,10 +54,6 @@ pub(crate) fn is_mobile_approve_request(
 ///
 /// Mints the session, verifies proofs, advances the step cursor, and - at the final step -
 /// authorizes the peer, sends the gateway command, and emits the audit events.
-///
-/// License gating happens only at `start`, which freezes the license-filtered step snapshot;
-/// `step_start` and `finish` carry no license gate, so an in-flight flow runs to completion even if
-/// the license lapses mid-flow.
 #[derive(Clone)]
 pub struct MfaEngine {
     pool: PgPool,
@@ -92,177 +84,6 @@ impl MfaEngine {
             pool,
             channels: EventChannels::new(gateway_tx, bidi_event_tx),
         }
-    }
-
-    /// Begin a single-step login: validate the selected method against the user's configuration,
-    /// initiate step 0 (send the email code or mint the challenge), and persist the durable session.
-    pub async fn start(
-        &self,
-        location: &WireguardNetwork<Id>,
-        device: &Device<Id>,
-        user: &User<Id>,
-        flow_id: Id,
-        steps: Vec<HashSet<VpnClientMfaMethod>>,
-        selected_method: VpnClientMfaMethod,
-    ) -> Result<StartOutcome, StartError> {
-        // Reject a selected method the user has not set up. `is_configured` is shared with
-        // `start_multi_step` and `step_start` so the paths cannot disagree.
-        //
-        // Email needs `smtp_configured` too: `initiate` hands the code to `send_and_forget`, so a
-        // send failure has no way back to the client and an unusable mailer must be caught here.
-        // OIDC needs no license check here - the caller's first-step filter drops it when
-        // unlicensed.
-        let smtp_configured = Settings::get_current_settings().smtp_configured();
-        let oidc_configured = self.oidc_available().await.map_err(|err| {
-            error!("Failed to get current OpenID provider: {err}");
-            StartError::Internal
-        })?;
-        if !selected_method
-            .is_configured(
-                &self.pool,
-                user,
-                Some(device.id),
-                smtp_configured,
-                oidc_configured,
-            )
-            .await
-            .map_err(|err| {
-                error!("Failed to check MFA method configuration: {err}");
-                StartError::Internal
-            })?
-        {
-            // Biometric reports a device-scoped message, the rest a generic one. Which method
-            // gets which string is client-visible.
-            if selected_method == VpnClientMfaMethod::Biometric {
-                error!("Biometric MFA is not configured for device {}", device.id);
-                return Err(StartError::BiometricNotConfigured);
-            }
-            error!(
-                "MFA method {selected_method:?} is not configured for user {}",
-                user.username
-            );
-            return Err(StartError::MethodNotAvailable);
-        }
-
-        self.start_session(
-            location,
-            device,
-            user,
-            flow_id,
-            steps,
-            VpnMfaFlowKind::Legacy,
-            selected_method,
-        )
-        .await
-    }
-
-    /// Begin a multi-step login: validate the submitted plan against the resolved flow and the
-    /// user's configuration, then initiate step 0 and persist the durable session. A refused plan
-    /// returns sparse rejections and creates no session, token, or event.
-    pub async fn start_multi_step(
-        &self,
-        location: &WireguardNetwork<Id>,
-        device: &Device<Id>,
-        user: &User<Id>,
-        flow_id: Id,
-        steps: Vec<HashSet<VpnClientMfaMethod>>,
-        selected_methods: Vec<VpnClientMfaMethod>,
-    ) -> Result<StartResult, StartError> {
-        let business = is_business_license_active();
-
-        // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`, which
-        // reports saved-flow availability.
-        // A multi-step flow (2+ steps) requires a business license; fail closed.
-        if steps.len() > 1 && !business {
-            error!(
-                "Multi-step MFA requires a business license; location {} has a {}-step flow",
-                location.name,
-                steps.len()
-            );
-            return Err(StartError::MultiStepNotAvailable);
-        }
-        if selected_methods.len() != steps.len() {
-            error!(
-                "MFA plan length {} does not match the {}-step flow of location {}",
-                selected_methods.len(),
-                steps.len(),
-                location.name
-            );
-            return Err(StartError::PlanLengthMismatch);
-        }
-
-        // Freeze the license-filtered snapshot: OIDC is a business-tier method.
-        let filtered_steps = steps
-            .iter()
-            .map(|step| {
-                step.iter()
-                    .copied()
-                    .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
-                    .collect::<HashSet<_>>()
-            })
-            .collect::<Vec<HashSet<_>>>();
-
-        let smtp_configured = Settings::get_current_settings().smtp_configured();
-        let oidc_configured = self.oidc_available().await.map_err(|err| {
-            error!("Failed to get current OpenID provider: {err}");
-            StartError::Internal
-        })?;
-        let mut rejections = Vec::new();
-        for (index, (chosen, allowed)) in selected_methods
-            .iter()
-            .zip(filtered_steps.iter())
-            .enumerate()
-        {
-            let chosen = *chosen;
-            if allowed.is_empty() {
-                // Keep this refusal in sync with `handlers::mfa_flow::flow_unavailable_reason`,
-                // which reports saved-flow availability.
-                rejections.push(StepRejection {
-                    step: index as u32,
-                    reason: StartRejectionReason::StepEmptyAfterLicense,
-                });
-            } else if !allowed.contains(&chosen) {
-                rejections.push(StepRejection {
-                    step: index as u32,
-                    reason: StartRejectionReason::MethodNotInStep,
-                });
-            } else if !chosen
-                .is_configured(
-                    &self.pool,
-                    user,
-                    Some(device.id),
-                    smtp_configured,
-                    oidc_configured,
-                )
-                .await
-                .map_err(|err| {
-                    error!("Failed to check MFA method configuration: {err}");
-                    StartError::Internal
-                })?
-            {
-                rejections.push(StepRejection {
-                    step: index as u32,
-                    reason: StartRejectionReason::StepUnavailable,
-                });
-            }
-        }
-
-        if !rejections.is_empty() {
-            return Ok(StartResult::Rejected(rejections));
-        }
-
-        let outcome = self
-            .start_session(
-                location,
-                device,
-                user,
-                flow_id,
-                filtered_steps,
-                VpnMfaFlowKind::MultiStep,
-                selected_methods[0],
-            )
-            .await?;
-        Ok(StartResult::Accepted(outcome))
     }
 
     /// Initiate step 0 and persist the durable session, shared by the single-step and multi-step
@@ -337,369 +158,6 @@ impl MfaEngine {
     /// Checks whether the OIDC provider is still available. Started sessions continue after a license lapse.
     async fn oidc_provider_configured(&self) -> sqlx::Result<bool> {
         Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
-    }
-
-    /// Initiate the current step: send the email code or mint the challenge and bind it to a
-    /// fresh attempt.
-    ///
-    /// There is no branch for an already-initialized step: a re-call is a legal switch to a
-    /// different method or a retry of the same one, and either way it re-runs `initiate` and mints
-    /// a fresh attempt id, which is what makes "resend the code" work. The abandoned attempt's
-    /// side effects are not cancelled; stale callbacks no-op on the superseded attempt id.
-    ///
-    /// A re-call does not touch `failed_attempts` - that counter bounds wrong proofs, not
-    /// initialization. Bounding re-initiation is tracked in DefGuard/defguard#3585.
-    pub async fn step_start(
-        &self,
-        token: String,
-        method: VpnClientMfaMethod,
-    ) -> Result<StepStarted, StepError> {
-        let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &token)
-            .await
-            .map_err(|err| {
-                error!("Failed to find MFA session: {err}");
-                StepError::Internal
-            })?
-        else {
-            error!("Client login session not found");
-            return Err(StepError::SessionNotFound);
-        };
-
-        if !session
-            .current_step_methods()
-            .is_some_and(|methods| methods.contains(&method))
-        {
-            error!("MFA method {method:?} is not in the current step");
-            return Err(StepError::MethodNotInStep);
-        }
-
-        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
-            error!("Failed to load MFA session context: {err}");
-            StepError::Internal
-        })?
-        else {
-            error!("MFA session references a missing location, device, or user");
-            return Err(StepError::Internal);
-        };
-
-        let smtp_configured = Settings::get_current_settings().smtp_configured();
-        let oidc_configured = self.oidc_provider_configured().await.map_err(|err| {
-            error!("Failed to get current OpenID provider: {err}");
-            StepError::Internal
-        })?;
-        if !method
-            .is_configured(
-                &self.pool,
-                &ctx.user,
-                Some(ctx.device.id),
-                smtp_configured,
-                oidc_configured,
-            )
-            .await
-            .map_err(|err| {
-                error!("Failed to check MFA method configuration: {err}");
-                StepError::Internal
-            })?
-        {
-            error!(
-                "MFA method {method:?} is not configured for user {}",
-                ctx.user.username
-            );
-            return Err(StepError::MethodNotConfigured);
-        }
-
-        let challenge = initiate(&self.pool, &ctx, method).await.map_err(|err| {
-            log_initiate_error(&err, &ctx.user.username);
-            StepError::from(err)
-        })?;
-        let credential_ids = offered_credential_ids(&self.pool, &ctx, method)
-            .await
-            .map_err(|err| {
-                error!("Failed to load FIDO2 credentials: {err}");
-                StepError::Internal
-            })?;
-
-        let mut conn = self.pool.acquire().await.map_err(|_| {
-            error!("Failed to acquire DB connection");
-            StepError::Internal
-        })?;
-        let step_attempt_id = session
-            .begin_attempt(&mut conn, method, challenge.clone())
-            .await
-            .map_err(|err| {
-                error!("Failed to begin MFA attempt: {err}");
-                StepError::Internal
-            })?;
-
-        Ok(StepStarted {
-            step_attempt_id,
-            challenge: challenge.map(|challenge| challenge.challenge),
-            credential_ids,
-        })
-    }
-
-    /// Verify a proof, advance the step cursor, and - once the flow completes - authorize the
-    /// peer and return the minted preshared key together with the method that satisfied the step.
-    pub async fn finish(
-        &self,
-        token: String,
-        proof: Proof,
-        ip: IpAddr,
-    ) -> Result<(FinishOutcome, VpnClientMfaMethod), FinishError> {
-        let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &token)
-            .await
-            .map_err(|err| {
-                error!("Failed to find MFA session: {err}");
-                FinishError::Internal
-            })?
-        else {
-            error!("Client login session not found");
-            return Err(FinishError::SessionNotFound);
-        };
-
-        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
-            error!("Failed to load MFA session context: {err}");
-            FinishError::Internal
-        })?
-        else {
-            error!("MFA session references a missing location, device, or user");
-            return Err(FinishError::Internal);
-        };
-
-        let Some(ephemeral_state) = session.ephemeral_state.as_ref() else {
-            error!("No MFA attempt in progress");
-            return Err(FinishError::UninitializedStep);
-        };
-        let ephemeral = ephemeral_state.0.clone();
-
-        let method = ephemeral.selected_method;
-
-        // Reject stale attempt.
-        if let Some(attempt_id) = proof.step_attempt_id.as_deref()
-            && attempt_id != ephemeral.step_attempt_id
-        {
-            error!("Stale MFA attempt: the attempt is superseded");
-            return Err(FinishError::StaleAttempt);
-        }
-
-        // Legacy clients send no proof here; otherwise verification would stay pending.
-        if method == VpnClientMfaMethod::MobileApprove
-            && proof.step_attempt_id.is_none()
-            && proof.code.is_none()
-            && proof.auth_pub_key.is_none()
-        {
-            if ephemeral.biometric_challenge.is_none() {
-                return Err(FinishError::MissingChallenge);
-            }
-            return Err(FinishError::MalformedProof {
-                message: "Signature not found in request",
-            });
-        }
-
-        let is_mobile_signature = is_mobile_approve_request(method, proof.auth_pub_key.as_deref());
-        let context = BidiRequestContext::new(
-            ctx.user.id,
-            ctx.user.username.clone(),
-            ip,
-            format!("{}", ctx.device),
-        );
-
-        let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
-
-        let method = ephemeral.selected_method;
-
-        let mut mobile_auth_device_name = None;
-        match verdict {
-            Ok(Verdict::Proved) => {
-                if is_mobile_signature
-                    || (method == VpnClientMfaMethod::MobileApprove
-                        && proof.step_attempt_id.is_none())
-                {
-                    let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
-                        error!("Mobile approve auth pub key missing after successful verification");
-                        FinishError::Internal
-                    })?;
-                    mobile_auth_device_name =
-                        BiometricAuth::find_device_name(&self.pool, ctx.user.id, auth_pub_key)
-                            .await
-                            .map_err(|err| {
-                                error!(
-                                    "Failed to find mobile approve device for user {}: {err}",
-                                    ctx.user.id
-                                );
-                                FinishError::Internal
-                            })?;
-                }
-                if is_mobile_signature && let Some(attempt_id) = proof.step_attempt_id.as_deref() {
-                    let mut transaction = self.pool.begin().await.map_err(|err| {
-                        error!("Failed to begin transaction while marking mobile approval: {err}");
-                        FinishError::Internal
-                    })?;
-                    if !session
-                        .mark_mobile_approved(
-                            &mut transaction,
-                            attempt_id,
-                            mobile_auth_device_name.as_deref(),
-                        )
-                        .await
-                        .map_err(|err| {
-                            error!("Failed to mark mobile approval: {err}");
-                            FinishError::Internal
-                        })?
-                    {
-                        error!("Stale MFA attempt: the attempt is superseded");
-                        return Err(FinishError::StaleAttempt);
-                    }
-                    transaction.commit().await.map_err(|err| {
-                        error!("Failed to commit mobile approval mark: {err}");
-                        FinishError::Internal
-                    })?;
-                    return Ok((FinishOutcome::AwaitingExternal, method));
-                }
-            }
-            Ok(Verdict::NotYet) => {
-                if proof.step_attempt_id.is_some() {
-                    return Ok((FinishOutcome::AwaitingExternal, method));
-                }
-                // Preserve pre-2.2 OIDC behavior.
-                self.channels.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location: ctx.location.clone(),
-                            device: ctx.device.clone(),
-                            method: method.into(),
-                            message: "tried to finish OIDC MFA login but they haven't \
-                                completed OIDC authentication yet"
-                                .to_owned(),
-                        },
-                    )),
-                })?;
-                return Err(FinishError::OidcNotCompleted);
-            }
-            Ok(Verdict::Failed { message }) => {
-                self.channels.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location: ctx.location.clone(),
-                            device: ctx.device.clone(),
-                            method: method.into(),
-                            message: message.to_owned(),
-                        },
-                    )),
-                })?;
-                let at_cap = self
-                    .record_failure(session, &ctx, ip)
-                    .await
-                    .map_err(map_finish_core_error)?;
-                if at_cap && proof.step_attempt_id.is_some() {
-                    return Err(FinishError::AttemptLimit);
-                }
-                return Err(FinishError::Unauthorized);
-            }
-            Err(VerifyError::MalformedProof { message, event }) => {
-                if let Some(event_message) = event {
-                    self.channels.emit_event(BidiStreamEvent {
-                        context,
-                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                            DesktopClientMfaEvent::Failed {
-                                location: ctx.location.clone(),
-                                device: ctx.device.clone(),
-                                method: method.into(),
-                                message: event_message.to_owned(),
-                            },
-                        )),
-                    })?;
-                }
-                return Err(FinishError::MalformedProof { message });
-            }
-            Err(VerifyError::MissingChallenge) => {
-                if method == VpnClientMfaMethod::Biometric {
-                    return Err(FinishError::MissingBiometricChallenge);
-                }
-                return Err(FinishError::MissingChallenge);
-            }
-            Err(VerifyError::Db(err)) => {
-                error!("Failed to verify MFA proof: {err}");
-                return Err(FinishError::Internal);
-            }
-            Err(VerifyError::MissingRPID) => {
-                error!("Failed to verify FIDO2: missing RP ID");
-                return Err(FinishError::Internal);
-            }
-        }
-
-        let mobile_auth_device_name = mobile_auth_device_name.or(ephemeral.mobile_auth_device_name);
-
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction");
-            FinishError::Internal
-        })?;
-
-        // Advance the satisfied step, bound to the exact step and attempt the proof was minted
-        // for, so a stale or duplicate advance matches zero rows. A non-final advance returns
-        // `Advanced` without authorizing or deleting the session.
-        let current_step = session.current_step;
-        let step_attempt_id = proof.step_attempt_id.as_deref();
-        let Some((advance, snapshot)) = session
-            .advance(
-                &mut transaction,
-                current_step,
-                step_attempt_id,
-                method,
-                mobile_auth_device_name.as_deref(),
-            )
-            .await
-            .map_err(|err| {
-                error!("Failed to advance MFA session: {err}");
-                FinishError::Internal
-            })?
-        else {
-            error!("Stale MFA attempt: the step was already advanced or the attempt is superseded");
-            return Err(FinishError::StaleAttempt);
-        };
-        if let StepOutcome::Advanced { next_step } = advance {
-            transaction.commit().await.map_err(|_| {
-                error!("Failed to commit transaction while advancing MFA flow.");
-                FinishError::Internal
-            })?;
-            return Ok((
-                FinishOutcome::Advanced {
-                    next_step: next_step as u32,
-                },
-                method,
-            ));
-        }
-
-        let completed = self
-            .complete_flow(&mut transaction, session, snapshot, &ctx, context)
-            .await
-            .map_err(map_finish_core_error)?;
-
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction while finishing desktop client login.");
-            FinishError::Internal
-        })?;
-
-        // Only now that the authorization is durable: tell the gateway to create the peer and
-        // record the success. See `CompletedFlow` for why the order matters.
-        debug!("Sending `peer_create` message to gateway");
-        self.channels
-            .gateway_tx
-            .send(completed.gateway_command)
-            .map_err(|err| {
-                error!("Error sending WireGuard event: {err}");
-                FinishError::Internal
-            })?;
-
-        info!(
-            "Desktop client login finished for {} at location {} with method {method:?}",
-            ctx.user.username, ctx.location.name
-        );
-        self.channels.emit_event(completed.event)?;
-
-        Ok((completed.outcome, method))
     }
 
     /// Completes the flow by creating the preshared key and VPN session, then removing the MFA
@@ -870,15 +328,8 @@ impl MfaEngine {
     }
 }
 
-fn map_finish_core_error(error: FinishCoreError) -> FinishError {
-    match error {
-        FinishCoreError::Internal => FinishError::Internal,
-        FinishCoreError::Event(error) => FinishError::Event(error),
-    }
-}
-
-/// Log an [`InitiateError`] with the context it needs, so `start` and `step_start` can each wrap it
-/// into their own error type without duplicating the logging.
+/// Log an [`InitiateError`] with the context it needs, so `start_legacy`, `start_multi_step`, and
+/// `step_start` can each wrap it into their own error type without duplicating the logging.
 fn log_initiate_error(err: &InitiateError, username: &str) {
     match err {
         InitiateError::EmailCode(e) => error!("Failed to generate email MFA code: {e}"),
