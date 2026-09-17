@@ -8,6 +8,7 @@ use defguard_common::{
             Device, DeviceError, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError,
             device::{DeviceInfo, WireguardNetworkDevice},
             user::User,
+            vpn_client_session::VpnClientSession,
             wireguard::MappedDevice,
         },
     },
@@ -166,6 +167,15 @@ pub async fn process_device_access_changes(
     // when necessary; remove processed entry from all devices list initial list should
     // now contain only devices to be added.
     let mut used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
+    let active_sessions = if location.mfa_enabled() {
+        VpnClientSession::get_all_active_for_location(&mut *transaction, location.id)
+            .await?
+            .into_iter()
+            .map(|session| (session.device_id, session))
+            .collect::<HashMap<_, _>>()
+    } else {
+        HashMap::new()
+    };
     let mut events: Vec<GatewayCommand> = Vec::new();
     for device_network_config in currently_configured_devices {
         // Device is allowed and an IP was already assigned
@@ -185,8 +195,7 @@ pub async fn process_device_access_changes(
                     .await?;
                 used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
                 let network_info = wireguard_network_device
-                    .to_device_network_info_runtime(&mut *transaction, location)
-                    .await?;
+                    .to_device_network_info(location, active_sessions.get(&device.id));
                 events.push(GatewayCommand::DeviceModified(DeviceInfo {
                     device,
                     network_info: vec![network_info],

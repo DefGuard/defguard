@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{Type, query_as};
+use sqlx::{FromRow, Type, query_as};
 
 use crate::db::{
     Id, NoId,
@@ -97,6 +97,53 @@ impl VpnClientSession<Id> {
         )
         .fetch_optional(executor)
         .await
+    }
+
+    /// Fetches the latest active session for every device in a location.
+    pub async fn get_all_active_for_location<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+    ) -> sqlx::Result<Vec<Self>> {
+        #[derive(FromRow)]
+        struct ActiveSessionRow {
+            id: Id,
+            location_id: Id,
+            user_id: Id,
+            device_id: Id,
+            created_at: NaiveDateTime,
+            connected_at: Option<NaiveDateTime>,
+            disconnected_at: Option<NaiveDateTime>,
+            mfa_method: Option<VpnClientMfaMethod>,
+            state: VpnClientSessionState,
+            preshared_key: Option<String>,
+        }
+
+        let rows = sqlx::query_as::<_, ActiveSessionRow>(
+            "SELECT DISTINCT ON (device_id) id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
+\t            mfa_method, state, preshared_key \
+\t\t\tFROM vpn_client_session \
+\t\t\tWHERE location_id = $1 AND state IN ('new', 'connected') \
+\t\t\tORDER BY device_id, created_at DESC, id DESC",
+        )
+        .bind(location_id)
+        .fetch_all(executor)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| Self {
+                id: row.id,
+                location_id: row.location_id,
+                user_id: row.user_id,
+                device_id: row.device_id,
+                created_at: row.created_at,
+                connected_at: row.connected_at,
+                disconnected_at: row.disconnected_at,
+                mfa_method: row.mfa_method,
+                state: row.state,
+                preshared_key: row.preshared_key,
+            })
+            .collect())
     }
 
     /// Returns latest stats in a given session for each gateway
