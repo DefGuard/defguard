@@ -601,6 +601,8 @@ pub(crate) async fn modify_network(
         return Ok(response);
     }
 
+    // `NetworkModified` sends the complete peer list. The gateway compares the peer count and
+    // public keys, then replaces its peers, so separate device events are not needed.
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
