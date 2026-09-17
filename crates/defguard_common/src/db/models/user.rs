@@ -5,10 +5,7 @@ use std::{
 
 use argon2::{
     Argon2,
-    password_hash::{
-        PasswordHash, PasswordHasher, PasswordVerifier, SaltString, errors::Error as HashError,
-        rand_core::OsRng,
-    },
+    password_hash::{Error as HashError, PasswordHasher, PasswordVerifier, phc::PasswordHash},
 };
 use model_derive::Model;
 use rand::{
@@ -205,9 +202,8 @@ impl<I: fmt::Debug> fmt::Debug for User<I> {
 }
 
 fn hash_password(password: &str) -> Result<String, HashError> {
-    let salt = SaltString::generate(&mut OsRng);
     Ok(Argon2::default()
-        .hash_password(password.as_bytes(), &salt)?
+        .hash_password(password.as_bytes())?
         .to_string())
 }
 
@@ -282,10 +278,7 @@ impl<I> User<I> {
         if self.from_ldap && settings.ldap_disable_password_management {
             return true;
         }
-        if self.openid_sub.is_some() && oidc_disable_password_management {
-            return true;
-        }
-        false
+        self.openid_sub.is_some() && oidc_disable_password_management
     }
 
     pub fn set_password(&mut self, password: &str) {
@@ -299,7 +292,7 @@ impl<I> User<I> {
             Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
         } else {
             info!("User {} has no password set", self.username);
-            Err(HashError::Password)
+            Err(HashError::PasswordInvalid)
         }
     }
 

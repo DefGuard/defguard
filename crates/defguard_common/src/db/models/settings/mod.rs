@@ -8,7 +8,7 @@ use rsa::{
     pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding},
 };
 use serde::{Deserialize, Deserializer, Serialize};
-use sqlx::{FromRow, PgExecutor, PgPool, Type, query, query_as};
+use sqlx::{AssertSqlSafe, FromRow, PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
@@ -821,7 +821,10 @@ impl Settings {
 
         for (field, value) in default_settings {
             let query_string = format!("UPDATE settings SET {field} = $1 WHERE {field} IS NULL");
-            query(&query_string).bind(value).execute(pool).await?;
+            query(AssertSqlSafe(query_string))
+                .bind(value)
+                .execute(pool)
+                .await?;
         }
 
         let mut settings = Self::get(pool).await?.unwrap_or_default();

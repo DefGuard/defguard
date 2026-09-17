@@ -6,12 +6,24 @@
       {
         "ordinal": 0,
         "name": "current_step",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "current_step"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "steps_snapshot: Json<StepsSnapshot>",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "steps_snapshot"
+          }
+        }
       }
     ],
     "parameters": {

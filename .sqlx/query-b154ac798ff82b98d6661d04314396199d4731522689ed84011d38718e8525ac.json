@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT k.id, k.name, k.key_type \"key_type: AuthenticationKeyType\", k.key, k.user_id, k.yubikey_id, y.name yubikey_name, y.serial yubikey_serial FROM \"authentication_key\" k LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id WHERE k.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "key_type: AuthenticationKeyType",
+        "type_info": {
+          "Custom": {
+            "name": "authentication_key_type",
+            "kind": {
+              "Enum": [
+                "ssh",
+                "gpg"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "key_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "yubikey_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "authentication_key",
+            "name": "yubikey_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "yubikey_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yubikey",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "yubikey_serial",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yubikey",
+            "name": "serial"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b154ac798ff82b98d6661d04314396199d4731522689ed84011d38718e8525ac"
+}

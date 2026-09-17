@@ -18,17 +18,35 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "wizard",
+            "name": "active_wizard"
+          }
         }
       },
       {
         "ordinal": 1,
         "name": "completed",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wizard",
+            "name": "completed"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "last_version_migrated_to",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wizard",
+            "name": "last_version_migrated_to"
+          }
+        }
       }
     ],
     "parameters": {

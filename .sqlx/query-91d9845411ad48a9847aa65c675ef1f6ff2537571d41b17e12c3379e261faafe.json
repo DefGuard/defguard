@@ -6,62 +6,134 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "username",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "username"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "password_hash",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "password_hash"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "last_name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "last_name"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "first_name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "first_name"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "email",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "email"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "phone",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "phone"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "mfa_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "totp_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "totp_enabled"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "email_mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "totp_secret",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "totp_secret"
+          }
+        }
       },
       {
         "ordinal": 11,
         "name": "email_mfa_secret",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "email_mfa_secret"
+          }
+        }
       },
       {
         "ordinal": 12,
@@ -79,52 +151,112 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "mfa_method"
+          }
         }
       },
       {
         "ordinal": 13,
         "name": "recovery_codes",
-        "type_info": "TextArray"
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "recovery_codes"
+          }
+        }
       },
       {
         "ordinal": 14,
         "name": "is_active",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "is_active"
+          }
+        }
       },
       {
         "ordinal": 15,
         "name": "openid_sub",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "openid_sub"
+          }
+        }
       },
       {
         "ordinal": 16,
         "name": "from_ldap",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "from_ldap"
+          }
+        }
       },
       {
         "ordinal": 17,
         "name": "ldap_pass_randomized",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "ldap_pass_randomized"
+          }
+        }
       },
       {
         "ordinal": 18,
         "name": "ldap_rdn",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "ldap_rdn"
+          }
+        }
       },
       {
         "ordinal": 19,
         "name": "ldap_user_path",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "ldap_user_path"
+          }
+        }
       },
       {
         "ordinal": 20,
         "name": "ldap_remote_enrollment_completed",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "ldap_remote_enrollment_completed"
+          }
+        }
       },
       {
         "ordinal": 21,
         "name": "enrollment_pending",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "enrollment_pending"
+          }
+        }
       }
     ],
     "parameters": {

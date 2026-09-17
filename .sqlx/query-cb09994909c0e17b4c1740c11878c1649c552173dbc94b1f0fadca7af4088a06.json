@@ -6,47 +6,101 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "url",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "url"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "description",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "description"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "token",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "token"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "enabled"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "on_user_created",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "on_user_created"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "on_user_deleted",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "on_user_deleted"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "on_user_modified",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "on_user_modified"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "on_hwkey_provision",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "webhook",
+            "name": "on_hwkey_provision"
+          }
+        }
       }
     ],
     "parameters": {

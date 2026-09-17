@@ -106,6 +106,36 @@ export const ActivityLogTable = ({
   );
   const columns = useMemo(
     () => [
+      columnHelper.accessor('event', {
+        header: m.activity_log_col_event(),
+        enableSorting: true,
+        enableColumnFilter: true,
+        minSize: 190,
+        meta: {
+          filterOptions: eventFilterOptions,
+        },
+        cell: (info) => {
+          const event = info.getValue();
+          const label = activityLogEventDisplay[event];
+          return (
+            <TableCell>
+              {hasLogDetails(event) ? (
+                <button
+                  type="button"
+                  className="activity-log-details-link"
+                  onClick={() => {
+                    onRowClick(info.row.original);
+                  }}
+                >
+                  {label}
+                </button>
+              ) : (
+                <span>{label}</span>
+              )}
+            </TableCell>
+          );
+        },
+      }),
       columnHelper.accessor('timestamp', {
         header: m.activity_log_col_date(),
         enableSorting: true,
@@ -157,36 +187,6 @@ export const ActivityLogTable = ({
           return (
             <TableCell>
               {renderOptionalTableValue(value, m.activity_log_missing_location())}
-            </TableCell>
-          );
-        },
-      }),
-      columnHelper.accessor('event', {
-        header: m.activity_log_col_event(),
-        enableSorting: true,
-        enableColumnFilter: true,
-        minSize: 190,
-        meta: {
-          filterOptions: eventFilterOptions,
-        },
-        cell: (info) => {
-          const event = info.getValue();
-          const label = activityLogEventDisplay[event];
-          return (
-            <TableCell>
-              {hasLogDetails(event) ? (
-                <button
-                  type="button"
-                  className="activity-log-details-link"
-                  onClick={() => {
-                    onRowClick(info.row.original);
-                  }}
-                >
-                  {label}
-                </button>
-              ) : (
-                <span>{label}</span>
-              )}
             </TableCell>
           );
         },

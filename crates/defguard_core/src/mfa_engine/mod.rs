@@ -20,6 +20,7 @@ use defguard_common::db::{
         },
         vpn_client_session::VpnClientMfaMethod,
     },
+    wireguard_key::WireguardKey,
 };
 use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
@@ -550,20 +551,11 @@ impl MfaEngine {
                 if proof.step_attempt_id.is_some() {
                     return Ok((FinishOutcome::AwaitingExternal, method));
                 }
-                // Preserve pre-2.2 OIDC behavior.
-                self.channels.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location: ctx.location.clone(),
-                            device: ctx.device.clone(),
-                            method: method.into(),
-                            message: "tried to finish OIDC MFA login but they haven't \
-                                completed OIDC authentication yet"
-                                .to_owned(),
-                        },
-                    )),
-                })?;
+                debug!(
+                    "User {} polled MFA finish for location {} before completing OIDC \
+                    authentication",
+                    ctx.user.username, ctx.location
+                );
                 return Err(FinishError::OidcNotCompleted);
             }
             Ok(Verdict::Failed { message }) => {
@@ -716,7 +708,7 @@ impl MfaEngine {
             })?
             .map(|flow| flow.title);
 
-        let key = WireguardNetwork::genkey();
+        let key = WireguardKey::generate();
 
         let vpn_client_session = create_new_session(
             &self.channels,
@@ -725,7 +717,7 @@ impl MfaEngine {
             &ctx.user,
             &ctx.device,
             true,
-            key.public.clone(),
+            key.public(),
         )
         .await
         .map_err(|err| {
@@ -741,7 +733,7 @@ impl MfaEngine {
         );
 
         let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public.clone());
+            build_authorized_gateway_network_info(network_device, key.public());
 
         let gateway_command = GatewayCommand::VpnSessionAuthorized(
             ctx.location.id,
@@ -779,7 +771,7 @@ impl MfaEngine {
 
         Ok(CompletedFlow {
             outcome: FinishOutcome::Completed {
-                preshared_key: key.public.clone(),
+                preshared_key: key.public(),
             },
             gateway_command,
             event,

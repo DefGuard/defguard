@@ -6,12 +6,24 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "posture_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "posture_id"
+          }
+        }
       },
       {
         "ordinal": 2,
@@ -29,47 +41,101 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "os_type"
+          }
         }
       },
       {
         "ordinal": 3,
         "name": "min_os_version",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "min_os_version"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "disk_encryption_required",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "disk_encryption_required"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "antivirus_required",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "antivirus_required"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "ad_domain_joined_required",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "ad_domain_joined_required"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "windows_security_update_max_age",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "windows_security_update_max_age"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "min_kernel_version",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "min_kernel_version"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "device_integrity_required",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "device_integrity_required"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "android_security_patch_level_max_age",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "device_posture_os_rule",
+            "name": "android_security_patch_level_max_age"
+          }
+        }
       }
     ],
     "parameters": {
