@@ -1,10 +1,9 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
 use defguard_common::hex::to_lower_hex;
-use md4::Md4;
+use md4::{Digest as _, Md4};
 use rand::{RngCore, rngs::OsRng};
-#[allow(deprecated)]
 use sha1::{
-    Digest, Sha1,
+    Digest as _, Sha1,
     digest::generic_array::{GenericArray, sequence::Concat},
 };
 
@@ -18,9 +17,7 @@ pub fn salted_sha1_hash(password: &str) -> String {
     let mut pass = Vec::from(password);
     pass.extend_from_slice(&salt);
 
-    let checksum = Sha1::digest(pass);
-    #[allow(deprecated)]
-    let checksum = checksum.concat(GenericArray::from(salt));
+    let checksum = Sha1::digest(pass).concat(GenericArray::from(salt));
 
     format!("{{SSHA}}{}", BASE64_STANDARD.encode(checksum))
 }
@@ -28,10 +25,10 @@ pub fn salted_sha1_hash(password: &str) -> String {
 /// Calculate Windows NT-HASH; used for `sambaNTPassword`.
 #[must_use]
 pub fn nthash(password: &str) -> String {
-    let password_utf16_le: Vec<u8> = password
+    let password_utf16_le = password
         .encode_utf16()
         .flat_map(|c| IntoIterator::into_iter(c.to_le_bytes()))
-        .collect();
+        .collect::<Vec<_>>();
     to_lower_hex(&Md4::digest(password_utf16_le))
 }
 
