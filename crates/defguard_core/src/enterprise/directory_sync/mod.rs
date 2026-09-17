@@ -36,6 +36,7 @@ use crate::{
     events::{DirectorySyncEvent, DirectorySyncEventType, LdapSyncEventType},
     grpc::GatewayCommand,
     handlers::user::check_username,
+    location_management::sync_all_networks,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
@@ -776,7 +777,7 @@ async fn sync_all_users_state(
     )
     .await?;
 
-    sync_active_directory_users(
+    let users_reenabled = sync_active_directory_users(
         &mut transaction,
         &active_directory_users,
         &mut modified_users,
@@ -1112,6 +1113,22 @@ async fn sync_all_users_state(
     debug!("Done processing missing users");
 
     transaction.commit().await?;
+
+    if users_reenabled {
+        match pool.acquire().await {
+            Ok(mut conn) => {
+                if let Err(err) = sync_all_networks(&mut conn, gateway_tx).await {
+                    error!("Failed to sync all networks after directory user re-enablement: {err}");
+                }
+            }
+            Err(err) => {
+                error!(
+                    "Failed to acquire a connection to sync networks after directory user re-enablement: {err}"
+                );
+            }
+        }
+    }
+
     update_counts(pool).await?;
 
     emit_directory_sync_events(dirsync_tx, &settings.name, dirsync_events);
@@ -1192,7 +1209,7 @@ async fn sync_active_directory_users(
     active_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
     dirsync_events: &mut Vec<DirectorySyncEventType>,
-) -> Result<(), DirectorySyncError> {
+) -> Result<bool, DirectorySyncError> {
     // find all inactive Defguard users enabled in directory
     let enabled_users_emails = active_directory_users
         .iter()
@@ -1209,6 +1226,7 @@ async fn sync_active_directory_users(
         "There are {} inactive Defguard users enabled in the directory. Enabling them in Defguard.",
         users_to_enable.len()
     );
+    let mut users_reenabled = false;
     for mut user in users_to_enable {
         if user.is_active {
             debug!("User {} is already enabled, skipping", user.email);
@@ -1220,12 +1238,13 @@ async fn sync_active_directory_users(
         );
         user.is_active = true;
         user.save(&mut *transaction).await?;
+        users_reenabled = true;
         dirsync_events.push(DirectorySyncEventType::UserEnabled { user: user.clone() });
         modified_users.push(user);
     }
     debug!("Done processing active directory users");
 
-    Ok(())
+    Ok(users_reenabled)
 }
 
 // The default inverval for the directory sync job
