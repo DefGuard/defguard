@@ -29,6 +29,12 @@ pub enum StartError {
 /// Internal failures returned by shared finish helpers.
 #[derive(Debug, Error)]
 pub(super) enum FinishCoreError {
+    #[error("login session not found")]
+    SessionNotFound,
+    #[error("no MFA attempt in progress")]
+    UninitializedStep,
+    #[error("stale MFA attempt")]
+    StaleAttempt,
     #[error("unexpected error")]
     Internal,
     #[error(transparent)]

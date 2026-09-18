@@ -14,8 +14,8 @@ use defguard_common::db::{
         device::WireguardNetworkDevice,
         mfa_flow::MfaFlow,
         vpn_client_mfa_session::{
-            MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepsSnapshot,
-            VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, VpnMfaFlowKind,
+            EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepOutcome,
+            StepsSnapshot, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, VpnMfaFlowKind,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -43,13 +43,6 @@ pub mod method;
 pub mod multi_step;
 pub mod types;
 
-pub(crate) fn is_mobile_approve_request(
-    method: VpnClientMfaMethod,
-    auth_pub_key: Option<&str>,
-) -> bool {
-    method == VpnClientMfaMethod::MobileApprove && auth_pub_key.is_some()
-}
-
 /// Owns connect-time MFA session state and final authorization.
 ///
 /// It mints sessions, verifies proofs, advances the step cursor, and authorizes the peer at the
@@ -71,6 +64,13 @@ struct CompletedFlow {
     outcome: FinishOutcome,
     gateway_command: GatewayCommand,
     event: BidiStreamEvent,
+}
+
+pub(in crate::mfa_engine) struct LoadedFinishContext {
+    pub(in crate::mfa_engine) session: VpnClientMfaSession<Id>,
+    pub(in crate::mfa_engine) ctx: MfaSessionContext,
+    pub(in crate::mfa_engine) ephemeral: EphemeralState,
+    pub(in crate::mfa_engine) context: BidiRequestContext,
 }
 
 impl MfaEngine {
@@ -159,6 +159,131 @@ impl MfaEngine {
     /// lapse.
     async fn oidc_provider_configured(&self) -> sqlx::Result<bool> {
         Ok(OpenIdProvider::get_current(&self.pool).await?.is_some())
+    }
+
+    /// Load an active session only when it belongs to the contract selected by the caller.
+    ///
+    /// A mismatched flow is indistinguishable from an expired or unknown token. Keeping this
+    /// check here protects engine callers that do not have an adapter-level route boundary.
+    pub(crate) async fn find_active_session_for_flow(
+        &self,
+        token: &str,
+        expected_flow_kind: VpnMfaFlowKind,
+    ) -> sqlx::Result<Option<VpnClientMfaSession<Id>>> {
+        Ok(
+            VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, token)
+                .await?
+                .filter(|session| session.flow_kind == expected_flow_kind),
+        )
+    }
+
+    pub(in crate::mfa_engine) async fn load_finish_context(
+        &self,
+        token: &str,
+        expected_flow_kind: VpnMfaFlowKind,
+        ip: IpAddr,
+    ) -> Result<LoadedFinishContext, FinishCoreError> {
+        let Some(session) = self
+            .find_active_session_for_flow(token, expected_flow_kind)
+            .await
+            .map_err(|err| {
+                error!("Failed to find MFA session: {err}");
+                FinishCoreError::Internal
+            })?
+        else {
+            error!("Client login session not found");
+            return Err(FinishCoreError::SessionNotFound);
+        };
+
+        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
+            error!("Failed to load MFA session context: {err}");
+            FinishCoreError::Internal
+        })?
+        else {
+            error!("MFA session references a missing location, device, or user");
+            return Err(FinishCoreError::Internal);
+        };
+
+        let Some(ephemeral_state) = session.ephemeral_state.as_ref() else {
+            error!("No MFA attempt in progress");
+            return Err(FinishCoreError::UninitializedStep);
+        };
+
+        let ephemeral = ephemeral_state.0.clone();
+        let context = BidiRequestContext::new(
+            ctx.user.id,
+            ctx.user.username.clone(),
+            ip,
+            format!("{}", ctx.device),
+        );
+        Ok(LoadedFinishContext {
+            session,
+            ctx,
+            ephemeral,
+            context,
+        })
+    }
+
+    pub(in crate::mfa_engine) async fn advance_and_complete(
+        &self,
+        session: VpnClientMfaSession<Id>,
+        ctx: &MfaSessionContext,
+        context: BidiRequestContext,
+        attempt_id: Option<&str>,
+        method: VpnClientMfaMethod,
+        mobile_auth_device_name: Option<&str>,
+    ) -> Result<FinishOutcome, FinishCoreError> {
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction: {err}");
+            FinishCoreError::Internal
+        })?;
+
+        let Some((advance, snapshot)) = session
+            .advance(
+                &mut transaction,
+                session.current_step,
+                attempt_id,
+                method,
+                mobile_auth_device_name,
+            )
+            .await
+            .map_err(|err| {
+                error!("Failed to advance MFA session: {err}");
+                FinishCoreError::Internal
+            })?
+        else {
+            error!("Stale MFA attempt: the step was already advanced or the attempt is superseded");
+            return Err(FinishCoreError::StaleAttempt);
+        };
+
+        if let StepOutcome::Advanced { next_step } = advance {
+            transaction.commit().await.map_err(|err| {
+                error!("Failed to commit transaction while advancing MFA flow: {err}");
+                FinishCoreError::Internal
+            })?;
+            return Ok(FinishOutcome::Advanced {
+                next_step: next_step as u32,
+            });
+        }
+
+        let completed = self
+            .complete_flow(&mut transaction, session, snapshot, ctx, context)
+            .await?;
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction while finishing desktop client login: {err}");
+            FinishCoreError::Internal
+        })?;
+
+        debug!("Sending `peer_create` message to gateway");
+        self.channels
+            .gateway_tx
+            .send(completed.gateway_command)
+            .map_err(|err| {
+                error!("Error sending WireGuard event: {err}");
+                FinishCoreError::Internal
+            })?;
+        self.channels.emit_event(completed.event)?;
+        Ok(completed.outcome)
     }
 
     /// Completes the flow by creating the preshared key and VPN session, then removing the MFA

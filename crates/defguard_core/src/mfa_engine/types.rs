@@ -17,13 +17,15 @@ pub struct StartOutcome {
     pub superseded_token_hash: Option<String>,
 }
 
-/// Compatibility proof shared by the legacy and attempt-bound finish paths.
+/// Normalized credential passed to the shared method verifier.
+///
+/// Contract-specific proof types are converted to this representation at their public engine
+/// method boundary. It deliberately carries no attempt ID or contract marker.
 #[derive(Debug, Eq, PartialEq)]
-pub struct Proof {
+pub(crate) struct VerificationProof {
     pub code: Option<String>,
     /// Legacy mobile public key or base64-encoded FIDO2 signature.
     pub auth_pub_key: Option<String>,
-    pub step_attempt_id: Option<String>,
     /// FIDO2 authenticator data in the transitional packed representation.
     pub auth_data: Option<Vec<u8>>,
     /// FIDO2 credential selected by the client. Names the security key in use, so verification goes

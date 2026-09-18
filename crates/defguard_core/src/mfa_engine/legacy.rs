@@ -3,24 +3,20 @@ use std::{collections::HashSet, net::IpAddr};
 use defguard_common::db::{
     Id,
     models::{
-        Device, Settings, User, WireguardNetwork,
-        biometric_auth::BiometricAuth,
-        vpn_client_mfa_session::{VpnClientMfaSession, VpnMfaFlowKind},
-        vpn_client_session::VpnClientMfaMethod,
+        Device, Settings, User, WireguardNetwork, biometric_auth::BiometricAuth,
+        vpn_client_mfa_session::VpnMfaFlowKind, vpn_client_session::VpnClientMfaMethod,
     },
 };
 use thiserror::Error;
 
 use super::{
-    MfaEngine,
+    LoadedFinishContext, MfaEngine,
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
-    method::{Verdict, VerifyError, verify},
-    types::{FinishOutcome, Proof, StartOutcome},
+    method::{Verdict, VerifyError, verify, verify_mobile_signature},
+    types::{FinishOutcome, StartOutcome, VerificationProof},
 };
-use crate::events::{
-    BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
-};
+use crate::events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
 
 /// Proof fields accepted by the legacy finish contract.
 #[derive(Debug, Eq, PartialEq)]
@@ -56,12 +52,11 @@ pub enum FinishError {
     Event(#[from] ClientMfaServerError),
 }
 
-impl From<LegacyProof> for Proof {
+impl From<LegacyProof> for VerificationProof {
     fn from(proof: LegacyProof) -> Self {
         Self {
             code: proof.code,
             auth_pub_key: proof.auth_pub_key,
-            step_attempt_id: None,
             auth_data: None,
             credential_id: None,
         }
@@ -131,32 +126,18 @@ impl MfaEngine {
         proof: LegacyProof,
         ip: IpAddr,
     ) -> Result<(FinishOutcome, VpnClientMfaMethod), FinishError> {
-        let proof: Proof = proof.into();
-        let Some(session) = VpnClientMfaSession::<Id>::find_active_by_token(&self.pool, &token)
+        let proof: VerificationProof = proof.into();
+        let loaded = self
+            .load_finish_context(&token, VpnMfaFlowKind::Legacy, ip)
             .await
-            .map_err(|err| {
-                tracing::error!("Failed to find MFA session: {err}");
-                FinishError::Internal
-            })?
-        else {
-            tracing::error!("Client login session not found");
-            return Err(FinishError::SessionNotFound);
-        };
+            .map_err(map_finish_core_error)?;
+        let LoadedFinishContext {
+            session,
+            ctx,
+            ephemeral,
+            context,
+        } = loaded;
 
-        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
-            tracing::error!("Failed to load MFA session context: {err}");
-            FinishError::Internal
-        })?
-        else {
-            tracing::error!("MFA session references a missing location, device, or user");
-            return Err(FinishError::Internal);
-        };
-
-        let Some(ephemeral_state) = session.ephemeral_state.as_ref() else {
-            tracing::error!("No MFA attempt in progress");
-            return Err(FinishError::UninitializedStep);
-        };
-        let ephemeral = ephemeral_state.0.clone();
         let method = ephemeral.selected_method;
 
         // Legacy MobileApprove requires a signature; an empty proof is not a polling request.
@@ -172,20 +153,26 @@ impl MfaEngine {
             });
         }
 
-        let is_mobile_signature =
-            super::is_mobile_approve_request(method, proof.auth_pub_key.as_deref());
-        let context = BidiRequestContext::new(
-            ctx.user.id,
-            ctx.user.username.clone(),
-            ip,
-            format!("{}", ctx.device),
-        );
-        let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
+        let verdict = if method == VpnClientMfaMethod::MobileApprove {
+            let signature = proof.code.as_deref().ok_or(FinishError::MalformedProof {
+                message: "Signature not found in request",
+            })?;
+            let auth_pub_key =
+                proof
+                    .auth_pub_key
+                    .as_deref()
+                    .ok_or(FinishError::MalformedProof {
+                        message: "Authorization device key missing in request",
+                    })?;
+            verify_mobile_signature(&self.pool, &ctx, &ephemeral, signature, auth_pub_key).await
+        } else {
+            verify(&self.pool, &ctx, &ephemeral, &proof).await
+        };
 
         let mut mobile_auth_device_name = None;
         match verdict {
             Ok(Verdict::Proved) => {
-                if is_mobile_signature {
+                if method == VpnClientMfaMethod::MobileApprove {
                     let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
                         tracing::error!(
                             "Mobile approve auth pub key missing after successful verification"
@@ -233,13 +220,9 @@ impl MfaEngine {
                         },
                     )),
                 })?;
-                let at_cap = self
-                    .record_failure(session, &ctx, ip)
+                self.record_failure(session, &ctx, ip)
                     .await
                     .map_err(map_finish_core_error)?;
-                if at_cap {
-                    return Err(FinishError::Unauthorized);
-                }
                 return Err(FinishError::Unauthorized);
             }
             Err(VerifyError::MalformedProof { message, event }) => {
@@ -272,78 +255,34 @@ impl MfaEngine {
                 tracing::error!("Failed to verify FIDO2: missing RP ID");
                 return Err(FinishError::Internal);
             }
+            Err(VerifyError::UnsupportedMethod) => {
+                tracing::error!("MFA method requires a contract-specific verifier");
+                return Err(FinishError::Internal);
+            }
         }
 
-        let mobile_auth_device_name = mobile_auth_device_name.or(ephemeral.mobile_auth_device_name);
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            tracing::error!("Failed to begin transaction");
-            FinishError::Internal
-        })?;
-
-        let Some((advance, snapshot)) = session
-            .advance(
-                &mut transaction,
-                session.current_step,
+        let outcome = self
+            .advance_and_complete(
+                session,
+                &ctx,
+                context,
                 None,
                 method,
-                mobile_auth_device_name.as_deref(),
+                mobile_auth_device_name
+                    .as_deref()
+                    .or(ephemeral.mobile_auth_device_name.as_deref()),
             )
             .await
-            .map_err(|err| {
-                tracing::error!("Failed to advance MFA session: {err}");
-                FinishError::Internal
-            })?
-        else {
-            tracing::error!("MFA session could not be advanced");
-            return Err(FinishError::StaleAttempt);
-        };
-        if let defguard_common::db::models::vpn_client_mfa_session::StepOutcome::Advanced {
-            next_step,
-        } = advance
-        {
-            transaction.commit().await.map_err(|_| {
-                tracing::error!("Failed to commit transaction while advancing MFA flow.");
-                FinishError::Internal
-            })?;
-            return Ok((
-                FinishOutcome::Advanced {
-                    next_step: next_step as u32,
-                },
-                method,
-            ));
-        }
-
-        let completed = self
-            .complete_flow(&mut transaction, session, snapshot, &ctx, context)
-            .await
             .map_err(map_finish_core_error)?;
-        transaction.commit().await.map_err(|_| {
-            tracing::error!("Failed to commit transaction while finishing desktop client login.");
-            FinishError::Internal
-        })?;
-
-        tracing::debug!("Sending `peer_create` message to gateway");
-        self.channels
-            .gateway_tx
-            .send(completed.gateway_command)
-            .map_err(|err| {
-                tracing::error!("Error sending WireGuard event: {err}");
-                FinishError::Internal
-            })?;
-
-        tracing::info!(
-            "Desktop client login finished for {} at location {} with method {method:?}",
-            ctx.user.username,
-            ctx.location.name
-        );
-        self.channels.emit_event(completed.event)?;
-
-        Ok((completed.outcome, method))
+        Ok((outcome, method))
     }
 }
 
 fn map_finish_core_error(error: FinishCoreError) -> FinishError {
     match error {
+        FinishCoreError::SessionNotFound => FinishError::SessionNotFound,
+        FinishCoreError::UninitializedStep => FinishError::UninitializedStep,
+        FinishCoreError::StaleAttempt => FinishError::StaleAttempt,
         FinishCoreError::Internal => FinishError::Internal,
         FinishCoreError::Event(error) => FinishError::Event(error),
     }
@@ -354,16 +293,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn legacy_proof_converts_to_fused_proof() {
+    fn legacy_proof_converts_to_verification_proof() {
         assert_eq!(
-            Proof::from(LegacyProof {
+            VerificationProof::from(LegacyProof {
                 code: Some("code".to_owned()),
                 auth_pub_key: Some("key".to_owned()),
             }),
-            Proof {
+            VerificationProof {
                 code: Some("code".to_owned()),
                 auth_pub_key: Some("key".to_owned()),
-                step_attempt_id: None,
                 auth_data: None,
                 credential_id: None,
             }

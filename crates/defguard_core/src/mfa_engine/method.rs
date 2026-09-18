@@ -17,7 +17,7 @@ use defguard_common::db::models::{
 use sqlx::PgPool;
 use thiserror::Error;
 
-use super::types::Proof;
+use super::types::VerificationProof;
 use crate::mail::templates::{TemplateError, mfa_code_mail};
 
 /// Outcome of proof verification.
@@ -50,6 +50,8 @@ pub enum VerifyError {
     Db(#[from] sqlx::Error),
     #[error("Can't build RP ID - incorrect Defguard URL")]
     MissingRPID,
+    #[error("MFA method requires a contract-specific verifier")]
+    UnsupportedMethod,
 }
 
 /// An error surfaced by [`initiate`].
@@ -110,11 +112,11 @@ pub async fn initiate(
 ///
 /// Read-only: never mutates the session. The caller owns every mutation (failure accounting,
 /// advance, delete).
-pub async fn verify(
+pub(super) async fn verify(
     pool: &PgPool,
     ctx: &MfaSessionContext,
     ephemeral: &EphemeralState,
-    proof: &Proof,
+    proof: &VerificationProof,
 ) -> Result<Verdict, VerifyError> {
     match ephemeral.selected_method {
         VpnClientMfaMethod::Totp => {
@@ -166,47 +168,7 @@ pub async fn verify(
                 Ok(Verdict::NotYet)
             }
         }
-        VpnClientMfaMethod::MobileApprove => {
-            // WebSocket is the fast path; empty proofs are the reconnect fallback.
-            if proof.code.is_none() && proof.auth_pub_key.is_none() {
-                return Ok(if ephemeral.mobile_approved {
-                    Verdict::Proved
-                } else {
-                    Verdict::NotYet
-                });
-            }
-
-            let challenge = ephemeral
-                .biometric_challenge
-                .as_ref()
-                .ok_or(VerifyError::MissingChallenge)?;
-            let signature = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                message: "Signature not found in request",
-                event: None,
-            })?;
-            let auth_device_pub_key =
-                proof
-                    .auth_pub_key
-                    .as_ref()
-                    .ok_or(VerifyError::MalformedProof {
-                        message: "Authorization device key missing in request",
-                        event: None,
-                    })?;
-            if !BiometricAuth::verify_owner(pool, ctx.user.id, auth_device_pub_key).await? {
-                // A signing device not owned by the user is indistinguishable from a wrong
-                // signature, so the "does this pubkey belong to user X" oracle cannot be probed
-                // and the attempt is still charged by the caller.
-                return Ok(Verdict::Failed {
-                    message: "Signed challenge rejected",
-                });
-            }
-            match challenge.verify_for_owner(signature, auth_device_pub_key) {
-                Ok(()) => Ok(Verdict::Proved),
-                Err(_) => Ok(Verdict::Failed {
-                    message: "Signed challenge rejected",
-                }),
-            }
-        }
+        VpnClientMfaMethod::MobileApprove => Err(VerifyError::UnsupportedMethod),
         VpnClientMfaMethod::Fido2 => {
             const RP_ID_HASH_LEN: usize = 32;
 
@@ -268,6 +230,44 @@ pub async fn verify(
                 message: "FIDO2 challenge failed",
             })
         }
+    }
+}
+
+/// Verify a signed MobileApprove challenge.
+///
+/// This entry point requires both signature fields and never reads the durable approval mark.
+pub(super) async fn verify_mobile_signature(
+    pool: &PgPool,
+    ctx: &MfaSessionContext,
+    ephemeral: &EphemeralState,
+    signature: &str,
+    auth_device_pub_key: &str,
+) -> Result<Verdict, VerifyError> {
+    let challenge = ephemeral
+        .biometric_challenge
+        .as_ref()
+        .ok_or(VerifyError::MissingChallenge)?;
+    if !BiometricAuth::verify_owner(pool, ctx.user.id, auth_device_pub_key).await? {
+        // A signing device not owned by the user is indistinguishable from a wrong signature.
+        return Ok(Verdict::Failed {
+            message: "Signed challenge rejected",
+        });
+    }
+    match challenge.verify_for_owner(signature, auth_device_pub_key) {
+        Ok(()) => Ok(Verdict::Proved),
+        Err(_) => Ok(Verdict::Failed {
+            message: "Signed challenge rejected",
+        }),
+    }
+}
+
+/// Read the durable MobileApprove mark for the attempt-bound polling path.
+#[must_use]
+pub fn check_mobile_approval(ephemeral: &EphemeralState) -> Verdict {
+    if ephemeral.mobile_approved {
+        Verdict::Proved
+    } else {
+        Verdict::NotYet
     }
 }
 
