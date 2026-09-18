@@ -1074,10 +1074,10 @@ impl ProxyHandler {
                             let request_id = request.id;
                             let semaphore = Arc::clone(&self.semaphore);
                             tasks.spawn(async move {
-                                let _permit = semaphore
-                                    .acquire_owned()
-                                    .await
-                                    .expect("ProxyManager semaphore closed");
+                                let Ok(_permit) = semaphore.acquire_owned().await else {
+                                    debug!("ProxyManager semaphore was closed");
+                                    return (request_id, Ok(()));
+                                };
                                 let result = Self::handle_request(
                                     pool,
                                     request,
