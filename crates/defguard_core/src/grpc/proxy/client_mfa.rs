@@ -309,7 +309,7 @@ impl ClientMfaServer {
     /// Allows Edge to verify if token is valid and active.
     #[instrument(skip_all)]
     pub async fn validate_mfa_token(
-        &mut self,
+        &self,
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
         let token_valid =
@@ -325,7 +325,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn start_client_mfa_login(
-        &mut self,
+        &self,
         request: ClientMfaStartRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaStartOutcome, Status> {
@@ -722,7 +722,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn await_remote_mfa_login(
-        &mut self,
+        &self,
         request: AwaitRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
@@ -870,7 +870,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn finish_client_mfa_login(
-        &mut self,
+        &self,
         request: ClientMfaFinishRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaFinishResponse, Status> {
@@ -955,7 +955,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn client_mfa_step_start(
-        &mut self,
+        &self,
         request: ClientMfaStepStartRequest,
     ) -> Result<ClientMfaStepStartResponse, Status> {
         let method = MfaMethod::try_from(request.method)
@@ -978,7 +978,7 @@ impl ClientMfaServer {
     /// A location with no postures assigned is approved with an *empty* preshared key and no
     /// session, since its peers are handed to the gateway without one.
     pub async fn handle_posture_check(
-        &mut self,
+        &self,
         request: DevicePostureCheckRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<PostureCheckOutcome, Status> {
