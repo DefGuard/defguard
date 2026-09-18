@@ -68,22 +68,32 @@ fn hex_value(byte: u8) -> Option<u8> {
 /// Builds a comparison key for a DN without choosing an escape spelling.
 #[must_use]
 pub(crate) fn canonical_dn(dn: &str) -> String {
+    if dn.is_empty() {
+        return String::new();
+    }
+
     let mut canonical = String::with_capacity(dn.len());
     let mut rest = dn;
 
     loop {
         match find_unescaped(rest, b',') {
             Some(comma) => {
-                canonical.push_str(&canonical_component(&rest[..comma]));
-                canonical.push(',');
+                push_component(&mut canonical, &canonical_component(&rest[..comma]));
                 rest = &rest[comma + 1..];
             }
             None => {
-                canonical.push_str(&canonical_component(rest));
+                push_component(&mut canonical, &canonical_component(rest));
                 return canonical;
             }
         }
     }
+}
+
+fn push_component(canonical: &mut String, component: &str) {
+    // Values are unescaped before components are joined, so a comma cannot delimit them safely.
+    canonical.push_str(&component.len().to_string());
+    canonical.push(':');
+    canonical.push_str(component);
 }
 
 fn canonical_component(component: &str) -> String {
@@ -154,12 +164,16 @@ mod tests {
     #[test]
     fn test_canonical_dn_matches_equivalent_dns() {
         assert_eq!(
-            canonical_dn(r"CN=Pollet\, Marc - mpollet,OU=Members,DC=example,DC=com"),
-            canonical_dn(r"cn=Pollet\2c Marc - mpollet,ou=members,dc=example,dc=com")
+            canonical_dn(r"CN=Example\, Person - euser,OU=Members,DC=example,DC=com"),
+            canonical_dn(r"cn=Example\2c Person - euser,ou=members,dc=example,dc=com")
         );
         assert_eq!(
             canonical_dn("cn=user, ou=users , dc=example"),
             canonical_dn("CN=user,ou=users,dc=example")
+        );
+        assert_ne!(
+            canonical_dn(r"cn=foo\,bar\=qux,dc=x"),
+            canonical_dn("cn=foo,bar=qux,dc=x")
         );
         assert_ne!(
             canonical_dn(r"cn=user\ ,ou=users"),

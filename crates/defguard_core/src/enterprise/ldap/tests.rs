@@ -21,7 +21,10 @@ use tokio::sync::{
 };
 
 use super::{
-    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+    model::{
+        extract_rdn_value, get_users_without_ldap_path, index_users_by_dn, resolve_group_members,
+        user_from_searchentry,
+    },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
         extract_intersecting_users, is_ldap_desynced, set_ldap_sync_status,
@@ -3213,6 +3216,18 @@ fn test_extract_dn_value() {
         extract_rdn_value("cn=user.name+123,dc=example,dc=com"),
         Some("user.name+123".to_owned())
     );
+    assert_eq!(
+        extract_rdn_value(r"cn=left\,right,dc=example,dc=com"),
+        Some("left,right".to_owned())
+    );
+    assert_eq!(
+        extract_rdn_value(r"cn=left\2cright,dc=example,dc=com"),
+        Some("left,right".to_owned())
+    );
+    assert_eq!(
+        extract_rdn_value(r"cn=left\=right,dc=example,dc=com"),
+        Some("left=right".to_owned())
+    );
     assert_eq!(extract_rdn_value("invalid-dn"), None);
     assert_eq!(extract_rdn_value("cn=onlyvalue"), None);
     assert_eq!(
@@ -3220,6 +3235,52 @@ fn test_extract_dn_value() {
         Some(String::new())
     );
     assert_eq!(extract_rdn_value(""), None);
+}
+
+#[test]
+fn test_resolve_group_members_with_escaped_rdn_comma() {
+    let directory_dn = r"CN=Example\, Person,OU=Members,DC=example,DC=com";
+    let mut attrs = HashMap::new();
+    attrs.insert("sn".to_owned(), vec!["Person".to_owned()]);
+    attrs.insert("givenName".to_owned(), vec!["Example".to_owned()]);
+    attrs.insert("mail".to_owned(), vec!["example@example.com".to_owned()]);
+
+    let entry = SearchEntry {
+        dn: directory_dn.to_owned(),
+        attrs,
+        bin_attrs: HashMap::new(),
+    };
+    let mut config = LDAPConfig::default();
+    config.ldap_username_attr = "uid".to_owned();
+    config.ldap_user_rdn_attr = Some("cn".to_owned());
+
+    let user = user_from_searchentry(&entry, "example", None, &config).unwrap();
+    assert_eq!(user.ldap_rdn.as_deref(), Some("Example, Person"));
+    assert_eq!(
+        user.ldap_user_path.as_deref(),
+        Some("OU=Members,DC=example,DC=com")
+    );
+
+    let users = vec![user];
+    let rebuilt_dn = config.user_dn_for_user(&users[0]);
+    assert_ne!(rebuilt_dn, directory_dn);
+    assert!(rebuilt_dn.contains(r"Example\2c Person"));
+
+    let users_by_dn = index_users_by_dn(&users, &config);
+    let members =
+        resolve_group_members("synthetic-group", &[directory_dn.to_owned()], &users_by_dn);
+    assert_eq!(members.len(), 1);
+    assert_eq!(
+        members.iter().next().map(|user| user.username.as_str()),
+        Some("example")
+    );
+
+    let outsiders = resolve_group_members(
+        "synthetic-group",
+        &[r"CN=Other\, Person,OU=Members,DC=example,DC=com".to_owned()],
+        &users_by_dn,
+    );
+    assert!(outsiders.is_empty());
 }
 
 #[test]
@@ -3786,6 +3847,10 @@ fn test_extract_dn_path_various_cases() {
     assert_eq!(
         extract_dn_path("cn=user.name+123,ou=group,dc=example,dc=com"),
         Some("ou=group,dc=example,dc=com".to_owned())
+    );
+    assert_eq!(
+        extract_dn_path(r"cn=left\,right,ou=users,dc=example,dc=com"),
+        Some("ou=users,dc=example,dc=com".to_owned())
     );
 
     assert_eq!(extract_dn_path("invalid-dn"), None);

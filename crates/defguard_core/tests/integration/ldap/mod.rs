@@ -245,6 +245,65 @@ async fn test_special_characters(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[ignore = "requires LDAP server"]
 #[sqlx::test]
+async fn test_sync_ldap_authority_pulls_comma_rdn_membership(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    const TEST_GROUP: &str = "comma_rdn_group";
+    set_sync_settings(&pool, TEST_GROUP, true).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_username_attr = Some("uid".to_owned());
+    settings.ldap_user_rdn_attr = Some("cn".to_owned());
+    set_settings(Some(settings));
+
+    let mut user = User::new(
+        "comma_rdn_user",
+        Some("pass123"),
+        "Person",
+        "Example",
+        "comma.rdn@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    user.ldap_rdn = Some("Example, Person".to_owned());
+
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group(TEST_GROUP).await;
+
+    ldap_conn
+        .add_user(&mut user, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user_to_group(&user, TEST_GROUP)
+        .await
+        .unwrap();
+
+    // LDAP authority must pull the user and group membership back into Defguard.
+    user.clone().delete(&pool).await.unwrap();
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
+
+    let pulled = User::find_by_username(&pool, "comma_rdn_user")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(pulled.from_ldap);
+    let groups = pulled.member_of_names(&pool).await.unwrap();
+    assert!(groups.iter().any(|group| group == TEST_GROUP));
+
+    let _ = ldap_conn.delete_user(&pulled).await;
+    let _ = ldap_conn.delete_group(TEST_GROUP).await;
+}
+
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
 async fn test_get_user(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_ldap_settings(&pool).await;
