@@ -68,7 +68,7 @@ use sqlx::PgPool;
 use tokio::{
     select,
     sync::{
-        Mutex, Semaphore,
+        Mutex, Semaphore, TryAcquireError,
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
         watch,
@@ -602,17 +602,26 @@ impl ProxyHandler {
         Ok(())
     }
 
-    fn send_internal_error(tx: &UnboundedSender<CoreResponse>, request_id: u64) {
+    fn send_error(
+        tx: &UnboundedSender<CoreResponse>,
+        request_id: u64,
+        status_code: Code,
+        message: &'static str,
+    ) {
         let response = CoreResponse {
             id: request_id,
             payload: Some(core_response::Payload::CoreError(CoreError {
-                status_code: Code::Internal as i32,
-                message: "internal server error".to_owned(),
+                status_code: status_code as i32,
+                message: message.to_owned(),
             })),
         };
         if tx.send(response).is_err() {
-            debug!("Failed to send internal error response for request {request_id}");
+            debug!("Failed to send error response for request {request_id}");
         }
+    }
+
+    fn send_internal_error(tx: &UnboundedSender<CoreResponse>, request_id: u64) {
+        Self::send_error(tx, request_id, Code::Internal, "internal server error");
     }
 
     async fn handle_request(
@@ -1072,12 +1081,24 @@ impl ProxyHandler {
                             let response_tx = tx.clone();
                             let gateway_tx = gateway_tx.clone();
                             let request_id = request.id;
-                            let semaphore = Arc::clone(&self.semaphore);
-                            tasks.spawn(async move {
-                                let Ok(_permit) = semaphore.acquire_owned().await else {
+                            let permit = match Arc::clone(&self.semaphore).try_acquire_owned() {
+                                Ok(permit) => permit,
+                                Err(TryAcquireError::NoPermits) => {
+                                    Self::send_error(
+                                        &tx,
+                                        request_id,
+                                        Code::ResourceExhausted,
+                                        "BIDI request concurrency limit reached",
+                                    );
+                                    continue;
+                                }
+                                Err(TryAcquireError::Closed) => {
                                     debug!("ProxyManager semaphore was closed");
-                                    return (request_id, Ok(()));
-                                };
+                                    break 'message;
+                                }
+                            };
+                            tasks.spawn(async move {
+                                let _permit = permit;
                                 let result = Self::handle_request(
                                     pool,
                                     request,

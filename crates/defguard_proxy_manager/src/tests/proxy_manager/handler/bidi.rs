@@ -28,13 +28,12 @@ async fn test_bidi_processes_concurrent_requests_with_their_request_ids(
     options: PgConnectOptions,
 ) {
     clear_test_license();
-    let semaphore = Arc::new(Semaphore::new(0));
+    let semaphore = Arc::new(Semaphore::new(2));
     let mut context = HandlerTestContext::new_with_semaphore(options, Arc::clone(&semaphore)).await;
     complete_proxy_handshake(&mut context).await;
 
     context.mock_proxy().send_request(auth_info_request(101));
     context.mock_proxy().send_request(auth_info_request(202));
-    semaphore.add_permits(2);
 
     let first = context.mock_proxy_mut().recv_outbound().await;
     let second = context.mock_proxy_mut().recv_outbound().await;
@@ -48,28 +47,25 @@ async fn test_bidi_processes_concurrent_requests_with_their_request_ids(
 }
 
 #[sqlx::test]
-async fn test_bidi_respects_configured_semaphore_limit(
+async fn test_bidi_rejects_requests_when_semaphore_has_no_capacity(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     clear_test_license();
-    let semaphore = Arc::new(Semaphore::new(0));
+    let semaphore = Arc::new(Semaphore::new(1));
+    let held_permit = semaphore
+        .clone()
+        .try_acquire_owned()
+        .expect("test should hold the only permit");
     let mut context = HandlerTestContext::new_with_semaphore(options, Arc::clone(&semaphore)).await;
     complete_proxy_handshake(&mut context).await;
 
     context.mock_proxy().send_request(auth_info_request(301));
-    context.mock_proxy().send_request(auth_info_request(302));
-    context.mock_proxy_mut().expect_no_outbound().await;
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 301);
+    assert_eq!(assert_error_response(&response), Code::ResourceExhausted);
 
-    semaphore.add_permits(1);
-    let first = context.mock_proxy_mut().recv_outbound().await;
-    let second = context.mock_proxy_mut().recv_outbound().await;
-    assert_eq!(assert_error_response(&first), Code::FailedPrecondition);
-    assert_eq!(assert_error_response(&second), Code::FailedPrecondition);
-    let mut ids = [first.id, second.id];
-    ids.sort_unstable();
-    assert_eq!(ids, [301, 302]);
-
+    drop(held_permit);
     context.finish().await.expect_server_finished().await;
 }
 
@@ -96,7 +92,7 @@ async fn test_bidi_request_errors_do_not_prevent_later_requests(
 }
 
 #[sqlx::test]
-async fn test_bidi_stream_close_cancels_requests_waiting_for_permits(
+async fn test_bidi_stream_close_does_not_leave_waiting_tasks(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -107,10 +103,11 @@ async fn test_bidi_stream_close_cancels_requests_waiting_for_permits(
 
     context.mock_proxy().send_request(auth_info_request(501));
     context.mock_proxy().send_request(auth_info_request(502));
-    context.mock_proxy_mut().expect_no_outbound().await;
+    let first = context.mock_proxy_mut().recv_outbound().await;
+    let second = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(assert_error_response(&first), Code::ResourceExhausted);
+    assert_eq!(assert_error_response(&second), Code::ResourceExhausted);
 
     context.finish().await.expect_server_finished().await;
     assert_eq!(semaphore.available_permits(), 0);
-    semaphore.add_permits(1);
-    assert_eq!(semaphore.available_permits(), 1);
 }
