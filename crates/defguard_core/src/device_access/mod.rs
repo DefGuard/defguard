@@ -70,6 +70,7 @@ pub async fn build_device_config(
         pubkey: network.pubkey.clone(),
         dns: network.dns.clone(),
         keepalive_interval: network.keepalive_interval,
+        mtu: network.client_mtu,
         mfa_enabled: network.mfa_enabled,
         location_mfa_mode,
         service_location_mode: network.service_location_mode.clone(),

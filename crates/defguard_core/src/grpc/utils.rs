@@ -360,6 +360,7 @@ pub async fn to_wire_device_config(
         allowed_ips: device_config.allowed_ips.as_csv(),
         dns: device_config.dns,
         keepalive_interval: device_config.keepalive_interval,
+        mtu: device_config.mtu.map(i32::cast_unsigned),
         #[allow(deprecated)]
         mfa_enabled: device_config.mfa_enabled,
         #[allow(deprecated)]

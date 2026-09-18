@@ -9,21 +9,21 @@ rust-version.workspace = true
 
 [dependencies]
 # internal crates
-defguard_common.workspace = true
-defguard_proto.workspace = true
-defguard_web_ui.workspace = true
-defguard_version.workspace = true
-model_derive.workspace = true
 defguard_certs.workspace = true
+defguard_common.workspace = true
 defguard_grpc_tls.workspace = true
+defguard_proto.workspace = true
 defguard_static_ip.workspace = true
+defguard_version.workspace = true
+defguard_web_ui.workspace = true
+model_derive.workspace = true
 
 # mail (moved in-crate from the former defguard_mail crate)
-lettre.workspace = true
-pulldown-cmark.workspace = true
 css-inline = "0.21"
 image = "0.25" # match with qrcode
+lettre.workspace = true
 mrml = "6.0"
+pulldown-cmark.workspace = true
 qrcode = { version = "0.14", default-features = false, features = ["image"] }
 
 # external dependencies

@@ -383,25 +383,10 @@ async fn test_mfa_finish_succeeds_after_oidc_completion(
         .expect("OIDC MFA attempt must remain initialized")
         .step_attempt_id
         .clone();
-    let event = context
-        .bidi_events_rx
-        .try_recv()
-        .expect("legacy OIDC poll must emit its failure audit");
-    match event.event {
-        BidiStreamEventType::DesktopClientMfa(event) => match *event {
-            DesktopClientMfaEvent::Failed {
-                method, message, ..
-            } => {
-                assert_eq!(method, MfaMethod::Oidc);
-                assert_eq!(
-                    message,
-                    "tried to finish OIDC MFA login but they haven't completed OIDC authentication yet"
-                );
-            }
-            other => panic!("expected MFA failure audit, got {other:?}"),
-        },
-        other => panic!("expected desktop MFA event, got {other:?}"),
-    }
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "OIDC poll must not emit an activity log event"
+    );
 
     let mut conn = context
         .pool

@@ -1400,6 +1400,62 @@ async fn test_enrollment_config_includes_acl_allowed_ips(
     context.finish().await.expect_server_finished().await;
 }
 
+/// A location's `client_mtu` must reach the client as `DeviceConfig.mtu`, and a location
+/// that leaves it unset must send no MTU at all so the client keeps picking its own.
+#[sqlx::test]
+async fn test_enrollment_config_carries_client_mtu(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mut network = create_network(&context.pool).await;
+    network.client_mtu = Some(1280);
+    network.save(&context.pool).await.unwrap();
+
+    // A second location without a client MTU, to prove the field is per-location and
+    // stays absent rather than defaulting to the first location's value.
+    let bare_network = create_network(&context.pool).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "MTU Test Device".to_owned(),
+            pubkey: "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+
+    let with_mtu = cfg
+        .configs
+        .iter()
+        .find(|config| config.network_id == network.id)
+        .expect("config for the location with a client MTU");
+    assert_eq!(
+        with_mtu.mtu,
+        Some(1280),
+        "client_mtu should be sent to the client as DeviceConfig.mtu"
+    );
+
+    let without_mtu = cfg
+        .configs
+        .iter()
+        .find(|config| config.network_id == bare_network.id)
+        .expect("config for the location without a client MTU");
+    assert_eq!(
+        without_mtu.mtu, None,
+        "a location without client_mtu should send no MTU"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
 /// An OIDC-sourced user whose provider has `disable_password_management` enabled must:
 ///  - be able to complete activation WITHOUT supplying a password, and
 ///  - remain without a local password hash after activation (authentication is delegated to

@@ -216,13 +216,13 @@ impl DefguardEvent {
     }
 }
 
-#[allow(dead_code)]
 enum VpnEvent {
     ClientMfaSuccess {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
         method: ClientMFAMethod,
     },
+    #[allow(dead_code)]
     ClientMfaFailed {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
