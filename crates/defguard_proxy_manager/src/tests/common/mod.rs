@@ -412,6 +412,17 @@ pub(crate) struct HandlerTestContext {
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
+        Self::new_with_semaphore(
+            options,
+            Arc::new(tokio::sync::Semaphore::new(crate::BIDI_CONCURRENCY)),
+        )
+        .await
+    }
+
+    pub(crate) async fn new_with_semaphore(
+        options: PgConnectOptions,
+        semaphore: Arc<tokio::sync::Semaphore>,
+    ) -> Self {
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
             .await
@@ -465,7 +476,7 @@ impl HandlerTestContext {
                 b"test-secret-key-at-least-64-bytes-long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             ),
             mock_proxy.socket_path(),
-            Arc::new(tokio::sync::Semaphore::new(crate::BIDI_CONCURRENCY)),
+            Arc::clone(&semaphore),
         );
 
         let incompatible_components_clone = incompatible_components.clone();
