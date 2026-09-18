@@ -1,6 +1,6 @@
 use std::{net::IpAddr, sync::OnceLock};
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, value_parser};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
 use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
@@ -56,7 +56,7 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub database_password: SecretString,
 
-    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", default_value_t = 10)]
+    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", value_parser = value_parser!(u32).range(1..), default_value_t = 10)]
     pub database_pool_size: u32,
 
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
