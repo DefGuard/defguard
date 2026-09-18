@@ -154,7 +154,7 @@ pub struct ProxyManager {
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control: Receiver<ProxyControlMessage>,
     proxy_cookie_key: Key,
-    /// Limits the number of requests processed concurrently across all proxy bidi streams.
+    /// Limits the number of requests processed concurrently across all Edge bidi streams.
     semaphore: Arc<Semaphore>,
     #[cfg(test)]
     test_support: Option<ProxyManagerTestSupport>,
