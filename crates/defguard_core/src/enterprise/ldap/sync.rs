@@ -892,6 +892,20 @@ impl super::LDAPConnection {
 
         let (mut all_ldap_users, mut all_defguard_users) = self.get_sync_users(pool).await?;
 
+        let mut transaction = pool.begin().await?;
+        for user in &mut all_defguard_users {
+            let old_dn = self.config.user_dn_for_user(user);
+            if refresh_user_dn_state(user, &all_ldap_users, &self.config) {
+                let new_dn = self.config.user_dn_for_user(user);
+                info!(
+                    "Repaired LDAP DN state for user {}: {old_dn} -> {new_dn}",
+                    user.username
+                );
+                user.save(&mut *transaction).await?;
+            }
+        }
+        transaction.commit().await?;
+
         let ldap_usernames = all_ldap_users
             .iter()
             .map(|u| u.username.as_str())
@@ -1028,6 +1042,17 @@ impl super::LDAPConnection {
                 && defguard_user.ldap_rdn_value() == *ldap_rdn
             {
                 defguard_user.ldap_user_path = ldap_path.map(str::to_owned);
+            }
+        }
+
+        for user in &mut all_defguard_users {
+            let old_dn = self.config.user_dn_for_user(user);
+            if refresh_user_dn_state(user, &all_ldap_users, &self.config) {
+                let new_dn = self.config.user_dn_for_user(user);
+                info!(
+                    "Dry run would repair LDAP DN state for user {}: {old_dn} -> {new_dn}",
+                    user.username
+                );
             }
         }
 
