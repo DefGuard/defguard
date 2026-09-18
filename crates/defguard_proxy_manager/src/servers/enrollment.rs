@@ -26,8 +26,8 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{
-        ApiEvent, ApiEventType, BidiRequestContext, BidiStreamEvent,
-        BidiStreamEventType, EnrollmentEvent, LdapSyncEventType,
+        ApiEvent, ApiEventType, BidiRequestContext, BidiStreamEvent, BidiStreamEventType,
+        EnrollmentEvent, LdapSyncEventType,
     },
     grpc::{
         GatewayCommand, InstanceInfo,
@@ -38,8 +38,7 @@ use defguard_core::{
     headers::get_device_info,
     is_valid_phone_number,
     mail::templates::{
-        TemplateLocation, enrollment_admin_notification, mfa_activation_mail,
-        new_device_added_mail,
+        TemplateLocation, enrollment_admin_notification, mfa_activation_mail, new_device_added_mail,
     },
 };
 use defguard_proto::client_types::{

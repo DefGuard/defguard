@@ -1381,7 +1381,7 @@ mod test {
         .unwrap();
         assert_eq!(
             identity.map(|i| i.external_id),
-            Some("entra-alice-id".to_string())
+            Some("entra-alice-id".to_owned())
         );
 
         // the user changes their email in the directory

@@ -225,7 +225,10 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
         .await
         .expect("get_recovery_codes")
         .expect("codes issued on first factor");
-    assert!(!issued.is_empty(), "the user must start with recovery codes");
+    assert!(
+        !issued.is_empty(),
+        "the user must start with recovery codes"
+    );
     let polling_token = create_polling_token(&context.pool, device.id).await;
 
     // FIDO2 cannot authorize this flow, so no method is offered — but no fallback either.

@@ -425,8 +425,7 @@ fn has_mfa_code(mail: &CapturedMail) -> bool {
 /// Extract the 6-digit MFA code from a captured email (see [`find_mfa_code`]).
 fn extract_email_code(mail: &CapturedMail) -> String {
     find_mfa_code(mail)
-        .expect("no 6-digit MFA code found in email body")
-        .to_string()
+        .expect("no 6-digit MFA code found in email body").to_owned()
 }
 
 #[sqlx::test]

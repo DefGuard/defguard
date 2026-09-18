@@ -283,7 +283,7 @@ impl MfaFlow<NoId> {
         step_methods: Vec<Vec<VpnClientMfaMethod>>,
     ) -> sqlx::Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> {
         let now = Utc::now().naive_utc();
-        let flow = MfaFlow {
+        let flow = Self {
             id: NoId,
             title,
             created_at: now,
@@ -383,7 +383,7 @@ impl MfaFlow<Id> {
         flow_id: Id,
         title: String,
         step_updates: Vec<(Option<Id>, Vec<VpnClientMfaMethod>)>,
-    ) -> Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>), MfaFlowUpdateError> {
+    ) -> Result<(Self, Vec<MfaFlowStep<Id>>), MfaFlowUpdateError> {
         let step_updates = step_updates
             .into_iter()
             .map(|(id, methods)| collect_mfa_methods(methods).map(|methods| (id, methods)))
@@ -435,7 +435,7 @@ impl MfaFlow<Id> {
             });
         }
 
-        let flow = MfaFlow::find_by_id(&mut *conn, flow_id)
+        let flow = Self::find_by_id(&mut *conn, flow_id)
             .await?
             .expect("flow was just updated");
 
@@ -726,7 +726,7 @@ impl MfaFlow<Id> {
         executor: &mut PgConnection,
         location_id: Id,
         user_id: Id,
-    ) -> sqlx::Result<Option<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)>> {
+    ) -> sqlx::Result<Option<(Self, Vec<MfaFlowStep<Id>>)>> {
         let assignments = query_as!(
             ResolveAssignmentRow,
             "SELECT lmf.flow_id, lmf.is_default, \
@@ -768,7 +768,7 @@ impl MfaFlow<Id> {
                 .iter()
                 .any(|group_id| user_groups.contains(group_id))
             {
-                let flow = MfaFlow::find_by_id(&mut *executor, assignment.flow_id)
+                let flow = Self::find_by_id(&mut *executor, assignment.flow_id)
                     .await?
                     .expect("flow referenced by assignment must exist");
                 let steps = MfaFlowStep::find_by_flow(&mut *executor, assignment.flow_id).await?;
@@ -777,7 +777,7 @@ impl MfaFlow<Id> {
         }
 
         if let Some(flow_id) = default_flow_id {
-            let flow = MfaFlow::find_by_id(&mut *executor, flow_id)
+            let flow = Self::find_by_id(&mut *executor, flow_id)
                 .await?
                 .expect("default flow must exist");
             let steps = MfaFlowStep::find_by_flow(&mut *executor, flow_id).await?;
@@ -915,7 +915,7 @@ impl MfaFlowStep<Id> {
     pub async fn find_by_flow<'e, E: PgExecutor<'e>>(
         executor: E,
         flow_id: Id,
-    ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
             MfaFlowStepRow,
             "SELECT id, flow_id, position, \
@@ -935,7 +935,7 @@ impl MfaFlowStep<Id> {
     /// Returns all flow steps ordered by flow ID and position.
     pub async fn find_all<'e, E: PgExecutor<'e>>(
         executor: E,
-    ) -> sqlx::Result<Vec<MfaFlowStep<Id>>> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
             MfaFlowStepRow,
             "SELECT id, flow_id, position, \

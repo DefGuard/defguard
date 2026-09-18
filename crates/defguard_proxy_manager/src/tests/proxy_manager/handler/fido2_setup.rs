@@ -110,9 +110,13 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         .expect("software authenticator registration");
     let attestation = serde_json::to_string(&rpkc).expect("serialize attestation");
 
-    let finish =
-        send_code_mfa_setup_finish_fido2(&mut context, &session_token, Some("my key"), Some(&attestation))
-            .await;
+    let finish = send_code_mfa_setup_finish_fido2(
+        &mut context,
+        &session_token,
+        Some("my key"),
+        Some(&attestation),
+    )
+    .await;
     assert!(
         matches!(
             finish.payload,
@@ -141,7 +145,10 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         "the ceremony state must be cleared after a successful finish"
     );
 
-    let event = context.event_rx.try_recv().expect("an event must be emitted");
+    let event = context
+        .event_rx
+        .try_recv()
+        .expect("an event must be emitted");
     assert!(
         matches!(*event.event, ApiEventType::MfaSecurityKeyAdded { .. }),
         "expected MfaSecurityKeyAdded event"
@@ -193,12 +200,19 @@ async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options:
     let attestation = serde_json::to_string(&rpkc).expect("serialize attestation");
 
     let response =
-        send_code_mfa_setup_finish_fido2(&mut context, &session_token, None, Some(&attestation)).await;
-    assert_eq!(assert_error_response(&response), tonic::Code::InvalidArgument);
+        send_code_mfa_setup_finish_fido2(&mut context, &session_token, None, Some(&attestation))
+            .await;
+    assert_eq!(
+        assert_error_response(&response),
+        tonic::Code::InvalidArgument
+    );
 
     let response =
         send_code_mfa_setup_finish_fido2(&mut context, &session_token, Some("my key"), None).await;
-    assert_eq!(assert_error_response(&response), tonic::Code::InvalidArgument);
+    assert_eq!(
+        assert_error_response(&response),
+        tonic::Code::InvalidArgument
+    );
 
     context.finish().await.expect_server_finished().await;
 }

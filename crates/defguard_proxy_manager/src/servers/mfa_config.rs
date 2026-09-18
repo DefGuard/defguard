@@ -343,10 +343,12 @@ impl MfaConfigServer {
         // In the fallback the verified code also enables email MFA; otherwise authorization
         // only opens the setup session and configuring a factor is a separate step.
         let recovery_codes = if email_fallback {
-            user.enable_email_mfa(&mut *transaction).await.map_err(|err| {
-                error!("MFA config authorize: failed to enable email MFA: {err}");
-                Status::internal("unexpected error")
-            })?;
+            user.enable_email_mfa(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!("MFA config authorize: failed to enable email MFA: {err}");
+                    Status::internal("unexpected error")
+                })?;
             finalize_mfa_factor(
                 &self.pool,
                 &self.event_tx,
