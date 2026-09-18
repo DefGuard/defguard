@@ -1113,7 +1113,7 @@ impl ProxyHandler {
                             });
                         }
                         Err(err) => {
-                            error!("Disconnected from proxy at {}: {err}", self.url);
+                            error!("Disconnected from Edge at {}: {err}", self.url);
                             self.mark_disconnected().await?;
                             break 'message;
                         }
