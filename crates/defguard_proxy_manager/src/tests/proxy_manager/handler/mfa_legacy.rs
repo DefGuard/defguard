@@ -11,7 +11,7 @@ use defguard_common::{
 };
 use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
 use defguard_proto::{
-    client_types::{ClientMfaFinishRequest, MfaMethod, MfaStepResult, mfa_step_result},
+    client_types::{ClientMfaFinishRequest, MfaMethod},
     proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -167,7 +167,6 @@ async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
 
 /// Old mobile approval verifies and connects in one Finish call.
 #[sqlx::test]
-#[allow(deprecated)]
 async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -211,9 +210,6 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
                 token: token.clone(),
                 code: Some(signature),
                 auth_pub_key: Some(auth_pub_key),
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
             },
         )),
     });
@@ -226,12 +222,6 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID + 1);
                 assert!(result.preshared_key.is_empty());
-                assert!(matches!(
-                    &result.result,
-                    Some(MfaStepResult {
-                        outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-                    }) if completed.preshared_key.is_empty()
-                ));
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID);
@@ -438,7 +428,6 @@ async fn test_mfa_finish_succeeds_after_oidc_completion(
 }
 
 #[sqlx::test]
-#[allow(deprecated)]
 async fn test_mfa_await_remote_does_not_receive_psk_after_email_finish(
     _: PgPoolOptions,
     options: PgConnectOptions,

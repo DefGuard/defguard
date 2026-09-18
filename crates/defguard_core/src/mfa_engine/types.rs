@@ -3,12 +3,12 @@
 //! These are proto-free: the conversions to and from the proto messages live in the gRPC handler
 //! (`grpc::proxy::client_mfa`), so the engine can be exercised without a transport.
 
-/// Result returned by a start method. `token` is returned exactly once, `challenge` is `Some`
-/// only for a method the client must sign against, and `superseded_token_hash` identifies a
-/// waiter the handler must cancel.
+/// Result returned by a start method. `token` is returned exactly once, and
+/// `step_attempt_id` identifies the initial attempt for the multi-step contract.
 #[derive(Debug)]
 pub struct StartOutcome {
     pub token: String,
+    pub step_attempt_id: String,
     pub challenge: Option<String>,
     /// FIDO2 only: the credentials registered for this user, base64url. The
     /// client offers them to the security key, which answers for the one it

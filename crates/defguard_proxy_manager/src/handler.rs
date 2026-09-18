@@ -40,7 +40,8 @@ use defguard_core::{
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
-            ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome, RemoteAuthWaiters,
+            ClientMfaFlowStartOutcome, ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome,
+            RemoteAuthWaiters,
         },
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
@@ -858,6 +859,31 @@ impl ProxyHandler {
                                 }
                             }
                         }
+                        // rpc ClientMfaFlowStart (ClientMfaFlowStartRequest) returns (ClientMfaFlowStartResponse)
+                        Some(core_request::Payload::ClientMfaFlowStart(request)) => {
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .start_client_mfa_flow(request, received.device_info),
+                            )
+                            .await
+                            {
+                                Ok(ClientMfaFlowStartOutcome::Approved(response_payload)) => Some(
+                                    core_response::Payload::ClientMfaFlowStart(response_payload),
+                                ),
+                                Ok(ClientMfaFlowStartOutcome::Rejected { failed_checks }) => {
+                                    Some(core_response::Payload::DevicePostureRejected(
+                                        DevicePostureRejection {
+                                            failed_posture_checks: failed_checks,
+                                        },
+                                    ))
+                                }
+                                Err(err) => {
+                                    error!("client MFA flow start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
                         Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
                             match boxed(self.services.client_mfa.await_remote_mfa_login(
@@ -1018,15 +1044,17 @@ impl ProxyHandler {
                                 }
                             }
                         }
-                        Some(core_request::Payload::ClientMfaStepStart(request)) => {
-                            match boxed(self.services.client_mfa.client_mfa_step_start(request))
-                                .await
+                        Some(core_request::Payload::ClientMfaFlowStepStart(request)) => {
+                            match boxed(
+                                self.services.client_mfa.client_mfa_flow_step_start(request),
+                            )
+                            .await
                             {
                                 Ok(response) => {
-                                    Some(core_response::Payload::ClientMfaStepStart(response))
+                                    Some(core_response::Payload::ClientMfaFlowStepStart(response))
                                 }
                                 Err(err) => {
-                                    error!("client MFA step start error {err}");
+                                    error!("client MFA flow step start error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }

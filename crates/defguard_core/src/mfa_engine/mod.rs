@@ -141,6 +141,7 @@ impl MfaEngine {
 
         Ok(StartOutcome {
             token: outcome.token,
+            step_attempt_id: outcome.step_attempt_id,
             challenge: response_challenge,
             credential_ids,
             superseded_token_hash: outcome.superseded_token_hash,
