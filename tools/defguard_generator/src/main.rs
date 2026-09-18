@@ -25,6 +25,9 @@ struct Cli {
     #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
     pub database_password: String,
 
+    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", default_value_t = 16)]
+    pub database_pool_size: u32,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -80,6 +83,7 @@ async fn main() -> Result<()> {
         &cli.database_name,
         &cli.database_user,
         &cli.database_password,
+        cli.database_pool_size,
     )
     .await;
 

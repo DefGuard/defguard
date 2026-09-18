@@ -16,10 +16,16 @@ pub type Id = i64;
 // helper for easier migration handling with a custom `migration` folder location
 // reference: https://docs.rs/sqlx/latest/sqlx/attr.test.html#automatic-migrations-requires-migrate-feature
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
-const DB_POOL_SIZE: u32 = 50;
 
 /// Initializes and migrates postgres database. Returns DB pool object.
-pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &str) -> PgPool {
+pub async fn init_db(
+    host: &str,
+    port: u16,
+    name: &str,
+    user: &str,
+    password: &str,
+    pool_size: u32,
+) -> PgPool {
     info!("Initializing DB pool");
     let opts = PgConnectOptions::new()
         .host(host)
@@ -28,7 +34,7 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
         .password(password)
         .database(name);
     let pool = PgPoolOptions::new()
-        .max_connections(DB_POOL_SIZE)
+        .max_connections(pool_size)
         .connect_with(opts)
         .await
         .expect("Database connection failed");
