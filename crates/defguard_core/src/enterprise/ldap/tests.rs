@@ -21,6 +21,7 @@ use tokio::sync::{
 };
 
 use super::{
+    dn::canonical_dn,
     model::{
         extract_rdn_value, get_users_without_ldap_path, index_users_by_dn, resolve_group_members,
         user_from_searchentry,
@@ -2747,6 +2748,100 @@ async fn test_sync_simple_nested_ou_changes(_: PgPoolOptions, options: PgConnect
     assert_incremental_sync_converges(&mut ldap_conn, &pool, &wg_tx).await;
 }
 
+/// A stale pre-2.x DN must be repaired before sync compares users and their group memberships.
+#[sqlx::test]
+async fn test_sync_repairs_corrupted_dn_and_preserves_group_membership(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, mut ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("directory-group").save(&pool).await.unwrap();
+    let mut stale_user = make_test_user(
+        "example",
+        Some("Example\\".to_owned()),
+        Some(" Person,OU=Members,DC=example,DC=com".to_owned()),
+    );
+    stale_user.from_ldap = true;
+    let stale_user = stale_user.save(&pool).await.unwrap();
+
+    let directory_dn = r"CN=Example\, Person,OU=Members,DC=example,DC=com";
+    let ldap_user = make_test_user(
+        "example",
+        Some("Example, Person".to_owned()),
+        Some("OU=Members,DC=example,DC=com".to_owned()),
+    );
+    ldap_conn
+        .test_client_mut()
+        .add_test_user_with_dn(&ldap_user, directory_dn);
+
+    let ldap_group = group.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_group(&ldap_group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership_with_dn(&ldap_group, directory_dn, &config);
+
+    let stored_user = User::find_by_id(&pool, stale_user.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(stored_user.ldap_rdn.as_deref(), Some(r"Example\"));
+    assert_eq!(
+        stored_user.ldap_user_path.as_deref(),
+        Some(" Person,OU=Members,DC=example,DC=com")
+    );
+    assert_ne!(
+        config.user_dn_for_user(&stored_user),
+        config.user_dn_for_user(&ldap_user)
+    );
+    assert_eq!(
+        canonical_dn(directory_dn),
+        canonical_dn(&config.user_dn_for_user(&ldap_user))
+    );
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let updated_user = User::find_by_id(&pool, stale_user.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(updated_user.id, stale_user.id);
+    assert_eq!(updated_user.ldap_rdn.as_deref(), Some("Example, Person"));
+    assert_eq!(
+        updated_user.ldap_user_path.as_deref(),
+        Some("OU=Members,DC=example,DC=com")
+    );
+    assert_eq!(
+        group.member_usernames(&pool).await.unwrap(),
+        vec!["example".to_owned()]
+    );
+
+    let events = drain_ldap_sync_events(&mut ldap_rx);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        LdapSyncEventType::GroupMemberAdded { group, user }
+            if group.name == "directory-group" && user.id == stale_user.id
+    )));
+    assert!(!events.iter().any(|event| matches!(
+        event,
+        LdapSyncEventType::UserDeleted { user } if user.id == stale_user.id
+    )));
+}
+
 #[sqlx::test]
 async fn test_sync_incremental_with_nested_ou_conflicts(
     _: PgPoolOptions,
@@ -3371,9 +3466,11 @@ fn test_resolve_group_members_with_escaped_rdn_comma() {
         attrs,
         bin_attrs: HashMap::new(),
     };
-    let mut config = LDAPConfig::default();
-    config.ldap_username_attr = "uid".to_owned();
-    config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
 
     let user = user_from_searchentry(&entry, "example", None, &config).unwrap();
     assert_eq!(user.ldap_rdn.as_deref(), Some("Example, Person"));

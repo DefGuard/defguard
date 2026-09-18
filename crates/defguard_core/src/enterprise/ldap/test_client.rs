@@ -212,8 +212,12 @@ impl TestClient {
 
     pub(super) fn add_test_user(&mut self, user: &User, config: &LDAPConfig) {
         let dn = config.user_dn_for_user(user);
+        self.add_test_user_with_dn(user, &dn);
+    }
+
+    pub(super) fn add_test_user_with_dn(&mut self, user: &User, dn: &str) {
         self.objects
-            .insert(dn, Object::User(Box::new(user.clone())));
+            .insert(dn.to_owned(), Object::User(Box::new(user.clone())));
     }
 
     pub(super) fn remove_test_user(&mut self, user: &User, config: &LDAPConfig) {
@@ -228,12 +232,21 @@ impl TestClient {
     }
 
     pub(super) fn add_test_membership(&mut self, group: &Group, user: &User, config: &LDAPConfig) {
-        let group_dn = config.group_dn(&group.name);
         let user_dn = config.user_dn_for_user(user);
+        self.add_test_membership_with_dn(group, &user_dn, config);
+    }
+
+    pub(super) fn add_test_membership_with_dn(
+        &mut self,
+        group: &Group,
+        member_dn: &str,
+        config: &LDAPConfig,
+    ) {
+        let group_dn = config.group_dn(&group.name);
         self.memberships
             .entry(group_dn)
             .or_default()
-            .insert(user_dn);
+            .insert(member_dn.to_owned());
     }
 
     pub(super) fn remove_test_membership(
