@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgExecutor, Type, query_as};
+use sqlx::{PgExecutor, Type, query_as};
 
 use crate::db::{
     Id, NoId,
@@ -208,46 +208,17 @@ impl VpnClientSession<Id> {
         executor: E,
         location_id: Id,
     ) -> sqlx::Result<Vec<Self>> {
-        #[derive(FromRow)]
-        struct ActiveSessionRow {
-            id: Id,
-            location_id: Id,
-            user_id: Id,
-            device_id: Id,
-            created_at: NaiveDateTime,
-            connected_at: Option<NaiveDateTime>,
-            disconnected_at: Option<NaiveDateTime>,
-            is_mfa_session: bool,
-            state: VpnClientSessionState,
-            preshared_key: Option<String>,
-        }
-
-        let rows = sqlx::query_as::<_, ActiveSessionRow>(
+        query_as!(
+            Self,
             "SELECT DISTINCT ON (device_id) id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-                is_mfa_session, state, preshared_key \
+                is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state IN ('new', 'connected') \
             ORDER BY device_id, created_at DESC, id DESC",
+            location_id,
         )
-        .bind(location_id)
         .fetch_all(executor)
-        .await?;
-
-        Ok(rows
-            .into_iter()
-            .map(|row| Self {
-                id: row.id,
-                location_id: row.location_id,
-                user_id: row.user_id,
-                device_id: row.device_id,
-                created_at: row.created_at,
-                connected_at: row.connected_at,
-                disconnected_at: row.disconnected_at,
-                is_mfa_session: row.is_mfa_session,
-                state: row.state,
-                preshared_key: row.preshared_key,
-            })
-            .collect())
+        .await
     }
 
     /// Returns latest stats in a given session for each gateway

@@ -1098,6 +1098,8 @@ impl ProxyHandler {
                                 }
                             };
                             tasks.spawn(async move {
+                                // Keep the semaphore permit owned by the task. It is released automatically
+                                // when the request task finishes, allowing another request to start.
                                 let _permit = permit;
                                 let result = Self::handle_request(
                                     pool,

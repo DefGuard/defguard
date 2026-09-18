@@ -40,7 +40,7 @@ use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::{TcpListener, UnixListener},
     sync::{
-        Notify, broadcast,
+        Notify, Semaphore, broadcast,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
@@ -412,11 +412,7 @@ pub(crate) struct HandlerTestContext {
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
-        Self::new_with_semaphore(
-            options,
-            Arc::new(tokio::sync::Semaphore::new(crate::BIDI_CONCURRENCY)),
-        )
-        .await
+        Self::new_with_semaphore(options, Arc::new(Semaphore::new(crate::BIDI_CONCURRENCY))).await
     }
 
     pub(crate) async fn new_with_semaphore(

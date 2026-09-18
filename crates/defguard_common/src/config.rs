@@ -350,6 +350,7 @@ impl DefGuardConfig {
             database_name: "defguard".to_owned(),
             database_user: "defguard".to_owned(),
             database_password: SecretString::from(String::new()),
+            // sqlx safe default
             database_pool_size: 10,
             http_port: 8000,
             grpc_port: 50055,
