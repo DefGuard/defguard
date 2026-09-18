@@ -312,8 +312,8 @@ async fn test_get_group_members() {
         .unwrap();
 
     assert_eq!(members.len(), 2);
-    assert!(members.contains(&"jane.doe@example.com".to_string()));
-    assert!(members.contains(&"john.smith@example.com".to_string()));
+    assert!(members.contains(&"jane.doe@example.com".to_owned()));
+    assert!(members.contains(&"john.smith@example.com".to_owned()));
 }
 
 #[tokio::test]

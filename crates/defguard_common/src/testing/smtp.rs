@@ -222,7 +222,7 @@ fn extract_address(line: &str) -> String {
         // Fall back to whatever follows the ':' if the client omitted brackets.
         _ => line
             .split_once(':')
-            .map_or_else(String::new, |(_, rest)| rest.trim().to_string()),
+            .map_or_else(String::new, |(_, rest)| rest.trim().to_owned()),
     }
 }
 
