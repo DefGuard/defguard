@@ -42,6 +42,8 @@ jsonwebkey.workspace = true
 jsonwebtoken.workspace = true
 rand.workspace = true
 rsa.workspace = true
+webauthn-authenticator-rs = { workspace = true, features = ["softpasskey"] }
+webauthn-rs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 totp-lite.workspace = true

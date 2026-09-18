@@ -146,9 +146,9 @@ impl From<AuthorizeError> for Status {
     fn from(err: AuthorizeError) -> Self {
         match err {
             AuthorizeError::Db(_) | AuthorizeError::Gateway(_) => {
-                Status::internal("unexpected error")
+                Self::internal("unexpected error")
             }
-            AuthorizeError::Event(e) => Status::from(e),
+            AuthorizeError::Event(e) => Self::from(e),
         }
     }
 }
@@ -156,15 +156,15 @@ impl From<AuthorizeError> for Status {
 impl From<InitiateError> for Status {
     fn from(err: InitiateError) -> Self {
         match err {
-            InitiateError::EmailCode(_) => Status::internal("MFA code"),
-            InitiateError::Database(_) => Status::internal("database error"),
-            InitiateError::Mail(_) => Status::internal("unexpected error"),
+            InitiateError::EmailCode(_) => Self::internal("MFA code"),
+            InitiateError::Database(_) => Self::internal("database error"),
+            InitiateError::Mail(_) => Self::internal("unexpected error"),
             InitiateError::BiometricNotConfigured => {
-                Status::invalid_argument("Select MFA method is not available for the device.")
+                Self::invalid_argument("Select MFA method is not available for the device.")
             }
-            InitiateError::InvalidPublicKey(_) => Status::invalid_argument("Invalid public key"),
+            InitiateError::InvalidPublicKey(_) => Self::invalid_argument("Invalid public key"),
             InitiateError::UnsupportedMethod => {
-                Status::unimplemented("Selected MFA method is not supported")
+                Self::unimplemented("Selected MFA method is not supported")
             }
         }
     }
@@ -185,7 +185,7 @@ impl From<FinishOutcome> for MfaStepResult {
                 mfa_step_result::Outcome::AwaitingExternal(MfaAwaitingExternal {})
             }
         };
-        MfaStepResult {
+        Self {
             outcome: Some(outcome),
         }
     }
@@ -234,9 +234,9 @@ impl From<StartError> for Status {
             | StartError::MethodNotAvailable
             | StartError::BiometricNotConfigured => Code::InvalidArgument,
             StartError::Internal => Code::Internal,
-            StartError::Initiate(e) => return Status::from(e),
+            StartError::Initiate(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 
@@ -246,9 +246,9 @@ impl From<StepError> for Status {
             StepError::SessionNotFound | StepError::MethodNotInStep => Code::InvalidArgument,
             StepError::MethodNotConfigured => Code::FailedPrecondition,
             StepError::Internal => Code::Internal,
-            StepError::Initiate(e) => return Status::from(e),
+            StepError::Initiate(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 
@@ -264,9 +264,9 @@ impl From<FinishError> for Status {
             FinishError::Unauthorized => Code::Unauthenticated,
             FinishError::AttemptLimit => Code::PermissionDenied,
             FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
-            FinishError::Event(e) => return Status::from(e),
+            FinishError::Event(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 

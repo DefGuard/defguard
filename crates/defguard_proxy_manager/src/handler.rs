@@ -644,7 +644,13 @@ impl ProxyHandler {
                 }
             }
             Some(core_request::Payload::MfaConfigAuthorize(request)) => {
-                match boxed(services.mfa_config.mfa_config_authorize(request)).await {
+                match boxed(
+                    services
+                        .mfa_config
+                        .mfa_config_authorize(request, received.device_info),
+                )
+                .await
+                {
                     Ok(response) => Some(core_response::Payload::MfaConfigAuthorize(response)),
                     Err(err) => {
                         error!("MFA config authorize error {err}");
@@ -1478,7 +1484,7 @@ impl ProxyServices {
             remote_mfa_responses,
         );
         let polling = PollingServer::new(pool.clone());
-        let mfa_config = MfaConfigServer::new(pool.clone());
+        let mfa_config = MfaConfigServer::new(pool.clone(), tx.event_tx.clone());
 
         Self {
             enrollment,

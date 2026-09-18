@@ -714,7 +714,7 @@ pub(crate) fn response_from_fixture_with_mock_uri(
     mock_server_uri: &str,
 ) -> wiremock::ResponseTemplate {
     let mut body = match name {
-        "users_page1.json" => include_str!("fixtures/microsoft/users_page1.json").to_string(),
+        "users_page1.json" => include_str!("fixtures/microsoft/users_page1.json").to_owned(),
         other => panic!("fixture {other} doesn't support mock URI replacement"),
     };
     body = body.replace("MOCK_SERVER_URI", mock_server_uri);

@@ -13,7 +13,7 @@ impl WireguardKey {
     pub fn generate() -> Self {
         let private = StaticSecret::random();
         let public = PublicKey::from(&private);
-        WireguardKey { private, public }
+        Self { private, public }
     }
 
     /// Return private key as base64-encoded string.

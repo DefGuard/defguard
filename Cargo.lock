@@ -1721,6 +1721,7 @@ dependencies = [
  "secrecy",
  "semver",
  "serde",
+ "serde_cbor_2",
  "serde_json",
  "serde_qs",
  "serde_urlencoded",
@@ -1886,6 +1887,8 @@ dependencies = [
  "totp-lite",
  "tower",
  "tracing",
+ "webauthn-authenticator-rs",
+ "webauthn-rs",
 ]
 
 [[package]]

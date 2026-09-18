@@ -51,7 +51,7 @@ async fn assert_provider_dirsync(
         .await
         .unwrap_or_else(|err| panic!("{name}: get_group_members() failed: {err}"));
     assert!(
-        members.contains(&"jane.doe@example.com".to_string()),
+        members.contains(&"jane.doe@example.com".to_owned()),
         "{name}: expected jane.doe@example.com among group members, got {members:?}"
     );
 }
