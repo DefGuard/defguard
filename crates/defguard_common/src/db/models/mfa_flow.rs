@@ -933,9 +933,7 @@ impl MfaFlowStep<Id> {
     }
 
     /// Returns all flow steps ordered by flow ID and position.
-    pub async fn find_all<'e, E: PgExecutor<'e>>(
-        executor: E,
-    ) -> sqlx::Result<Vec<Self>> {
+    pub async fn find_all<'e, E: PgExecutor<'e>>(executor: E) -> sqlx::Result<Vec<Self>> {
         query_as!(
             MfaFlowStepRow,
             "SELECT id, flow_id, position, \
