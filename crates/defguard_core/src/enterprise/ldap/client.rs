@@ -12,7 +12,9 @@ use ldap3::{
 };
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::{extract_rdn_value, is_search_entry};
+use crate::enterprise::ldap::model::{
+    extract_rdn_value, index_users_by_dn, is_search_entry, resolve_group_members,
+};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
 const LDAP_RC_NO_SUCH_OBJECT: u32 = 32;
@@ -250,11 +252,7 @@ impl LDAPConnection {
         debug!("Retrieving LDAP group memberships");
         let mut membership_entries = self.list_group_memberships().await?;
         let mut memberships = HashMap::new();
-        // dn: user map
-        let dn_map = all_ldap_users
-            .iter()
-            .map(|u| (self.config.user_dn_for_user(u).to_lowercase(), u))
-            .collect::<HashMap<_, _>>();
+        let dn_map = index_users_by_dn(all_ldap_users, &self.config);
 
         for entry in &mut membership_entries {
             let groupname = entry
@@ -264,20 +262,7 @@ impl LDAPConnection {
 
             if let Some(groupname) = groupname {
                 if let Some(members) = entry.attrs.get(&self.config.ldap_group_member_attr) {
-                    let members = members
-                        .iter()
-                        .filter_map(|v| {
-                            if let Some(user) = dn_map.get(v.to_lowercase().as_str()) {
-                                Some(*user)
-                            } else {
-                                debug!(
-                                    "LDAP group {groupname} contains member {v} that does not \
-                                    belong to the filtered LDAP users list; skipping"
-                                );
-                                None
-                            }
-                        })
-                        .collect::<HashSet<_>>();
+                    let members = resolve_group_members(&groupname, members, &dn_map);
                     // Union rather than overwrite: under a broad group search base several LDAP
                     // groups can share one name across different subtrees (e.g. a per-site group),
                     // and they all map onto the single Defguard group of that name.

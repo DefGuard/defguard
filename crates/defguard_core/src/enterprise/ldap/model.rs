@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use defguard_common::db::{
     Id,
@@ -9,6 +9,7 @@ use sqlx::{PgExecutor, query_as};
 
 use super::{
     LDAPConfig,
+    dn::{canonical_dn, find_unescaped, unescape_value},
     error::{LdapError, sanitize_ldap_string},
 };
 use crate::{handlers::user::check_username, hashset};
@@ -58,6 +59,41 @@ impl UserObjectClass {
             Self::User => "user",
         }
     }
+}
+
+/// Indexes LDAP users by the canonical form of their distinguished name.
+#[must_use]
+pub(crate) fn index_users_by_dn<'a>(
+    users: &'a [User],
+    config: &LDAPConfig,
+) -> HashMap<String, &'a User> {
+    users
+        .iter()
+        .map(|user| (canonical_dn(&config.user_dn_for_user(user)), user))
+        .collect()
+}
+
+/// Resolves the member DNs of one LDAP group against an index built by [`index_users_by_dn`].
+#[must_use]
+pub(crate) fn resolve_group_members<'a>(
+    groupname: &str,
+    member_dns: &[String],
+    users_by_dn: &HashMap<String, &'a User>,
+) -> HashSet<&'a User> {
+    member_dns
+        .iter()
+        .filter_map(|member_dn| {
+            if let Some(user) = users_by_dn.get(&canonical_dn(member_dn)) {
+                Some(*user)
+            } else {
+                debug!(
+                    "LDAP group {groupname} contains member {member_dn} that does not belong to \
+                    the filtered LDAP users list; skipping"
+                );
+                None
+            }
+        })
+        .collect()
 }
 
 pub(crate) fn user_from_searchentry(
@@ -358,11 +394,13 @@ fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
 /// Get first value from distinguished name, for example: cn=<value>,...
 #[must_use]
 pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
-    if let (Some(eq_index), Some(comma_index)) = (dn.find('='), dn.find(',')) {
-        dn.get((eq_index + 1)..comma_index).map(str::to_owned)
-    } else {
-        None
+    let eq_index = find_unescaped(dn, b'=')?;
+    let comma_index = find_unescaped(dn, b',')?;
+    if eq_index >= comma_index {
+        return None;
     }
+
+    dn.get((eq_index + 1)..comma_index).map(unescape_value)
 }
 
 /// Returns true only for a SearchResultEntry (LDAP protocol op id 4).
@@ -375,18 +413,18 @@ pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
     entry.0.id == 4
 }
 
-/// Extract the remaining part of the distinguished name after the first comma, for example:
-/// `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
+/// Extract the remaining part of the distinguished name after the first unescaped comma, for
+/// example: `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
 #[must_use]
 pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
-    if let Some(parts) = dn.split_once(',') {
-        let path = parts.1.to_owned();
-        debug!("Extracted DN path '{path}' from DN '{dn}'");
-        Some(path)
-    } else {
+    let Some(comma_index) = find_unescaped(dn, b',') else {
         warn!("Failed to extract DN path from '{dn}': no comma found");
-        None
-    }
+        return None;
+    };
+
+    let path = dn[(comma_index + 1)..].to_owned();
+    debug!("Extracted DN path '{path}' from DN '{dn}'");
+    Some(path)
 }
 
 #[cfg(test)]

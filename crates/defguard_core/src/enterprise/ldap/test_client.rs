@@ -9,7 +9,8 @@ use ldap3::{Mod, SearchEntry};
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active, user_as_ldap_attrs,
+    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, index_users_by_dn,
+    resolve_group_members, uac_is_active, user_as_ldap_attrs,
 };
 
 /// Extract attribute value from LDAP filter
@@ -471,24 +472,11 @@ impl LDAPConnection {
     ) -> Result<HashMap<String, HashSet<&'a User>>, LdapError> {
         let memberships = self.test_client.memberships.clone();
         let mut result = HashMap::new();
-        let user_dns = all_ldap_users
-            .iter()
-            .map(|user| self.config.user_dn_for_user(user))
-            .collect::<HashSet<_>>();
+        let dn_map = index_users_by_dn(all_ldap_users, &self.config);
         for (group_dn, member_dns) in memberships {
-            let members = member_dns
-                .iter()
-                .filter_map(|member_dn| {
-                    if user_dns.contains(member_dn) {
-                        all_ldap_users
-                            .iter()
-                            .find(|user| self.config.user_dn_for_user(user) == *member_dn)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<HashSet<_>>();
             let group_name = extract_rdn_value(&group_dn).unwrap();
+            let member_dns = member_dns.into_iter().collect::<Vec<_>>();
+            let members = resolve_group_members(&group_name, &member_dns, &dn_map);
             result.insert(group_name, members);
         }
         Ok(result)
