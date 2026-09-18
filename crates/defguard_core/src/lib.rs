@@ -1015,6 +1015,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         &config.database_name,
         &config.database_user,
         config.database_password.expose_secret(),
+        config.database_pool_size,
     )
     .await;
 
