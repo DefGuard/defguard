@@ -27,7 +27,7 @@ use super::{
     },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
-        extract_intersecting_users, is_ldap_desynced, set_ldap_sync_status,
+        extract_intersecting_users, is_ldap_desynced, refresh_user_dn_state, set_ldap_sync_status,
     },
     test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
     *,
@@ -1753,6 +1753,127 @@ fn test_extract_intersecting_users_no_matches(_: PgPoolOptions, options: PgConne
     assert!(result.is_empty());
     assert_eq!(defguard_users.len(), 1);
     assert_eq!(ldap_users.len(), 1);
+}
+
+#[test]
+fn test_refresh_user_dn_state() {
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    let path = "OU=Members,DC=example,DC=com";
+
+    let mut corrupted = make_test_user(
+        "example",
+        Some("Example\\".to_owned()),
+        Some(format!(" Person,{path}")),
+    );
+    corrupted.from_ldap = true;
+    let ldap_user = make_test_user(
+        "example",
+        Some("Example, Person".to_owned()),
+        Some(path.to_owned()),
+    );
+    assert!(refresh_user_dn_state(
+        &mut corrupted,
+        std::slice::from_ref(&ldap_user),
+        &config
+    ));
+    assert_eq!(corrupted.ldap_rdn.as_deref(), Some("Example, Person"));
+    assert_eq!(corrupted.ldap_user_path.as_deref(), Some(path));
+    assert!(!refresh_user_dn_state(
+        &mut corrupted,
+        std::slice::from_ref(&ldap_user),
+        &config
+    ));
+
+    let mut relocated = make_test_user(
+        "relocated",
+        Some("Example\\".to_owned()),
+        Some(format!(" Person,{path}")),
+    );
+    relocated.from_ldap = true;
+    let relocated_ldap_user = make_test_user(
+        "relocated",
+        Some("Example, Person".to_owned()),
+        Some("OU=Other,DC=example,DC=com".to_owned()),
+    );
+    assert!(!refresh_user_dn_state(
+        &mut relocated,
+        std::slice::from_ref(&relocated_ldap_user),
+        &config
+    ));
+    assert_eq!(relocated.ldap_rdn.as_deref(), Some("Example\\"));
+    assert_eq!(
+        relocated.ldap_user_path.as_deref(),
+        Some(format!(" Person,{path}").as_str())
+    );
+
+    let mut defguard_owned = make_test_user(
+        "defguard-owned",
+        Some("Example\\".to_owned()),
+        Some(format!(" Person,{path}")),
+    );
+    let defguard_owned_ldap_user = make_test_user(
+        "defguard-owned",
+        Some("Example, Person".to_owned()),
+        Some(path.to_owned()),
+    );
+    assert!(!refresh_user_dn_state(
+        &mut defguard_owned,
+        std::slice::from_ref(&defguard_owned_ldap_user),
+        &config
+    ));
+    assert_eq!(defguard_owned.ldap_rdn.as_deref(), Some("Example\\"));
+    assert_eq!(
+        defguard_owned.ldap_user_path.as_deref(),
+        Some(format!(" Person,{path}").as_str())
+    );
+
+    let mut duplicate = make_test_user(
+        "duplicate",
+        Some("Example\\".to_owned()),
+        Some(format!(" Person,{path}")),
+    );
+    duplicate.from_ldap = true;
+    let duplicate_ldap_user = make_test_user(
+        "duplicate",
+        Some("Example, Person".to_owned()),
+        Some(path.to_owned()),
+    );
+    assert!(!refresh_user_dn_state(
+        &mut duplicate,
+        &[duplicate_ldap_user.clone(), duplicate_ldap_user],
+        &config
+    ));
+    assert_eq!(duplicate.ldap_rdn.as_deref(), Some("Example\\"));
+    assert_eq!(
+        duplicate.ldap_user_path.as_deref(),
+        Some(format!(" Person,{path}").as_str())
+    );
+
+    let mut renamed = make_test_user(
+        "new-name",
+        Some("Example\\".to_owned()),
+        Some(format!(" Person,{path}")),
+    );
+    renamed.from_ldap = true;
+    let old_ldap_user = make_test_user(
+        "old-name",
+        Some("Example, Person".to_owned()),
+        Some(path.to_owned()),
+    );
+    assert!(!refresh_user_dn_state(
+        &mut renamed,
+        std::slice::from_ref(&old_ldap_user),
+        &config
+    ));
+    assert_eq!(renamed.ldap_rdn.as_deref(), Some("Example\\"));
+    assert_eq!(
+        renamed.ldap_user_path.as_deref(),
+        Some(format!(" Person,{path}").as_str())
+    );
 }
 
 #[sqlx::test]

@@ -82,7 +82,7 @@ use serde::Serialize;
 use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
-use super::{LDAPConfig, error::LdapError};
+use super::{LDAPConfig, dn::canonical_dn, error::LdapError};
 use crate::{
     enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
@@ -514,6 +514,53 @@ fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConf
     }
 
     different
+}
+
+fn unique_ldap_entry_for<'a, I>(user: &User<I>, ldap_users: &'a [User]) -> Option<&'a User> {
+    let mut matching_users = ldap_users
+        .iter()
+        .filter(|ldap_user| ldap_user.username == user.username);
+    let matching_user = matching_users.next()?;
+    matching_users.next().is_none().then_some(matching_user)
+}
+
+/// Repairs an LDAP-origin user's RDN and path when they still contain the pre-2.x split DN.
+///
+/// The repair is applied only when exactly one LDAP entry has the same username and the stored
+/// values reconstruct a DN that canonically matches that entry. Returns whether the user changed.
+pub(super) fn refresh_user_dn_state<I>(
+    user: &mut User<I>,
+    ldap_users: &[User],
+    config: &LDAPConfig,
+) -> bool {
+    if !user.from_ldap {
+        return false;
+    }
+
+    let Some(ldap_user) = unique_ldap_entry_for(user, ldap_users) else {
+        return false;
+    };
+    let (Some(stored_rdn), Some(stored_path), Some(ldap_rdn), Some(ldap_path)) = (
+        user.ldap_rdn.as_deref(),
+        user.ldap_user_path.as_deref(),
+        ldap_user.ldap_rdn.as_deref(),
+        ldap_user.ldap_user_path.as_deref(),
+    ) else {
+        return false;
+    };
+
+    let legacy_dn = format!("{}={stored_rdn},{stored_path}", config.get_rdn_attr());
+    if canonical_dn(&legacy_dn) != canonical_dn(&config.user_dn_for_user(ldap_user)) {
+        return false;
+    }
+
+    let changed = user.ldap_rdn.as_deref() != Some(ldap_rdn)
+        || user.ldap_user_path.as_deref() != Some(ldap_path);
+    if changed {
+        user.ldap_rdn = Some(ldap_rdn.to_owned());
+        user.ldap_user_path = Some(ldap_path.to_owned());
+    }
+    changed
 }
 
 /// Extracts users that are in both sources for later comparison and attritubte modification
