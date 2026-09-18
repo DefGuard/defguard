@@ -25,7 +25,7 @@ struct Cli {
     #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
     pub database_password: String,
 
-    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", default_value_t = 16)]
+    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", default_value_t = 10)]
     pub database_pool_size: u32,
 
     #[command(subcommand)]

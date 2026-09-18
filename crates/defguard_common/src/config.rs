@@ -56,7 +56,7 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub database_password: SecretString,
 
-    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", default_value_t = 16)]
+    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", default_value_t = 10)]
     pub database_pool_size: u32,
 
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
@@ -350,7 +350,7 @@ impl DefGuardConfig {
             database_name: "defguard".to_owned(),
             database_user: "defguard".to_owned(),
             database_password: SecretString::from(String::new()),
-            database_pool_size: 16,
+            database_pool_size: 10,
             http_port: 8000,
             grpc_port: 50055,
             grpc_cert: None,
