@@ -68,11 +68,12 @@ use sqlx::PgPool;
 use tokio::{
     select,
     sync::{
-        Mutex,
+        Mutex, Semaphore,
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
         watch,
     },
+    task::JoinSet,
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -216,7 +217,7 @@ impl ProxyTestTransport {
 pub(super) struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
-    services: ProxyServices,
+    services: Arc<ProxyServices>,
     /// Proxy server gRPC URL
     pub(super) url: Url,
     shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
@@ -227,6 +228,7 @@ pub(super) struct ProxyHandler {
     /// can push messages to a specific proxy.
     handler_tx_map: HandlerTxMap,
     connection_events_tx: UnboundedSender<ProxyConnectionEvent>,
+    semaphore: Arc<Semaphore>,
     #[cfg(test)]
     test_transport: ProxyTestTransport,
     #[cfg(test)]
@@ -244,9 +246,10 @@ impl ProxyHandler {
         proxy_id: Id,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
+        semaphore: Arc<Semaphore>,
     ) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx, remote_mfa_responses);
+        let services = Arc::new(ProxyServices::new(&pool, tx, remote_mfa_responses));
 
         Self {
             pool,
@@ -258,6 +261,7 @@ impl ProxyHandler {
             client: None,
             handler_tx_map,
             connection_events_tx: tx.connection_events.clone(),
+            semaphore,
             #[cfg(test)]
             test_transport: ProxyTestTransport::default(),
             #[cfg(test)]
@@ -274,6 +278,7 @@ impl ProxyHandler {
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
         handler_tx_map: HandlerTxMap,
+        semaphore: Arc<Semaphore>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -286,6 +291,7 @@ impl ProxyHandler {
             proxy_id,
             proxy_cookie_key,
             handler_tx_map,
+            semaphore,
         ))
     }
 
@@ -596,6 +602,430 @@ impl ProxyHandler {
         Ok(())
     }
 
+    fn send_internal_error(tx: &UnboundedSender<CoreResponse>, request_id: u64) {
+        let response = CoreResponse {
+            id: request_id,
+            payload: Some(core_response::Payload::CoreError(CoreError {
+                status_code: Code::Internal as i32,
+                message: "internal server error".to_owned(),
+            })),
+        };
+        if tx.send(response).is_err() {
+            debug!("Failed to send internal error response for request {request_id}");
+        }
+    }
+
+    async fn handle_request(
+        pool: PgPool,
+        received: CoreRequest,
+        response_tx: UnboundedSender<CoreResponse>,
+        services: Arc<ProxyServices>,
+        gateway_tx: Sender<GatewayCommand>,
+        handler_tx_map: HandlerTxMap,
+    ) -> Result<(), ProxyError> {
+        let payload = match received.payload {
+            // rpc MfaConfigStart return (MfaConfigStartResponse)
+            Some(core_request::Payload::MfaConfigStart(request)) => {
+                match boxed(services.mfa_config.mfa_config_start(request)).await {
+                    Ok(response) => Some(core_response::Payload::MfaConfigStart(response)),
+                    Err(err) => {
+                        error!("MFA config start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            Some(core_request::Payload::MfaConfigSendCode(request)) => {
+                match boxed(services.mfa_config.mfa_config_send_code(request)).await {
+                    Ok(response) => Some(core_response::Payload::MfaConfigSendCode(response)),
+                    Err(err) => {
+                        error!("MFA config send code error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            Some(core_request::Payload::MfaConfigAuthorize(request)) => {
+                match boxed(services.mfa_config.mfa_config_authorize(request)).await {
+                    Ok(response) => Some(core_response::Payload::MfaConfigAuthorize(response)),
+                    Err(err) => {
+                        error!("MFA config authorize error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
+            Some(core_request::Payload::CodeMfaSetupStart(request)) => {
+                match boxed(services.enrollment.mfa_setup_start(request)).await {
+                    Ok(response) => {
+                        Some(core_response::Payload::CodeMfaSetupStartResponse(response))
+                    }
+                    Err(err) => {
+                        error!("MFA setup start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc CodeMfaSetupFinish return (CodeMfaSetupFinishResponse)
+            Some(core_request::Payload::CodeMfaSetupFinish(request)) => {
+                match boxed(
+                    services
+                        .enrollment
+                        .mfa_setup_finish(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response) => {
+                        Some(core_response::Payload::CodeMfaSetupFinishResponse(response))
+                    }
+                    Err(err) => {
+                        error!("MFA setup finish error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
+            Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
+                match boxed(services.client_mfa.validate_mfa_token(request)).await {
+                    Ok(response_payload) => Some(core_response::Payload::ClientMfaTokenValidation(
+                        response_payload,
+                    )),
+                    Err(err) => {
+                        error!("Client MFA validate token error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
+            Some(core_request::Payload::RegisterMobileAuth(request)) => {
+                match boxed(services.enrollment.register_mobile_auth(request)).await {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("Register mobile auth error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
+            Some(core_request::Payload::EnrollmentStart(request)) => {
+                match boxed(
+                    services
+                        .enrollment
+                        .start_enrollment(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::EnrollmentStart(response_payload))
+                    }
+                    Err(err) => {
+                        error!("start enrollment error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
+            Some(core_request::Payload::ActivateUser(request)) => {
+                match boxed(
+                    services
+                        .enrollment
+                        .activate_user(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("activate user error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
+            Some(core_request::Payload::NewDevice(request)) => {
+                match boxed(
+                    services
+                        .enrollment
+                        .create_device(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::DeviceConfig(response_payload))
+                    }
+                    Err(err) => {
+                        error!("create device error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
+            Some(core_request::Payload::ExistingDevice(request)) => {
+                match boxed(
+                    services
+                        .enrollment
+                        .get_network_info(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::DeviceConfig(response_payload))
+                    }
+                    Err(err) => {
+                        error!("get network info error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
+            Some(core_request::Payload::PasswordResetInit(request)) => {
+                match boxed(
+                    services
+                        .password_reset
+                        .request_password_reset(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("password reset init error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
+            Some(core_request::Payload::PasswordResetStart(request)) => {
+                match boxed(
+                    services
+                        .password_reset
+                        .start_password_reset(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::PasswordResetStart(response_payload))
+                    }
+                    Err(err) => {
+                        error!("password reset start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
+            Some(core_request::Payload::PasswordReset(request)) => {
+                match boxed(
+                    services
+                        .password_reset
+                        .reset_password(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("password reset error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
+            Some(core_request::Payload::ClientMfaStart(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .start_client_mfa_login(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
+                        Some(core_response::Payload::ClientMfaStart(response_payload))
+                    }
+                    Ok(ClientMfaStartOutcome::Rejected { failed_checks }) => Some(
+                        core_response::Payload::DevicePostureRejected(DevicePostureRejection {
+                            failed_posture_checks: failed_checks,
+                        }),
+                    ),
+                    Err(err) => {
+                        error!("client MFA start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
+            Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
+                match boxed(services.client_mfa.await_remote_mfa_login(
+                    request,
+                    response_tx.clone(),
+                    received.id,
+                    received.device_info,
+                ))
+                .await
+                {
+                    Ok(()) => None,
+                    Err(err) => {
+                        error!("Client remote MFA finish error: {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
+            Some(core_request::Payload::ClientMfaFinish(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .finish_client_mfa_login(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::ClientMfaFinish(response_payload))
+                    }
+                    Err(err) => {
+                        match err.code() {
+                            Code::FailedPrecondition => {
+                                // User not yet done with OIDC authentication. Don't log it
+                                // as an error.
+                                debug!("Client MFA finish error: {err}");
+                            }
+                            _ => {
+                                // Log other errors as errors.
+                                error!("Client MFA finish error: {err}");
+                            }
+                        }
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .auth_mfa_session_with_oidc(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("client MFA OIDC authenticate error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
+            Some(core_request::Payload::InstanceInfo(request)) => {
+                match boxed(services.polling.info(request, received.device_info)).await {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::InstanceInfo(response_payload))
+                    }
+                    Err(err) => {
+                        if Code::FailedPrecondition == err.code() {
+                            // Ignore the case when we are not enterprise but the client is
+                            // trying to fetch the instance config,
+                            // to avoid spamming the logs with misleading errors.
+
+                            debug!(
+                                "A client tried to fetch the instance config, but we are \
+                                            not enterprise."
+                            );
+                            Some(core_response::Payload::CoreError(err.into()))
+                        } else {
+                            error!("Instance info error {err}");
+                            Some(core_response::Payload::CoreError(err.into()))
+                        }
+                    }
+                }
+            }
+            Some(core_request::Payload::AuthInfo(request)) => {
+                boxed(Self::handle_auth_info(&pool, request)).await?
+            }
+            Some(core_request::Payload::AuthCallback(request)) => {
+                boxed(Self::handle_auth_callback(
+                    &pool,
+                    request,
+                    &gateway_tx,
+                    &services,
+                ))
+                .await?
+            }
+            None => None,
+            Some(core_request::Payload::AcmeCertificate(cert)) => {
+                info!("Received AcmeCertificate from proxy, saving and broadcasting");
+                let acme_cert_expiry = parse_cert_expiry(&cert.cert_pem);
+                match boxed(Certificates::get_or_default(&pool)).await {
+                    Ok(mut certs) => {
+                        certs.proxy_http_cert_pem = Some(cert.cert_pem.clone());
+                        certs.proxy_http_cert_key_pem = Some(cert.key_pem.clone());
+                        certs.acme_account_credentials =
+                            Some(cert.account_credentials_json.clone());
+                        certs.proxy_http_cert_expiry = acme_cert_expiry;
+                        certs.proxy_http_cert_source =
+                            defguard_common::db::models::ProxyCertSource::LetsEncrypt;
+                        if let Err(err) = boxed(certs.save(&pool)).await {
+                            error!("Failed to save ACME certificate to certificates: {err}");
+                        } else {
+                            info!("ACME certificate saved to certificates");
+                            let https_certs = CoreResponse {
+                                id: 0,
+                                payload: Some(core_response::Payload::HttpsCerts(HttpsCerts {
+                                    cert_pem: cert.cert_pem,
+                                    key_pem: cert.key_pem,
+                                })),
+                            };
+                            if let Ok(map) = handler_tx_map.read() {
+                                for (pid, handler_tx) in map.iter() {
+                                    debug!("Broadcasting HttpsCerts to proxy {pid}");
+                                    let _ = handler_tx.send(https_certs.clone());
+                                }
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        error!("Failed to load certificates for ACME save: {err}");
+                    }
+                }
+                None
+            }
+            Some(core_request::Payload::DevicePostureCheck(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .handle_posture_check(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(PostureCheckOutcome::Approved { preshared_key }) => {
+                        Some(core_response::Payload::DevicePostureCheck(
+                            DevicePostureCheckResponse { preshared_key },
+                        ))
+                    }
+                    Ok(PostureCheckOutcome::Rejected { failed_checks }) => Some(
+                        core_response::Payload::DevicePostureRejected(DevicePostureRejection {
+                            failed_posture_checks: failed_checks,
+                        }),
+                    ),
+                    Err(err) => {
+                        error!("Posture check error: {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            Some(core_request::Payload::ClientMfaStepStart(request)) => {
+                match boxed(services.client_mfa.client_mfa_step_start(request)).await {
+                    Ok(response) => Some(core_response::Payload::ClientMfaStepStart(response)),
+                    Err(err) => {
+                        error!("client MFA step start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+        };
+
+        if let Some(payload) = payload {
+            let req = CoreResponse {
+                id: received.id,
+                payload: Some(payload),
+            };
+            let _ = response_tx.send(req);
+        }
+        Ok(())
+    }
+
     /// Processes incoming requests from the proxy over an active gRPC stream.
     ///
     /// This loop receives `CoreRequest` messages from the proxy, dispatches
@@ -608,455 +1038,79 @@ impl ProxyHandler {
         gateway_tx: Sender<GatewayCommand>,
         resp_stream: &mut Streaming<CoreRequest>,
     ) -> Result<(), ProxyError> {
-        let pool = self.pool.clone();
+        let mut tasks = JoinSet::new();
         'message: loop {
-            match resp_stream.message().await {
-                Ok(None) => {
-                    info!("stream was closed by the sender");
-                    break 'message;
-                }
-                Ok(Some(received)) => {
-                    debug!("Received message from proxy; ID={}", received.id);
-                    let payload = match received.payload {
-                        // rpc MfaConfigStart return (MfaConfigStartResponse)
-                        Some(core_request::Payload::MfaConfigStart(request)) => {
-                            match boxed(self.services.mfa_config.mfa_config_start(request)).await {
-                                Ok(response) => {
-                                    Some(core_response::Payload::MfaConfigStart(response))
-                                }
-                                Err(err) => {
-                                    error!("MFA config start error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
+            tokio::select! {
+                biased;
+                Some(result) = tasks.join_next(), if !tasks.is_empty() => {
+                    match result {
+                        Ok((request_id, Ok(()))) => debug!("Request {request_id} completed"),
+                        Ok((request_id, Err(err))) => {
+                            error!("Request {request_id} failed: {err}");
+                            Self::send_internal_error(&tx, request_id);
                         }
-                        Some(core_request::Payload::MfaConfigSendCode(request)) => {
-                            match boxed(self.services.mfa_config.mfa_config_send_code(request))
-                                .await
-                            {
-                                Ok(response) => {
-                                    Some(core_response::Payload::MfaConfigSendCode(response))
-                                }
-                                Err(err) => {
-                                    error!("MFA config send code error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        Some(core_request::Payload::MfaConfigAuthorize(request)) => {
-                            match boxed(self.services.mfa_config.mfa_config_authorize(request))
-                                .await
-                            {
-                                Ok(response) => {
-                                    Some(core_response::Payload::MfaConfigAuthorize(response))
-                                }
-                                Err(err) => {
-                                    error!("MFA config authorize error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
-                        Some(core_request::Payload::CodeMfaSetupStart(request)) => {
-                            match boxed(self.services.enrollment.mfa_setup_start(request)).await {
-                                Ok(response) => Some(
-                                    core_response::Payload::CodeMfaSetupStartResponse(response),
-                                ),
-                                Err(err) => {
-                                    error!("MFA setup start error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc CodeMfaSetupFinish return (CodeMfaSetupFinishResponse)
-                        Some(core_request::Payload::CodeMfaSetupFinish(request)) => {
-                            match boxed(
-                                self.services
-                                    .enrollment
-                                    .mfa_setup_finish(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(response) => Some(
-                                    core_response::Payload::CodeMfaSetupFinishResponse(response),
-                                ),
-                                Err(err) => {
-                                    error!("MFA setup finish error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
-                        Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                            match boxed(self.services.client_mfa.validate_mfa_token(request)).await
-                            {
-                                Ok(response_payload) => {
-                                    Some(core_response::Payload::ClientMfaTokenValidation(
-                                        response_payload,
-                                    ))
-                                }
-                                Err(err) => {
-                                    error!("Client MFA validate token error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
-                        Some(core_request::Payload::RegisterMobileAuth(request)) => {
-                            match boxed(self.services.enrollment.register_mobile_auth(request))
-                                .await
-                            {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
-                                Err(err) => {
-                                    error!("Register mobile auth error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
-                        Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match boxed(
-                                self.services
-                                    .enrollment
-                                    .start_enrollment(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(response_payload) => {
-                                    Some(core_response::Payload::EnrollmentStart(response_payload))
-                                }
-                                Err(err) => {
-                                    error!("start enrollment error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
-                        Some(core_request::Payload::ActivateUser(request)) => {
-                            match boxed(
-                                self.services
-                                    .enrollment
-                                    .activate_user(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
-                                Err(err) => {
-                                    error!("activate user error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
-                        Some(core_request::Payload::NewDevice(request)) => {
-                            match boxed(
-                                self.services
-                                    .enrollment
-                                    .create_device(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(response_payload) => {
-                                    Some(core_response::Payload::DeviceConfig(response_payload))
-                                }
-                                Err(err) => {
-                                    error!("create device error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
-                        Some(core_request::Payload::ExistingDevice(request)) => {
-                            match boxed(
-                                self.services
-                                    .enrollment
-                                    .get_network_info(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(response_payload) => {
-                                    Some(core_response::Payload::DeviceConfig(response_payload))
-                                }
-                                Err(err) => {
-                                    error!("get network info error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
-                        Some(core_request::Payload::PasswordResetInit(request)) => {
-                            match boxed(
-                                self.services
-                                    .password_reset
-                                    .request_password_reset(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
-                                Err(err) => {
-                                    error!("password reset init error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
-                        Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match boxed(
-                                self.services
-                                    .password_reset
-                                    .start_password_reset(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(response_payload) => Some(
-                                    core_response::Payload::PasswordResetStart(response_payload),
-                                ),
-                                Err(err) => {
-                                    error!("password reset start error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
-                        Some(core_request::Payload::PasswordReset(request)) => {
-                            match boxed(
-                                self.services
-                                    .password_reset
-                                    .reset_password(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
-                                Err(err) => {
-                                    error!("password reset error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
-                        Some(core_request::Payload::ClientMfaStart(request)) => {
-                            match boxed(
-                                self.services
-                                    .client_mfa
-                                    .start_client_mfa_login(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
-                                    Some(core_response::Payload::ClientMfaStart(response_payload))
-                                }
-                                Ok(ClientMfaStartOutcome::Rejected { failed_checks }) => {
-                                    Some(core_response::Payload::DevicePostureRejected(
-                                        DevicePostureRejection {
-                                            failed_posture_checks: failed_checks,
-                                        },
-                                    ))
-                                }
-                                Err(err) => {
-                                    error!("client MFA start error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
-                        Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
-                            match boxed(self.services.client_mfa.await_remote_mfa_login(
-                                request,
-                                tx.clone(),
-                                received.id,
-                                received.device_info,
-                            ))
-                            .await
-                            {
-                                Ok(()) => None,
-                                Err(err) => {
-                                    error!("Client remote MFA finish error: {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
-                        Some(core_request::Payload::ClientMfaFinish(request)) => {
-                            match boxed(
-                                self.services
-                                    .client_mfa
-                                    .finish_client_mfa_login(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(response_payload) => {
-                                    Some(core_response::Payload::ClientMfaFinish(response_payload))
-                                }
-                                Err(err) => {
-                                    match err.code() {
-                                        Code::FailedPrecondition => {
-                                            // User not yet done with OIDC authentication. Don't log it
-                                            // as an error.
-                                            debug!("Client MFA finish error: {err}");
-                                        }
-                                        _ => {
-                                            // Log other errors as errors.
-                                            error!("Client MFA finish error: {err}");
-                                        }
-                                    }
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
-                            match boxed(
-                                self.services
-                                    .client_mfa
-                                    .auth_mfa_session_with_oidc(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
-                                Err(err) => {
-                                    error!("client MFA OIDC authenticate error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
-                        Some(core_request::Payload::InstanceInfo(request)) => {
-                            match boxed(self.services.polling.info(request, received.device_info))
-                                .await
-                            {
-                                Ok(response_payload) => {
-                                    Some(core_response::Payload::InstanceInfo(response_payload))
-                                }
-                                Err(err) => {
-                                    if Code::FailedPrecondition == err.code() {
-                                        // Ignore the case when we are not enterprise but the client is
-                                        // trying to fetch the instance config,
-                                        // to avoid spamming the logs with misleading errors.
-
-                                        debug!(
-                                            "A client tried to fetch the instance config, but we are \
-                                            not enterprise."
-                                        );
-                                        Some(core_response::Payload::CoreError(err.into()))
-                                    } else {
-                                        error!("Instance info error {err}");
-                                        Some(core_response::Payload::CoreError(err.into()))
-                                    }
-                                }
-                            }
-                        }
-                        Some(core_request::Payload::AuthInfo(request)) => {
-                            boxed(self.handle_auth_info(request)).await?
-                        }
-                        Some(core_request::Payload::AuthCallback(request)) => {
-                            boxed(self.handle_auth_callback(request, &gateway_tx)).await?
-                        }
-                        None => None,
-                        Some(core_request::Payload::AcmeCertificate(cert)) => {
-                            info!("Received AcmeCertificate from proxy, saving and broadcasting");
-                            let acme_cert_expiry = parse_cert_expiry(&cert.cert_pem);
-                            match boxed(Certificates::get_or_default(&pool)).await {
-                                Ok(mut certs) => {
-                                    certs.proxy_http_cert_pem = Some(cert.cert_pem.clone());
-                                    certs.proxy_http_cert_key_pem = Some(cert.key_pem.clone());
-                                    certs.acme_account_credentials =
-                                        Some(cert.account_credentials_json.clone());
-                                    certs.proxy_http_cert_expiry = acme_cert_expiry;
-                                    certs.proxy_http_cert_source =
-                                        defguard_common::db::models::ProxyCertSource::LetsEncrypt;
-                                    if let Err(err) = boxed(certs.save(&pool)).await {
-                                        error!(
-                                            "Failed to save ACME certificate to certificates: {err}"
-                                        );
-                                    } else {
-                                        info!("ACME certificate saved to certificates");
-                                        let https_certs = CoreResponse {
-                                            id: 0,
-                                            payload: Some(core_response::Payload::HttpsCerts(
-                                                HttpsCerts {
-                                                    cert_pem: cert.cert_pem,
-                                                    key_pem: cert.key_pem,
-                                                },
-                                            )),
-                                        };
-                                        if let Ok(map) = self.handler_tx_map.read() {
-                                            for (pid, handler_tx) in map.iter() {
-                                                debug!("Broadcasting HttpsCerts to proxy {pid}");
-                                                let _ = handler_tx.send(https_certs.clone());
-                                            }
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    error!("Failed to load certificates for ACME save: {err}");
-                                }
-                            }
-                            None
-                        }
-                        Some(core_request::Payload::DevicePostureCheck(request)) => {
-                            match boxed(
-                                self.services
-                                    .client_mfa
-                                    .handle_posture_check(request, received.device_info),
-                            )
-                            .await
-                            {
-                                Ok(PostureCheckOutcome::Approved { preshared_key }) => {
-                                    Some(core_response::Payload::DevicePostureCheck(
-                                        DevicePostureCheckResponse { preshared_key },
-                                    ))
-                                }
-                                Ok(PostureCheckOutcome::Rejected { failed_checks }) => {
-                                    Some(core_response::Payload::DevicePostureRejected(
-                                        DevicePostureRejection {
-                                            failed_posture_checks: failed_checks,
-                                        },
-                                    ))
-                                }
-                                Err(err) => {
-                                    error!("Posture check error: {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                        Some(core_request::Payload::ClientMfaStepStart(request)) => {
-                            match boxed(self.services.client_mfa.client_mfa_step_start(request))
-                                .await
-                            {
-                                Ok(response) => {
-                                    Some(core_response::Payload::ClientMfaStepStart(response))
-                                }
-                                Err(err) => {
-                                    error!("client MFA step start error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
-                                }
-                            }
-                        }
-                    };
-
-                    if let Some(payload) = payload {
-                        let req = CoreResponse {
-                            id: received.id,
-                            payload: Some(payload),
-                        };
-                        let _ = tx.send(req);
+                        Err(err) => error!("Request task failed or panicked: {err}"),
                     }
                 }
-                Err(err) => {
-                    error!("Disconnected from proxy at {}: {err}", self.url);
-                    self.mark_disconnected().await?;
-                    break 'message;
+                message = resp_stream.message() => {
+                    match message {
+                        Ok(None) => {
+                            info!("stream was closed by the sender");
+                            break 'message;
+                        }
+                        Ok(Some(request)) => {
+                            debug!("Received message from proxy; ID={}", request.id);
+                            let services = Arc::clone(&self.services);
+                            let handler_tx_map = Arc::clone(&self.handler_tx_map);
+                            let pool = self.pool.clone();
+                            let response_tx = tx.clone();
+                            let gateway_tx = gateway_tx.clone();
+                            let request_id = request.id;
+                            let semaphore = Arc::clone(&self.semaphore);
+                            tasks.spawn(async move {
+                                let _permit = semaphore
+                                    .acquire_owned()
+                                    .await
+                                    .expect("ProxyManager semaphore closed");
+                                let result = Self::handle_request(
+                                    pool,
+                                    request,
+                                    response_tx,
+                                    services,
+                                    gateway_tx,
+                                    handler_tx_map,
+                                ).await;
+                                (request_id, result)
+                            });
+                        }
+                        Err(err) => {
+                            error!("Disconnected from proxy at {}: {err}", self.url);
+                            self.mark_disconnected().await?;
+                            break 'message;
+                        }
+                    }
                 }
             }
         }
-
+        tasks.abort_all();
+        while let Some(result) = tasks.join_next().await {
+            match result {
+                Ok((request_id, Ok(()))) => {
+                    debug!("Request {request_id} completed during shutdown")
+                }
+                Ok((request_id, Err(err))) => {
+                    error!("Request {request_id} failed during shutdown: {err}")
+                }
+                Err(err) => debug!("Request task cancelled during shutdown: {err}"),
+            }
+        }
         Ok(())
     }
 
     async fn handle_auth_info(
-        &self,
+        pool: &PgPool,
         request: AuthInfoRequest,
     ) -> Result<Option<core_response::Payload>, ProxyError> {
-        let pool = &self.pool;
         let payload = if is_business_license_active() {
             let auth_flow_type = request.auth_flow_type();
             let redirect_url = match auth_flow_type {
@@ -1119,11 +1173,11 @@ impl ProxyHandler {
     }
 
     async fn handle_auth_callback(
-        &self,
+        pool: &PgPool,
         request: AuthCallbackRequest,
         gateway_tx: &Sender<GatewayCommand>,
+        services: &Arc<ProxyServices>,
     ) -> Result<Option<core_response::Payload>, ProxyError> {
-        let pool = &self.pool;
         let payload = match Settings::get_current_settings()
             .edge_callback_url(AuthFlowType::Enrollment)
         {
@@ -1136,7 +1190,7 @@ impl ProxyHandler {
                     callback_url,
                     None,
                     None,
-                    Some(&self.services.event_tx),
+                    Some(&services.event_tx),
                     // Enrollment provisions the account.
                     ClaimsUserResolution::GetOrCreate,
                 )
@@ -1148,8 +1202,8 @@ impl ProxyHandler {
                             &user,
                             pool,
                             gateway_tx,
-                            &self.services.ldap,
-                            &self.services.dirsync,
+                            &services.ldap,
+                            &services.dirsync,
                         )
                         .await
                         {
@@ -1160,13 +1214,8 @@ impl ProxyHandler {
                                 user.username,
                             );
                         } else {
-                            ldap_update_user_state(
-                                &mut user,
-                                pool,
-                                gateway_tx,
-                                &self.services.ldap,
-                            )
-                            .await;
+                            ldap_update_user_state(&mut user, pool, gateway_tx, &services.ldap)
+                                .await;
                         }
                         debug!("Cleared unused tokens for {}.", user.username);
                         debug!(
@@ -1255,6 +1304,7 @@ impl ProxyHandler {
         proxy_id: Id,
         proxy_cookie_key: Key,
         socket_path: PathBuf,
+        semaphore: Arc<Semaphore>,
     ) -> Self {
         let handler_tx_map: HandlerTxMap = Arc::new(RwLock::new(HashMap::new()));
         let mut handler = Self::new(
@@ -1266,6 +1316,7 @@ impl ProxyHandler {
             proxy_id,
             proxy_cookie_key,
             handler_tx_map,
+            semaphore,
         );
         handler.test_transport = ProxyTestTransport::with_socket_path(socket_path);
         handler
