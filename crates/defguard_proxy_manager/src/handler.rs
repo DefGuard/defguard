@@ -884,6 +884,57 @@ impl ProxyHandler {
                                 }
                             }
                         }
+                        // rpc ClientMfaFlowStepFinish (ClientMfaFlowStepFinishRequest) returns (ClientMfaFlowStepFinishResponse)
+                        Some(core_request::Payload::ClientMfaFlowStepFinish(request)) => {
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .client_mfa_flow_step_finish(request, received.device_info),
+                            )
+                            .await
+                            {
+                                Ok(response) => {
+                                    Some(core_response::Payload::ClientMfaFlowStepFinish(response))
+                                }
+                                Err(err) => {
+                                    error!("client MFA flow step finish error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc AwaitFlowFinish (ClientMfaFlowRemoteRequest) returns (ClientMfaFlowRemoteResponse)
+                        Some(core_request::Payload::AwaitFlowFinish(request)) => {
+                            match boxed(self.services.client_mfa.await_client_mfa_flow(
+                                request,
+                                tx.clone(),
+                                received.id,
+                                received.device_info,
+                            ))
+                            .await
+                            {
+                                Ok(()) => None,
+                                Err(err) => {
+                                    error!("client MFA flow remote finish error: {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientMfaFlowApprove (ClientMfaFlowApproveRequest) returns Empty
+                        Some(core_request::Payload::ClientMfaFlowApprove(request)) => {
+                            match boxed(
+                                self.services
+                                    .client_mfa
+                                    .client_mfa_flow_approve(request, received.device_info),
+                            )
+                            .await
+                            {
+                                Ok(()) => None,
+                                Err(err) => {
+                                    error!("client MFA flow approve error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
                         Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
                             match boxed(self.services.client_mfa.await_remote_mfa_login(
