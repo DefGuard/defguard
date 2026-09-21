@@ -71,6 +71,12 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "flow_kind"
+          }
         }
       },
       {
