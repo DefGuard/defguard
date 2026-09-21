@@ -1384,6 +1384,30 @@ async fn setup_mfa_flow_server(options: PgConnectOptions) -> (ClientMfaServer, P
     (server, pool, location.id, pubkey)
 }
 
+async fn setup_mobile_mfa_flow_server(
+    options: PgConnectOptions,
+) -> (ClientMfaServer, PgPool, Id, String, String, SigningKey) {
+    set_enterprise_license();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_mfa_flow(&pool, location.id).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let signing_key = SigningKey::from_bytes(&[11; 32]);
+    let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
+    BiometricAuth::new(device.id, auth_pub_key.clone())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+    let pubkey = device.wireguard_pubkey.clone();
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    (server, pool, location.id, pubkey, auth_pub_key, signing_key)
+}
+
 async fn setup_totp_mfa_server(
     options: PgConnectOptions,
 ) -> (
@@ -1436,30 +1460,6 @@ async fn setup_totp_mfa_server(
     )
 }
 
-async fn setup_mobile_mfa_flow_server(
-    options: PgConnectOptions,
-) -> (ClientMfaServer, PgPool, Id, String, String, SigningKey) {
-    set_enterprise_license();
-    let pool = setup_pool(options).await;
-    initialize_current_settings(&pool)
-        .await
-        .expect("failed to init settings");
-    let location = create_mfa_location(&pool).await;
-    create_and_assign_mfa_flow(&pool, location.id).await;
-    let user = create_user(&pool).await;
-    let device = create_device(&pool, user.id).await;
-    attach_device_to_location(&pool, location.id, device.id).await;
-    let signing_key = SigningKey::from_bytes(&[11; 32]);
-    let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
-    BiometricAuth::new(device.id, auth_pub_key.clone())
-        .save(&pool)
-        .await
-        .expect("failed to register mobile authenticator");
-    let pubkey = device.wireguard_pubkey.clone();
-    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
-    (server, pool, location.id, pubkey, auth_pub_key, signing_key)
-}
-
 fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
     let response = response.expect("superseded waiter should receive a response");
     assert_eq!(response.id, request_id);
@@ -1468,6 +1468,49 @@ fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
     };
     assert_eq!(error.status_code, Code::Aborted as i32);
     assert_eq!(error.message, "remote MFA wait superseded");
+}
+
+#[test]
+fn test_remote_waiters_are_scoped_by_contract_and_attempt() {
+    let waiters: RemoteAuthWaiters = Arc::default();
+    let (multi_signal_tx, _multi_signal_rx) = tokio::sync::oneshot::channel();
+    waiters.write().unwrap().insert(
+        hash_token("multi-token"),
+        super::RemoteAuthWaiter {
+            generation: Arc::new(()),
+            signal_tx: multi_signal_tx,
+            kind: super::RemoteAuthWaiterKind::MultiStep {
+                step_attempt_id: "current-attempt".to_owned(),
+            },
+        },
+    );
+
+    assert!(super::take_legacy_remote_mfa_waiter(&waiters, "multi-token").is_none());
+    assert!(
+        super::take_multi_step_remote_mfa_waiter(&waiters, "multi-token", "stale-attempt")
+            .is_none()
+    );
+    assert!(
+        super::take_multi_step_remote_mfa_waiter(&waiters, "multi-token", "current-attempt")
+            .is_some()
+    );
+
+    let (legacy_signal_tx, _legacy_signal_rx) = tokio::sync::oneshot::channel();
+    waiters.write().unwrap().insert(
+        hash_token("legacy-token"),
+        super::RemoteAuthWaiter {
+            generation: Arc::new(()),
+            signal_tx: legacy_signal_tx,
+            kind: super::RemoteAuthWaiterKind::Legacy {
+                preshared_key: Arc::new(std::sync::Mutex::new(None)),
+            },
+        },
+    );
+    assert!(
+        super::take_multi_step_remote_mfa_waiter(&waiters, "legacy-token", "current-attempt")
+            .is_none()
+    );
+    assert!(super::take_legacy_remote_mfa_waiter(&waiters, "legacy-token").is_some());
 }
 
 #[test]
@@ -1847,197 +1890,6 @@ async fn test_validate_mfa_token(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_start_returns_initial_attempt(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
-    let outcome = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
-                location_id,
-                pubkey,
-                posture_data: None,
-                selected_methods: vec![MfaMethod::Totp as i32],
-            },
-            device_info(),
-        )
-        .await
-        .expect("flow start should succeed");
-    let response = match outcome {
-        ClientMfaFlowStartOutcome::Approved(response) => response,
-        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
-    };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
-        panic!("flow start should return an accepted outcome");
-    };
-    let first_step = accepted
-        .first_step
-        .expect("accepted flow start must include the first step");
-    assert!(!accepted.token.is_empty());
-    assert!(!first_step.step_attempt_id.is_empty());
-    assert!(first_step.challenge.is_none());
-
-    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
-        .await
-        .expect("session lookup should succeed")
-        .expect("flow start must persist a session");
-    assert_eq!(session.flow_kind, VpnMfaFlowKind::MultiStep);
-    assert_eq!(
-        first_step.step_attempt_id,
-        session
-            .ephemeral_state
-            .as_ref()
-            .expect("flow start must persist an attempt")
-            .0
-            .step_attempt_id
-    );
-}
-
-#[sqlx::test]
-async fn test_client_mfa_flow_start_rejection_does_not_create_session(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
-    let outcome = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
-                location_id,
-                pubkey,
-                posture_data: None,
-                selected_methods: vec![MfaMethod::Fido2 as i32],
-            },
-            device_info(),
-        )
-        .await
-        .expect("flow start should return a typed rejection");
-    let response = match outcome {
-        ClientMfaFlowStartOutcome::Approved(response) => response,
-        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
-    };
-    let Some(client_mfa_flow_start_response::Outcome::Rejected(rejected)) = response.outcome else {
-        panic!("flow start should return a rejected outcome");
-    };
-    assert_eq!(rejected.rejections.len(), 1);
-    assert_eq!(rejected.rejections[0].step, 0);
-    assert_eq!(
-        rejected.rejections[0].reason,
-        MfaStartRejectionReason::MfaStartRejectionMethodNotInStep as i32
-    );
-    let session_count: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM vpn_client_mfa_session WHERE location_id = $1")
-            .bind(location_id)
-            .fetch_one(&pool)
-            .await
-            .expect("session count should succeed");
-    assert_eq!(session_count, 0);
-}
-
-#[sqlx::test]
-async fn test_client_mfa_flow_step_start_returns_typed_attempt(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
-    let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
-                location_id,
-                pubkey,
-                posture_data: None,
-                selected_methods: vec![MfaMethod::Totp as i32],
-            },
-            device_info(),
-        )
-        .await
-        .expect("flow start should succeed");
-    let response = match start {
-        ClientMfaFlowStartOutcome::Approved(response) => response,
-        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
-    };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
-        panic!("flow start should return an accepted outcome");
-    };
-    let initial_attempt = accepted
-        .first_step
-        .expect("accepted flow start must include the first step")
-        .step_attempt_id;
-
-    let step = server
-        .client_mfa_flow_step_start(ClientMfaFlowStepStartRequest {
-            token: accepted.token.clone(),
-            method: MfaMethod::MobileApprove as i32,
-        })
-        .await
-        .expect("flow step start should succeed");
-    let started = step.started.expect("step start must include its result");
-    assert!(!started.step_attempt_id.is_empty());
-    assert_ne!(started.step_attempt_id, initial_attempt);
-    let Some(mfa_step_started::Challenge::Signature(challenge)) = started.challenge else {
-        panic!("mobile-approve step start should return a signature challenge");
-    };
-    assert!(!challenge.challenge.is_empty());
-
-    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
-        .await
-        .expect("session lookup should succeed")
-        .expect("flow step start must preserve the session");
-    assert_eq!(
-        started.step_attempt_id,
-        session
-            .ephemeral_state
-            .as_ref()
-            .expect("flow step start must persist an attempt")
-            .0
-            .step_attempt_id
-    );
-}
-
-#[test]
-fn test_remote_waiters_are_scoped_by_contract_and_attempt() {
-    let waiters: RemoteAuthWaiters = Arc::default();
-    let (multi_signal_tx, _multi_signal_rx) = tokio::sync::oneshot::channel();
-    waiters.write().unwrap().insert(
-        hash_token("multi-token"),
-        super::RemoteAuthWaiter {
-            generation: Arc::new(()),
-            signal_tx: multi_signal_tx,
-            kind: super::RemoteAuthWaiterKind::MultiStep {
-                step_attempt_id: "current-attempt".to_owned(),
-            },
-        },
-    );
-
-    assert!(super::take_legacy_remote_mfa_waiter(&waiters, "multi-token").is_none());
-    assert!(
-        super::take_multi_step_remote_mfa_waiter(&waiters, "multi-token", "stale-attempt")
-            .is_none()
-    );
-    assert!(
-        super::take_multi_step_remote_mfa_waiter(&waiters, "multi-token", "current-attempt")
-            .is_some()
-    );
-
-    let (legacy_signal_tx, _legacy_signal_rx) = tokio::sync::oneshot::channel();
-    waiters.write().unwrap().insert(
-        hash_token("legacy-token"),
-        super::RemoteAuthWaiter {
-            generation: Arc::new(()),
-            signal_tx: legacy_signal_tx,
-            kind: super::RemoteAuthWaiterKind::Legacy {
-                preshared_key: Arc::new(std::sync::Mutex::new(None)),
-            },
-        },
-    );
-    assert!(
-        super::take_multi_step_remote_mfa_waiter(&waiters, "legacy-token", "current-attempt")
-            .is_none()
-    );
-    assert!(super::take_legacy_remote_mfa_waiter(&waiters, "legacy-token").is_some());
-}
-
-#[sqlx::test]
 async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -2373,6 +2225,249 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
 }
 
 #[sqlx::test]
+async fn test_client_mfa_flow_start_returns_initial_attempt(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let outcome = server
+        .start_client_mfa_flow(
+            ClientMfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = match outcome {
+        ClientMfaFlowStartOutcome::Approved(response) => response,
+        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
+    };
+    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should return an accepted outcome");
+    };
+    let first_step = accepted
+        .first_step
+        .expect("accepted flow start must include the first step");
+    assert!(!accepted.token.is_empty());
+    assert!(!first_step.step_attempt_id.is_empty());
+    assert!(first_step.challenge.is_none());
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("flow start must persist a session");
+    assert_eq!(session.flow_kind, VpnMfaFlowKind::MultiStep);
+    assert_eq!(
+        first_step.step_attempt_id,
+        session
+            .ephemeral_state
+            .as_ref()
+            .expect("flow start must persist an attempt")
+            .0
+            .step_attempt_id
+    );
+}
+
+#[sqlx::test]
+async fn test_client_mfa_flow_start_rejection_does_not_create_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let outcome = server
+        .start_client_mfa_flow(
+            ClientMfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Fido2 as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should return a typed rejection");
+    let response = match outcome {
+        ClientMfaFlowStartOutcome::Approved(response) => response,
+        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
+    };
+    let Some(client_mfa_flow_start_response::Outcome::Rejected(rejected)) = response.outcome else {
+        panic!("flow start should return a rejected outcome");
+    };
+    assert_eq!(rejected.rejections.len(), 1);
+    assert_eq!(rejected.rejections[0].step, 0);
+    assert_eq!(
+        rejected.rejections[0].reason,
+        MfaStartRejectionReason::MfaStartRejectionMethodNotInStep as i32
+    );
+    let session_count: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM vpn_client_mfa_session WHERE location_id = $1")
+            .bind(location_id)
+            .fetch_one(&pool)
+            .await
+            .expect("session count should succeed");
+    assert_eq!(session_count, 0);
+}
+
+#[sqlx::test]
+async fn test_client_mfa_flow_step_start_returns_typed_attempt(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let start = server
+        .start_client_mfa_flow(
+            ClientMfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = match start {
+        ClientMfaFlowStartOutcome::Approved(response) => response,
+        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
+    };
+    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should return an accepted outcome");
+    };
+    let initial_attempt = accepted
+        .first_step
+        .expect("accepted flow start must include the first step")
+        .step_attempt_id;
+
+    let step = server
+        .client_mfa_flow_step_start(ClientMfaFlowStepStartRequest {
+            token: accepted.token.clone(),
+            method: MfaMethod::MobileApprove as i32,
+        })
+        .await
+        .expect("flow step start should succeed");
+    let started = step.started.expect("step start must include its result");
+    assert!(!started.step_attempt_id.is_empty());
+    assert_ne!(started.step_attempt_id, initial_attempt);
+    let Some(mfa_step_started::Challenge::Signature(challenge)) = started.challenge else {
+        panic!("mobile-approve step start should return a signature challenge");
+    };
+    assert!(!challenge.challenge.is_empty());
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("flow step start must preserve the session");
+    assert_eq!(
+        started.step_attempt_id,
+        session
+            .ephemeral_state
+            .as_ref()
+            .expect("flow step start must persist an attempt")
+            .0
+            .step_attempt_id
+    );
+}
+
+#[test]
+fn test_flow_step_started_uses_typed_challenge_arms() {
+    let signature = super::flow_step_started(
+        VpnClientMfaMethod::MobileApprove,
+        "signature-attempt".to_owned(),
+        Some("signature-challenge".to_owned()),
+        Vec::new(),
+    )
+    .expect("signature challenge should be well formed");
+    assert!(matches!(
+        signature.challenge,
+        Some(mfa_step_started::Challenge::Signature(challenge))
+            if challenge.challenge == "signature-challenge"
+    ));
+
+    let fido2 = super::flow_step_started(
+        VpnClientMfaMethod::Fido2,
+        "fido2-attempt".to_owned(),
+        Some("fido2-challenge".to_owned()),
+        vec!["credential".to_owned()],
+    )
+    .expect("FIDO2 challenge should be well formed");
+    assert!(matches!(
+        fido2.challenge,
+        Some(mfa_step_started::Challenge::Fido2(challenge))
+            if challenge.challenge == "fido2-challenge"
+                && challenge.credential_ids == ["credential"]
+    ));
+}
+
+#[sqlx::test]
+async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let start = server
+        .start_client_mfa_flow(
+            ClientMfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+        panic!("unexpected posture rejection");
+    };
+    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let attempt_id = accepted
+        .first_step
+        .expect("flow start must include an attempt")
+        .step_attempt_id;
+    let error = server
+        .client_mfa_flow_step_finish(
+            ClientMfaFlowStepFinishRequest {
+                token: accepted.token,
+                step_attempt_id: attempt_id,
+                submission: None,
+            },
+            device_info(),
+        )
+        .await
+        .expect_err("a TOTP step must reject an empty typed submission");
+    assert_eq!(error.code(), Code::InvalidArgument);
+    assert_eq!(
+        error.message(),
+        "MFA credential does not match the selected method"
+    );
+}
+
+#[test]
+fn test_flow_step_finish_converts_typed_code_submission() {
+    let (token, proof) = super::into_step_proof(ClientMfaFlowStepFinishRequest {
+        token: "token".to_owned(),
+        step_attempt_id: "attempt".to_owned(),
+        submission: Some(client_mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential {
+                code: "123456".to_owned(),
+            },
+        )),
+    });
+    assert_eq!(token, "token");
+    assert_eq!(proof.step_attempt_id, "attempt");
+    assert_eq!(
+        proof.credential,
+        Some(StepCredential::Code("123456".to_owned()))
+    );
+}
+
+#[sqlx::test]
 async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -2415,36 +2510,6 @@ async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
         .expect_err("remote waiting must reject a non-MobileApprove step");
     assert_eq!(error.code(), Code::InvalidArgument);
     assert_eq!(error.message(), "MFA method is not MobileApprove");
-}
-
-#[test]
-fn test_flow_step_started_uses_typed_challenge_arms() {
-    let signature = super::flow_step_started(
-        VpnClientMfaMethod::MobileApprove,
-        "signature-attempt".to_owned(),
-        Some("signature-challenge".to_owned()),
-        Vec::new(),
-    )
-    .expect("signature challenge should be well formed");
-    assert!(matches!(
-        signature.challenge,
-        Some(mfa_step_started::Challenge::Signature(challenge))
-            if challenge.challenge == "signature-challenge"
-    ));
-
-    let fido2 = super::flow_step_started(
-        VpnClientMfaMethod::Fido2,
-        "fido2-attempt".to_owned(),
-        Some("fido2-challenge".to_owned()),
-        vec!["credential".to_owned()],
-    )
-    .expect("FIDO2 challenge should be well formed");
-    assert!(matches!(
-        fido2.challenge,
-        Some(mfa_step_started::Challenge::Fido2(challenge))
-            if challenge.challenge == "fido2-challenge"
-                && challenge.credential_ids == ["credential"]
-    ));
 }
 
 #[sqlx::test]
@@ -2895,69 +2960,4 @@ async fn save_linux_posture_policy(pool: &PgPool, location_id: Id) {
     )
     .await
     .expect("failed to assign posture policy to location");
-}
-
-#[sqlx::test]
-async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let (mut server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
-    let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
-                location_id,
-                pubkey,
-                posture_data: None,
-                selected_methods: vec![MfaMethod::Totp as i32],
-            },
-            device_info(),
-        )
-        .await
-        .expect("flow start should succeed");
-    let ClientMfaFlowStartOutcome::Approved(response) = start else {
-        panic!("unexpected posture rejection");
-    };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
-        panic!("flow start should be accepted");
-    };
-    let attempt_id = accepted
-        .first_step
-        .expect("flow start must include an attempt")
-        .step_attempt_id;
-    let error = server
-        .client_mfa_flow_step_finish(
-            ClientMfaFlowStepFinishRequest {
-                token: accepted.token,
-                step_attempt_id: attempt_id,
-                submission: None,
-            },
-            device_info(),
-        )
-        .await
-        .expect_err("a TOTP step must reject an empty typed submission");
-    assert_eq!(error.code(), Code::InvalidArgument);
-    assert_eq!(
-        error.message(),
-        "MFA credential does not match the selected method"
-    );
-}
-
-#[test]
-fn test_flow_step_finish_converts_typed_code_submission() {
-    let (token, proof) = super::into_step_proof(ClientMfaFlowStepFinishRequest {
-        token: "token".to_owned(),
-        step_attempt_id: "attempt".to_owned(),
-        submission: Some(client_mfa_flow_step_finish_request::Submission::Code(
-            MfaCodeCredential {
-                code: "123456".to_owned(),
-            },
-        )),
-    });
-    assert_eq!(token, "token");
-    assert_eq!(proof.step_attempt_id, "attempt");
-    assert_eq!(
-        proof.credential,
-        Some(StepCredential::Code("123456".to_owned()))
-    );
 }
