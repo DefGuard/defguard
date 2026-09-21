@@ -22,7 +22,7 @@ pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
 pub static MFA_CONFIG_TOKEN_TYPE: &str = "MFA_CONFIG";
 // One window covers both the time to authorize and the time to configure factors.
-pub const MFA_CONFIG_SESSION_TIMEOUT: Duration = Duration::from_secs(60 * 60);
+pub const MFA_CONFIG_SESSION_TIMEOUT: Duration = Duration::from_hours(1);
 
 #[derive(Error, Debug)]
 pub enum TokenError {

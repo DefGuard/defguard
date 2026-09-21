@@ -6,7 +6,7 @@ use std::{
 use defguard_common::{
     db::{NoId, models::WireguardNetwork, setup_pool},
     gateway_types::{
-        FirewallPolicy, IpAddress, IpRange, Port, PortRange as GwPortRange, Protocol as GwProtocol,
+        FirewallPolicy, IpAddress, Port, PortRange as GwPortRange, Protocol as GwProtocol,
     },
 };
 use defguard_proto::enterprise::firewall::Protocol as ProtoProtocol;
@@ -55,10 +55,8 @@ fn test_process_destination_addrs_v4() {
         [
             IpAddress::IpSubnet("10.0.1.0/24".to_owned()),
             IpAddress::IpSubnet("10.0.2.0/24".to_owned()),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.3.255".to_owned(),
-                end: "10.0.4.0".to_owned(),
-            }),
+            IpAddress::Ip("10.0.3.255".to_owned()),
+            IpAddress::Ip("10.0.4.0".to_owned()),
             IpAddress::IpSubnet("192.168.1.0/24".to_owned()),
         ]
     );
@@ -180,14 +178,10 @@ async fn test_any_address_overwrites_manual_destination(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
@@ -275,14 +269,10 @@ async fn test_any_address_overwrites_destination_alias_addrs(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
@@ -367,19 +357,15 @@ async fn test_manual_destination_includes_component_alias_address_range(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
-    let expected_destination_addrs = [IpAddress::IpRange(IpRange {
-        start: "10.2.0.255".to_owned(),
-        end: "10.2.1.0".to_owned(),
-    })];
+    let expected_destination_addrs = [
+        IpAddress::Ip("10.2.0.255".to_owned()),
+        IpAddress::Ip("10.2.1.0".to_owned()),
+    ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
 
@@ -466,24 +452,16 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let expected_destination_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.2.0.255".to_owned(),
-            end: "10.2.1.0".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.3.0.255".to_owned(),
-            end: "10.3.1.0".to_owned(),
-        }),
+        IpAddress::Ip("10.2.0.255".to_owned()),
+        IpAddress::Ip("10.2.1.0".to_owned()),
+        IpAddress::Ip("10.3.0.255".to_owned()),
+        IpAddress::Ip("10.3.1.0".to_owned()),
     ];
 
     assert_eq!(generated_firewall_rules.len(), 2);
@@ -560,18 +538,15 @@ async fn test_any_port_preserves_destination_addresses_and_protocols(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let expected_destination_addrs = [
         IpAddress::IpSubnet("192.168.50.0/24".to_owned()),
-        IpAddress::IpSubnet("192.168.60.10/31".to_owned()),
+        IpAddress::Ip("192.168.60.10".to_owned()),
+        IpAddress::Ip("192.168.60.11".to_owned()),
         IpAddress::IpSubnet("192.168.60.12/30".to_owned()),
         IpAddress::IpSubnet("192.168.60.16/30".to_owned()),
         IpAddress::Ip("192.168.60.20".to_owned()),
@@ -655,14 +630,10 @@ async fn test_any_protocol_preserves_destination_addresses_and_ports(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let expected_destination_addrs = [
         IpAddress::IpSubnet("192.168.70.0/24".to_owned()),
@@ -770,18 +741,15 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let expected_destination_addrs = [
         IpAddress::IpSubnet("192.168.90.0/24".to_owned()),
-        IpAddress::IpSubnet("192.168.91.10/31".to_owned()),
+        IpAddress::Ip("192.168.91.10".to_owned()),
+        IpAddress::Ip("192.168.91.11".to_owned()),
         IpAddress::IpSubnet("192.168.91.12/30".to_owned()),
         IpAddress::IpSubnet("192.168.91.16/30".to_owned()),
         IpAddress::Ip("192.168.91.20".to_owned()),
@@ -874,14 +842,10 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
         .rules;
 
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let expected_destination_addrs = [
         IpAddress::IpSubnet("192.168.110.0/24".to_owned()),
