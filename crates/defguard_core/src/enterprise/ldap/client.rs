@@ -12,7 +12,9 @@ use ldap3::{
 };
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::{Dn, LdapEntry, extract_rdn_value, is_search_entry};
+use crate::enterprise::ldap::model::{
+    Dn, LdapEntry, dn_match_key, extract_rdn_value, is_search_entry,
+};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
 const LDAP_RC_NO_SUCH_OBJECT: u32 = 32;
@@ -262,7 +264,7 @@ impl LDAPConnection {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            if let Some(user) = dn_map.get(&Dn::from(v.as_str())) {
+                            if let Some(user) = dn_map.get(&dn_match_key(v, &self.config)) {
                                 Some(*user)
                             } else {
                                 debug!(
