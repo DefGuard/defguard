@@ -14,13 +14,13 @@ use sqlx::{
 use tokio::task::JoinError;
 
 use crate::{
+    client_info::platform_header,
     config::{ConfigPollingArgs, DatabaseArgs},
     runner::LoadLoopConfig,
 };
 
 const POLLING_PATH: &str = "/api/v1/poll";
 const CLIENT_VERSION: &str = "2.1.0";
-const CLIENT_PLATFORM: &str = "linux";
 const USER_AGENT: &str = "defguard-load-generator/0.1.0";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -135,7 +135,7 @@ async fn execute_polling_request(
     let result = match client
         .post(polling_url)
         .header("defguard-client-version", CLIENT_VERSION)
-        .header("defguard-client-platform", CLIENT_PLATFORM)
+        .header("defguard-client-platform", platform_header())
         .header("user-agent", USER_AGENT)
         .json(&serde_json::json!({ "token": polling_token }))
         .send()

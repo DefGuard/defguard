@@ -13,6 +13,7 @@ use tokio::task::JoinError;
 use totp_lite::{Sha1, totp_custom};
 
 use crate::{
+    client_info::platform_header,
     config::{ClientMfaArgs, DatabaseArgs},
     runner::{LoadLoopConfig, run_load_loop},
 };
@@ -300,7 +301,10 @@ fn passing_posture_data() -> DevicePostureData {
 fn client_headers() -> reqwest::header::HeaderMap {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("defguard-client-version", "2.1.0".parse().unwrap());
-    headers.insert("defguard-client-platform", "linux".parse().unwrap());
+    headers.insert(
+        "defguard-client-platform",
+        platform_header().parse().unwrap(),
+    );
     headers.insert(
         "user-agent",
         "defguard-load-generator/0.1.0".parse().unwrap(),

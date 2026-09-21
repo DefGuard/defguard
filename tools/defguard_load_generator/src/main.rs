@@ -1,6 +1,7 @@
 use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
+mod client_info;
 mod config;
 mod ldap_seed;
 mod loadtest;
