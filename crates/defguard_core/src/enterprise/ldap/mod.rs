@@ -34,6 +34,7 @@ use crate::{
 
 #[cfg(not(test))]
 pub mod client;
+pub mod dn;
 pub mod error;
 pub mod hash;
 pub mod model;
@@ -236,6 +237,12 @@ impl LDAPConfig {
             .ldap_user_path
             .as_deref()
             .unwrap_or(&self.ldap_user_search_base);
+        self.dn_from_parts(rdn_value, path)
+    }
+
+    /// Builds a user DN from its parts. `dn_match_key` relies on this matching `user_dn` exactly.
+    #[must_use]
+    fn dn_from_parts(&self, rdn_value: &str, path: &str) -> Dn {
         format!("{}={},{path}", self.get_rdn_attr(), dn_escape(rdn_value)).into()
     }
 

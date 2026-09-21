@@ -14,6 +14,7 @@ use sqlx::{PgExecutor, query_as};
 
 use super::{
     LDAPConfig,
+    dn::{find_unescaped_separator, unescape_value},
     error::{LdapError, sanitize_ldap_string},
 };
 use crate::{handlers::user::check_username, hashset};
@@ -443,14 +444,30 @@ pub(super) fn group_in_list(groups: &[String], name: &str) -> bool {
         .any(|g| g.to_lowercase() == name.to_lowercase())
 }
 
-/// Get first value from distinguished name, for example: cn=<value>,...
+/// Rewrites a DN the server sent, for comparison against `LDAPConfig::user_dn`.
+///
+/// A server may escape the same name as either `\,` or `\2c`, so a `member` value and the DN
+/// Defguard rebuilds from a user's stored RDN and path can differ byte for byte. Splitting the name
+/// and putting it back the same way lands both on one string. What matters is that the spelling is
+/// the same on both sides, not that it is the correct one.
+#[must_use]
+pub(crate) fn dn_match_key(dn: &str, config: &LDAPConfig) -> Dn {
+    match (extract_rdn_value(dn), extract_dn_path(dn)) {
+        (Some(rdn), Some(path)) => config.dn_from_parts(&rdn, &path),
+        _ => dn.into(),
+    }
+}
+
+/// Returns the unescaped value of the first component, so `cn=Doe\, John,ou=x` gives `Doe, John`.
 #[must_use]
 pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
-    if let (Some(eq_index), Some(comma_index)) = (dn.find('='), dn.find(',')) {
-        dn.get((eq_index + 1)..comma_index).map(str::to_owned)
-    } else {
-        None
+    let eq_index = find_unescaped_separator(dn, b'=')?;
+    let comma_index = find_unescaped_separator(dn, b',')?;
+    if eq_index >= comma_index {
+        return None;
     }
+
+    dn.get((eq_index + 1)..comma_index).and_then(unescape_value)
 }
 
 /// Returns true only for a SearchResultEntry (LDAP protocol op id 4).
@@ -463,18 +480,17 @@ pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
     entry.0.id == 4
 }
 
-/// Extract the remaining part of the distinguished name after the first comma, for example:
-/// `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
+/// Returns the part after the first unescaped comma, so `cn=user,dc=example` gives `dc=example`.
 #[must_use]
 pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
-    if let Some(parts) = dn.split_once(',') {
-        let path = parts.1.to_owned();
-        debug!("Extracted DN path '{path}' from DN '{dn}'");
-        Some(path)
-    } else {
+    let Some(comma_index) = find_unescaped_separator(dn, b',') else {
         warn!("Failed to extract DN path from '{dn}': no comma found");
-        None
-    }
+        return None;
+    };
+
+    let path = dn[(comma_index + 1)..].to_owned();
+    debug!("Extracted DN path '{path}' from DN '{dn}'");
+    Some(path)
 }
 
 #[cfg(test)]
