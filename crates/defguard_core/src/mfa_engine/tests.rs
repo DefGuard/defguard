@@ -4,19 +4,20 @@ use std::{
     time::SystemTime,
 };
 
+use base64::{Engine as _, prelude::BASE64_STANDARD};
 use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
         Id,
         models::{
             Device, DeviceType, User, WireguardNetwork,
-            biometric_auth::BiometricAuth,
+            biometric_auth::{BiometricAuth, BiometricChallenge},
             device::WireguardNetworkDevice,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             settings::initialize_current_settings,
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_mfa_session::{
-                EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaSessionContext, VPN_MFA_SESSION_TIMEOUT,
+                EphemeralState, MFA_FAILED_ATTEMPT_CAP, VPN_MFA_SESSION_TIMEOUT,
                 VpnClientMfaSession, VpnMfaFlowKind, hash_token,
             },
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
@@ -27,6 +28,7 @@ use defguard_common::{
     testing::smtp::configure_working_smtp,
 };
 use defguard_proto::client_types::MfaMethod;
+use ed25519_dalek::{Signer, SigningKey};
 use ipnetwork::IpNetwork;
 use sqlx::{
     PgPool,
@@ -49,9 +51,9 @@ use crate::{
     grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
     mfa_engine::{
         legacy::{FinishError, LegacyProof},
-        method::{Verdict, verify},
-        multi_step::{StartRejectionReason, StartResult, StepError},
-        types::{FinishOutcome, Proof},
+        method::{Verdict, check_mobile_approval},
+        multi_step::{StartRejectionReason, StartResult, StepCredential, StepError, StepProof},
+        types::FinishOutcome,
     },
 };
 
@@ -260,18 +262,8 @@ fn test_status_table_messages() {
     // OIDC and method-switching flows return OK; license checks happen at start.
 }
 
-#[sqlx::test]
-async fn test_mobile_approve_empty_proof_reads_approval_flag(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let pool = setup_pool(options).await;
-    let user = create_user(&pool).await;
-    let context = MfaSessionContext {
-        location: create_mfa_location(&pool).await,
-        device: create_device(&pool, user.id).await,
-        user,
-    };
+#[test]
+fn test_mobile_approve_empty_proof_reads_approval_flag() {
     let mut ephemeral = EphemeralState {
         step_attempt_id: "attempt".to_owned(),
         selected_method: VpnClientMfaMethod::MobileApprove,
@@ -280,28 +272,272 @@ async fn test_mobile_approve_empty_proof_reads_approval_flag(
         mobile_auth_device_name: None,
         biometric_challenge: None,
     };
-    let proof = Proof {
-        code: None,
-        auth_pub_key: None,
-        step_attempt_id: None,
-        auth_data: None,
-        credential_id: None,
-    };
-
-    assert_eq!(
-        verify(&pool, &context, &ephemeral, &proof)
-            .await
-            .expect("empty mobile-approve proof must verify"),
-        Verdict::NotYet,
-    );
+    assert_eq!(check_mobile_approval(&ephemeral), Verdict::NotYet,);
 
     ephemeral.mobile_approved = true;
-    assert_eq!(
-        verify(&pool, &context, &ephemeral, &proof)
-            .await
-            .expect("approved mobile-approve proof must verify"),
-        Verdict::Proved,
+    assert_eq!(check_mobile_approval(&ephemeral), Verdict::Proved);
+}
+
+#[sqlx::test]
+async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let location = create_mfa_location(&pool).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+
+    let signing_key = SigningKey::from_bytes(&[7; 32]);
+    let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
+    BiometricAuth::new(device.id, auth_pub_key.clone())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+    let challenge = BiometricChallenge::new();
+    let mut transaction = pool.begin().await.expect("failed to begin transaction");
+    let (flow, _) = MfaFlow::create(
+        &mut transaction,
+        "Mobile approval flow".to_owned(),
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+    )
+    .await
+    .expect("failed to create flow");
+    let (_, outcome) = VpnClientMfaSession::<Id>::start(
+        &mut transaction,
+        location.id,
+        device.id,
+        user.id,
+        flow.id,
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+        VpnMfaFlowKind::MultiStep,
+        VpnClientMfaMethod::MobileApprove,
+        Some(challenge.clone()),
+        VPN_MFA_SESSION_TIMEOUT,
+    )
+    .await
+    .expect("failed to start mobile approval session");
+    transaction
+        .commit()
+        .await
+        .expect("failed to commit mobile approval session");
+
+    let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
+    let signature =
+        BASE64_STANDARD.encode(signing_key.sign(challenge.challenge.as_bytes()).to_bytes());
+    engine
+        .approve_mobile_step(
+            outcome.token.clone(),
+            super::multi_step::MobileApprovalProof {
+                signature,
+                auth_pub_key,
+                step_attempt_id: outcome.step_attempt_id.clone(),
+            },
+            test_ip(),
+        )
+        .await
+        .expect("valid mobile approval should be accepted");
+
+    let marked = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("mobile approval session must remain active");
+    assert_eq!(marked.failed_attempts, 0);
+    assert!(
+        marked
+            .ephemeral_state
+            .as_ref()
+            .expect("attempt must remain active")
+            .0
+            .mobile_approved
     );
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
+
+    let result = engine
+        .finish_step(
+            outcome.token,
+            super::multi_step::StepProof {
+                step_attempt_id: outcome.step_attempt_id,
+                credential: None,
+            },
+            test_ip(),
+        )
+        .await
+        .expect("approved mobile step should finish the flow");
+    assert!(matches!(result, FinishOutcome::Completed { .. }));
+}
+
+#[sqlx::test]
+async fn test_mobile_approval_rejects_superseded_attempt_without_side_effects(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (session, token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Mobile approval stale flow",
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let signing_key = SigningKey::from_bytes(&[8; 32]);
+    let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
+    BiometricAuth::new(session.device_id, auth_pub_key.clone())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+
+    let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
+    let first = engine
+        .step_start(token.clone(), VpnClientMfaMethod::MobileApprove)
+        .await
+        .expect("first mobile attempt should start");
+    let second = engine
+        .step_start(token.clone(), VpnClientMfaMethod::MobileApprove)
+        .await
+        .expect("reissued mobile attempt should start");
+    let first_challenge = first.challenge.expect("mobile attempt needs a challenge");
+    let signature = BASE64_STANDARD.encode(signing_key.sign(first_challenge.as_bytes()).to_bytes());
+
+    let error = engine
+        .approve_mobile_step(
+            token.clone(),
+            super::multi_step::MobileApprovalProof {
+                signature,
+                auth_pub_key,
+                step_attempt_id: first.step_attempt_id,
+            },
+            test_ip(),
+        )
+        .await
+        .expect_err("a superseded mobile approval must be rejected");
+    assert!(matches!(
+        error,
+        super::multi_step::StepFinishError::StaleAttempt
+    ));
+
+    let current = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("the session must remain active");
+    assert_eq!(current.failed_attempts, 0);
+    assert_eq!(
+        current
+            .ephemeral_state
+            .expect("current attempt must remain")
+            .0
+            .step_attempt_id,
+        second.step_attempt_id
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            current.location_id,
+            current.device_id,
+        )
+        .await
+        .expect("session lookup should succeed")
+        .is_empty()
+    );
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
+}
+
+#[sqlx::test]
+async fn test_mobile_approval_rejection_increments_failure_once(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (session, token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Mobile approval rejection flow",
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let registered_key = SigningKey::from_bytes(&[9; 32]);
+    let invalid_key = SigningKey::from_bytes(&[10; 32]);
+    let auth_pub_key = BASE64_STANDARD.encode(registered_key.verifying_key().to_bytes());
+    BiometricAuth::new(session.device_id, auth_pub_key.clone())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+
+    let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
+    let attempt = engine
+        .step_start(token.clone(), VpnClientMfaMethod::MobileApprove)
+        .await
+        .expect("mobile attempt should start");
+    let challenge = attempt.challenge.expect("mobile attempt needs a challenge");
+    let signature = BASE64_STANDARD.encode(invalid_key.sign(challenge.as_bytes()).to_bytes());
+
+    let error = Status::from(
+        engine
+            .approve_mobile_step(
+                token.clone(),
+                super::multi_step::MobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                    step_attempt_id: attempt.step_attempt_id,
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("an invalid mobile signature must be rejected"),
+    );
+    assert_eq!(error.code(), Code::Unauthenticated);
+    assert_eq!(error.message(), "unauthorized");
+
+    let current = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("the session must remain active");
+    assert_eq!(current.failed_attempts, 1);
+    assert!(
+        !current
+            .ephemeral_state
+            .expect("current attempt must remain")
+            .0
+            .mobile_approved
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            current.location_id,
+            current.device_id,
+        )
+        .await
+        .expect("session lookup should succeed")
+        .is_empty()
+    );
+    match event_rx
+        .try_recv()
+        .expect("invalid approval must emit one event")
+        .event
+    {
+        BidiStreamEventType::DesktopClientMfa(event) => {
+            assert!(matches!(*event, DesktopClientMfaEvent::Failed { .. }));
+        }
+        other => panic!("unexpected stream event: {other:?}"),
+    }
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
 }
 
 #[sqlx::test]
@@ -504,7 +740,7 @@ async fn test_start_and_step_start_reject_unconfigured_biometric_method(
             .iter()
             .map(VpnClientMfaMethod::ordered_set)
             .collect(),
-        VpnMfaFlowKind::Legacy,
+        VpnMfaFlowKind::MultiStep,
         VpnClientMfaMethod::Totp,
         None,
         VPN_MFA_SESSION_TIMEOUT,
@@ -624,15 +860,9 @@ async fn test_step_start_oidc_survives_license_lapse(_: PgPoolOptions, options: 
         panic!("expected an accepted plan")
     };
     engine
-        .finish(
+        .finish_step(
             start.token.clone(),
-            Proof {
-                code: Some(totp_code(&user)),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(start.step_attempt_id.clone(), totp_code(&user)),
             test_ip(),
         )
         .await
@@ -815,7 +1045,7 @@ async fn start_two_step_session(pool: &PgPool, user_id: Id) -> (VpnClientMfaSess
             vec![VpnClientMfaMethod::Totp],
             vec![VpnClientMfaMethod::Email],
         ],
-        VpnMfaFlowKind::Legacy,
+        VpnMfaFlowKind::MultiStep,
         VpnClientMfaMethod::Totp,
         None,
         VPN_MFA_SESSION_TIMEOUT,
@@ -831,22 +1061,44 @@ async fn start_session_with_flow(
     user_id: Id,
     title: &str,
     steps: Vec<Vec<VpnClientMfaMethod>>,
+    flow_kind: VpnMfaFlowKind,
 ) -> (VpnClientMfaSession<Id>, String, MfaFlow<Id>) {
     let location = create_mfa_location(pool).await;
     let device = create_device(pool, user_id).await;
     attach_device_to_location(pool, location.id, device.id).await;
+    start_session_with_context(
+        pool,
+        location.id,
+        device.id,
+        user_id,
+        title,
+        steps,
+        flow_kind,
+    )
+    .await
+}
+
+async fn start_session_with_context(
+    pool: &PgPool,
+    location_id: Id,
+    device_id: Id,
+    user_id: Id,
+    title: &str,
+    steps: Vec<Vec<VpnClientMfaMethod>>,
+    flow_kind: VpnMfaFlowKind,
+) -> (VpnClientMfaSession<Id>, String, MfaFlow<Id>) {
     let mut tx = pool.begin().await.unwrap();
     let (flow, _) = MfaFlow::create(&mut tx, title.to_owned(), steps.clone())
         .await
         .unwrap();
     let (session, outcome) = VpnClientMfaSession::<Id>::start(
         &mut tx,
-        location.id,
-        device.id,
+        location_id,
+        device_id,
         user_id,
         flow.id,
         steps.clone(),
-        VpnMfaFlowKind::Legacy,
+        flow_kind,
         steps[0][0],
         None,
         VPN_MFA_SESSION_TIMEOUT,
@@ -960,15 +1212,9 @@ async fn test_mfa_actions_reject_missing_session(_: PgPoolOptions, options: PgCo
 
     let status = Status::from(
         engine
-            .finish(
+            .finish_step(
                 "missing-token".to_owned(),
-                Proof {
-                    code: Some("000000".to_owned()),
-                    auth_pub_key: None,
-                    step_attempt_id: Some("attempt".to_owned()),
-                    auth_data: None,
-                    credential_id: None,
-                },
+                code_proof("attempt", "000000"),
                 test_ip(),
             )
             .await
@@ -976,6 +1222,114 @@ async fn test_mfa_actions_reject_missing_session(_: PgPoolOptions, options: PgCo
     );
     assert_eq!(status.code(), Code::InvalidArgument);
     assert_eq!(status.message(), "login session not found");
+}
+
+#[sqlx::test]
+async fn test_engine_rejects_cross_contract_calls_without_side_effects(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (legacy_session, legacy_token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Cross-contract legacy flow",
+        vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::Legacy,
+    )
+    .await;
+    let legacy_attempt = legacy_session
+        .ephemeral_state
+        .as_ref()
+        .expect("legacy session must have an attempt")
+        .step_attempt_id
+        .clone();
+    let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
+
+    assert!(matches!(
+        engine
+            .step_start(legacy_token.clone(), VpnClientMfaMethod::Totp)
+            .await
+            .expect_err("multi-step start must reject a legacy session"),
+        StepError::SessionNotFound
+    ));
+    assert!(matches!(
+        engine
+            .finish_step(
+                legacy_token.clone(),
+                code_proof(legacy_attempt.clone(), "000000"),
+                test_ip(),
+            )
+            .await
+            .expect_err("multi-step finish must reject a legacy session"),
+        super::multi_step::StepFinishError::SessionNotFound
+    ));
+    assert!(matches!(
+        engine
+            .approve_mobile_step(
+                legacy_token.clone(),
+                super::multi_step::MobileApprovalProof {
+                    signature: "signature".to_owned(),
+                    auth_pub_key: "key".to_owned(),
+                    step_attempt_id: legacy_attempt,
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("multi-step approval must reject a legacy session"),
+        super::multi_step::StepFinishError::SessionNotFound
+    ));
+
+    let legacy_session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &legacy_token)
+        .await
+        .expect("legacy session lookup must succeed")
+        .expect("legacy session must survive cross-contract calls");
+    assert_eq!(legacy_session.failed_attempts, 0);
+    assert_eq!(legacy_session.current_step, 0);
+    assert!(event_rx.try_recv().is_err());
+
+    let location_id = legacy_session.location_id;
+    let device_id = legacy_session.device_id;
+    let mut tx = pool.begin().await.expect("transaction must start");
+    legacy_session
+        .delete(&mut *tx)
+        .await
+        .expect("legacy session cleanup must succeed");
+    tx.commit()
+        .await
+        .expect("legacy session cleanup must commit");
+    let (_multi_session, multi_token, _) = start_session_with_context(
+        &pool,
+        location_id,
+        device_id,
+        user.id,
+        "Cross-contract multi-step flow",
+        vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let err = engine
+        .finish_legacy(
+            multi_token.clone(),
+            LegacyProof {
+                code: Some("000000".to_owned()),
+                auth_pub_key: None,
+            },
+            test_ip(),
+        )
+        .await
+        .expect_err("legacy finish must reject a multi-step session");
+    assert!(matches!(err, FinishError::SessionNotFound));
+    let multi_session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &multi_token)
+        .await
+        .expect("multi-step session lookup must succeed")
+        .expect("multi-step session must survive cross-contract calls");
+    assert_eq!(multi_session.failed_attempts, 0);
+    assert_eq!(multi_session.current_step, 0);
 }
 
 #[sqlx::test]
@@ -1045,6 +1399,13 @@ fn test_ip() -> IpAddr {
     IpAddr::V4(Ipv4Addr::new(10, 0, 0, 7))
 }
 
+fn code_proof(step_attempt_id: impl Into<String>, code: impl Into<String>) -> StepProof {
+    StepProof {
+        step_attempt_id: step_attempt_id.into(),
+        credential: Some(StepCredential::Code(code.into())),
+    }
+}
+
 #[sqlx::test]
 async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnectOptions) {
     set_test_license_business();
@@ -1087,18 +1448,13 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
         panic!("expected an accepted plan")
     };
     let token = outcome.token;
+    let first_attempt_id = outcome.step_attempt_id;
 
     // The first TOTP proof advances without authorizing the peer.
-    let (outcome, _) = engine
-        .finish(
+    let outcome = engine
+        .finish_step(
             token.clone(),
-            Proof {
-                code: Some(totp_code(&user)),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(first_attempt_id, totp_code(&user)),
             test_ip(),
         )
         .await
@@ -1113,20 +1469,14 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
     );
     assert!(event_rx.try_recv().is_err());
 
-    engine
+    let second_attempt = engine
         .step_start(token.clone(), VpnClientMfaMethod::Email)
         .await
         .expect("step_start should succeed");
-    let (outcome, _) = engine
-        .finish(
+    let outcome = engine
+        .finish_step(
             token.clone(),
-            Proof {
-                code: Some(email_code(&user)),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(second_attempt.step_attempt_id, email_code(&user)),
             test_ip(),
         )
         .await
@@ -1222,18 +1572,13 @@ async fn test_finish_replayed_proof_cannot_skip_a_step(
         panic!("expected an accepted plan")
     };
     let token = outcome.token;
+    let first_attempt_id = outcome.step_attempt_id;
 
     let code = totp_code(&user);
-    let (outcome, _) = engine
-        .finish(
+    let outcome = engine
+        .finish_step(
             token.clone(),
-            Proof {
-                code: Some(code.clone()),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(first_attempt_id.clone(), code.clone()),
             test_ip(),
         )
         .await
@@ -1242,17 +1587,7 @@ async fn test_finish_replayed_proof_cannot_skip_a_step(
 
     // Replay the very same proof. It must not complete the flow.
     let err = engine
-        .finish(
-            token.clone(),
-            Proof {
-                code: Some(code),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
-            test_ip(),
-        )
+        .finish_step(token.clone(), code_proof(first_attempt_id, code), test_ip())
         .await
         .expect_err("a replayed step-0 proof must not satisfy step 1");
     let err = Status::from(err);
@@ -1328,17 +1663,12 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
         panic!("expected an accepted plan")
     };
     let token = outcome.token;
+    let first_attempt_id = outcome.step_attempt_id;
 
     engine
-        .finish(
+        .finish_step(
             token.clone(),
-            Proof {
-                code: Some(totp_code(&user)),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(first_attempt_id, totp_code(&user)),
             test_ip(),
         )
         .await
@@ -1356,15 +1686,9 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
 
     // Spend the superseded attempt id: rejected even though the code itself is valid.
     let err = engine
-        .finish(
+        .finish_step(
             token.clone(),
-            Proof {
-                code: Some(email_code(&user)),
-                auth_pub_key: None,
-                step_attempt_id: Some(first.step_attempt_id),
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(first.step_attempt_id, email_code(&user)),
             test_ip(),
         )
         .await
@@ -1374,16 +1698,10 @@ async fn test_finish_rejects_superseded_attempt_id(_: PgPoolOptions, options: Pg
     assert_eq!(err.message(), "stale MFA attempt");
 
     // The current attempt still works, so the guard rejects staleness, not the method.
-    let (outcome, _) = engine
-        .finish(
+    let outcome = engine
+        .finish_step(
             token,
-            Proof {
-                code: Some(email_code(&user)),
-                auth_pub_key: None,
-                step_attempt_id: Some(second.step_attempt_id),
-                auth_data: None,
-                credential_id: None,
-            },
+            code_proof(second.step_attempt_id, email_code(&user)),
             test_ip(),
         )
         .await
@@ -1407,6 +1725,7 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
         user.id,
         "One-step cap flow",
         vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::MultiStep,
     )
     .await;
     let attempt_id = session
@@ -1420,15 +1739,9 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
     for _ in 0..MFA_FAILED_ATTEMPT_CAP - 1 {
         let err = Status::from(
             engine
-                .finish(
+                .finish_step(
                     token.clone(),
-                    Proof {
-                        code: Some("000000".to_owned()),
-                        auth_pub_key: None,
-                        step_attempt_id: Some(attempt_id.clone()),
-                        auth_data: None,
-                        credential_id: None,
-                    },
+                    code_proof(attempt_id.clone(), "000000"),
                     test_ip(),
                 )
                 .await
@@ -1440,17 +1753,7 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
 
     let err = Status::from(
         engine
-            .finish(
-                token.clone(),
-                Proof {
-                    code: Some("000000".to_owned()),
-                    auth_pub_key: None,
-                    step_attempt_id: Some(attempt_id),
-                    auth_data: None,
-                    credential_id: None,
-                },
-                test_ip(),
-            )
+            .finish_step(token.clone(), code_proof(attempt_id, "000000"), test_ip())
             .await
             .expect_err("the cap must require a restart"),
     );
@@ -1462,17 +1765,7 @@ async fn test_finish_cap_with_attempt_id_returns_restart_status_for_one_step_flo
 
     let err = Status::from(
         engine
-            .finish(
-                token,
-                Proof {
-                    code: Some("000000".to_owned()),
-                    auth_pub_key: None,
-                    step_attempt_id: None,
-                    auth_data: None,
-                    credential_id: None,
-                },
-                test_ip(),
-            )
+            .finish_step(token, code_proof("attempt", "000000"), test_ip())
             .await
             .expect_err("a capped session must be gone"),
     );
@@ -1506,6 +1799,7 @@ async fn test_finish_cap_emits_frozen_partial_abort_attribution(
             vec![VpnClientMfaMethod::Totp],
             vec![VpnClientMfaMethod::Email],
         ],
+        VpnMfaFlowKind::MultiStep,
     )
     .await;
     advance_session(&pool, &session).await;
@@ -1518,15 +1812,9 @@ async fn test_finish_cap_emits_frozen_partial_abort_attribution(
     for _ in 0..MFA_FAILED_ATTEMPT_CAP - 1 {
         let err = Status::from(
             engine
-                .finish(
+                .finish_step(
                     token.clone(),
-                    Proof {
-                        code: Some("000000".to_owned()),
-                        auth_pub_key: None,
-                        step_attempt_id: Some(email_attempt.step_attempt_id.clone()),
-                        auth_data: None,
-                        credential_id: None,
-                    },
+                    code_proof(email_attempt.step_attempt_id.clone(), "000000"),
                     test_ip(),
                 )
                 .await
@@ -1536,15 +1824,9 @@ async fn test_finish_cap_emits_frozen_partial_abort_attribution(
     }
     let err = Status::from(
         engine
-            .finish(
+            .finish_step(
                 token,
-                Proof {
-                    code: Some("000000".to_owned()),
-                    auth_pub_key: None,
-                    step_attempt_id: Some(email_attempt.step_attempt_id),
-                    auth_data: None,
-                    credential_id: None,
-                },
+                code_proof(email_attempt.step_attempt_id, "000000"),
                 test_ip(),
             )
             .await
@@ -1603,6 +1885,7 @@ async fn test_finish_legacy_cap_deletes_session_and_emits_abort(
             vec![VpnClientMfaMethod::Totp],
             vec![VpnClientMfaMethod::Email],
         ],
+        VpnMfaFlowKind::Legacy,
     )
     .await;
 
@@ -1679,17 +1962,7 @@ async fn test_finish_on_uninitialized_step(_: PgPoolOptions, options: PgConnectO
 
     let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
     let err = engine
-        .finish(
-            token,
-            Proof {
-                code: Some("000000".to_owned()),
-                auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
-            test_ip(),
-        )
+        .finish_step(token, code_proof("attempt", "000000"), test_ip())
         .await
         .expect_err("finish on an uninitialized step must be rejected");
     let err = Status::from(err);
