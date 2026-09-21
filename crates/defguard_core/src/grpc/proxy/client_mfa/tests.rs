@@ -29,9 +29,10 @@ use defguard_common::db::{
 };
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaFlowStartRequest, ClientMfaFlowStepStartRequest,
-        ClientMfaStartRequest, MfaMethod, MfaStartRejectionReason, client_mfa_flow_start_response,
-        mfa_step_started,
+        ClientMfaFinishRequest, ClientMfaFlowStartRequest, ClientMfaFlowStepFinishRequest,
+        ClientMfaFlowStepStartRequest, ClientMfaStartRequest, MfaCodeCredential, MfaMethod,
+        MfaStartRejectionReason, client_mfa_flow_start_response,
+        client_mfa_flow_step_finish_request, mfa_step_started,
     },
     enterprise::posture::{BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check},
     proxy::{ClientMfaOidcAuthenticateRequest, ClientMfaTokenValidationRequest, DeviceInfo},
@@ -63,7 +64,10 @@ use crate::{
         GatewayCommand, proto::enterprise::license::LicenseLimits,
         proxy::client_mfa::RemoteAuthWaiters,
     },
-    mfa_engine::authorize::{EventChannels, create_new_session},
+    mfa_engine::{
+        authorize::{EventChannels, create_new_session},
+        multi_step::StepCredential,
+    },
 };
 
 const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -2439,4 +2443,69 @@ async fn save_linux_posture_policy(pool: &PgPool, location_id: Id) {
     )
     .await
     .expect("failed to assign posture policy to location");
+}
+
+#[sqlx::test]
+async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let start = server
+        .start_client_mfa_flow(
+            ClientMfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+        panic!("unexpected posture rejection");
+    };
+    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let attempt_id = accepted
+        .first_step
+        .expect("flow start must include an attempt")
+        .step_attempt_id;
+    let error = server
+        .client_mfa_flow_step_finish(
+            ClientMfaFlowStepFinishRequest {
+                token: accepted.token,
+                step_attempt_id: attempt_id,
+                submission: None,
+            },
+            device_info(),
+        )
+        .await
+        .expect_err("a TOTP step must reject an empty typed submission");
+    assert_eq!(error.code(), Code::InvalidArgument);
+    assert_eq!(
+        error.message(),
+        "MFA credential does not match the selected method"
+    );
+}
+
+#[test]
+fn test_flow_step_finish_converts_typed_code_submission() {
+    let (token, proof) = super::into_step_proof(ClientMfaFlowStepFinishRequest {
+        token: "token".to_owned(),
+        step_attempt_id: "attempt".to_owned(),
+        submission: Some(client_mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential {
+                code: "123456".to_owned(),
+            },
+        )),
+    });
+    assert_eq!(token, "token");
+    assert_eq!(proof.step_attempt_id, "attempt");
+    assert_eq!(
+        proof.credential,
+        Some(StepCredential::Code("123456".to_owned()))
+    );
 }

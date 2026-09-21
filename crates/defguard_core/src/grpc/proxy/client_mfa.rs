@@ -23,11 +23,14 @@ use defguard_common::{
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaFlowStartRequest,
-        ClientMfaFlowStartResponse, ClientMfaFlowStepStartRequest, ClientMfaFlowStepStartResponse,
-        ClientMfaStartRequest, ClientMfaStartResponse, MfaAdvanced, MfaAwaitingExternal,
-        MfaCompleted, MfaFido2Challenge, MfaFlowStartAccepted, MfaFlowStartRejected, MfaMethod,
-        MfaSignatureChallenge, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
-        MfaStepStarted, client_mfa_flow_start_response, mfa_step_result, mfa_step_started,
+        ClientMfaFlowStartResponse, ClientMfaFlowStepFinishRequest,
+        ClientMfaFlowStepFinishResponse, ClientMfaFlowStepStartRequest,
+        ClientMfaFlowStepStartResponse, ClientMfaStartRequest, ClientMfaStartResponse, MfaAdvanced,
+        MfaAwaitingExternal, MfaBiometricSignature, MfaCodeCredential, MfaCompleted,
+        MfaFido2Assertion, MfaFido2Challenge, MfaFlowStartAccepted, MfaFlowStartRejected,
+        MfaMethod, MfaSignatureChallenge, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
+        MfaStepStarted, client_mfa_flow_start_response, client_mfa_flow_step_finish_request,
+        mfa_step_result, mfa_step_started,
     },
     enterprise::posture::{DevicePostureCheckRequest, DevicePostureData},
     proxy::{
@@ -60,7 +63,10 @@ use crate::{
         is_mobile_approve_request,
         legacy::{FinishError, LegacyProof},
         method::InitiateError,
-        multi_step::{StartRejectionReason, StartResult, StepError, StepRejection},
+        multi_step::{
+            Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError,
+            StepFinishError, StepProof, StepRejection,
+        },
         types::{FinishOutcome, StartOutcome},
     },
 };
@@ -244,6 +250,35 @@ fn flow_step_started(
     })
 }
 
+fn into_step_proof(request: ClientMfaFlowStepFinishRequest) -> (String, StepProof) {
+    let credential = request.submission.map(|submission| match submission {
+        client_mfa_flow_step_finish_request::Submission::Code(MfaCodeCredential { code }) => {
+            StepCredential::Code(code)
+        }
+        client_mfa_flow_step_finish_request::Submission::Biometric(MfaBiometricSignature {
+            signature,
+        }) => StepCredential::BiometricSignature(signature),
+        client_mfa_flow_step_finish_request::Submission::Fido2(MfaFido2Assertion {
+            rp_id_hash,
+            authenticator_data,
+            signature,
+            credential_id,
+        }) => StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash,
+            authenticator_data,
+            signature,
+            credential_id,
+        }),
+    });
+    (
+        request.token,
+        StepProof {
+            step_attempt_id: request.step_attempt_id,
+            credential,
+        },
+    )
+}
+
 impl From<StartRejectionReason> for MfaStartRejectionReason {
     fn from(value: StartRejectionReason) -> Self {
         match value {
@@ -308,6 +343,25 @@ impl From<FinishError> for Status {
             FinishError::AttemptLimit => Code::PermissionDenied,
             FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
             FinishError::Event(e) => return Status::from(e),
+        };
+        Status::new(code, err.to_string())
+    }
+}
+
+impl From<StepFinishError> for Status {
+    fn from(err: StepFinishError) -> Self {
+        let code = match err {
+            StepFinishError::SessionNotFound
+            | StepFinishError::UninitializedStep
+            | StepFinishError::StaleAttempt
+            | StepFinishError::MissingChallenge
+            | StepFinishError::MalformedProof { .. } => Code::InvalidArgument,
+            StepFinishError::Unauthorized => Code::Unauthenticated,
+            StepFinishError::AttemptLimit => Code::PermissionDenied,
+            StepFinishError::MissingBiometricChallenge | StepFinishError::Internal => {
+                Code::Internal
+            }
+            StepFinishError::Event(e) => return Status::from(e),
         };
         Status::new(code, err.to_string())
     }
@@ -1002,6 +1056,20 @@ impl ClientMfaServer {
         )?;
         Ok(ClientMfaFlowStepStartResponse {
             started: Some(started),
+        })
+    }
+
+    #[instrument(skip_all)]
+    pub async fn client_mfa_flow_step_finish(
+        &mut self,
+        request: ClientMfaFlowStepFinishRequest,
+        info: Option<proxy::DeviceInfo>,
+    ) -> Result<ClientMfaFlowStepFinishResponse, Status> {
+        let (token, proof) = into_step_proof(request);
+        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
+        let result = self.engine.finish_step(token, proof, ip).await?;
+        Ok(ClientMfaFlowStepFinishResponse {
+            result: Some(result.into()),
         })
     }
 
