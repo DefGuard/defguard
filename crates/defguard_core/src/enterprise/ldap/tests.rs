@@ -21,8 +21,9 @@ use tokio::sync::{
 
 use super::{
     model::{
-        Dn, LdapEntry, UAC_ACCOUNT_DISABLE, extract_rdn_value, get_users_without_ldap_path,
-        in_attrs, ldap_sync_allowed_for_user_scoped, user_as_ldap_attrs, user_from_searchentry,
+        Dn, LdapEntry, UAC_ACCOUNT_DISABLE, dn_match_key, extract_rdn_value,
+        get_users_without_ldap_path, in_attrs, ldap_sync_allowed_for_user_scoped,
+        user_as_ldap_attrs, user_from_searchentry,
     },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
@@ -1891,6 +1892,58 @@ async fn test_fix_missing_user_path(_: PgPoolOptions, options: PgConnectOptions)
     }
 }
 
+/// A group member the directory spells with `\,` must resolve to the user it names.
+#[sqlx::test]
+async fn test_sync_resolves_membership_for_comma_in_rdn(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("directory-group").save(&pool).await.unwrap();
+    let path = "OU=Members,DC=example,DC=com";
+    let ldap_user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+    let directory_dn = format!(r"CN=Doe\, John - jdoe,{path}");
+    assert_ne!(config.user_dn(&ldap_user), Dn::from(directory_dn.as_str()));
+
+    let mut defguard_user = ldap_user.clone();
+    defguard_user.from_ldap = true;
+    let defguard_user = defguard_user.save(&pool).await.unwrap();
+
+    ldap_conn
+        .test_client_mut()
+        .add_test_user_with_dn(&ldap_user, &directory_dn);
+    let ldap_group = group.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_group(&ldap_group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership_with_dn(&ldap_group, &directory_dn, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        group.member_usernames(&pool).await.unwrap(),
+        vec![defguard_user.username]
+    );
+}
 /// A dry run must preview the additions/removals a full sync would make while writing nothing
 /// to LDAP or the Defguard database. This guards the hard "no import" requirement of the LDAP
 /// setup preview.
@@ -3201,6 +3254,35 @@ async fn test_get_empty_user_path(_: PgPoolOptions, options: PgConnectOptions) {
     let mut users = get_users_without_ldap_path(&pool).await.unwrap();
     let user_found = users.pop().unwrap();
     assert_eq!(user_found.username, user.username);
+}
+
+#[test]
+fn test_dn_match_key_reconciles_escape_spellings() {
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    let path = "OU=Members,DC=example,DC=com";
+    let user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+
+    let member_dn = format!(r"CN=Doe\, John - jdoe,{path}");
+    let rebuilt = config.user_dn(&user);
+    assert_ne!(Dn::from(member_dn.as_str()), rebuilt);
+    assert_eq!(dn_match_key(&member_dn, &config), rebuilt);
+
+    // Either spelling a server may choose lands on one key.
+    let hexpair_dn = format!(r"CN=Doe\2c John - jdoe,{path}");
+    assert_eq!(
+        dn_match_key(&hexpair_dn, &config),
+        dn_match_key(&member_dn, &config)
+    );
+
+    assert_eq!(dn_match_key("value", &config), Dn::from("value"));
 }
 
 #[test]
