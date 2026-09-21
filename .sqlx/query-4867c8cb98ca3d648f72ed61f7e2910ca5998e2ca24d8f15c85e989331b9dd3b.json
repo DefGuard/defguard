@@ -1,0 +1,147 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (device_id) id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, is_mfa_session, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND state IN ('new', 'connected') ORDER BY device_id, created_at DESC, id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "location_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "connected_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "connected_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "disconnected_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "disconnected_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "is_mfa_session",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "is_mfa_session"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "state: VpnClientSessionState",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_session_state",
+            "kind": {
+              "Enum": [
+                "new",
+                "connected",
+                "disconnected"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "preshared_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "preshared_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "4867c8cb98ca3d648f72ed61f7e2910ca5998e2ca24d8f15c85e989331b9dd3b"
+}

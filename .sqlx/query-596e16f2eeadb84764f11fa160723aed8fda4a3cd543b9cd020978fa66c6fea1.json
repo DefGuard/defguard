@@ -6,67 +6,145 @@
       {
         "ordinal": 0,
         "name": "ca_cert_der",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "ca_cert_der"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "ca_key_der",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "ca_key_der"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "ca_expiry",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "ca_expiry"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "proxy_http_cert_source: ProxyCertSource",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "proxy_http_cert_source"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "proxy_http_cert_pem",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "proxy_http_cert_pem"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "proxy_http_cert_key_pem",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "proxy_http_cert_key_pem"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "proxy_http_cert_expiry",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "proxy_http_cert_expiry"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "acme_domain",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "acme_domain"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "acme_account_credentials",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "acme_account_credentials"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "core_http_cert_source: CoreCertSource",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "core_http_cert_source"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "core_http_cert_pem",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "core_http_cert_pem"
+          }
+        }
       },
       {
         "ordinal": 11,
         "name": "core_http_cert_key_pem",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "core_http_cert_key_pem"
+          }
+        }
       },
       {
         "ordinal": 12,
         "name": "core_http_cert_expiry",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "certificates",
+            "name": "core_http_cert_expiry"
+          }
+        }
       }
     ],
     "parameters": {

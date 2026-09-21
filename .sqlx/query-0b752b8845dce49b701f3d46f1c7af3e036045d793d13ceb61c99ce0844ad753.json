@@ -6,27 +6,57 @@
       {
         "ordinal": 0,
         "name": "template",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "template"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "section",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "section"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "language_tag",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "language_tag"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "text",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "text"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "enabled"
+          }
+        }
       }
     ],
     "parameters": {

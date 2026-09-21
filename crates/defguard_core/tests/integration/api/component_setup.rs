@@ -816,8 +816,8 @@ async fn dg2608_6_test_setup_streams_reject_cross_site_form_requests(
     let (client, network_id) = setup_test_no_ca(&pool).await;
 
     let paths = [
-        "/api/v1/proxy/setup/stream".to_string(),
-        "/api/v1/proxy/acme/stream".to_string(),
+        "/api/v1/proxy/setup/stream".to_owned(),
+        "/api/v1/proxy/acme/stream".to_owned(),
         format!("/api/v1/network/{network_id}/gateways/setup"),
     ];
 

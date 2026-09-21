@@ -81,7 +81,6 @@ impl TestClient {
         self.client.post(format!("{}{}", self.base_url(), path))
     }
 
-    #[allow(dead_code)]
     pub fn put(&self, path: &str) -> reqwest::RequestBuilder {
         self.client.put(format!("{}{}", self.base_url(), path))
     }

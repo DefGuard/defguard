@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "mfa_enabled!: bool",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "mfa_enabled"
+          }
+        }
       },
       {
         "ordinal": 1,
@@ -31,6 +37,12 @@
                 }
               }
             }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "mfa_flow_step",
+            "name": "methods"
           }
         }
       }

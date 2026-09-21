@@ -6,22 +6,36 @@
       {
         "ordinal": 0,
         "name": "network_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network_device",
+            "name": "wireguard_network_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "device_wireguard_ips: Vec<IpAddr>",
-        "type_info": "InetArray"
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network_device",
+            "name": "wireguard_ips"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "preshared_key?",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": "Expression"
       },
       {
         "ordinal": 3,
         "name": "is_authorized!",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {

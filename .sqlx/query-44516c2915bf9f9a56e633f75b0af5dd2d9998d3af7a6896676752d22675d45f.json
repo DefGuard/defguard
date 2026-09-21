@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "posture_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_posture_location",
+            "name": "posture_id"
+          }
+        }
       }
     ],
     "parameters": {

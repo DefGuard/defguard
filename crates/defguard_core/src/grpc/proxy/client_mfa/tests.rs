@@ -102,7 +102,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, mut gateway_rx) = make_server(pool.clone());
 
     let outcome = server
         .handle_posture_check(
@@ -180,7 +180,7 @@ async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
         .await
         .expect("failed to create previous posture session");
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
 
     server
         .handle_posture_check(
@@ -271,7 +271,7 @@ async fn test_posture_check_requires_a_token(_: PgPoolOptions, options: PgConnec
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
-    let (mut server, _, mut gateway_rx) = make_server(pool.clone());
+    let (server, _, mut gateway_rx) = make_server(pool.clone());
 
     for token in [None, Some(String::new())] {
         let err = server
@@ -314,7 +314,7 @@ async fn test_posture_check_rejects_unknown_token(_: PgPoolOptions, options: PgC
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
-    let (mut server, _, _) = make_server(pool);
+    let (server, _, _) = make_server(pool);
 
     let err = server
         .handle_posture_check(
@@ -381,7 +381,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
         .await
         .expect("failed to create victim session");
 
-    let (mut server, _, mut gateway_rx) = make_server(pool.clone());
+    let (server, _, mut gateway_rx) = make_server(pool.clone());
 
     // Attacker presents its own valid token but claims the victim's public key.
     let err = server
@@ -428,7 +428,7 @@ async fn test_posture_check_rejects_mfa_enabled_location(
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, _, _) = make_server(pool);
+    let (server, _, _) = make_server(pool);
 
     let Err(err) = server
         .handle_posture_check(
@@ -467,7 +467,7 @@ async fn test_posture_check_without_postures_approves_with_empty_preshared_key(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, mut gateway_rx) = make_server(pool.clone());
 
     let outcome = server
         .handle_posture_check(
@@ -520,7 +520,7 @@ async fn test_posture_check_without_postures_rejects_device_not_assigned_to_loca
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, mut event_rx, mut gateway_rx) = make_server(pool);
+    let (server, mut event_rx, mut gateway_rx) = make_server(pool);
 
     let Err(status) = server
         .handle_posture_check(
@@ -563,7 +563,7 @@ async fn test_posture_check_without_postures_still_rejects_inactive_user(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
 
     let status = match server
         .handle_posture_check(
@@ -607,7 +607,7 @@ async fn test_posture_check_pass_emits_posture_check_passed_event(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
     let posture_data = passing_linux_posture_data();
     match server
@@ -684,7 +684,7 @@ async fn test_posture_check_failure_revokes_active_session(
         .await
         .expect("failed to create active posture session");
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
 
     // the policy requires disk encryption
     let posture_data = DevicePostureData {
@@ -832,7 +832,7 @@ async fn test_mfa_start_posture_failure_revokes_active_session(
         .save(&pool)
         .await
         .expect("failed to create active MFA session");
-    let (mut server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
     let posture_data = DevicePostureData {
         disk_encryption: Some(BoolCheck {
             result: Some(bool_check::Result::Value(false)),
@@ -924,7 +924,7 @@ async fn test_mfa_start_rejects_non_derivable_location_with_update_message(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, _, _) = make_server(pool);
+    let (server, _, _) = make_server(pool);
 
     let error = server
         .start_client_mfa_login(
@@ -977,7 +977,7 @@ async fn test_session_revocation_survives_unavailable_side_effect_consumers(
     .await
     .expect("failed to create active posture session");
     let token = create_polling_token(&pool, device.id).await;
-    let (mut server, event_rx, gateway_rx) = make_server(pool.clone());
+    let (server, event_rx, gateway_rx) = make_server(pool.clone());
     drop(event_rx);
     drop(gateway_rx);
     let posture_data = DevicePostureData {
@@ -1432,7 +1432,7 @@ async fn setup_totp_mfa_server(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, event_rx, gateway_rx) = make_server(pool);
+    let (server, event_rx, gateway_rx) = make_server(pool);
     let start = server
         .start_client_mfa_login(
             ClientMfaStartRequest {
@@ -1543,7 +1543,7 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, _location_id, _pubkey, token, _event_rx, _gateway_rx) =
+    let (server, _location_id, _pubkey, token, _event_rx, _gateway_rx) =
         setup_totp_mfa_server(options).await;
     let hash = hash_token(&token);
 
@@ -1607,7 +1607,7 @@ async fn test_start_client_mfa_login_supersedes_parked_waiter_with_defined_resul
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, location_id, pubkey, token, _event_rx, _gateway_rx) =
+    let (server, location_id, pubkey, token, _event_rx, _gateway_rx) =
         setup_totp_mfa_server(options).await;
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
@@ -1670,7 +1670,7 @@ async fn test_finish_client_mfa_login_totp_authorizes_session(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
     let start = server
         .start_client_mfa_login(
@@ -1778,7 +1778,7 @@ async fn test_finish_client_mfa_login_failure_cap_deletes_session(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
     let start = server
         .start_client_mfa_login(
@@ -1861,7 +1861,7 @@ async fn start_mfa_session_direct(pool: &PgPool, ttl: Duration) -> String {
 #[sqlx::test]
 async fn test_validate_mfa_token(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
 
     // Unknown token.
     let resp = server
@@ -2617,7 +2617,7 @@ async fn test_start_client_mfa_login_rejects_bad_device_info_without_persisting(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
 
     let request = || ClientMfaStartRequest {
         location_id: location.id,
@@ -2680,7 +2680,7 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
     attach_device_to_location(&pool, location.id, device.id).await;
 
     // Start the login on one server instance.
-    let (mut server_a, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server_a, _event_rx, _gateway_rx) = make_server(pool.clone());
     let start = server_a
         .start_client_mfa_login(
             ClientMfaStartRequest {
@@ -2700,7 +2700,7 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
 
     // A "restart" is a fresh server instance with a fresh in-memory waiter map over the
     // same database. The durable session must survive it.
-    let (mut server_b, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server_b, _event_rx, _gateway_rx) = make_server(pool.clone());
 
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -2746,7 +2746,7 @@ async fn test_auth_mfa_session_with_oidc_rejects_non_oidc_method(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
     let start = server
         .start_client_mfa_login(
             ClientMfaStartRequest {
@@ -2819,7 +2819,7 @@ async fn test_auth_mfa_session_with_oidc_rejects_invalid_state_without_mutating_
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
     let start = server
         .start_client_mfa_login(
             ClientMfaStartRequest {

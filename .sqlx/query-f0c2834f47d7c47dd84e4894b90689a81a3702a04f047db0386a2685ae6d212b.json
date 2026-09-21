@@ -6,37 +6,79 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "timestamp",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "timestamp"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "user_id?: _",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "username",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "username"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "location",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "location"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "ip?: _",
-        "type_info": "Inet"
+        "type_info": "Inet",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "ip"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "event: _",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "event"
+          }
+        }
       },
       {
         "ordinal": 7,
@@ -57,22 +99,46 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "module"
+          }
         }
       },
       {
         "ordinal": 8,
         "name": "device",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "device"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "description",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "description"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "metadata",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "activity_log_event",
+            "name": "metadata"
+          }
+        }
       }
     ],
     "parameters": {

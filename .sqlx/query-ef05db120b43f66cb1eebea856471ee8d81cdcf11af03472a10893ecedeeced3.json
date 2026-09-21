@@ -6,32 +6,68 @@
       {
         "ordinal": 0,
         "name": "oauth2authorizedapp_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth2token",
+            "name": "oauth2authorizedapp_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "access_token",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth2token",
+            "name": "access_token"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "refresh_token",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth2token",
+            "name": "refresh_token"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "redirect_uri",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth2token",
+            "name": "redirect_uri"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "scope",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth2token",
+            "name": "scope"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "expires_in",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth2token",
+            "name": "expires_in"
+          }
+        }
       }
     ],
     "parameters": {

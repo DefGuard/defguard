@@ -6,27 +6,57 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "wireguard_pubkey",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "wireguard_pubkey"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "created",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "created"
+          }
+        }
       },
       {
         "ordinal": 5,
@@ -41,17 +71,35 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "device_type"
+          }
         }
       },
       {
         "ordinal": 6,
         "name": "description",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "description"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "configured",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "configured"
+          }
+        }
       }
     ],
     "parameters": {

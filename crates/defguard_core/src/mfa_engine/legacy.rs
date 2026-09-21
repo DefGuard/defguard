@@ -192,20 +192,11 @@ impl MfaEngine {
                 }
             }
             Ok(Verdict::NotYet) => {
-                // Legacy OIDC reports incomplete authentication as a failed finish.
-                self.channels.emit_event(BidiStreamEvent {
-                    context,
-                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                        DesktopClientMfaEvent::Failed {
-                            location: ctx.location.clone(),
-                            device: ctx.device.clone(),
-                            method: method.into(),
-                            message: "tried to finish OIDC MFA login but they haven't \
-                                completed OIDC authentication yet"
-                                .to_owned(),
-                        },
-                    )),
-                })?;
+                tracing::debug!(
+                    "User {} polled MFA finish for location {} before completing OIDC authentication",
+                    ctx.user.username,
+                    ctx.location
+                );
                 return Err(FinishError::OidcNotCompleted);
             }
             Ok(Verdict::Failed { message }) => {

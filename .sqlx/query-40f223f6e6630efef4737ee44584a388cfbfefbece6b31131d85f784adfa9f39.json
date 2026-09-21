@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"mtu\" = $9,\"fwmark\" = $10,\"allowed_ips\" = $11,\"allow_all_groups\" = $12,\"connected_at\" = $13,\"acl_enabled\" = $14,\"acl_default_allow\" = $15,\"allowed_ips_from_acl\" = $16,\"keepalive_interval\" = $17,\"peer_disconnect_threshold\" = $18,\"mfa_enabled\" = $19,\"service_location_mode\" = $20 WHERE id = $1",
+  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"mtu\" = $9,\"fwmark\" = $10,\"client_mtu\" = $11,\"allowed_ips\" = $12,\"allow_all_groups\" = $13,\"connected_at\" = $14,\"acl_enabled\" = $15,\"acl_default_allow\" = $16,\"allowed_ips_from_acl\" = $17,\"keepalive_interval\" = $18,\"peer_disconnect_threshold\" = $19,\"mfa_enabled\" = $20,\"service_location_mode\" = $21 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -15,6 +15,7 @@
         "Text",
         "Int4",
         "Int8",
+        "Int4",
         "InetArray",
         "Bool",
         "Timestamp",
@@ -40,5 +41,5 @@
     },
     "nullable": []
   },
-  "hash": "16283b66b9af80f3214bf3c9b5398f8f2e40e281f1e76fdf71adbf207220a7a9"
+  "hash": "40f223f6e6630efef4737ee44584a388cfbfefbece6b31131d85f784adfa9f39"
 }

@@ -2923,7 +2923,7 @@ async fn test_reset_password_sends_email(_: PgPoolOptions, options: PgConnectOpt
     // Configure a proxy URL (needed to build the reset link) and point SMTP at
     // an in-process mock server so the reset email is actually delivered.
     let mut settings = Settings::get_current_settings();
-    settings.public_proxy_url = "https://proxy.example.com".to_string();
+    settings.public_proxy_url = "https://proxy.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();
     let smtp = MockSmtpServer::start().await;
     smtp.configure(&pool).await;

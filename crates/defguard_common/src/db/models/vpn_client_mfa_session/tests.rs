@@ -67,8 +67,8 @@ async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
     User::new(
         format!("mfa-session-user-{suffix}"),
         None,
-        "Ln".to_string(),
-        "Fn".to_string(),
+        "Ln".to_owned(),
+        "Fn".to_owned(),
         format!("mfa-{suffix}@t.com"),
         None,
     )

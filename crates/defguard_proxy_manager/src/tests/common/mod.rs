@@ -43,7 +43,7 @@ use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::{TcpListener, UnixListener},
     sync::{
-        Notify, broadcast,
+        Notify, Semaphore, broadcast,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
@@ -416,6 +416,13 @@ pub(crate) struct HandlerTestContext {
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
+        Self::new_with_semaphore(options, Arc::new(Semaphore::new(crate::BIDI_CONCURRENCY))).await
+    }
+
+    pub(crate) async fn new_with_semaphore(
+        options: PgConnectOptions,
+        semaphore: Arc<tokio::sync::Semaphore>,
+    ) -> Self {
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
             .await
@@ -469,6 +476,7 @@ impl HandlerTestContext {
                 b"test-secret-key-at-least-64-bytes-long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             ),
             mock_proxy.socket_path(),
+            Arc::clone(&semaphore),
         );
 
         let incompatible_components_clone = incompatible_components.clone();

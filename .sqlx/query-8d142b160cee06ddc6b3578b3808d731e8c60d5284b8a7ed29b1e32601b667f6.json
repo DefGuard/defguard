@@ -6,77 +6,167 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "address",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "address"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "port",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "port"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "connected_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "connected_at"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "disconnected_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "disconnected_at"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "version",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "version"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "enabled",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "enabled"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "certificate_serial",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "certificate_serial"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "certificate_expiry",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "certificate_expiry"
+          }
+        }
       },
       {
         "ordinal": 10,
         "name": "modified_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "modified_at"
+          }
+        }
       },
       {
         "ordinal": 11,
         "name": "modified_by",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "modified_by"
+          }
+        }
       },
       {
         "ordinal": 12,
         "name": "core_client_cert_der",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "core_client_cert_der"
+          }
+        }
       },
       {
         "ordinal": 13,
         "name": "core_client_cert_key_der",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "core_client_cert_key_der"
+          }
+        }
       },
       {
         "ordinal": 14,
         "name": "core_client_cert_expiry",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "proxy",
+            "name": "core_client_cert_expiry"
+          }
+        }
       }
     ],
     "parameters": {

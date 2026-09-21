@@ -515,11 +515,11 @@ pub async fn user_from_claims(
                             None::<Id>,
                             username.clone(),
                             ip_addr,
-                            user_agent.unwrap_or_default().to_string(),
+                            user_agent.unwrap_or_default().to_owned(),
                         ),
                         event: Box::new(ApiEventType::UserImportBlocked {
                             username: username.clone(),
-                            email: email.as_str().to_string(),
+                            email: email.as_str().to_owned(),
                             user_count,
                             limit,
                         }),
@@ -531,7 +531,7 @@ pub async fn user_from_claims(
                     );
                 }
                 return Err(WebError::LicenseLimitReached(
-                    "Could not log in. Please contact your administrator.".to_string(),
+                    "Could not log in. Please contact your administrator.".to_owned(),
                 ));
             }
 

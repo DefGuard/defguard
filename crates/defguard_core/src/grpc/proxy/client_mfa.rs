@@ -17,6 +17,7 @@ use defguard_common::{
             vpn_client_mfa_session::{VpnClientMfaSession, VpnMfaFlowKind, hash_token},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
         },
+        wireguard_key::WireguardKey,
     },
     types::user_info::UserInfo,
 };
@@ -207,9 +208,9 @@ impl From<AuthorizeError> for Status {
     fn from(err: AuthorizeError) -> Self {
         match err {
             AuthorizeError::Db(_) | AuthorizeError::Gateway(_) => {
-                Status::internal("unexpected error")
+                Self::internal("unexpected error")
             }
-            AuthorizeError::Event(e) => Status::from(e),
+            AuthorizeError::Event(e) => Self::from(e),
         }
     }
 }
@@ -217,15 +218,15 @@ impl From<AuthorizeError> for Status {
 impl From<InitiateError> for Status {
     fn from(err: InitiateError) -> Self {
         match err {
-            InitiateError::EmailCode(_) => Status::internal("MFA code"),
-            InitiateError::Database(_) => Status::internal("database error"),
-            InitiateError::Mail(_) => Status::internal("unexpected error"),
+            InitiateError::EmailCode(_) => Self::internal("MFA code"),
+            InitiateError::Database(_) => Self::internal("database error"),
+            InitiateError::Mail(_) => Self::internal("unexpected error"),
             InitiateError::BiometricNotConfigured => {
-                Status::invalid_argument("Select MFA method is not available for the device.")
+                Self::invalid_argument("Select MFA method is not available for the device.")
             }
-            InitiateError::InvalidPublicKey(_) => Status::invalid_argument("Invalid public key"),
+            InitiateError::InvalidPublicKey(_) => Self::invalid_argument("Invalid public key"),
             InitiateError::UnsupportedMethod => {
-                Status::unimplemented("Selected MFA method is not supported")
+                Self::unimplemented("Selected MFA method is not supported")
             }
         }
     }
@@ -246,7 +247,7 @@ impl From<FinishOutcome> for MfaStepResult {
                 mfa_step_result::Outcome::AwaitingExternal(MfaAwaitingExternal {})
             }
         };
-        MfaStepResult {
+        Self {
             outcome: Some(outcome),
         }
     }
@@ -356,9 +357,9 @@ impl From<StartError> for Status {
             | StartError::MethodNotAvailable
             | StartError::BiometricNotConfigured => Code::InvalidArgument,
             StartError::Internal => Code::Internal,
-            StartError::Initiate(e) => return Status::from(e),
+            StartError::Initiate(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 
@@ -368,9 +369,9 @@ impl From<StepError> for Status {
             StepError::SessionNotFound | StepError::MethodNotInStep => Code::InvalidArgument,
             StepError::MethodNotConfigured => Code::FailedPrecondition,
             StepError::Internal => Code::Internal,
-            StepError::Initiate(e) => return Status::from(e),
+            StepError::Initiate(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 
@@ -386,9 +387,9 @@ impl From<FinishError> for Status {
             FinishError::Unauthorized => Code::Unauthenticated,
             FinishError::AttemptLimit => Code::PermissionDenied,
             FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
-            FinishError::Event(e) => return Status::from(e),
+            FinishError::Event(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 
@@ -450,7 +451,7 @@ impl ClientMfaServer {
     /// Allows Edge to verify if token is valid and active.
     #[instrument(skip_all)]
     pub async fn validate_mfa_token(
-        &mut self,
+        &self,
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
         let token_valid =
@@ -466,7 +467,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn start_client_mfa_login(
-        &mut self,
+        &self,
         request: ClientMfaStartRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaStartOutcome, Status> {
@@ -582,7 +583,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn start_client_mfa_flow(
-        &mut self,
+        &self,
         request: ClientMfaFlowStartRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaFlowStartOutcome, Status> {
@@ -941,7 +942,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn await_client_mfa_flow(
-        &mut self,
+        &self,
         request: ClientMfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
@@ -958,7 +959,7 @@ impl ClientMfaServer {
     }
 
     async fn await_client_mfa_flow_with_timeout(
-        &mut self,
+        &self,
         request: ClientMfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
@@ -1086,7 +1087,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn await_remote_mfa_login(
-        &mut self,
+        &self,
         request: AwaitRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
@@ -1185,7 +1186,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn finish_client_mfa_login(
-        &mut self,
+        &self,
         request: ClientMfaFinishRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaFinishResponse, Status> {
@@ -1237,7 +1238,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn client_mfa_flow_step_start(
-        &mut self,
+        &self,
         request: ClientMfaFlowStepStartRequest,
     ) -> Result<ClientMfaFlowStepStartResponse, Status> {
         let method = parse_mfa_method(request.method)?;
@@ -1255,7 +1256,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn client_mfa_flow_step_finish(
-        &mut self,
+        &self,
         request: ClientMfaFlowStepFinishRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaFlowStepFinishResponse, Status> {
@@ -1269,7 +1270,7 @@ impl ClientMfaServer {
 
     #[instrument(skip_all)]
     pub async fn client_mfa_flow_approve(
-        &mut self,
+        &self,
         request: ClientMfaFlowApproveRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
@@ -1309,7 +1310,7 @@ impl ClientMfaServer {
     /// A location with no postures assigned is approved with an *empty* preshared key and no
     /// session, since its peers are handed to the gateway without one.
     pub async fn handle_posture_check(
-        &mut self,
+        &self,
         request: DevicePostureCheckRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<PostureCheckOutcome, Status> {
@@ -1477,8 +1478,8 @@ impl ClientMfaServer {
             error!("Failed to emit DevicePostureCheckPassed event: {err}");
         }
 
-        // Posture check succeeded - create a vpn session
-        let key = WireguardNetwork::genkey();
+        // Posture check succeeded - create a VPN session.
+        let key = WireguardKey::generate();
 
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction for posture session: {err}");
@@ -1495,7 +1496,7 @@ impl ClientMfaServer {
         };
 
         let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public.clone());
+            build_authorized_gateway_network_info(network_device, key.public());
 
         create_new_session(
             &self.channels,
@@ -1504,7 +1505,7 @@ impl ClientMfaServer {
             &user,
             &device,
             false,
-            key.public.clone(),
+            key.public(),
         )
         .await?;
 
@@ -1526,7 +1527,7 @@ impl ClientMfaServer {
         );
 
         Ok(PostureCheckOutcome::Approved {
-            preshared_key: key.public,
+            preshared_key: key.public(),
         })
     }
 

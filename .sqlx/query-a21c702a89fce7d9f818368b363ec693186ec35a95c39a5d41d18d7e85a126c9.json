@@ -1,0 +1,277 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT wn.id, wn.name, wn.address, wn.port, wn.pubkey, wn.prvkey, wn.endpoint, wn.dns, wn.mtu, wn.fwmark, wn.client_mtu, wn.allowed_ips, wn.allow_all_groups, wn.connected_at, wn.keepalive_interval, wn.peer_disconnect_threshold, wn.acl_enabled, wn.acl_default_allow, wn.allowed_ips_from_acl, wn.mfa_enabled \"mfa_enabled!: bool\", wn.service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network wn JOIN location_mfa_flow lmf ON lmf.location_id = wn.id JOIN mfa_flow_step mfs ON mfs.flow_id = lmf.flow_id WHERE 'oidc' = ANY(mfs.methods)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "address",
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "address"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "port",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "port"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "pubkey",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "pubkey"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "prvkey",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "prvkey"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "endpoint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "endpoint"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "dns",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "dns"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "mtu",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "mtu"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "fwmark",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "fwmark"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "client_mtu",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "client_mtu"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "allowed_ips",
+        "type_info": "InetArray",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allowed_ips"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "allow_all_groups",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allow_all_groups"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "connected_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "connected_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "keepalive_interval",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "keepalive_interval"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "peer_disconnect_threshold",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "peer_disconnect_threshold"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "acl_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "acl_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "acl_default_allow",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "acl_default_allow"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "allowed_ips_from_acl",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "allowed_ips_from_acl"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "mfa_enabled!: bool",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "mfa_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "service_location_mode: ServiceLocationMode",
+        "type_info": {
+          "Custom": {
+            "name": "service_location_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "prelogon",
+                "alwayson"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "service_location_mode"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a21c702a89fce7d9f818368b363ec693186ec35a95c39a5d41d18d7e85a126c9"
+}

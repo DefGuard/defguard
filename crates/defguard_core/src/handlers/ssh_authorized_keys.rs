@@ -7,7 +7,7 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, AuthenticationKeyType, User, group::Group},
 };
-use sqlx::{PgExecutor, PgPool, query};
+use sqlx::{PgExecutor, PgPool, query, query_as};
 use ssh_key::PublicKey;
 
 use super::{ApiResponse, ApiResult, user_for_admin_or_self};
@@ -37,32 +37,17 @@ impl AuthenticationKeyInfo {
     where
         E: PgExecutor<'e>,
     {
-        let q_res = query!(
-            "SELECT k.id key_id, k.name, k.key_type \"key_type: AuthenticationKeyType\", \
-            k.key, k.user_id, k.yubikey_id, \
-            y.name \"yubikey_name: Option<String>\", y.serial \"serial: Option<String>\" \
+        query_as!(
+            AuthenticationKeyInfo,
+            "SELECT k.id, k.name, k.key_type \"key_type: AuthenticationKeyType\", k.key, \
+            k.user_id, k.yubikey_id, y.name yubikey_name, y.serial yubikey_serial \
             FROM \"authentication_key\" k \
             LEFT JOIN \"yubikey\" y ON k.yubikey_id = y.id \
             WHERE k.user_id = $1",
             user_id
         )
         .fetch_all(executor)
-        .await?;
-        let res = q_res
-            .iter()
-            .map(|q| Self {
-                id: q.key_id,
-                key: q.key.clone(),
-                key_type: q.key_type.clone(),
-                user_id: q.user_id,
-                name: q.name.clone(),
-                yubikey_id: q.yubikey_id,
-                yubikey_name: q.yubikey_name.clone(),
-                yubikey_serial: q.serial.clone(),
-            })
-            .collect();
-
-        Ok(res)
+        .await
     }
 }
 
@@ -71,10 +56,10 @@ async fn add_user_ssh_keys_to_list(pool: &PgPool, user: &User<Id>, ssh_keys: &mu
         AuthenticationKey::find_by_user_id(pool, user.id, Some(AuthenticationKeyType::Ssh)).await;
 
     if let Ok(authentication_keys) = keys_result {
-        let mut keys: Vec<String> = authentication_keys
+        let mut keys = authentication_keys
             .into_iter()
             .map(|item| item.key)
-            .collect();
+            .collect::<Vec<_>>();
         ssh_keys.append(&mut keys);
     }
 }

@@ -351,7 +351,7 @@ mod tests {
             })
         ));
         assert!(matches!(
-            decode_proof_field(Some(&"not base64!!".to_string()), "Signature"),
+            decode_proof_field(Some(&"not base64!!".to_owned()), "Signature"),
             Err(VerifyError::MalformedProof {
                 message: "Signature",
                 ..

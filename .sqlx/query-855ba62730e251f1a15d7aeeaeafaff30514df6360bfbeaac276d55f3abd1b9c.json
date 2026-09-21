@@ -6,42 +6,90 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "location_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "location_id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "device_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "device_id"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "created_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "created_at"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "connected_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "connected_at"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "disconnected_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "disconnected_at"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "is_mfa_session",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "is_mfa_session"
+          }
+        }
       },
       {
         "ordinal": 8,
@@ -57,12 +105,24 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "state"
+          }
         }
       },
       {
         "ordinal": 9,
         "name": "preshared_key",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "preshared_key"
+          }
+        }
       }
     ],
     "parameters": {

@@ -16,17 +16,16 @@ defguard_grpc_tls.workspace = true
 defguard_proto.workspace = true
 defguard_version.workspace = true
 
-axum.workspace = true
 axum-extra.workspace = true
+axum.workspace = true
 chrono.workspace = true
-semver.workspace = true
-hyper-rustls.workspace = true
 openidconnect.workspace = true
 reqwest.workspace = true
+semver.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
 tokio-stream.workspace = true
+tokio.workspace = true
 tonic.workspace = true
 tracing.workspace = true
 
@@ -35,15 +34,17 @@ tracing.workspace = true
 defguard_common = { workspace = true, features = ["test-support"] }
 base32.workspace = true
 base64.workspace = true
-getrandom.workspace = true
 ed25519-dalek.workspace = true
+getrandom.workspace = true
 hyper-util.workspace = true
 ipnetwork.workspace = true
 jsonwebkey.workspace = true
 jsonwebtoken.workspace = true
 rand.workspace = true
 rsa.workspace = true
+webauthn-authenticator-rs = { workspace = true, features = ["softpasskey"] }
+webauthn-rs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-tower.workspace = true
 totp-lite.workspace = true
+tower.workspace = true

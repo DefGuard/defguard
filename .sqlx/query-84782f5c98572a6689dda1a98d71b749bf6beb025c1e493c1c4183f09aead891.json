@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "username",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "username"
+          }
+        }
       }
     ],
     "parameters": {

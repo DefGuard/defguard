@@ -203,6 +203,24 @@ impl VpnClientSession<Id> {
         .await
     }
 
+    /// Fetches the latest active session for every device in a location.
+    pub async fn get_all_active_for_location<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+    ) -> sqlx::Result<Vec<Self>> {
+        query_as!(
+            Self,
+            "SELECT DISTINCT ON (device_id) id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
+                is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
+            FROM vpn_client_session \
+            WHERE location_id = $1 AND state IN ('new', 'connected') \
+            ORDER BY device_id, created_at DESC, id DESC",
+            location_id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Returns latest stats in a given session for each gateway
     pub async fn get_latest_stats_for_all_gateways<'e, E: sqlx::PgExecutor<'e>>(
         &self,

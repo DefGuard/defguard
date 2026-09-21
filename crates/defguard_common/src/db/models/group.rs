@@ -2,7 +2,7 @@ use std::fmt;
 
 use model_derive::Model;
 use serde::Serialize;
-use sqlx::{FromRow, PgExecutor, query, query_as, query_scalar};
+use sqlx::{AssertSqlSafe, FromRow, PgExecutor, query, query_as, query_scalar};
 
 use crate::db::{Id, NoId, models::user::User};
 
@@ -140,7 +140,7 @@ impl Group<Id> {
     {
         let query =
             format!("SELECT id, name, is_admin FROM \"group\" WHERE {permission} ORDER BY id");
-        query_as(&query).fetch_all(executor).await
+        query_as(AssertSqlSafe(query)).fetch_all(executor).await
     }
 
     pub async fn has_permission<'e, E>(
@@ -152,7 +152,7 @@ impl Group<Id> {
         E: PgExecutor<'e>,
     {
         let query_str = format!("SELECT {permission} FROM \"group\" WHERE id = $1");
-        let result = query_scalar(&query_str)
+        let result = query_scalar(AssertSqlSafe(query_str))
             .bind(self.id)
             .fetch_optional(executor)
             .await?;
@@ -169,7 +169,7 @@ impl Group<Id> {
         E: PgExecutor<'e>,
     {
         let query_str = format!("UPDATE \"group\" SET {permission} = $2 WHERE id = $1");
-        query(&query_str)
+        query(AssertSqlSafe(query_str))
             .bind(self.id)
             .bind(value)
             .execute(executor)

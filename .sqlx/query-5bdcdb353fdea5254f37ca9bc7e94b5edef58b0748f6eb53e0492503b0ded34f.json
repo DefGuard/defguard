@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "admin_device_management",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "enterprisesettings",
+            "name": "admin_device_management"
+          }
+        }
       },
       {
         "ordinal": 1,
@@ -22,27 +28,57 @@
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "enterprisesettings",
+            "name": "client_traffic_policy"
+          }
         }
       },
       {
         "ordinal": 2,
         "name": "only_client_activation",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "enterprisesettings",
+            "name": "only_client_activation"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "disable_tunnels",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "enterprisesettings",
+            "name": "disable_tunnels"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "display_download_step",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "enterprisesettings",
+            "name": "display_download_step"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "display_password_reset",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "enterprisesettings",
+            "name": "display_password_reset"
+          }
+        }
       }
     ],
     "parameters": {

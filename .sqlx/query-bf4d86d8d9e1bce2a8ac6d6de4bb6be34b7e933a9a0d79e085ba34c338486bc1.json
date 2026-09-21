@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, mfa_setup_state FROM token WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "admin_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "admin_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "used_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "used_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "token_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "token_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "mfa_setup_state",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "mfa_setup_state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "bf4d86d8d9e1bce2a8ac6d6de4bb6be34b7e933a9a0d79e085ba34c338486bc1"
+}
