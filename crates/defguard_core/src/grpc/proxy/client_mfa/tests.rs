@@ -785,7 +785,7 @@ async fn test_posture_check_failure_revokes_active_session(
 #[sqlx::test]
 async fn test_legacy_mfa_start_rejects_fido2(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (mut server, _, _) = make_server(pool);
+    let (server, _, _) = make_server(pool);
     let error = match server
         .start_client_mfa_login(
             ClientMfaStartRequest {
@@ -1912,7 +1912,7 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
+    let (server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
@@ -2054,7 +2054,7 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
+    let (server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
@@ -2164,16 +2164,8 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (
-        mut server,
-        pool,
-        location_id,
-        pubkey,
-        _auth_pub_key,
-        _signing_key,
-        _event_rx,
-        _gateway_rx,
-    ) = setup_mobile_mfa_flow_server(options).await;
+    let (server, pool, location_id, pubkey, _auth_pub_key, _signing_key, _event_rx, _gateway_rx) =
+        setup_mobile_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2255,7 +2247,7 @@ async fn test_client_mfa_flow_start_returns_initial_attempt(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let outcome = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2303,7 +2295,7 @@ async fn test_client_mfa_flow_start_rejection_does_not_create_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let outcome = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2343,7 +2335,7 @@ async fn test_client_mfa_flow_step_start_returns_typed_attempt(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2433,7 +2425,7 @@ async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let (server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2498,7 +2490,7 @@ async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let (server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2557,7 +2549,7 @@ async fn test_start_client_mfa_login_supersedes_existing_session(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let (mut server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+    let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
     let request = || ClientMfaStartRequest {
         location_id: location.id,

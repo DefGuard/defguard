@@ -107,6 +107,7 @@ struct ClientMfaStartContext {
     ip: IpAddr,
 }
 
+#[allow(clippy::large_enum_variant)]
 enum ClientMfaStartPreparation {
     Ready(ClientMfaStartContext),
     PostureRejected { failed_checks: Vec<String> },

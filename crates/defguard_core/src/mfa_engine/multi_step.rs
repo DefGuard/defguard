@@ -407,16 +407,19 @@ impl MfaEngine {
         }
 
         let method = ephemeral.selected_method;
-        let valid_credential = match (&proof.credential, method) {
-            (None, VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove)
-            | (
+        let valid_credential = matches!(
+            (&proof.credential, method),
+            (
+                None,
+                VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
+            ) | (
                 Some(StepCredential::Code(_)),
                 VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email,
-            )
-            | (Some(StepCredential::BiometricSignature(_)), VpnClientMfaMethod::Biometric)
-            | (Some(StepCredential::Fido2(_)), VpnClientMfaMethod::Fido2) => true,
-            _ => false,
-        };
+            ) | (
+                Some(StepCredential::BiometricSignature(_)),
+                VpnClientMfaMethod::Biometric
+            ) | (Some(StepCredential::Fido2(_)), VpnClientMfaMethod::Fido2)
+        );
         if !valid_credential {
             return Err(StepFinishError::MalformedProof {
                 message: "MFA credential does not match the selected method",
