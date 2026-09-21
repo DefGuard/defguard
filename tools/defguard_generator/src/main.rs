@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, value_parser};
 use defguard_common::db::{Id, init_db};
 use defguard_generator::{
     acl_rules::generate_acl_rules,
@@ -24,6 +24,9 @@ struct Cli {
 
     #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
     pub database_password: String,
+
+    #[arg(long, env = "DEFGUARD_DB_POOL_SIZE", value_parser = value_parser!(u32).range(1..), default_value_t = 10)]
+    pub database_pool_size: u32,
 
     #[command(subcommand)]
     command: Commands,
@@ -80,6 +83,7 @@ async fn main() -> Result<()> {
         &cli.database_name,
         &cli.database_user,
         &cli.database_password,
+        cli.database_pool_size,
     )
     .await;
 

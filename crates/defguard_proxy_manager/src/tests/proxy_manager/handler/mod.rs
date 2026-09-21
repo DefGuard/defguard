@@ -1,6 +1,7 @@
 pub(crate) mod support;
 
 mod acme;
+mod bidi;
 mod enrollment;
 mod fido2_setup;
 mod lifecycle;

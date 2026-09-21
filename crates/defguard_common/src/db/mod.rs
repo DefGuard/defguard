@@ -18,7 +18,14 @@ pub type Id = i64;
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
 
 /// Initializes and migrates postgres database. Returns DB pool object.
-pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &str) -> PgPool {
+pub async fn init_db(
+    host: &str,
+    port: u16,
+    name: &str,
+    user: &str,
+    password: &str,
+    pool_size: u32,
+) -> PgPool {
     info!("Initializing DB pool");
     let opts = PgConnectOptions::new()
         .host(host)
@@ -26,7 +33,9 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
         .username(user)
         .password(password)
         .database(name);
-    let pool = PgPool::connect_with(opts)
+    let pool = PgPoolOptions::new()
+        .max_connections(pool_size)
+        .connect_with(opts)
         .await
         .expect("Database connection failed");
     MIGRATOR
