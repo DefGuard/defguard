@@ -1,0 +1,35 @@
+use clap::Parser;
+use tracing_subscriber::EnvFilter;
+
+mod config;
+mod ldap_seed;
+mod loadtest;
+mod mfa;
+mod runner;
+mod seed;
+mod stats_seed;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
+
+    let config = config::Config::parse();
+
+    match config.command {
+        config::Command::Seed(args) => seed::run(args).await?,
+        config::Command::SeedLdap(args) => ldap_seed::run(args).await?,
+        config::Command::SeedStats(args) => stats_seed::run(args).await?,
+        config::Command::Test(config::TestArgs { command }) => match command {
+            config::TestCommand::ConfigPolling(args) => {
+                loadtest::ConfigPollingLoadTest::new(args).run().await?
+            }
+            config::TestCommand::ClientMfa(args) => mfa::run(args).await?,
+        },
+    }
+
+    Ok(())
+}

@@ -1839,6 +1839,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "defguard_load_generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2 0.6.0",
+ "base64 0.23.1",
+ "chrono",
+ "clap",
+ "humantime",
+ "ipnetwork",
+ "ldap3",
+ "rand 0.8.8",
+ "reqwest",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "totp-lite",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "defguard_proto"
 version = "0.0.0"
 dependencies = [
