@@ -1386,7 +1386,16 @@ async fn setup_mfa_flow_server(options: PgConnectOptions) -> (ClientMfaServer, P
 
 async fn setup_mobile_mfa_flow_server(
     options: PgConnectOptions,
-) -> (ClientMfaServer, PgPool, Id, String, String, SigningKey) {
+) -> (
+    ClientMfaServer,
+    PgPool,
+    Id,
+    String,
+    String,
+    SigningKey,
+    tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
+    tokio::sync::broadcast::Receiver<GatewayCommand>,
+) {
     set_enterprise_license();
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
@@ -1404,8 +1413,17 @@ async fn setup_mobile_mfa_flow_server(
         .await
         .expect("failed to register mobile authenticator");
     let pubkey = device.wireguard_pubkey.clone();
-    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
-    (server, pool, location.id, pubkey, auth_pub_key, signing_key)
+    let (server, event_rx, gateway_rx) = make_server(pool.clone());
+    (
+        server,
+        pool,
+        location.id,
+        pubkey,
+        auth_pub_key,
+        signing_key,
+        event_rx,
+        gateway_rx,
+    )
 }
 
 async fn setup_totp_mfa_server(
@@ -1894,7 +1912,7 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey, auth_pub_key, signing_key) =
+    let (mut server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
@@ -1928,7 +1946,7 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     let step_attempt_id = first_step.step_attempt_id;
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_client_mfa_flow(
+        .await_client_mfa_flow_step_finish(
             ClientMfaFlowRemoteRequest {
                 token: token.clone(),
                 step_attempt_id: step_attempt_id.clone(),
@@ -1992,7 +2010,7 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         .await
         .expect("remote waiter should finish after approval")
         .expect("remote response sender should remain available");
-    let Some(super::Payload::AwaitFlowFinish(response)) = response.payload else {
+    let Some(super::Payload::AwaitFlowStepFinish(response)) = response.payload else {
         panic!("expected a typed remote flow response");
     };
     let result = response
@@ -2036,7 +2054,7 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey, auth_pub_key, signing_key) =
+    let (mut server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
@@ -2107,7 +2125,7 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
 
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_client_mfa_flow(
+        .await_client_mfa_flow_step_finish(
             ClientMfaFlowRemoteRequest {
                 token: token.clone(),
                 step_attempt_id,
@@ -2122,7 +2140,7 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
         .await
         .expect("remote waiter should finish")
         .expect("remote response sender should remain available");
-    let Some(super::Payload::AwaitFlowFinish(response)) = response.payload else {
+    let Some(super::Payload::AwaitFlowStepFinish(response)) = response.payload else {
         panic!("expected a typed remote flow response");
     };
     let Some(mfa_step_result::Outcome::Completed(completed)) = response
@@ -2146,8 +2164,16 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (mut server, pool, location_id, pubkey, _auth_pub_key, _signing_key) =
-        setup_mobile_mfa_flow_server(options).await;
+    let (
+        mut server,
+        pool,
+        location_id,
+        pubkey,
+        _auth_pub_key,
+        _signing_key,
+        _event_rx,
+        _gateway_rx,
+    ) = setup_mobile_mfa_flow_server(options).await;
     let start = server
         .start_client_mfa_flow(
             ClientMfaFlowStartRequest {
@@ -2173,7 +2199,7 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
     let token = accepted.token;
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_client_mfa_flow_with_timeout(
+        .await_client_mfa_flow_step_finish_with_timeout(
             ClientMfaFlowRemoteRequest {
                 token: token.clone(),
                 step_attempt_id,
@@ -2497,7 +2523,7 @@ async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
         .step_attempt_id;
     let (_response_tx, _response_rx) = mpsc::unbounded_channel();
     let error = server
-        .await_client_mfa_flow(
+        .await_client_mfa_flow_step_finish(
             ClientMfaFlowRemoteRequest {
                 token: accepted.token,
                 step_attempt_id: attempt_id,

@@ -919,9 +919,9 @@ impl ProxyHandler {
                     }
                 }
             }
-            // rpc AwaitFlowFinish (ClientMfaFlowRemoteRequest) returns (ClientMfaFlowRemoteResponse)
-            Some(core_request::Payload::AwaitFlowFinish(request)) => {
-                match boxed(services.client_mfa.await_client_mfa_flow(
+            // rpc AwaitFlowStepFinish (ClientMfaFlowRemoteRequest) returns (ClientMfaFlowRemoteResponse)
+            Some(core_request::Payload::AwaitFlowStepFinish(request)) => {
+                match boxed(services.client_mfa.await_client_mfa_flow_step_finish(
                     request,
                     response_tx.clone(),
                     received.id,

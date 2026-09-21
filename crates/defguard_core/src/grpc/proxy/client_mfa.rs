@@ -941,14 +941,14 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn await_client_mfa_flow(
+    pub async fn await_client_mfa_flow_step_finish(
         &self,
         request: ClientMfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
-        self.await_client_mfa_flow_with_timeout(
+        self.await_client_mfa_flow_step_finish_with_timeout(
             request,
             response_tx,
             request_id,
@@ -958,7 +958,7 @@ impl ClientMfaServer {
         .await
     }
 
-    async fn await_client_mfa_flow_with_timeout(
+    async fn await_client_mfa_flow_step_finish_with_timeout(
         &self,
         request: ClientMfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
@@ -1071,7 +1071,7 @@ impl ClientMfaServer {
                 Ok(FinishOutcome::AwaitingExternal) => {
                     Payload::CoreError(Status::internal("mobile approval did not complete").into())
                 }
-                Ok(outcome) => Payload::AwaitFlowFinish(ClientMfaFlowRemoteResponse {
+                Ok(outcome) => Payload::AwaitFlowStepFinish(ClientMfaFlowRemoteResponse {
                     result: Some(outcome.into()),
                 }),
                 Err(error) => Payload::CoreError(Status::from(error).into()),
