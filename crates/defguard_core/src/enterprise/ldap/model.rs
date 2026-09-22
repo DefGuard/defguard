@@ -45,7 +45,7 @@ pub(crate) fn uac_from_entry(entry: &SearchEntry) -> Option<u32> {
 /// and usernames. Folds with Unicode `to_lowercase`, the same folding as [`lowercase_dn`],
 /// so the two helpers agree on non-ASCII names where `caseIgnoreMatch` folds them too.
 #[must_use]
-pub(super) fn ci_eq(a: &str, b: &str) -> bool {
+pub(super) fn ignorecase_eq(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
 }
 
@@ -56,7 +56,7 @@ pub(super) fn get_attr_values<'a>(entry: &'a SearchEntry, key: &str) -> Option<&
     entry
         .attrs
         .iter()
-        .find(|(k, _)| ci_eq(k, key))
+        .find(|(k, _)| ignorecase_eq(k, key))
         .map(|(_, values)| values)
 }
 
@@ -64,7 +64,11 @@ pub(super) fn get_attr_values<'a>(entry: &'a SearchEntry, key: &str) -> Option<&
 #[cfg_attr(test, expect(dead_code))]
 #[must_use]
 pub(super) fn take_attr_values(entry: &mut SearchEntry, key: &str) -> Option<Vec<String>> {
-    let found = entry.attrs.keys().find(|k| ci_eq(k, key)).cloned()?;
+    let found = entry
+        .attrs
+        .keys()
+        .find(|k| ignorecase_eq(k, key))
+        .cloned()?;
     entry.attrs.remove(&found)
 }
 
@@ -78,7 +82,7 @@ pub(super) fn lowercase_dn(dn: &str) -> String {
 /// Matches object class names case-insensitively per RFC 4512.
 #[must_use]
 pub(super) fn has_obj_class(classes: &[&str], name: &str) -> bool {
-    classes.iter().any(|c| ci_eq(c, name))
+    classes.iter().any(|c| ignorecase_eq(c, name))
 }
 
 /// Matches any of the given object classes case-insensitively per RFC 4512.
@@ -86,7 +90,7 @@ pub(super) fn has_obj_class(classes: &[&str], name: &str) -> bool {
 pub(super) fn has_any_obj_class(classes: &[&str], names: &[UserObjectClass]) -> bool {
     classes
         .iter()
-        .any(|c| names.iter().any(|n| ci_eq(c, n.name())))
+        .any(|c| names.iter().any(|n| ignorecase_eq(c, n.name())))
 }
 
 pub(crate) enum UserObjectClass {
@@ -183,18 +187,18 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
         ]);
 
         // Allow renaming the user if the CN is not a part of the RDN
-        if !ci_eq(config.get_rdn_attr(), "cn") {
+        if !ignorecase_eq(config.get_rdn_attr(), "cn") {
             changes.push(Mod::Replace(
                 "cn".to_owned(),
                 hashset![user.username.clone()],
             ));
         }
 
-        if !ci_eq(&config.ldap_username_attr, "uid")
+        if !ignorecase_eq(&config.ldap_username_attr, "uid")
             && !config
                 .ldap_user_rdn_attr
                 .as_ref()
-                .is_some_and(|rdn_attr| ci_eq(rdn_attr, "uid"))
+                .is_some_and(|rdn_attr| ignorecase_eq(rdn_attr, "uid"))
         {
             changes.push(Mod::Replace(
                 "uid".to_owned(),
@@ -219,7 +223,7 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
         );
     }
 
-    if config.ldap_uses_ad && !ci_eq(config.get_rdn_attr(), "sAMAccountName") {
+    if config.ldap_uses_ad && !ignorecase_eq(config.get_rdn_attr(), "sAMAccountName") {
         changes.push(Mod::Replace(
             "sAMAccountName".to_owned(),
             hashset![user.username.clone()],
@@ -229,12 +233,12 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
     let username_attr = config.ldap_username_attr.as_str();
     // Add anything the user provided, if we haven't already added it AND it's not the same as
     // the RDN.
-    if !ci_eq(username_attr, "sAMAccountName")
-        && !ci_eq(username_attr, "cn")
+    if !ignorecase_eq(username_attr, "sAMAccountName")
+        && !ignorecase_eq(username_attr, "cn")
         && !config
             .ldap_user_rdn_attr
             .as_ref()
-            .is_some_and(|rdn_attr| ci_eq(rdn_attr, username_attr))
+            .is_some_and(|rdn_attr| ignorecase_eq(rdn_attr, username_attr))
     {
         changes.push(Mod::Replace(
             username_attr.to_owned(),
@@ -246,7 +250,7 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
 }
 
 pub(crate) fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
-    attrs.iter().any(|(k, _)| ci_eq(k, key))
+    attrs.iter().any(|(k, _)| ignorecase_eq(k, key))
 }
 
 #[must_use]
@@ -395,7 +399,7 @@ fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
 
 #[must_use]
 pub(super) fn group_in_list(groups: &[String], name: &str) -> bool {
-    groups.iter().any(|g| ci_eq(g, name))
+    groups.iter().any(|g| ignorecase_eq(g, name))
 }
 
 /// Get first value from distinguished name, for example: cn=<value>,...
@@ -470,15 +474,15 @@ mod tests {
     fn test_ci_eq_folds_non_ascii() {
         // Latin letters with diacritics fold like the server's caseIgnoreMatch, which
         // the previous ASCII-only comparison did not.
-        assert!(ci_eq("Örgü", "örgü"));
-        assert!(ci_eq("ŁÓDŹ", "łódź"));
+        assert!(ignorecase_eq("Örgü", "örgü"));
+        assert!(ignorecase_eq("ŁÓDŹ", "łódź"));
         // Distinct letters must not fold together.
-        assert!(!ci_eq("Örgü", "Orgu"));
+        assert!(!ignorecase_eq("Örgü", "Orgu"));
         // Attribute descriptors still fold.
-        assert!(ci_eq("givenName", "GIVENNAME"));
+        assert!(ignorecase_eq("givenName", "GIVENNAME"));
         // Same folding as `lowercase_dn`, so the helpers stay interchangeable.
         assert_eq!(
-            ci_eq("cn=Ünal,dc=example,dc=com", "cn=ünal,dc=example,dc=com"),
+            ignorecase_eq("cn=Ünal,dc=example,dc=com", "cn=ünal,dc=example,dc=com"),
             lowercase_dn("cn=Ünal,dc=example,dc=com") == lowercase_dn("cn=ünal,dc=example,dc=com")
         );
     }
