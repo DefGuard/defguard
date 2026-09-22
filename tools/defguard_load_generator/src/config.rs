@@ -1,4 +1,7 @@
-use std::num::{NonZeroU64, NonZeroUsize};
+use std::{
+    num::{NonZeroU64, NonZeroUsize},
+    time::Duration,
+};
 
 use clap::{Args, Parser, Subcommand};
 use secrecy::SecretString;
@@ -144,7 +147,7 @@ pub struct ClientMfaArgs {
 
     /// Optional test duration. Without it, the test runs until Ctrl-C.
     #[arg(long, value_parser = humantime::parse_duration)]
-    pub duration: Option<std::time::Duration>,
+    pub duration: Option<Duration>,
 }
 
 /// Configuration polling test settings.
@@ -171,5 +174,5 @@ pub struct ConfigPollingArgs {
 
     /// Optional test duration. Without it, the test runs until Ctrl-C.
     #[arg(long, value_parser = humantime::parse_duration)]
-    pub duration: Option<std::time::Duration>,
+    pub duration: Option<Duration>,
 }

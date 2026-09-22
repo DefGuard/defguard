@@ -12,6 +12,7 @@ const GROUPS_OU: &str = "ou=groups,ou=loadtest";
 const GROUP_NAME: &str = "load-test-users";
 const USER_PREFIX: &str = "ldap-load-test-user-";
 const USER_PASSWORD: &str = "userPassword";
+const LDAP_NO_SUCH_OBJECT: u32 = 32;
 
 /// Seeds a fresh LDAP subtree with synthetic users and a group.
 pub async fn run(args: SeedLdapArgs) -> anyhow::Result<()> {
@@ -116,12 +117,15 @@ async fn add_user(
 /// Deletes entries from the leaves upward so parents can be removed.
 async fn delete_subtree(ldap: &mut ldap3::Ldap, base_dn: &str) -> anyhow::Result<()> {
     let (entries, _) = match ldap
+        // Request matching DNs without fetching any attribute values.
         .search(base_dn, Scope::Subtree, "(objectClass=*)", vec!["1.1"])
         .await?
         .success()
     {
         Ok(result) => result,
-        Err(ldap3::LdapError::LdapResult { ref result }) if result.rc == 32 => return Ok(()),
+        Err(ldap3::LdapError::LdapResult { ref result }) if result.rc == LDAP_NO_SUCH_OBJECT => {
+            return Ok(());
+        }
         Err(error) => return Err(error.into()),
     };
     let mut dns: Vec<String> = entries

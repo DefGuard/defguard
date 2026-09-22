@@ -12,6 +12,7 @@ use crate::config::SeedStatsArgs;
 const HORIZON: ChronoDuration = ChronoDuration::days(30);
 const SAMPLE_INTERVAL: ChronoDuration = ChronoDuration::seconds(30);
 const BATCH_SIZE: usize = 1_000;
+// RFC 2544 benchmarking address; no network connection is made.
 const ENDPOINT: &str = "198.18.0.1:51820";
 
 #[derive(Debug, FromRow)]
