@@ -1,5 +1,6 @@
 import { m } from '../../paraglide/messages';
 import {
+  type MfaFlowListItemResponse,
   MfaFlowMethod,
   type MfaFlowMethodValue,
   MfaMethodAvailabilityReason,
@@ -28,4 +29,18 @@ export const mfaFlowUnavailableText = (
     default:
       return undefined;
   }
+};
+
+export const openIdProviderDeleteBody = (
+  flows: Pick<MfaFlowListItemResponse, 'title' | 'steps'>[],
+): string => {
+  const usingOidc = flows.filter((flow) =>
+    flow.steps.some((step) => step.methods.includes(MfaFlowMethod.OpenId)),
+  );
+
+  if (usingOidc.length === 0) return m.settings_openid_provider_delete_confirm_body();
+
+  return m.settings_openid_provider_delete_confirm_body_mfa({
+    flows: usingOidc.map((flow) => flow.title).join(', '),
+  });
 };
