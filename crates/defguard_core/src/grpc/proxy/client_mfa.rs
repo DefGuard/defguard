@@ -271,6 +271,7 @@ fn flow_step_started(
     let challenge = match method {
         VpnClientMfaMethod::Fido2 => {
             let Some(challenge) = challenge else {
+                error!("FIDO2 MFA step is missing its challenge");
                 return Err(Status::internal("unexpected error"));
             };
             Some(mfa_step_started::Challenge::Fido2(MfaFido2Challenge {
@@ -278,8 +279,9 @@ fn flow_step_started(
                 credential_ids,
             }))
         }
-        VpnClientMfaMethod::Biometric | VpnClientMfaMethod::MobileApprove => {
+        method @ (VpnClientMfaMethod::Biometric | VpnClientMfaMethod::MobileApprove) => {
             let Some(challenge) = challenge else {
+                error!("{method:?} MFA step is missing its challenge");
                 return Err(Status::internal("unexpected error"));
             };
             Some(mfa_step_started::Challenge::Signature(
@@ -1237,6 +1239,7 @@ impl ClientMfaServer {
         &self,
         request: MfaFlowStepStartRequest,
     ) -> Result<MfaFlowStepStartResponse, Status> {
+        debug!("Starting multi-step MFA step");
         let method = parse_mfa_method(request.method)?;
         let step_started = self.engine.step_start(request.token, method).await?;
         let started = flow_step_started(
@@ -1256,6 +1259,7 @@ impl ClientMfaServer {
         request: MfaFlowStepFinishRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<MfaFlowStepFinishResponse, Status> {
+        debug!("Finishing multi-step MFA step");
         let (token, proof) = into_step_proof(request);
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let result = self.engine.finish_step(token, proof, ip).await?;
@@ -1270,6 +1274,7 @@ impl ClientMfaServer {
         request: MfaFlowApproveRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
+        debug!("Approving multi-step MFA step");
         let proof = request
             .proof
             .ok_or_else(|| Status::invalid_argument("missing mobile approval proof"))?;

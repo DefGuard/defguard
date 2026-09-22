@@ -2453,8 +2453,11 @@ async fn test_mfa_flow_step_finish_rejects_untyped_totp_submission(
             },
             device_info(),
         )
-        .await
-        .expect_err("a TOTP step must reject an empty typed submission");
+        .await;
+    let error = match error {
+        Ok(_) => panic!("a TOTP step must reject an empty typed submission"),
+        Err(error) => error,
+    };
     assert_eq!(error.code(), Code::InvalidArgument);
     assert_eq!(
         error.message(),

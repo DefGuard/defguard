@@ -13,6 +13,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             "CoreResponse",
             "DeviceConfigResponse",
             "InstanceInfoResponse",
+            "MfaCompleted",
+            "MfaFlowRemoteResponse",
+            "MfaFlowStepFinishRequest",
+            "MfaFlowStepFinishResponse",
+            "MfaStepResult",
             "NewDevice",
             "PasswordResetRequest",
         ])
