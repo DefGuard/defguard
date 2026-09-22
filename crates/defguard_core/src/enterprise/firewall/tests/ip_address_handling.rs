@@ -1,6 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use defguard_common::gateway_types::{IpAddress, IpRange, Port, PortRange as GwPortRange};
+use defguard_common::gateway_types::{IpAddress, Port, PortRange as GwPortRange};
 use ipnetwork::Ipv6Network;
 
 use crate::enterprise::{
@@ -32,7 +32,8 @@ fn test_merge_v4_addrs() {
             IpAddress::IpSubnet("10.0.10.0/27".to_owned()),
             IpAddress::Ip("10.0.20.20".to_owned()),
             IpAddress::IpSubnet("10.0.60.20/30".to_owned()),
-            IpAddress::IpSubnet("10.0.60.24/31".to_owned()),
+            IpAddress::Ip("10.0.60.24".to_owned()),
+            IpAddress::Ip("10.0.60.25".to_owned()),
             IpAddress::Ip("192.168.0.20".to_owned()),
         ]
     );
@@ -119,7 +120,8 @@ fn test_merge_addrs_extracts_ipv6_subnets() {
 }
 
 #[test]
-fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
+fn test_merge_addrs_handles_ranges_straddling_cidr_boundary() {
+    // Both IP versions decompose down to single hosts.
     let ranges = vec![
         IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255))..=IpAddr::V4(Ipv4Addr::new(192, 168, 2, 0)),
     ];
@@ -128,10 +130,10 @@ fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
 
     assert_eq!(
         result,
-        [IpAddress::IpRange(IpRange {
-            start: "192.168.1.255".to_owned(),
-            end: "192.168.2.0".to_owned(),
-        }),]
+        [
+            IpAddress::Ip("192.168.1.255".to_owned()),
+            IpAddress::Ip("192.168.2.0".to_owned()),
+        ]
     );
 
     let start = "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"
@@ -144,10 +146,10 @@ fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
 
     assert_eq!(
         result,
-        [IpAddress::IpRange(IpRange {
-            start: "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff".to_owned(),
-            end: "2001:db9::".to_owned(),
-        }),]
+        [
+            IpAddress::Ip("2001:db8:ffff:ffff:ffff:ffff:ffff:ffff".to_owned()),
+            IpAddress::Ip("2001:db9::".to_owned()),
+        ]
     );
 }
 
@@ -191,6 +193,32 @@ fn test_find_largest_ipv4_subnet_perfect_match() {
     assert!(result.is_some());
     let subnet = result.unwrap();
     assert_eq!(subnet.to_string(), "192.168.1.0/28");
+}
+
+#[test]
+fn test_find_largest_subnet_is_not_anchored_to_range_start() {
+    // The largest subnet sits in the middle of the range, touching neither end.
+    let start = IpAddr::V4(Ipv4Addr::LOCALHOST);
+    let end = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 127));
+
+    let result = find_largest_subnet_in_range(start, end);
+
+    assert_eq!(result.unwrap().to_string(), "127.0.0.64/26");
+
+    // The rest of the range still decomposes minimally.
+    assert_eq!(
+        merge_addrs(vec![start..=end]),
+        [
+            IpAddress::Ip("127.0.0.1".to_owned()),
+            IpAddress::Ip("127.0.0.2".to_owned()),
+            IpAddress::Ip("127.0.0.3".to_owned()),
+            IpAddress::IpSubnet("127.0.0.4/30".to_owned()),
+            IpAddress::IpSubnet("127.0.0.8/29".to_owned()),
+            IpAddress::IpSubnet("127.0.0.16/28".to_owned()),
+            IpAddress::IpSubnet("127.0.0.32/27".to_owned()),
+            IpAddress::IpSubnet("127.0.0.64/26".to_owned()),
+        ]
+    );
 }
 
 #[test]

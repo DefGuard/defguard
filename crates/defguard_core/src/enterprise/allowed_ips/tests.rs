@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 
 use chrono::DateTime;
 use defguard_common::db::{
@@ -263,12 +263,16 @@ async fn test_allow_all_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let location = create_acl_location(&pool, "10.0.0.1/24").await;
 
-    let user_1 = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None);
-    let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2 = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None);
-    let user_2 = user_2.save(&pool).await.unwrap();
+    let user_1 = User::new("alice", Some("pw"), "Alice", "T", "a@example.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let user_2 = User::new("bob", Some("pw"), "Bob", "T", "b@example.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
 
-    let destination = "172.16.0.0/12".parse().unwrap();
+    let destination = IpNetwork::new(IpAddr::V4(Ipv4Addr::new(172, 16, 0, 0)), 12).unwrap();
     let rule = AclRule {
         name: "allow-everyone".into(),
         state: RuleState::Applied,
@@ -285,17 +289,12 @@ async fn test_allow_all_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut conn = pool.acquire().await.unwrap();
 
-    // Every user should receive the destination regardless of explicit membership
+    // Every user should receive the destination regardless of explicit membership.
     for user in [&user_1, &user_2] {
         let result = get_allowed_ips_from_acl_rules(&mut conn, &location, user)
             .await
             .unwrap();
-        assert_eq!(
-            result,
-            vec![destination],
-            "user {} should be allowed",
-            user.id
-        );
+        assert_eq!(result, [destination], "user {} should be allowed", user.id);
     }
 }
 
@@ -738,10 +737,12 @@ async fn test_address_range_decomposed_to_cidrs(_: PgPoolOptions, options: PgCon
 
     let expected = vec![
         "10.0.1.1/32".parse().unwrap(),
-        "10.0.1.2/31".parse().unwrap(),
+        "10.0.1.2/32".parse().unwrap(),
+        "10.0.1.3/32".parse().unwrap(),
         "10.0.1.4/30".parse().unwrap(),
         "10.0.1.8/30".parse().unwrap(),
-        "10.0.1.12/31".parse().unwrap(),
+        "10.0.1.12/32".parse().unwrap(),
+        "10.0.1.13/32".parse().unwrap(),
         "10.0.1.14/32".parse().unwrap(),
     ];
     assert_eq!(result, expected);

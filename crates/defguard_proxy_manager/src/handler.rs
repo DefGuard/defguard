@@ -1125,10 +1125,10 @@ impl ProxyHandler {
         while let Some(result) = tasks.join_next().await {
             match result {
                 Ok((request_id, Ok(()))) => {
-                    debug!("Request {request_id} completed during shutdown")
+                    debug!("Request {request_id} completed during shutdown");
                 }
                 Ok((request_id, Err(err))) => {
-                    error!("Request {request_id} failed during shutdown: {err}")
+                    error!("Request {request_id} failed during shutdown: {err}");
                 }
                 Err(err) => debug!("Request task cancelled during shutdown: {err}"),
             }
