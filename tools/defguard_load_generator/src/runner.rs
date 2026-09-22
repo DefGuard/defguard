@@ -28,9 +28,11 @@ pub(crate) struct LoadLoopStats {
     pub peak_in_flight: usize,
 }
 
+/// Selects actors while optionally preventing overlap.
 struct ActorSelector {
     next: usize,
     busy: Vec<bool>,
+    // Allows a new task to reuse an actor before its previous task finishes.
     allow_overlap: bool,
 }
 
@@ -66,6 +68,7 @@ impl ActorSelector {
     }
 }
 
+/// Runs a rate-limited loop with bounded concurrency.
 pub(crate) async fn run_load_loop<A, O, F, Fut, C>(
     actors: Vec<A>,
     config: LoadLoopConfig,

@@ -180,6 +180,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Generates deterministic, non-zero traffic deltas for a sample.
 fn sample_diffs(collected_at: chrono::NaiveDateTime) -> (i64, i64) {
     (
         50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64,
@@ -187,6 +188,7 @@ fn sample_diffs(collected_at: chrono::NaiveDateTime) -> (i64, i64) {
     )
 }
 
+/// Reuses a gateway or creates a disabled synthetic one.
 async fn ensure_gateway(pool: &PgPool, location_id: i64) -> anyhow::Result<i64> {
     if let Some(gateway_id) = query_scalar::<_, i64>(
         "INSERT INTO gateway (location_id, name, modified_by, enabled)

@@ -13,6 +13,7 @@ const GROUP_NAME: &str = "load-test-users";
 const USER_PREFIX: &str = "ldap-load-test-user-";
 const USER_PASSWORD: &str = "userPassword";
 
+/// Seeds a fresh LDAP subtree with synthetic users and a group.
 pub async fn run(args: SeedLdapArgs) -> anyhow::Result<()> {
     let (conn, mut ldap) = LdapConnAsync::with_settings(
         LdapConnSettings::new().set_conn_timeout(Duration::from_secs(10)),
@@ -112,6 +113,7 @@ async fn add_user(
     Ok(())
 }
 
+/// Deletes entries from the leaves upward so parents can be removed.
 async fn delete_subtree(ldap: &mut ldap3::Ldap, base_dn: &str) -> anyhow::Result<()> {
     let (entries, _) = match ldap
         .search(base_dn, Scope::Subtree, "(objectClass=*)", vec!["1.1"])

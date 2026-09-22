@@ -28,6 +28,7 @@ pub struct SeedArgs {
     #[arg(long)]
     pub users: NonZeroUsize,
 
+    /// ID of the location receiving the devices.
     #[arg(long)]
     pub network_id: i64,
 
@@ -59,6 +60,7 @@ pub struct SeedLdapArgs {
         env = "DEFGUARD_LDAP_ADMIN_DN",
         default_value = "cn=admin,dc=example,dc=com"
     )]
+    /// LDAP administrator DN.
     pub admin_dn: String,
 
     #[arg(
@@ -73,8 +75,10 @@ pub struct SeedLdapArgs {
         env = "DEFGUARD_LDAP_USER_PASSWORD",
         default_value = "Password123!1"
     )]
+    /// Password assigned to seeded users.
     pub user_password: SecretString,
 
+    /// LDAP search base DN.
     #[arg(long, default_value = "dc=example,dc=com")]
     pub base_dn: String,
 }
@@ -103,6 +107,7 @@ pub struct TestArgs {
     pub command: TestCommand,
 }
 
+/// Available load-test scenarios.
 #[derive(Debug, Subcommand)]
 pub enum TestCommand {
     /// Polls the Edge configuration endpoint.
@@ -111,6 +116,7 @@ pub enum TestCommand {
     ClientMfa(ClientMfaArgs),
 }
 
+/// MFA test settings.
 #[derive(Debug, Args)]
 pub struct ClientMfaArgs {
     /// Base URL of the proxy, without the client-mfa path.
@@ -141,6 +147,7 @@ pub struct ClientMfaArgs {
     pub duration: Option<std::time::Duration>,
 }
 
+/// Configuration polling test settings.
 #[derive(Debug, Args)]
 pub struct ConfigPollingArgs {
     /// Base URL of the proxy, without the polling path.

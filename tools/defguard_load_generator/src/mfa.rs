@@ -30,6 +30,7 @@ struct MfaActor {
     totp_secret: Vec<u8>,
 }
 
+/// Payload for the two-step legacy TOTP start request.
 #[derive(Serialize)]
 struct StartRequest<'a> {
     location_id: i64,
@@ -288,6 +289,7 @@ fn failure(started: Instant, error: MfaError) -> MfaResult {
     }
 }
 
+/// Builds the synthetic passing posture payload used by the benchmark.
 fn passing_posture_data() -> DevicePostureData {
     DevicePostureData {
         defguard_client_version: "2.1.0".to_owned(),
@@ -298,6 +300,7 @@ fn passing_posture_data() -> DevicePostureData {
     }
 }
 
+/// Builds headers matching the desktop client contract.
 fn client_headers() -> reqwest::header::HeaderMap {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("defguard-client-version", "2.1.0".parse().unwrap());

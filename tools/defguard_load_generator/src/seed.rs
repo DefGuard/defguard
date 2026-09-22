@@ -130,6 +130,7 @@ pub async fn run(args: SeedArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Skips network, broadcast, and already assigned addresses.
 fn allocate_ips(
     addresses: &[IpNetwork],
     used_ips: &HashSet<IpAddr>,

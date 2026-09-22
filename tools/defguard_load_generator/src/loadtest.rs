@@ -67,6 +67,7 @@ struct SharedLoadTestState {
     requests_per_second: NonZeroU64,
 }
 
+/// Polling load test with one request per scheduled task.
 pub struct ConfigPollingLoadTest {
     proxy_url: String,
     network_id: i64,
@@ -126,6 +127,7 @@ impl ConfigPollingLoadTest {
     }
 }
 
+/// Sends the encoded platform header required by current Proxy versions.
 async fn execute_polling_request(
     client: Client,
     polling_url: String,
