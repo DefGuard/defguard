@@ -12,7 +12,9 @@ use ldap3::{
 };
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::{extract_rdn_value, is_search_entry};
+use crate::enterprise::ldap::model::{
+    ci_eq, extract_rdn_value, get_attr_values, is_search_entry, lowercase_dn, take_attr_values,
+};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
 const LDAP_RC_NO_SUCH_OBJECT: u32 = 32;
@@ -155,7 +157,7 @@ impl LDAPConnection {
                 continue;
             };
             for (key, mut values) in se.attrs {
-                if key.eq_ignore_ascii_case(&self.config.ldap_groupname_attr) {
+                if ci_eq(&key, &self.config.ldap_groupname_attr) {
                     groups.append(&mut values);
                 }
             }
@@ -216,7 +218,7 @@ impl LDAPConnection {
         S: AsRef<[u8]> + Eq + Hash,
     {
         self.ldap.modify(old_dn, mods).await?;
-        if old_dn != new_dn {
+        if lowercase_dn(old_dn) != lowercase_dn(new_dn) {
             if let Some((new_rdn, _rest)) = new_dn.split_once(',') {
                 self.ldap.modifydn(old_dn, new_rdn, true, None).await?;
             } else {
@@ -253,21 +255,19 @@ impl LDAPConnection {
         // dn: user map
         let dn_map = all_ldap_users
             .iter()
-            .map(|u| (self.config.user_dn_for_user(u).to_lowercase(), u))
+            .map(|u| (self.config.user_dn_key(u), u))
             .collect::<HashMap<_, _>>();
 
         for entry in &mut membership_entries {
-            let groupname = entry
-                .attrs
-                .remove(&self.config.ldap_groupname_attr)
-                .and_then(|mut v| v.pop());
+            let groupname =
+                take_attr_values(entry, &self.config.ldap_groupname_attr).and_then(|mut v| v.pop());
 
             if let Some(groupname) = groupname {
-                if let Some(members) = entry.attrs.get(&self.config.ldap_group_member_attr) {
+                if let Some(members) = get_attr_values(entry, &self.config.ldap_group_member_attr) {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            if let Some(user) = dn_map.get(v.to_lowercase().as_str()) {
+                            if let Some(user) = dn_map.get(lowercase_dn(v).as_str()) {
                                 Some(*user)
                             } else {
                                 debug!(
@@ -368,7 +368,7 @@ impl LDAPConnection {
         let members = member_entries
             .first()
             .and_then(|entry| {
-                let member_entries = entry.attrs.get(&self.config.ldap_group_member_attr);
+                let member_entries = get_attr_values(entry, &self.config.ldap_group_member_attr);
                 member_entries.map(|v| {
                     v.iter()
                         .filter_map(|v| extract_rdn_value(v))

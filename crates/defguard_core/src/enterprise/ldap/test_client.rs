@@ -9,7 +9,8 @@ use ldap3::{Mod, SearchEntry};
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active, user_as_ldap_attrs,
+    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, ci_eq, extract_rdn_value, uac_is_active,
+    user_as_ldap_attrs,
 };
 
 /// Extract attribute value from LDAP filter
@@ -38,13 +39,12 @@ fn extract_attribute_value(filter: &str, attr: &str) -> Option<String> {
 
 /// Extract value from simple attribute=value pattern
 fn extract_simple_attribute_value(condition: &str, attr: &str) -> Option<String> {
-    if condition.starts_with(attr) && condition.contains('=') {
-        let parts: Vec<&str> = condition.splitn(2, '=').collect();
-        if parts.len() == 2 && parts[0] == attr {
-            return Some(parts[1].to_owned());
-        }
+    let (name, value) = condition.split_once('=')?;
+    if ci_eq(name, attr) {
+        Some(value.to_owned())
+    } else {
+        None
     }
-    None
 }
 
 #[derive(Debug, Clone)]
@@ -173,6 +173,20 @@ pub struct TestClient {
     // Number of upcoming write operations (add/modify/delete) that should fail with an injected
     // error. Used to simulate a transient LDAP outage and exercise the desync/recovery path.
     fail_next_writes: usize,
+    // Return attribute names lowercased, like LLDAP answers `*` requests.
+    lowercase_attr_names: bool,
+}
+
+/// Rewrites entry attribute names to the simulated server spelling.
+fn fold_attr_names(mut entry: SearchEntry, lowercase: bool) -> SearchEntry {
+    if lowercase {
+        entry.attrs = entry
+            .attrs
+            .into_iter()
+            .map(|(k, v)| (k.to_lowercase(), v))
+            .collect();
+    }
+    entry
 }
 
 impl TestClient {
@@ -183,6 +197,11 @@ impl TestClient {
     /// Makes the next `n` write operations (add/modify/delete) fail with an injected LDAP error.
     pub(super) fn fail_next_writes(&mut self, n: usize) {
         self.fail_next_writes = n;
+    }
+
+    /// Returns attribute names lowercased, like LLDAP answers `*` requests.
+    pub(super) fn use_lowercase_attr_names(&mut self) {
+        self.lowercase_attr_names = true;
     }
 
     /// Consumes one injected failure if any are pending, returning an error in that case.
@@ -273,6 +292,11 @@ impl LDAPConnection {
         })
     }
 
+    /// Builds a search entry with the simulated server attribute spelling.
+    fn entry_for(&self, object: &Object, dn: &str) -> SearchEntry {
+        self.finish_entry(object.to_search_entry(dn, &self.config))
+    }
+
     pub(super) async fn search_users(
         &mut self,
         filter: &str,
@@ -295,10 +319,10 @@ impl LDAPConnection {
         if let Some((attr, value)) = search_value {
             for (dn, object) in &self.test_client.objects {
                 if let Object::User(user) = object {
-                    let matches = if attr.eq_ignore_ascii_case(&username_attr) {
+                    let matches = if ci_eq(&attr, &username_attr) {
                         user.username == value
-                    } else if attr.eq_ignore_ascii_case(&rdn_attr) {
-                        let rdn_value = if rdn_attr.eq_ignore_ascii_case(&username_attr) {
+                    } else if ci_eq(&attr, &rdn_attr) {
+                        let rdn_value = if ci_eq(&rdn_attr, &username_attr) {
                             &user.username
                         } else {
                             dn.split(',')
@@ -312,14 +336,14 @@ impl LDAPConnection {
                     };
 
                     if matches {
-                        results.push(object.to_search_entry(dn, &self.config));
+                        results.push(self.entry_for(object, dn));
                     }
                 }
             }
         } else {
             for (dn, object) in &self.test_client.objects {
                 if let Object::User(_) = object {
-                    results.push(object.to_search_entry(dn, &self.config));
+                    results.push(self.entry_for(object, dn));
                 }
             }
         }
@@ -349,7 +373,7 @@ impl LDAPConnection {
         let mut groups = Vec::new();
         for (group_dn, _) in group_dns {
             if let Some(group_object) = self.test_client.objects.get(&group_dn) {
-                groups.push(group_object.to_search_entry(&group_dn, &self.config));
+                groups.push(self.entry_for(group_object, &group_dn));
             }
         }
 
@@ -547,11 +571,14 @@ impl LDAPConnection {
                     };
                     attrs.push(("userAccountControl".to_owned(), vec![uac.to_string()]));
                 }
-                users.push(SearchEntry {
-                    dn: dn.clone(),
-                    attrs: attrs.into_iter().collect(),
-                    bin_attrs: HashMap::new(),
-                });
+                users.push(fold_attr_names(
+                    SearchEntry {
+                        dn: dn.clone(),
+                        attrs: attrs.into_iter().collect(),
+                        bin_attrs: HashMap::new(),
+                    },
+                    self.test_client.lowercase_attr_names,
+                ));
             }
         }
         Ok(users)
@@ -573,8 +600,7 @@ impl LDAPConnection {
 
     pub(super) async fn get(&mut self, dn: &str) -> Result<Option<SearchEntry>, LdapError> {
         if let Some(object) = self.test_client.objects.get(dn) {
-            let search_entry = object.to_search_entry(dn, &self.config);
-            Ok(Some(search_entry))
+            Ok(Some(self.entry_for(object, dn)))
         } else {
             Ok(None)
         }

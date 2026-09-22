@@ -22,8 +22,9 @@ use crate::{
     enterprise::{
         is_business_license_active,
         ldap::model::{
-            UAC_NORMAL_ACCOUNT, extract_dn_path, ldap_sync_allowed_for_user, uac_from_entry,
-            uac_with_active, user_as_ldap_attrs, user_as_ldap_mod, user_from_searchentry,
+            UAC_NORMAL_ACCOUNT, ci_eq, extract_dn_path, group_in_list, has_obj_class,
+            ldap_sync_allowed_for_user, lowercase_dn, uac_from_entry, uac_with_active,
+            user_as_ldap_attrs, user_as_ldap_mod, user_from_searchentry,
         },
         limits::update_counts,
     },
@@ -251,6 +252,19 @@ impl LDAPConfig {
         self.user_dn(user.ldap_rdn_value(), path)
     }
 
+    /// Returns the user DN folded for case-insensitive comparison. Use for map keys and all
+    /// DN comparisons.
+    #[must_use]
+    pub(crate) fn user_dn_key<I>(&self, user: &User<I>) -> String {
+        lowercase_dn(&self.user_dn_for_user(user))
+    }
+
+    /// Case-insensitive equality of two users' DNs, per RFC 4517 `distinguishedNameMatch`.
+    #[must_use]
+    pub(crate) fn user_dn_key_eq<I, J>(&self, a: &User<I>, b: &User<J>) -> bool {
+        self.user_dn_key(a) == self.user_dn_key(b)
+    }
+
     /// Constructs group distinguished name.
     ///
     /// Uses the `ldap_group_search_base` to construct the DN.
@@ -281,7 +295,7 @@ impl LDAPConfig {
         // RDN set = username is used as RDN if they are the same
         self.ldap_user_rdn_attr
             .as_deref()
-            .is_none_or(|rdn| rdn.eq_ignore_ascii_case(&self.ldap_username_attr) || rdn.is_empty())
+            .is_none_or(|rdn| ci_eq(rdn, &self.ldap_username_attr) || rdn.is_empty())
     }
 }
 
@@ -485,8 +499,8 @@ impl LDAPConnection {
         );
 
         if user_groups
-            .into_iter()
-            .any(|group| self.config.ldap_sync_groups.contains(&group))
+            .iter()
+            .any(|group| group_in_list(&self.config.ldap_sync_groups, group))
         {
             debug!("User {user} is in sync groups, syncing user");
             Ok(true)
@@ -843,24 +857,23 @@ impl LDAPConnection {
             let ssha_password = hash::salted_sha1_hash(password);
             let nt_password = hash::nthash(password);
             let mut mods = Vec::new();
-            if self
+            let aux_obj_classes: Vec<&str> = self
                 .config
                 .ldap_user_auxiliary_obj_classes
                 .iter()
-                .any(|e| e == UserObjectClass::SimpleSecurityObject.name())
-            {
+                .map(String::as_str)
+                .collect();
+            if has_obj_class(
+                &aux_obj_classes,
+                UserObjectClass::SimpleSecurityObject.name(),
+            ) {
                 mods.push(Mod::Replace(
                     "userPassword",
                     hashset![ssha_password.as_str()],
                 ));
             }
 
-            if self
-                .config
-                .ldap_user_auxiliary_obj_classes
-                .iter()
-                .any(|e| e == UserObjectClass::SambaSamAccount.name())
-            {
+            if has_obj_class(&aux_obj_classes, UserObjectClass::SambaSamAccount.name()) {
                 mods.push(Mod::Replace(
                     "sambaNTPassword",
                     hashset![nt_password.as_str()],

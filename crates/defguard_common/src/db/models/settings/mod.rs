@@ -828,9 +828,13 @@ impl Settings {
 
     #[must_use]
     pub fn ldap_using_username_as_rdn(&self) -> bool {
-        self.ldap_user_rdn_attr
-            .as_deref()
-            .is_none_or(|rdn| rdn.is_empty() || Some(rdn) == self.ldap_username_attr.as_deref())
+        self.ldap_user_rdn_attr.as_deref().is_none_or(|rdn| {
+            rdn.is_empty()
+                || self
+                    .ldap_username_attr
+                    .as_deref()
+                    .is_some_and(|attr| rdn.eq_ignore_ascii_case(attr))
+        })
     }
 
     /// Get the DefGuard URL from the current settings

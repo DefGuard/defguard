@@ -21,7 +21,10 @@ use tokio::sync::{
 };
 
 use super::{
-    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+    model::{
+        UAC_ACCOUNT_DISABLE, ci_eq, extract_rdn_value, get_users_without_ldap_path, in_attrs,
+        ldap_sync_allowed_for_user_scoped, user_as_ldap_attrs, user_from_searchentry,
+    },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
         extract_intersecting_users, is_ldap_desynced, set_ldap_sync_status,
@@ -3623,11 +3626,7 @@ fn test_as_ldap_attrs() {
         "cn",
     );
 
-    assert!(
-        !attrs
-            .iter()
-            .any(|(key, _)| key.eq_ignore_ascii_case("mobile"))
-    );
+    assert!(!attrs.iter().any(|(key, _)| ci_eq(key, "mobile")));
 }
 
 #[test]
@@ -4828,5 +4827,194 @@ async fn test_disabled_user_created_as_disabled_ad_account(
         ldap_conn.test_client.get_events().is_empty(),
         "Disabled user must not be created in LDAP without account status sync, got events: {:?}",
         ldap_conn.test_client.get_events()
+    );
+}
+
+/// Parses users when the server returns its own attribute case, e.g. LLDAP returns `givenname`.
+/// Covers `sn`, `givenName`, `mail`, `mobile`, and `userAccountControl` (issue #3707).
+#[test]
+fn test_from_searchentry_with_server_chosen_attribute_case() {
+    let mut attrs = HashMap::new();
+    attrs.insert("SN".to_owned(), vec!["lastname1".to_owned()]);
+    attrs.insert("givenname".to_owned(), vec!["firstname1".to_owned()]);
+    attrs.insert("MaIl".to_owned(), vec!["user1@example.com".to_owned()]);
+    attrs.insert("mobile".to_owned(), vec!["1234567890".to_owned()]);
+    attrs.insert(
+        "useraccountcontrol".to_owned(),
+        vec![(UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE).to_string()],
+    );
+
+    let entry = SearchEntry {
+        dn: "cn=user1,dc=example,dc=com".to_owned(),
+        attrs,
+        bin_attrs: HashMap::new(),
+    };
+
+    let config = LDAPConfig {
+        ldap_uses_ad: true,
+        ldap_sync_account_status: true,
+        ..LDAPConfig::default()
+    };
+    let user = user_from_searchentry(&entry, "user1", None, &config).unwrap();
+
+    assert_eq!(user.last_name, "lastname1");
+    assert_eq!(user.first_name, "firstname1");
+    assert_eq!(user.email, "user1@example.com");
+    assert_eq!(user.phone, Some("1234567890".to_owned()));
+    assert!(
+        !user.is_active,
+        "userAccountControl must be read under the case the server returns"
+    );
+}
+
+/// Returns the full user list when the server lowercases attribute names. Without
+/// case-insensitive lookup `get_all_users` fails with `ObjectNotFound`.
+#[sqlx::test]
+async fn test_get_all_users_with_server_chosen_attribute_case(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    let config = ldap_conn.config.clone();
+
+    let test_user = make_test_user(
+        "testuser",
+        Some("testuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&test_user, &config);
+    ldap_conn.test_client_mut().use_lowercase_attr_names();
+
+    let users = ldap_conn.get_all_users().await.unwrap();
+
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].username, "testuser");
+    assert_eq!(users[0].first_name, "first name");
+}
+
+/// Treats DNs that differ only by case as the same user per RFC 4517 `distinguishedNameMatch`.
+#[sqlx::test]
+async fn test_user_sync_changes_ignore_dn_case(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let config = LDAPConfig::default();
+    let mut defguard_users = vec![
+        make_test_user(
+            "user1",
+            Some("user1".to_owned()),
+            Some("ou=users,dc=example,dc=com".to_owned()),
+        )
+        .save(&pool)
+        .await
+        .unwrap(),
+    ];
+    let mut ldap_users = vec![make_test_user(
+        "user1",
+        Some("User1".to_owned()),
+        Some("OU=Users,DC=example,DC=com".to_owned()),
+    )];
+
+    let changes = compute_user_sync_changes(
+        &mut ldap_users,
+        &mut defguard_users,
+        Authority::LDAP,
+        &config,
+    );
+
+    assert!(
+        changes.delete_defguard.is_empty(),
+        "A DN that differs only by case must not delete the Defguard user"
+    );
+    assert!(changes.add_defguard.is_empty());
+    assert!(changes.delete_ldap.is_empty());
+    assert!(changes.add_ldap.is_empty());
+}
+
+/// Treats group member DNs that differ only by case as the same member.
+#[sqlx::test]
+async fn test_group_sync_changes_ignore_dn_case(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let config = LDAPConfig::default();
+    let defguard_user = make_test_user(
+        "user1",
+        Some("user1".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let ldap_user = make_test_user(
+        "user1",
+        Some("USER1".to_owned()),
+        Some("ou=Users,dc=Example,dc=com".to_owned()),
+    );
+
+    let mut defguard_memberships = HashMap::new();
+    defguard_memberships.insert(
+        "test_group".to_owned(),
+        HashSet::from_iter(vec![defguard_user]),
+    );
+    let mut ldap_memberships = HashMap::new();
+    ldap_memberships.insert(
+        "test_group".to_owned(),
+        HashSet::from_iter(vec![&ldap_user]),
+    );
+
+    let changes = compute_group_sync_changes(
+        &defguard_memberships,
+        ldap_memberships,
+        Authority::LDAP,
+        &config,
+    );
+
+    assert!(changes.add_defguard.is_empty());
+    assert!(changes.delete_defguard.is_empty());
+    assert!(changes.add_ldap.is_empty());
+    assert!(changes.delete_ldap.is_empty());
+}
+
+/// Matches configured object classes case-insensitively per RFC 4512, e.g. `inetorgperson`.
+#[test]
+fn test_object_classes_are_case_insensitive() {
+    let user = make_test_user("testuser", None, None);
+    let attrs = user_as_ldap_attrs(
+        &user,
+        "ssha",
+        "nt",
+        HashSet::from(["inetorgperson", "SIMPLESECURITYOBJECT", "sambasamaccount"]),
+        false,
+        "cn",
+        "cn",
+    );
+
+    for expected in ["sn", "givenName", "mail", "userPassword", "sambaNTPassword"] {
+        assert!(
+            in_attrs(&attrs, expected),
+            "attribute {expected} is missing when the object class case differs"
+        );
+    }
+}
+
+/// Matches configured sync groups case-insensitively per `caseIgnoreMatch`.
+#[sqlx::test]
+async fn test_sync_groups_match_case_insensitively(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let user = make_test_user("testuser", None, None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group = Group::new("admins").save(&pool).await.unwrap();
+    user.add_to_group(&pool, &group).await.unwrap();
+
+    assert!(
+        ldap_sync_allowed_for_user_scoped(&user, &pool, false, &["Admins".to_owned()])
+            .await
+            .unwrap(),
+        "A configured sync group must match the group name regardless of case"
     );
 }

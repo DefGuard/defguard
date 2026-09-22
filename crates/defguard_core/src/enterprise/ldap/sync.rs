@@ -87,7 +87,7 @@ use crate::{
     enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
         ldap::model::{
-            get_users_without_ldap_path, ldap_sync_allowed_for_user,
+            ci_eq, get_attr_values, get_users_without_ldap_path, ldap_sync_allowed_for_user,
             ldap_sync_allowed_for_user_scoped, update_from_ldap_user, user_from_searchentry,
         },
         license::get_cached_license,
@@ -253,17 +253,17 @@ pub(super) fn compute_user_sync_changes(
     let mut ldap_identifiers = HashSet::with_capacity(all_ldap_users.len());
     let defguard_identifiers = all_defguard_users
         .iter()
-        .map(|u| ldap_config.user_dn_for_user(u))
+        .map(|u| ldap_config.user_dn_key(u))
         .collect::<HashSet<_>>();
 
     trace!("Defguard identifiers: {defguard_identifiers:?}");
     trace!("LDAP identifiers: {ldap_identifiers:?}");
 
     for user in all_ldap_users.drain(..) {
-        ldap_identifiers.insert(ldap_config.user_dn_for_user(&user));
+        ldap_identifiers.insert(ldap_config.user_dn_key(&user));
 
         debug!("Checking if user {} is in Defguard", user.username);
-        if !defguard_identifiers.contains(&ldap_config.user_dn_for_user(&user)) {
+        if !defguard_identifiers.contains(&ldap_config.user_dn_key(&user)) {
             debug!("User {} not found in Defguard", user.username);
             match authority {
                 Authority::LDAP => add_defguard.push(user),
@@ -274,7 +274,7 @@ pub(super) fn compute_user_sync_changes(
 
     for user in all_defguard_users.drain(..) {
         debug!("Checking if user {} is in LDAP", user.username);
-        if !ldap_identifiers.contains(&ldap_config.user_dn_for_user(&user)) {
+        if !ldap_identifiers.contains(&ldap_config.user_dn_key(&user)) {
             debug!("User {} not found in LDAP", user.username);
             match authority {
                 Authority::LDAP => {
@@ -349,21 +349,13 @@ pub(super) fn compute_group_sync_changes<'a>(
             debug!("Group {group:?} found in LDAP, checking for membership differences");
             let missing_from_defguard = ldap_members
                 .iter()
-                .filter(|u| {
-                    !members
-                        .iter()
-                        .any(|m| ldap_config.user_dn_for_user(m) == ldap_config.user_dn_for_user(u))
-                })
+                .filter(|u| !members.iter().any(|m| ldap_config.user_dn_key_eq(m, u)))
                 .copied()
                 .collect::<HashSet<_>>();
 
             let missing_from_ldap = members
                 .iter()
-                .filter(|m| {
-                    !ldap_members
-                        .iter()
-                        .any(|u| ldap_config.user_dn_for_user(m) == ldap_config.user_dn_for_user(u))
-                })
+                .filter(|m| !ldap_members.iter().any(|u| ldap_config.user_dn_key_eq(m, u)))
                 .cloned()
                 .collect::<HashSet<_>>();
 
@@ -505,7 +497,7 @@ fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConf
         different = true;
     }
 
-    if !config.using_username_as_rdn() && defguard_user.username != ldap_user.username {
+    if !config.using_username_as_rdn() && !ci_eq(&defguard_user.username, &ldap_user.username) {
         debug!(
             "Attribute difference detected: username (Defguard: {}, LDAP: {})",
             defguard_user.username, ldap_user.username
@@ -529,9 +521,7 @@ pub(super) fn extract_intersecting_users(
     for defguard_user in defguard_users.iter() {
         if let Some(ldap_user) = ldap_users
             .iter()
-            .position(|u| {
-                ldap_config.user_dn_for_user(u) == ldap_config.user_dn_for_user(defguard_user)
-            })
+            .position(|u| ldap_config.user_dn_key_eq(u, defguard_user))
             .map(|i| ldap_users.remove(i))
         {
             intersecting_users_ldap.push(ldap_user);
@@ -541,7 +531,7 @@ pub(super) fn extract_intersecting_users(
     for user in intersecting_users_ldap {
         if let Some(defguard_user) = defguard_users
             .iter()
-            .position(|u| ldap_config.user_dn_for_user(u) == ldap_config.user_dn_for_user(&user))
+            .position(|u| ldap_config.user_dn_key_eq(u, &user))
             .map(|i| defguard_users.remove(i))
         {
             intersecting_users.push((user, defguard_user));
@@ -758,7 +748,7 @@ impl super::LDAPConnection {
                         let defguard_user_rdn = defguard_user.ldap_rdn_value();
                         let ldap_user_rdn = ldap_user.ldap_rdn_value();
 
-                        if defguard_user_rdn != ldap_user_rdn {
+                        if !ci_eq(defguard_user_rdn, ldap_user_rdn) {
                             warn!(
                                 "User {} has different RDN in Defguard ({defguard_user_rdn}) and \
                                 LDAP ({ldap_user_rdn}), cannot fix missing LDAP path. Please, \
@@ -978,7 +968,7 @@ impl super::LDAPConnection {
             }
             if let Some((ldap_rdn, ldap_path)) =
                 ldap_paths_by_username.get(defguard_user.username.as_str())
-                && defguard_user.ldap_rdn_value() == *ldap_rdn
+                && ci_eq(defguard_user.ldap_rdn_value(), ldap_rdn)
             {
                 defguard_user.ldap_user_path = ldap_path.map(str::to_owned);
             }
@@ -1178,7 +1168,7 @@ impl super::LDAPConnection {
             {
                 let defguard_user_dn = self.config.user_dn_for_user(&defguard_user);
                 let ldap_user_dn = self.config.user_dn_for_user(&user);
-                if defguard_user_dn == ldap_user_dn {
+                if self.config.user_dn_key_eq(&defguard_user, &user) {
                     debug!(
                         "User {} (DN: {}) already exists in Defguard, skipping...",
                         user.username, defguard_user_dn
@@ -1186,7 +1176,7 @@ impl super::LDAPConnection {
                 } else {
                     warn!(
                         "LDAP user with username {} already exists in Defguard. Those users have \
-                        different DNs: {ldap_user_dn} (Defguard) vs {defguard_user_dn} (LDAP). All \
+                        different DNs: {defguard_user_dn} (Defguard) vs {ldap_user_dn} (LDAP). All \
                         usernames must be unique, so this LDAP user will not be added to Defguard.",
                         user.username,
                     );
@@ -1260,9 +1250,7 @@ impl super::LDAPConnection {
         let username_attr = &self.config.ldap_username_attr;
 
         for entry in all_ldap_user_entries {
-            let username = entry
-                .attrs
-                .get(username_attr)
+            let username = get_attr_values(&entry, username_attr)
                 .and_then(|v| v.first())
                 .ok_or_else(|| {
                     LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
