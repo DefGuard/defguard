@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, hash_map::Entry},
     net::IpAddr,
     sync::{Arc, Mutex, RwLock},
     time::Duration,
@@ -48,10 +48,7 @@ use tokio::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::{
-        is_business_license_active,
-        posture::{PostureCheckError, PostureResult, validate_posture},
-    },
+    enterprise::posture::{PostureCheckError, PostureResult, validate_posture},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, utils::parse_client_ip_agent},
     mfa_engine::{
@@ -61,6 +58,7 @@ use crate::{
             build_authorized_gateway_network_info, create_new_session,
         },
         error::StartError,
+        filter_unlicensed_mfa_methods,
         legacy::{FinishError, LegacyProof},
         method::InitiateError,
         multi_step::{
@@ -173,10 +171,19 @@ fn take_remote_mfa_waiter_if(
 fn take_legacy_remote_mfa_waiter(
     waiters: &RemoteAuthWaiters,
     token: &str,
-) -> Option<RemoteAuthWaiter> {
-    take_remote_mfa_waiter_if(waiters, token, |kind| {
-        matches!(kind, RemoteAuthWaiterKind::Legacy { .. })
-    })
+) -> Option<(RemoteAuthWaiter, Arc<Mutex<Option<String>>>)> {
+    let hash = hash_token(token);
+    let mut waiters = waiters
+        .write()
+        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses");
+    let Entry::Occupied(entry) = waiters.entry(hash) else {
+        return None;
+    };
+    let preshared_key = match &entry.get().kind {
+        RemoteAuthWaiterKind::Legacy { preshared_key } => Arc::clone(preshared_key),
+        RemoteAuthWaiterKind::MultiStep { .. } => return None,
+    };
+    Some((entry.remove(), preshared_key))
 }
 
 fn take_multi_step_remote_mfa_waiter(
@@ -387,7 +394,6 @@ impl From<FinishError> for Status {
             | FinishError::MalformedProof { .. } => Code::InvalidArgument,
             FinishError::OidcNotCompleted => Code::FailedPrecondition,
             FinishError::Unauthorized => Code::Unauthenticated,
-            FinishError::AttemptLimit => Code::PermissionDenied,
             FinishError::MissingBiometricChallenge | FinishError::Internal => Code::Internal,
             FinishError::Event(e) => return Self::from(e),
         };
@@ -550,13 +556,7 @@ impl ClientMfaServer {
             error!("Resolved MFA flow has no steps");
             return Err(Status::internal("unexpected error"));
         };
-        let first_step_methods = first_step
-            .methods
-            .iter()
-            .copied()
-            // OIDC MFA is a business feature, so an unlicensed deployment must not offer it.
-            .filter(|method| *method != VpnClientMfaMethod::Oidc || is_business_license_active())
-            .collect::<HashSet<_>>();
+        let first_step_methods = filter_unlicensed_mfa_methods(&first_step.methods);
 
         if !first_step_methods.contains(&selected_client_method) {
             error!(
@@ -1205,15 +1205,9 @@ impl ClientMfaServer {
         let preshared_key = match &outcome {
             FinishOutcome::Completed { preshared_key } => {
                 if is_mobile_signature {
-                    if let Some(waiter) =
+                    if let Some((waiter, waiter_key)) =
                         take_legacy_remote_mfa_waiter(&self.remote_mfa_responses, &token)
                     {
-                        let RemoteAuthWaiterKind::Legacy {
-                            preshared_key: waiter_key,
-                        } = &waiter.kind
-                        else {
-                            unreachable!("legacy waiter kind was checked before removal");
-                        };
                         *waiter_key
                             .lock()
                             .expect("Failed to lock legacy remote MFA preshared key") =

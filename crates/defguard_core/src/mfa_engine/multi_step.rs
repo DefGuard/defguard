@@ -15,6 +15,7 @@ use super::{
     LoadedFinishContext, MfaEngine,
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
+    filter_unlicensed_mfa_methods,
     method::{Verdict, VerifyError, check_mobile_approval, verify, verify_mobile_signature},
     types::{FinishOutcome, StartOutcome, VerificationProof},
 };
@@ -211,15 +212,9 @@ impl MfaEngine {
             return Err(StartError::PlanLengthMismatch);
         }
 
-        // Freeze the license-filtered snapshot: OIDC is a business-tier method.
         let filtered_steps = steps
             .iter()
-            .map(|step| {
-                step.iter()
-                    .copied()
-                    .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
-                    .collect::<HashSet<_>>()
-            })
+            .map(filter_unlicensed_mfa_methods)
             .collect::<Vec<HashSet<_>>>();
 
         let smtp_configured = Settings::get_current_settings().smtp_configured();

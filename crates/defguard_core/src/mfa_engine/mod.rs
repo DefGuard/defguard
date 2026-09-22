@@ -26,7 +26,10 @@ use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tracing::{debug, error, warn};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_oidc_mfa_available},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider, is_business_license_active,
+        is_oidc_mfa_available,
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::GatewayCommand,
     mfa_engine::{
@@ -52,6 +55,17 @@ pub mod types;
 pub struct MfaEngine {
     pool: PgPool,
     channels: EventChannels,
+}
+
+pub(crate) fn filter_unlicensed_mfa_methods(
+    methods: &HashSet<VpnClientMfaMethod>,
+) -> HashSet<VpnClientMfaMethod> {
+    let business = is_business_license_active();
+    methods
+        .iter()
+        .copied()
+        .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
+        .collect()
 }
 
 /// The side effects of a completed flow, built inside the transaction but dispatched by the

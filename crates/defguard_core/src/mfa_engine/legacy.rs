@@ -13,6 +13,7 @@ use super::{
     LoadedFinishContext, MfaEngine,
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
+    filter_unlicensed_mfa_methods,
     method::{Verdict, VerifyError, verify, verify_mobile_signature},
     types::{FinishOutcome, StartOutcome, VerificationProof},
 };
@@ -36,8 +37,6 @@ pub enum FinishError {
     OidcNotCompleted,
     #[error("unauthorized")]
     Unauthorized,
-    #[error("Too many failed MFA attempts. Please try connecting again.")]
-    AttemptLimit,
     #[error("stale MFA attempt")]
     StaleAttempt,
     #[error("Challenge not found in session")]
@@ -74,8 +73,18 @@ impl MfaEngine {
         steps: Vec<HashSet<VpnClientMfaMethod>>,
         selected_method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
+        let steps = steps
+            .into_iter()
+            .map(|step| filter_unlicensed_mfa_methods(&step))
+            .collect::<Vec<_>>();
+        if !steps
+            .first()
+            .is_some_and(|methods| methods.contains(&selected_method))
+        {
+            return Err(StartError::MethodNotAvailable);
+        }
+
         // Email initiation sends asynchronously, so require SMTP configuration before starting.
-        // The adapter filters unlicensed OIDC before calling the legacy path.
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_available().await.map_err(|err| {
             tracing::error!("Failed to get current OpenID provider: {err}");
@@ -309,10 +318,6 @@ mod tests {
                 "OIDC authentication not completed yet",
             ),
             (FinishError::Unauthorized, "unauthorized"),
-            (
-                FinishError::AttemptLimit,
-                "Too many failed MFA attempts. Please try connecting again.",
-            ),
             (FinishError::StaleAttempt, "stale MFA attempt"),
             (
                 FinishError::MissingChallenge,

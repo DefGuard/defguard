@@ -50,6 +50,7 @@ use crate::{
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayCommand, proto::enterprise::license::LicenseLimits},
     mfa_engine::{
+        error::StartError,
         legacy::{FinishError, LegacyProof},
         method::{Verdict, check_mobile_approval},
         multi_step::{StartRejectionReason, StartResult, StepCredential, StepError, StepProof},
@@ -217,11 +218,6 @@ fn test_status_table_messages() {
             Status::from(FinishError::SessionNotFound),
             Code::InvalidArgument,
             "login session not found",
-        ),
-        (
-            Status::from(FinishError::AttemptLimit),
-            Code::PermissionDenied,
-            "Too many failed MFA attempts. Please try connecting again.",
         ),
         (
             Status::from(FinishError::StaleAttempt),
@@ -874,6 +870,67 @@ async fn test_step_start_oidc_survives_license_lapse(_: PgPoolOptions, options: 
         .await
         .expect("OIDC step must survive a license lapse");
     assert!(!step.step_attempt_id.is_empty());
+}
+
+#[sqlx::test]
+async fn test_start_legacy_rejects_unlicensed_oidc(_: PgPoolOptions, options: PgConnectOptions) {
+    clear_test_license();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+
+    OpenIdProvider::new(
+        "Test".to_owned(),
+        "https://idp.example.com".to_owned(),
+        OpenIdProviderKind::Google,
+        "client_id".to_owned(),
+        "client_secret".to_owned(),
+        None,
+        None,
+        None,
+        None,
+        true,
+        60,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncUserBehavior::Keep,
+        DirectorySyncTarget::All,
+        None,
+        None,
+        Vec::new(),
+        None,
+        false,
+        false,
+        None,
+    )
+    .save(&pool)
+    .await
+    .expect("failed to configure OpenID provider");
+
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_flow(&pool, location.id, vec![vec![VpnClientMfaMethod::Oidc]]).await;
+    let mut user = create_user(&pool).await;
+    user.openid_sub = Some("oidc-sub".to_owned());
+    user.save(&pool).await.expect("failed to link OIDC user");
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+
+    let (flow_id, step_methods) = resolve_flow(&pool, location.id, user.id).await;
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+    let error = engine
+        .start_legacy(
+            &location,
+            &device,
+            &user,
+            flow_id,
+            step_methods,
+            VpnClientMfaMethod::Oidc,
+        )
+        .await
+        .expect_err("an unlicensed OIDC method must be rejected");
+
+    assert!(matches!(error, StartError::MethodNotAvailable));
+    assert_eq!(session_count(&pool, location.id, device.id).await, 0);
 }
 
 #[sqlx::test]
