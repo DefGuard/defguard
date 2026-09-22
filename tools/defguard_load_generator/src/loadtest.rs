@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::bail;
+use rand::Rng;
 use reqwest::{Client, StatusCode};
 use secrecy::ExposeSecret;
 use sqlx::{
@@ -23,6 +24,7 @@ const POLLING_PATH: &str = "/api/v1/poll";
 const CLIENT_VERSION: &str = "2.1.0";
 const USER_AGENT: &str = "defguard-load-generator/0.1.0";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_LATENCY_SAMPLES: usize = 100_000;
 
 #[derive(Clone, Debug, FromRow)]
 struct PollingActor {
@@ -55,6 +57,21 @@ struct LoadTestMetrics {
     dropped_requests: u64,
     peak_in_flight: usize,
     latencies: Vec<Duration>,
+    latencies_seen: u64,
+}
+
+impl LoadTestMetrics {
+    fn record_latency(&mut self, duration: Duration) {
+        self.latencies_seen += 1;
+        if self.latencies.len() < MAX_LATENCY_SAMPLES {
+            self.latencies.push(duration);
+        } else {
+            let index = rand::thread_rng().gen_range(0..self.latencies_seen);
+            if index < MAX_LATENCY_SAMPLES as u64 {
+                self.latencies[index as usize] = duration;
+            }
+        }
+    }
 }
 
 struct SharedLoadTestState {
@@ -230,7 +247,7 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
 
     match result {
         Ok(request) => {
-            metrics.latencies.push(request.duration);
+            metrics.record_latency(request.duration);
             match request.result {
                 Ok(status) if status.is_success() => metrics.successful_requests += 1,
                 Ok(status) if !status.is_success() => {

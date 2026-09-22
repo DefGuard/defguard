@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant, SystemTime};
 
 use anyhow::Context;
+use rand::Rng;
 use reqwest::{Client, StatusCode};
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
@@ -23,6 +24,7 @@ const FINISH_PATH: &str = "/api/v1/client-mfa/finish";
 const TOTP_PERIOD: u64 = 30;
 const TOTP_DIGITS: u32 = 6;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_LATENCY_SAMPLES: usize = 100_000;
 
 #[derive(Clone, Debug, FromRow)]
 struct MfaActor {
@@ -104,6 +106,21 @@ struct Metrics {
     response_errors: u64,
     panicked: u64,
     latencies: Vec<Duration>,
+    latencies_seen: u64,
+}
+
+impl Metrics {
+    fn record_latency(&mut self, duration: Duration) {
+        self.latencies_seen += 1;
+        if self.latencies.len() < MAX_LATENCY_SAMPLES {
+            self.latencies.push(duration);
+        } else {
+            let index = rand::thread_rng().gen_range(0..self.latencies_seen);
+            if index < MAX_LATENCY_SAMPLES as u64 {
+                self.latencies[index as usize] = duration;
+            }
+        }
+    }
 }
 
 pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
@@ -318,7 +335,7 @@ fn client_headers() -> reqwest::header::HeaderMap {
 fn handle_result(result: Result<(usize, MfaResult), JoinError>, metrics: &mut Metrics) {
     match result {
         Ok((_, result)) => {
-            metrics.latencies.push(result.duration);
+            metrics.record_latency(result.duration);
             match result.result {
                 Ok(()) => metrics.successful += 1,
                 Err(MfaError::Http { phase, status }) => {
