@@ -23,16 +23,15 @@ use defguard_common::{
 };
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaFlowApproveRequest,
-        ClientMfaFlowRemoteRequest, ClientMfaFlowRemoteResponse, ClientMfaFlowStartRequest,
-        ClientMfaFlowStartResponse, ClientMfaFlowStepFinishRequest,
-        ClientMfaFlowStepFinishResponse, ClientMfaFlowStepStartRequest,
-        ClientMfaFlowStepStartResponse, ClientMfaStartRequest, ClientMfaStartResponse, MfaAdvanced,
-        MfaAwaitingExternal, MfaBiometricSignature, MfaCodeCredential, MfaCompleted,
-        MfaFido2Assertion, MfaFido2Challenge, MfaFlowStartAccepted, MfaFlowStartRejected,
-        MfaMethod, MfaSignatureChallenge, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
-        MfaStepStarted, client_mfa_flow_start_response, client_mfa_flow_step_finish_request,
-        mfa_step_result, mfa_step_started,
+        ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+        ClientMfaStartResponse, MfaAdvanced, MfaAwaitingExternal, MfaBiometricSignature,
+        MfaCodeCredential, MfaCompleted, MfaFido2Assertion, MfaFido2Challenge,
+        MfaFlowApproveRequest, MfaFlowRemoteRequest, MfaFlowRemoteResponse, MfaFlowStartAccepted,
+        MfaFlowStartRejected, MfaFlowStartRequest, MfaFlowStartResponse, MfaFlowStepFinishRequest,
+        MfaFlowStepFinishResponse, MfaFlowStepStartRequest, MfaFlowStepStartResponse, MfaMethod,
+        MfaSignatureChallenge, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
+        MfaStepStarted, mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result,
+        mfa_step_started,
     },
     enterprise::posture::{DevicePostureCheckRequest, DevicePostureData},
     proxy::{
@@ -296,15 +295,15 @@ fn flow_step_started(
     })
 }
 
-fn into_step_proof(request: ClientMfaFlowStepFinishRequest) -> (String, StepProof) {
+fn into_step_proof(request: MfaFlowStepFinishRequest) -> (String, StepProof) {
     let credential = request.submission.map(|submission| match submission {
-        client_mfa_flow_step_finish_request::Submission::Code(MfaCodeCredential { code }) => {
+        mfa_flow_step_finish_request::Submission::Code(MfaCodeCredential { code }) => {
             StepCredential::Code(code)
         }
-        client_mfa_flow_step_finish_request::Submission::Biometric(MfaBiometricSignature {
+        mfa_flow_step_finish_request::Submission::Biometric(MfaBiometricSignature {
             signature,
         }) => StepCredential::BiometricSignature(signature),
-        client_mfa_flow_step_finish_request::Submission::Fido2(MfaFido2Assertion {
+        mfa_flow_step_finish_request::Submission::Fido2(MfaFido2Assertion {
             rp_id_hash,
             authenticator_data,
             signature,
@@ -583,11 +582,11 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn start_client_mfa_flow(
+    pub async fn start_mfa_flow(
         &self,
-        request: ClientMfaFlowStartRequest,
+        request: MfaFlowStartRequest,
         info: Option<proxy::DeviceInfo>,
-    ) -> Result<ClientMfaFlowStartOutcome, Status> {
+    ) -> Result<MfaFlowStartOutcome, Status> {
         debug!("Starting multi-step desktop client login: {request:?}");
         if request.selected_methods.is_empty() {
             return Err(Status::invalid_argument("MFA plan must not be empty"));
@@ -615,7 +614,7 @@ impl ClientMfaServer {
         {
             ClientMfaStartPreparation::Ready(context) => context,
             ClientMfaStartPreparation::PostureRejected { failed_checks } => {
-                return Ok(ClientMfaFlowStartOutcome::Rejected { failed_checks });
+                return Ok(MfaFlowStartOutcome::PostureRejected { failed_checks });
             }
         };
 
@@ -657,31 +656,27 @@ impl ClientMfaServer {
                 )?;
                 let first_step =
                     flow_step_started(first_method, step_attempt_id, challenge, credential_ids)?;
-                Ok(ClientMfaFlowStartOutcome::Approved(
-                    ClientMfaFlowStartResponse {
-                        outcome: Some(client_mfa_flow_start_response::Outcome::Accepted(
-                            MfaFlowStartAccepted {
-                                token,
-                                first_step: Some(first_step),
-                            },
-                        )),
-                    },
-                ))
+                Ok(MfaFlowStartOutcome::PostureApproved(MfaFlowStartResponse {
+                    outcome: Some(mfa_flow_start_response::Outcome::Accepted(
+                        MfaFlowStartAccepted {
+                            token,
+                            first_step: Some(first_step),
+                        },
+                    )),
+                }))
             }
             StartResult::Rejected(rejections) => {
                 info!(
                     "MFA plan rejected for user {} at location {}: {rejections:?}",
                     user.username, location.name
                 );
-                Ok(ClientMfaFlowStartOutcome::Approved(
-                    ClientMfaFlowStartResponse {
-                        outcome: Some(client_mfa_flow_start_response::Outcome::Rejected(
-                            MfaFlowStartRejected {
-                                rejections: rejections.into_iter().map(Into::into).collect(),
-                            },
-                        )),
-                    },
-                ))
+                Ok(MfaFlowStartOutcome::PostureApproved(MfaFlowStartResponse {
+                    outcome: Some(mfa_flow_start_response::Outcome::Rejected(
+                        MfaFlowStartRejected {
+                            rejections: rejections.into_iter().map(Into::into).collect(),
+                        },
+                    )),
+                }))
             }
         }
     }
@@ -942,14 +937,14 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn await_client_mfa_flow_step_finish(
+    pub async fn await_mfa_flow_remote(
         &self,
-        request: ClientMfaFlowRemoteRequest,
+        request: MfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
-        self.await_client_mfa_flow_step_finish_with_timeout(
+        self.await_mfa_flow_remote_with_timeout(
             request,
             response_tx,
             request_id,
@@ -959,9 +954,9 @@ impl ClientMfaServer {
         .await
     }
 
-    async fn await_client_mfa_flow_step_finish_with_timeout(
+    async fn await_mfa_flow_remote_with_timeout(
         &self,
-        request: ClientMfaFlowRemoteRequest,
+        request: MfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
         info: Option<proxy::DeviceInfo>,
@@ -1072,7 +1067,7 @@ impl ClientMfaServer {
                 Ok(FinishOutcome::AwaitingExternal) => {
                     Payload::CoreError(Status::internal("mobile approval did not complete").into())
                 }
-                Ok(outcome) => Payload::AwaitFlowStepFinish(ClientMfaFlowRemoteResponse {
+                Ok(outcome) => Payload::MfaFlowRemote(MfaFlowRemoteResponse {
                     result: Some(outcome.into()),
                 }),
                 Err(error) => Payload::CoreError(Status::from(error).into()),
@@ -1238,10 +1233,10 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn client_mfa_flow_step_start(
+    pub async fn mfa_flow_step_start(
         &self,
-        request: ClientMfaFlowStepStartRequest,
-    ) -> Result<ClientMfaFlowStepStartResponse, Status> {
+        request: MfaFlowStepStartRequest,
+    ) -> Result<MfaFlowStepStartResponse, Status> {
         let method = parse_mfa_method(request.method)?;
         let step_started = self.engine.step_start(request.token, method).await?;
         let started = flow_step_started(
@@ -1250,29 +1245,29 @@ impl ClientMfaServer {
             step_started.challenge,
             step_started.credential_ids,
         )?;
-        Ok(ClientMfaFlowStepStartResponse {
+        Ok(MfaFlowStepStartResponse {
             started: Some(started),
         })
     }
 
     #[instrument(skip_all)]
-    pub async fn client_mfa_flow_step_finish(
+    pub async fn mfa_flow_step_finish(
         &self,
-        request: ClientMfaFlowStepFinishRequest,
+        request: MfaFlowStepFinishRequest,
         info: Option<proxy::DeviceInfo>,
-    ) -> Result<ClientMfaFlowStepFinishResponse, Status> {
+    ) -> Result<MfaFlowStepFinishResponse, Status> {
         let (token, proof) = into_step_proof(request);
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let result = self.engine.finish_step(token, proof, ip).await?;
-        Ok(ClientMfaFlowStepFinishResponse {
+        Ok(MfaFlowStepFinishResponse {
             result: Some(result.into()),
         })
     }
 
     #[instrument(skip_all)]
-    pub async fn client_mfa_flow_approve(
+    pub async fn mfa_flow_approve(
         &self,
-        request: ClientMfaFlowApproveRequest,
+        request: MfaFlowApproveRequest,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         let proof = request
@@ -1646,12 +1641,12 @@ pub enum ClientMfaStartOutcome {
     Rejected { failed_checks: Vec<String> },
 }
 
-/// Result of a [`ClientMfaServer::start_client_mfa_flow`] call.
-pub enum ClientMfaFlowStartOutcome {
+/// Result of a [`ClientMfaServer::start_mfa_flow`] call.
+pub enum MfaFlowStartOutcome {
     /// Posture evaluation succeeded or was unnecessary.
-    Approved(ClientMfaFlowStartResponse),
+    PostureApproved(MfaFlowStartResponse),
     /// Posture evaluation failed; the contained list describes which checks failed.
-    Rejected { failed_checks: Vec<String> },
+    PostureRejected { failed_checks: Vec<String> },
 }
 
 #[cfg(test)]

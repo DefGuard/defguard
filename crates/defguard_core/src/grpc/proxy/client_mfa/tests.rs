@@ -30,11 +30,10 @@ use defguard_common::db::{
 };
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaFlowApproveRequest, ClientMfaFlowRemoteRequest,
-        ClientMfaFlowStartRequest, ClientMfaFlowStepFinishRequest, ClientMfaFlowStepStartRequest,
-        ClientMfaStartRequest, MfaCodeCredential, MfaMethod, MfaMobileApprovalProof,
-        MfaStartRejectionReason, client_mfa_flow_start_response,
-        client_mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
+        ClientMfaFinishRequest, ClientMfaStartRequest, MfaCodeCredential, MfaFlowApproveRequest,
+        MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
+        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaStartRejectionReason,
+        mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
     },
     enterprise::posture::{BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check},
     proxy::{ClientMfaOidcAuthenticateRequest, ClientMfaTokenValidationRequest, DeviceInfo},
@@ -50,8 +49,8 @@ use tonic::Code;
 use totp_lite::{Sha1, totp_custom};
 
 use super::{
-    AwaitRemoteMfaFinishRequest, ClientMfaFlowStartOutcome, ClientMfaServer, ClientMfaStartOutcome,
-    CoreResponse, hash_token, remove_remote_mfa_waiter,
+    AwaitRemoteMfaFinishRequest, ClientMfaServer, ClientMfaStartOutcome, CoreResponse,
+    MfaFlowStartOutcome, hash_token, remove_remote_mfa_waiter,
 };
 use crate::{
     enterprise::{
@@ -1908,15 +1907,15 @@ async fn test_validate_mfa_token(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
+async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let (server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey: pubkey.clone(),
                 posture_data: None,
@@ -1926,10 +1925,10 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         )
         .await
         .expect("flow start should succeed");
-    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+    let MfaFlowStartOutcome::PostureApproved(response) = start else {
         panic!("unexpected posture rejection");
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should be accepted");
     };
     let first_step = accepted
@@ -1946,8 +1945,8 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     let step_attempt_id = first_step.step_attempt_id;
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_client_mfa_flow_step_finish(
-            ClientMfaFlowRemoteRequest {
+        .await_mfa_flow_remote(
+            MfaFlowRemoteRequest {
                 token: token.clone(),
                 step_attempt_id: step_attempt_id.clone(),
             },
@@ -1966,8 +1965,8 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     );
 
     let stale_error = server
-        .client_mfa_flow_approve(
-            ClientMfaFlowApproveRequest {
+        .mfa_flow_approve(
+            MfaFlowApproveRequest {
                 token: token.clone(),
                 step_attempt_id: "stale-attempt".to_owned(),
                 proof: Some(MfaMobileApprovalProof {
@@ -1992,8 +1991,8 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
 
     let signature = BASE64_STANDARD.encode(signing_key.sign(challenge.as_bytes()).to_bytes());
     server
-        .client_mfa_flow_approve(
-            ClientMfaFlowApproveRequest {
+        .mfa_flow_approve(
+            MfaFlowApproveRequest {
                 token: token.clone(),
                 step_attempt_id,
                 proof: Some(MfaMobileApprovalProof {
@@ -2010,7 +2009,7 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         .await
         .expect("remote waiter should finish after approval")
         .expect("remote response sender should remain available");
-    let Some(super::Payload::AwaitFlowStepFinish(response)) = response.payload else {
+    let Some(super::Payload::MfaFlowRemote(response)) = response.payload else {
         panic!("expected a typed remote flow response");
     };
     let result = response
@@ -2050,15 +2049,15 @@ async fn test_client_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_remote_observes_approval_before_registration(
+async fn test_mfa_flow_remote_observes_approval_before_registration(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let (server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey: pubkey.clone(),
                 posture_data: None,
@@ -2068,10 +2067,10 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
         )
         .await
         .expect("flow start should succeed");
-    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+    let MfaFlowStartOutcome::PostureApproved(response) = start else {
         panic!("unexpected posture rejection");
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should be accepted");
     };
     let first_step = accepted
@@ -2089,8 +2088,8 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
     let signature = BASE64_STANDARD.encode(signing_key.sign(challenge.as_bytes()).to_bytes());
 
     server
-        .client_mfa_flow_approve(
-            ClientMfaFlowApproveRequest {
+        .mfa_flow_approve(
+            MfaFlowApproveRequest {
                 token: token.clone(),
                 step_attempt_id: step_attempt_id.clone(),
                 proof: Some(MfaMobileApprovalProof {
@@ -2125,8 +2124,8 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
 
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_client_mfa_flow_step_finish(
-            ClientMfaFlowRemoteRequest {
+        .await_mfa_flow_remote(
+            MfaFlowRemoteRequest {
                 token: token.clone(),
                 step_attempt_id,
             },
@@ -2140,7 +2139,7 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
         .await
         .expect("remote waiter should finish")
         .expect("remote response sender should remain available");
-    let Some(super::Payload::AwaitFlowStepFinish(response)) = response.payload else {
+    let Some(super::Payload::MfaFlowRemote(response)) = response.payload else {
         panic!("expected a typed remote flow response");
     };
     let Some(mfa_step_result::Outcome::Completed(completed)) = response
@@ -2160,15 +2159,15 @@ async fn test_client_mfa_flow_remote_observes_approval_before_registration(
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
+async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let (server, pool, location_id, pubkey, _auth_pub_key, _signing_key, _event_rx, _gateway_rx) =
         setup_mobile_mfa_flow_server(options).await;
     let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey: pubkey.clone(),
                 posture_data: None,
@@ -2178,10 +2177,10 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
         )
         .await
         .expect("flow start should succeed");
-    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+    let MfaFlowStartOutcome::PostureApproved(response) = start else {
         panic!("unexpected posture rejection");
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should be accepted");
     };
     let step_attempt_id = accepted
@@ -2191,8 +2190,8 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
     let token = accepted.token;
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_client_mfa_flow_step_finish_with_timeout(
-            ClientMfaFlowRemoteRequest {
+        .await_mfa_flow_remote_with_timeout(
+            MfaFlowRemoteRequest {
                 token: token.clone(),
                 step_attempt_id,
             },
@@ -2243,14 +2242,11 @@ async fn test_client_mfa_flow_remote_timeout_cleans_its_waiter(
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_start_returns_initial_attempt(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_flow_start_returns_initial_attempt(_: PgPoolOptions, options: PgConnectOptions) {
     let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let outcome = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2261,10 +2257,10 @@ async fn test_client_mfa_flow_start_returns_initial_attempt(
         .await
         .expect("flow start should succeed");
     let response = match outcome {
-        ClientMfaFlowStartOutcome::Approved(response) => response,
-        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
+        MfaFlowStartOutcome::PostureApproved(response) => response,
+        MfaFlowStartOutcome::PostureRejected { .. } => panic!("unexpected posture rejection"),
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should return an accepted outcome");
     };
     let first_step = accepted
@@ -2291,14 +2287,14 @@ async fn test_client_mfa_flow_start_returns_initial_attempt(
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_start_rejection_does_not_create_session(
+async fn test_mfa_flow_start_rejection_does_not_create_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let outcome = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2309,10 +2305,10 @@ async fn test_client_mfa_flow_start_rejection_does_not_create_session(
         .await
         .expect("flow start should return a typed rejection");
     let response = match outcome {
-        ClientMfaFlowStartOutcome::Approved(response) => response,
-        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
+        MfaFlowStartOutcome::PostureApproved(response) => response,
+        MfaFlowStartOutcome::PostureRejected { .. } => panic!("unexpected posture rejection"),
     };
-    let Some(client_mfa_flow_start_response::Outcome::Rejected(rejected)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Rejected(rejected)) = response.outcome else {
         panic!("flow start should return a rejected outcome");
     };
     assert_eq!(rejected.rejections.len(), 1);
@@ -2331,14 +2327,14 @@ async fn test_client_mfa_flow_start_rejection_does_not_create_session(
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_step_start_returns_typed_attempt(
+async fn test_mfa_flow_step_start_returns_typed_attempt(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2349,10 +2345,10 @@ async fn test_client_mfa_flow_step_start_returns_typed_attempt(
         .await
         .expect("flow start should succeed");
     let response = match start {
-        ClientMfaFlowStartOutcome::Approved(response) => response,
-        ClientMfaFlowStartOutcome::Rejected { .. } => panic!("unexpected posture rejection"),
+        MfaFlowStartOutcome::PostureApproved(response) => response,
+        MfaFlowStartOutcome::PostureRejected { .. } => panic!("unexpected posture rejection"),
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should return an accepted outcome");
     };
     let initial_attempt = accepted
@@ -2361,7 +2357,7 @@ async fn test_client_mfa_flow_step_start_returns_typed_attempt(
         .step_attempt_id;
 
     let step = server
-        .client_mfa_flow_step_start(ClientMfaFlowStepStartRequest {
+        .mfa_flow_step_start(MfaFlowStepStartRequest {
             token: accepted.token.clone(),
             method: MfaMethod::MobileApprove as i32,
         })
@@ -2421,14 +2417,14 @@ fn test_flow_step_started_uses_typed_challenge_arms() {
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
+async fn test_mfa_flow_step_finish_rejects_untyped_totp_submission(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let (server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2438,10 +2434,10 @@ async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
         )
         .await
         .expect("flow start should succeed");
-    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+    let MfaFlowStartOutcome::PostureApproved(response) = start else {
         panic!("unexpected posture rejection");
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should be accepted");
     };
     let attempt_id = accepted
@@ -2449,8 +2445,8 @@ async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
         .expect("flow start must include an attempt")
         .step_attempt_id;
     let error = server
-        .client_mfa_flow_step_finish(
-            ClientMfaFlowStepFinishRequest {
+        .mfa_flow_step_finish(
+            MfaFlowStepFinishRequest {
                 token: accepted.token,
                 step_attempt_id: attempt_id,
                 submission: None,
@@ -2468,10 +2464,10 @@ async fn test_client_mfa_flow_step_finish_rejects_untyped_totp_submission(
 
 #[test]
 fn test_flow_step_finish_converts_typed_code_submission() {
-    let (token, proof) = super::into_step_proof(ClientMfaFlowStepFinishRequest {
+    let (token, proof) = super::into_step_proof(MfaFlowStepFinishRequest {
         token: "token".to_owned(),
         step_attempt_id: "attempt".to_owned(),
-        submission: Some(client_mfa_flow_step_finish_request::Submission::Code(
+        submission: Some(mfa_flow_step_finish_request::Submission::Code(
             MfaCodeCredential {
                 code: "123456".to_owned(),
             },
@@ -2486,14 +2482,11 @@ fn test_flow_step_finish_converts_typed_code_submission() {
 }
 
 #[sqlx::test]
-async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_flow_remote_rejects_non_mobile_step(_: PgPoolOptions, options: PgConnectOptions) {
     let (server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
     let start = server
-        .start_client_mfa_flow(
-            ClientMfaFlowStartRequest {
+        .start_mfa_flow(
+            MfaFlowStartRequest {
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2503,10 +2496,10 @@ async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
         )
         .await
         .expect("flow start should succeed");
-    let ClientMfaFlowStartOutcome::Approved(response) = start else {
+    let MfaFlowStartOutcome::PostureApproved(response) = start else {
         panic!("unexpected posture rejection");
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("flow start should be accepted");
     };
     let attempt_id = accepted
@@ -2515,8 +2508,8 @@ async fn test_client_mfa_flow_remote_rejects_non_mobile_step(
         .step_attempt_id;
     let (_response_tx, _response_rx) = mpsc::unbounded_channel();
     let error = server
-        .await_client_mfa_flow_step_finish(
-            ClientMfaFlowRemoteRequest {
+        .await_mfa_flow_remote(
+            MfaFlowRemoteRequest {
                 token: accepted.token,
                 step_attempt_id: attempt_id,
             },

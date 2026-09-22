@@ -1,10 +1,10 @@
 use defguard_common::{db::Id, gateway_event::GatewayCommand};
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaFlowApproveRequest, ClientMfaFlowRemoteRequest,
-        ClientMfaFlowStartRequest, ClientMfaFlowStepFinishRequest, ClientMfaFlowStepStartRequest,
-        ClientMfaStartRequest, MfaCodeCredential, MfaMethod, MfaMobileApprovalProof,
-        client_mfa_flow_start_response, client_mfa_flow_step_finish_request, mfa_step_started,
+        ClientMfaFinishRequest, ClientMfaStartRequest, MfaCodeCredential, MfaFlowApproveRequest,
+        MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
+        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, mfa_flow_start_response,
+        mfa_flow_step_finish_request, mfa_step_started,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
@@ -34,26 +34,24 @@ async fn send_flow_start(
     context.mock_proxy().send_request(CoreRequest {
         id,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFlowStart(
-            ClientMfaFlowStartRequest {
-                location_id,
-                pubkey: pubkey.to_owned(),
-                posture_data: None,
-                selected_methods: selected_methods
-                    .iter()
-                    .map(|method| *method as i32)
-                    .collect(),
-            },
-        )),
+        payload: Some(core_request::Payload::MfaFlowStart(MfaFlowStartRequest {
+            location_id,
+            pubkey: pubkey.to_owned(),
+            posture_data: None,
+            selected_methods: selected_methods
+                .iter()
+                .map(|method| *method as i32)
+                .collect(),
+        })),
     });
     context.mock_proxy_mut().recv_outbound().await
 }
 
 fn accepted_flow_start(response: CoreResponse) -> (String, String, Option<String>) {
-    let Some(core_response::Payload::ClientMfaFlowStart(response)) = response.payload else {
-        panic!("expected ClientMfaFlowStart response");
+    let Some(core_response::Payload::MfaFlowStart(response)) = response.payload else {
+        panic!("expected MfaFlowStart response");
     };
-    let Some(client_mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
         panic!("expected accepted flow start response");
     };
     let first_step = accepted
@@ -175,7 +173,7 @@ async fn test_mfa_flow_start_dispatches_response(_: PgPoolOptions, options: PgCo
     assert_eq!(response.id, 1);
     assert!(matches!(
         response.payload,
-        Some(core_response::Payload::ClientMfaFlowStart(_))
+        Some(core_response::Payload::MfaFlowStart(_))
     ));
 
     context.finish().await.expect_server_finished().await;
@@ -206,8 +204,8 @@ async fn test_mfa_flow_step_start_dispatches_response(_: PgPoolOptions, options:
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFlowStepStart(
-            ClientMfaFlowStepStartRequest {
+        payload: Some(core_request::Payload::MfaFlowStepStart(
+            MfaFlowStepStartRequest {
                 token,
                 method: MfaMethod::Totp as i32,
             },
@@ -218,7 +216,7 @@ async fn test_mfa_flow_step_start_dispatches_response(_: PgPoolOptions, options:
     assert_eq!(response.id, 2);
     assert!(matches!(
         response.payload,
-        Some(core_response::Payload::ClientMfaFlowStepStart(_))
+        Some(core_response::Payload::MfaFlowStepStart(_))
     ));
 
     context.finish().await.expect_server_finished().await;
@@ -255,11 +253,11 @@ async fn test_mfa_flow_step_finish_dispatches_response(
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFlowStepFinish(
-            ClientMfaFlowStepFinishRequest {
+        payload: Some(core_request::Payload::MfaFlowStepFinish(
+            MfaFlowStepFinishRequest {
                 token,
                 step_attempt_id,
-                submission: Some(client_mfa_flow_step_finish_request::Submission::Code(
+                submission: Some(mfa_flow_step_finish_request::Submission::Code(
                     MfaCodeCredential {
                         code: generate_totp_code(&user),
                     },
@@ -272,17 +270,14 @@ async fn test_mfa_flow_step_finish_dispatches_response(
     assert_eq!(response.id, 2);
     assert!(matches!(
         response.payload,
-        Some(core_response::Payload::ClientMfaFlowStepFinish(_))
+        Some(core_response::Payload::MfaFlowStepFinish(_))
     ));
 
     context.finish().await.expect_server_finished().await;
 }
 
 #[sqlx::test]
-async fn test_await_flow_step_finish_dispatches_response(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_flow_remote_dispatches_response(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     set_test_license_business();
@@ -315,8 +310,8 @@ async fn test_await_flow_step_finish_dispatches_response(
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFlowApprove(
-            ClientMfaFlowApproveRequest {
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
                 token: token.clone(),
                 step_attempt_id: step_attempt_id.clone(),
                 proof: Some(MfaMobileApprovalProof {
@@ -336,18 +331,16 @@ async fn test_await_flow_step_finish_dispatches_response(
     context.mock_proxy().send_request(CoreRequest {
         id: 3,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::AwaitFlowStepFinish(
-            ClientMfaFlowRemoteRequest {
-                token,
-                step_attempt_id,
-            },
-        )),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token,
+            step_attempt_id,
+        })),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     assert_eq!(response.id, 3);
     assert!(matches!(
         response.payload,
-        Some(core_response::Payload::AwaitFlowStepFinish(_))
+        Some(core_response::Payload::MfaFlowRemote(_))
     ));
 
     context.finish().await.expect_server_finished().await;
@@ -386,8 +379,8 @@ async fn test_mfa_flow_approve_dispatches_empty_response(
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFlowApprove(
-            ClientMfaFlowApproveRequest {
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
                 token,
                 step_attempt_id,
                 proof: Some(MfaMobileApprovalProof {
@@ -403,7 +396,7 @@ async fn test_mfa_flow_approve_dispatches_empty_response(
         context.mock_proxy_mut().recv_outbound(),
     )
     .await
-    .expect("ClientMfaFlowApprove must return a CoreResponse");
+    .expect("MfaFlowApprove must return a CoreResponse");
     assert_eq!(response.id, 2);
     assert!(matches!(
         response.payload,
