@@ -4896,6 +4896,80 @@ async fn test_get_all_users_with_server_chosen_attribute_case(
     assert_eq!(users[0].first_name, "first name");
 }
 
+/// Syncs existing and new users when the server lowercases attribute names, e.g. LLDAP
+/// answering `*` requests. Regression test for issue #3707
+#[sqlx::test]
+async fn test_sync_with_server_chosen_attribute_case(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut existing_user = make_test_user(
+        "testuser",
+        Some("testuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    existing_user.from_ldap = true;
+    let existing_user = existing_user.save(&pool).await.unwrap();
+
+    let mut existing_ldap_user = existing_user.clone().as_noid();
+    existing_ldap_user.first_name = "SyncedFirst".to_owned();
+    existing_ldap_user.last_name = "SyncedLast".to_owned();
+    existing_ldap_user.email = "synced@example.com".to_owned();
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&existing_ldap_user, &config);
+
+    let new_ldap_user = make_test_user(
+        "newuser",
+        Some("newuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&new_ldap_user, &config);
+
+    ldap_conn.test_client_mut().use_lowercase_attr_names();
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let updated_user = User::find_by_username(&pool, "testuser")
+        .await
+        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "existing user must not be deleted when the server returns lowercased attribute names"
+            )
+        });
+    assert_eq!(
+        updated_user.id, existing_user.id,
+        "sync must update the existing user in place, not delete and recreate it"
+    );
+    assert_eq!(updated_user.first_name, "SyncedFirst");
+    assert_eq!(updated_user.last_name, "SyncedLast");
+    assert_eq!(updated_user.email, "synced@example.com");
+
+    // The LDAP-only user must be created in Defguard, not skipped.
+    let created_user = User::find_by_username(&pool, "newuser")
+        .await
+        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "LDAP-only user must be created when the server returns lowercased attribute names"
+            )
+        });
+    assert_eq!(created_user.first_name, "first name");
+    assert_eq!(created_user.email, "newuser@example.com");
+}
+
 /// Treats DNs that differ only by case as the same user per RFC 4517 `distinguishedNameMatch`.
 #[sqlx::test]
 async fn test_user_sync_changes_ignore_dn_case(_: PgPoolOptions, options: PgConnectOptions) {

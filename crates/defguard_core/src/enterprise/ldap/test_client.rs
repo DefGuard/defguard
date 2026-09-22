@@ -294,7 +294,10 @@ impl LDAPConnection {
 
     /// Builds a search entry with the simulated server attribute spelling.
     fn entry_for(&self, object: &Object, dn: &str) -> SearchEntry {
-        self.finish_entry(object.to_search_entry(dn, &self.config))
+        fold_attr_names(
+            object.to_search_entry(dn, &self.config),
+            self.test_client.lowercase_attr_names,
+        )
     }
 
     pub(super) async fn search_users(
