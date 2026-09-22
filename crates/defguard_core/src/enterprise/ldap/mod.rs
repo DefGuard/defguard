@@ -179,6 +179,7 @@ pub struct LDAPConfig {
     pub ldap_sync_account_status: bool,
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
+    pub ldap_enrollment_token_attr: Option<String>,
 }
 
 #[cfg(test)]
@@ -200,6 +201,7 @@ impl Default for LDAPConfig {
             ldap_sync_account_status: false,
             ldap_user_rdn_attr: None,
             ldap_sync_groups: Vec::new(),
+            ldap_enrollment_token_attr: None,
         }
     }
 }
@@ -353,6 +355,7 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_sync_account_status: settings.ldap_sync_account_status,
             ldap_user_rdn_attr: settings.ldap_user_rdn_attr,
             ldap_sync_groups: settings.ldap_sync_groups,
+            ldap_enrollment_token_attr: settings.ldap_enrollment_token_attr,
         })
     }
 }

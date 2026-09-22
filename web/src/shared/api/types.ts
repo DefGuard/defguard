@@ -1214,6 +1214,7 @@ export interface SettingsLDAP {
   ldap_sync_groups: string[];
   ldap_remote_enrollment_enabled: boolean;
   ldap_remote_enrollment_send_invite: boolean;
+  ldap_enrollment_token_attr: string | null;
   ldap_disable_password_management: boolean;
 }
 

@@ -227,6 +227,8 @@ pub struct Settings {
     pub ldap_sync_groups: Vec<String>,
     pub ldap_remote_enrollment_enabled: bool,
     pub ldap_remote_enrollment_send_invite: bool,
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
+    pub ldap_enrollment_token_attr: Option<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
@@ -326,6 +328,10 @@ impl fmt::Debug for Settings {
             )
             .field("ldap_user_rdn_attr", &self.ldap_user_rdn_attr)
             .field("ldap_sync_groups", &self.ldap_sync_groups)
+            .field(
+                "ldap_enrollment_token_attr",
+                &self.ldap_enrollment_token_attr,
+            )
             .field("openid_create_account", &self.openid_create_account)
             .field("openid_username_handling", &self.openid_username_handling)
             .field(
@@ -579,7 +585,7 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_sync_account_status, ldap_disable_password_management, ldap_user_rdn_attr, ldap_sync_groups, \
             ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
-            openid_username_handling, defguard_url, \
+            ldap_enrollment_token_attr, openid_username_handling, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, \
             enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, \
@@ -708,7 +714,8 @@ impl Settings {
             ldap_sync_account_status = $73, \
             ldap_disable_password_management = $74, \
             smtp_oauth_tenant_id = $75, \
-            smtp_tls_verify_cert = $76 \
+            smtp_tls_verify_cert = $76, \
+            ldap_enrollment_token_attr = $77 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -786,6 +793,7 @@ impl Settings {
             self.ldap_disable_password_management,
             self.smtp.oauth_tenant_id,
             self.smtp.tls_verify_cert,
+            self.ldap_enrollment_token_attr,
         )
         .execute(executor)
         .await?;

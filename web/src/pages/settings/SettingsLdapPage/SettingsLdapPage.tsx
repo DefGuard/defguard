@@ -123,6 +123,7 @@ const formSchema = z
     ldap_sync_groups: z.string().trim().nullable(),
     ldap_remote_enrollment_enabled: z.boolean(),
     ldap_remote_enrollment_send_invite: z.boolean(),
+    ldap_enrollment_token_attr: z.string().trim().nullable(),
   })
   .superRefine((value, context) => {
     if (
@@ -189,6 +190,7 @@ const PageForm = () => {
       ldap_remote_enrollment_enabled: settings?.ldap_remote_enrollment_enabled ?? false,
       ldap_remote_enrollment_send_invite:
         settings?.ldap_remote_enrollment_send_invite ?? false,
+      ldap_enrollment_token_attr: settings?.ldap_enrollment_token_attr ?? '',
     };
   }, [settings]);
 
@@ -462,6 +464,17 @@ const PageForm = () => {
                 <field.FormInput
                   label={m.settings_ldap_label_additional_user_object_classes()}
                   helper={m.settings_ldap_helper_additional_user_object_classes()}
+                />
+              )}
+            </form.AppField>
+          </EvenSplit>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <EvenSplit>
+            <form.AppField name="ldap_enrollment_token_attr">
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_enrollment_token_attribute()}
+                  helper={m.settings_ldap_helper_enrollment_token_attribute()}
                 />
               )}
             </form.AppField>
