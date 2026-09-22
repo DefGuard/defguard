@@ -12,6 +12,7 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import {
   getExternalProviderQueryOptions,
   getMfaFlowsQueryOptions,
+  mfaAvailabilityInvalidateKey,
 } from '../../../shared/query';
 import { joinCsv } from '../../../shared/utils/csv';
 import { openIdProviderDeleteBody } from '../../../shared/utils/mfaFlowSteps';
@@ -44,7 +45,13 @@ export const SettingsEditOpenIdProviderPage = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.openIdProvider.editOpenIdProvider,
     meta: {
-      invalidate: [['settings'], ['info'], ['openid'], ['settings_essentials']],
+      invalidate: [
+        ['settings'],
+        ['info'],
+        ['openid'],
+        ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
+      ],
     },
   });
 
@@ -53,7 +60,13 @@ export const SettingsEditOpenIdProviderPage = () => {
       title: m.settings_openid_provider_delete_confirm_title(),
       contentMd: openIdProviderDeleteBody(mfaFlows),
       actionPromise: () => api.openIdProvider.deleteOpenIdProvider(name),
-      invalidateKeys: [['settings'], ['info'], ['openid'], ['settings_essentials']],
+      invalidateKeys: [
+        ['settings'],
+        ['info'],
+        ['openid'],
+        ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
+      ],
       submitProps: { text: m.controls_delete(), variant: 'critical' },
       onSuccess: () => {
         Snackbar.default(m.settings_openid_provider_delete_success());

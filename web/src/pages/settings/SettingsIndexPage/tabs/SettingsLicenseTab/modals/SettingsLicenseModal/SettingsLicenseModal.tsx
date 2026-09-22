@@ -23,6 +23,7 @@ import {
   subscribeOpenModal,
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+import { mfaAvailabilityInvalidateKey } from '../../../../../../../shared/query';
 
 const modalNameValue = ModalName.SettingsLicense;
 
@@ -129,7 +130,7 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
       }
     },
     meta: {
-      invalidate: [['settings'], ['enterprise_info']],
+      invalidate: [['settings'], ['enterprise_info'], mfaAvailabilityInvalidateKey],
     },
   });
 
