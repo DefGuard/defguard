@@ -331,12 +331,20 @@ impl ClientMfaServer {
     ) -> Result<ClientMfaStartOutcome, Status> {
         debug!("Starting desktop client login: {request:?}");
         // fetch location
-        let Ok(Some(location)) =
-            WireguardNetwork::find_by_id(&self.pool, request.location_id).await
-        else {
-            error!("Failed to find location with ID {}", request.location_id);
-            return Err(Status::invalid_argument("location not found"));
-        };
+        let location = WireguardNetwork::find_by_id(&self.pool, request.location_id)
+            .await
+            .map_err(|err| {
+                error!(
+                    location_id = request.location_id,
+                    error = ?err,
+                    "Failed to query location"
+                );
+                Status::internal("unexpected error")
+            })?
+            .ok_or_else(|| {
+                error!("Location does not exist");
+                Status::invalid_argument("location not found")
+            })?;
 
         // return early if MFA is not enabled for this location
         if !location.mfa_enabled {
@@ -359,8 +367,12 @@ impl ClientMfaServer {
         // not an API response), so the OIDC flag is not loaded.
         let user_info = UserInfo::from_user(&self.pool, user.clone(), false)
             .await
-            .map_err(|_| {
-                error!("Failed to fetch user info for {}", user.username);
+            .map_err(|err| {
+                error!(
+                    username = %user.username,
+                    error = ?err,
+                    "Failed to fetch user info"
+                );
                 Status::internal("unexpected error")
             })?;
 
@@ -1060,10 +1072,11 @@ impl ClientMfaServer {
         // not an API response), so the OIDC flag is not loaded.
         let user_info = UserInfo::from_user(&self.pool, user.clone(), false)
             .await
-            .map_err(|_| {
+            .map_err(|err| {
                 error!(
-                    "Posture check: failed to fetch user info for {}",
-                    user.username
+                    username = %user.username,
+                    error = ?err,
+                    "Posture check: failed to fetch user info"
                 );
                 Status::internal("unexpected error")
             })?;
