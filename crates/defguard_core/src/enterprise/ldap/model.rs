@@ -61,6 +61,7 @@ pub(super) fn get_attr_values<'a>(entry: &'a SearchEntry, key: &str) -> Option<&
 }
 
 /// Same matching rule as [`get_attr_values`], but takes ownership of the values.
+#[cfg_attr(test, expect(dead_code))]
 #[must_use]
 pub(super) fn take_attr_values(entry: &mut SearchEntry, key: &str) -> Option<Vec<String>> {
     let found = entry.attrs.keys().find(|k| ci_eq(k, key)).cloned()?;
