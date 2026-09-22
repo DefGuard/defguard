@@ -238,7 +238,7 @@ async fn run_load_loop(state: SharedLoadTestState) -> anyhow::Result<()> {
     metrics.started_requests = stats.scheduled;
     metrics.dropped_requests = stats.dropped;
     metrics.peak_in_flight = stats.peak_in_flight;
-    report_final_results(&metrics, &state);
+    report_final_results(&metrics, &state, stats.load_duration);
     Ok(())
 }
 
@@ -273,11 +273,17 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
     }
 }
 
-fn report_final_results(metrics: &LoadTestMetrics, state: &SharedLoadTestState) {
+fn report_final_results(
+    metrics: &LoadTestMetrics,
+    state: &SharedLoadTestState,
+    load_duration: Duration,
+) {
     let elapsed = state.started_at.elapsed();
-    let actual_rps = metrics.started_requests as f64 / elapsed.as_secs_f64();
+    let actual_rps =
+        metrics.started_requests as f64 / load_duration.as_secs_f64().max(f64::EPSILON);
     tracing::info!(
         elapsed = ?elapsed,
+        load_duration = ?load_duration,
         target_rps = state.requests_per_second.get(),
         actual_rps,
         scheduled = metrics.scheduled_requests,

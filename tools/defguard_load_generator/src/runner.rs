@@ -21,6 +21,7 @@ pub(crate) struct LoadLoopConfig {
 
 #[derive(Default)]
 pub(crate) struct LoadLoopStats {
+    pub load_duration: Duration,
     pub scheduled: u64,
     pub completed: u64,
     pub dropped: u64,
@@ -157,6 +158,7 @@ where
         }
     }
 
+    let load_duration = started_at.elapsed();
     while !tasks.is_empty() {
         if let Some(result) = tasks.join_next().await {
             stats.completed += 1;
@@ -167,5 +169,6 @@ where
         }
     }
 
+    stats.load_duration = load_duration;
     Ok(stats)
 }
