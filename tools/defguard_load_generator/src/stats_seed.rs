@@ -2,7 +2,7 @@ use anyhow::Context;
 use chrono::{Duration as ChronoDuration, Utc};
 use secrecy::ExposeSecret;
 use sqlx::{
-    FromRow, PgPool, QueryBuilder,
+    FromRow, Postgres, QueryBuilder, Transaction,
     postgres::{PgConnectOptions, PgPoolOptions},
     query_as, query_scalar,
 };
@@ -57,6 +57,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
 
     let started_at = Utc::now().naive_utc();
     let first_sample = started_at - HORIZON;
+    let mut transaction = pool.begin().await?;
     let mut skipped_devices = 0_u64;
     let mut inserted_stats = 0_u64;
     let mut seed_targets = Vec::with_capacity(targets.len());
@@ -75,7 +76,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
         )
         .bind(target.device_id)
         .bind(target.location_id)
-        .fetch_optional(&pool)
+        .fetch_optional(&mut *transaction)
         .await?;
 
         let session_id = if let Some(session_id) = existing_session {
@@ -85,7 +86,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
                 )",
             )
             .bind(session_id)
-            .fetch_one(&pool)
+            .fetch_one(&mut *transaction)
             .await?;
             if has_stats {
                 skipped_devices += 1;
@@ -102,14 +103,14 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             .bind(target.location_id)
             .bind(target.user_id)
             .bind(target.device_id)
-            .fetch_one(&pool)
+            .fetch_one(&mut *transaction)
             .await
             .with_context(|| format!("failed to create session for device {}", target.device_id))?
         };
 
         let gateway_id = match target.gateway_id {
             Some(gateway_id) => gateway_id,
-            None => ensure_gateway(&pool, target.location_id).await?,
+            None => ensure_gateway(&mut transaction, target.location_id).await?,
         };
         seed_targets.push(SeedTarget {
             session_id,
@@ -156,7 +157,7 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
             target.total_download -= download_diff;
 
             if batch.len() == BATCH_SIZE {
-                insert_batch(&pool, &batch).await?;
+                insert_batch(&mut transaction, &batch).await?;
                 inserted_stats += batch.len() as u64;
                 batch.clear();
             }
@@ -166,9 +167,10 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
     }
 
     if !batch.is_empty() {
-        insert_batch(&pool, &batch).await?;
+        insert_batch(&mut transaction, &batch).await?;
         inserted_stats += batch.len() as u64;
     }
+    transaction.commit().await?;
     let seeded_devices = seed_targets.len() as u64;
 
     tracing::info!(
@@ -189,7 +191,10 @@ fn sample_diffs(collected_at: chrono::NaiveDateTime) -> (i64, i64) {
 }
 
 /// Reuses a gateway or creates a disabled synthetic one.
-async fn ensure_gateway(pool: &PgPool, location_id: i64) -> anyhow::Result<i64> {
+async fn ensure_gateway(
+    transaction: &mut Transaction<'_, Postgres>,
+    location_id: i64,
+) -> anyhow::Result<i64> {
     if let Some(gateway_id) = query_scalar::<_, i64>(
         "INSERT INTO gateway (location_id, name, modified_by, enabled)
          SELECT $1, $2, 'stats-seeder', false
@@ -200,7 +205,7 @@ async fn ensure_gateway(pool: &PgPool, location_id: i64) -> anyhow::Result<i64> 
     )
     .bind(location_id)
     .bind(format!("load-test-stats-{location_id}"))
-    .fetch_optional(pool)
+    .fetch_optional(&mut **transaction)
     .await?
     {
         return Ok(gateway_id);
@@ -208,13 +213,13 @@ async fn ensure_gateway(pool: &PgPool, location_id: i64) -> anyhow::Result<i64> 
 
     query_scalar("SELECT id FROM gateway WHERE location_id = $1 ORDER BY id LIMIT 1")
         .bind(location_id)
-        .fetch_one(pool)
+        .fetch_one(&mut **transaction)
         .await
         .map_err(Into::into)
 }
 
 async fn insert_batch(
-    pool: &PgPool,
+    transaction: &mut Transaction<'_, Postgres>,
     batch: &[(
         i64,
         i64,
@@ -244,6 +249,6 @@ async fn insert_batch(
             .push_bind(row.7)
             .push_bind(row.8);
     });
-    builder.build().execute(pool).await?;
+    builder.build().execute(&mut **transaction).await?;
     Ok(())
 }
