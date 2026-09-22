@@ -355,7 +355,11 @@ pub(super) fn compute_group_sync_changes<'a>(
 
             let missing_from_ldap = members
                 .iter()
-                .filter(|m| !ldap_members.iter().any(|u| ldap_config.user_dn_key_eq(m, u)))
+                .filter(|m| {
+                    !ldap_members
+                        .iter()
+                        .any(|u| ldap_config.user_dn_key_eq(m, u))
+                })
                 .cloned()
                 .collect::<HashSet<_>>();
 

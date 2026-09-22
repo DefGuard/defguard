@@ -476,8 +476,10 @@ mod tests {
         // Attribute descriptors still fold.
         assert!(ci_eq("givenName", "GIVENNAME"));
         // Same folding as `lowercase_dn`, so the helpers stay interchangeable.
-        assert_eq!(ci_eq("cn=Ünal,dc=example,dc=com", "cn=ünal,dc=example,dc=com"),
-            lowercase_dn("cn=Ünal,dc=example,dc=com") == lowercase_dn("cn=ünal,dc=example,dc=com"));
+        assert_eq!(
+            ci_eq("cn=Ünal,dc=example,dc=com", "cn=ünal,dc=example,dc=com"),
+            lowercase_dn("cn=Ünal,dc=example,dc=com") == lowercase_dn("cn=ünal,dc=example,dc=com")
+        );
     }
 
     #[test]
