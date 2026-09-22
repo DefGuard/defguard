@@ -619,12 +619,11 @@ where
 /// Converts an IP address range into `Vec<IpAddress>` for use in firewall rules,
 /// delegating decomposition to the shared [`extract_subnets_from_range`] utility and
 /// mapping each resulting [`IpNetwork`] to the appropriate gRPC [`IpAddress`] variant.
-/// Falls back to [`Address::IpRange`] when the range cannot be expressed as any CIDR.
+/// Falls back to [`Address::IpRange`] when the range cannot be decomposed at all.
 fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec<IpAddress> {
     let networks = extract_subnets_from_range(range_start, range_end);
 
-    // If decomposition produced nothing for a multi-IP range, the range straddles
-    // a CIDR boundary and cannot be expressed as subnets - fall back to IpRange.
+    // Decomposition only comes up empty on mixed IP versions, which callers filter out.
     if networks.is_empty() && range_start != range_end {
         return vec![IpAddress::IpRange(IpRange {
             start: range_start.to_string(),

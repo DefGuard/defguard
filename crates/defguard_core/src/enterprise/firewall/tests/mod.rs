@@ -11,7 +11,7 @@ use defguard_common::{
         setup_pool,
     },
     gateway_types::{
-        FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as GwPortRange,
+        FirewallPolicy, IpAddress, IpVersion, Port, PortRange as GwPortRange,
         Protocol as GwProtocol,
     },
 };
@@ -80,12 +80,12 @@ fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
     device
 }
 
-fn expected_ipv4_source_range_for_user(user_id: Id) -> IpAddress {
+fn expected_ipv4_source_addrs_for_user(user_id: Id) -> [IpAddress; 2] {
     let user_octet = user_id as u8;
-    IpAddress::IpRange(IpRange {
-        start: format!("10.0.{user_octet}.1"),
-        end: format!("10.0.{user_octet}.2"),
-    })
+    [
+        IpAddress::Ip(format!("10.0.{user_octet}.1")),
+        IpAddress::Ip(format!("10.0.{user_octet}.2")),
+    ]
 }
 
 async fn create_test_user_with_devices<R: Rng>(
@@ -610,14 +610,10 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         web_allow_rule.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            }),
+            IpAddress::Ip("10.0.1.1".to_owned()),
+            IpAddress::Ip("10.0.1.2".to_owned()),
+            IpAddress::Ip("10.0.2.1".to_owned()),
+            IpAddress::Ip("10.0.2.2".to_owned()),
             IpAddress::Ip("10.0.100.1".to_owned()),
         ]
     );
@@ -642,24 +638,19 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         dns_allow_rule.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.100.1".to_owned(),
-                end: "10.0.100.2".to_owned(),
-            }),
+            IpAddress::Ip("10.0.1.1".to_owned()),
+            IpAddress::Ip("10.0.1.2".to_owned()),
+            IpAddress::Ip("10.0.2.1".to_owned()),
+            IpAddress::Ip("10.0.2.2".to_owned()),
+            IpAddress::Ip("10.0.100.1".to_owned()),
+            IpAddress::Ip("10.0.100.2".to_owned()),
         ]
     );
 
     let expected_destination_addrs = [
         IpAddress::Ip("10.0.1.13".to_owned()),
-        IpAddress::IpSubnet("10.0.1.14/31".to_owned()),
+        IpAddress::Ip("10.0.1.14".to_owned()),
+        IpAddress::Ip("10.0.1.15".to_owned()),
         IpAddress::IpSubnet("10.0.1.16/28".to_owned()),
         IpAddress::IpSubnet("10.0.1.32/29".to_owned()),
         IpAddress::IpSubnet("10.0.1.40/30".to_owned()),
@@ -976,14 +967,10 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         web_allow_rule.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "ff00::1:1".to_owned(),
-                end: "ff00::1:2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "ff00::2:1".to_owned(),
-                end: "ff00::2:2".to_owned(),
-            }),
+            IpAddress::Ip("ff00::1:1".to_owned()),
+            IpAddress::Ip("ff00::1:2".to_owned()),
+            IpAddress::Ip("ff00::2:1".to_owned()),
+            IpAddress::Ip("ff00::2:2".to_owned()),
             IpAddress::Ip("ff00::100:1".to_owned()),
         ]
     );
@@ -1032,18 +1019,12 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         dns_allow_rule.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "ff00::1:1".to_owned(),
-                end: "ff00::1:2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "ff00::2:1".to_owned(),
-                end: "ff00::2:2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "ff00::100:1".to_owned(),
-                end: "ff00::100:2".to_owned(),
-            }),
+            IpAddress::Ip("ff00::1:1".to_owned()),
+            IpAddress::Ip("ff00::1:2".to_owned()),
+            IpAddress::Ip("ff00::2:1".to_owned()),
+            IpAddress::Ip("ff00::2:2".to_owned()),
+            IpAddress::Ip("ff00::100:1".to_owned()),
+            IpAddress::Ip("ff00::100:2".to_owned()),
         ]
     );
     assert_eq!(dns_allow_rule.destination_addrs, expected_destination_addrs);
@@ -1371,14 +1352,10 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_allow_rule_ipv4.source_addrs,
         vec![
-            IpAddress::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            }),
+            IpAddress::Ip("10.0.1.1".to_owned()),
+            IpAddress::Ip("10.0.1.2".to_owned()),
+            IpAddress::Ip("10.0.2.1".to_owned()),
+            IpAddress::Ip("10.0.2.2".to_owned()),
             IpAddress::Ip("10.0.100.1".to_owned()),
         ]
     );
@@ -1398,14 +1375,10 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_allow_rule_ipv6.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "ff00::1:1".to_owned(),
-                end: "ff00::1:2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "ff00::2:1".to_owned(),
-                end: "ff00::2:2".to_owned(),
-            }),
+            IpAddress::Ip("ff00::1:1".to_owned()),
+            IpAddress::Ip("ff00::1:2".to_owned()),
+            IpAddress::Ip("ff00::2:1".to_owned()),
+            IpAddress::Ip("ff00::2:2".to_owned()),
             IpAddress::Ip("ff00::100:1".to_owned()),
         ]
     );
@@ -1443,24 +1416,19 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         dns_allow_rule_ipv4.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "10.0.1.1".to_owned(),
-                end: "10.0.1.2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.2.1".to_owned(),
-                end: "10.0.2.2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "10.0.100.1".to_owned(),
-                end: "10.0.100.2".to_owned(),
-            }),
+            IpAddress::Ip("10.0.1.1".to_owned()),
+            IpAddress::Ip("10.0.1.2".to_owned()),
+            IpAddress::Ip("10.0.2.1".to_owned()),
+            IpAddress::Ip("10.0.2.2".to_owned()),
+            IpAddress::Ip("10.0.100.1".to_owned()),
+            IpAddress::Ip("10.0.100.2".to_owned()),
         ]
     );
 
     let expected_destination_addrs_v4 = vec![
         IpAddress::Ip("10.0.1.13".to_owned()),
-        IpAddress::IpSubnet("10.0.1.14/31".to_owned()),
+        IpAddress::Ip("10.0.1.14".to_owned()),
+        IpAddress::Ip("10.0.1.15".to_owned()),
         IpAddress::IpSubnet("10.0.1.16/28".to_owned()),
         IpAddress::IpSubnet("10.0.1.32/29".to_owned()),
         IpAddress::IpSubnet("10.0.1.40/30".to_owned()),
@@ -1489,18 +1457,12 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         dns_allow_rule_ipv6.source_addrs,
         [
-            IpAddress::IpRange(IpRange {
-                start: "ff00::1:1".to_owned(),
-                end: "ff00::1:2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "ff00::2:1".to_owned(),
-                end: "ff00::2:2".to_owned(),
-            }),
-            IpAddress::IpRange(IpRange {
-                start: "ff00::100:1".to_owned(),
-                end: "ff00::100:2".to_owned(),
-            }),
+            IpAddress::Ip("ff00::1:1".to_owned()),
+            IpAddress::Ip("ff00::1:2".to_owned()),
+            IpAddress::Ip("ff00::2:1".to_owned()),
+            IpAddress::Ip("ff00::2:2".to_owned()),
+            IpAddress::Ip("ff00::100:1".to_owned()),
+            IpAddress::Ip("ff00::100:2".to_owned()),
         ]
     );
 
@@ -1630,14 +1592,10 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     // check generated rules
     assert_eq!(generated_firewall_rules.len(), 4);
     let expected_source_addrs = [
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let expected_destination_addrs = [
         IpAddress::Ip("10.0.2.3".to_owned()),
@@ -1771,14 +1729,10 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     // check generated rules
     assert_eq!(generated_firewall_rules.len(), 4);
     let expected_source_addrs = vec![
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
 
     let alias_allow_rule_1 = &generated_firewall_rules[0];
@@ -1993,7 +1947,7 @@ async fn test_allow_all_groups_expands_all_group_members_into_firewall_sources(
     expected_allowed_user_ids.sort_unstable();
     let expected_source_addrs: Vec<_> = expected_allowed_user_ids
         .into_iter()
-        .map(expected_ipv4_source_range_for_user)
+        .flat_map(expected_ipv4_source_addrs_for_user)
         .collect();
 
     let allow_rule = &generated_firewall_rules[0];
@@ -2009,14 +1963,13 @@ async fn test_allow_all_groups_expands_all_group_members_into_firewall_sources(
         allow_rule
             .source_addrs
             .iter()
-            .all(|addr| addr != &expected_ipv4_source_range_for_user(grouped_denied_user.id))
+            .all(
+                |addr| !expected_ipv4_source_addrs_for_user(grouped_denied_user.id).contains(addr)
+            )
     );
-    assert!(
-        allow_rule
-            .source_addrs
-            .iter()
-            .all(|addr| addr != &expected_ipv4_source_range_for_user(ungrouped_blocked_user.id))
-    );
+    assert!(allow_rule.source_addrs.iter().all(|addr| {
+        !expected_ipv4_source_addrs_for_user(ungrouped_blocked_user.id).contains(addr)
+    }));
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
@@ -2140,7 +2093,7 @@ async fn test_allow_all_groups_deduplicates_shared_group_members_before_source_r
 
     let expected_source_addrs: Vec<_> = expected_source_user_ids
         .into_iter()
-        .map(expected_ipv4_source_range_for_user)
+        .flat_map(expected_ipv4_source_addrs_for_user)
         .collect();
 
     let allow_rule = &generated_firewall_rules[0];
@@ -2152,12 +2105,9 @@ async fn test_allow_all_groups_deduplicates_shared_group_members_before_source_r
     );
     assert_eq!(allow_rule.destination_ports, [Port::Single(443)]);
     assert_eq!(allow_rule.protocols, [GwProtocol::Tcp]);
-    assert!(
-        allow_rule
-            .source_addrs
-            .iter()
-            .all(|addr| addr != &expected_ipv4_source_range_for_user(ungrouped_blocked_user.id))
-    );
+    assert!(allow_rule.source_addrs.iter().all(|addr| {
+        !expected_ipv4_source_addrs_for_user(ungrouped_blocked_user.id).contains(addr)
+    }));
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
@@ -2255,9 +2205,7 @@ async fn test_deny_all_groups_excludes_members_of_every_group_from_firewall_sour
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(
         allow_rule.source_addrs,
-        [expected_ipv4_source_range_for_user(
-            ungrouped_allowed_user.id
-        )]
+        expected_ipv4_source_addrs_for_user(ungrouped_allowed_user.id)
     );
     assert_eq!(
         allow_rule.destination_addrs,
@@ -2275,7 +2223,7 @@ async fn test_deny_all_groups_excludes_members_of_every_group_from_firewall_sour
             allow_rule
                 .source_addrs
                 .iter()
-                .all(|addr| addr != &expected_ipv4_source_range_for_user(denied_user))
+                .all(|addr| !expected_ipv4_source_addrs_for_user(denied_user).contains(addr))
         );
     }
 
@@ -2411,9 +2359,7 @@ async fn test_deny_all_groups_deduplicates_shared_group_members_before_source_fi
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(
         allow_rule.source_addrs,
-        [expected_ipv4_source_range_for_user(
-            ungrouped_allowed_user.id
-        )]
+        expected_ipv4_source_addrs_for_user(ungrouped_allowed_user.id)
     );
     assert_eq!(
         allow_rule.destination_addrs,
@@ -2426,7 +2372,7 @@ async fn test_deny_all_groups_deduplicates_shared_group_members_before_source_fi
             allow_rule
                 .source_addrs
                 .iter()
-                .all(|addr| addr != &expected_ipv4_source_range_for_user(denied_user))
+                .all(|addr| !expected_ipv4_source_addrs_for_user(denied_user).contains(addr))
         );
     }
 
@@ -2567,14 +2513,10 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
 
     assert_eq!(generated_firewall_rules_ipv4.len(), 2);
     let expected_source_addrs_ipv4 = vec![
-        IpAddress::IpRange(IpRange {
-            start: "10.0.1.1".to_owned(),
-            end: "10.0.1.2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "10.0.2.1".to_owned(),
-            end: "10.0.2.2".to_owned(),
-        }),
+        IpAddress::Ip("10.0.1.1".to_owned()),
+        IpAddress::Ip("10.0.1.2".to_owned()),
+        IpAddress::Ip("10.0.2.1".to_owned()),
+        IpAddress::Ip("10.0.2.2".to_owned()),
     ];
     let allow_rule_ipv4 = &generated_firewall_rules_ipv4[0];
     assert_eq!(allow_rule_ipv4.ip_version, IpVersion::Ipv4);
@@ -2597,14 +2539,10 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
 
     assert_eq!(generated_firewall_rules_ipv6.len(), 2);
     let expected_source_addrs_ipv6 = vec![
-        IpAddress::IpRange(IpRange {
-            start: "ff00::1:1".to_owned(),
-            end: "ff00::1:2".to_owned(),
-        }),
-        IpAddress::IpRange(IpRange {
-            start: "ff00::2:1".to_owned(),
-            end: "ff00::2:2".to_owned(),
-        }),
+        IpAddress::Ip("ff00::1:1".to_owned()),
+        IpAddress::Ip("ff00::1:2".to_owned()),
+        IpAddress::Ip("ff00::2:1".to_owned()),
+        IpAddress::Ip("ff00::2:2".to_owned()),
     ];
     let allow_rule_ipv6 = &generated_firewall_rules_ipv6[0];
     assert_eq!(allow_rule_ipv6.ip_version, IpVersion::Ipv6);
