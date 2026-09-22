@@ -945,7 +945,7 @@ impl ProxyHandler {
                 )
                 .await
                 {
-                    Ok(()) => None,
+                    Ok(()) => Some(core_response::Payload::Empty(())),
                     Err(err) => {
                         error!("client MFA flow approve error {err}");
                         Some(core_response::Payload::CoreError(err.into()))
