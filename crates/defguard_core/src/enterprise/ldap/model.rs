@@ -471,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ci_eq_folds_non_ascii() {
+    fn test_ignorecase_eq_folds_non_ascii() {
         // Latin letters with diacritics fold like the server's caseIgnoreMatch, which
         // the previous ASCII-only comparison did not.
         assert!(ignorecase_eq("Örgü", "örgü"));

@@ -13,7 +13,8 @@ use ldap3::{
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    ci_eq, extract_rdn_value, get_attr_values, is_search_entry, lowercase_dn, take_attr_values,
+    extract_rdn_value, get_attr_values, ignorecase_eq, is_search_entry, lowercase_dn,
+    take_attr_values,
 };
 
 const STREAMING_PAGE_SIZE: i32 = 500;
@@ -157,7 +158,7 @@ impl LDAPConnection {
                 continue;
             };
             for (key, mut values) in se.attrs {
-                if ci_eq(&key, &self.config.ldap_groupname_attr) {
+                if ignorecase_eq(&key, &self.config.ldap_groupname_attr) {
                     groups.append(&mut values);
                 }
             }
