@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { type QueryKey, queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
 import { updateServiceApi, updateServiceClient } from './api/update-service';
@@ -58,6 +58,8 @@ export const getLocationMfaFlowsQueryOptions = (locationId: number) =>
     queryKey: ['location', locationId, 'mfa-flows'],
     select: (response) => response.data,
   });
+
+export const mfaAvailabilityInvalidateKey: QueryKey = ['mfa-flow'];
 
 export const getMfaMethodAvailabilityQueryOptions = queryOptions({
   queryFn: api.mfaFlow.methodAvailability,

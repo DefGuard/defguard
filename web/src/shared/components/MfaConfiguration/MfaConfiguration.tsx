@@ -4,7 +4,6 @@ import { Reorder } from 'motion/react';
 import { useCallback, useRef } from 'react';
 import { m } from '../../../paraglide/messages';
 import {
-  MfaFlowMethod,
   type MfaFlowMethodValue,
   MfaMethodAvailabilityReason,
   type MfaMethodAvailabilityReasonValue,
@@ -17,7 +16,7 @@ import {
   getMfaMethodAvailabilityQueryOptions,
 } from '../../query';
 import { canUseBusinessFeature } from '../../utils/license';
-import { mfaFlowMethodLabels } from '../../utils/mfaFlowSteps';
+import { mfaFlowMethodHints, mfaFlowMethodLabels } from '../../utils/mfaFlowSteps';
 import { MfaConfigurationStep } from './components/MfaConfigurationStep';
 import { MfaMethodsMenu } from './components/MfaMethodsMenu';
 import type {
@@ -56,14 +55,15 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
       const unavailableText = availability
         ? getDisabledHelper(availability.reason)
         : undefined;
+      const hint = mfaFlowMethodHints[method];
       return {
         text: mfaFlowMethodLabels[method],
         onClick,
         disabled: availability?.available !== true,
         helper: unavailableText
           ? { text: unavailableText, icon: 'lock-closed' as const }
-          : method === MfaFlowMethod.Biometric
-            ? { text: m.mfa_flow_method_mobile_only(), icon: 'mobile' as const }
+          : hint
+            ? { text: hint.description, icon: hint.icon }
             : undefined,
       };
     },

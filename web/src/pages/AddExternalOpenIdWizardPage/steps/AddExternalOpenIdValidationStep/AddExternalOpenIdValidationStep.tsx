@@ -16,6 +16,7 @@ import {
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import { mfaAvailabilityInvalidateKey } from '../../../../shared/query';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
 
 export const AddExternalOpenIdValidationStep = () => {
@@ -28,7 +29,13 @@ export const AddExternalOpenIdValidationStep = () => {
   const { mutate: deleteProvider, isPending } = useMutation({
     mutationFn: api.openIdProvider.deleteOpenIdProvider,
     meta: {
-      invalidate: [['settings'], ['info'], ['openid'], ['settings_essentials']],
+      invalidate: [
+        ['settings'],
+        ['info'],
+        ['openid'],
+        ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
+      ],
     },
     onSuccess: () => {
       back();
