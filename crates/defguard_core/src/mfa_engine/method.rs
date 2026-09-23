@@ -208,6 +208,7 @@ pub(super) async fn verify(
                 ..Default::default()
             };
             for passkey in &passkeys {
+                // If the client named a credential, skip every other passkey.
                 if proof.credential_id.as_ref().is_some_and(|credential_id| {
                     passkey.cred_id().as_ref() != credential_id.as_slice()
                 }) {
@@ -271,7 +272,8 @@ pub fn check_mobile_approval(ephemeral: &EphemeralState) -> Verdict {
     }
 }
 
-/// Decode a client-supplied base64 value, accepting both alphabets and optional padding.
+/// Match webauthn-rs, which writes binary values as unpadded URL-safe base64 and accepts either
+/// alphabet with or without padding when decoding.
 fn decode_base64(value: &str) -> Result<Vec<u8>, base64::DecodeError> {
     // Accept padded and unpadded spellings.
     fn engine(alphabet: alphabet::Alphabet) -> GeneralPurpose {

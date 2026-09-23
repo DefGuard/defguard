@@ -8,6 +8,7 @@ use defguard_common::db::{
     },
 };
 use thiserror::Error;
+use tracing::{debug, error};
 
 use super::{
     LoadedFinishContext, MfaEngine,
@@ -87,7 +88,7 @@ impl MfaEngine {
         // Email initiation sends asynchronously, so require SMTP configuration before starting.
         let smtp_configured = Settings::get_current_settings().smtp_configured();
         let oidc_configured = self.oidc_available().await.map_err(|err| {
-            tracing::error!("Failed to get current OpenID provider: {err}");
+            error!("Failed to get current OpenID provider: {err}");
             StartError::Internal
         })?;
         if !selected_method
@@ -100,16 +101,16 @@ impl MfaEngine {
             )
             .await
             .map_err(|err| {
-                tracing::error!("Failed to check MFA method configuration: {err}");
+                error!("Failed to check MFA method configuration: {err}");
                 StartError::Internal
             })?
         {
             // Keep the device-specific biometric message; other methods use the generic message.
             if selected_method == VpnClientMfaMethod::Biometric {
-                tracing::error!("Biometric MFA is not configured for device {}", device.id);
+                error!("Biometric MFA is not configured for device {}", device.id);
                 return Err(StartError::BiometricNotConfigured);
             }
-            tracing::error!(
+            error!(
                 "MFA method {selected_method:?} is not configured for user {}",
                 user.username
             );
@@ -183,16 +184,14 @@ impl MfaEngine {
             Ok(Verdict::Proved) => {
                 if method == VpnClientMfaMethod::MobileApprove {
                     let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
-                        tracing::error!(
-                            "Mobile approve auth pub key missing after successful verification"
-                        );
+                        error!("Mobile approve auth pub key missing after successful verification");
                         FinishError::Internal
                     })?;
                     mobile_auth_device_name =
                         BiometricAuth::find_device_name(&self.pool, ctx.user.id, auth_pub_key)
                             .await
                             .map_err(|err| {
-                                tracing::error!(
+                                error!(
                                     "Failed to find mobile approve device for user {}: {err}",
                                     ctx.user.id
                                 );
@@ -201,10 +200,9 @@ impl MfaEngine {
                 }
             }
             Ok(Verdict::NotYet) => {
-                tracing::debug!(
+                debug!(
                     "User {} polled MFA finish for location {} before completing OIDC authentication",
-                    ctx.user.username,
-                    ctx.location
+                    ctx.user.username, ctx.location
                 );
                 return Err(FinishError::OidcNotCompleted);
             }
@@ -248,15 +246,15 @@ impl MfaEngine {
                 return Err(FinishError::MissingChallenge);
             }
             Err(VerifyError::Db(err)) => {
-                tracing::error!("Failed to verify MFA proof: {err}");
+                error!("Failed to verify MFA proof: {err}");
                 return Err(FinishError::Internal);
             }
             Err(VerifyError::MissingRPID) => {
-                tracing::error!("Failed to verify FIDO2: missing RP ID");
+                error!("Failed to verify FIDO2: missing RP ID");
                 return Err(FinishError::Internal);
             }
             Err(VerifyError::UnsupportedMethod) => {
-                tracing::error!("MFA method requires a contract-specific verifier");
+                error!("MFA method requires a contract-specific verifier");
                 return Err(FinishError::Internal);
             }
         }
@@ -293,7 +291,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn legacy_proof_converts_to_verification_proof() {
+    fn test_legacy_proof_converts_to_verification_proof() {
         assert_eq!(
             VerificationProof::from(LegacyProof {
                 code: Some("code".to_owned()),
@@ -309,7 +307,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_finish_error_messages_are_frozen() {
+    fn test_legacy_finish_error_messages_are_frozen() {
         let cases = [
             (FinishError::SessionNotFound, "login session not found"),
             (FinishError::UninitializedStep, "no MFA attempt in progress"),

@@ -653,7 +653,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn step_proof_converts_structured_fido2_assertion_without_loss() {
+    fn test_step_proof_converts_structured_fido2_assertion_without_loss() {
         let rp_id_hash = vec![1; 32];
         let mut authenticator_data = rp_id_hash.clone();
         authenticator_data.extend([2, 3, 4]);
@@ -680,7 +680,7 @@ mod tests {
     }
 
     #[test]
-    fn step_proof_rejects_mismatched_fido2_rp_id_hash() {
+    fn test_step_proof_rejects_mismatched_fido2_rp_id_hash() {
         let error = VerificationProof::try_from(StepProof {
             step_attempt_id: "attempt".to_owned(),
             credential: Some(StepCredential::Fido2(Fido2Assertion {
