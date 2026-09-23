@@ -87,9 +87,8 @@ use crate::{
     enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
         ldap::model::{
-            get_attr_values, get_users_without_ldap_path, ignorecase_eq,
-            ldap_sync_allowed_for_user, ldap_sync_allowed_for_user_scoped, update_from_ldap_user,
-            user_from_searchentry,
+            get_users_without_ldap_path, ignorecase_eq, ldap_sync_allowed_for_user,
+            ldap_sync_allowed_for_user_scoped, update_from_ldap_user, user_from_searchentry,
         },
         license::get_cached_license,
         limits::{get_counts, update_counts},
@@ -254,17 +253,17 @@ pub(super) fn compute_user_sync_changes(
     let mut ldap_identifiers = HashSet::with_capacity(all_ldap_users.len());
     let defguard_identifiers = all_defguard_users
         .iter()
-        .map(|u| ldap_config.user_dn_key(u))
+        .map(|u| ldap_config.user_dn(u))
         .collect::<HashSet<_>>();
 
     trace!("Defguard identifiers: {defguard_identifiers:?}");
     trace!("LDAP identifiers: {ldap_identifiers:?}");
 
     for user in all_ldap_users.drain(..) {
-        ldap_identifiers.insert(ldap_config.user_dn_key(&user));
+        ldap_identifiers.insert(ldap_config.user_dn(&user));
 
         debug!("Checking if user {} is in Defguard", user.username);
-        if !defguard_identifiers.contains(&ldap_config.user_dn_key(&user)) {
+        if !defguard_identifiers.contains(&ldap_config.user_dn(&user)) {
             debug!("User {} not found in Defguard", user.username);
             match authority {
                 Authority::LDAP => add_defguard.push(user),
@@ -275,7 +274,7 @@ pub(super) fn compute_user_sync_changes(
 
     for user in all_defguard_users.drain(..) {
         debug!("Checking if user {} is in LDAP", user.username);
-        if !ldap_identifiers.contains(&ldap_config.user_dn_key(&user)) {
+        if !ldap_identifiers.contains(&ldap_config.user_dn(&user)) {
             debug!("User {} not found in LDAP", user.username);
             match authority {
                 Authority::LDAP => {
@@ -344,23 +343,30 @@ pub(super) fn compute_group_sync_changes<'a>(
     let mut delete_ldap = HashMap::new();
     let mut add_ldap = HashMap::new();
 
+    // "group".name has no case-insensitive unique index, so "Admins" and "admins" can be two
+    // groups, and the group-name keys stay case-sensitive to keep them apart.
     for (group, members) in defguard_memberships {
         debug!("Checking group {} for changes", group);
         if let Some(ldap_members) = ldap_memberships.get(group) {
             debug!("Group {group:?} found in LDAP, checking for membership differences");
+            let defguard_dns = members
+                .iter()
+                .map(|m| ldap_config.user_dn(m))
+                .collect::<HashSet<_>>();
+            let ldap_dns = ldap_members
+                .iter()
+                .map(|u| ldap_config.user_dn(u))
+                .collect::<HashSet<_>>();
+
             let missing_from_defguard = ldap_members
                 .iter()
-                .filter(|u| !members.iter().any(|m| ldap_config.user_dn_key_eq(m, u)))
+                .filter(|u| !defguard_dns.contains(&ldap_config.user_dn(u)))
                 .copied()
                 .collect::<HashSet<_>>();
 
             let missing_from_ldap = members
                 .iter()
-                .filter(|m| {
-                    !ldap_members
-                        .iter()
-                        .any(|u| ldap_config.user_dn_key_eq(m, u))
-                })
+                .filter(|m| !ldap_dns.contains(&ldap_config.user_dn(m)))
                 .cloned()
                 .collect::<HashSet<_>>();
 
@@ -528,7 +534,7 @@ pub(super) fn extract_intersecting_users(
     for defguard_user in defguard_users.iter() {
         if let Some(ldap_user) = ldap_users
             .iter()
-            .position(|u| ldap_config.user_dn_key_eq(u, defguard_user))
+            .position(|u| ldap_config.user_dn(u) == ldap_config.user_dn(defguard_user))
             .map(|i| ldap_users.remove(i))
         {
             intersecting_users_ldap.push(ldap_user);
@@ -538,7 +544,7 @@ pub(super) fn extract_intersecting_users(
     for user in intersecting_users_ldap {
         if let Some(defguard_user) = defguard_users
             .iter()
-            .position(|u| ldap_config.user_dn_key_eq(u, &user))
+            .position(|u| ldap_config.user_dn(u) == ldap_config.user_dn(&user))
             .map(|i| defguard_users.remove(i))
         {
             intersecting_users.push((user, defguard_user));
@@ -669,7 +675,7 @@ impl super::LDAPConnection {
             Authority::LDAP
         };
 
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
         let ldap_user = self.get_user_by_dn(user).await?;
         let defguard_groups = user.member_of_names(pool).await?;
         let ldap_groups = self.get_user_groups(&user_dn).await?;
@@ -1173,9 +1179,9 @@ impl super::LDAPConnection {
             if let Some(defguard_user) =
                 User::find_by_username(&mut *transaction, &user.username).await?
             {
-                let defguard_user_dn = self.config.user_dn_for_user(&defguard_user);
-                let ldap_user_dn = self.config.user_dn_for_user(&user);
-                if self.config.user_dn_key_eq(&defguard_user, &user) {
+                let defguard_user_dn = self.config.user_dn(&defguard_user);
+                let ldap_user_dn = self.config.user_dn(&user);
+                if defguard_user_dn == ldap_user_dn {
                     debug!(
                         "User {} (DN: {}) already exists in Defguard, skipping...",
                         user.username, defguard_user_dn
@@ -1257,11 +1263,9 @@ impl super::LDAPConnection {
         let username_attr = &self.config.ldap_username_attr;
 
         for entry in all_ldap_user_entries {
-            let username = get_attr_values(&entry, username_attr)
-                .and_then(|v| v.first())
-                .ok_or_else(|| {
-                    LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
-                })?;
+            let username = entry.first(username_attr).ok_or_else(|| {
+                LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
+            })?;
 
             match user_from_searchentry(&entry, username, None, &self.config) {
                 Ok(user) => all_users.push(user),

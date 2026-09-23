@@ -1,10 +1,15 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    hash::{Hash, Hasher},
+    ops::Deref,
+};
 
 use defguard_common::db::{
     Id,
     models::{Settings, User},
 };
-use ldap3::{Mod, ResultEntry, SearchEntry};
+use ldap3::{Mod, ResultEntry};
 use sqlx::{PgExecutor, query_as};
 
 use super::{
@@ -34,49 +39,93 @@ pub(crate) fn uac_with_active(current: u32, active: bool) -> u32 {
 }
 
 #[must_use]
-pub(crate) fn uac_from_entry(entry: &SearchEntry) -> Option<u32> {
-    get_attr_values(entry, LDAP_USER_ACCOUNT_CONTROL_ATTR)
-        .and_then(|values| values.first())
+pub(crate) fn uac_from_entry(entry: &LdapEntry) -> Option<u32> {
+    entry
+        .first(LDAP_USER_ACCOUNT_CONTROL_ATTR)
         .and_then(|value| value.parse::<u32>().ok())
 }
 
 /// Case-insensitive match for the LDAP names and values covered by `caseIgnoreMatch`:
 /// attribute descriptors per RFC 4512 section 2.5, object classes, group names, RDNs,
-/// and usernames. Folds with Unicode `to_lowercase`, the same folding as [`lowercase_dn`],
-/// so the two helpers agree on non-ASCII names where `caseIgnoreMatch` folds them too.
+/// and usernames. Folds with Unicode `to_lowercase`, the same folding as [`Dn`], so the two
+/// agree on non-ASCII names where `caseIgnoreMatch` folds them too.
 #[must_use]
 pub(super) fn ignorecase_eq(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
 }
 
-/// Reads attributes case-insensitively per RFC 4512 section 2.5. Servers may return a
-/// different case, e.g. LLDAP returns `givenname`.
-#[must_use]
-pub(super) fn get_attr_values<'a>(entry: &'a SearchEntry, key: &str) -> Option<&'a Vec<String>> {
-    entry
-        .attrs
-        .iter()
-        .find(|(k, _)| ignorecase_eq(k, key))
-        .map(|(_, values)| values)
+/// A distinguished name that compares and hashes ignoring case.
+#[derive(Clone, Debug, Eq)]
+pub(crate) struct Dn(String);
+
+impl PartialEq for Dn {
+    fn eq(&self, other: &Self) -> bool {
+        ignorecase_eq(&self.0, &other.0)
+    }
 }
 
-/// Same matching rule as [`get_attr_values`], but takes ownership of the values.
-#[cfg_attr(test, expect(dead_code))]
-#[must_use]
-pub(super) fn take_attr_values(entry: &mut SearchEntry, key: &str) -> Option<Vec<String>> {
-    let found = entry
-        .attrs
-        .keys()
-        .find(|k| ignorecase_eq(k, key))
-        .cloned()?;
-    entry.attrs.remove(&found)
+impl Hash for Dn {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_lowercase().hash(state);
+    }
 }
 
-/// Lowercases a DN so it can serve as a case-insensitive map key. Only safe here because
-/// the naming attributes in play (`cn`, `uid`, `sAMAccountName`) use `caseIgnoreMatch`.
-#[must_use]
-pub(super) fn lowercase_dn(dn: &str) -> String {
-    dn.to_lowercase()
+impl Deref for Dn {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for Dn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for Dn {
+    fn from(dn: String) -> Self {
+        Self(dn)
+    }
+}
+
+impl From<&str> for Dn {
+    fn from(dn: &str) -> Self {
+        Self(dn.to_owned())
+    }
+}
+
+/// An LDAP entry whose attribute reads ignore case per RFC 4512 section 2.5.
+#[derive(Debug)]
+pub(crate) struct LdapEntry {
+    pub(crate) dn: Dn,
+    attrs: HashMap<String, Vec<String>>,
+}
+
+impl LdapEntry {
+    pub(crate) fn new(dn: Dn, attrs: impl IntoIterator<Item = (String, Vec<String>)>) -> Self {
+        let mut folded: HashMap<String, Vec<String>> = HashMap::new();
+        for (name, values) in attrs {
+            folded
+                .entry(name.to_lowercase())
+                .or_default()
+                .extend(values);
+        }
+        Self { dn, attrs: folded }
+    }
+
+    #[must_use]
+    pub(crate) fn values(&self, attr: &str) -> Option<&[String]> {
+        self.attrs.get(&attr.to_lowercase()).map(Vec::as_slice)
+    }
+
+    #[must_use]
+    pub(crate) fn first(&self, attr: &str) -> Option<&str> {
+        self.values(attr)
+            .and_then(<[String]>::first)
+            .map(String::as_str)
+    }
 }
 
 /// Matches object class names case-insensitively per RFC 4512.
@@ -112,7 +161,7 @@ impl UserObjectClass {
 }
 
 pub(crate) fn user_from_searchentry(
-    entry: &SearchEntry,
+    entry: &LdapEntry,
     username: &str,
     password: Option<&str>,
     config: &LDAPConfig,
@@ -123,7 +172,7 @@ pub(crate) fn user_from_searchentry(
         get_value_or_error(entry, "sn")?,
         get_value_or_error(entry, "givenName")?,
         get_value_or_error(entry, "mail")?,
-        get_value(entry, "mobile"),
+        entry.first("mobile").map(str::to_owned),
     );
     user.from_ldap = true;
     // Missing/unparseable userAccountControl falls through with the User::new default (active).
@@ -389,12 +438,11 @@ where
     .await
 }
 
-fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {
-    get_value(entry, key).ok_or_else(|| LdapError::MissingAttribute(key.to_owned()))
-}
-
-fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
-    get_attr_values(entry, key).and_then(|values| values.first().cloned())
+fn get_value_or_error(entry: &LdapEntry, key: &str) -> Result<String, LdapError> {
+    entry
+        .first(key)
+        .map(str::to_owned)
+        .ok_or_else(|| LdapError::MissingAttribute(key.to_owned()))
 }
 
 #[must_use]
@@ -441,7 +489,7 @@ mod tests {
     use std::collections::HashMap;
 
     use ldap3::{
-        ResultEntry, SearchEntry,
+        ResultEntry,
         asn1::{PL, StructureTag, TagClass},
     };
 
@@ -480,11 +528,35 @@ mod tests {
         assert!(!ignorecase_eq("Örgü", "Orgu"));
         // Attribute descriptors still fold.
         assert!(ignorecase_eq("givenName", "GIVENNAME"));
-        // Same folding as `lowercase_dn`, so the helpers stay interchangeable.
-        assert_eq!(
-            ignorecase_eq("cn=Ünal,dc=example,dc=com", "cn=ünal,dc=example,dc=com"),
-            lowercase_dn("cn=Ünal,dc=example,dc=com") == lowercase_dn("cn=ünal,dc=example,dc=com")
+    }
+
+    #[test]
+    fn test_dn_eq_and_hash_ignore_case() {
+        let server_dn = Dn::from("CN=testuser,OU=Users,DC=example,DC=com");
+        let built_dn = Dn::from("cn=testuser,ou=users,dc=example,dc=com");
+        assert_eq!(server_dn, built_dn);
+        assert!(HashSet::from([server_dn.clone()]).contains(&built_dn));
+        assert!(
+            HashSet::from([Dn::from("cn=Ünal,dc=example,dc=com")])
+                .contains(&Dn::from("cn=ünal,dc=example,dc=com"))
         );
+        assert_eq!(&*server_dn, "CN=testuser,OU=Users,DC=example,DC=com");
+        assert_ne!(
+            Dn::from("cn=testuser,dc=example,dc=com"),
+            Dn::from("cn=testuser2,dc=example,dc=com")
+        );
+    }
+
+    #[test]
+    fn test_ldap_entry_merges_duplicate_attribute_spellings() {
+        let entry = LdapEntry::new(
+            "cn=testuser,dc=example,dc=com".into(),
+            [
+                ("cn".to_owned(), vec!["testuser".to_owned()]),
+                ("CN".to_owned(), vec!["TestUser".to_owned()]),
+            ],
+        );
+        assert_eq!(entry.values("Cn").unwrap(), ["testuser", "TestUser"]);
     }
 
     #[test]
@@ -516,7 +588,7 @@ mod tests {
         assert_eq!(uac_with_active(disabled, false), disabled);
     }
 
-    fn ad_entry_with_uac(uac: Option<&str>) -> SearchEntry {
+    fn ad_entry_with_uac(uac: Option<&str>) -> LdapEntry {
         let mut attrs = HashMap::new();
         attrs.insert("sn".to_owned(), vec!["lastname".to_owned()]);
         attrs.insert("givenName".to_owned(), vec!["firstname".to_owned()]);
@@ -527,11 +599,7 @@ mod tests {
                 vec![uac.to_owned()],
             );
         }
-        SearchEntry {
-            dn: "cn=user,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        }
+        LdapEntry::new("cn=user,dc=example,dc=com".into(), attrs)
     }
 
     #[test]
