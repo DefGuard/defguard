@@ -22,6 +22,7 @@ pub(crate) struct LoadLoopConfig {
 #[derive(Default)]
 pub(crate) struct LoadLoopStats {
     pub load_duration: Duration,
+    pub total_duration: Duration,
     pub scheduled: u64,
     pub completed: u64,
     pub dropped: u64,
@@ -170,5 +171,6 @@ where
     }
 
     stats.load_duration = load_duration;
+    stats.total_duration = started_at.elapsed();
     Ok(stats)
 }

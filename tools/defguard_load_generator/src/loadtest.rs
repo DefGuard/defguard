@@ -47,7 +47,6 @@ struct RequestResult {
 #[derive(Default)]
 struct LoadTestMetrics {
     scheduled_requests: u64,
-    started_requests: u64,
     completed_requests: u64,
     successful_requests: u64,
     http_errors: u64,
@@ -235,10 +234,9 @@ async fn run_load_loop(state: SharedLoadTestState) -> anyhow::Result<()> {
     .await?;
 
     metrics.scheduled_requests = stats.scheduled;
-    metrics.started_requests = stats.scheduled;
     metrics.dropped_requests = stats.dropped;
     metrics.peak_in_flight = stats.peak_in_flight;
-    report_final_results(&metrics, &state, stats.load_duration);
+    report_final_results(&metrics, &state, stats.load_duration, stats.total_duration);
     Ok(())
 }
 
@@ -273,21 +271,40 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
     }
 }
 
+fn request_rate(count: u64, duration: Duration) -> f64 {
+    if duration.is_zero() {
+        return 0.0;
+    }
+    count as f64 / duration.as_secs_f64()
+}
+
+fn polling_rates(
+    metrics: &LoadTestMetrics,
+    load_duration: Duration,
+    total_duration: Duration,
+) -> (f64, f64) {
+    (
+        request_rate(metrics.scheduled_requests, load_duration),
+        request_rate(metrics.successful_requests, total_duration),
+    )
+}
+
 fn report_final_results(
     metrics: &LoadTestMetrics,
     state: &SharedLoadTestState,
     load_duration: Duration,
+    total_duration: Duration,
 ) {
     let elapsed = state.started_at.elapsed();
-    let actual_rps =
-        metrics.started_requests as f64 / load_duration.as_secs_f64().max(f64::EPSILON);
+    let (scheduled_rps, successful_rps) = polling_rates(metrics, load_duration, total_duration);
     tracing::info!(
         elapsed = ?elapsed,
         load_duration = ?load_duration,
+        total_duration = ?total_duration,
         target_rps = state.requests_per_second.get(),
-        actual_rps,
+        scheduled_rps,
+        successful_rps,
         scheduled = metrics.scheduled_requests,
-        started = metrics.started_requests,
         completed = metrics.completed_requests,
         successful = metrics.successful_requests,
         http_errors = metrics.http_errors,
