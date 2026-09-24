@@ -237,6 +237,13 @@ async fn run_load_loop(state: SharedLoadTestState) -> anyhow::Result<()> {
     metrics.dropped_requests = stats.dropped;
     metrics.peak_in_flight = stats.peak_in_flight;
     report_final_results(&metrics, &state, stats.load_duration, stats.total_duration);
+    fail_on_overload(stats.dropped)
+}
+
+fn fail_on_overload(dropped: u64) -> anyhow::Result<()> {
+    if dropped > 0 {
+        bail!("load generator overload: {dropped} requests dropped at max_in_flight");
+    }
     Ok(())
 }
 
