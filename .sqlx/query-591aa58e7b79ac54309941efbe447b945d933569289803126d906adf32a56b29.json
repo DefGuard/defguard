@@ -6,17 +6,35 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth2authorizedapp",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth2authorizedapp",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "oauth2client_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "oauth2authorizedapp",
+            "name": "oauth2client_id"
+          }
+        }
       }
     ],
     "parameters": {

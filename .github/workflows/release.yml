@@ -137,7 +137,7 @@ jobs:
           targets: "aarch64-unknown-linux-gnu"
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@1583d6b38d7be47f593cb472781bbb21cab4321e # v0.0.10
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
       - name: Build Linux x86_64 binary
         run: |
@@ -395,11 +395,8 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          apt-get install -y \
-            build-essential pkg-config \
-            libssl-dev \
-            protobuf-compiler libprotobuf-dev \
-            ruby ruby-dev rubygems rpm
+          apt-get install -y build-essential pkg-config libssl-dev libudev-dev \
+            protobuf-compiler libprotobuf-dev ruby ruby-dev rubygems rpm
           gem install fpm --no-document
 
       - name: Build binary

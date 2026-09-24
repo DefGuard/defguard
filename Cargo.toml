@@ -35,7 +35,7 @@ model_derive = { path = "./crates/model_derive", version = "0.0.0" }
 
 # external dependencies
 anyhow = "1.0"
-argon2 = { version = "0.5", features = ["std"] }
+argon2 = "0.6"
 axum = "0.8"
 axum-client-ip = { version = "1.3", default-features = false, features = [
     "forwarded-header",
@@ -65,23 +65,23 @@ hyper-rustls = { version = "0.27", features = ["http2"] }
 hyper-util = "0.1"
 humantime = "2.1"
 # match version used by sqlx
-ipnetwork = "0.20"
+ipnetwork = { version = "0.21", features = ["serde"] }
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
-jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
+jsonwebtoken = { version = "11.1", features = ["rust_crypto"] }
 ldap3 = { git = "https://github.com/DefGuard/ldap3", rev = "65ae9ad320770c63f366233ebe121534e16b59a7", features = ["tls"] }
 lettre = { version = "0.11", default-features = false, features = [
     "builder",
     "smtp-transport",
     "tokio1-rustls-tls",
 ] }
-md4 = "0.10"
+md4 = "0.11"
 openidconnect = { version = "4.0", default-features = false, features = [
     "reqwest",
 ] }
 os_info = "3.15"
 parse_link_header = "0.4"
 paste = "1.0"
-pgp = { version = "0.19", default-features = false }
+pgp = { version = "0.20", default-features = false }
 prost = "0.14"
 prost-types = "0.14"
 pulldown-cmark = "0.13"
@@ -101,13 +101,14 @@ serde_cbor = { version = "0.13", package = "serde_cbor_2" }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
-sha2 = "0.10"
+sha2 = "0.11"
 sha256 = "1.5"
-sqlx = { version = "0.8", features = [
+sqlx = { version = "0.9", features = [
     "chrono",
     "ipnetwork",
     "postgres",
-    "runtime-tokio-native-tls",
+    "runtime-tokio",
+    "tls-native-tls",
     "uuid",
 ] }
 ssh-key = "0.6"

@@ -6,42 +6,90 @@
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "state: SessionState",
-        "type_info": "Int2"
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "state"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "created",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "created"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "expires",
-        "type_info": "Timestamp"
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "expires"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "webauthn_challenge",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "webauthn_challenge"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "ip_address",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "ip_address"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "device_info",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "session",
+            "name": "device_info"
+          }
+        }
       }
     ],
     "parameters": {

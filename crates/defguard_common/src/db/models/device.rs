@@ -42,6 +42,8 @@ pub struct DeviceConfig {
     pub pubkey: String,
     pub dns: Option<String>,
     pub keepalive_interval: i32,
+    /// MTU for the client, from the location's `client_mtu`.
+    pub mtu: Option<i32>,
     /// Whether the location requires MFA. This is the authoritative flag, read from the stored
     /// `wireguard_network.mfa_enabled` column.
     pub mfa_enabled: bool,

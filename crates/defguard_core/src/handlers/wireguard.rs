@@ -84,6 +84,9 @@ pub struct WireguardNetworkData {
     pub dns: Option<String>,
     pub mtu: i32,
     pub fwmark: i64,
+    /// If set, the Defguard Client should use this MTU.
+    #[serde(default)]
+    pub client_mtu: Option<i32>,
     pub allow_all_groups: bool,
     pub allowed_groups: Vec<String>,
     pub keepalive_interval: i32,
@@ -99,6 +102,8 @@ pub struct WireguardNetworkData {
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
+/// Smallest MTU WireGuard can carry a packet over.
+const MIN_MTU: i32 = 72;
 
 /// Build the structured `400` response for the `mfa_enabled` precondition: a location cannot be
 /// MFA-enabled while no MFA flow exists to assign to it.
@@ -205,13 +210,24 @@ impl WireguardNetworkData {
         ))
     }
 
+    /// Rejects a client MTU below the WireGuard minimum; `None` means the client picks its own.
+    pub(crate) fn validate_client_mtu(&self) -> Result<(), WebError> {
+        match self.client_mtu {
+            Some(mtu) if mtu < MIN_MTU => Err(WebError::BadRequest(format!(
+                "client_mtu must be at least {MIN_MTU}"
+            ))),
+            _ => Ok(()),
+        }
+    }
+
     pub(crate) fn validate_allowed_groups(&self) -> Result<(), WebError> {
         if self.allow_all_groups || !self.allowed_groups.is_empty() {
-            return Ok(());
+            Ok(())
+        } else {
+            Err(WebError::BadRequest(
+                "At least one group must be specified when allow_all_groups is disabled".into(),
+            ))
         }
-        Err(WebError::BadRequest(
-            "At least one group must be specified when allow_all_groups is disabled".into(),
-        ))
     }
 }
 
@@ -268,7 +284,7 @@ fn normalize_mfa_flow_assignments(
     post,
     path = "/api/v1/network",
     tag = "network",
-    request_body(content = WireguardNetworkData, description = "`address` is a comma-separated list of network addresses.", example = json!({"name": "office", "address": "10.0.0.1/24", "endpoint": "vpn.example.com", "port": 50051, "allowed_ips": "0.0.0.0/0", "dns": "1.1.1.1", "mtu": 1420, "fwmark": 0, "allow_all_groups": true, "allowed_groups": [], "keepalive_interval": 25, "peer_disconnect_threshold": 180, "acl_enabled": false, "acl_default_allow": false, "allowed_ips_from_acl": false, "mfa_enabled": false, "service_location_mode": "disabled"})),
+    request_body(content = WireguardNetworkData, description = "`address` is a comma-separated list of network addresses.", example = json!({"name": "office", "address": "10.0.0.1/24", "endpoint": "vpn.example.com", "port": 50051, "allowed_ips": "0.0.0.0/0", "dns": "1.1.1.1", "mtu": 1420, "fwmark": 0, "client_mtu": null, "allow_all_groups": true, "allowed_groups": [], "keepalive_interval": 25, "peer_disconnect_threshold": 180, "acl_enabled": false, "acl_default_allow": false, "allowed_ips_from_acl": false, "mfa_enabled": false, "service_location_mode": "disabled"})),
     responses(
         (status = 201, description = "Network created.", body = WireguardNetwork),
         (status = 400, description = "Invalid location settings.", body = ApiErrorResponse, example = json!({"msg": "At least one group must be specified when allow_all_groups is disabled"})),
@@ -322,6 +338,7 @@ pub(crate) async fn create_network(
     data.validate_peer_disconnect_threshold()?;
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
+    data.validate_client_mtu()?;
     data.validate_allowed_groups()?;
 
     let allowed_ips = data.parse_allowed_ips();
@@ -341,6 +358,7 @@ pub(crate) async fn create_network(
     .try_set_address(&data.address)?;
     network.mtu = data.mtu;
     network.fwmark = data.fwmark;
+    network.client_mtu = data.client_mtu;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
 
@@ -489,6 +507,7 @@ pub(crate) async fn modify_network(
     data.validate_peer_disconnect_threshold()?;
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
+    data.validate_client_mtu()?;
     data.validate_allowed_groups()?;
 
     let network = find_network(network_id, &appstate.pool).await?;
@@ -507,6 +526,7 @@ pub(crate) async fn modify_network(
     network.keepalive_interval = data.keepalive_interval;
     network.mtu = data.mtu;
     network.fwmark = data.fwmark;
+    network.client_mtu = data.client_mtu;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.allow_all_groups = data.allow_all_groups;
     network.acl_enabled = data.acl_enabled;
@@ -601,6 +621,8 @@ pub(crate) async fn modify_network(
         return Ok(response);
     }
 
+    // `NetworkModified` sends the complete peer list. The gateway compares the peer count and
+    // public keys, then replaces its peers, so separate device events are not needed.
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;

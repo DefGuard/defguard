@@ -642,8 +642,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         EventTestCase {
             name: "UserImportBlocked",
             message: api_message(ApiEventType::UserImportBlocked {
-                username: "testuser".to_string(),
-                email: "testuser@example.com".to_string(),
+                username: "testuser".to_owned(),
+                email: "testuser@example.com".to_owned(),
                 user_count: 10,
                 limit: 10,
             }),

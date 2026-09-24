@@ -95,8 +95,10 @@ impl Claims {
     /// Verify JWT and, if successful, convert it to claims.
     pub fn from_jwt(expected_claims_type: ClaimsType, token: &str) -> Result<Self, ClaimsError> {
         let decoding_key = Self::decoding_key()?;
-        let mut validation = Validation::default();
-        validation.validate_nbf = true;
+        let mut validation = Validation {
+            validate_nbf: true,
+            ..Default::default()
+        };
         validation.set_issuer(&[JWT_ISSUER]);
         validation.set_required_spec_claims(&["iss", "sub", "exp", "nbf"]);
         let claims = decode::<Self>(token, &decoding_key, &validation).map(|data| data.claims)?;

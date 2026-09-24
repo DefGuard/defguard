@@ -6,17 +6,30 @@
       {
         "ordinal": 0,
         "name": "pubkey",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "wireguard_pubkey"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "preshared_key!",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_session",
+            "name": "preshared_key"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "allowed_ips!: Vec<String>",
-        "type_info": "TextArray"
+        "type_info": "TextArray",
+        "origin": "Expression"
       }
     ],
     "parameters": {

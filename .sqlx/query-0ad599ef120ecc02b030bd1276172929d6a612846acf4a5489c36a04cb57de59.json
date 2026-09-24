@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "recovery_codes",
-        "type_info": "TextArray"
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "recovery_codes"
+          }
+        }
       }
     ],
     "parameters": {

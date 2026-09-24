@@ -8,7 +8,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-defguard_certs.workspace = true
 defguard_common.workspace = true
 defguard_core.workspace = true
 defguard_grpc_tls.workspace = true

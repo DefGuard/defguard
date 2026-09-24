@@ -814,6 +814,7 @@ export interface NetworkLocation {
   keepalive_interval: number;
   mtu: number;
   fwmark: number;
+  client_mtu: number | null;
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
   acl_default_allow: boolean;

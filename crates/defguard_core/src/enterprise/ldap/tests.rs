@@ -3,6 +3,8 @@ use std::{collections::HashMap, str::FromStr};
 use defguard_common::{
     db::{
         models::{
+            Device, DeviceType, WireguardNetwork,
+            device::WireguardNetworkDevice,
             group::Permission,
             settings::{LdapSyncStatus, initialize_current_settings},
         },
@@ -109,6 +111,49 @@ fn drain_ldap_sync_events(rx: &mut UnboundedReceiver<LdapSyncEventType>) -> Vec<
         events.push(event);
     }
     events
+}
+
+fn drain_gateway_commands(rx: &mut Receiver<GatewayCommand>) -> Vec<GatewayCommand> {
+    let mut events = Vec::new();
+    while let Ok(event) = rx.try_recv() {
+        events.push(event);
+    }
+    events
+}
+
+async fn make_test_acl_location(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+    let mut location = WireguardNetwork::default()
+        .try_set_address("10.0.0.1/24")
+        .unwrap();
+    location.acl_enabled = true;
+    location.save(pool).await.unwrap()
+}
+
+async fn make_test_device(
+    pool: &sqlx::PgPool,
+    user: &User<Id>,
+    location: &WireguardNetwork<Id>,
+) -> Device<Id> {
+    let device = Device::new(
+        format!("{}-device", user.username),
+        format!("{}-key", user.username),
+        user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(pool)
+    .await
+    .unwrap();
+    WireguardNetworkDevice {
+        wireguard_network_id: location.id,
+        wireguard_ips: vec!["10.0.0.2".parse().unwrap()],
+        device_id: device.id,
+    }
+    .insert(pool)
+    .await
+    .unwrap();
+    device
 }
 
 fn set_test_license_business() {
@@ -2037,6 +2082,126 @@ async fn test_sync_does_not_repeat_group_events_for_out_of_scope_users(
     // The stored membership must survive, only the reporting stops.
     let members = group.member_usernames(&pool).await.unwrap();
     assert_eq!(members, vec!["disabled_user".to_owned()]);
+}
+
+#[sqlx::test]
+async fn test_ldap_membership_changes_refresh_firewall_once(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, mut wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let location = make_test_acl_location(&pool).await;
+    let mut user = make_test_user(
+        "membership_user",
+        Some("membership_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    user.from_ldap = true;
+    let user = user.save(&pool).await.unwrap();
+    make_test_device(&pool, &user, &location).await;
+
+    let ldap_user = user.clone().as_noid();
+    let group = Group::new("ldap-group");
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+    ldap_conn.test_client_mut().add_test_group(&group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership(&group, &ldap_user, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+    assert_eq!(
+        drain_gateway_commands(&mut wg_rx)
+            .iter()
+            .filter(|event| matches!(
+                event,
+                GatewayCommand::FirewallConfigChanged(id, _) if *id == location.id
+            ))
+            .count(),
+        1
+    );
+
+    // Repeating an already-applied membership change must not refresh the firewall.
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+    assert!(!drain_gateway_commands(&mut wg_rx).iter().any(
+        |event| matches!(event, GatewayCommand::FirewallConfigChanged(id, _) if *id == location.id)
+    ));
+
+    ldap_conn
+        .test_client_mut()
+        .remove_test_membership(&group, &ldap_user, &config);
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+    assert_eq!(
+        drain_gateway_commands(&mut wg_rx)
+            .iter()
+            .filter(|event| matches!(
+                event,
+                GatewayCommand::FirewallConfigChanged(id, _) if *id == location.id
+            ))
+            .count(),
+        1
+    );
+}
+
+#[sqlx::test]
+async fn test_ldap_user_deletion_cleans_up_devices(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, mut wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut user = make_test_user(
+        "deleted_user",
+        Some("deleted_user".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    user.from_ldap = true;
+    let user = user.save(&pool).await.unwrap();
+    let location = make_test_acl_location(&pool).await;
+    let device = make_test_device(&pool, &user, &location).await;
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    assert!(User::find_by_id(&pool, user.id).await.unwrap().is_none());
+    assert!(
+        Device::find_by_id(&pool, device.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let network_device = sqlx::query_scalar::<_, Id>(
+        "SELECT device_id FROM wireguard_network_device WHERE device_id = $1",
+    )
+    .bind(device.id)
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
+    assert!(network_device.is_none());
+    assert!(drain_gateway_commands(&mut wg_rx).iter().any(
+        |event| matches!(event, GatewayCommand::DeviceDeleted(info) if info.device.id == device.id)
+    ));
 }
 
 /// The dry run previews not yet saved settings, so user scoping must follow the connection's

@@ -96,6 +96,7 @@ async fn main() -> Result<(), anyhow::Error> {
         &config.database_name,
         &config.database_user,
         config.database_password.expose_secret(),
+        config.database_pool_size,
     )
     .await;
 

@@ -70,8 +70,8 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
             "active_users": 12,
             "active_user_devices": 18,
             "active_network_devices": 2,
-            "upload": 1048576,
-            "download": 4194304,
+            "upload": 1_048_576,
+            "download": 4_194_304,
             "transfer_series": [{"collected_at": "2026-08-04T10:00:00", "upload": 1024, "download": 4096}]
         })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -113,8 +113,8 @@ pub(crate) async fn locations_overview_stats(
             "active_users": 12,
             "active_user_devices": 18,
             "active_network_devices": 2,
-            "upload": 1048576,
-            "download": 4194304,
+            "upload": 1_048_576,
+            "download": 4_194_304,
             "transfer_series": [{"collected_at": "2026-08-04T10:00:00", "upload": 1024, "download": 4096}]
         })),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
@@ -294,8 +294,8 @@ pub(crate) struct ConnectedUserDevicesPath {
             "public_ip": "203.0.113.10",
             "vpn_ips": ["10.0.0.15"],
             "connected_at": "2026-08-04T10:00:00",
-            "total_upload": 1048576,
-            "total_download": 4194304,
+            "total_upload": 1_048_576,
+            "total_download": 4_194_304,
             "stats": [{"collected_at": "2026-08-04T10:00:00", "upload": 1024, "download": 4096}]
         }])),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),

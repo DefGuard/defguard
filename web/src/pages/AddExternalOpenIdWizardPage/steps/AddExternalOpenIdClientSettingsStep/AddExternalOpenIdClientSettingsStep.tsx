@@ -19,6 +19,7 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { mfaAvailabilityInvalidateKey } from '../../../../shared/query';
 import {
   formatMicrosoftBaseUrl,
   jumpcloudRegionOptions,
@@ -60,6 +61,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
         ['info'],
         ['openid', 'provider'],
         ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
       ],
     },
   });

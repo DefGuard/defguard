@@ -6,7 +6,8 @@
       {
         "ordinal": 0,
         "name": "exists",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
