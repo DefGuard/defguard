@@ -1,0 +1,132 @@
+name: Load test config polling
+
+on:
+  workflow_dispatch:
+    inputs:
+      network_id:
+        description: WireGuard network ID with seeded polling devices
+        required: true
+        type: number
+      requests_per_second:
+        description: Target polling requests per second (1-10000)
+        required: true
+        default: 500
+        type: number
+      duration_seconds:
+        description: Load generation time in seconds (30-900)
+        required: true
+        default: 120
+        type: number
+      max_in_flight:
+        description: Maximum concurrent requests (1-4096)
+        required: true
+        default: 1024
+        type: number
+
+permissions:
+  id-token: write
+
+concurrency:
+  group: defguard-load-tests
+  cancel-in-progress: false
+
+jobs:
+  config-polling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Restrict this environment to protected branches and require approval.
+    environment: load-testing
+    env:
+      # Set these variables in the load-testing environment; keep DB credentials on EC2.
+      AWS_REGION: ${{ vars.LOAD_TEST_AWS_REGION || 'eu-west-3' }}
+      AWS_ROLE_ARN: ${{ vars.LOAD_TEST_AWS_ROLE_ARN }}
+      GENERATOR_INSTANCE_ID: ${{ vars.LOAD_TEST_GENERATOR_INSTANCE_ID }}
+      PROXY_URL: ${{ vars.LOAD_TEST_PROXY_URL }}
+      NETWORK_ID: ${{ inputs.network_id }}
+      RPS: ${{ inputs.requests_per_second }}
+      DURATION_SECONDS: ${{ inputs.duration_seconds }}
+      MAX_IN_FLIGHT: ${{ inputs.max_in_flight }}
+
+    steps:
+      - name: Validate target and inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_PROTECTED" == true ]] || { echo '::error::Run this workflow from a protected branch'; exit 1; }
+          [[ -n "$AWS_ROLE_ARN" && "$GENERATOR_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo '::error::Configure the load-testing AWS role and generator instance ID'; exit 1; }
+          [[ "$PROXY_URL" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$ ]] || { echo '::error::Configure LOAD_TEST_PROXY_URL as a base URL'; exit 1; }
+          [[ "$NETWORK_ID" =~ ^[1-9][0-9]{0,17}$ ]] || { echo '::error::network_id must be a positive integer'; exit 1; }
+          if ! [[ "$RPS" =~ ^[1-9][0-9]{0,4}$ ]] || (( RPS > 10000 )); then echo '::error::requests_per_second must be 1-10000'; exit 1; fi
+          if ! [[ "$DURATION_SECONDS" =~ ^[1-9][0-9]{0,2}$ ]] || (( DURATION_SECONDS < 30 || DURATION_SECONDS > 900 )); then echo '::error::duration_seconds must be 30-900'; exit 1; fi
+          if ! [[ "$MAX_IN_FLIGHT" =~ ^[1-9][0-9]{0,3}$ ]] || (( MAX_IN_FLIGHT > 4096 )); then echo '::error::max_in_flight must be 1-4096'; exit 1; fi
+
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: load-test-${{ github.run_id }}
+
+      - name: Run generator on EC2 through SSM
+        id: send-command
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_script=$(cat <<'REMOTE'
+          set -euo pipefail
+          mkdir -p "$HOME/.cache"
+          exec 9>"$HOME/.cache/defguard-load-test.lock"
+          flock -n 9 || { echo 'Another load test is already running'; exit 1; }
+          source "$HOME/.cargo/env"
+          [[ -r "$HOME/.config/defguard-load-test.env" ]] || { echo 'Configure $HOME/.config/defguard-load-test.env on the generator instance'; exit 1; }
+          set -a
+          source "$HOME/.config/defguard-load-test.env"
+          set +a
+          : "${DEFGUARD_DB_PASSWORD:?Configure database access on the generator instance}"
+          command -v protoc >/dev/null || { echo 'Install protobuf-compiler on the generator instance'; exit 1; }
+          cd "$HOME/defguard"
+          git fetch origin "$LOAD_TEST_REV"
+          git checkout --detach "$LOAD_TEST_REV"
+          git submodule update --init --recursive
+          cargo build --locked --release -p defguard_load_generator
+          ./target/release/defguard_load_generator test config-polling \
+            --proxy-url "$LOAD_TEST_PROXY_URL" \
+            --network-id "$NETWORK_ID" \
+            --requests-per-second "$RPS" \
+            --duration "${DURATION_SECONDS}s" \
+            --max-in-flight "$MAX_IN_FLIGHT"
+          REMOTE
+          )
+          encoded_script=$(printf %s "$remote_script" | base64 -w0)
+          printf -v command 'runuser -u ubuntu -- env LOAD_TEST_REV=%q LOAD_TEST_PROXY_URL=%q NETWORK_ID=%q RPS=%q DURATION_SECONDS=%q MAX_IN_FLIGHT=%q bash -lc %q' "$GITHUB_SHA" "$PROXY_URL" "$NETWORK_ID" "$RPS" "$DURATION_SECONDS" "$MAX_IN_FLIGHT" "printf %s '$encoded_script' | base64 -d | bash"
+          jq -n --arg command "$command" '{commands: [$command], executionTimeout: ["2400"]}' > "$RUNNER_TEMP/load-test-parameters.json"
+          command_id=$(aws ssm send-command --instance-ids "$GENERATOR_INSTANCE_ID" --document-name AWS-RunShellScript --parameters "file://$RUNNER_TEMP/load-test-parameters.json" --timeout-seconds 60 --query 'Command.CommandId' --output text)
+          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
+          echo "SSM command: $command_id"
+
+      - name: Wait for result and show output
+        shell: bash
+        env:
+          COMMAND_ID: ${{ steps.send-command.outputs.command_id }}
+        run: |
+          set -euo pipefail
+          invocation="$RUNNER_TEMP/load-test-invocation.json"
+          status=''
+          for (( attempt = 0; attempt < 170; attempt++ )); do
+            if aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$GENERATOR_INSTANCE_ID" --output json > "$invocation" 2>/dev/null; then
+              status=$(jq -r '.Status' "$invocation")
+              case "$status" in
+                Success|Failed|Cancelled|TimedOut) break ;;
+              esac
+            fi
+            sleep 15
+          done
+          if [[ "$status" != Success && "$status" != Failed && "$status" != Cancelled && "$status" != TimedOut ]]; then
+            echo "::error::SSM command $COMMAND_ID did not finish within the workflow deadline"
+            exit 1
+          fi
+          jq -r '.StandardOutputContent, .StandardErrorContent' "$invocation"
+          if [[ "$status" != Success || "$(jq -r '.ResponseCode' "$invocation")" != 0 ]]; then
+            echo "::error::SSM command $COMMAND_ID finished with status $status"
+            exit 1
+          fi
