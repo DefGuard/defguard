@@ -441,13 +441,13 @@ impl Token {
         E: PgExecutor<'e>,
     {
         debug!("Deleting unused {token_type} tokens for user {user_id}");
-        // Plain query: the token type is a runtime parameter and needs no cached query data.
-        let result =
-            query("DELETE FROM token WHERE user_id = $1 AND token_type = $2 AND used_at IS NULL")
-                .bind(user_id)
-                .bind(token_type)
-                .execute(executor)
-                .await?;
+        let result = query!(
+            "DELETE FROM token WHERE user_id = $1 AND token_type = $2 AND used_at IS NULL",
+            user_id,
+            token_type
+        )
+        .execute(executor)
+        .await?;
         debug!(
             "Deleted {} unused {token_type} tokens for user {user_id}",
             result.rows_affected()
@@ -466,11 +466,13 @@ impl Token {
         E: PgExecutor<'e>,
     {
         debug!("Deleting {token_type} tokens for user {user_id}");
-        let result = query("DELETE FROM token WHERE user_id = $1 AND token_type = $2")
-            .bind(user_id)
-            .bind(token_type)
-            .execute(executor)
-            .await?;
+        let result = query!(
+            "DELETE FROM token WHERE user_id = $1 AND token_type = $2",
+            user_id,
+            token_type
+        )
+        .execute(executor)
+        .await?;
         debug!(
             "Deleted {} {token_type} tokens for user {user_id}",
             result.rows_affected()
