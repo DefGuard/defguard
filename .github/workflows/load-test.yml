@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Restrict this environment to protected branches and require approval.
-    environment: load-testing
+    environment: LOAD-TESTING
     env:
       # Set these variables in the load-testing environment; keep DB credentials on EC2.
       AWS_REGION: ${{ vars.LOAD_TEST_AWS_REGION || 'eu-west-3' }}
