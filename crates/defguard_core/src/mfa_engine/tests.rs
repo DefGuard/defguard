@@ -52,7 +52,7 @@ use crate::{
     mfa_engine::{
         error::StartError,
         legacy::{FinishError, LegacyProof},
-        method::{Verdict, check_mobile_approval},
+        method::{InitiateError, Verdict, check_mobile_approval},
         multi_step::{StartRejectionReason, StartResult, StepCredential, StepError, StepProof},
         types::FinishOutcome,
     },
@@ -930,6 +930,46 @@ async fn test_start_legacy_rejects_unlicensed_oidc(_: PgPoolOptions, options: Pg
         .expect_err("an unlicensed OIDC method must be rejected");
 
     assert!(matches!(error, StartError::MethodNotAvailable));
+    assert_eq!(session_count(&pool, location.id, device.id).await, 0);
+}
+
+#[sqlx::test]
+async fn test_start_legacy_rejects_fido2(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_flow(
+        &pool,
+        location.id,
+        vec![vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Fido2]],
+    )
+    .await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+
+    let (flow_id, step_methods) = resolve_flow(&pool, location.id, user.id).await;
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+    let error = engine
+        .start_legacy(
+            &location,
+            &device,
+            &user,
+            flow_id,
+            step_methods,
+            VpnClientMfaMethod::Fido2,
+        )
+        .await
+        .expect_err("FIDO2 must be rejected by the legacy contract");
+
+    assert!(matches!(
+        error,
+        StartError::Initiate(InitiateError::UnsupportedMethod)
+    ));
     assert_eq!(session_count(&pool, location.id, device.id).await, 0);
 }
 

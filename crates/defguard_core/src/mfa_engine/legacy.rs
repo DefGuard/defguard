@@ -15,7 +15,7 @@ use super::{
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
     filter_unlicensed_mfa_methods,
-    method::{Verdict, VerifyError, verify, verify_mobile_signature},
+    method::{InitiateError, Verdict, VerifyError, verify, verify_mobile_signature},
     types::{FinishOutcome, StartOutcome, VerificationProof},
 };
 use crate::events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
@@ -74,6 +74,13 @@ impl MfaEngine {
         steps: Vec<HashSet<VpnClientMfaMethod>>,
         selected_method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
+        // The legacy contract carries no assertion or credential list, so a FIDO2 session could be
+        // started but never finished. Reject it here rather than relying on the caller to.
+        if selected_method == VpnClientMfaMethod::Fido2 {
+            error!("FIDO2 is not available through the legacy MFA contract");
+            return Err(StartError::Initiate(InitiateError::UnsupportedMethod));
+        }
+
         let steps = steps
             .into_iter()
             .map(|step| filter_unlicensed_mfa_methods(&step))
