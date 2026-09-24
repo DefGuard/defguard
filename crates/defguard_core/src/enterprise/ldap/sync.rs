@@ -87,7 +87,7 @@ use crate::{
     enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
         ldap::model::{
-            get_users_without_ldap_path, ignorecase_eq, ldap_sync_allowed_for_user,
+            get_users_without_ldap_path, ldap_sync_allowed_for_user,
             ldap_sync_allowed_for_user_scoped, update_from_ldap_user, user_from_searchentry,
         },
         license::get_cached_license,
@@ -509,7 +509,7 @@ fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConf
     }
 
     if !config.using_username_as_rdn()
-        && !ignorecase_eq(&defguard_user.username, &ldap_user.username)
+        && defguard_user.username.to_lowercase() != ldap_user.username.to_lowercase()
     {
         debug!(
             "Attribute difference detected: username (Defguard: {}, LDAP: {})",
@@ -761,7 +761,7 @@ impl super::LDAPConnection {
                         let defguard_user_rdn = defguard_user.ldap_rdn_value();
                         let ldap_user_rdn = ldap_user.ldap_rdn_value();
 
-                        if !ignorecase_eq(defguard_user_rdn, ldap_user_rdn) {
+                        if defguard_user_rdn.to_lowercase() != ldap_user_rdn.to_lowercase() {
                             warn!(
                                 "User {} has different RDN in Defguard ({defguard_user_rdn}) and \
                                 LDAP ({ldap_user_rdn}), cannot fix missing LDAP path. Please, \
@@ -981,7 +981,7 @@ impl super::LDAPConnection {
             }
             if let Some((ldap_rdn, ldap_path)) =
                 ldap_paths_by_username.get(defguard_user.username.as_str())
-                && ignorecase_eq(defguard_user.ldap_rdn_value(), ldap_rdn)
+                && defguard_user.ldap_rdn_value().to_lowercase() == ldap_rdn.to_lowercase()
             {
                 defguard_user.ldap_user_path = ldap_path.map(str::to_owned);
             }

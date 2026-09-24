@@ -9,8 +9,8 @@ use ldap3::Mod;
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    Dn, LdapEntry, UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, ignorecase_eq,
-    uac_is_active, user_as_ldap_attrs,
+    Dn, LdapEntry, UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active,
+    user_as_ldap_attrs,
 };
 
 /// Extract attribute value from LDAP filter
@@ -40,7 +40,7 @@ fn extract_attribute_value(filter: &str, attr: &str) -> Option<String> {
 /// Extract value from simple attribute=value pattern
 fn extract_simple_attribute_value(condition: &str, attr: &str) -> Option<String> {
     let (name, value) = condition.split_once('=')?;
-    if ignorecase_eq(name, attr) {
+    if name.eq_ignore_ascii_case(attr) {
         Some(value.to_owned())
     } else {
         None
@@ -315,10 +315,10 @@ impl LDAPConnection {
         if let Some((attr, value)) = search_value {
             for (dn, object) in &self.test_client.objects {
                 if let Object::User(user) = object {
-                    let matches = if ignorecase_eq(&attr, &username_attr) {
+                    let matches = if attr.eq_ignore_ascii_case(&username_attr) {
                         user.username == value
-                    } else if ignorecase_eq(&attr, &rdn_attr) {
-                        let rdn_value = if ignorecase_eq(&rdn_attr, &username_attr) {
+                    } else if attr.eq_ignore_ascii_case(&rdn_attr) {
+                        let rdn_value = if rdn_attr.eq_ignore_ascii_case(&username_attr) {
                             &user.username
                         } else {
                             dn.split(',')

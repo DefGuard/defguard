@@ -22,8 +22,7 @@ use tokio::sync::{
 use super::{
     model::{
         Dn, LdapEntry, UAC_ACCOUNT_DISABLE, extract_rdn_value, get_users_without_ldap_path,
-        ignorecase_eq, in_attrs, ldap_sync_allowed_for_user_scoped, user_as_ldap_attrs,
-        user_from_searchentry,
+        in_attrs, ldap_sync_allowed_for_user_scoped, user_as_ldap_attrs, user_from_searchentry,
     },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
@@ -3581,7 +3580,11 @@ fn test_as_ldap_attrs() {
         "cn",
     );
 
-    assert!(!attrs.iter().any(|(key, _)| ignorecase_eq(key, "mobile")));
+    assert!(
+        !attrs
+            .iter()
+            .any(|(key, _)| key.eq_ignore_ascii_case("mobile"))
+    );
 }
 
 #[test]

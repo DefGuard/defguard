@@ -22,7 +22,7 @@ use crate::{
     enterprise::{
         is_business_license_active,
         ldap::model::{
-            Dn, UAC_NORMAL_ACCOUNT, extract_dn_path, group_in_list, has_obj_class, ignorecase_eq,
+            Dn, UAC_NORMAL_ACCOUNT, extract_dn_path, group_in_list, has_obj_class,
             ldap_sync_allowed_for_user, uac_from_entry, uac_with_active, user_as_ldap_attrs,
             user_as_ldap_mod, user_from_searchentry,
         },
@@ -270,7 +270,7 @@ impl LDAPConfig {
         // RDN set = username is used as RDN if they are the same
         self.ldap_user_rdn_attr
             .as_deref()
-            .is_none_or(|rdn| ignorecase_eq(rdn, &self.ldap_username_attr) || rdn.is_empty())
+            .is_none_or(|rdn| rdn.eq_ignore_ascii_case(&self.ldap_username_attr) || rdn.is_empty())
     }
 }
 
