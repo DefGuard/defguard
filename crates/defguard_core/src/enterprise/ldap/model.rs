@@ -1,10 +1,15 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    hash::{Hash, Hasher},
+    ops::Deref,
+};
 
 use defguard_common::db::{
     Id,
     models::{Settings, User},
 };
-use ldap3::{Mod, ResultEntry, SearchEntry};
+use ldap3::{Mod, ResultEntry};
 use sqlx::{PgExecutor, query_as};
 
 use super::{
@@ -34,12 +39,98 @@ pub(crate) fn uac_with_active(current: u32, active: bool) -> u32 {
 }
 
 #[must_use]
-pub(crate) fn uac_from_entry(entry: &SearchEntry) -> Option<u32> {
+pub(crate) fn uac_from_entry(entry: &LdapEntry) -> Option<u32> {
     entry
-        .attrs
-        .get(LDAP_USER_ACCOUNT_CONTROL_ATTR)
-        .and_then(|values| values.first())
+        .first(LDAP_USER_ACCOUNT_CONTROL_ATTR)
         .and_then(|value| value.parse::<u32>().ok())
+}
+
+/// A distinguished name that compares and hashes ignoring case.
+#[derive(Clone, Debug, Eq)]
+pub(crate) struct Dn(String);
+
+impl PartialEq for Dn {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.to_lowercase() == other.0.to_lowercase()
+    }
+}
+
+impl Hash for Dn {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_lowercase().hash(state);
+    }
+}
+
+impl Deref for Dn {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for Dn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for Dn {
+    fn from(dn: String) -> Self {
+        Self(dn)
+    }
+}
+
+impl From<&str> for Dn {
+    fn from(dn: &str) -> Self {
+        Self(dn.to_owned())
+    }
+}
+
+/// An LDAP entry whose attribute reads ignore case per RFC 4512 section 2.5.
+#[derive(Debug)]
+pub(crate) struct LdapEntry {
+    pub(crate) dn: Dn,
+    attrs: HashMap<String, Vec<String>>,
+}
+
+impl LdapEntry {
+    pub(crate) fn new(dn: Dn, attrs: impl IntoIterator<Item = (String, Vec<String>)>) -> Self {
+        let mut folded: HashMap<String, Vec<String>> = HashMap::new();
+        for (name, values) in attrs {
+            folded
+                .entry(name.to_lowercase())
+                .or_default()
+                .extend(values);
+        }
+        Self { dn, attrs: folded }
+    }
+
+    #[must_use]
+    pub(crate) fn values(&self, attr: &str) -> Option<&[String]> {
+        self.attrs.get(&attr.to_lowercase()).map(Vec::as_slice)
+    }
+
+    #[must_use]
+    pub(crate) fn first(&self, attr: &str) -> Option<&str> {
+        self.values(attr)
+            .and_then(<[String]>::first)
+            .map(String::as_str)
+    }
+}
+
+/// Matches object class names case-insensitively per RFC 4512.
+#[must_use]
+pub(super) fn has_obj_class(classes: &[&str], name: &str) -> bool {
+    classes.iter().any(|c| c.eq_ignore_ascii_case(name))
+}
+
+/// Matches any of the given object classes case-insensitively per RFC 4512.
+#[must_use]
+pub(super) fn has_any_obj_class(classes: &[&str], names: &[UserObjectClass]) -> bool {
+    classes
+        .iter()
+        .any(|c| names.iter().any(|n| c.eq_ignore_ascii_case(n.name())))
 }
 
 pub(crate) enum UserObjectClass {
@@ -61,7 +152,7 @@ impl UserObjectClass {
 }
 
 pub(crate) fn user_from_searchentry(
-    entry: &SearchEntry,
+    entry: &LdapEntry,
     username: &str,
     password: Option<&str>,
     config: &LDAPConfig,
@@ -72,7 +163,7 @@ pub(crate) fn user_from_searchentry(
         get_value_or_error(entry, "sn")?,
         get_value_or_error(entry, "givenName")?,
         get_value_or_error(entry, "mail")?,
-        get_value(entry, "mobile"),
+        entry.first("mobile").map(str::to_owned),
     );
     user.from_ldap = true;
     // Missing/unparseable userAccountControl falls through with the User::new default (active).
@@ -123,14 +214,12 @@ pub(crate) fn update_from_ldap_user<I>(user: &mut User<I>, ldap_user: &User, con
 #[must_use]
 pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mod<String>> {
     let obj_classes = config.get_all_user_obj_classes();
+    let obj_class_names: Vec<&str> = obj_classes.iter().map(String::as_str).collect();
     let mut changes = Vec::new();
-    if obj_classes
-        .iter()
-        .any(|e| e == UserObjectClass::InetOrgPerson.name())
-        || obj_classes
-            .iter()
-            .any(|e| e == UserObjectClass::User.name())
-    {
+    if has_any_obj_class(
+        &obj_class_names,
+        &[UserObjectClass::InetOrgPerson, UserObjectClass::User],
+    ) {
         changes.extend_from_slice(&[
             Mod::Replace("sn".to_owned(), hashset![user.last_name.clone()]),
             Mod::Replace("givenName".to_owned(), hashset![user.first_name.clone()]),
@@ -200,14 +289,7 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
     changes
 }
 
-// check if key is already in attrs, if not return false
-#[cfg(test)]
 pub(crate) fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
-    attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case(key))
-}
-
-#[cfg(not(test))]
-fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
     attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case(key))
 }
 
@@ -223,9 +305,11 @@ pub(crate) fn user_as_ldap_attrs<'a, I>(
 ) -> Vec<(&'a str, HashSet<&'a str>)> {
     let mut attrs = Vec::new();
     attrs.push((rdn_attr, hashset![user.ldap_rdn_value()]));
-    if object_classes.contains(UserObjectClass::InetOrgPerson.name())
-        || object_classes.contains(UserObjectClass::User.name())
-    {
+    let obj_class_names: Vec<&str> = object_classes.iter().copied().collect();
+    if has_any_obj_class(
+        &obj_class_names,
+        &[UserObjectClass::InetOrgPerson, UserObjectClass::User],
+    ) {
         attrs.extend_from_slice(&[
             ("sn", hashset![user.last_name.as_str()]),
             ("givenName", hashset![user.first_name.as_str()]),
@@ -246,11 +330,14 @@ pub(crate) fn user_as_ldap_attrs<'a, I>(
             attrs.push(("mobile", hashset![phone.as_str()]));
         }
     }
-    if object_classes.contains(UserObjectClass::SimpleSecurityObject.name()) {
+    if has_obj_class(
+        &obj_class_names,
+        UserObjectClass::SimpleSecurityObject.name(),
+    ) {
         // simpleSecurityObject
         attrs.push(("userPassword", hashset![ssha_password]));
     }
-    if object_classes.contains(UserObjectClass::SambaSamAccount.name()) {
+    if has_obj_class(&obj_class_names, UserObjectClass::SambaSamAccount.name()) {
         // sambaSamAccount
         attrs.push(("sambaSID", hashset!["0"]));
         attrs.push(("sambaNTPassword", hashset![nt_password]));
@@ -318,11 +405,12 @@ where
     E: PgExecutor<'e>,
 {
     let my_groups = user.member_of(executor).await?;
-    Ok(
-        (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
-            && (user.is_active || sync_account_status)
-            && user.is_enrolled_or_ldap_pending(),
-    )
+    Ok((sync_groups.is_empty()
+        || my_groups
+            .iter()
+            .any(|g| group_in_list(sync_groups, &g.name)))
+        && (user.is_active || sync_account_status)
+        && user.is_enrolled_or_ldap_pending())
 }
 
 pub(super) async fn get_users_without_ldap_path<'e, E>(executor: E) -> sqlx::Result<Vec<User<Id>>>
@@ -341,18 +429,18 @@ where
     .await
 }
 
-fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {
-    match entry.attrs.get(key) {
-        Some(values) if !values.is_empty() => Ok(values[0].clone()),
-        _ => Err(LdapError::MissingAttribute(key.to_owned())),
-    }
+fn get_value_or_error(entry: &LdapEntry, key: &str) -> Result<String, LdapError> {
+    entry
+        .first(key)
+        .map(str::to_owned)
+        .ok_or_else(|| LdapError::MissingAttribute(key.to_owned()))
 }
 
-fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
-    match entry.attrs.get(key) {
-        Some(values) if !values.is_empty() => Some(values[0].clone()),
-        _ => None,
-    }
+#[must_use]
+pub(super) fn group_in_list(groups: &[String], name: &str) -> bool {
+    groups
+        .iter()
+        .any(|g| g.to_lowercase() == name.to_lowercase())
 }
 
 /// Get first value from distinguished name, for example: cn=<value>,...
@@ -394,7 +482,7 @@ mod tests {
     use std::collections::HashMap;
 
     use ldap3::{
-        ResultEntry, SearchEntry,
+        ResultEntry,
         asn1::{PL, StructureTag, TagClass},
     };
 
@@ -421,6 +509,45 @@ mod tests {
         assert!(!is_search_entry(&result_entry(7)));
         assert!(!is_search_entry(&result_entry(12)));
         assert!(!is_search_entry(&result_entry(45)));
+    }
+
+    #[test]
+    fn test_group_in_list_folds_non_ascii() {
+        // Latin letters with diacritics fold like the server's caseIgnoreMatch, which
+        // the previous ASCII-only comparison did not.
+        assert!(group_in_list(&["Örgü".to_owned()], "örgü"));
+        assert!(group_in_list(&["ŁÓDŹ".to_owned()], "łódź"));
+        // Distinct letters must not fold together.
+        assert!(!group_in_list(&["Örgü".to_owned()], "Orgu"));
+    }
+
+    #[test]
+    fn test_dn_eq_and_hash_ignore_case() {
+        let server_dn = Dn::from("CN=testuser,OU=Users,DC=example,DC=com");
+        let built_dn = Dn::from("cn=testuser,ou=users,dc=example,dc=com");
+        assert_eq!(server_dn, built_dn);
+        assert!(HashSet::from([server_dn.clone()]).contains(&built_dn));
+        assert!(
+            HashSet::from([Dn::from("cn=Ünal,dc=example,dc=com")])
+                .contains(&Dn::from("cn=ünal,dc=example,dc=com"))
+        );
+        assert_eq!(&*server_dn, "CN=testuser,OU=Users,DC=example,DC=com");
+        assert_ne!(
+            Dn::from("cn=testuser,dc=example,dc=com"),
+            Dn::from("cn=testuser2,dc=example,dc=com")
+        );
+    }
+
+    #[test]
+    fn test_ldap_entry_merges_duplicate_attribute_spellings() {
+        let entry = LdapEntry::new(
+            "cn=testuser,dc=example,dc=com".into(),
+            [
+                ("cn".to_owned(), vec!["testuser".to_owned()]),
+                ("CN".to_owned(), vec!["TestUser".to_owned()]),
+            ],
+        );
+        assert_eq!(entry.values("Cn").unwrap(), ["testuser", "TestUser"]);
     }
 
     #[test]
@@ -452,7 +579,7 @@ mod tests {
         assert_eq!(uac_with_active(disabled, false), disabled);
     }
 
-    fn ad_entry_with_uac(uac: Option<&str>) -> SearchEntry {
+    fn ad_entry_with_uac(uac: Option<&str>) -> LdapEntry {
         let mut attrs = HashMap::new();
         attrs.insert("sn".to_owned(), vec!["lastname".to_owned()]);
         attrs.insert("givenName".to_owned(), vec!["firstname".to_owned()]);
@@ -463,11 +590,7 @@ mod tests {
                 vec![uac.to_owned()],
             );
         }
-        SearchEntry {
-            dn: "cn=user,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        }
+        LdapEntry::new("cn=user,dc=example,dc=com".into(), attrs)
     }
 
     #[test]

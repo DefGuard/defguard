@@ -12,15 +12,15 @@ use ldap3::{
 };
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::model::{extract_rdn_value, is_search_entry};
+use crate::enterprise::ldap::model::{Dn, LdapEntry, extract_rdn_value, is_search_entry};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
 const LDAP_RC_NO_SUCH_OBJECT: u32 = 32;
 
 /// Decodes a raw result entry, logging and dropping entries that fail.
-fn try_construct_entry(entry: ResultEntry) -> Option<SearchEntry> {
+fn try_construct_entry(entry: ResultEntry) -> Option<LdapEntry> {
     match SearchEntry::try_construct(entry) {
-        Ok(entry) => Some(entry),
+        Ok(entry) => Some(LdapEntry::new(entry.dn.into(), entry.attrs)),
         Err(err) => {
             warn!("Skipping malformed LDAP entry that failed to decode: {err}");
             None
@@ -57,10 +57,7 @@ impl LDAPConnection {
     }
 
     /// Searches LDAP for users.
-    pub(super) async fn search_users(
-        &mut self,
-        filter: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    pub(super) async fn search_users(&mut self, filter: &str) -> Result<Vec<LdapEntry>, LdapError> {
         debug!("Performing LDAP user search with filter: {filter}");
         let (entries, result) = self
             .ldap
@@ -82,7 +79,7 @@ impl LDAPConnection {
             .collect())
     }
 
-    pub(crate) async fn get(&mut self, dn: &str) -> Result<Option<SearchEntry>, LdapError> {
+    pub(crate) async fn get(&mut self, dn: &str) -> Result<Option<LdapEntry>, LdapError> {
         debug!("Searching for LDAP object with DN {dn}");
         let search_result = self
             .ldap
@@ -154,10 +151,8 @@ impl LDAPConnection {
             let Some(se) = try_construct_entry(entry) else {
                 continue;
             };
-            for (key, mut values) in se.attrs {
-                if key.eq_ignore_ascii_case(&self.config.ldap_groupname_attr) {
-                    groups.append(&mut values);
-                }
+            if let Some(values) = se.values(&self.config.ldap_groupname_attr) {
+                groups.extend_from_slice(values);
             }
         }
 
@@ -168,7 +163,7 @@ impl LDAPConnection {
     pub(super) async fn search_groups(
         &mut self,
         filter: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    ) -> Result<Vec<LdapEntry>, LdapError> {
         let (rs, res) = self
             .ldap
             .search(
@@ -208,8 +203,8 @@ impl LDAPConnection {
     /// Updates LDAP object with specified distinguished name and attributes.
     pub(super) async fn modify<S>(
         &mut self,
-        old_dn: &str,
-        new_dn: &str,
+        old_dn: &Dn,
+        new_dn: &Dn,
         mods: Vec<Mod<S>>,
     ) -> Result<(), LdapError>
     where
@@ -248,26 +243,26 @@ impl LDAPConnection {
         all_ldap_users: &'a [User],
     ) -> Result<HashMap<String, HashSet<&'a User>>, LdapError> {
         debug!("Retrieving LDAP group memberships");
-        let mut membership_entries = self.list_group_memberships().await?;
+        let membership_entries = self.list_group_memberships().await?;
         let mut memberships = HashMap::new();
         // dn: user map
         let dn_map = all_ldap_users
             .iter()
-            .map(|u| (self.config.user_dn_for_user(u).to_lowercase(), u))
+            .map(|u| (self.config.user_dn(u), u))
             .collect::<HashMap<_, _>>();
 
-        for entry in &mut membership_entries {
+        for entry in &membership_entries {
             let groupname = entry
-                .attrs
-                .remove(&self.config.ldap_groupname_attr)
-                .and_then(|mut v| v.pop());
+                .values(&self.config.ldap_groupname_attr)
+                .and_then(<[String]>::last)
+                .cloned();
 
             if let Some(groupname) = groupname {
-                if let Some(members) = entry.attrs.get(&self.config.ldap_group_member_attr) {
+                if let Some(members) = entry.values(&self.config.ldap_group_member_attr) {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            if let Some(user) = dn_map.get(v.to_lowercase().as_str()) {
+                            if let Some(user) = dn_map.get(&Dn::from(v.as_str())) {
                                 Some(*user)
                             } else {
                                 debug!(
@@ -368,7 +363,7 @@ impl LDAPConnection {
         let members = member_entries
             .first()
             .and_then(|entry| {
-                let member_entries = entry.attrs.get(&self.config.ldap_group_member_attr);
+                let member_entries = entry.values(&self.config.ldap_group_member_attr);
                 member_entries.map(|v| {
                     v.iter()
                         .filter_map(|v| extract_rdn_value(v))
@@ -396,10 +391,13 @@ impl LDAPConnection {
             self.config.ldap_group_obj_class, self.config.ldap_groupname_attr, groupname_escaped
         );
         let entries = self.search_groups(&filter).await?;
-        Ok(entries.into_iter().map(|entry| entry.dn).collect())
+        Ok(entries
+            .into_iter()
+            .map(|entry| entry.dn.to_string())
+            .collect())
     }
 
-    pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
+    pub(super) async fn list_users(&mut self) -> Result<Vec<LdapEntry>, LdapError> {
         let filter = if self.config.ldap_sync_groups.is_empty() {
             debug!("No LDAP sync groups defined, searching for all users in the base DN");
             format!("(objectClass={})", self.config.ldap_user_obj_class)
@@ -474,7 +472,7 @@ impl LDAPConnection {
         Ok(entries)
     }
 
-    pub(super) async fn list_group_memberships(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
+    pub(super) async fn list_group_memberships(&mut self) -> Result<Vec<LdapEntry>, LdapError> {
         debug!("Searching for group memberships");
         let filter = format!(
             "(&(objectClass={})({}=*))",

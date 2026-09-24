@@ -14,7 +14,10 @@ use super::{LDAPConnection, error::LdapError};
 use crate::{
     enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
-        ldap::{model::ldap_sync_allowed_for_user, with_ldap_status},
+        ldap::{
+            model::{group_in_list, ldap_sync_allowed_for_user},
+            with_ldap_status,
+        },
         license::get_cached_license,
         limits::get_counts,
     },
@@ -304,6 +307,25 @@ pub(crate) async fn ldap_add_user_to_groups(
     ldap_add_users_to_groups(map, pool, ldap_tx).await;
 }
 
+/// Guard shared by the group add and remove paths: a user is synced when either the sync
+/// groups allow it, or the change touches one of the configured sync groups.
+async fn sync_allowed_for_group_change(
+    user: &User<Id>,
+    groups: &HashSet<&str>,
+    sync_groups: &[String],
+    pool: &PgPool,
+) -> Result<bool, LdapError> {
+    let allowed = groups.iter().any(|group| group_in_list(sync_groups, group))
+        || ldap_sync_allowed_for_user(user, pool).await?;
+    if !allowed {
+        debug!(
+            "User {user} is not allowed to be synced to LDAP as he is not in the specified sync \
+            groups, skipping"
+        );
+    }
+    Ok(allowed)
+}
+
 /// Bulk add users to groups in ldap.
 pub(crate) async fn ldap_add_users_to_groups(
     user_groups: HashMap<&User<Id>, HashSet<&str>>,
@@ -313,20 +335,9 @@ pub(crate) async fn ldap_add_users_to_groups(
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
         let sync_groups = ldap_connection.config.ldap_sync_groups.clone();
-        let sync_groups_lookup = sync_groups
-            .iter()
-            .map(String::as_str)
-            .collect::<HashSet<_>>();
 
         for (user, groups) in user_groups {
-            let adding_to_sync_groups = groups
-                .iter()
-                .any(|group| sync_groups_lookup.contains(*group));
-            if !ldap_sync_allowed_for_user(user, pool).await? && !adding_to_sync_groups {
-                debug!(
-                    "User {user} is not allowed to be synced to LDAP as he is not in the \
-                    specified sync groups, skipping"
-                );
+            if !sync_allowed_for_group_change(user, &groups, &sync_groups, pool).await? {
                 continue;
             }
 
@@ -356,20 +367,9 @@ pub(crate) async fn ldap_remove_users_from_groups(
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
         let sync_groups = ldap_connection.config.ldap_sync_groups.clone();
-        let sync_groups_lookup = sync_groups
-            .iter()
-            .map(String::as_str)
-            .collect::<HashSet<_>>();
 
         for (user, groups) in user_groups {
-            let removing_from_sync_groups = groups
-                .iter()
-                .any(|group| sync_groups_lookup.contains(*group));
-            if !ldap_sync_allowed_for_user(user, pool).await? && !removing_from_sync_groups {
-                debug!(
-                    "User {user} is not allowed to be synced to LDAP as he is not in the
-                    specified sync groups, skipping"
-                );
+            if !sync_allowed_for_group_change(user, &groups, &sync_groups, pool).await? {
                 continue;
             }
             for group in groups {

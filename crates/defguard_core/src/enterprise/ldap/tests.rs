@@ -13,7 +13,6 @@ use defguard_common::{
     secret::SecretStringWrapper,
     testing::smtp::configure_working_smtp,
 };
-use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::{
     broadcast::{Receiver, Sender, channel},
@@ -21,12 +20,15 @@ use tokio::sync::{
 };
 
 use super::{
-    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+    model::{
+        Dn, LdapEntry, UAC_ACCOUNT_DISABLE, extract_rdn_value, get_users_without_ldap_path,
+        in_attrs, ldap_sync_allowed_for_user_scoped, user_as_ldap_attrs, user_from_searchentry,
+    },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
         extract_intersecting_users, is_ldap_desynced, set_ldap_sync_status,
     },
-    test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
+    test_client::{LdapEvent, Object, group_to_test_attrs, user_to_test_attrs},
     *,
 };
 use crate::{
@@ -256,30 +258,36 @@ fn test_get_rdn_attr() {
 }
 
 #[test]
-fn test_user_dn() {
+fn test_user_dn_with_rdn() {
     let config = LDAPConfig::default();
 
-    // Basic DN construction with default config
-    let dn = config.user_dn("user1", "ou=users,dc=example,dc=com");
-    assert_eq!(dn, "cn=user1,ou=users,dc=example,dc=com");
+    // The given RDN value replaces the stored one, and the stored path stays
+    let user = make_test_user(
+        "user1",
+        Some("user1".to_owned()),
+        Some("ou=people,dc=test,dc=org".to_owned()),
+    );
+    let dn = config.user_dn_with_rdn(&user, "renamed");
+    assert_eq!(&*dn, "cn=renamed,ou=people,dc=test,dc=org");
 
-    // Using 'uid' instead of 'cn' for RDN construction
+    // Without a stored path, the DN uses the search base and the configured RDN attribute
     let config = LDAPConfig {
         ldap_user_rdn_attr: Some("uid".to_owned()),
         ..LDAPConfig::default()
     };
-    let dn = config.user_dn("testuser2", "ou=people,dc=test,dc=org");
-    assert_eq!(dn, "uid=testuser2,ou=people,dc=test,dc=org");
+    let user = make_test_user("testuser2", None, None);
+    let dn = config.user_dn_with_rdn(&user, "testuser2");
+    assert_eq!(&*dn, "uid=testuser2,ou=users,dc=example,dc=com");
 }
 
 #[test]
-fn test_user_dn_for_user() {
+fn test_user_dn() {
     let config = LDAPConfig::default();
 
     // User without stored LDAP data uses default search base
     let user = make_test_user("testuser", None, None);
-    let dn = config.user_dn_for_user(&user);
-    assert_eq!(dn, "cn=testuser,ou=users,dc=example,dc=com");
+    let dn = config.user_dn(&user);
+    assert_eq!(&*dn, "cn=testuser,ou=users,dc=example,dc=com");
 
     // User with stored RDN and path uses the stored path instead of default
     let user = make_test_user(
@@ -287,8 +295,8 @@ fn test_user_dn_for_user() {
         Some("testuser".to_owned()),
         Some("ou=admins,dc=example,dc=com".to_owned()),
     );
-    let dn = config.user_dn_for_user(&user);
-    assert_eq!(dn, "cn=testuser,ou=admins,dc=example,dc=com");
+    let dn = config.user_dn(&user);
+    assert_eq!(&*dn, "cn=testuser,ou=admins,dc=example,dc=com");
 
     // RDN value takes precedence over username when available
     let user = make_test_user(
@@ -296,8 +304,8 @@ fn test_user_dn_for_user() {
         Some("testuser3".to_owned()),
         Some("ou=people,dc=example,dc=com".to_owned()),
     );
-    let dn = config.user_dn_for_user(&user);
-    assert_eq!(dn, "cn=testuser3,ou=people,dc=example,dc=com");
+    let dn = config.user_dn(&user);
+    assert_eq!(&*dn, "cn=testuser3,ou=people,dc=example,dc=com");
 
     // Custom RDN attribute affects the final DN format
     let config = LDAPConfig {
@@ -305,8 +313,8 @@ fn test_user_dn_for_user() {
         ..LDAPConfig::default()
     };
     let user = make_test_user("user4", Some("testuser4".to_owned()), None);
-    let dn = config.user_dn_for_user(&user);
-    assert_eq!(dn, "uid=testuser4,ou=users,dc=example,dc=com");
+    let dn = config.user_dn(&user);
+    assert_eq!(&*dn, "uid=testuser4,ou=users,dc=example,dc=com");
 }
 
 #[test]
@@ -315,7 +323,7 @@ fn test_group_dn() {
 
     // Groups use the default 'cn' attribute for naming
     let dn = config.group_dn("admins");
-    assert_eq!(dn, "cn=admins,ou=groups,dc=example,dc=com");
+    assert_eq!(&*dn, "cn=admins,ou=groups,dc=example,dc=com");
 
     // Alternative naming attribute can be configured for groups
     let config = LDAPConfig {
@@ -323,7 +331,7 @@ fn test_group_dn() {
         ..LDAPConfig::default()
     };
     let dn = config.group_dn("users");
-    assert_eq!(dn, "ou=users,ou=groups,dc=example,dc=com");
+    assert_eq!(&*dn, "ou=users,ou=groups,dc=example,dc=com");
 
     // Different search base location can be configured for groups
     let config = LDAPConfig {
@@ -331,7 +339,7 @@ fn test_group_dn() {
         ..LDAPConfig::default()
     };
     let dn = config.group_dn("admin");
-    assert_eq!(dn, "cn=admin,ou=roles,dc=test,dc=org");
+    assert_eq!(&*dn, "cn=admin,ou=roles,dc=test,dc=org");
 }
 
 #[test]
@@ -493,7 +501,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(ldap_conn.test_client.events_match(
         &[
             LdapEvent::ObjectAdded {
-                dn: ldap_conn.config.user_dn_for_user(&active_user_not_in_ldap),
+                dn: ldap_conn.config.user_dn(&active_user_not_in_ldap),
                 attrs: user_to_test_attrs(
                     &active_user_not_in_ldap,
                     Some(PASSWORD),
@@ -501,7 +509,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 ),
             },
             LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.user_dn_for_user(&inactive_user_in_ldap),
+                dn: ldap_conn.config.user_dn(&inactive_user_in_ldap),
             },
         ],
         false
@@ -555,7 +563,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 dn: ldap_conn.config.group_dn(&group.name),
             },
             LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.user_dn_for_user(&active_user_in_ldap),
+                dn: ldap_conn.config.user_dn(&active_user_in_ldap),
             }
         ],
         true
@@ -598,11 +606,11 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 new_dn: ldap_conn.config.group_dn(&group.name),
                 mods: vec![Mod::Delete(
                     ldap_conn.config.ldap_group_member_attr.clone(),
-                    hashset![ldap_conn.config.user_dn_for_user(&active_user_in_ldap)],
+                    hashset![ldap_conn.config.user_dn(&active_user_in_ldap).to_string()],
                 )],
             },
             LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.user_dn_for_user(&active_user_in_ldap),
+                dn: ldap_conn.config.user_dn(&active_user_in_ldap),
             },
         ],
         true,
@@ -631,21 +639,17 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // Now removing the last member should delete both group and user
-    assert!(
-        ldap_conn.test_client.events_match(
-            &[
-                LdapEvent::ObjectDeleted {
-                    dn: ldap_conn.config.group_dn(&group.name),
-                },
-                LdapEvent::ObjectDeleted {
-                    dn: ldap_conn
-                        .config
-                        .user_dn_for_user(&another_active_user_in_ldap),
-                },
-            ],
-            true,
-        )
-    );
+    assert!(ldap_conn.test_client.events_match(
+        &[
+            LdapEvent::ObjectDeleted {
+                dn: ldap_conn.config.group_dn(&group.name),
+            },
+            LdapEvent::ObjectDeleted {
+                dn: ldap_conn.config.user_dn(&another_active_user_in_ldap),
+            },
+        ],
+        true,
+    ));
 }
 
 #[tokio::test]
@@ -3232,11 +3236,7 @@ fn test_from_searchentry() {
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
         attrs.insert("mobile".to_owned(), vec!["1234567890".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let user =
             user_from_searchentry(&entry, "user1", Some("password123"), &LDAPConfig::default())
@@ -3257,11 +3257,7 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let user = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default()).unwrap();
 
@@ -3279,11 +3275,7 @@ fn test_from_searchentry() {
         attrs.insert("sn".to_owned(), vec!["lastname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
@@ -3299,11 +3291,7 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
@@ -3319,11 +3307,7 @@ fn test_from_searchentry() {
         attrs.insert("sn".to_owned(), vec!["lastname1".to_owned()]);
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
@@ -3340,11 +3324,7 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
@@ -3361,11 +3341,8 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1".to_owned(), // No comma, invalid DN
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        // No comma, invalid DN
+        let entry = LdapEntry::new("cn=user1".into(), attrs);
 
         let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
@@ -3379,11 +3356,8 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "user1,dc=example,dc=com".to_owned(), // No equals sign in RDN
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        // No equals sign in RDN
+        let entry = LdapEntry::new("user1,dc=example,dc=com".into(), attrs);
 
         let result = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default());
         assert!(result.is_err());
@@ -3400,11 +3374,7 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         // Test with invalid username (contains special characters)
         let result = user_from_searchentry(&entry, "user@#$%", None, &LDAPConfig::default());
@@ -3423,11 +3393,10 @@ fn test_from_searchentry() {
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
         attrs.insert("mobile".to_owned(), vec!["1234567890".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "uid=user1,ou=People,ou=Department,dc=example,dc=com".to_owned(),
+        let entry = LdapEntry::new(
+            "uid=user1,ou=People,ou=Department,dc=example,dc=com".into(),
             attrs,
-            bin_attrs: HashMap::new(),
-        };
+        );
 
         let user =
             user_from_searchentry(&entry, "user1", Some("password123"), &LDAPConfig::default())
@@ -3453,11 +3422,7 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let user =
             user_from_searchentry(&entry, "user1", Some("mypassword"), &LDAPConfig::default())
@@ -3488,11 +3453,7 @@ fn test_from_searchentry() {
             vec!["1234567890".to_owned(), "0987654321".to_owned()],
         );
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
 
         let user = user_from_searchentry(&entry, "user1", None, &LDAPConfig::default()).unwrap();
 
@@ -3511,11 +3472,7 @@ fn test_from_searchentry() {
         attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
         attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
 
-        let entry = SearchEntry {
-            dn: "cn=testuser,ou=users,dc=example,dc=com".to_owned(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+        let entry = LdapEntry::new("cn=testuser,ou=users,dc=example,dc=com".into(), attrs);
 
         let user = user_from_searchentry(&entry, "testuser", None, &LDAPConfig::default()).unwrap();
 
@@ -4776,7 +4733,7 @@ async fn test_disabled_user_created_as_disabled_ad_account(
     );
     user.is_active = false;
     let mut user = user.save(&pool).await.unwrap();
-    let user_dn = ldap_conn.config.user_dn_for_user(&user);
+    let user_dn = ldap_conn.config.user_dn(&user);
 
     ldap_conn
         .update_users_state(vec![&mut user], &pool, &wg_tx, &ldap_tx)
@@ -4828,5 +4785,314 @@ async fn test_disabled_user_created_as_disabled_ad_account(
         ldap_conn.test_client.get_events().is_empty(),
         "Disabled user must not be created in LDAP without account status sync, got events: {:?}",
         ldap_conn.test_client.get_events()
+    );
+}
+
+/// Parses users when the server returns its own attribute case, e.g. LLDAP returns `givenname`.
+/// Covers `sn`, `givenName`, `mail`, `mobile`, and `userAccountControl` (issue #3707).
+#[test]
+fn test_from_searchentry_with_server_chosen_attribute_case() {
+    let mut attrs = HashMap::new();
+    attrs.insert("SN".to_owned(), vec!["lastname1".to_owned()]);
+    attrs.insert("givenname".to_owned(), vec!["firstname1".to_owned()]);
+    attrs.insert("MaIl".to_owned(), vec!["user1@example.com".to_owned()]);
+    attrs.insert("mobile".to_owned(), vec!["1234567890".to_owned()]);
+    attrs.insert(
+        "useraccountcontrol".to_owned(),
+        vec![(UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE).to_string()],
+    );
+
+    let entry = LdapEntry::new("cn=user1,dc=example,dc=com".into(), attrs);
+
+    let config = LDAPConfig {
+        ldap_uses_ad: true,
+        ldap_sync_account_status: true,
+        ..LDAPConfig::default()
+    };
+    let user = user_from_searchentry(&entry, "user1", None, &config).unwrap();
+
+    assert_eq!(user.last_name, "lastname1");
+    assert_eq!(user.first_name, "firstname1");
+    assert_eq!(user.email, "user1@example.com");
+    assert_eq!(user.phone, Some("1234567890".to_owned()));
+    assert!(
+        !user.is_active,
+        "userAccountControl must be read under the case the server returns"
+    );
+}
+
+/// Returns the full user list when the server lowercases attribute names. Without
+/// case-insensitive lookup `get_all_users` fails with `ObjectNotFound`.
+#[sqlx::test]
+async fn test_get_all_users_with_server_chosen_attribute_case(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    let config = ldap_conn.config.clone();
+
+    let test_user = make_test_user(
+        "testuser",
+        Some("testuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&test_user, &config);
+    ldap_conn.test_client_mut().use_lowercase_attr_names();
+
+    let users = ldap_conn.get_all_users().await.unwrap();
+
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].username, "testuser");
+    assert_eq!(users[0].first_name, "first name");
+}
+
+/// Syncs existing and new users when the server lowercases attribute names, e.g. LLDAP
+/// answering `*` requests. Regression test for issue #3707
+#[sqlx::test]
+async fn test_sync_with_server_chosen_attribute_case(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut existing_user = make_test_user(
+        "testuser",
+        Some("testuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    existing_user.from_ldap = true;
+    let existing_user = existing_user.save(&pool).await.unwrap();
+
+    let mut existing_ldap_user = existing_user.clone().as_noid();
+    existing_ldap_user.first_name = "SyncedFirst".to_owned();
+    existing_ldap_user.last_name = "SyncedLast".to_owned();
+    existing_ldap_user.email = "synced@example.com".to_owned();
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&existing_ldap_user, &config);
+
+    let new_ldap_user = make_test_user(
+        "newuser",
+        Some("newuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&new_ldap_user, &config);
+
+    ldap_conn.test_client_mut().use_lowercase_attr_names();
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let updated_user = User::find_by_username(&pool, "testuser")
+        .await
+        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "existing user must not be deleted when the server returns lowercased attribute names"
+            )
+        });
+    assert_eq!(
+        updated_user.id, existing_user.id,
+        "sync must update the existing user in place, not delete and recreate it"
+    );
+    assert_eq!(updated_user.first_name, "SyncedFirst");
+    assert_eq!(updated_user.last_name, "SyncedLast");
+    assert_eq!(updated_user.email, "synced@example.com");
+
+    // The LDAP-only user must be created in Defguard, not skipped.
+    let created_user = User::find_by_username(&pool, "newuser")
+        .await
+        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "LDAP-only user must be created when the server returns lowercased attribute names"
+            )
+        });
+    assert_eq!(created_user.first_name, "first name");
+    assert_eq!(created_user.email, "newuser@example.com");
+}
+
+/// Treats DNs that differ only by case as the same user per RFC 4517 `distinguishedNameMatch`.
+#[sqlx::test]
+async fn test_user_sync_changes_ignore_dn_case(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let config = LDAPConfig::default();
+    let mut defguard_users = vec![
+        make_test_user(
+            "user1",
+            Some("user1".to_owned()),
+            Some("ou=users,dc=example,dc=com".to_owned()),
+        )
+        .save(&pool)
+        .await
+        .unwrap(),
+    ];
+    let mut ldap_users = vec![make_test_user(
+        "user1",
+        Some("User1".to_owned()),
+        Some("OU=Users,DC=example,DC=com".to_owned()),
+    )];
+
+    let changes = compute_user_sync_changes(
+        &mut ldap_users,
+        &mut defguard_users,
+        Authority::LDAP,
+        &config,
+    );
+
+    assert!(
+        changes.delete_defguard.is_empty(),
+        "A DN that differs only by case must not delete the Defguard user"
+    );
+    assert!(changes.add_defguard.is_empty());
+    assert!(changes.delete_ldap.is_empty());
+    assert!(changes.add_ldap.is_empty());
+}
+
+/// Treats group member DNs that differ only by case as the same member.
+#[sqlx::test]
+async fn test_group_sync_changes_ignore_dn_case(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let config = LDAPConfig::default();
+    let defguard_user = make_test_user(
+        "user1",
+        Some("user1".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let ldap_user = make_test_user(
+        "user1",
+        Some("USER1".to_owned()),
+        Some("ou=Users,dc=Example,dc=com".to_owned()),
+    );
+
+    let mut defguard_memberships = HashMap::new();
+    defguard_memberships.insert(
+        "test_group".to_owned(),
+        HashSet::from_iter(vec![defguard_user]),
+    );
+    let mut ldap_memberships = HashMap::new();
+    ldap_memberships.insert(
+        "test_group".to_owned(),
+        HashSet::from_iter(vec![&ldap_user]),
+    );
+
+    let changes = compute_group_sync_changes(
+        &defguard_memberships,
+        ldap_memberships,
+        Authority::LDAP,
+        &config,
+    );
+
+    assert!(changes.add_defguard.is_empty());
+    assert!(changes.delete_defguard.is_empty());
+    assert!(changes.add_ldap.is_empty());
+    assert!(changes.delete_ldap.is_empty());
+}
+
+/// Keeps a group member under LDAP authority when the member DN from the server differs only
+/// by case from the DN that Defguard builds, e.g. `CN=` for the configured `cn` attribute.
+#[sqlx::test]
+async fn test_sync_keeps_group_member_when_member_dn_case_differs(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("test_group").save(&pool).await.unwrap();
+    let mut user = make_test_user(
+        "testuser",
+        Some("testuser".to_owned()),
+        Some("ou=users,dc=example,dc=com".to_owned()),
+    );
+    user.from_ldap = true;
+    let user = user.save(&pool).await.unwrap();
+    user.add_to_group(&pool, &group).await.unwrap();
+
+    let server_dn = Dn::from("CN=testuser,OU=Users,DC=example,DC=com");
+    let test_client = ldap_conn.test_client_mut();
+    test_client.objects.insert(
+        server_dn.clone(),
+        Object::User(Box::new(user.clone().as_noid())),
+    );
+    test_client
+        .memberships
+        .insert(config.group_dn(&group.name), hashset![server_dn]);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    assert!(
+        user.member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&group.name),
+        "sync must keep the member when the server spells the member DN in another case"
+    );
+}
+
+/// Matches configured object classes case-insensitively per RFC 4512, e.g. `inetorgperson`.
+#[test]
+fn test_object_classes_are_case_insensitive() {
+    let user = make_test_user("testuser", None, None);
+    let attrs = user_as_ldap_attrs(
+        &user,
+        "ssha",
+        "nt",
+        HashSet::from(["inetorgperson", "SIMPLESECURITYOBJECT", "sambasamaccount"]),
+        false,
+        "cn",
+        "cn",
+    );
+
+    for expected in ["sn", "givenName", "mail", "userPassword", "sambaNTPassword"] {
+        assert!(
+            in_attrs(&attrs, expected),
+            "attribute {expected} is missing when the object class case differs"
+        );
+    }
+}
+
+/// Matches configured sync groups case-insensitively per `caseIgnoreMatch`.
+#[sqlx::test]
+async fn test_sync_groups_match_case_insensitively(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let user = make_test_user("testuser", None, None)
+        .save(&pool)
+        .await
+        .unwrap();
+    let group = Group::new("admins").save(&pool).await.unwrap();
+    user.add_to_group(&pool, &group).await.unwrap();
+
+    assert!(
+        ldap_sync_allowed_for_user_scoped(&user, &pool, false, &["Admins".to_owned()])
+            .await
+            .unwrap(),
+        "A configured sync group must match the group name regardless of case"
     );
 }

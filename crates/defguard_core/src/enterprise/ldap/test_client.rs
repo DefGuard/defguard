@@ -5,11 +5,12 @@ use std::{
 };
 
 use defguard_common::db::models::{Settings, User, group::Group};
-use ldap3::{Mod, SearchEntry};
+use ldap3::Mod;
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active, user_as_ldap_attrs,
+    Dn, LdapEntry, UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active,
+    user_as_ldap_attrs,
 };
 
 /// Extract attribute value from LDAP filter
@@ -38,31 +39,30 @@ fn extract_attribute_value(filter: &str, attr: &str) -> Option<String> {
 
 /// Extract value from simple attribute=value pattern
 fn extract_simple_attribute_value(condition: &str, attr: &str) -> Option<String> {
-    if condition.starts_with(attr) && condition.contains('=') {
-        let parts: Vec<&str> = condition.splitn(2, '=').collect();
-        if parts.len() == 2 && parts[0] == attr {
-            return Some(parts[1].to_owned());
-        }
+    let (name, value) = condition.split_once('=')?;
+    if name.eq_ignore_ascii_case(attr) {
+        Some(value.to_owned())
+    } else {
+        None
     }
-    None
 }
 
 #[derive(Debug, Clone)]
 pub(super) enum LdapEvent {
     ObjectAdded {
-        dn: String,
+        dn: Dn,
         attrs: Vec<(String, HashSet<String>)>,
     },
     ObjectModified {
-        old_dn: String,
-        new_dn: String,
+        old_dn: Dn,
+        new_dn: Dn,
         mods: Vec<Mod<String>>,
     },
     ObjectDeleted {
-        dn: String,
+        dn: Dn,
     },
     UserBound {
-        dn: String,
+        dn: Dn,
         password: String,
     },
 }
@@ -133,25 +133,15 @@ pub(super) enum Object {
 }
 
 impl Object {
-    fn to_search_entry(&self, dn: &str, config: &LDAPConfig) -> SearchEntry {
-        match self {
-            Self::User(user) => SearchEntry {
-                dn: dn.to_owned(),
-                attrs: user_to_test_attrs(user, None, config)
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into_iter().collect()))
-                    .collect(),
-                bin_attrs: HashMap::new(),
-            },
-            Self::Group(group) => SearchEntry {
-                dn: dn.to_owned(),
-                attrs: group_to_test_attrs(group, config, None)
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into_iter().collect()))
-                    .collect(),
-                bin_attrs: HashMap::new(),
-            },
-        }
+    fn attrs(&self, config: &LDAPConfig) -> Vec<(String, Vec<String>)> {
+        let attrs = match self {
+            Self::User(user) => user_to_test_attrs(user, None, config),
+            Self::Group(group) => group_to_test_attrs(group, config, None),
+        };
+        attrs
+            .into_iter()
+            .map(|(k, v)| (k, v.into_iter().collect()))
+            .collect()
     }
 }
 
@@ -167,12 +157,29 @@ impl Object {
 pub struct TestClient {
     events: Vec<LdapEvent>,
     // DN: Object
-    pub(super) objects: HashMap<String, Object>,
+    pub(super) objects: HashMap<Dn, Object>,
     // DN: DN
-    pub(super) memberships: HashMap<String, HashSet<String>>,
+    pub(super) memberships: HashMap<Dn, HashSet<Dn>>,
     // Number of upcoming write operations (add/modify/delete) that should fail with an injected
     // error. Used to simulate a transient LDAP outage and exercise the desync/recovery path.
     fail_next_writes: usize,
+    // Return attribute names lowercased, like LLDAP answers `*` requests.
+    lowercase_attr_names: bool,
+}
+
+/// Rewrites attribute names to the simulated server spelling.
+fn fold_attr_names(
+    attrs: Vec<(String, Vec<String>)>,
+    lowercase: bool,
+) -> Vec<(String, Vec<String>)> {
+    if lowercase {
+        attrs
+            .into_iter()
+            .map(|(k, v)| (k.to_lowercase(), v))
+            .collect()
+    } else {
+        attrs
+    }
 }
 
 impl TestClient {
@@ -183,6 +190,11 @@ impl TestClient {
     /// Makes the next `n` write operations (add/modify/delete) fail with an injected LDAP error.
     pub(super) fn fail_next_writes(&mut self, n: usize) {
         self.fail_next_writes = n;
+    }
+
+    /// Returns attribute names lowercased, like LLDAP answers `*` requests.
+    pub(super) fn use_lowercase_attr_names(&mut self) {
+        self.lowercase_attr_names = true;
     }
 
     /// Consumes one injected failure if any are pending, returning an error in that case.
@@ -210,13 +222,13 @@ impl TestClient {
     }
 
     pub(super) fn add_test_user(&mut self, user: &User, config: &LDAPConfig) {
-        let dn = config.user_dn_for_user(user);
+        let dn = config.user_dn(user);
         self.objects
             .insert(dn, Object::User(Box::new(user.clone())));
     }
 
     pub(super) fn remove_test_user(&mut self, user: &User, config: &LDAPConfig) {
-        let dn = config.user_dn_for_user(user);
+        let dn = config.user_dn(user);
         self.objects.remove(&dn);
     }
 
@@ -228,7 +240,7 @@ impl TestClient {
 
     pub(super) fn add_test_membership(&mut self, group: &Group, user: &User, config: &LDAPConfig) {
         let group_dn = config.group_dn(&group.name);
-        let user_dn = config.user_dn_for_user(user);
+        let user_dn = config.user_dn(user);
         self.memberships
             .entry(group_dn)
             .or_default()
@@ -242,7 +254,7 @@ impl TestClient {
         config: &LDAPConfig,
     ) {
         let group_dn = config.group_dn(&group.name);
-        let user_dn = config.user_dn_for_user(user);
+        let user_dn = config.user_dn(user);
         if let Some(members) = self.memberships.get_mut(&group_dn) {
             members.remove(&user_dn);
             if members.is_empty() {
@@ -273,10 +285,18 @@ impl LDAPConnection {
         })
     }
 
-    pub(super) async fn search_users(
-        &mut self,
-        filter: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    /// Builds an entry with the simulated server attribute spelling.
+    fn entry_for(&self, object: &Object, dn: &Dn) -> LdapEntry {
+        LdapEntry::new(
+            dn.clone(),
+            fold_attr_names(
+                object.attrs(&self.config),
+                self.test_client.lowercase_attr_names,
+            ),
+        )
+    }
+
+    pub(super) async fn search_users(&mut self, filter: &str) -> Result<Vec<LdapEntry>, LdapError> {
         let rdn_attr = self
             .config
             .ldap_user_rdn_attr
@@ -312,14 +332,14 @@ impl LDAPConnection {
                     };
 
                     if matches {
-                        results.push(object.to_search_entry(dn, &self.config));
+                        results.push(self.entry_for(object, dn));
                     }
                 }
             }
         } else {
             for (dn, object) in &self.test_client.objects {
                 if let Object::User(_) = object {
-                    results.push(object.to_search_entry(dn, &self.config));
+                    results.push(self.entry_for(object, dn));
                 }
             }
         }
@@ -330,7 +350,7 @@ impl LDAPConnection {
     pub(super) async fn search_groups(
         &mut self,
         filter: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    ) -> Result<Vec<LdapEntry>, LdapError> {
         let groupname = extract_attribute_value(filter, &self.config.ldap_groupname_attr).unwrap();
         let group_dns = self
             .test_client
@@ -349,7 +369,7 @@ impl LDAPConnection {
         let mut groups = Vec::new();
         for (group_dn, _) in group_dns {
             if let Some(group_object) = self.test_client.objects.get(&group_dn) {
-                groups.push(group_object.to_search_entry(&group_dn, &self.config));
+                groups.push(self.entry_for(group_object, &group_dn));
             }
         }
 
@@ -362,7 +382,7 @@ impl LDAPConnection {
         password: &str,
     ) -> Result<(), LdapError> {
         self.test_client.add_event(LdapEvent::UserBound {
-            dn: dn.to_owned(),
+            dn: dn.into(),
             password: password.to_owned(),
         });
         Ok(())
@@ -370,14 +390,15 @@ impl LDAPConnection {
 
     pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<String>, LdapError> {
         let mut groups = Vec::new();
+        let user_dn = Dn::from(user_dn);
 
-        if let Some(Object::User(_)) = self.test_client.objects.get(user_dn) {
+        if let Some(Object::User(_)) = self.test_client.objects.get(&user_dn) {
             let group_dns = self
                 .test_client
                 .memberships
                 .iter()
                 .filter_map(|(group_dn, members)| {
-                    if members.contains(user_dn) {
+                    if members.contains(&user_dn) {
                         Some(group_dn)
                     } else {
                         None
@@ -402,7 +423,7 @@ impl LDAPConnection {
     ) -> Result<(), LdapError> {
         self.test_client.take_write_failure()?;
         self.test_client.add_event(LdapEvent::ObjectAdded {
-            dn: dn.to_owned(),
+            dn: dn.into(),
             attrs: attrs
                 .into_iter()
                 .map(|(k, v)| (k.to_owned(), v.iter().map(ToString::to_string).collect()))
@@ -413,8 +434,8 @@ impl LDAPConnection {
 
     pub(super) async fn modify<S>(
         &mut self,
-        old_dn: &str,
-        new_dn: &str,
+        old_dn: &Dn,
+        new_dn: &Dn,
         mods: Vec<Mod<S>>,
     ) -> Result<(), LdapError>
     where
@@ -451,8 +472,8 @@ impl LDAPConnection {
         }
 
         self.test_client.add_event(LdapEvent::ObjectModified {
-            old_dn: old_dn.to_owned(),
-            new_dn: new_dn.to_owned(),
+            old_dn: old_dn.clone(),
+            new_dn: new_dn.clone(),
             mods,
         });
         Ok(())
@@ -461,7 +482,7 @@ impl LDAPConnection {
     pub(super) async fn delete(&mut self, dn: &str) -> Result<(), LdapError> {
         self.test_client.take_write_failure()?;
         self.test_client
-            .add_event(LdapEvent::ObjectDeleted { dn: dn.to_owned() });
+            .add_event(LdapEvent::ObjectDeleted { dn: dn.into() });
         Ok(())
     }
 
@@ -473,7 +494,7 @@ impl LDAPConnection {
         let mut result = HashMap::new();
         let user_dns = all_ldap_users
             .iter()
-            .map(|user| self.config.user_dn_for_user(user))
+            .map(|user| self.config.user_dn(user))
             .collect::<HashSet<_>>();
         for (group_dn, member_dns) in memberships {
             let members = member_dns
@@ -482,7 +503,7 @@ impl LDAPConnection {
                     if user_dns.contains(member_dn) {
                         all_ldap_users
                             .iter()
-                            .find(|user| self.config.user_dn_for_user(user) == *member_dn)
+                            .find(|user| self.config.user_dn(user) == *member_dn)
                     } else {
                         None
                     }
@@ -500,61 +521,21 @@ impl LDAPConnection {
     ) -> Result<Vec<String>, LdapError> {
         for (group_dn, members) in &self.test_client.memberships {
             if extract_rdn_value(group_dn).unwrap() == groupname {
-                return Ok(members.iter().cloned().collect());
+                return Ok(members.iter().map(ToString::to_string).collect());
             }
         }
 
         panic!("Group not found: {groupname}");
     }
 
-    pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
-        let mut users = Vec::new();
-        let config = &self.config;
-        let mut classes = config.ldap_user_auxiliary_obj_classes.clone();
-        classes.push(config.ldap_user_obj_class.clone());
-        for (dn, object) in &self.test_client.objects {
-            if let Object::User(user) = object {
-                let rdn_attr = config
-                    .ldap_user_rdn_attr
-                    .clone()
-                    .unwrap_or(config.ldap_username_attr.clone());
-                let attrs = user_as_ldap_attrs(
-                    user,
-                    "",
-                    "",
-                    classes.iter().map(String::as_str).collect(),
-                    false,
-                    &config.ldap_username_attr,
-                    &rdn_attr,
-                );
-                let mut attrs = attrs
-                    .iter()
-                    .map(|(k, v)| {
-                        (
-                            k.to_string(),
-                            v.iter()
-                                .map(std::string::ToString::to_string)
-                                .collect::<Vec<String>>(),
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                // Simulate the AD userAccountControl attribute so account status sync is exercised.
-                if config.ldap_uses_ad && config.ldap_sync_account_status {
-                    let uac = if user.is_active {
-                        UAC_NORMAL_ACCOUNT
-                    } else {
-                        UAC_NORMAL_ACCOUNT | UAC_ACCOUNT_DISABLE
-                    };
-                    attrs.push(("userAccountControl".to_owned(), vec![uac.to_string()]));
-                }
-                users.push(SearchEntry {
-                    dn: dn.clone(),
-                    attrs: attrs.into_iter().collect(),
-                    bin_attrs: HashMap::new(),
-                });
-            }
-        }
-        Ok(users)
+    pub(super) async fn list_users(&mut self) -> Result<Vec<LdapEntry>, LdapError> {
+        Ok(self
+            .test_client
+            .objects
+            .iter()
+            .filter(|(_, object)| matches!(object, Object::User(_)))
+            .map(|(dn, object)| self.entry_for(object, dn))
+            .collect())
     }
 
     pub(super) async fn is_member_of(
@@ -564,17 +545,17 @@ impl LDAPConnection {
     ) -> Result<bool, LdapError> {
         for (group_dn, members) in &self.test_client.memberships {
             if extract_rdn_value(group_dn).unwrap() == groupname {
-                return Ok(members.contains(user_dn));
+                return Ok(members.contains(&Dn::from(user_dn)));
             }
         }
 
         Ok(false)
     }
 
-    pub(super) async fn get(&mut self, dn: &str) -> Result<Option<SearchEntry>, LdapError> {
-        if let Some(object) = self.test_client.objects.get(dn) {
-            let search_entry = object.to_search_entry(dn, &self.config);
-            Ok(Some(search_entry))
+    pub(super) async fn get(&mut self, dn: &str) -> Result<Option<LdapEntry>, LdapError> {
+        let dn = Dn::from(dn);
+        if let Some(object) = self.test_client.objects.get(&dn) {
+            Ok(Some(self.entry_for(object, &dn)))
         } else {
             Ok(None)
         }
@@ -660,8 +641,11 @@ pub(super) fn group_to_test_attrs<I>(
 
     if let Some(members) = members {
         for user in members {
-            let user_dn = config.user_dn_for_user(user);
-            attrs.push((config.ldap_group_member_attr.clone(), hashset![user_dn]));
+            let user_dn = config.user_dn(user);
+            attrs.push((
+                config.ldap_group_member_attr.clone(),
+                hashset![user_dn.to_string()],
+            ));
         }
     }
 
@@ -695,7 +679,7 @@ mod tests {
         let results = ldap_conn.search_users(filter).await.unwrap();
 
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].dn, test_dn);
+        assert_eq!(&*results[0].dn, test_dn);
     }
 
     #[tokio::test]
@@ -721,7 +705,7 @@ mod tests {
         let results = ldap_conn.search_users(filter).await.unwrap();
 
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].dn, test_dn);
+        assert_eq!(&*results[0].dn, test_dn);
     }
 
     #[tokio::test]
