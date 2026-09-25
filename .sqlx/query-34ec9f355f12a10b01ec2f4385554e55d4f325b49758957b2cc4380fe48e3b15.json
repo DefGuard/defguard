@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT attempts FROM throttle WHERE scope = $1 AND key = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "throttle",
+            "name": "attempts"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "34ec9f355f12a10b01ec2f4385554e55d4f325b49758957b2cc4380fe48e3b15"
+}

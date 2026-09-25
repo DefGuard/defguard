@@ -15,7 +15,6 @@ use defguard_common::{
 };
 use defguard_core::{
     appstate::AppState,
-    auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::handlers::openid_login::{auth_callback, get_auth_info},
     events::ApiEvent,
@@ -70,7 +69,6 @@ pub fn build_migration_webapp(
     version: Version,
     setup_shutdown_tx: Sender<()>,
 ) -> MigrationWebapp {
-    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     let (webhook_tx, webhook_rx) = mpsc::unbounded_channel::<AppEvent>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
@@ -92,7 +90,6 @@ pub fn build_migration_webapp(
         gateway_tx.clone(),
         web_reload_tx,
         key,
-        failed_logins.clone(),
         event_tx,
         ldap_tx,
         dirsync_tx,
@@ -173,7 +170,6 @@ pub fn build_migration_webapp(
         .with_state(app_state)
         .layer(Extension(pool))
         .layer(Extension(version))
-        .layer(Extension(failed_logins))
         .layer(Extension(Arc::new(Mutex::new(Some(setup_shutdown_tx)))))
         .layer(Extension(proxy_control_tx));
 

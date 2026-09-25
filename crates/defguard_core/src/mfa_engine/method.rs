@@ -7,7 +7,7 @@ use ctap_hid_fido2::{
     fidokey::get_assertion::get_assertion_params::Assertion, verifier::verify_assertion,
 };
 use defguard_common::db::models::{
-    Settings, WebAuthn,
+    Settings, ThrottleScope, WebAuthn,
     biometric_auth::{BiometricAuth, BiometricAuthError, BiometricChallenge},
     user::UserError,
     vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
@@ -67,6 +67,8 @@ pub enum InitiateError {
     InvalidPublicKey(#[from] BiometricAuthError),
     #[error("MFA method is not supported")]
     UnsupportedMethod,
+    #[error("Too many MFA requests. Try again later.")]
+    TooManyRequests,
 }
 
 /// Initiate a step: send the email code or mint the biometric / mobile-approve challenge.
@@ -78,6 +80,12 @@ pub async fn initiate(
     ctx: &MfaSessionContext,
     method: VpnClientMfaMethod,
 ) -> Result<Option<BiometricChallenge>, InitiateError> {
+    if !ThrottleScope::VpnMfaInitiate
+        .hit(pool, &super::throttle_key(ctx.location.id, ctx.device.id))
+        .await?
+    {
+        return Err(InitiateError::TooManyRequests);
+    }
     match method {
         VpnClientMfaMethod::Totp | VpnClientMfaMethod::Oidc => Ok(None),
         VpnClientMfaMethod::Email => {

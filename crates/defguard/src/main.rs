@@ -24,9 +24,7 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    add_user_to_group,
-    auth::failed_login::FailedLoginMap,
-    change_user_password, create_admin_user, create_new_group,
+    add_user_to_group, change_user_password, create_admin_user, create_new_group,
     db::AppEvent,
     disable_ldap_integration, disable_oidc_directory_sync,
     enterprise::{
@@ -325,10 +323,6 @@ async fn main() -> Result<(), anyhow::Error> {
         .as_ref()
         .and_then(|path| read_to_string(path).ok());
 
-    // initialize failed login attempt tracker
-    let failed_logins = FailedLoginMap::new();
-    let failed_logins = Arc::new(Mutex::new(failed_logins));
-
     update_counts(&pool).await?;
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
@@ -380,7 +374,6 @@ async fn main() -> Result<(), anyhow::Error> {
             gateway_tx.clone(),
             web_reload_tx.clone(),
             pool.clone(),
-            failed_logins,
             api_event_tx,
             ldap_tx.clone(),
             dirsync_tx.clone(),

@@ -25,7 +25,7 @@ use defguard_common::{
 use defguard_core::{
     auth::{
         AdminRole, SessionInfo,
-        failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
+        failed_login::{charge_login_attempt, login_key, refund_login_attempt},
     },
     error::WebError,
     handlers::{ApiResponse, ApiResult, ClientIpAddr, SESSION_COOKIE_NAME},
@@ -198,7 +198,6 @@ pub async fn setup_login(
     user_agent: TypedHeader<UserAgent>,
     ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
-    Extension(failed_logins): Extension<Arc<Mutex<FailedLoginMap>>>,
     Json(login): Json<SetupLogin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     let wizard = Wizard::get(&pool).await?;
@@ -210,18 +209,18 @@ pub async fn setup_login(
         .default_admin_id
         .ok_or_else(|| WebError::Forbidden("Default admin user not set"))?;
 
-    check_failed_logins(&failed_logins, &login.username)?;
-
     let mut conn = pool.acquire().await?;
-    let Some(user) = User::find_by_username_or_email(&mut conn, &login.username).await? else {
-        log_failed_login_attempt(&failed_logins, &login.username);
+    let user = User::find_by_username_or_email(&mut conn, &login.username).await?;
+    let throttle_key = login_key(user.as_ref(), &login.username);
+    charge_login_attempt(&mut *conn, &throttle_key).await?;
+    let Some(user) = user else {
         return Err(WebError::Authentication);
     };
 
     if user.verify_password(&login.password).is_err() {
-        log_failed_login_attempt(&failed_logins, &login.username);
         return Err(WebError::Authentication);
     }
+    refund_login_attempt(&mut *conn, &throttle_key).await?;
 
     if !user.is_active {
         return Err(WebError::Authentication);

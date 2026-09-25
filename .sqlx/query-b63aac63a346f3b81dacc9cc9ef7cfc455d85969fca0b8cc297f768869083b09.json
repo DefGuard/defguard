@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE throttle SET expires_at = expires_at - interval '1 day' WHERE scope = $1 AND key = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b63aac63a346f3b81dacc9cc9ef7cfc455d85969fca0b8cc297f768869083b09"
+}
