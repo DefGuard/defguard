@@ -4,11 +4,15 @@ on:
   workflow_call:
     inputs:
       upload_url:
-        description: "Release assets upload URL"
-        required: true
+        description: "Release assets upload URL - used in scheduled runs. Without it, the files go to the sbom artifact."
+        required: false
         type: string
       tag:
         description: "The git tag to generate SBOM for - used in scheduled runs"
+        required: false
+        type: string
+      version:
+        description: "Release version without the v prefix - used in release runs"
         required: false
         type: string
 
@@ -19,19 +23,27 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
 
     steps:
-      - name: Determine release tag and version
+      - name: Determine release ref, version, and image tag
         id: vars
-        # Uses inputs.tag for scheduled runs, otherwise github.ref_name.
+        # A scheduled run scans a published tag, and a release run scans the dispatched commit and its image.
+        env:
+          TAG_NAME: ${{ inputs.tag }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          TAG_NAME=${{ inputs.tag || github.ref_name }}
-          VERSION=${TAG_NAME#v}
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          if [ -n "$TAG_NAME" ]; then
+            echo "REF=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "VERSION=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+            echo "IMAGE_TAG=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "REF=$GITHUB_SHA" >> $GITHUB_OUTPUT
+            echo "VERSION=$INPUT_VERSION" >> $GITHUB_OUTPUT
+            echo "IMAGE_TAG=$GITHUB_SHA" >> $GITHUB_OUTPUT
+          fi
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ steps.vars.outputs.TAG_NAME }}
+          ref: ${{ steps.vars.outputs.REF }}
           submodules: recursive
 
       - name: Use current vulnerability policy from default branch
@@ -60,7 +72,7 @@ jobs:
           TRIVY_SHOW_SUPPRESSED: 1
           TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
-          image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
+          image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.IMAGE_TAG }}"
           scan-type: 'image'
           format: 'spdx-json'
           output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.sbom.json"
@@ -87,14 +99,15 @@ jobs:
           TRIVY_SHOW_SUPPRESSED: 1
           TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
-          image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
+          image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.IMAGE_TAG }}"
           scan-type: 'image'
           format: 'json'
           output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.advisories.json"
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
 
-      - name: Upload SBOMs and advisories
+      - name: Upload SBOMs and advisories to the release
+        if: inputs.upload_url != ''
         uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,3 +116,13 @@ jobs:
           asset_path: "defguard-*.json"
           asset_content_type: application/json
           overwrite: true
+
+      - name: Upload SBOMs and advisories as an artifact
+        if: inputs.upload_url == ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: defguard-*.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
