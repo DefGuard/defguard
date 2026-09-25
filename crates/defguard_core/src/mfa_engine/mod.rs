@@ -5,12 +5,17 @@
 //! store. The gRPC handlers in `grpc::proxy::client_mfa` are thin adapters converting proto
 //! messages to and from the domain types here; the engine never sees a proto message.
 
-use std::{collections::HashSet, net::IpAddr};
+use std::{
+    collections::{HashMap, HashSet},
+    net::IpAddr,
+    sync::{LazyLock, Mutex},
+    time::{Duration, Instant},
+};
 
 use defguard_common::db::{
     Id,
     models::{
-        Device, Settings, User, WireguardNetwork,
+        Device, Settings, ThrottleScope, User, WireguardNetwork,
         biometric_auth::BiometricAuth,
         device::WireguardNetworkDevice,
         mfa_flow::MfaFlow,
@@ -53,6 +58,69 @@ pub(crate) fn is_mobile_approve_request(
     auth_pub_key: Option<&str>,
 ) -> bool {
     method == VpnClientMfaMethod::MobileApprove && auth_pub_key.is_some()
+}
+
+/// Only a TOTP or email code can be guessed, so only those proofs are throttled.
+fn is_code_method(method: VpnClientMfaMethod) -> bool {
+    matches!(method, VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email)
+}
+
+/// Keyed by location and device, so a new MFA session keeps the count of the session it replaces.
+fn throttle_key(location_id: Id, device_id: Id) -> String {
+    format!("{location_id}:{device_id}")
+}
+
+const POLL_LIMIT: u32 = 120;
+const POLL_WINDOW: Duration = Duration::from_mins(1);
+
+/// Kept in memory, so that a poll costs no database write.
+static POLLS: LazyLock<Mutex<PollWindows>> =
+    LazyLock::new(|| Mutex::new(PollWindows::new(Instant::now())));
+
+struct PollWindows {
+    windows: HashMap<String, (Instant, u32)>,
+    pruned_at: Instant,
+}
+
+impl PollWindows {
+    fn new(now: Instant) -> Self {
+        Self {
+            windows: HashMap::new(),
+            pruned_at: now,
+        }
+    }
+
+    fn hit(&mut self, key: &str, now: Instant) -> bool {
+        if now.duration_since(self.pruned_at) >= POLL_WINDOW {
+            self.windows
+                .retain(|_, (started, _)| now.duration_since(*started) < POLL_WINDOW);
+            self.pruned_at = now;
+        }
+        let (started, polls) = self.windows.entry(key.to_owned()).or_insert((now, 0));
+        if now.duration_since(*started) >= POLL_WINDOW {
+            *started = now;
+            *polls = 0;
+        }
+        *polls += 1;
+        *polls <= POLL_LIMIT
+    }
+}
+
+/// OIDC and mobile approval complete outside the client, so the client polls `finish` with an
+/// empty proof until they do.
+fn is_poll(method: VpnClientMfaMethod, proof: &Proof) -> bool {
+    matches!(
+        method,
+        VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
+    ) && proof.code.is_none()
+        && proof.auth_pub_key.is_none()
+}
+
+fn poll_allowed(token_hash: &str) -> bool {
+    POLLS
+        .lock()
+        .expect("Failed to lock the MFA poll counts")
+        .hit(token_hash, Instant::now())
 }
 
 /// The connect-time MFA engine.
@@ -268,13 +336,30 @@ impl MfaEngine {
         steps: Vec<HashSet<VpnClientMfaMethod>>,
         method: VpnClientMfaMethod,
     ) -> Result<StartOutcome, StartError> {
+        // Refuse before `initiate` so that a locked device receives no further email code.
+        if is_code_method(method)
+            && ThrottleScope::VpnMfaCode
+                .is_blocked(&self.pool, &throttle_key(location.id, device.id))
+                .await
+                .map_err(|err| {
+                    error!("Failed to read the MFA code throttle: {err}");
+                    StartError::Internal
+                })?
+        {
+            warn!(
+                "User {} has no MFA code attempts left for device {} at location {}",
+                user.username, device.id, location.name
+            );
+            return Err(StartError::AttemptLimit);
+        }
+
         let ctx = MfaSessionContext {
             location: location.clone(),
             device: device.clone(),
             user: user.clone(),
         };
         let challenge = initiate(&self.pool, &ctx, method).await.map_err(|err| {
-            log_initiate_error(&err, &user.username);
+            log_initiate_error(&err, &ctx);
             StartError::from(err)
         })?;
         let response_challenge = challenge
@@ -337,8 +422,7 @@ impl MfaEngine {
     /// a fresh attempt id, which is what makes "resend the code" work. The abandoned attempt's
     /// side effects are not cancelled; stale callbacks no-op on the superseded attempt id.
     ///
-    /// A re-call does not touch `failed_attempts` - that counter bounds wrong proofs, not
-    /// initialization. Bounding re-initiation is tracked in DefGuard/defguard#3585.
+    /// Each call charges [`ThrottleScope::VpnMfaInitiate`] through `initiate`.
     pub async fn step_start(
         &self,
         token: String,
@@ -399,7 +483,7 @@ impl MfaEngine {
         }
 
         let challenge = initiate(&self.pool, &ctx, method).await.map_err(|err| {
-            log_initiate_error(&err, &ctx.user.username);
+            log_initiate_error(&err, &ctx);
             StepError::from(err)
         })?;
         let credential_ids = offered_credential_ids(&self.pool, &ctx, method)
@@ -446,6 +530,18 @@ impl MfaEngine {
             error!("Client login session not found");
             return Err(FinishError::SessionNotFound);
         };
+
+        if let Some(state) = session.ephemeral_state.as_ref()
+            && is_poll(state.selected_method, &proof)
+            && !poll_allowed(&session.token_hash)
+        {
+            debug!("Throttled a poll of MFA session {}", session.id);
+            return if proof.step_attempt_id.is_some() {
+                Ok((FinishOutcome::AwaitingExternal, state.selected_method))
+            } else {
+                Err(FinishError::OidcNotCompleted)
+            };
+        }
 
         let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
             error!("Failed to load MFA session context: {err}");
@@ -494,7 +590,40 @@ impl MfaEngine {
             format!("{}", ctx.device),
         );
 
+        let charge_key = (is_code_method(method) && proof.code.is_some())
+            .then(|| throttle_key(session.location_id, session.device_id));
+        if let Some(key) = &charge_key
+            && !ThrottleScope::VpnMfaCode
+                .hit(&self.pool, key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to charge an MFA code attempt: {err}");
+                    FinishError::Internal
+                })?
+        {
+            warn!(
+                "User {} has no MFA code attempts left for device {} at location {}",
+                ctx.user.username, ctx.device.id, ctx.location.name
+            );
+            return Err(if proof.step_attempt_id.is_some() {
+                FinishError::AttemptLimit
+            } else {
+                FinishError::Unauthorized
+            });
+        }
+
         let verdict = verify(&self.pool, &ctx, &ephemeral, &proof).await;
+        if let Some(key) = &charge_key
+            && matches!(verdict, Ok(Verdict::Proved))
+        {
+            ThrottleScope::VpnMfaCode
+                .refund(&self.pool, key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to refund an MFA code attempt: {err}");
+                    FinishError::Internal
+                })?;
+        }
 
         let method = ephemeral.selected_method;
 
@@ -849,7 +978,8 @@ impl MfaEngine {
 
 /// Log an [`InitiateError`] with the context it needs, so `start` and `step_start` can each wrap it
 /// into their own error type without duplicating the logging.
-fn log_initiate_error(err: &InitiateError, username: &str) {
+fn log_initiate_error(err: &InitiateError, ctx: &MfaSessionContext) {
+    let username = &ctx.user.username;
     match err {
         InitiateError::EmailCode(e) => error!("Failed to generate email MFA code: {e}"),
         InitiateError::Database(e) => error!("Database error: {e}"),
@@ -863,6 +993,10 @@ fn log_initiate_error(err: &InitiateError, username: &str) {
         InitiateError::UnsupportedMethod => {
             error!("MFA start for user {username} selected a method Core does not support");
         }
+        InitiateError::TooManyRequests => warn!(
+            "User {username} has no MFA step initiations left for device {} at location {}",
+            ctx.device.id, ctx.location.name
+        ),
     }
 }
 

@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO throttle AS t (scope, key, attempts, expires_at) VALUES ($1, $2, 1, $4) ON CONFLICT (scope, key) DO UPDATE SET attempts = CASE WHEN t.expires_at <= $3 THEN 1 ELSE t.attempts + 1 END, expires_at = CASE WHEN t.expires_at <= $3 THEN $4 ELSE t.expires_at END RETURNING attempts",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "throttle",
+            "name": "attempts"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2dfe9080df59c677a5aeedf3120d94224b8f97013f64f2265eb12641e3d68628"
+}

@@ -98,7 +98,6 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     appstate::AppState,
-    auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
@@ -307,7 +306,6 @@ pub fn build_webapp(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     key: Key,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     ldap_tx: UnboundedSender<LdapSyncEventType>,
     dirsync_tx: UnboundedSender<DirectorySyncEvent>,
@@ -819,7 +817,6 @@ pub fn build_webapp(
         gateway_tx,
         web_reload_tx,
         key,
-        failed_logins,
         event_tx,
         ldap_tx,
         dirsync_tx,
@@ -894,7 +891,6 @@ pub async fn run_web_server(
     gateway_tx: Sender<GatewayCommand>,
     web_reload_tx: tokio::sync::broadcast::Sender<()>,
     pool: PgPool,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     ldap_tx: UnboundedSender<LdapSyncEventType>,
     dirsync_tx: UnboundedSender<DirectorySyncEvent>,
@@ -916,7 +912,6 @@ pub async fn run_web_server(
         worker_state,
         pool.clone(),
         key,
-        failed_logins,
         event_tx,
         ldap_tx,
         dirsync_tx,

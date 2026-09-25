@@ -35,7 +35,7 @@ use crate::{
     appstate::AppState,
     auth::{
         SessionExtractor, SessionInfo,
-        failed_login::{check_failed_logins, log_failed_login_attempt},
+        failed_login::{charge_login_attempt, login_key, refund_login_attempt},
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
@@ -160,16 +160,15 @@ pub async fn authenticate(
     let username_or_email = data.username;
     debug!("Authenticating user {username_or_email}");
 
-    // check if user can proceed with login
-    check_failed_logins(&appstate.failed_logins, &username_or_email)?;
-
     let settings = Settings::get_current_settings();
 
     // Attempt to find a user: first by username, and then by email.
     let mut conn = appstate.pool.acquire().await?;
-    let mut user = if let Some(user) =
-        User::find_by_username_or_email(&mut conn, &username_or_email).await?
-    {
+    let found_user = User::find_by_username_or_email(&mut conn, &username_or_email).await?;
+    let throttle_key = login_key(found_user.as_ref(), &username_or_email);
+    charge_login_attempt(&mut *conn, &throttle_key).await?;
+
+    let mut user = if let Some(user) = found_user {
         // user was found, attempt to authenticate by password first
         match user.verify_password(&data.password) {
             Ok(()) => user,
@@ -181,6 +180,7 @@ pub async fn authenticate(
                     {
                         Ok(user) => user,
                         Err(LdapError::LicenseUserLimitReached(_, _)) => {
+                            refund_login_attempt(&mut *conn, &throttle_key).await?;
                             return Err(WebError::Forbidden("License limit reached."));
                         }
                         Err(ldap_err) => {
@@ -188,7 +188,6 @@ pub async fn authenticate(
                                 "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
                             );
 
-                            log_failed_login_attempt(&appstate.failed_logins, &user.username);
                             appstate.emit_event(ApiEvent {
                             context: ApiRequestContext::new(
                                 user.id,
@@ -207,7 +206,6 @@ pub async fn authenticate(
                     }
                 } else {
                     warn!("Failed to authenticate user {username_or_email}: {err}");
-                    log_failed_login_attempt(&appstate.failed_logins, &user.username);
                     appstate.emit_event(ApiEvent {
                         context: ApiRequestContext::new(
                             user.id,
@@ -231,15 +229,16 @@ pub async fn authenticate(
         match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
             Ok(user) => user,
             Err(LdapError::LicenseUserLimitReached(_, _)) => {
+                refund_login_attempt(&mut *conn, &throttle_key).await?;
                 return Err(WebError::Forbidden("License limit reached."));
             }
             Err(err) => {
                 info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
-                log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
                 return Err(WebError::Authentication);
             }
         }
     };
+    refund_login_attempt(&mut *conn, &throttle_key).await?;
 
     // check if user account is active
     if !user.is_active {
@@ -938,11 +937,11 @@ pub async fn totp_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
-        // check if user can proceed with login
-        check_failed_logins(&appstate.failed_logins, &username)?;
+        charge_login_attempt(&appstate.pool, &username).await?;
 
         debug!("Verifying TOTP for user {}", username);
         if user.totp_enabled && user.verify_totp_code(&data.code) {
+            refund_login_attempt(&appstate.pool, &username).await?;
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -997,8 +996,6 @@ pub async fn totp_code(
             } else {
                 format!("TOTP authentication is disabled for {username}")
             };
-
-            log_failed_login_attempt(&appstate.failed_logins, &username);
 
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
@@ -1242,12 +1239,11 @@ pub async fn email_mfa_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
-
-        // check if user can proceed with login
-        check_failed_logins(&appstate.failed_logins, &username)?;
+        charge_login_attempt(&appstate.pool, &username).await?;
 
         debug!("Verifying email MFA code for user {}", username);
         if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
+            refund_login_attempt(&appstate.pool, &username).await?;
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -1302,8 +1298,6 @@ pub async fn email_mfa_code(
             } else {
                 format!("Email code authentication is disabled for {username}")
             };
-
-            log_failed_login_attempt(&appstate.failed_logins, &username);
 
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use

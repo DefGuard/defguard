@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, RwLock, atomic::AtomicBool};
+use std::sync::{Arc, RwLock, atomic::AtomicBool};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
@@ -15,7 +15,6 @@ use tokio::{
 };
 
 use crate::{
-    auth::failed_login::FailedLoginMap,
     db::{AppEvent, WebHook},
     error::WebError,
     events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType},
@@ -31,7 +30,6 @@ pub struct AppState {
     tx: UnboundedSender<AppEvent>,
     pub gateway_tx: Sender<GatewayCommand>,
     pub web_reload_tx: tokio::sync::broadcast::Sender<()>,
-    pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
     pub event_tx: UnboundedSender<ApiEvent>,
     pub ldap_tx: UnboundedSender<LdapSyncEventType>,
@@ -123,7 +121,6 @@ impl AppState {
         gateway_tx: Sender<GatewayCommand>,
         web_reload_tx: tokio::sync::broadcast::Sender<()>,
         key: Key,
-        failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
         ldap_tx: UnboundedSender<LdapSyncEventType>,
         dirsync_tx: UnboundedSender<DirectorySyncEvent>,
@@ -138,7 +135,6 @@ impl AppState {
             tx,
             gateway_tx,
             web_reload_tx,
-            failed_logins,
             key,
             event_tx,
             ldap_tx,

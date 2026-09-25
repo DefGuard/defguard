@@ -322,7 +322,7 @@ impl From<WebError> for ApiResponse {
                     status,
                 )
             }
-            WebError::TooManyLoginAttempts(_) => Self::new(
+            WebError::TooManyLoginAttempts => Self::new(
                 json!({"msg": "Too many login attempts"}),
                 StatusCode::TOO_MANY_REQUESTS,
             ),

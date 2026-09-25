@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE throttle SET attempts = attempts - 1 WHERE scope = $1 AND key = $2 AND attempts > 0",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "853349e4a61102419472cb0a3c9922fbeee8771fe65dc66d95482dab489c5c26"
+}

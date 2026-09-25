@@ -113,6 +113,17 @@ async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
             }]);
         }
     }
+
+    // The email address of the account shares the count of its username, and the correct
+    // password waits for the window to end as well.
+    for auth in [
+        Auth::new("h.potter@hogwart.edu.uk", "invalid"),
+        Auth::new("hpotter", "pass123"),
+    ] {
+        let response = client.post("/api/v1/auth").json(&auth).send().await;
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    }
+    client.assert_event_queue_is_empty();
 }
 
 async fn responses_eq(response1: TestResponse, response2: TestResponse) -> bool {
