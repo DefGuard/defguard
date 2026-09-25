@@ -11,7 +11,7 @@ pub(crate) fn find_unescaped_separator(input: &str, separator: u8) -> Option<usi
     while index < bytes.len() {
         match bytes[index] {
             // Skip the escape and whatever it protects, which may itself be a separator.
-            b'\\' => index = bytes.len().min(index.saturating_add(2)),
+            b'\\' => index += 2,
             byte if byte == separator => return Some(index),
             _ => index += 1,
         }
@@ -33,26 +33,16 @@ pub(crate) fn unescape_value(value: &str) -> Option<String> {
 /// `\c5\82` of `Micha\c5\82` does.
 fn unescape_value_bytes(value: &str) -> Option<Vec<u8>> {
     let bytes = value.as_bytes();
-    let Some(first_escape) = bytes.iter().position(|&byte| byte == b'\\') else {
-        return Some(bytes.to_vec());
-    };
-
     let mut unescaped = Vec::with_capacity(bytes.len());
-    unescaped.extend_from_slice(&bytes[..first_escape]);
-
-    let mut index = first_escape;
+    let mut index = 0;
     while index < bytes.len() {
         if bytes[index] != b'\\' {
-            let run_end = bytes[index..]
-                .iter()
-                .position(|&byte| byte == b'\\')
-                .map_or(bytes.len(), |offset| index + offset);
-            unescaped.extend_from_slice(&bytes[index..run_end]);
-            index = run_end;
+            unescaped.push(bytes[index]);
+            index += 1;
             continue;
         }
 
-        if let Some(byte) = hex_pair(bytes.get(index + 1..index + 3)) {
+        if let Some(byte) = bytes.get(index + 1..index + 3).and_then(hex_pair) {
             unescaped.push(byte);
             index += 3;
         } else {
@@ -66,9 +56,7 @@ fn unescape_value_bytes(value: &str) -> Option<Vec<u8>> {
     Some(unescaped)
 }
 
-/// Reads the two hex digits of an escape such as the `c5` of `\c5`.
-fn hex_pair(digits: Option<&[u8]>) -> Option<u8> {
-    let digits = digits?;
+fn hex_pair(digits: &[u8]) -> Option<u8> {
     // `from_str_radix` would accept a leading sign, which would read `\+a` as a hex pair.
     if !digits.iter().all(u8::is_ascii_hexdigit) {
         return None;

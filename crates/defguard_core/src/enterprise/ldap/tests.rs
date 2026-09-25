@@ -21,9 +21,8 @@ use tokio::sync::{
 
 use super::{
     model::{
-        Dn, LdapEntry, UAC_ACCOUNT_DISABLE, dn_match_key, extract_rdn_value,
-        get_users_without_ldap_path, in_attrs, ldap_sync_allowed_for_user_scoped,
-        user_as_ldap_attrs, user_from_searchentry,
+        Dn, LdapEntry, UAC_ACCOUNT_DISABLE, extract_rdn_value, get_users_without_ldap_path,
+        in_attrs, ldap_sync_allowed_for_user_scoped, user_as_ldap_attrs, user_from_searchentry,
     },
     sync::{
         Authority, LdapDryRunAction, compute_group_sync_changes, compute_user_sync_changes,
@@ -3273,16 +3272,16 @@ fn test_dn_match_key_reconciles_escape_spellings() {
     let member_dn = format!(r"CN=Doe\, John - jdoe,{path}");
     let rebuilt = config.user_dn(&user);
     assert_ne!(Dn::from(member_dn.as_str()), rebuilt);
-    assert_eq!(dn_match_key(&member_dn, &config), rebuilt);
+    assert_eq!(config.dn_match_key(&member_dn), rebuilt);
 
     // Either spelling a server may choose lands on one key.
     let hexpair_dn = format!(r"CN=Doe\2c John - jdoe,{path}");
     assert_eq!(
-        dn_match_key(&hexpair_dn, &config),
-        dn_match_key(&member_dn, &config)
+        config.dn_match_key(&hexpair_dn),
+        config.dn_match_key(&member_dn)
     );
 
-    assert_eq!(dn_match_key("value", &config), Dn::from("value"));
+    assert_eq!(config.dn_match_key("value"), Dn::from("value"));
 }
 
 #[test]
@@ -3446,6 +3445,31 @@ fn test_from_searchentry() {
         assert!(matches!(
             result.unwrap_err(),
             LdapError::InvalidDN(dn) if dn == "user1,dc=example,dc=com"
+        ));
+    }
+
+    // escaped RDN value
+    {
+        let mut attrs = HashMap::new();
+        attrs.insert("sn".to_owned(), vec!["lastname1".to_owned()]);
+        attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
+        attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
+
+        let entry = LdapEntry::new(
+            r"cn=Doe\, John,ou=users,dc=example,dc=com".into(),
+            attrs.clone(),
+        );
+        let user = user_from_searchentry(&entry, "jdoe", None, &LDAPConfig::default()).unwrap();
+        assert_eq!(user.ldap_rdn.as_deref(), Some("Doe, John"));
+        assert_eq!(
+            user.ldap_user_path.as_deref(),
+            Some("ou=users,dc=example,dc=com")
+        );
+
+        let entry = LdapEntry::new(r"cn=bad\ff,dc=example,dc=com".into(), attrs);
+        assert!(matches!(
+            user_from_searchentry(&entry, "jdoe", None, &LDAPConfig::default()),
+            Err(LdapError::InvalidDN(_))
         ));
     }
 
@@ -3857,6 +3881,21 @@ fn test_extract_dn_path_various_cases() {
         extract_dn_path(" cn=abc ,dc=example,dc=com "),
         Some("dc=example,dc=com ".to_owned())
     );
+
+    assert_eq!(
+        extract_dn_path(r"cn=Doe\, John,ou=users,dc=example,dc=com"),
+        Some("ou=users,dc=example,dc=com".to_owned())
+    );
+    assert_eq!(
+        extract_dn_path(r"cn=Doe\2c John,ou=users,dc=example,dc=com"),
+        Some("ou=users,dc=example,dc=com".to_owned())
+    );
+    // An escaped backslash does not protect the comma after it.
+    assert_eq!(
+        extract_dn_path(r"cn=a\\,dc=example,dc=com"),
+        Some("dc=example,dc=com".to_owned())
+    );
+    assert_eq!(extract_dn_path(r"cn=Doe\,John"), None);
 }
 
 #[sqlx::test]

@@ -444,30 +444,19 @@ pub(super) fn group_in_list(groups: &[String], name: &str) -> bool {
         .any(|g| g.to_lowercase() == name.to_lowercase())
 }
 
-/// Rewrites a DN the server sent, for comparison against `LDAPConfig::user_dn`.
-///
-/// A server may escape the same name as either `\,` or `\2c`, so a `member` value and the DN
-/// Defguard rebuilds from a user's stored RDN and path can differ byte for byte. Splitting the name
-/// and putting it back the same way lands both on one string. What matters is that the spelling is
-/// the same on both sides, not that it is the correct one.
+/// Splits a DN into the still-escaped value of its first component and the path after it.
 #[must_use]
-pub(crate) fn dn_match_key(dn: &str, config: &LDAPConfig) -> Dn {
-    match (extract_rdn_value(dn), extract_dn_path(dn)) {
-        (Some(rdn), Some(path)) => config.dn_from_parts(&rdn, &path),
-        _ => dn.into(),
-    }
+pub(super) fn split_first_rdn(dn: &str) -> Option<(&str, &str)> {
+    let comma_index = find_unescaped_separator(dn, b',')?;
+    let rdn = &dn[..comma_index];
+    let eq_index = find_unescaped_separator(rdn, b'=')?;
+    Some((&rdn[(eq_index + 1)..], &dn[(comma_index + 1)..]))
 }
 
 /// Returns the unescaped value of the first component, so `cn=Doe\, John,ou=x` gives `Doe, John`.
 #[must_use]
 pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
-    let eq_index = find_unescaped_separator(dn, b'=')?;
-    let comma_index = find_unescaped_separator(dn, b',')?;
-    if eq_index >= comma_index {
-        return None;
-    }
-
-    dn.get((eq_index + 1)..comma_index).and_then(unescape_value)
+    split_first_rdn(dn).and_then(|(value, _)| unescape_value(value))
 }
 
 /// Returns true only for a SearchResultEntry (LDAP protocol op id 4).
@@ -480,7 +469,7 @@ pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
     entry.0.id == 4
 }
 
-/// Returns the part after the first unescaped comma, so `cn=user,dc=example` gives `dc=example`.
+/// Returns the part after the first unescaped comma, so `cn=Doe\, John,ou=x` gives `ou=x`.
 #[must_use]
 pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
     let Some(comma_index) = find_unescaped_separator(dn, b',') else {

@@ -9,8 +9,8 @@ use ldap3::Mod;
 
 use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{
-    Dn, LdapEntry, UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, dn_match_key, extract_rdn_value,
-    uac_is_active, user_as_ldap_attrs,
+    Dn, LdapEntry, UAC_ACCOUNT_DISABLE, UAC_NORMAL_ACCOUNT, extract_rdn_value, uac_is_active,
+    user_as_ldap_attrs,
 };
 
 /// Extract attribute value from LDAP filter
@@ -227,9 +227,6 @@ impl TestClient {
     }
 
     /// Records an entry under the DN given, for a test that needs the directory's own spelling.
-    ///
-    /// `list_users` reports an entry under the DN it is keyed by and that DN is parsed back into an
-    /// RDN and a path, so keying by Defguard's rebuild parses the name twice.
     pub(super) fn add_test_user_with_dn(&mut self, user: &User, dn: &str) {
         self.objects
             .insert(dn.into(), Object::User(Box::new(user.clone())));
@@ -519,7 +516,7 @@ impl LDAPConnection {
                 .iter()
                 .filter_map(|member_dn| {
                     users_by_dn
-                        .get(&dn_match_key(member_dn, &self.config))
+                        .get(&self.config.dn_match_key(member_dn))
                         .copied()
                 })
                 .collect::<HashSet<_>>();

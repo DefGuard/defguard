@@ -21,10 +21,13 @@ use self::error::LdapError;
 use crate::{
     enterprise::{
         is_business_license_active,
-        ldap::model::{
-            Dn, UAC_NORMAL_ACCOUNT, extract_dn_path, group_in_list, has_obj_class,
-            ldap_sync_allowed_for_user, uac_from_entry, uac_with_active, user_as_ldap_attrs,
-            user_as_ldap_mod, user_from_searchentry,
+        ldap::{
+            dn::unescape_value,
+            model::{
+                Dn, UAC_NORMAL_ACCOUNT, extract_dn_path, group_in_list, has_obj_class,
+                ldap_sync_allowed_for_user, split_first_rdn, uac_from_entry, uac_with_active,
+                user_as_ldap_attrs, user_as_ldap_mod, user_from_searchentry,
+            },
         },
         limits::update_counts,
     },
@@ -240,7 +243,17 @@ impl LDAPConfig {
         self.dn_from_parts(rdn_value, path)
     }
 
-    /// Builds a user DN from its parts. `dn_match_key` relies on this matching `user_dn` exactly.
+    /// Respells a DN the server sent the way `user_dn` builds one, for comparison.
+    ///
+    /// A server may escape a comma as `\,` where Defguard writes `\2c`, so a `member` value can name
+    /// a user and still differ from that user's DN byte for byte.
+    #[must_use]
+    pub(crate) fn dn_match_key(&self, dn: &str) -> Dn {
+        split_first_rdn(dn)
+            .and_then(|(value, path)| Some(self.dn_from_parts(&unescape_value(value)?, path)))
+            .unwrap_or_else(|| dn.into())
+    }
+
     #[must_use]
     fn dn_from_parts(&self, rdn_value: &str, path: &str) -> Dn {
         format!("{}={},{path}", self.get_rdn_attr(), dn_escape(rdn_value)).into()
