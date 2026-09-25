@@ -223,8 +223,13 @@ impl TestClient {
 
     pub(super) fn add_test_user(&mut self, user: &User, config: &LDAPConfig) {
         let dn = config.user_dn(user);
+        self.add_test_user_with_dn(user, &dn);
+    }
+
+    /// Records an entry under the DN given, for a test that needs the directory's own spelling.
+    pub(super) fn add_test_user_with_dn(&mut self, user: &User, dn: &str) {
         self.objects
-            .insert(dn, Object::User(Box::new(user.clone())));
+            .insert(dn.into(), Object::User(Box::new(user.clone())));
     }
 
     pub(super) fn remove_test_user(&mut self, user: &User, config: &LDAPConfig) {
@@ -239,12 +244,22 @@ impl TestClient {
     }
 
     pub(super) fn add_test_membership(&mut self, group: &Group, user: &User, config: &LDAPConfig) {
-        let group_dn = config.group_dn(&group.name);
         let user_dn = config.user_dn(user);
+        self.add_test_membership_with_dn(group, &user_dn, config);
+    }
+
+    /// Records a member under the DN given, for a test that needs the directory's own spelling.
+    pub(super) fn add_test_membership_with_dn(
+        &mut self,
+        group: &Group,
+        user_dn: &str,
+        config: &LDAPConfig,
+    ) {
+        let group_dn = config.group_dn(&group.name);
         self.memberships
             .entry(group_dn)
             .or_default()
-            .insert(user_dn);
+            .insert(user_dn.into());
     }
 
     pub(super) fn remove_test_membership(
@@ -492,21 +507,17 @@ impl LDAPConnection {
     ) -> Result<HashMap<String, HashSet<&'a User>>, LdapError> {
         let memberships = self.test_client.memberships.clone();
         let mut result = HashMap::new();
-        let user_dns = all_ldap_users
+        let users_by_dn = all_ldap_users
             .iter()
-            .map(|user| self.config.user_dn(user))
-            .collect::<HashSet<_>>();
+            .map(|user| (self.config.user_dn(user), user))
+            .collect::<HashMap<_, _>>();
         for (group_dn, member_dns) in memberships {
             let members = member_dns
                 .iter()
                 .filter_map(|member_dn| {
-                    if user_dns.contains(member_dn) {
-                        all_ldap_users
-                            .iter()
-                            .find(|user| self.config.user_dn(user) == *member_dn)
-                    } else {
-                        None
-                    }
+                    users_by_dn
+                        .get(&self.config.dn_match_key(member_dn))
+                        .copied()
                 })
                 .collect::<HashSet<_>>();
             let group_name = extract_rdn_value(&group_dn).unwrap();

@@ -1891,6 +1891,58 @@ async fn test_fix_missing_user_path(_: PgPoolOptions, options: PgConnectOptions)
     }
 }
 
+/// A group member the directory spells with `\,` must resolve to the user it names.
+#[sqlx::test]
+async fn test_sync_resolves_membership_for_comma_in_rdn(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("directory-group").save(&pool).await.unwrap();
+    let path = "OU=Members,DC=example,DC=com";
+    let ldap_user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+    let directory_dn = format!(r"CN=Doe\, John - jdoe,{path}");
+    assert_ne!(config.user_dn(&ldap_user), Dn::from(directory_dn.as_str()));
+
+    let mut defguard_user = ldap_user.clone();
+    defguard_user.from_ldap = true;
+    let defguard_user = defguard_user.save(&pool).await.unwrap();
+
+    ldap_conn
+        .test_client_mut()
+        .add_test_user_with_dn(&ldap_user, &directory_dn);
+    let ldap_group = group.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_group(&ldap_group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership_with_dn(&ldap_group, &directory_dn, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        group.member_usernames(&pool).await.unwrap(),
+        vec![defguard_user.username]
+    );
+}
 /// A dry run must preview the additions/removals a full sync would make while writing nothing
 /// to LDAP or the Defguard database. This guards the hard "no import" requirement of the LDAP
 /// setup preview.
@@ -3204,6 +3256,35 @@ async fn test_get_empty_user_path(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[test]
+fn test_dn_match_key_reconciles_escape_spellings() {
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    let path = "OU=Members,DC=example,DC=com";
+    let user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+
+    let member_dn = format!(r"CN=Doe\, John - jdoe,{path}");
+    let rebuilt = config.user_dn(&user);
+    assert_ne!(Dn::from(member_dn.as_str()), rebuilt);
+    assert_eq!(config.dn_match_key(&member_dn), rebuilt);
+
+    // Either spelling a server may choose lands on one key.
+    let hexpair_dn = format!(r"CN=Doe\2c John - jdoe,{path}");
+    assert_eq!(
+        config.dn_match_key(&hexpair_dn),
+        config.dn_match_key(&member_dn)
+    );
+
+    assert_eq!(config.dn_match_key("value"), Dn::from("value"));
+}
+
+#[test]
 fn test_extract_dn_value() {
     assert_eq!(
         extract_rdn_value("cn=testuser,dc=example,dc=com"),
@@ -3364,6 +3445,31 @@ fn test_from_searchentry() {
         assert!(matches!(
             result.unwrap_err(),
             LdapError::InvalidDN(dn) if dn == "user1,dc=example,dc=com"
+        ));
+    }
+
+    // escaped RDN value
+    {
+        let mut attrs = HashMap::new();
+        attrs.insert("sn".to_owned(), vec!["lastname1".to_owned()]);
+        attrs.insert("givenName".to_owned(), vec!["firstname1".to_owned()]);
+        attrs.insert("mail".to_owned(), vec!["user1@example.com".to_owned()]);
+
+        let entry = LdapEntry::new(
+            r"cn=Doe\, John,ou=users,dc=example,dc=com".into(),
+            attrs.clone(),
+        );
+        let user = user_from_searchentry(&entry, "jdoe", None, &LDAPConfig::default()).unwrap();
+        assert_eq!(user.ldap_rdn.as_deref(), Some("Doe, John"));
+        assert_eq!(
+            user.ldap_user_path.as_deref(),
+            Some("ou=users,dc=example,dc=com")
+        );
+
+        let entry = LdapEntry::new(r"cn=bad\ff,dc=example,dc=com".into(), attrs);
+        assert!(matches!(
+            user_from_searchentry(&entry, "jdoe", None, &LDAPConfig::default()),
+            Err(LdapError::InvalidDN(_))
         ));
     }
 
@@ -3775,6 +3881,21 @@ fn test_extract_dn_path_various_cases() {
         extract_dn_path(" cn=abc ,dc=example,dc=com "),
         Some("dc=example,dc=com ".to_owned())
     );
+
+    assert_eq!(
+        extract_dn_path(r"cn=Doe\, John,ou=users,dc=example,dc=com"),
+        Some("ou=users,dc=example,dc=com".to_owned())
+    );
+    assert_eq!(
+        extract_dn_path(r"cn=Doe\2c John,ou=users,dc=example,dc=com"),
+        Some("ou=users,dc=example,dc=com".to_owned())
+    );
+    // An escaped backslash does not protect the comma after it.
+    assert_eq!(
+        extract_dn_path(r"cn=a\\,dc=example,dc=com"),
+        Some("dc=example,dc=com".to_owned())
+    );
+    assert_eq!(extract_dn_path(r"cn=Doe\,John"), None);
 }
 
 #[sqlx::test]

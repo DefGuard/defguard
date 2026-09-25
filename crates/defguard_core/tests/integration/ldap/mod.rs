@@ -1718,3 +1718,68 @@ async fn test_sync_skips_referral_pdus_without_aborting(
     let _ = ldap_conn.delete_user(&user).await;
     let _ = ldap_conn.delete_group("referral_grp").await;
 }
+
+/// A comma in the RDN value must not stop the sync from applying the group membership.
+///
+/// Only a real server chooses the escape spelling, which is what makes this worth a live test.
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_sync_pulls_membership_for_comma_in_rdn(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    const TEST_GROUP: &str = "comma_rdn_group";
+    set_sync_settings(&pool, TEST_GROUP, true).await;
+
+    // The comma belongs in the RDN, so the username must come from a different attribute than the
+    // one `just test-ldap` sets: `check_username` rejects a comma.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_username_attr = Some(if env::var("LDAP_USES_AD").is_ok() {
+        "sAMAccountName".to_owned()
+    } else {
+        "uid".to_owned()
+    });
+    settings.ldap_user_rdn_attr = Some("cn".to_owned());
+    set_settings(Some(settings));
+
+    let mut user = User::new(
+        "comma_rdn_user",
+        Some("pass123"),
+        "Person",
+        "Example",
+        "comma.rdn@test.defguard",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    user.ldap_rdn = Some("Example, Person".to_owned());
+
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+    let _ = ldap_conn.delete_user(&user).await;
+    let _ = ldap_conn.delete_group(TEST_GROUP).await;
+
+    ldap_conn
+        .add_user(&mut user, Some("pass123"), &pool)
+        .await
+        .unwrap();
+    ldap_conn
+        .add_user_to_group(&user, TEST_GROUP)
+        .await
+        .unwrap();
+
+    sync_ldap(&mut ldap_conn, &pool, true, &wg_tx).await;
+
+    let synced = User::find_by_username(&pool, "comma_rdn_user")
+        .await
+        .unwrap()
+        .expect("user should still exist after sync");
+    let groups = synced.member_of_names(&pool).await.unwrap();
+    assert!(
+        groups.iter().any(|group| group == TEST_GROUP),
+        "expected {TEST_GROUP} in {groups:?}"
+    );
+
+    ldap_conn.delete_group(TEST_GROUP).await.unwrap();
+    ldap_conn.delete_user(&user).await.unwrap();
+}

@@ -14,6 +14,7 @@ use sqlx::{PgExecutor, query_as};
 
 use super::{
     LDAPConfig,
+    dn::{find_unescaped_separator, unescape_value},
     error::{LdapError, sanitize_ldap_string},
 };
 use crate::{handlers::user::check_username, hashset};
@@ -443,14 +444,19 @@ pub(super) fn group_in_list(groups: &[String], name: &str) -> bool {
         .any(|g| g.to_lowercase() == name.to_lowercase())
 }
 
-/// Get first value from distinguished name, for example: cn=<value>,...
+/// Splits a DN into the still-escaped value of its first component and the path after it.
+#[must_use]
+pub(super) fn split_first_rdn(dn: &str) -> Option<(&str, &str)> {
+    let comma_index = find_unescaped_separator(dn, b',')?;
+    let rdn = &dn[..comma_index];
+    let eq_index = find_unescaped_separator(rdn, b'=')?;
+    Some((&rdn[(eq_index + 1)..], &dn[(comma_index + 1)..]))
+}
+
+/// Returns the unescaped value of the first component, so `cn=Doe\, John,ou=x` gives `Doe, John`.
 #[must_use]
 pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
-    if let (Some(eq_index), Some(comma_index)) = (dn.find('='), dn.find(',')) {
-        dn.get((eq_index + 1)..comma_index).map(str::to_owned)
-    } else {
-        None
-    }
+    split_first_rdn(dn).and_then(|(value, _)| unescape_value(value))
 }
 
 /// Returns true only for a SearchResultEntry (LDAP protocol op id 4).
@@ -463,18 +469,17 @@ pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
     entry.0.id == 4
 }
 
-/// Extract the remaining part of the distinguished name after the first comma, for example:
-/// `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
+/// Returns the part after the first unescaped comma, so `cn=Doe\, John,ou=x` gives `ou=x`.
 #[must_use]
 pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
-    if let Some(parts) = dn.split_once(',') {
-        let path = parts.1.to_owned();
-        debug!("Extracted DN path '{path}' from DN '{dn}'");
-        Some(path)
-    } else {
+    let Some(comma_index) = find_unescaped_separator(dn, b',') else {
         warn!("Failed to extract DN path from '{dn}': no comma found");
-        None
-    }
+        return None;
+    };
+
+    let path = dn[(comma_index + 1)..].to_owned();
+    debug!("Extracted DN path '{path}' from DN '{dn}'");
+    Some(path)
 }
 
 #[cfg(test)]
