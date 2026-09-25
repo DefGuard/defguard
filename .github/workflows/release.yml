@@ -1,82 +1,128 @@
 name: Make a new release
+run-name: ${{ inputs.draft && format('Draft v{0}', inputs.version) || format('Rehearsal {0}', github.ref_name) }}
 on:
-  push:
-    tags:
-      - v*.*.*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the v prefix, for example 2.2.0 or 2.2.0-beta1. Leave empty for a rehearsal."
+        required: false
+        type: string
+        default: ""
+      draft:
+        description: "Create the draft release. Nothing becomes public until you publish the draft."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   packages: write
   id-token: write
 
+# A rehearsal must not cancel a release, and a new dispatch must not cancel a running one.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.draft }}
+  cancel-in-progress: false
 
 jobs:
-  build-docker-release:
-    # Ignore tags with -, like v1.0.0-alpha
-    # This job will build the docker container with the "latest" tag which
-    # is a tag used in production, thus it should only be run for full releases.
-    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
-    name: Build Release Docker image
-    uses: ./.github/workflows/build-docker.yml
-    with:
-      build-version: ${{ github.ref_name }}
-      tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=sha
-      # Explicitly disable latest tag. It will be added otherwise.
-      flavor: |
-        latest=false
-
-  build-docker-prerelease:
-    # Only build tags with -, like v1.0.0-alpha
-    if: startsWith(github.ref, 'refs/tags/') && contains(github.ref, '-')
-    name: Build Pre-release Docker image
-    uses: ./.github/workflows/build-docker.yml
-    with:
-      build-version: ${{ github.ref_name }}
-      tags: |
-        type=raw,value=pre-release
-        type=semver,pattern={{version}}
-        type=sha
-      # Explicitly disable latest tag. It will be added otherwise.
-      flavor: |
-        latest=false
-
-  create-release:
-    name: create-release
-    runs-on: self-hosted
+  precheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
     outputs:
-      upload_url: ${{ steps.release.outputs.upload_url }}
+      version: ${{ steps.gates.outputs.version }}
     steps:
-      - name: Create GitHub release
-        id: release
-        uses: shogo82148/actions-create-release@6a396031bc74c57403da1018fec74d24c6aa03cd # v1.9.0
-        with:
-          draft: true
-          generate_release_notes: true
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Check release gates
+        id: gates
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          DRAFT: ${{ inputs.draft }}
+          VERSION_FILE: crates/defguard_common/Cargo.toml
+        run: |
+          set -euo pipefail
+          FILE_VERSION=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$VERSION_FILE" | head -n 1)
+          VERSION=${INPUT_VERSION:-$FILE_VERSION}
+
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Version '$VERSION' is not MAJOR.MINOR.PATCH with an optional -suffix"
+            exit 1
+          fi
+          # Only the tag carries the pre-release suffix, so compare the numeric part with the file.
+          if [[ ${VERSION%%-*} != "$FILE_VERSION" ]]; then
+            echo "::error file=$VERSION_FILE::Version $VERSION does not match version $FILE_VERSION in $VERSION_FILE"
+            exit 1
+          fi
+
+          # A rehearsal must run while its own issue is open, so these gates apply only to a draft.
+          if [[ $DRAFT == true ]]; then
+            if [[ -z $INPUT_VERSION ]]; then
+              echo "::error::A draft needs the version input"
+              exit 1
+            fi
+
+            rc=0
+            git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null || rc=$?
+            if [[ $rc -eq 0 ]]; then
+              echo "::error::Tag v$VERSION exists. The Publish click on the draft creates the tag, so do not push it."
+              exit 1
+            elif [[ $rc -ne 2 ]]; then
+              echo "::error::git ls-remote failed with exit code $rc"
+              exit 1
+            fi
+
+            # alert-issue titles have the form "[source] branch: summary".
+            BLOCKERS=$(gh issue list --label release-blocker --state open --limit 200 --json title,url \
+              --jq '.[] | select(.title | contains("] " + env.GITHUB_REF_NAME + ":")) | .url')
+            if [[ -n $BLOCKERS ]]; then
+              echo "::error::Open release-blocker issues for $GITHUB_REF_NAME. A green rehearsal (draft=false) closes its own issue."
+              echo "$BLOCKERS"
+              exit 1
+            fi
+          fi
+
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-docker:
+    needs:
+      - precheck
+    name: Build Docker image
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      build-version: ${{ needs.precheck.outputs.version }}
+      # Public tags wait for the Publish click on the draft, so this build pushes only the sha tags.
+      tags: |
+        type=sha
+      # Explicitly disable latest tag. It will be added otherwise.
+      flavor: |
+        latest=false
 
   create-sbom:
     needs:
-      - create-release
-      - build-docker-release
+      - precheck
+      - build-docker
     uses: ./.github/workflows/sbom.yml
     with:
-      upload_url: ${{ needs.create-release.outputs.upload_url }}
+      version: ${{ needs.precheck.outputs.version }}
 
   build-binaries:
     needs:
-      - create-release
+      - precheck
     runs-on:
       - self-hosted
       - Linux
       - X64
+    timeout-minutes: 120
     env:
+      VERSION: ${{ needs.precheck.outputs.version }}
+      DEFGUARD_BUILD_VERSION: ${{ needs.precheck.outputs.version }}
       SQLX_OFFLINE: "1"
       # Force the installed stable toolchain. RUSTUP_TOOLCHAIN takes precedence
       # over any stale rustup directory override left on the self-hosted runner.
@@ -84,15 +130,9 @@ jobs:
       # sccache
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      # stay until the post step prints stats.
+      SCCACHE_IDLE_TIMEOUT: "7200"
     steps:
-      # Store the version, stripping any v-prefix
-      - name: Write release version
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo Version: $VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "DEFGUARD_BUILD_VERSION=$VERSION" >> $GITHUB_ENV
-
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -117,18 +157,29 @@ jobs:
           pnpm install --ignore-scripts --frozen-lockfile
           pnpm build
 
+      - name: Start FreeBSD build
+        run: |
+          rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
+          (
+            rc=0
+            ssh root@freebsd "cd work/defguard && env DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release" || rc=$?
+            # The rename keeps the wait loop from reading a half-written file.
+            echo "$rc" > "$RUNNER_TEMP/freebsd.rc.tmp"
+            mv "$RUNNER_TEMP/freebsd.rc.tmp" "$RUNNER_TEMP/freebsd.rc"
+          ) > "$RUNNER_TEMP/freebsd.log" 2>&1 < /dev/null &
+          echo $! > "$RUNNER_TEMP/freebsd.pid"
+
       - name: Build source code archive
         run: tar --exclude='.github' --exclude-vcs --exclude-vcs-ignores --xform='s|^\./|defguard-${{ env.VERSION }}/|' --xz -cf ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz .
 
       - name: Upload source code archive
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz
-          asset_content_type: application/x-xz
+          name: source
+          path: ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz
+          if-no-files-found: error
           overwrite: true
+          retention-days: 7
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -139,27 +190,30 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
-      - name: Build Linux x86_64 binary
-        run: |
-          cargo build --locked --release --target x86_64-unknown-linux-gnu
-          mv target/x86_64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
-          tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.tar.gz \
-            defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
-
-      - name: Build Linux aarch64 binary
+      # With codegen-units = 1 the end of a build uses few cores, so one cargo run for both targets fills the idle ones.
+      - name: Build Linux binaries
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          PKG_CONFIG_SYSROOT_DIR: /usr/lib/aarch64-linux-gnu
+          # The target suffix keeps this sysroot out of the x86_64 build in the same cargo run.
+          PKG_CONFIG_SYSROOT_DIR_aarch64_unknown_linux_gnu: /usr/lib/aarch64-linux-gnu
         run: |
-          cargo build --locked --release --target aarch64-unknown-linux-gnu
-          mv target/aarch64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
-          tar -zcf defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.tar.gz \
-            defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
+          cargo build --locked --release --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
+          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
+            mv "target/$target/release/defguard" "defguard-${{ env.VERSION }}-$target"
+            tar -zcf "defguard-${{ env.VERSION }}-$target.tar.gz" "defguard-${{ env.VERSION }}-$target"
+          done
 
-      - name: Build FreeBSD binary
+      - name: Wait for FreeBSD build
         run: |
-          rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
-          ssh root@freebsd "cd work/defguard && env DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release"
+          # kill -0 ends the wait if the background build stopped before it wrote its exit code.
+          while [[ ! -f $RUNNER_TEMP/freebsd.rc ]] && kill -0 "$(cat "$RUNNER_TEMP/freebsd.pid")" 2> /dev/null; do
+            sleep 10
+          done
+          cat "$RUNNER_TEMP/freebsd.log"
+          if [[ $(cat "$RUNNER_TEMP/freebsd.rc" 2> /dev/null) != 0 ]]; then
+            echo "::error::The FreeBSD build failed. Its output is above."
+            exit 1
+          fi
           scp root@freebsd:work/defguard/target/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
           tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
@@ -171,8 +225,7 @@ jobs:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture amd64
+          fpm_opts: "--architecture amd64
             --output-type deb
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
@@ -188,8 +241,7 @@ jobs:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture arm64
+          fpm_opts: "--architecture arm64
             --output-type deb
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
@@ -205,8 +257,7 @@ jobs:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture amd64
+          fpm_opts: "--architecture amd64
             --output-type rpm
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm
@@ -222,8 +273,7 @@ jobs:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture arm64
+          fpm_opts: "--architecture arm64
             --output-type rpm
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm
@@ -239,8 +289,7 @@ jobs:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
             freebsd/defguard=/usr/local/etc/rc.d/defguard
             .env.example=/etc/defguard/core.conf.sample"
-          fpm_opts:
-            "--architecture amd64
+          fpm_opts: "--architecture amd64
             --output-type freebsd
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
@@ -248,93 +297,30 @@ jobs:
             --depends openssl
             --after-install freebsd/post-install.sh"
 
-      - name: Upload Linux x86_64 archive
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload binaries and packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.tar.gz
-          asset_content_type: application/gzip
+          name: binaries
+          path: |
+            defguard-${{ env.VERSION }}-*.tar.gz
+            defguard-${{ env.VERSION }}-*.deb
+            defguard-${{ env.VERSION }}-*.rpm
+            defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
+          if-no-files-found: error
           overwrite: true
-
-      - name: Upload Linux aarch64 archive
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.tar.gz
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload FreeBSD x86_64 archive
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload Linux x86_64 DEB
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload Linux aarch64 DEB
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload Linux x86_64 RPM
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload Linux aarch64 RPM
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm
-          asset_content_type: application/gzip
-          overwrite: true
-
-      - name: Upload FreeBSD package
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
-          asset_content_type: application/x-pkg
-          overwrite: true
+          retention-days: 7
 
   ubuntu-22-04-build:
     needs:
-      - create-release
+      - precheck
     runs-on:
       - self-hosted
       - Linux
       - ${{ matrix.architecture }}
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.precheck.outputs.version }}
+      DEFGUARD_BUILD_VERSION: ${{ needs.precheck.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -365,12 +351,6 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           submodules: recursive
-
-      - name: Write release version
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo Version: $VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install NodeJS
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -419,11 +399,134 @@ jobs:
             ".env.example=/etc/defguard/core.conf"
 
       - name: Upload ubuntu-22-04-lts DEB
-        uses: shogo82148/actions-upload-release-asset@394b3c11c3cfc038b5396ad265c074065cf875c3 # v1.10.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-${{ matrix.deb_arch }}_ubuntu-22-04-lts.deb
-          asset_content_type: application/gzip
+          name: ubuntu-22-04-${{ matrix.deb_arch }}
+          path: defguard-${{ env.VERSION }}-${{ matrix.deb_arch }}_ubuntu-22-04-lts.deb
+          if-no-files-found: error
           overwrite: true
+          retention-days: 7
+
+  assemble:
+    needs:
+      - precheck
+      - build-docker
+      - build-binaries
+      - ubuntu-22-04-build
+      - create-sbom
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: write
+    env:
+      VERSION: ${{ needs.precheck.outputs.version }}
+      GHCR_REPO: ghcr.io/defguard/defguard
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download build output
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          # docker/build-push-action adds a .dockerbuild record to the run, so download only the release artifacts.
+          pattern: "{source,binaries,sbom,ubuntu-22-04-*}"
+          merge-multiple: true
+
+      - name: Record the Docker image digest
+        env:
+          DIGEST: ${{ needs.build-docker.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [[ ! $DIGEST =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::The Docker build returned no image digest: '$DIGEST'"
+            exit 1
+          fi
+          # Later runs of the same commit move its sha tag, so the draft names this build by digest.
+          echo "$GHCR_REPO@$DIGEST" > "dist/defguard-$VERSION-docker-image.txt"
+
+      - name: Compare build output with the expected release assets
+        run: |
+          set -euo pipefail
+          expected=(
+            "defguard-$VERSION.tar.xz"
+            "defguard-$VERSION-x86_64-unknown-linux-gnu.tar.gz"
+            "defguard-$VERSION-aarch64-unknown-linux-gnu.tar.gz"
+            "defguard-$VERSION-x86_64-unknown-freebsd.tar.gz"
+            "defguard-$VERSION-x86_64-unknown-linux-gnu.deb"
+            "defguard-$VERSION-aarch64-unknown-linux-gnu.deb"
+            "defguard-$VERSION-x86_64-unknown-linux-gnu.rpm"
+            "defguard-$VERSION-aarch64-unknown-linux-gnu.rpm"
+            "defguard-${VERSION}_x86_64-unknown-freebsd.pkg"
+            "defguard-$VERSION-amd64_ubuntu-22-04-lts.deb"
+            "defguard-$VERSION-arm64_ubuntu-22-04-lts.deb"
+            "defguard-$VERSION.sbom.json"
+            "defguard-$VERSION-docker.sbom.json"
+            "defguard-$VERSION.advisories.json"
+            "defguard-$VERSION-docker.advisories.json"
+            "defguard-$VERSION-docker-image.txt"
+          )
+          if ! diff <(printf '%s\n' "${expected[@]}" | sort) <(ls dist | sort); then
+            echo "::error::The build output does not match the expected release assets"
+            exit 1
+          fi
+
+      - name: Create or update the draft release
+        if: inputs.draft
+        run: |
+          set -euo pipefail
+          export TAG="v$VERSION"
+          # The tags endpoint returns 404 for a draft, so find the draft in the release list.
+          DRAFTS=$(gh api "repos/$GH_REPO/releases" --paginate --jq '.[] | select(.draft and .tag_name == env.TAG) | .id')
+          case $(wc -w <<< "$DRAFTS") in
+            0)
+              ARGS=(--draft --target "$GITHUB_SHA" --title "$TAG" --generate-notes)
+              if [[ $VERSION == *-* ]]; then ARGS+=(--prerelease); fi
+              gh release create "$TAG" "${ARGS[@]}"
+              ;;
+            1)
+              gh api --method PATCH "repos/$GH_REPO/releases/$DRAFTS" -f target_commitish="$GITHUB_SHA" > /dev/null
+              ;;
+            *)
+              echo "::error::More than one draft release has the tag $TAG. Delete the stale drafts."
+              exit 1
+              ;;
+          esac
+
+      - name: Upload release assets
+        if: inputs.draft
+        run: |
+          for attempt in 1 2 3; do
+            gh release upload "v$VERSION" dist/* --clobber && exit 0
+            echo "::warning::Upload attempt $attempt failed"
+            sleep 30
+          done
+          exit 1
+
+      - name: Close the rehearsal issue of this branch
+        if: ${{ !inputs.draft }}
+        run: |
+          set -euo pipefail
+          ISSUES=$(gh issue list --label release-blocker --state open --limit 200 --json number,title \
+            --jq '.[] | select(.title | startswith("[rehearsal] " + env.GITHUB_REF_NAME + ":")) | .number')
+          for issue in $ISSUES; do
+            gh issue close "$issue" --comment "The rehearsal passed: $GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
+          done
+
+  alert:
+    needs:
+      - precheck
+      - build-docker
+      - build-binaries
+      - ubuntu-22-04-build
+      - create-sbom
+      - assemble
+    if: failure() && !inputs.draft
+    uses: ./.github/workflows/alert-e2e-failure.yml
+    with:
+      source: rehearsal
+      extra_labels: ""
+      workflow: release.yml
+      failure_summary: release rehearsal failed
+    secrets:
+      ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}
