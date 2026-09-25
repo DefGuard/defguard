@@ -1,5 +1,6 @@
 use std::{net::IpAddr, sync::OnceLock};
 
+use chrono_tz::Tz;
 use clap::{Args, Parser, Subcommand, value_parser};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
@@ -64,6 +65,11 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
+
+    /// IANA time zone (e.g. `Europe/Warsaw`) used when rendering timestamps
+    /// in outgoing e-mail notifications.
+    #[arg(long, env = "DEFGUARD_MAIL_TIMEZONE", default_value = "UTC")]
+    pub mail_timezone: Tz,
 
     // Certificate and key for gRPC communication over HTTPS.
     // Kept in runtime config for backwards compatibility - workers still use this.
@@ -354,6 +360,7 @@ impl DefGuardConfig {
             database_pool_size: 10,
             http_port: 8000,
             grpc_port: 50055,
+            mail_timezone: Tz::UTC,
             grpc_cert: None,
             grpc_key: None,
             openid_signing_key: None,
