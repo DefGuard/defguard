@@ -130,6 +130,8 @@ jobs:
       # sccache
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      # stay until the post step prints stats.
+      SCCACHE_IDLE_TIMEOUT: "7200"
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -155,6 +157,18 @@ jobs:
           pnpm install --ignore-scripts --frozen-lockfile
           pnpm build
 
+      - name: Start FreeBSD build
+        run: |
+          rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
+          (
+            rc=0
+            ssh root@freebsd "cd work/defguard && env DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release" || rc=$?
+            # The rename keeps the wait loop from reading a half-written file.
+            echo "$rc" > "$RUNNER_TEMP/freebsd.rc.tmp"
+            mv "$RUNNER_TEMP/freebsd.rc.tmp" "$RUNNER_TEMP/freebsd.rc"
+          ) > "$RUNNER_TEMP/freebsd.log" 2>&1 < /dev/null &
+          echo $! > "$RUNNER_TEMP/freebsd.pid"
+
       - name: Build source code archive
         run: tar --exclude='.github' --exclude-vcs --exclude-vcs-ignores --xform='s|^\./|defguard-${{ env.VERSION }}/|' --xz -cf ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz .
 
@@ -176,27 +190,30 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
 
-      - name: Build Linux x86_64 binary
-        run: |
-          cargo build --locked --release --target x86_64-unknown-linux-gnu
-          mv target/x86_64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
-          tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.tar.gz \
-            defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
-
-      - name: Build Linux aarch64 binary
+      # With codegen-units = 1 the end of a build uses few cores, so one cargo run for both targets fills the idle ones.
+      - name: Build Linux binaries
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          PKG_CONFIG_SYSROOT_DIR: /usr/lib/aarch64-linux-gnu
+          # The target suffix keeps this sysroot out of the x86_64 build in the same cargo run.
+          PKG_CONFIG_SYSROOT_DIR_aarch64_unknown_linux_gnu: /usr/lib/aarch64-linux-gnu
         run: |
-          cargo build --locked --release --target aarch64-unknown-linux-gnu
-          mv target/aarch64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
-          tar -zcf defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.tar.gz \
-            defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
+          cargo build --locked --release --target x86_64-unknown-linux-gnu --target aarch64-unknown-linux-gnu
+          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
+            mv "target/$target/release/defguard" "defguard-${{ env.VERSION }}-$target"
+            tar -zcf "defguard-${{ env.VERSION }}-$target.tar.gz" "defguard-${{ env.VERSION }}-$target"
+          done
 
-      - name: Build FreeBSD binary
+      - name: Wait for FreeBSD build
         run: |
-          rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
-          ssh root@freebsd "cd work/defguard && env DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release"
+          # kill -0 ends the wait if the background build stopped before it wrote its exit code.
+          while [[ ! -f $RUNNER_TEMP/freebsd.rc ]] && kill -0 "$(cat "$RUNNER_TEMP/freebsd.pid")" 2> /dev/null; do
+            sleep 10
+          done
+          cat "$RUNNER_TEMP/freebsd.log"
+          if [[ $(cat "$RUNNER_TEMP/freebsd.rc" 2> /dev/null) != 0 ]]; then
+            echo "::error::The FreeBSD build failed. Its output is above."
+            exit 1
+          fi
           scp root@freebsd:work/defguard/target/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
           tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
@@ -208,8 +225,7 @@ jobs:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture amd64
+          fpm_opts: "--architecture amd64
             --output-type deb
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
@@ -225,8 +241,7 @@ jobs:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture arm64
+          fpm_opts: "--architecture arm64
             --output-type deb
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
@@ -242,8 +257,7 @@ jobs:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture amd64
+          fpm_opts: "--architecture amd64
             --output-type rpm
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm
@@ -259,8 +273,7 @@ jobs:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts:
-            "--architecture arm64
+          fpm_opts: "--architecture arm64
             --output-type rpm
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm
@@ -276,8 +289,7 @@ jobs:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
             freebsd/defguard=/usr/local/etc/rc.d/defguard
             .env.example=/etc/defguard/core.conf.sample"
-          fpm_opts:
-            "--architecture amd64
+          fpm_opts: "--architecture amd64
             --output-type freebsd
             --version ${{ env.VERSION }}
             --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
