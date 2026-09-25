@@ -182,7 +182,7 @@ pub(super) async fn verify(
                 .ok_or(VerifyError::MissingChallenge)?;
             // The client sends binary as base64url, matching how webauthn-rs writes
             // the credential ids it was offered.
-            let signature = decode_proof_field(proof.auth_pub_key.as_ref(), "Signature")?;
+            let signature = decode_proof_field(proof.fido2_signature.as_ref(), "Signature")?;
             let auth_data = proof
                 .auth_data
                 .as_ref()

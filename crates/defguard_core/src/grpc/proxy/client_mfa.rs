@@ -65,7 +65,7 @@ use crate::{
             Fido2Assertion, MobileApprovalProof, StartRejectionReason, StartResult, StepCredential,
             StepError, StepFinishError, StepProof, StepRejection,
         },
-        types::{FinishOutcome, StartOutcome},
+        types::{FinishOutcome, LegacyFinishOutcome, LegacyStartOutcome, MultiStepStartOutcome},
     },
 };
 
@@ -575,7 +575,7 @@ impl ClientMfaServer {
                 &device,
                 &user,
                 flow.id,
-                vec![first_step_methods],
+                first_step_methods,
                 selected_client_method,
             )
             .await?;
@@ -642,7 +642,7 @@ impl ClientMfaServer {
             .await?
         {
             StartResult::Accepted(start_outcome) => {
-                let StartOutcome {
+                let MultiStepStartOutcome {
                     token,
                     step_attempt_id,
                     challenge,
@@ -687,7 +687,7 @@ impl ClientMfaServer {
     /// the response.
     fn finish_start(
         &self,
-        start_outcome: StartOutcome,
+        start_outcome: LegacyStartOutcome,
         user: &User<Id>,
         ip: IpAddr,
         device: &Device<Id>,
@@ -1203,7 +1203,7 @@ impl ClientMfaServer {
 
         let is_mobile_signature = method == VpnClientMfaMethod::MobileApprove;
         let preshared_key = match &outcome {
-            FinishOutcome::Completed { preshared_key } => {
+            LegacyFinishOutcome::Completed { preshared_key } => {
                 if is_mobile_signature {
                     if let Some((waiter, waiter_key)) =
                         take_legacy_remote_mfa_waiter(&self.remote_mfa_responses, &token)
@@ -1219,7 +1219,7 @@ impl ClientMfaServer {
                     preshared_key.clone()
                 }
             }
-            FinishOutcome::Advanced { .. } | FinishOutcome::AwaitingExternal => String::new(),
+            LegacyFinishOutcome::AwaitingExternal => String::new(),
         };
 
         Ok(ClientMfaFinishResponse {

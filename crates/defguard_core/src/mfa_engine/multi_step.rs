@@ -17,7 +17,7 @@ use super::{
     error::{FinishCoreError, StartError},
     filter_unlicensed_mfa_methods,
     method::{Verdict, VerifyError, check_mobile_approval, verify, verify_mobile_signature},
-    types::{FinishOutcome, StartOutcome, VerificationProof},
+    types::{FinishOutcome, MultiStepStartOutcome, VerificationProof},
 };
 use crate::{
     enterprise::is_business_license_active,
@@ -126,7 +126,7 @@ pub struct StepRejection {
 /// Result of a multi-step start. Rejected plans create no session, token, or event.
 #[derive(Debug)]
 pub enum StartResult {
-    Accepted(StartOutcome),
+    Accepted(MultiStepStartOutcome),
     Rejected(Vec<StepRejection>),
 }
 
@@ -136,7 +136,7 @@ pub enum StartResult {
 pub struct StepStarted {
     pub step_attempt_id: String,
     pub challenge: Option<String>,
-    /// FIDO2 only: see [`StartOutcome::credential_ids`].
+    /// FIDO2 only: see [`MultiStepStartOutcome::credential_ids`].
     pub credential_ids: Vec<String>,
 }
 
@@ -146,7 +146,8 @@ impl TryFrom<StepProof> for VerificationProof {
     fn try_from(proof: StepProof) -> Result<Self, Self::Error> {
         let mut normalized = Self {
             code: None,
-            auth_pub_key: None,
+            mobile_pub_key: None,
+            fido2_signature: None,
             auth_data: None,
             credential_id: None,
         };
@@ -167,8 +168,9 @@ impl TryFrom<StepProof> for VerificationProof {
                 }
 
                 // The verifier's normalized representation carries the FIDO2 signature as base64
-                // in `auth_pub_key`; the binary fields remain unchanged.
-                normalized.auth_pub_key = Some(BASE64_URL_SAFE_NO_PAD.encode(assertion.signature));
+                // in `fido2_signature`; the binary fields remain unchanged.
+                normalized.fido2_signature =
+                    Some(BASE64_URL_SAFE_NO_PAD.encode(assertion.signature));
                 normalized.auth_data = Some(assertion.authenticator_data);
                 normalized.credential_id = Some(assertion.credential_id);
             }
@@ -276,7 +278,13 @@ impl MfaEngine {
                 selected_methods[0],
             )
             .await?;
-        Ok(StartResult::Accepted(outcome))
+        Ok(StartResult::Accepted(MultiStepStartOutcome {
+            token: outcome.token,
+            step_attempt_id: outcome.step_attempt_id,
+            challenge: outcome.challenge,
+            credential_ids: outcome.credential_ids,
+            superseded_token_hash: outcome.superseded_token_hash,
+        }))
     }
 
     /// Initiate or reissue the current step and bind it to a fresh attempt.
@@ -423,7 +431,10 @@ impl MfaEngine {
 
         let proof = VerificationProof::try_from(proof).map_err(map_proof_conversion_error)?;
         let verdict = if method == VpnClientMfaMethod::MobileApprove {
-            if proof.code.is_some() || proof.auth_pub_key.is_some() {
+            if proof.code.is_some()
+                || proof.mobile_pub_key.is_some()
+                || proof.fido2_signature.is_some()
+            {
                 return Err(StepFinishError::MalformedProof {
                     message: "Mobile approval must use the approve operation",
                 });
@@ -673,7 +684,7 @@ mod tests {
         assert_eq!(proof.credential_id, Some(credential_id));
         assert_eq!(
             BASE64_URL_SAFE_NO_PAD
-                .decode(proof.auth_pub_key.expect("signature should be present"))
+                .decode(proof.fido2_signature.expect("signature should be present"))
                 .expect("signature should remain decodable"),
             signature
         );

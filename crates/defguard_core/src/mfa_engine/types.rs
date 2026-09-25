@@ -3,10 +3,30 @@
 //! These are proto-free: the conversions to and from the proto messages live in the gRPC handler
 //! (`grpc::proxy::client_mfa`), so the engine can be exercised without a transport.
 
-/// Result returned by a start method. `token` is returned exactly once, and
-/// `step_attempt_id` identifies the initial attempt for the multi-step contract.
+/// Internal result of creating a session and its first attempt.
 #[derive(Debug)]
-pub struct StartOutcome {
+pub(crate) struct StartedSession {
+    pub(crate) token: String,
+    pub(crate) step_attempt_id: String,
+    pub(crate) challenge: Option<String>,
+    /// FIDO2 only: the credentials registered for this user, base64url. The
+    /// client offers them to the security key, which answers for the one it
+    /// holds.
+    pub(crate) credential_ids: Vec<String>,
+    pub(crate) superseded_token_hash: Option<String>,
+}
+
+/// Result returned by the legacy start contract.
+#[derive(Debug)]
+pub struct LegacyStartOutcome {
+    pub token: String,
+    pub challenge: Option<String>,
+    pub superseded_token_hash: Option<String>,
+}
+
+/// Result returned by the multi-step start contract.
+#[derive(Debug)]
+pub struct MultiStepStartOutcome {
     pub token: String,
     pub step_attempt_id: String,
     pub challenge: Option<String>,
@@ -24,13 +44,24 @@ pub struct StartOutcome {
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct VerificationProof {
     pub code: Option<String>,
-    /// Legacy mobile public key or base64-encoded FIDO2 signature.
-    pub auth_pub_key: Option<String>,
+    /// Public key used to verify a legacy mobile approval.
+    pub mobile_pub_key: Option<String>,
+    /// Base64-encoded FIDO2 signature in the transitional packed representation.
+    pub fido2_signature: Option<String>,
     /// FIDO2 authenticator data in the transitional packed representation.
     pub auth_data: Option<Vec<u8>>,
     /// FIDO2 credential selected by the client. Names the security key in use, so verification goes
     /// straight to its public key.
     pub credential_id: Option<Vec<u8>>,
+}
+
+/// Outcome returned by the legacy finish contract.
+#[derive(Debug, PartialEq)]
+pub enum LegacyFinishOutcome {
+    /// The single legacy step completed and a preshared key was minted.
+    Completed { preshared_key: String },
+    /// Still waiting for external confirmation (OIDC or mobile auth) to be completed.
+    AwaitingExternal,
 }
 
 /// Outcome returned by a finish operation.

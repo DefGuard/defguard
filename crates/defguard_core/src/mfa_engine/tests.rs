@@ -916,6 +916,10 @@ async fn test_start_legacy_rejects_unlicensed_oidc(_: PgPoolOptions, options: Pg
     attach_device_to_location(&pool, location.id, device.id).await;
 
     let (flow_id, step_methods) = resolve_flow(&pool, location.id, user.id).await;
+    let first_step = step_methods
+        .into_iter()
+        .next()
+        .expect("the flow must have a first step");
     let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
     let error = engine
         .start_legacy(
@@ -923,7 +927,7 @@ async fn test_start_legacy_rejects_unlicensed_oidc(_: PgPoolOptions, options: Pg
             &device,
             &user,
             flow_id,
-            step_methods,
+            first_step,
             VpnClientMfaMethod::Oidc,
         )
         .await
@@ -953,6 +957,10 @@ async fn test_start_legacy_rejects_fido2(_: PgPoolOptions, options: PgConnectOpt
     attach_device_to_location(&pool, location.id, device.id).await;
 
     let (flow_id, step_methods) = resolve_flow(&pool, location.id, user.id).await;
+    let first_step = step_methods
+        .into_iter()
+        .next()
+        .expect("the flow must have a first step");
     let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
     let error = engine
         .start_legacy(
@@ -960,7 +968,7 @@ async fn test_start_legacy_rejects_fido2(_: PgPoolOptions, options: PgConnectOpt
             &device,
             &user,
             flow_id,
-            step_methods,
+            first_step,
             VpnClientMfaMethod::Fido2,
         )
         .await

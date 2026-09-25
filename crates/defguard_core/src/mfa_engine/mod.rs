@@ -36,7 +36,7 @@ use crate::{
         authorize::{EventChannels, build_authorized_gateway_network_info, create_new_session},
         error::{FinishCoreError, StartError},
         method::{InitiateError, initiate, offered_credential_ids},
-        types::{FinishOutcome, StartOutcome},
+        types::{FinishOutcome, StartedSession},
     },
 };
 
@@ -111,7 +111,7 @@ impl MfaEngine {
         steps: Vec<HashSet<VpnClientMfaMethod>>,
         flow_kind: VpnMfaFlowKind,
         method: VpnClientMfaMethod,
-    ) -> Result<StartOutcome, StartError> {
+    ) -> Result<StartedSession, StartError> {
         let ctx = MfaSessionContext {
             location: location.clone(),
             device: device.clone(),
@@ -154,7 +154,7 @@ impl MfaEngine {
             StartError::Internal
         })?;
 
-        Ok(StartOutcome {
+        Ok(StartedSession {
             token: outcome.token,
             step_attempt_id: outcome.step_attempt_id,
             challenge: response_challenge,

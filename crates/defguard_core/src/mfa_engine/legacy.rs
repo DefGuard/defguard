@@ -16,7 +16,7 @@ use super::{
     error::{FinishCoreError, StartError},
     filter_unlicensed_mfa_methods,
     method::{InitiateError, Verdict, VerifyError, verify, verify_mobile_signature},
-    types::{FinishOutcome, StartOutcome, VerificationProof},
+    types::{FinishOutcome, LegacyFinishOutcome, LegacyStartOutcome, VerificationProof},
 };
 use crate::events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
 
@@ -56,7 +56,8 @@ impl From<LegacyProof> for VerificationProof {
     fn from(proof: LegacyProof) -> Self {
         Self {
             code: proof.code,
-            auth_pub_key: proof.auth_pub_key,
+            mobile_pub_key: proof.auth_pub_key,
+            fido2_signature: None,
             auth_data: None,
             credential_id: None,
         }
@@ -71,9 +72,9 @@ impl MfaEngine {
         device: &Device<Id>,
         user: &User<Id>,
         flow_id: Id,
-        steps: Vec<HashSet<VpnClientMfaMethod>>,
+        step: HashSet<VpnClientMfaMethod>,
         selected_method: VpnClientMfaMethod,
-    ) -> Result<StartOutcome, StartError> {
+    ) -> Result<LegacyStartOutcome, StartError> {
         // The legacy contract carries no assertion or credential list, so a FIDO2 session could be
         // started but never finished. Reject it here rather than relying on the caller to.
         if selected_method == VpnClientMfaMethod::Fido2 {
@@ -81,14 +82,8 @@ impl MfaEngine {
             return Err(StartError::Initiate(InitiateError::UnsupportedMethod));
         }
 
-        let steps = steps
-            .into_iter()
-            .map(|step| filter_unlicensed_mfa_methods(&step))
-            .collect::<Vec<_>>();
-        if !steps
-            .first()
-            .is_some_and(|methods| methods.contains(&selected_method))
-        {
+        let step = filter_unlicensed_mfa_methods(&step);
+        if !step.contains(&selected_method) {
             return Err(StartError::MethodNotAvailable);
         }
 
@@ -124,16 +119,23 @@ impl MfaEngine {
             return Err(StartError::MethodNotAvailable);
         }
 
-        self.start_session(
-            location,
-            device,
-            user,
-            flow_id,
-            steps,
-            VpnMfaFlowKind::Legacy,
-            selected_method,
-        )
-        .await
+        let started = self
+            .start_session(
+                location,
+                device,
+                user,
+                flow_id,
+                vec![step],
+                VpnMfaFlowKind::Legacy,
+                selected_method,
+            )
+            .await?;
+
+        Ok(LegacyStartOutcome {
+            token: started.token,
+            challenge: started.challenge,
+            superseded_token_hash: started.superseded_token_hash,
+        })
     }
 
     /// Verify and complete a single-step login through the frozen legacy contract.
@@ -142,7 +144,7 @@ impl MfaEngine {
         token: String,
         proof: LegacyProof,
         ip: IpAddr,
-    ) -> Result<(FinishOutcome, VpnClientMfaMethod), FinishError> {
+    ) -> Result<(LegacyFinishOutcome, VpnClientMfaMethod), FinishError> {
         let proof: VerificationProof = proof.into();
         let loaded = self
             .load_finish_context(&token, VpnMfaFlowKind::Legacy, ip)
@@ -160,7 +162,7 @@ impl MfaEngine {
         // Legacy MobileApprove requires a signature; an empty proof is not a polling request.
         if method == VpnClientMfaMethod::MobileApprove
             && proof.code.is_none()
-            && proof.auth_pub_key.is_none()
+            && proof.mobile_pub_key.is_none()
         {
             if ephemeral.biometric_challenge.is_none() {
                 return Err(FinishError::MissingChallenge);
@@ -174,14 +176,14 @@ impl MfaEngine {
             let signature = proof.code.as_deref().ok_or(FinishError::MalformedProof {
                 message: "Signature not found in request",
             })?;
-            let auth_pub_key =
+            let mobile_pub_key =
                 proof
-                    .auth_pub_key
+                    .mobile_pub_key
                     .as_deref()
                     .ok_or(FinishError::MalformedProof {
                         message: "Authorization device key missing in request",
                     })?;
-            verify_mobile_signature(&self.pool, &ctx, &ephemeral, signature, auth_pub_key).await
+            verify_mobile_signature(&self.pool, &ctx, &ephemeral, signature, mobile_pub_key).await
         } else {
             verify(&self.pool, &ctx, &ephemeral, &proof).await
         };
@@ -190,12 +192,12 @@ impl MfaEngine {
         match verdict {
             Ok(Verdict::Proved) => {
                 if method == VpnClientMfaMethod::MobileApprove {
-                    let auth_pub_key = proof.auth_pub_key.as_deref().ok_or_else(|| {
+                    let mobile_pub_key = proof.mobile_pub_key.as_deref().ok_or_else(|| {
                         error!("Mobile approve auth pub key missing after successful verification");
                         FinishError::Internal
                     })?;
                     mobile_auth_device_name =
-                        BiometricAuth::find_device_name(&self.pool, ctx.user.id, auth_pub_key)
+                        BiometricAuth::find_device_name(&self.pool, ctx.user.id, mobile_pub_key)
                             .await
                             .map_err(|err| {
                                 error!(
@@ -279,6 +281,16 @@ impl MfaEngine {
             )
             .await
             .map_err(map_finish_core_error)?;
+        let outcome = match outcome {
+            FinishOutcome::Completed { preshared_key } => {
+                LegacyFinishOutcome::Completed { preshared_key }
+            }
+            FinishOutcome::AwaitingExternal => LegacyFinishOutcome::AwaitingExternal,
+            FinishOutcome::Advanced { next_step } => {
+                error!("Legacy MFA finish advanced unexpectedly to step {next_step}");
+                return Err(FinishError::Internal);
+            }
+        };
         Ok((outcome, method))
     }
 }
@@ -306,7 +318,8 @@ mod tests {
             }),
             VerificationProof {
                 code: Some("code".to_owned()),
-                auth_pub_key: Some("key".to_owned()),
+                mobile_pub_key: Some("key".to_owned()),
+                fido2_signature: None,
                 auth_data: None,
                 credential_id: None,
             }
