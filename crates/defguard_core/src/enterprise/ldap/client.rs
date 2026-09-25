@@ -11,7 +11,7 @@ use ldap3::{
     drive, ldap_escape,
 };
 
-use super::{LDAPConfig, LDAPConnection, error::LdapError};
+use super::{LDAPConfig, LDAPConnection, dn::find_unescaped_separator, error::LdapError};
 use crate::enterprise::ldap::model::{Dn, LdapEntry, extract_rdn_value, is_search_entry};
 
 const STREAMING_PAGE_SIZE: i32 = 500;
@@ -212,7 +212,9 @@ impl LDAPConnection {
     {
         self.ldap.modify(old_dn, mods).await?;
         if old_dn != new_dn {
-            if let Some((new_rdn, _rest)) = new_dn.split_once(',') {
+            if let Some(new_rdn) =
+                find_unescaped_separator(new_dn, b',').and_then(|index| new_dn.get(..index))
+            {
                 self.ldap.modifydn(old_dn, new_rdn, true, None).await?;
             } else {
                 warn!("Failed to rename LDAP object {old_dn} to {new_dn}, new DN is invalid");
