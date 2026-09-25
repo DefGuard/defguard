@@ -54,6 +54,7 @@ chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
 ] }
+chrono-tz = { version = "0.10", features = ["serde"] }
 claims = "0.8"
 clap = { version = "4.6", features = ["derive", "env"] }
 ctap-hid-fido2 = "3.5"
