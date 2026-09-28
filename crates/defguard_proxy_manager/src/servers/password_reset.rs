@@ -389,6 +389,15 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
+        user.logout_all_sessions(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to log out user sessions: {err}");
+                Status::internal("Failed to log out user sessions".to_owned())
+            })?;
+        Token::delete_user_tokens_of_type(&mut *transaction, user.id, PASSWORD_RESET_TOKEN_TYPE)
+            .await?;
+
         if let Err(err) = password_reset_success_mail(
             &user.email,
             &mut transaction,
