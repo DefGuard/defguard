@@ -112,6 +112,39 @@ jobs:
     with:
       version: ${{ needs.precheck.outputs.version }}
 
+  # This job catches advisories published after the last merge.
+  scan-source:
+    needs:
+      - precheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Scan code with Trivy
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        env:
+          TRIVY_SHOW_SUPPRESSED: 1
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH,MEDIUM"
+          scanners: "vuln"
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@9e1e5806d4a4822de933115878265be9aaa786d9 # v2.82.2
+        with:
+          tool: cargo-deny
+
+      - name: Check RustSec advisories
+        run: cargo deny check advisories --hide-inclusion-graph
+
   build-binaries:
     needs:
       - precheck
@@ -414,6 +447,7 @@ jobs:
       - build-binaries
       - ubuntu-22-04-build
       - create-sbom
+      - scan-source
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -520,6 +554,7 @@ jobs:
       - build-binaries
       - ubuntu-22-04-build
       - create-sbom
+      - scan-source
       - assemble
     if: failure() && !inputs.draft
     uses: ./.github/workflows/alert-e2e-failure.yml
