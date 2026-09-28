@@ -29,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      actions: read
       contents: read
       issues: read
     outputs:
@@ -60,7 +61,6 @@ jobs:
             exit 1
           fi
 
-          # A rehearsal must run while its own issue is open, so these gates apply only to a draft.
           if [[ $DRAFT == true ]]; then
             if [[ -z $INPUT_VERSION ]]; then
               echo "::error::A draft needs the version input"
@@ -83,6 +83,46 @@ jobs:
             if [[ -n $BLOCKERS ]]; then
               echo "::error::Open release-blocker issues for $GITHUB_REF_NAME. A green rehearsal (draft=false) closes its own issue."
               echo "$BLOCKERS"
+              exit 1
+            fi
+
+            # Only a push to dev, release/**, or stable/** starts CI, so this gate also rejects a draft from a feature branch.
+            CI_PROBLEMS=$(gh api --method GET "repos/$GH_REPO/actions/runs" -f head_sha="$GITHUB_SHA" \
+              -f branch="$GITHUB_REF_NAME" -f event=push -F per_page=100 --jq '.workflow_runs |
+                (.[] | select(.conclusion != "success" and .conclusion != "skipped") | "\(.path): \(.conclusion // .status) \(.html_url)"),
+                ([".github/workflows/ci.yml", ".github/workflows/current.yml"] - map(.path) | .[] | "\(.): no run")')
+            if [[ -n $CI_PROBLEMS ]]; then
+              echo "::error::CI for $GITHUB_SHA on $GITHUB_REF_NAME is not green. A push that changes only *.md or LICENSE files starts no CI run."
+              echo "$CI_PROBLEMS"
+              exit 1
+            fi
+
+            # Submodule URLs are relative, so each submodule repository has the owner of this repository.
+            while read -r key path; do
+              url=$(git config -f .gitmodules "${key%.path}.url")
+              repo=$GITHUB_REPOSITORY_OWNER/$(basename "$url" .git)
+              default=$(gh api "repos/$repo" --jq .default_branch)
+              sha=$(git rev-parse "HEAD:$path")
+              merged=false
+              # A submodule repository can lack the release branch or leave it stale, so a commit on its default branch also passes.
+              for branch in "$GITHUB_REF_NAME" "$default"; do
+                status=$(gh api "repos/$repo/compare/$branch...$sha" --jq .status 2> /dev/null) || continue
+                if [[ $status == identical || $status == behind ]]; then
+                  merged=true
+                  break
+                fi
+              done
+              if [[ $merged == false ]]; then
+                echo "::error file=.gitmodules::Submodule $path points to $sha, which is not merged into $GITHUB_REF_NAME or $default of $repo"
+                exit 1
+              fi
+            done < <(git config -f .gitmodules --get-regexp '\.path$')
+
+            export VERSION
+            OPEN=$(gh api "repos/$GH_REPO/milestones?state=all&per_page=100" --paginate \
+              --jq '.[] | select(.title == env.VERSION) | .open_issues')
+            if [[ ${OPEN:-0} != 0 ]]; then
+              echo "::error::Milestone $VERSION has $OPEN open issues or pull requests. Close them, or move them to another milestone."
               exit 1
             fi
           fi
