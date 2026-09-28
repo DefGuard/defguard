@@ -69,7 +69,7 @@ impl PasswordResetServer {
         }
 
         let settings = Settings::get_current_settings();
-        if enrollment.is_session_valid(settings.enrollment_session_timeout().as_secs()) {
+        if enrollment.is_session_valid(settings.password_reset_session_timeout().as_secs()) {
             info!("Password reset session validated: {enrollment:?}.",);
             Ok(enrollment)
         } else {
