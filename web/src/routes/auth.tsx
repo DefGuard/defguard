@@ -48,6 +48,11 @@ function RouteComponent() {
   const navigateToAuthorized = useCallback(
     (user: User) => {
       if (user.is_admin) {
+        if (useAuth.getState().redirectAfterLogin === '/add-location') {
+          useAuth.setState({ redirectAfterLogin: undefined });
+          navigate({ to: '/add-location', replace: true });
+          return;
+        }
         navigate({ to: '/vpn-overview' });
       } else {
         navigate({

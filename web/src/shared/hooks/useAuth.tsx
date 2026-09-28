@@ -12,6 +12,7 @@ type Values = {
   user?: User;
   mfaLogin?: LoginMfaResponse;
   consentData?: unknown;
+  redirectAfterLogin?: '/add-location';
   authSubject: Subject<LoginResponse>;
 };
 
@@ -27,6 +28,7 @@ const defaults: Values = {
   mfaLogin: undefined,
   authSubject: new Subject(),
   consentData: undefined,
+  redirectAfterLogin: undefined,
 };
 
 export const useAuth = create<Store>()(
