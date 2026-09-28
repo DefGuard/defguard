@@ -109,7 +109,7 @@ async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
         } else {
             assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
             client.verify_api_events(&[ApiEventType::UserLoginFailed {
-                message: "Authentication for hpotter failed: invalid password".into(),
+                message: "Authentication for hpotter failed: invalid username or password".into(),
             }]);
         }
     }
