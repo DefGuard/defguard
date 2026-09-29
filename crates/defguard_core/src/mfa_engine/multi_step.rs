@@ -1,6 +1,5 @@
 use std::{collections::HashSet, net::IpAddr};
 
-use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use defguard_common::db::{
     Id,
     models::{
@@ -48,7 +47,7 @@ pub struct Fido2Assertion {
     pub credential_id: Vec<u8>,
 }
 
-/// Error converting a typed proof to the compatibility representation.
+/// Error converting a typed credential to the verifier representation.
 #[derive(Debug, Eq, Error, PartialEq)]
 pub enum ProofConversionError {
     #[error("FIDO2 authenticator data is too short")]
@@ -140,43 +139,38 @@ pub struct StepStarted {
     pub credential_ids: Vec<String>,
 }
 
-impl TryFrom<StepProof> for VerificationProof {
+impl TryFrom<StepCredential> for VerificationProof {
     type Error = ProofConversionError;
 
-    fn try_from(proof: StepProof) -> Result<Self, Self::Error> {
-        let mut normalized = Self {
-            code: None,
-            mobile_pub_key: None,
-            fido2_signature: None,
-            auth_data: None,
-            credential_id: None,
-        };
-
-        match proof.credential {
-            None => {}
-            Some(StepCredential::Code(code) | StepCredential::BiometricSignature(code)) => {
-                normalized.code = Some(code);
+    fn try_from(credential: StepCredential) -> Result<Self, Self::Error> {
+        match credential {
+            StepCredential::Code(code) => Ok(Self::Code(code)),
+            StepCredential::BiometricSignature(signature) => {
+                Ok(Self::BiometricSignature(signature))
             }
-            Some(StepCredential::Fido2(assertion)) => {
+            StepCredential::Fido2(assertion) => {
                 const RP_ID_HASH_LEN: usize = 32;
+                let Fido2Assertion {
+                    rp_id_hash,
+                    authenticator_data,
+                    signature,
+                    credential_id,
+                } = assertion;
 
-                if assertion.authenticator_data.len() < RP_ID_HASH_LEN {
+                if authenticator_data.len() < RP_ID_HASH_LEN {
                     return Err(ProofConversionError::Fido2AuthenticatorDataTooShort);
                 }
-                if assertion.authenticator_data[..RP_ID_HASH_LEN] != assertion.rp_id_hash {
+                if authenticator_data[..RP_ID_HASH_LEN] != rp_id_hash {
                     return Err(ProofConversionError::Fido2RpIdHashMismatch);
                 }
 
-                // The verifier's normalized representation carries the FIDO2 signature as base64
-                // in `fido2_signature`; the binary fields remain unchanged.
-                normalized.fido2_signature =
-                    Some(BASE64_URL_SAFE_NO_PAD.encode(assertion.signature));
-                normalized.auth_data = Some(assertion.authenticator_data);
-                normalized.credential_id = Some(assertion.credential_id);
+                Ok(Self::Fido2 {
+                    signature,
+                    authenticator_data,
+                    credential_id,
+                })
             }
         }
-
-        Ok(normalized)
     }
 }
 
@@ -392,7 +386,10 @@ impl MfaEngine {
         proof: StepProof,
         ip: IpAddr,
     ) -> Result<FinishOutcome, StepFinishError> {
-        let attempt_id = proof.step_attempt_id.clone();
+        let StepProof {
+            step_attempt_id: attempt_id,
+            credential,
+        } = proof;
         let loaded = self
             .load_finish_context(&token, VpnMfaFlowKind::MultiStep, ip)
             .await
@@ -411,7 +408,7 @@ impl MfaEngine {
 
         let method = ephemeral.selected_method;
         let valid_credential = matches!(
-            (&proof.credential, method),
+            (&credential, method),
             (
                 None,
                 VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
@@ -429,19 +426,14 @@ impl MfaEngine {
             });
         }
 
-        let proof = VerificationProof::try_from(proof).map_err(map_proof_conversion_error)?;
+        let proof = credential
+            .map(VerificationProof::try_from)
+            .transpose()
+            .map_err(map_proof_conversion_error)?;
         let verdict = if method == VpnClientMfaMethod::MobileApprove {
-            if proof.code.is_some()
-                || proof.mobile_pub_key.is_some()
-                || proof.fido2_signature.is_some()
-            {
-                return Err(StepFinishError::MalformedProof {
-                    message: "Mobile approval must use the approve operation",
-                });
-            }
             check_mobile_approval(&ephemeral)
         } else {
-            match verify(&self.pool, &ctx, &ephemeral, &proof).await {
+            match verify(&self.pool, &ctx, &ephemeral, proof.as_ref()).await {
                 Ok(verdict) => verdict,
                 Err(VerifyError::MalformedProof { message, event }) => {
                     if let Some(event_message) = event {
@@ -659,48 +651,41 @@ fn map_step_finish_core_error(error: FinishCoreError) -> StepFinishError {
 
 #[cfg(test)]
 mod tests {
-    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-
     use super::*;
 
     #[test]
-    fn test_step_proof_converts_structured_fido2_assertion_without_loss() {
+    fn test_step_credential_converts_structured_fido2_assertion_without_loss() {
         let rp_id_hash = vec![1; 32];
         let mut authenticator_data = rp_id_hash.clone();
         authenticator_data.extend([2, 3, 4]);
         let signature = vec![5, 6, 7];
         let credential_id = vec![8, 9, 10];
-        let proof = VerificationProof::try_from(StepProof {
-            step_attempt_id: "attempt".to_owned(),
-            credential: Some(StepCredential::Fido2(Fido2Assertion {
-                rp_id_hash: rp_id_hash.clone(),
-                authenticator_data: authenticator_data.clone(),
-                signature: signature.clone(),
-                credential_id: credential_id.clone(),
-            })),
-        })
+        let proof = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash,
+            authenticator_data: authenticator_data.clone(),
+            signature: signature.clone(),
+            credential_id: credential_id.clone(),
+        }))
         .expect("valid FIDO2 assertion should convert");
-        assert_eq!(proof.auth_data, Some(authenticator_data));
-        assert_eq!(proof.credential_id, Some(credential_id));
+
         assert_eq!(
-            BASE64_URL_SAFE_NO_PAD
-                .decode(proof.fido2_signature.expect("signature should be present"))
-                .expect("signature should remain decodable"),
-            signature
+            proof,
+            VerificationProof::Fido2 {
+                signature,
+                authenticator_data,
+                credential_id,
+            }
         );
     }
 
     #[test]
-    fn test_step_proof_rejects_mismatched_fido2_rp_id_hash() {
-        let error = VerificationProof::try_from(StepProof {
-            step_attempt_id: "attempt".to_owned(),
-            credential: Some(StepCredential::Fido2(Fido2Assertion {
-                rp_id_hash: vec![1; 32],
-                authenticator_data: vec![2; 32],
-                signature: vec![3],
-                credential_id: vec![4],
-            })),
-        })
+    fn test_step_credential_rejects_mismatched_fido2_rp_id_hash() {
+        let error = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash: vec![1; 32],
+            authenticator_data: vec![2; 32],
+            signature: vec![3],
+            credential_id: vec![4],
+        }))
         .expect_err("mismatched RP ID hash must be rejected");
 
         assert_eq!(error, ProofConversionError::Fido2RpIdHashMismatch);

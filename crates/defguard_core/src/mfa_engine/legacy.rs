@@ -52,14 +52,18 @@ pub enum FinishError {
     Event(#[from] ClientMfaServerError),
 }
 
-impl From<LegacyProof> for VerificationProof {
-    fn from(proof: LegacyProof) -> Self {
-        Self {
-            code: proof.code,
-            mobile_pub_key: proof.auth_pub_key,
-            fido2_signature: None,
-            auth_data: None,
-            credential_id: None,
+/// Credential submitted to a legacy finish operation.
+#[derive(Debug, Eq, PartialEq)]
+enum LegacyCredential {
+    Code(String),
+    BiometricSignature(String),
+}
+
+impl From<LegacyCredential> for VerificationProof {
+    fn from(credential: LegacyCredential) -> Self {
+        match credential {
+            LegacyCredential::Code(code) => Self::Code(code),
+            LegacyCredential::BiometricSignature(signature) => Self::BiometricSignature(signature),
         }
     }
 }
@@ -145,7 +149,7 @@ impl MfaEngine {
         proof: LegacyProof,
         ip: IpAddr,
     ) -> Result<(LegacyFinishOutcome, VpnClientMfaMethod), FinishError> {
-        let proof: VerificationProof = proof.into();
+        let LegacyProof { code, auth_pub_key } = proof;
         let loaded = self
             .load_finish_context(&token, VpnMfaFlowKind::Legacy, ip)
             .await
@@ -158,12 +162,19 @@ impl MfaEngine {
         } = loaded;
 
         let method = ephemeral.selected_method;
+        let credential = match method {
+            VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email => {
+                code.clone().map(LegacyCredential::Code)
+            }
+            VpnClientMfaMethod::Biometric => code.clone().map(LegacyCredential::BiometricSignature),
+            VpnClientMfaMethod::Oidc
+            | VpnClientMfaMethod::MobileApprove
+            | VpnClientMfaMethod::Fido2 => None,
+        };
+        let proof = credential.map(VerificationProof::from);
 
         // Legacy MobileApprove requires a signature; an empty proof is not a polling request.
-        if method == VpnClientMfaMethod::MobileApprove
-            && proof.code.is_none()
-            && proof.mobile_pub_key.is_none()
-        {
+        if method == VpnClientMfaMethod::MobileApprove && code.is_none() && auth_pub_key.is_none() {
             if ephemeral.biometric_challenge.is_none() {
                 return Err(FinishError::MissingChallenge);
             }
@@ -173,26 +184,22 @@ impl MfaEngine {
         }
 
         let verdict = if method == VpnClientMfaMethod::MobileApprove {
-            let signature = proof.code.as_deref().ok_or(FinishError::MalformedProof {
+            let signature = code.as_deref().ok_or(FinishError::MalformedProof {
                 message: "Signature not found in request",
             })?;
-            let mobile_pub_key =
-                proof
-                    .mobile_pub_key
-                    .as_deref()
-                    .ok_or(FinishError::MalformedProof {
-                        message: "Authorization device key missing in request",
-                    })?;
+            let mobile_pub_key = auth_pub_key.as_deref().ok_or(FinishError::MalformedProof {
+                message: "Authorization device key missing in request",
+            })?;
             verify_mobile_signature(&self.pool, &ctx, &ephemeral, signature, mobile_pub_key).await
         } else {
-            verify(&self.pool, &ctx, &ephemeral, &proof).await
+            verify(&self.pool, &ctx, &ephemeral, proof.as_ref()).await
         };
 
         let mut mobile_auth_device_name = None;
         match verdict {
             Ok(Verdict::Proved) => {
                 if method == VpnClientMfaMethod::MobileApprove {
-                    let mobile_pub_key = proof.mobile_pub_key.as_deref().ok_or_else(|| {
+                    let mobile_pub_key = auth_pub_key.as_deref().ok_or_else(|| {
                         error!("Mobile approve auth pub key missing after successful verification");
                         FinishError::Internal
                     })?;
@@ -310,19 +317,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_legacy_proof_converts_to_verification_proof() {
+    fn test_legacy_credentials_convert_to_verification_proofs() {
         assert_eq!(
-            VerificationProof::from(LegacyProof {
-                code: Some("code".to_owned()),
-                auth_pub_key: Some("key".to_owned()),
-            }),
-            VerificationProof {
-                code: Some("code".to_owned()),
-                mobile_pub_key: Some("key".to_owned()),
-                fido2_signature: None,
-                auth_data: None,
-                credential_id: None,
-            }
+            VerificationProof::from(LegacyCredential::Code("code".to_owned())),
+            VerificationProof::Code("code".to_owned())
+        );
+        assert_eq!(
+            VerificationProof::from(LegacyCredential::BiometricSignature("signature".to_owned())),
+            VerificationProof::BiometricSignature("signature".to_owned())
         );
     }
 

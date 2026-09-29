@@ -1,8 +1,4 @@
-use base64::{
-    Engine, alphabet,
-    engine::{DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig},
-    prelude::BASE64_URL_SAFE_NO_PAD,
-};
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use ctap_hid_fido2::{
     fidokey::get_assertion::get_assertion_params::Assertion, verifier::verify_assertion,
 };
@@ -36,8 +32,9 @@ pub enum Verdict {
 /// An error surfaced by [`verify`] that is not a proof rejection.
 #[derive(Debug, Error)]
 pub enum VerifyError {
-    /// A required proof field was absent. Maps to `invalid_argument` and skips the counter.
-    /// `event` is the audit message to emit, `None` when the method does not audit this case.
+    /// A required credential is absent or has the wrong shape. Maps to `invalid_argument` and skips
+    /// the counter. `event` is the audit message to emit, `None` when the method does not audit this
+    /// case.
     #[error("{message}")]
     MalformedProof {
         message: &'static str,
@@ -116,14 +113,11 @@ pub(super) async fn verify(
     pool: &PgPool,
     ctx: &MfaSessionContext,
     ephemeral: &EphemeralState,
-    proof: &VerificationProof,
+    proof: Option<&VerificationProof>,
 ) -> Result<Verdict, VerifyError> {
-    match ephemeral.selected_method {
-        VpnClientMfaMethod::Totp => {
-            let code = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                message: "TOTP code not provided",
-                event: Some("TOTP code not provided in request"),
-            })?;
+    // Key this match on the session-selected method so the client cannot choose the verifier.
+    match (ephemeral.selected_method, proof) {
+        (VpnClientMfaMethod::Totp, Some(VerificationProof::Code(code))) => {
             if ctx.user.verify_totp_code(code) {
                 Ok(Verdict::Proved)
             } else {
@@ -132,11 +126,15 @@ pub(super) async fn verify(
                 })
             }
         }
-        VpnClientMfaMethod::Email => {
-            let code = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                message: "email MFA code not provided",
-                event: Some("email MFA code not provided in request"),
-            })?;
+        (VpnClientMfaMethod::Totp, None) => Err(VerifyError::MalformedProof {
+            message: "TOTP code not provided",
+            event: Some("TOTP code not provided in request"),
+        }),
+        (VpnClientMfaMethod::Totp, Some(_)) => Err(VerifyError::MalformedProof {
+            message: "MFA credential does not match the selected method",
+            event: None,
+        }),
+        (VpnClientMfaMethod::Email, Some(VerificationProof::Code(code))) => {
             if ctx.user.verify_email_mfa_code(code) {
                 Ok(Verdict::Proved)
             } else {
@@ -145,31 +143,60 @@ pub(super) async fn verify(
                 })
             }
         }
-        VpnClientMfaMethod::Biometric => {
+        (VpnClientMfaMethod::Email, None) => Err(VerifyError::MalformedProof {
+            message: "email MFA code not provided",
+            event: Some("email MFA code not provided in request"),
+        }),
+        (VpnClientMfaMethod::Email, Some(_)) => Err(VerifyError::MalformedProof {
+            message: "MFA credential does not match the selected method",
+            event: None,
+        }),
+        (VpnClientMfaMethod::Biometric, Some(VerificationProof::BiometricSignature(signature))) => {
             let challenge = ephemeral
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
-            let signed_challenge = proof.code.as_ref().ok_or(VerifyError::MalformedProof {
-                message: "Challenge not found in request",
-                event: None,
-            })?;
-            match challenge.verify(signed_challenge) {
+            match challenge.verify(signature) {
                 Ok(()) => Ok(Verdict::Proved),
                 Err(_) => Ok(Verdict::Failed {
                     message: "Signed challenge rejected",
                 }),
             }
         }
-        VpnClientMfaMethod::Oidc => {
+        (VpnClientMfaMethod::Biometric, None) => {
+            ephemeral
+                .biometric_challenge
+                .as_ref()
+                .ok_or(VerifyError::MissingChallenge)?;
+            Err(VerifyError::MalformedProof {
+                message: "Challenge not found in request",
+                event: None,
+            })
+        }
+        (VpnClientMfaMethod::Biometric, Some(_)) => Err(VerifyError::MalformedProof {
+            message: "MFA credential does not match the selected method",
+            event: None,
+        }),
+        (VpnClientMfaMethod::Oidc, None) => {
             if ephemeral.openid_auth_completed {
                 Ok(Verdict::Proved)
             } else {
                 Ok(Verdict::NotYet)
             }
         }
-        VpnClientMfaMethod::MobileApprove => Err(VerifyError::UnsupportedMethod),
-        VpnClientMfaMethod::Fido2 => {
+        (VpnClientMfaMethod::Oidc, Some(_)) => Err(VerifyError::MalformedProof {
+            message: "MFA credential does not match the selected method",
+            event: None,
+        }),
+        (VpnClientMfaMethod::MobileApprove, _) => Err(VerifyError::UnsupportedMethod),
+        (
+            VpnClientMfaMethod::Fido2,
+            Some(VerificationProof::Fido2 {
+                signature,
+                authenticator_data,
+                credential_id,
+            }),
+        ) => {
             const RP_ID_HASH_LEN: usize = 32;
 
             let settings = Settings::get_current_settings();
@@ -180,38 +207,24 @@ pub(super) async fn verify(
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
-            // The client sends binary as base64url, matching how webauthn-rs writes
-            // the credential ids it was offered.
-            let signature = decode_proof_field(proof.fido2_signature.as_ref(), "Signature")?;
-            let auth_data = proof
-                .auth_data
-                .as_ref()
-                .ok_or(VerifyError::MalformedProof {
-                    message: "Auth data not found in request",
-                    event: None,
-                })?;
-            if auth_data.len() < RP_ID_HASH_LEN {
+            if authenticator_data.len() < RP_ID_HASH_LEN {
                 return Err(VerifyError::MalformedProof {
                     message: "Auth data too small",
                     event: None,
                 });
             }
-            let rpid_hash = auth_data[..RP_ID_HASH_LEN].to_vec();
+            let rpid_hash = authenticator_data[..RP_ID_HASH_LEN].to_vec();
 
-            // With no credential ID, try every registered key. An unknown ID matches nothing.
             let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
 
             let assertion = Assertion {
                 rpid_hash,
-                signature,
-                auth_data: auth_data.clone(),
+                signature: signature.clone(),
+                auth_data: authenticator_data.clone(),
                 ..Default::default()
             };
             for passkey in &passkeys {
-                // If the client named a credential, skip every other passkey.
-                if proof.credential_id.as_ref().is_some_and(|credential_id| {
-                    passkey.cred_id().as_ref() != credential_id.as_slice()
-                }) {
+                if passkey.cred_id().as_ref() != credential_id.as_slice() {
                     continue;
                 }
                 let Some(public_key) = to_ctap_public_key(passkey) else {
@@ -231,6 +244,24 @@ pub(super) async fn verify(
                 message: "FIDO2 challenge failed",
             })
         }
+        (VpnClientMfaMethod::Fido2, None) => {
+            let settings = Settings::get_current_settings();
+            settings
+                .webauthn_rp_id()
+                .map_err(|_| VerifyError::MissingRPID)?;
+            ephemeral
+                .biometric_challenge
+                .as_ref()
+                .ok_or(VerifyError::MissingChallenge)?;
+            Err(VerifyError::MalformedProof {
+                message: "Signature",
+                event: None,
+            })
+        }
+        (VpnClientMfaMethod::Fido2, Some(_)) => Err(VerifyError::MalformedProof {
+            message: "MFA credential does not match the selected method",
+            event: None,
+        }),
     }
 }
 
@@ -272,34 +303,6 @@ pub fn check_mobile_approval(ephemeral: &EphemeralState) -> Verdict {
     }
 }
 
-/// Match webauthn-rs, which writes binary values as unpadded URL-safe base64 and accepts either
-/// alphabet with or without padding when decoding.
-fn decode_base64(value: &str) -> Result<Vec<u8>, base64::DecodeError> {
-    // Accept padded and unpadded spellings.
-    fn engine(alphabet: alphabet::Alphabet) -> GeneralPurpose {
-        GeneralPurpose::new(
-            &alphabet,
-            GeneralPurposeConfig::new().with_decode_padding_mode(DecodePaddingMode::Indifferent),
-        )
-    }
-
-    engine(alphabet::URL_SAFE)
-        .decode(value)
-        .or_else(|err| engine(alphabet::STANDARD).decode(value).map_err(|_| err))
-}
-
-/// Decode a required FIDO2 proof field and name missing or malformed input.
-fn decode_proof_field(value: Option<&String>, field: &'static str) -> Result<Vec<u8>, VerifyError> {
-    let value = value.ok_or(VerifyError::MalformedProof {
-        message: field,
-        event: None,
-    })?;
-    decode_base64(value).map_err(|_| VerifyError::MalformedProof {
-        message: field,
-        event: None,
-    })
-}
-
 /// Return this user's registered FIDO2 credential IDs in webauthn-rs base64url form.
 pub async fn offered_credential_ids(
     pool: &PgPool,
@@ -314,50 +317,4 @@ pub async fn offered_credential_ids(
         .iter()
         .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))
         .collect())
-}
-
-#[cfg(test)]
-mod tests {
-    use base64::prelude::{BASE64_STANDARD, BASE64_STANDARD_NO_PAD, BASE64_URL_SAFE};
-
-    use super::*;
-
-    #[test]
-    fn test_decode_base64_accepts_every_alphabet() {
-        // Bytes whose url-safe encoding (`_-`) differs from the standard one
-        // (`/+`), so a decoder locked to one alphabet fails the other.
-        let raw = vec![0xff_u8, 0xfe, 0xfd, 0x00];
-
-        for encoded in [
-            // What the desktop client sends, matching webauthn-rs.
-            BASE64_URL_SAFE_NO_PAD.encode(&raw),
-            BASE64_URL_SAFE.encode(&raw),
-            BASE64_STANDARD.encode(&raw),
-            BASE64_STANDARD_NO_PAD.encode(&raw),
-        ] {
-            assert_eq!(
-                decode_base64(&encoded).expect("should decode"),
-                raw,
-                "failed to decode {encoded}"
-            );
-        }
-    }
-
-    #[test]
-    fn test_decode_proof_field_names_a_missing_or_malformed_value() {
-        assert!(matches!(
-            decode_proof_field(None, "RP ID hash"),
-            Err(VerifyError::MalformedProof {
-                message: "RP ID hash",
-                ..
-            })
-        ));
-        assert!(matches!(
-            decode_proof_field(Some(&"not base64!!".to_owned()), "Signature"),
-            Err(VerifyError::MalformedProof {
-                message: "Signature",
-                ..
-            })
-        ));
-    }
 }

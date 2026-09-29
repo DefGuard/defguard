@@ -37,22 +37,19 @@ pub struct MultiStepStartOutcome {
     pub superseded_token_hash: Option<String>,
 }
 
-/// Normalized credential passed to the shared method verifier.
+/// Credential passed to the shared method verifier.
 ///
-/// Contract-specific proof types are converted to this representation at their public engine
+/// Contract-specific credential types are converted to this representation at their public engine
 /// method boundary. It deliberately carries no attempt ID or contract marker.
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct VerificationProof {
-    pub code: Option<String>,
-    /// Public key used to verify a legacy mobile approval.
-    pub mobile_pub_key: Option<String>,
-    /// Base64-encoded FIDO2 signature in the transitional packed representation.
-    pub fido2_signature: Option<String>,
-    /// FIDO2 authenticator data in the transitional packed representation.
-    pub auth_data: Option<Vec<u8>>,
-    /// FIDO2 credential selected by the client. Names the security key in use, so verification goes
-    /// straight to its public key.
-    pub credential_id: Option<Vec<u8>>,
+pub(crate) enum VerificationProof {
+    Code(String),
+    BiometricSignature(String),
+    Fido2 {
+        signature: Vec<u8>,
+        authenticator_data: Vec<u8>,
+        credential_id: Vec<u8>,
+    },
 }
 
 /// Outcome returned by the legacy finish contract.

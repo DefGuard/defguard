@@ -52,9 +52,9 @@ use crate::{
     mfa_engine::{
         error::StartError,
         legacy::{FinishError, LegacyProof},
-        method::{InitiateError, Verdict, check_mobile_approval},
+        method::{InitiateError, Verdict, VerifyError, check_mobile_approval, verify},
         multi_step::{StartRejectionReason, StartResult, StepCredential, StepError, StepProof},
-        types::FinishOutcome,
+        types::{FinishOutcome, VerificationProof},
     },
 };
 
@@ -979,6 +979,54 @@ async fn test_start_legacy_rejects_fido2(_: PgPoolOptions, options: PgConnectOpt
         StartError::Initiate(InitiateError::UnsupportedMethod)
     ));
     assert_eq!(session_count(&pool, location.id, device.id).await, 0);
+}
+
+#[sqlx::test]
+async fn test_fido2_session_rejects_code_credential_before_totp_verification(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let mut user = create_user(&pool).await;
+    user.new_totp_secret(&pool)
+        .await
+        .expect("failed to generate TOTP secret");
+    user.enable_totp(&pool)
+        .await
+        .expect("failed to enable TOTP");
+    let (_session, token, _flow) = start_session_with_flow(
+        &pool,
+        user.id,
+        "FIDO2 method selection flow",
+        vec![vec![VpnClientMfaMethod::Fido2]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+    let loaded = engine
+        .load_finish_context(&token, VpnMfaFlowKind::MultiStep, test_ip())
+        .await
+        .expect("FIDO2 session context should load");
+    let proof = VerificationProof::Code(totp_code(&user));
+
+    let error = verify(&pool, &loaded.ctx, &loaded.ephemeral, Some(&proof))
+        .await
+        .expect_err("a TOTP credential must not be verified for a FIDO2 session");
+    assert!(matches!(
+        error,
+        VerifyError::MalformedProof {
+            message: "MFA credential does not match the selected method",
+            event: None,
+        }
+    ));
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("the rejected session must remain active");
+    assert_eq!(session.failed_attempts, 0);
 }
 
 #[sqlx::test]
