@@ -588,6 +588,12 @@ export interface BulkStartEnrollmentResponse {
   skipped: number;
 }
 
+export interface BulkStoreEnrollmentTokenLdapResponse {
+  stored: number;
+  skipped: number;
+  failed: number;
+}
+
 export interface AddDeviceRequest {
   username: string;
   name: string;

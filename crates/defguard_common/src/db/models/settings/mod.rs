@@ -891,6 +891,15 @@ impl Settings {
             && non_empty(&self.ldap_group_search_base)
     }
 
+    /// Returns the LDAP attribute used to store enrollment tokens, if one is configured.
+    #[must_use]
+    pub fn ldap_enrollment_token_attribute(&self) -> Option<&str> {
+        self.ldap_enrollment_token_attr
+            .as_deref()
+            .map(str::trim)
+            .filter(|attr| !attr.is_empty())
+    }
+
     #[must_use]
     pub fn ldap_using_username_as_rdn(&self) -> bool {
         self.ldap_user_rdn_attr

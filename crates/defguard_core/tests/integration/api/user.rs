@@ -2950,3 +2950,85 @@ async fn test_reset_password_sends_email(_: PgPoolOptions, options: PgConnectOpt
         "reset link should point at the configured proxy URL"
     );
 }
+
+/// Creates a user for the LDAP enrollment token tests.
+async fn add_bulk_test_user(client: &crate::api::common::client::TestClient, username: &str) {
+    let new_user = AddUserData {
+        username: username.into(),
+        last_name: format!("{username}-last"),
+        first_name: format!("{username}-first"),
+        email: format!("{username}@hogwart.edu.uk"),
+        phone: None,
+        password: None,
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+/// Both rejections share one test: settings live in a process-wide singleton, so separate
+/// tests would race.
+#[sqlx::test]
+async fn test_bulk_store_enrollment_token_in_ldap_rejects_unusable_config(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    add_bulk_test_user(&client, "adumbledore").await;
+    let dumbledore = get_db_user(&pool, "adumbledore").await;
+
+    // No attribute configured yet.
+    let response = client
+        .post("/api/v1/user/bulk-store-enrollment-token-ldap")
+        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(
+        body["msg"], "LDAP enrollment token attribute is not configured.",
+        "the action must be rejected while the attribute is unset"
+    );
+    assert!(
+        !get_db_user(&pool, "adumbledore").await.enrollment_pending,
+        "no token may be created when the attribute is unset"
+    );
+
+    // Attribute configured, integration still off.
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_enrollment_token_attr = Some("defguardEnrollmentToken".into());
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client
+        .post("/api/v1/user/bulk-store-enrollment-token-ldap")
+        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["msg"], "LDAP integration is not enabled.");
+    assert!(
+        !get_db_user(&pool, "adumbledore").await.enrollment_pending,
+        "no token may be created when LDAP is disabled"
+    );
+}
+
+#[sqlx::test]
+async fn test_bulk_store_enrollment_token_in_ldap_rejects_self(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let admin = get_db_user(&pool, "admin").await;
+    let response = client
+        .post("/api/v1/user/bulk-store-enrollment-token-ldap")
+        .json(&serde_json::json!({ "users": [admin.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
