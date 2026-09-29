@@ -31,6 +31,7 @@ import { aclDestinationValidator, aclPortsValidator } from '../../shared/validat
 
 type Props = {
   destination?: AclDestination;
+  duplicate?: AclDestination;
   tab?: AclListTabValue;
 };
 
@@ -75,7 +76,7 @@ type FormFields = z.infer<typeof formSchema>;
 
 const getProtocolName = (value: AclProtocolValue): string => AclProtocolName[value];
 
-export const CEDestinationPage = ({ destination, tab }: Props) => {
+export const CEDestinationPage = ({ destination, duplicate, tab }: Props) => {
   const router = useRouter();
   const navigate = useNavigate();
   const isEdit = isPresent(destination);
@@ -121,6 +122,14 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
       };
     }
 
+    if (isPresent(duplicate)) {
+      return {
+        ...omit(duplicate, ['id', 'state', 'rules']),
+        name: m.acl_duplicate_name({ name: duplicate.name }),
+        protocols: new Set(duplicate.protocols),
+      };
+    }
+
     return {
       name: '',
       ports: '',
@@ -130,7 +139,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
       addresses: '',
       protocols: new Set(),
     };
-  }, [destination]);
+  }, [destination, duplicate]);
 
   const form = useAppForm({
     defaultValues,
