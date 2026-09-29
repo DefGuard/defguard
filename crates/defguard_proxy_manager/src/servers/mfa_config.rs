@@ -62,6 +62,9 @@ impl MfaConfigSession {
 
 /// Whether this setup lets OIDC authorize: a business license and a configured provider.
 async fn oidc_available(pool: &PgPool) -> Result<bool, Status> {
+    if !is_business_license_active() {
+        return Ok(false);
+    }
     let provider = OpenIdProvider::get_current(pool).await.map_err(|err| {
         error!("MFA config: failed to read the OpenID provider: {err}");
         Status::internal("unexpected error")
@@ -126,7 +129,7 @@ async fn load_session(pool: &PgPool, session_token: &str) -> Result<MfaConfigSes
     };
 
     let smtp_configured = Settings::get_current_settings().smtp_configured();
-    let oidc_available = oidc_available(pool).await?;
+    let oidc_available = user.openid_sub.is_some() && oidc_available(pool).await?;
     // Biometric and mobile-approve are mobile-only, carry no recovery codes and never
     // reach this flow, so they stay ignored.
     let configured = async |method| {
@@ -215,6 +218,18 @@ pub(crate) async fn mfa_config_oidc_state(
     }
 }
 
+/// Ends the session of a failed OIDC attempt, unless a newer attempt or session replaced it
+/// during the OIDC round trip.
+async fn end_oidc_attempt(pool: &PgPool, token: &Token, attempt_id: &str) -> Result<(), Status> {
+    if !token
+        .delete_pending_mfa_config_oidc_attempt(pool, attempt_id)
+        .await?
+    {
+        debug!("MFA config OIDC: attempt superseded during the OIDC round trip");
+    }
+    Ok(())
+}
+
 /// Handles MFA factor configuration requested by an already enrolled desktop client.
 pub(crate) struct MfaConfigServer {
     pool: PgPool,
@@ -282,7 +297,7 @@ impl MfaConfigServer {
 
         let settings = Settings::get_current_settings();
         let smtp_configured = settings.smtp_configured();
-        let oidc_available = oidc_available(&self.pool).await?;
+        let oidc_available = user.openid_sub.is_some() && oidc_available(&self.pool).await?;
         let mut available_methods = Vec::with_capacity(4);
         for method in [
             VpnClientMfaMethod::Totp,
@@ -608,7 +623,7 @@ impl MfaConfigServer {
     /// Completes an OIDC authorization attempt from the Edge callback.
     ///
     /// The session itself is authorized by the client's next `mfa_config_authorize` poll.
-    /// A failed or foreign-identity authentication ends the session.
+    /// A failed or foreign-identity authentication ends the session while its attempt is current.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_oidc_authenticate(
         &self,
@@ -670,8 +685,7 @@ impl MfaConfigServer {
                     "MFA config OIDC: failed to verify OIDC code for user {}: {err}",
                     user.username
                 );
-                Token::delete_user_tokens_of_type(&self.pool, user.id, MFA_CONFIG_TOKEN_TYPE)
-                    .await?;
+                end_oidc_attempt(&self.pool, &token, &state.attempt_id).await?;
                 return Err(Status::unauthenticated("unauthorized"));
             }
         };
@@ -679,7 +693,7 @@ impl MfaConfigServer {
             info!(
                 "User {claims_user} tried to authorize MFA configuration for another user: {user}"
             );
-            Token::delete_user_tokens_of_type(&self.pool, user.id, MFA_CONFIG_TOKEN_TYPE).await?;
+            end_oidc_attempt(&self.pool, &token, &state.attempt_id).await?;
             return Err(Status::unauthenticated("unauthorized"));
         }
 
