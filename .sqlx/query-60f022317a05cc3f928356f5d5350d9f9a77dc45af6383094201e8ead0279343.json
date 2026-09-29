@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE token SET used_at = $1, mfa_setup_state = NULL WHERE id = $2 AND used_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "60f022317a05cc3f928356f5d5350d9f9a77dc45af6383094201e8ead0279343"
+}

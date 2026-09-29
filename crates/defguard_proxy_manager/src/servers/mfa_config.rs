@@ -576,9 +576,20 @@ impl MfaConfigServer {
             error!("MFA config authorize: failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
-        let deadline = token
-            .start_session(&mut transaction, MFA_CONFIG_SESSION_TIMEOUT.as_secs())
-            .await?;
+        let deadline = match token
+            .authorize_mfa_config_session(&mut transaction, MFA_CONFIG_SESSION_TIMEOUT.as_secs())
+            .await
+        {
+            Ok(deadline) => deadline,
+            Err(TokenError::TokenUsed) => {
+                error!(
+                    "MFA config authorize: a concurrent request already authorized user {}",
+                    user.username
+                );
+                return Err(Status::failed_precondition("session already authorized"));
+            }
+            Err(err) => return Err(err.into()),
+        };
 
         // In the fallback the verified code also enables email MFA; otherwise authorization
         // only opens the setup session and configuring a factor is a separate step.

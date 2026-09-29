@@ -504,6 +504,35 @@ impl Token {
         }
     }
 
+    /// Authorizes an unused MFA configuration token. Unlike `start_session`, it fails when the
+    /// token is already authorized, so concurrent authorizations succeed at most once.
+    pub async fn authorize_mfa_config_session(
+        &mut self,
+        transaction: &mut PgConnection,
+        session_timeout_seconds: u64,
+    ) -> Result<NaiveDateTime, TokenError> {
+        if self.is_expired() {
+            return Err(TokenError::TokenExpired);
+        }
+        let now = Utc::now().naive_utc();
+        // Authorization ends any pending MFA configuration authorization attempt.
+        let result = query!(
+            "UPDATE token SET used_at = $1, mfa_setup_state = NULL \
+            WHERE id = $2 AND used_at IS NULL",
+            now,
+            self.id
+        )
+        .execute(transaction)
+        .await?;
+        if result.rows_affected() == 0 {
+            return Err(TokenError::TokenUsed);
+        }
+        self.used_at = Some(now);
+        self.mfa_setup_state = None;
+
+        Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
+    }
+
     pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
         if let Some(enrollment) = query_as!(
             Self,
@@ -886,6 +915,63 @@ mod tests {
                 .unwrap()
         );
         assert!(token_exists(&pool, &token.id).await);
+    }
+
+    #[sqlx::test]
+    async fn test_mfa_config_authorization_is_single_use(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let token = mfa_config_token(&pool, user.id, "current").await;
+        let mut first = Token::find_by_id(&pool, &token.id).await.unwrap();
+        let mut second = Token::find_by_id(&pool, &token.id).await.unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        let deadline = first
+            .authorize_mfa_config_session(&mut transaction, 60)
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        assert!(matches!(
+            second
+                .authorize_mfa_config_session(&mut transaction, 60)
+                .await,
+            Err(TokenError::TokenUsed)
+        ));
+        drop(transaction);
+
+        // Postgres keeps microseconds, so the stored timestamp may be truncated.
+        let stored = Token::find_by_id(&pool, &token.id)
+            .await
+            .unwrap()
+            .used_at
+            .unwrap();
+        let expected = deadline - TimeDelta::seconds(60);
+        assert!((expected - stored).abs() < TimeDelta::milliseconds(1));
+    }
+
+    #[sqlx::test]
+    async fn test_mfa_config_authorization_clears_auth_state(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let mut token = mfa_config_token(&pool, user.id, "current").await;
+
+        let mut transaction = pool.begin().await.unwrap();
+        token
+            .authorize_mfa_config_session(&mut transaction, 60)
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let stored = Token::find_by_id(&pool, &token.id).await.unwrap();
+        assert!(stored.mfa_setup_state.is_none());
     }
 
     #[sqlx::test]
