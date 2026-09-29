@@ -10,6 +10,7 @@ use defguard_common::{
     random::gen_alphanumeric,
     types::UrlParseError,
 };
+use serde::{Deserialize, Serialize};
 use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, types::Uuid};
 use tera::Context;
 use thiserror::Error;
@@ -89,6 +90,15 @@ impl From<TokenError> for Status {
     }
 }
 
+/// An in-flight authorization attempt of an MFA configuration session.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum MfaConfigAuthState {
+    /// A single-use challenge for a FIDO2 assertion.
+    Fido2 { challenge: String },
+    /// An OIDC round trip, marked completed by the Edge callback.
+    Oidc { attempt_id: String, completed: bool },
+}
+
 // Representation of a user enrollment session
 #[derive(Clone)]
 pub struct Token {
@@ -101,7 +111,8 @@ pub struct Token {
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
-    /// CBOR-serialized `PasskeyRegistration`; set only while a FIDO2 ceremony is in progress.
+    /// CBOR-serialized ceremony state. Before an MFA configuration session is authorized it holds
+    /// [`MfaConfigAuthState`]; afterwards a `PasskeyRegistration` while a FIDO2 setup is in progress.
     pub mfa_setup_state: Option<Vec<u8>>,
 }
 
@@ -217,6 +228,100 @@ impl Token {
         Ok(())
     }
 
+    /// Stores the authorization attempt of an MFA configuration session, replacing any earlier one.
+    pub async fn set_mfa_config_auth_state<'e, E>(
+        &mut self,
+        executor: E,
+        state: &MfaConfigAuthState,
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let mfa_setup_state = serde_cbor::to_vec(state)
+            .map_err(|err| TokenError::MfaSetupStateSerialization(err.to_string()))?;
+        query!(
+            "UPDATE token SET mfa_setup_state = $1 WHERE id = $2",
+            mfa_setup_state,
+            self.id
+        )
+        .execute(executor)
+        .await?;
+        self.mfa_setup_state = Some(mfa_setup_state);
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn get_mfa_config_auth_state(&self) -> Option<MfaConfigAuthState> {
+        self.mfa_setup_state
+            .as_ref()
+            .and_then(|state| serde_cbor::from_slice(state).ok())
+    }
+
+    /// Locks the token row and reads its authorization attempt.
+    async fn lock_mfa_config_auth_state(
+        &self,
+        transaction: &mut PgConnection,
+    ) -> Result<Option<MfaConfigAuthState>, TokenError> {
+        let state = query!(
+            "SELECT mfa_setup_state FROM token WHERE id = $1 FOR UPDATE",
+            self.id
+        )
+        .fetch_optional(&mut *transaction)
+        .await?
+        .ok_or(TokenError::NotFound)?
+        .mfa_setup_state;
+        Ok(state.and_then(|state| serde_cbor::from_slice(&state).ok()))
+    }
+
+    /// Removes and returns the stored FIDO2 challenge, so each challenge verifies at most once.
+    pub async fn take_fido2_challenge(
+        &mut self,
+        pool: &PgPool,
+    ) -> Result<Option<String>, TokenError> {
+        let mut transaction = pool.begin().await?;
+        let Some(MfaConfigAuthState::Fido2 { challenge }) =
+            self.lock_mfa_config_auth_state(&mut transaction).await?
+        else {
+            return Ok(None);
+        };
+        query!(
+            "UPDATE token SET mfa_setup_state = NULL WHERE id = $1",
+            self.id
+        )
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        self.mfa_setup_state = None;
+        Ok(Some(challenge))
+    }
+
+    /// Marks the OIDC attempt `attempt_id` completed. Returns `false` when that attempt is no
+    /// longer the current one or was already completed.
+    pub async fn mark_mfa_config_oidc_completed(
+        &mut self,
+        pool: &PgPool,
+        attempt_id: &str,
+    ) -> Result<bool, TokenError> {
+        let mut transaction = pool.begin().await?;
+        match self.lock_mfa_config_auth_state(&mut transaction).await? {
+            Some(MfaConfigAuthState::Oidc {
+                attempt_id: current,
+                completed: false,
+            }) if current == attempt_id => {}
+            _ => return Ok(false),
+        }
+        self.set_mfa_config_auth_state(
+            &mut *transaction,
+            &MfaConfigAuthState::Oidc {
+                attempt_id: attempt_id.to_owned(),
+                completed: true,
+            },
+        )
+        .await?;
+        transaction.commit().await?;
+        Ok(true)
+    }
+
     /// Like the REST `webauthn_init`, but stores the ceremony state on the token.
     /// Returns the `CreationChallengeResponse` as JSON for the client's authenticator.
     pub async fn start_fido2_setup(
@@ -323,10 +428,16 @@ impl Token {
             // session not yet started
             None => {
                 let now = Utc::now().naive_utc();
-                query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
-                    .execute(transaction)
-                    .await?;
+                // Authorization ends any pending MFA configuration authorization attempt.
+                query!(
+                    "UPDATE token SET used_at = $1, mfa_setup_state = NULL WHERE id = $2",
+                    now,
+                    self.id
+                )
+                .execute(transaction)
+                .await?;
                 self.used_at = Some(now);
+                self.mfa_setup_state = None;
 
                 debug!("Generate a new session successfully.");
                 Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))

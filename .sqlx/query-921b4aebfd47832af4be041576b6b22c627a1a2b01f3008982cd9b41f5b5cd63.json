@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE token SET used_at = $1 WHERE id = $2",
+  "query": "UPDATE token SET used_at = $1, mfa_setup_state = NULL WHERE id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "05c7cfa839d4411955c207095336861c744c520880d33815044babe0eff1d644"
+  "hash": "921b4aebfd47832af4be041576b6b22c627a1a2b01f3008982cd9b41f5b5cd63"
 }
