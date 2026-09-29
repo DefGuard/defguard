@@ -41,23 +41,18 @@ const formSchema = z.object({
         ctx.addIssue({ code: 'custom', message: m.form_error_broadcast_address() });
       }
     }),
-  allowed_ips: z
-    .string()
-    .trim()
-    .nullable()
-    .refine((val) => {
-      if (!val) return true;
-      return Validate.any(
-        val,
-        [
-          Validate.IPv4,
-          Validate.IPv6,
-          (v) => Validate.CIDRv4(v, true),
-          (v) => Validate.CIDRv6(v, true),
-        ],
-        true,
-      );
-    }, m.form_error_invalid()),
+  allowed_ips: z.array(z.string()).refine((val) => {
+    return Validate.any(
+      val.join(','),
+      [
+        Validate.IPv4,
+        Validate.IPv6,
+        (v) => Validate.CIDRv4(v, true),
+        (v) => Validate.CIDRv6(v, true),
+      ],
+      true,
+    );
+  }, m.form_error_invalid()),
   dns: z
     .string()
     .trim()
@@ -73,8 +68,6 @@ const formSchema = z.object({
   allowed_ips_from_acl: z.boolean(),
 });
 
-type FormFields = z.infer<typeof formSchema>;
-
 export const AddLocationInternalVpnStep = () => {
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const canUseEnterprise = canUseEnterpriseFeature(
@@ -89,17 +82,18 @@ export const AddLocationInternalVpnStep = () => {
   });
 
   const defaultValues = useAddLocationStore(
-    useShallow(
-      (s): FormFields => ({
-        allowed_ips: s.allowed_ips,
-        dns: s.dns,
-        address: s.address,
-        allowed_ips_from_acl: s.allowed_ips_from_acl,
-      }),
-    ),
+    useShallow((s) => ({
+      allowed_ips: s.allowed_ips,
+      dns: s.dns,
+      address: s.address,
+      allowed_ips_from_acl: s.allowed_ips_from_acl,
+    })),
   );
   const form = useAppForm({
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      allowed_ips: defaultValues.allowed_ips ? defaultValues.allowed_ips.split(',') : [],
+    },
     validationLogic: formChangeLogic,
     validators: {
       onSubmit: formSchema,
@@ -116,7 +110,7 @@ export const AddLocationInternalVpnStep = () => {
       }
       useAddLocationStore.setState({
         ...value,
-        allowed_ips: value.allowed_ips ?? '',
+        allowed_ips: value.allowed_ips.join(','),
         activeStep: AddLocationPageStep.NetworkSettings,
       });
     },
@@ -161,9 +155,13 @@ export const AddLocationInternalVpnStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="allowed_ips">
             {(field) => (
-              <field.FormInput
+              <field.FormChipsInput
                 label={m.add_location_internal_vpn_label_allowed_ips()}
                 helper={m.add_location_internal_vpn_helper_allowed_ips()}
+                validate={(value) =>
+                  formSchema.shape.allowed_ips.safeParse([value]).error?.issues[0]
+                    ?.message
+                }
               />
             )}
           </form.AppField>
@@ -204,7 +202,7 @@ export const AddLocationInternalVpnStep = () => {
                 useAddLocationStore.setState({
                   activeStep: AddLocationPageStep.Start,
                   ...form.state.values,
-                  allowed_ips: form.state.values.allowed_ips ?? '',
+                  allowed_ips: form.state.values.allowed_ips.join(','),
                 });
               }}
             />
