@@ -27,6 +27,12 @@ export type ApiAclRule = {
   name: string;
   state: AclState;
   enabled: boolean;
+  addresses: string;
+  ports: string;
+  protocols: number[];
+  any_address: boolean;
+  any_port: boolean;
+  any_protocol: boolean;
 };
 
 const url = (path: string) => testsConfig.CORE_BASE_URL + path;

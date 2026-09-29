@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import type { AclListTabValue } from '../../../shared/aclTabs';
+import { AclListTab, type AclListTabValue } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
 import {
   type AclDestination,
@@ -227,6 +227,25 @@ export const DestinationsTable = ({
               ],
             },
           ];
+          if (tab === AclListTab.Deployed) {
+            menuItems[0].items.splice(1, 0, {
+              text: m.controls_duplicate(),
+              icon: 'duplicate',
+              testId: 'destination-row-duplicate',
+              onClick: () => {
+                if (licenseInfo === undefined) return;
+                licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                  navigate({
+                    to: '/acl/add-destination',
+                    search: {
+                      duplicate: row.id,
+                      tab,
+                    },
+                  });
+                });
+              },
+            });
+          }
           if (row.state === 'Modified') {
             menuItems[0].items.splice(1, 0, {
               text: m.controls_deploy(),
