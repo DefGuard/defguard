@@ -26,7 +26,7 @@ use reqwest::{
     header::{HeaderMap, USER_AGENT},
 };
 use semver::Version;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{
     net::TcpListener,
@@ -602,7 +602,10 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to fetch CA");
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body: serde_json::Value = response.json().await.expect("Failed to parse CA response");
+    let body = response
+        .json::<Value>()
+        .await
+        .expect("Failed to parse CA response");
     assert_eq!(body["subject_common_name"], "CA");
     let pem = body["ca_cert_pem"].as_str().expect("Missing ca_cert_pem");
     assert!(pem.contains("BEGIN CERTIFICATE"));
@@ -662,8 +665,8 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
     set_settings(Some(original_settings.clone()));
     let response = response.expect("Failed to finish setup without an admin ID");
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    let body: serde_json::Value = response
-        .json()
+    let body = response
+        .json::<Value>()
         .await
         .expect("Failed to parse missing-admin response");
     assert_eq!(body["msg"], "Internal Server Error");
@@ -676,8 +679,8 @@ async fn test_finish_setup_rejects_invalid_admin_configuration(
     set_settings(Some(original_settings));
     let response = response.expect("Failed to finish setup with a mismatched admin ID");
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let body: serde_json::Value = response
-        .json()
+    let body = response
+        .json::<Value>()
         .await
         .expect("Failed to parse mismatched-admin response");
     let message = body["msg"]

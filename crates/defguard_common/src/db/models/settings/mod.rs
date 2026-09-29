@@ -896,7 +896,6 @@ impl Settings {
     pub fn ldap_enrollment_token_attribute(&self) -> Option<&str> {
         self.ldap_enrollment_token_attr
             .as_deref()
-            .map(str::trim)
             .filter(|attr| !attr.is_empty())
     }
 

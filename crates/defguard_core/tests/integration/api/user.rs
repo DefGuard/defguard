@@ -34,6 +34,7 @@ use defguard_core::{
     },
 };
 use reqwest::{StatusCode, header::USER_AGENT};
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
@@ -292,7 +293,7 @@ async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOption
     // Filter by admin group - should only return admin
     let response = client.get("/api/v1/user?groups=admin").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -305,7 +306,7 @@ async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOption
     // Filter by engineering group - should only return hpotter
     let response = client.get("/api/v1/user?groups=engineering").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -321,7 +322,7 @@ async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOption
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let mut usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -335,7 +336,7 @@ async fn test_list_users_group_filter(_: PgPoolOptions, options: PgConnectOption
     // Nonexistent group - should return empty results
     let response = client.get("/api/v1/user?groups=nonexistent").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["data"].as_array().unwrap().len(), 0);
     assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
 
@@ -358,7 +359,7 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
     // no_group=true should return only hpotter (the only ungrouped user)
     let response = client.get("/api/v1/user?no_group=true").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -374,7 +375,7 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -389,7 +390,7 @@ async fn test_list_users_no_group_filter(_: PgPoolOptions, options: PgConnectOpt
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let mut usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -444,7 +445,7 @@ async fn test_list_users_no_group_multi_group_filter(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let mut usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -467,7 +468,7 @@ async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
     // Search by username
     let response = client.get("/api/v1/user?search=admin").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -479,7 +480,7 @@ async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
     // Search by first name
     let response = client.get("/api/v1/user?search=Harry").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -491,7 +492,7 @@ async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
     // Search by last name
     let response = client.get("/api/v1/user?search=Potter").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -503,7 +504,7 @@ async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
     // Search by email
     let response = client.get("/api/v1/user?search=h.potter").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -515,7 +516,7 @@ async fn test_list_users_search(_: PgPoolOptions, options: PgConnectOptions) {
     // Search by non-existent term
     let response = client.get("/api/v1/user?search=nonexistent").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["data"].as_array().unwrap().len(), 0);
     assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
 
@@ -534,7 +535,7 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -549,7 +550,7 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -564,7 +565,7 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -580,7 +581,7 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -596,7 +597,7 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -609,7 +610,7 @@ async fn test_list_users_sort(_: PgPoolOptions, options: PgConnectOptions) {
     // Default sort (no params) should still work
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["data"].as_array().unwrap().len(), 2);
 
     client.assert_event_queue_is_empty();
@@ -627,7 +628,7 @@ async fn test_list_users_search_with_group_filter(_: PgPoolOptions, options: PgC
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     let usernames: Vec<&str> = body["data"]
         .as_array()
         .unwrap()
@@ -643,7 +644,7 @@ async fn test_list_users_search_with_group_filter(_: PgPoolOptions, options: PgC
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["data"].as_array().unwrap().len(), 0);
     assert_eq!(body["pagination"]["total_items"].as_u64().unwrap(), 0);
 
@@ -1062,7 +1063,7 @@ async fn test_disabled_users_not_counted_towards_license_limit(
     let hpotter = get_db_user(&pool, "hpotter").await;
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [hpotter.id] }))
+        .json(&json!({ "users": [hpotter.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1125,7 +1126,7 @@ async fn test_modify_user_enable_blocked_when_it_would_exceed_license_limit(
     // disable the new user so there is something to re-enable; active count drops back to 2
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [added_dumbledore.id] }))
+        .json(&json!({ "users": [added_dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1207,7 +1208,7 @@ async fn test_bulk_enable_users_blocked_when_it_would_exceed_license_limit(
     // disable both new users; active count drops back to 2 (admin, hpotter)
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .json(&json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1234,7 +1235,7 @@ async fn test_bulk_enable_users_blocked_when_it_would_exceed_license_limit(
     // active count is 2 (admin, hpotter); re-enabling both would bring it to 4, over the limit of 3
     let response = client
         .post("/api/v1/user/bulk-enable")
-        .json(&serde_json::json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
+        .json(&json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
@@ -1938,7 +1939,7 @@ async fn test_bulk_disable_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .json(&json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1994,7 +1995,7 @@ async fn test_bulk_enable_users(_: PgPoolOptions, options: PgConnectOptions) {
     // disable both users first so there is something to re-enable
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .json(&json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2006,7 +2007,7 @@ async fn test_bulk_enable_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client
         .post("/api/v1/user/bulk-enable")
-        .json(&serde_json::json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
+        .json(&json!({ "users": [disabled_dumbledore.id, disabled_mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2050,7 +2051,7 @@ async fn test_bulk_enable_unknown_user(_: PgPoolOptions, options: PgConnectOptio
 
     let response = client
         .post("/api/v1/user/bulk-enable")
-        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .json(&json!({ "users": [9_999_999] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -2069,7 +2070,7 @@ async fn test_bulk_disable_rejects_self(_: PgPoolOptions, options: PgConnectOpti
 
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [admin_user.id, hpotter_user.id] }))
+        .json(&json!({ "users": [admin_user.id, hpotter_user.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -2088,7 +2089,7 @@ async fn test_bulk_disable_unknown_user(_: PgPoolOptions, options: PgConnectOpti
 
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .json(&json!({ "users": [9_999_999] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -2123,7 +2124,7 @@ async fn test_bulk_delete_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client
         .post("/api/v1/user/bulk-delete")
-        .json(&serde_json::json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
+        .json(&json!({ "users": [added_dumbledore.id, added_mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2160,7 +2161,7 @@ async fn test_bulk_delete_rejects_self(_: PgPoolOptions, options: PgConnectOptio
 
     let response = client
         .post("/api/v1/user/bulk-delete")
-        .json(&serde_json::json!({ "users": [admin_user.id, hpotter_user.id] }))
+        .json(&json!({ "users": [admin_user.id, hpotter_user.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -2179,7 +2180,7 @@ async fn test_bulk_delete_unknown_user(_: PgPoolOptions, options: PgConnectOptio
 
     let response = client
         .post("/api/v1/user/bulk-delete")
-        .json(&serde_json::json!({ "users": [9_999_999] }))
+        .json(&json!({ "users": [9_999_999] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -2216,7 +2217,7 @@ async fn test_bulk_start_enrollment(_: PgPoolOptions, options: PgConnectOptions)
 
     let response = client
         .post("/api/v1/user/bulk-start-enrollment")
-        .json(&serde_json::json!({
+        .json(&json!({
             "users": [dumbledore.id, mcgonagall.id],
             "send_enrollment_notification": false
         }))
@@ -2224,7 +2225,7 @@ async fn test_bulk_start_enrollment(_: PgPoolOptions, options: PgConnectOptions)
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["started"], 2);
     assert_eq!(body["skipped"], 0);
 
@@ -2280,7 +2281,7 @@ async fn test_bulk_start_enrollment_re_enrolls_active_users(
 
     let response = client
         .post("/api/v1/user/bulk-start-enrollment")
-        .json(&serde_json::json!({
+        .json(&json!({
             "users": [dumbledore.id],
             "send_enrollment_notification": false
         }))
@@ -2288,7 +2289,7 @@ async fn test_bulk_start_enrollment_re_enrolls_active_users(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["started"], 1);
     assert_eq!(body["skipped"], 0);
 
@@ -2330,14 +2331,14 @@ async fn test_bulk_start_enrollment_skips_disabled_users(
     // Disable mcgonagall via bulk-disable
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [mcgonagall.id] }))
+        .json(&json!({ "users": [mcgonagall.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let response = client
         .post("/api/v1/user/bulk-start-enrollment")
-        .json(&serde_json::json!({
+        .json(&json!({
             "users": [dumbledore.id, mcgonagall.id],
             "send_enrollment_notification": false
         }))
@@ -2345,7 +2346,7 @@ async fn test_bulk_start_enrollment_skips_disabled_users(
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["started"], 1);
     assert_eq!(body["skipped"], 1);
 
@@ -2369,7 +2370,7 @@ async fn test_bulk_start_enrollment_rejects_self(_: PgPoolOptions, options: PgCo
 
     let response = client
         .post("/api/v1/user/bulk-start-enrollment")
-        .json(&serde_json::json!({
+        .json(&json!({
             "users": [admin.id, hpotter.id],
             "send_enrollment_notification": false
         }))
@@ -2394,7 +2395,7 @@ async fn test_bulk_start_enrollment_unknown_user(_: PgPoolOptions, options: PgCo
 
     let response = client
         .post("/api/v1/user/bulk-start-enrollment")
-        .json(&serde_json::json!({
+        .json(&json!({
             "users": [9_999_999],
             "send_enrollment_notification": false
         }))
@@ -2427,7 +2428,7 @@ async fn test_bulk_disable_deduplicates_ids(_: PgPoolOptions, options: PgConnect
     // Send the same ID twice; must not trigger the "unknown user" 400.
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id, dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2458,7 +2459,7 @@ async fn test_bulk_enable_deduplicates_ids(_: PgPoolOptions, options: PgConnectO
     // disable the user so re-enabling has an effect
     let response = client
         .post("/api/v1/user/bulk-disable")
-        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2466,7 +2467,7 @@ async fn test_bulk_enable_deduplicates_ids(_: PgPoolOptions, options: PgConnectO
     // Send the same ID twice; must not trigger the "unknown user" 400.
     let response = client
         .post("/api/v1/user/bulk-enable")
-        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id, dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2497,7 +2498,7 @@ async fn test_bulk_delete_deduplicates_ids(_: PgPoolOptions, options: PgConnectO
     // Send the same ID twice; must not trigger the "unknown user" 400.
     let response = client
         .post("/api/v1/user/bulk-delete")
-        .json(&serde_json::json!({ "users": [dumbledore.id, dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id, dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2542,7 +2543,7 @@ async fn test_delete_user_clears_stale_default_admin_settings_cache(
     // in-memory cache still held the now-dangling `dumbledore.id`
     let response = client
         .patch("/api/v1/settings")
-        .json(&serde_json::json!({ "wireguard_enabled": false }))
+        .json(&json!({ "wireguard_enabled": false }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2575,7 +2576,7 @@ async fn test_bulk_delete_users_clears_stale_default_admin_settings_cache(
 
     let response = client
         .post("/api/v1/user/bulk-delete")
-        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2585,7 +2586,7 @@ async fn test_bulk_delete_users_clears_stale_default_admin_settings_cache(
 
     let response = client
         .patch("/api/v1/settings")
-        .json(&serde_json::json!({ "wireguard_enabled": false }))
+        .json(&json!({ "wireguard_enabled": false }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -2614,7 +2615,7 @@ async fn test_bulk_start_enrollment_deduplicates_ids(_: PgPoolOptions, options: 
     // count as a single started enrollment.
     let response = client
         .post("/api/v1/user/bulk-start-enrollment")
-        .json(&serde_json::json!({
+        .json(&json!({
             "users": [dumbledore.id, dumbledore.id],
             "send_enrollment_notification": false
         }))
@@ -2622,7 +2623,7 @@ async fn test_bulk_start_enrollment_deduplicates_ids(_: PgPoolOptions, options: 
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["started"], 1);
     assert_eq!(body["skipped"], 0);
 
@@ -2982,11 +2983,11 @@ async fn test_bulk_store_enrollment_token_in_ldap_rejects_unusable_config(
     // No attribute configured yet.
     let response = client
         .post("/api/v1/user/bulk-store-enrollment-token-ldap")
-        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(
         body["msg"], "LDAP enrollment token attribute is not configured.",
         "the action must be rejected while the attribute is unset"
@@ -3003,11 +3004,11 @@ async fn test_bulk_store_enrollment_token_in_ldap_rejects_unusable_config(
 
     let response = client
         .post("/api/v1/user/bulk-store-enrollment-token-ldap")
-        .json(&serde_json::json!({ "users": [dumbledore.id] }))
+        .json(&json!({ "users": [dumbledore.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["msg"], "LDAP integration is not enabled.");
     assert!(
         !get_db_user(&pool, "adumbledore").await.enrollment_pending,
@@ -3027,7 +3028,7 @@ async fn test_bulk_store_enrollment_token_in_ldap_rejects_self(
     let admin = get_db_user(&pool, "admin").await;
     let response = client
         .post("/api/v1/user/bulk-store-enrollment-token-ldap")
-        .json(&serde_json::json!({ "users": [admin.id] }))
+        .json(&json!({ "users": [admin.id] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);

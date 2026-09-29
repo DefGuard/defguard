@@ -214,7 +214,7 @@ pub(crate) async fn ldap_store_enrollment_tokens<'a>(
         let mut failed = Vec::new();
         for (user, token) in tokens {
             if let Err(err) = ldap_connection
-                .set_user_enrollment_token(*user, token)
+                .set_user_enrollment_token(user, token)
                 .await
             {
                 error!("Failed to store enrollment token for user {user} in LDAP: {err}");

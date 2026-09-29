@@ -281,7 +281,6 @@ impl LDAPConfig {
     pub(crate) fn enrollment_token_attr(&self) -> Option<&str> {
         self.ldap_enrollment_token_attr
             .as_deref()
-            .map(str::trim)
             .filter(|attr| !attr.is_empty())
     }
 
@@ -754,9 +753,9 @@ impl LDAPConnection {
     }
 
     /// Stores the user's enrollment token in the configured LDAP attribute.
-    pub(crate) async fn set_user_enrollment_token<I>(
+    pub(crate) async fn set_user_enrollment_token(
         &mut self,
-        user: &User<I>,
+        user: &User<Id>,
         token: &str,
     ) -> Result<(), LdapError> {
         let Some(attr) = self.config.enrollment_token_attr().map(ToOwned::to_owned) else {

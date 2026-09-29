@@ -20,7 +20,7 @@ use reqwest::{
     Client, StatusCode,
     header::{HeaderMap, USER_AGENT},
 };
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{sync::oneshot, time::timeout};
 
@@ -133,7 +133,7 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(!body["cert_info"].is_null());
     assert!(body["cert_info"]["valid_for_days"].as_i64().unwrap_or(0) > 0);
 
@@ -163,7 +163,7 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(!body["cert_info"].is_null());
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
@@ -201,7 +201,7 @@ async fn test_get_internal_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(body["ca_cert_pem"].is_null());
 
     client
@@ -228,7 +228,7 @@ async fn test_get_internal_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(
         body["ca_cert_pem"]
             .as_str()
@@ -302,7 +302,7 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(!body["cert_info"].is_null());
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
@@ -355,7 +355,7 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(body["ca_cert_pem"].is_null());
 
     client
@@ -384,7 +384,7 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert!(
         body["ca_cert_pem"]
             .as_str()
