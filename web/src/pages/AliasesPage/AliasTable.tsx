@@ -24,6 +24,7 @@ import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { resourceById } from '../../shared/utils/resourceById';
+import { ruleNamesByResourceId } from '../../shared/utils/ruleNamesByResourceId';
 
 type RowData = AclAlias;
 
@@ -54,19 +55,10 @@ export const AliasTable = ({
   );
 
   const rulesById = useMemo(() => resourceById(rules), [rules]);
-  const rulesByAliasId = useMemo(() => {
-    if (!rules) return {} as Record<number, string[]>;
-    const map: Record<number, string[]> = {};
-    rules.forEach((rule) => {
-      rule.aliases.forEach((aliasId) => {
-        if (!map[aliasId]) {
-          map[aliasId] = [];
-        }
-        map[aliasId].push(rule.name);
-      });
-    });
-    return map;
-  }, [rules]);
+  const rulesByAliasId = useMemo(
+    () => ruleNamesByResourceId(rules, (rule) => rule.aliases),
+    [rules],
+  );
 
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
