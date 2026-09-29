@@ -333,6 +333,7 @@ export const RulesTable = ({
               topItems.push({
                 icon: 'duplicate',
                 text: m.controls_duplicate(),
+                testId: 'rule-row-duplicate',
                 onClick: () => {
                   licenseActionCheck(canUseBusinessFeature(license), () => {
                     navigate({
