@@ -446,12 +446,8 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
     }
 }
 
-/// Assign a single-step MFA flow to a location so that `MfaFlow::derive_legacy_mode` yields a
-/// legacy mode for it.
-///
-/// `mfa_enabled` alone is no longer enough: the legacy mode is derived from the location's flow
-/// configuration, and a location with no flows derives `None`, which the MFA start path refuses.
-async fn assign_legacy_mfa_flow(
+/// Assign a single-step MFA flow to a location.
+async fn assign_mfa_flow(
     pool: &PgPool,
     location_id: Id,
     title: &str,
@@ -474,10 +470,11 @@ async fn assign_legacy_mfa_flow(
     .expect("failed to assign test mfa flow to location");
 }
 
-/// Insert a WireGuard network that derives the legacy `Internal` MFA mode, returning the saved
-/// `WireguardNetwork<Id>`. Use this for any test that exercises the MFA flow (the default
-/// `create_network` leaves MFA disabled).
-pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+/// Insert a WireGuard network whose single MFA step contains exactly `methods`.
+pub(crate) async fn create_mfa_network_with_methods(
+    pool: &PgPool,
+    methods: Vec<VpnClientMfaMethod>,
+) -> WireguardNetwork<Id> {
     static NET_CTR: AtomicU16 = AtomicU16::new(0);
     let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
     let network = WireguardNetwork::new(
@@ -499,11 +496,21 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
     .await
     .expect("failed to save test mfa wireguard network");
 
-    // The full internal method set is what derives `LocationMfaMode::Internal`.
-    assign_legacy_mfa_flow(
+    assign_mfa_flow(
         pool,
         network.id,
-        &format!("test-internal-mfa-flow-{network_number}"),
+        &format!("test-mfa-flow-{network_number}"),
+        methods,
+    )
+    .await;
+
+    network
+}
+
+/// Insert a WireGuard network that derives the legacy `Internal` MFA mode.
+pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    create_mfa_network_with_methods(
+        pool,
         vec![
             VpnClientMfaMethod::Totp,
             VpnClientMfaMethod::Email,
@@ -511,9 +518,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
             VpnClientMfaMethod::MobileApprove,
         ],
     )
-    .await;
-
-    network
+    .await
 }
 
 /// Insert a WireGuard network that derives the legacy `External` MFA mode.
@@ -540,7 +545,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     .expect("failed to save test external mfa wireguard network");
 
     // A lone OIDC method is what derives `LocationMfaMode::External`.
-    assign_legacy_mfa_flow(
+    assign_mfa_flow(
         pool,
         network.id,
         &format!("test-external-mfa-flow-{network_number}"),
@@ -729,19 +734,13 @@ pub(crate) async fn send_mfa_start(
     (id, token)
 }
 
-/// Send `ClientMfaStart` and return `(request id, token, challenge)`.
-///
-/// The challenge is `None` for methods that do not issue one (TOTP, email, OIDC); the biometric
-/// and mobile-approve flows return the string the client must sign.
-///
-/// Requires `device_info` because the handler calls `parse_client_ip_agent`, same as
-/// [`send_mfa_finish`].
-pub(crate) async fn send_mfa_start_with_challenge(
+/// Send `ClientMfaStart` and return the raw response for success or error assertions.
+pub(crate) async fn send_mfa_start_raw(
     context: &mut HandlerTestContext,
     location_id: Id,
     pubkey: &str,
     method: MfaMethod,
-) -> (u64, String, Option<String>) {
+) -> CoreResponse {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
@@ -756,7 +755,21 @@ pub(crate) async fn send_mfa_start_with_challenge(
             },
         )),
     });
-    let response = context.mock_proxy_mut().recv_outbound().await;
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send `ClientMfaStart` and return `(request id, token, challenge)`.
+///
+/// The challenge is `None` for methods that do not issue one (TOTP, email, OIDC); the biometric
+/// and mobile-approve flows return the string the client must sign.
+pub(crate) async fn send_mfa_start_with_challenge(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    method: MfaMethod,
+) -> (u64, String, Option<String>) {
+    let response = send_mfa_start_raw(context, location_id, pubkey, method).await;
+    let id = response.id;
     let (token, challenge) = match &response.payload {
         Some(core_response::Payload::ClientMfaStart(r)) => (r.token.clone(), r.challenge.clone()),
         Some(core_response::Payload::CoreError(e)) => panic!(
