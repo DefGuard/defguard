@@ -238,7 +238,7 @@ pub async fn verify(
 
 /// Verifies a FIDO2 assertion over `challenge` against the user's registered security keys.
 ///
-/// Returns `Ok(false)` when no key produced the signature; a malformed proof is an error.
+/// Returns `Ok(false)` when no key produced the signature. A malformed proof is an error.
 pub async fn verify_fido2_assertion(
     pool: &PgPool,
     user_id: Id,

@@ -96,8 +96,6 @@ async fn assert_setup_allowed(context: &mut HandlerTestContext, session_token: &
     );
 }
 
-// ---- FIDO2 ----
-
 /// Registers a security key whose private key the test holds.
 ///
 /// A `SoftPasskey` registration yields a well-formed `Passkey`, whose public key is then
@@ -304,10 +302,10 @@ async fn test_fido2_challenge_is_single_use(_: PgPoolOptions, options: PgConnect
     context.finish().await.expect_server_finished().await;
 }
 
-// ---- OIDC ----
-
-/// Sends `AuthInfo` for the MFA flow and returns the payload the authorize URL's state carries.
-async fn oidc_auth_info_state(context: &mut HandlerTestContext, session_token: &str) -> String {
+async fn send_oidc_auth_info(
+    context: &mut HandlerTestContext,
+    session_token: &str,
+) -> CoreResponse {
     static AUTH_INFO_CTR: AtomicU64 = AtomicU64::new(6000);
     context.mock_proxy().send_request(CoreRequest {
         id: AUTH_INFO_CTR.fetch_add(1, Ordering::Relaxed),
@@ -318,7 +316,12 @@ async fn oidc_auth_info_state(context: &mut HandlerTestContext, session_token: &
             ..Default::default()
         })),
     });
-    let response = context.mock_proxy_mut().recv_outbound().await;
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Sends `AuthInfo` for the MFA flow and returns the payload the authorize URL's state carries.
+async fn oidc_auth_info_state(context: &mut HandlerTestContext, session_token: &str) -> String {
+    let response = send_oidc_auth_info(context, session_token).await;
     let auth_info = match &response.payload {
         Some(core_response::Payload::AuthInfo(response)) => response,
         other => panic!(
@@ -446,6 +449,63 @@ async fn test_oidc_requires_license(_: PgPoolOptions, options: PgConnectOptions)
         send_mfa_config_authorize(&mut context, &session.session_token, MfaMethod::Oidc, "").await;
     assert_eq!(assert_error_response(&authorized), Code::PermissionDenied);
 
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A user without a linked OIDC identity cannot use OIDC, leaving the email fallback.
+#[sqlx::test]
+async fn test_unlinked_user_keeps_email_fallback(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let _smtp = configure_working_smtp(&context.pool).await;
+    let _mock = setup_oidc(&context).await;
+
+    let (session, _, ()) = start_session(&mut context, async |_, _| {}).await;
+    assert!(session.available_methods.is_empty());
+    assert!(session.email_fallback);
+
+    let auth_info = send_oidc_auth_info(&mut context, &session.session_token).await;
+    assert_eq!(assert_error_response(&auth_info), Code::PermissionDenied);
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A completed OIDC attempt survives until the client authorizes, whatever starts a new attempt.
+#[sqlx::test]
+async fn test_oidc_completion_survives_new_attempt(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let _mock = setup_oidc(&context).await;
+
+    let (session, user, _) = start_session(&mut context, async |pool, user| {
+        link_user_oidc_identity(pool, user).await;
+        register_signing_key(pool, user.id).await
+    })
+    .await;
+    assert_eq!(
+        session.available_methods,
+        vec![MfaMethod::Fido2 as i32, MfaMethod::Oidc as i32]
+    );
+    let session_token = session.session_token;
+
+    let state = oidc_auth_info_state(&mut context, &session_token).await;
+    let callback = send_oidc_callback(&mut context, &state, &user.email).await;
+    assert!(matches!(
+        callback.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+
+    let auth_info = send_oidc_auth_info(&mut context, &session_token).await;
+    assert_eq!(assert_error_response(&auth_info), Code::FailedPrecondition);
+    let challenge = send_mfa_config_fido2_challenge(&mut context, &session_token).await;
+    assert_eq!(assert_error_response(&challenge), Code::FailedPrecondition);
+
+    let authorized =
+        send_mfa_config_authorize(&mut context, &session_token, MfaMethod::Oidc, "").await;
+    assert_authorized(&authorized);
+
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
 

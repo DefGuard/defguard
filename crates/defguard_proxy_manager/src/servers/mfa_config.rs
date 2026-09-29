@@ -89,7 +89,6 @@ async fn is_configured(
         })
 }
 
-/// Whether `token` names an MFA configuration session rather than, say, a VPN MFA session.
 async fn is_mfa_config_token(pool: &PgPool, token: &str) -> Result<bool, Status> {
     match Token::find_by_id(pool, token).await {
         Ok(token) => Ok(token.token_type.as_deref() == Some(MFA_CONFIG_TOKEN_TYPE)),
@@ -156,10 +155,8 @@ async fn load_session(pool: &PgPool, session_token: &str) -> Result<MfaConfigSes
     })
 }
 
-/// Starts an OIDC authorization attempt when `token` names an MFA configuration session.
-///
-/// Returns the OIDC state payload binding the callback to this attempt, or `None` when the
-/// token belongs to another flow.
+/// Starts an OIDC attempt when `token` names an MFA configuration session. Returns the state
+/// payload binding the callback to it, or `None` for another flow's token.
 pub(crate) async fn mfa_config_oidc_begin(
     pool: &PgPool,
     token: &str,
@@ -176,16 +173,25 @@ pub(crate) async fn mfa_config_oidc_begin(
         return Err(Status::permission_denied("method not configured"));
     }
     let attempt_id = gen_alphanumeric(16);
-    session
+    if !session
         .token
-        .set_mfa_config_auth_state(
+        .replace_mfa_config_auth_state(
             pool,
             &MfaConfigAuthState::Oidc {
                 attempt_id: attempt_id.clone(),
                 completed: false,
             },
         )
-        .await?;
+        .await?
+    {
+        debug!(
+            "MFA config OIDC begin: user {} already completed OIDC authentication",
+            session.user.username
+        );
+        return Err(Status::failed_precondition(
+            "OIDC authentication already completed",
+        ));
+    }
     debug!(
         "User {} started an OIDC MFA configuration authorization",
         session.user.username
@@ -413,14 +419,23 @@ impl MfaConfigServer {
         }
 
         let challenge = BiometricChallenge::new().challenge;
-        token
-            .set_mfa_config_auth_state(
+        if !token
+            .replace_mfa_config_auth_state(
                 &self.pool,
                 &MfaConfigAuthState::Fido2 {
                     challenge: challenge.clone(),
                 },
             )
-            .await?;
+            .await?
+        {
+            debug!(
+                "MFA config FIDO2 challenge: user {} already completed OIDC authentication",
+                user.username
+            );
+            return Err(Status::failed_precondition(
+                "OIDC authentication already completed",
+            ));
+        }
         let credential_ids = fido2_credential_ids(&self.pool, user.id)
             .await
             .map_err(|err| {

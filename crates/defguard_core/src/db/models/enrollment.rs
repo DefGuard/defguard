@@ -93,10 +93,14 @@ impl From<TokenError> for Status {
 /// An in-flight authorization attempt of an MFA configuration session.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum MfaConfigAuthState {
-    /// A single-use challenge for a FIDO2 assertion.
-    Fido2 { challenge: String },
+    Fido2 {
+        challenge: String,
+    },
     /// An OIDC round trip, marked completed by the Edge callback.
-    Oidc { attempt_id: String, completed: bool },
+    Oidc {
+        attempt_id: String,
+        completed: bool,
+    },
 }
 
 // Representation of a user enrollment session
@@ -111,8 +115,8 @@ pub struct Token {
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
-    /// CBOR-serialized ceremony state. Before an MFA configuration session is authorized it holds
-    /// [`MfaConfigAuthState`]; afterwards a `PasskeyRegistration` while a FIDO2 setup is in progress.
+    /// CBOR-serialized ceremony state. An unauthorized MFA configuration session holds
+    /// [`MfaConfigAuthState`], an authorized one a `PasskeyRegistration` during FIDO2 setup.
     pub mfa_setup_state: Option<Vec<u8>>,
 }
 
@@ -228,8 +232,7 @@ impl Token {
         Ok(())
     }
 
-    /// Stores the authorization attempt of an MFA configuration session, replacing any earlier one.
-    pub async fn set_mfa_config_auth_state<'e, E>(
+    async fn set_mfa_config_auth_state<'e, E>(
         &mut self,
         executor: E,
         state: &MfaConfigAuthState,
@@ -257,7 +260,6 @@ impl Token {
             .and_then(|state| serde_cbor::from_slice(state).ok())
     }
 
-    /// Locks the token row and reads its authorization attempt.
     async fn lock_mfa_config_auth_state(
         &self,
         transaction: &mut PgConnection,
@@ -271,6 +273,26 @@ impl Token {
         .ok_or(TokenError::NotFound)?
         .mfa_setup_state;
         Ok(state.and_then(|state| serde_cbor::from_slice(&state).ok()))
+    }
+
+    /// Starts a new authorization attempt. Returns `false`, leaving the state as is, when a
+    /// completed OIDC attempt is waiting for the client to authorize the session.
+    pub async fn replace_mfa_config_auth_state(
+        &mut self,
+        pool: &PgPool,
+        state: &MfaConfigAuthState,
+    ) -> Result<bool, TokenError> {
+        let mut transaction = pool.begin().await?;
+        if let Some(MfaConfigAuthState::Oidc {
+            completed: true, ..
+        }) = self.lock_mfa_config_auth_state(&mut transaction).await?
+        {
+            return Ok(false);
+        }
+        self.set_mfa_config_auth_state(&mut *transaction, state)
+            .await?;
+        transaction.commit().await?;
+        Ok(true)
     }
 
     /// Removes and returns the stored FIDO2 challenge, so each challenge verifies at most once.
