@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM token WHERE user_id = $1 AND token_type = $2 AND used_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ca90dc827beed48fde390f9fd4e537d0f3dcbed2789274c4103e5e3e1cdca13b"
+}

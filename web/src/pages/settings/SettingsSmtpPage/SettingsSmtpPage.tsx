@@ -32,6 +32,7 @@ import { patternValidEmail } from '../../../shared/patterns';
 import {
   getLicenseInfoQueryOptions,
   getSettingsQueryOptions,
+  mfaAvailabilityInvalidateKey,
 } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { Validate } from '../../../shared/validate';
@@ -203,7 +204,7 @@ const Content = ({
   const { mutateAsync: editSettings } = useMutation({
     mutationFn: api.settings.patchSettings,
     meta: {
-      invalidate: [['settings'], ['info']],
+      invalidate: [['settings'], ['info'], mfaAvailabilityInvalidateKey],
     },
     onSuccess: () => {
       Snackbar.default(m.settings_msg_saved());
@@ -258,7 +259,7 @@ const Content = ({
       actionPromise: () => {
         return api.settings.patchSettings(emptyValues);
       },
-      invalidateKeys: [['settings'], ['info']],
+      invalidateKeys: [['settings'], ['info'], mfaAvailabilityInvalidateKey],
       submitProps: { text: m.controls_delete(), variant: 'critical' },
       onSuccess: () => {
         form.reset(emptyValues);

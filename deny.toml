@@ -170,6 +170,10 @@ exceptions = [
     { allow = [
         "AGPL-3.0-only",
         "AGPL-3.0-or-later",
+    ], crate = "defguard_load_generator" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_vpn_stats_purge" },
     { allow = [
         "AGPL-3.0-only",

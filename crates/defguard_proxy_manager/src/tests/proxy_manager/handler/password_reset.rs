@@ -1,14 +1,18 @@
+use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
         Id,
         models::{
-            User,
+            Session, SessionState, User,
             settings::{Settings, update_current_settings},
         },
     },
     testing::smtp::MockSmtpServer,
 };
-use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
+use defguard_core::{
+    db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
+    events::{BidiStreamEventType, PasswordResetEvent},
+};
 use defguard_proto::proxy::core_response;
 use sqlx::{
     PgPool,
@@ -108,6 +112,19 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
         .expect("failed to save user with password");
 
     let token = create_password_reset_token(&context.pool, &user).await;
+    let _other_token = create_password_reset_token(&context.pool, &user).await;
+    assert_eq!(count_password_reset_tokens(&context.pool, user.id).await, 2);
+
+    let web_session = Session::new(
+        user.id,
+        SessionState::PasswordVerified,
+        "10.0.0.1".into(),
+        None,
+    );
+    web_session
+        .save(&context.pool)
+        .await
+        .expect("failed to save web session");
 
     // Start the session (consumes the PasswordResetStarted event).
     let start_response = send_password_reset_start(&mut context, &token.id).await;
@@ -146,6 +163,21 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
         updated.password_hash, user.password_hash,
         "password hash must have changed after reset"
     );
+    assert!(
+        Session::find_by_id(&context.pool, &web_session.id)
+            .await
+            .expect("failed to find web session")
+            .is_none(),
+        "successful password reset must end web sessions"
+    );
+    assert_eq!(
+        count_password_reset_tokens(&context.pool, user.id).await,
+        0,
+        "successful password reset must delete all reset tokens"
+    );
+
+    let replayed = send_password_reset(&mut context, &token.id, NEW_PASSWORD).await;
+    assert_error_response(&replayed);
 
     // A BidiStreamEvent::PasswordReset(PasswordResetCompleted) must have been emitted.
     let event = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
@@ -159,6 +191,51 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
         },
         other => panic!("expected BidiStreamEventType::PasswordReset, got: {other:?}"),
     }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Password-reset sessions expire according to their configured timeout, not the enrollment timeout.
+#[sqlx::test]
+async fn test_password_reset_uses_password_reset_session_timeout(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.password_reset_session_timeout_minutes = 1;
+    settings.enrollment_session_timeout_minutes = 60;
+    update_current_settings(&context.pool, settings)
+        .await
+        .expect("failed to update session timeouts");
+
+    let mut user = create_user(&context.pool).await;
+    user.set_password(STRONG_PASSWORD);
+    user.save(&context.pool)
+        .await
+        .expect("failed to save user with password");
+
+    let mut token = Token::new(
+        user.id,
+        None,
+        Some(user.email.clone()),
+        3600,
+        Some(PASSWORD_RESET_TOKEN_TYPE.to_owned()),
+    );
+    token.used_at = Some((Utc::now() - TimeDelta::minutes(2)).naive_utc());
+    token
+        .save(&context.pool)
+        .await
+        .expect("failed to save expired reset session");
+
+    let response = send_password_reset(&mut context, &token.id, "NewPass2!").await;
+    assert_eq!(
+        assert_error_response(&response),
+        tonic::Code::Unauthenticated,
+        "an expired password-reset session must be rejected"
+    );
 
     context.finish().await.expect_server_finished().await;
 }

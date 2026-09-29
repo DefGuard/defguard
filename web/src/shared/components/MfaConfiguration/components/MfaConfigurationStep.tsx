@@ -1,12 +1,12 @@
 import { Reorder, useDragControls } from 'motion/react';
 import { m } from '../../../../paraglide/messages';
-import { MfaFlowMethod } from '../../../api/types';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
 import { FieldError } from '../../../defguard-ui/components/FieldError/FieldError';
 import { Helper } from '../../../defguard-ui/components/Helper/Helper';
 import { Icon } from '../../../defguard-ui/components/Icon';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
+import { mfaFlowMethodHints } from '../../../utils/mfaFlowSteps';
 import type { MfaConfigurationStepProps } from '../types';
 import { MfaMethodsMenu } from './MfaMethodsMenu';
 
@@ -68,9 +68,9 @@ export const MfaConfigurationStep = ({
               <Icon icon="check-filled" size={16} staticColor={ThemeVariable.FgSuccess} />
               <p>{methodLabels[method]}</p>
               <div className="right">
-                {method === MfaFlowMethod.Biometric && (
-                  <span className="mobile-only-label">
-                    {m.mfa_flow_method_mobile_only()}
+                {mfaFlowMethodHints[method] && (
+                  <span className="platform-label">
+                    {mfaFlowMethodHints[method]?.platform}
                   </span>
                 )}
                 <button

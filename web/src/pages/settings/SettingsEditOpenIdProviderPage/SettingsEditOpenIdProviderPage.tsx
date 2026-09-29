@@ -1,4 +1,4 @@
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useCallback, useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
@@ -9,8 +9,13 @@ import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackba
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
-import { getExternalProviderQueryOptions } from '../../../shared/query';
+import {
+  getExternalProviderQueryOptions,
+  getMfaFlowsQueryOptions,
+  mfaAvailabilityInvalidateKey,
+} from '../../../shared/query';
 import { joinCsv } from '../../../shared/utils/csv';
+import { openIdProviderDeleteBody } from '../../../shared/utils/mfaFlowSteps';
 import { EditCustomProviderForm } from './form/EditCustomProviderForm';
 import { EditGoogleProviderForm } from './form/EditGoogleProviderForm';
 import { EditJumpCloudProviderForm } from './form/EditJumpCloudProviderForm';
@@ -29,6 +34,7 @@ const breadcrumbs = [
 export const SettingsEditOpenIdProviderPage = () => {
   const router = useRouter();
   const { data } = useSuspenseQuery(getExternalProviderQueryOptions);
+  const { data: mfaFlows = [] } = useQuery(getMfaFlowsQueryOptions);
 
   const formData = useMemo(() => {
     if (isPresent(data?.provider)) {
@@ -39,16 +45,28 @@ export const SettingsEditOpenIdProviderPage = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.openIdProvider.editOpenIdProvider,
     meta: {
-      invalidate: [['settings'], ['info'], ['openid'], ['settings_essentials']],
+      invalidate: [
+        ['settings'],
+        ['info'],
+        ['openid'],
+        ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
+      ],
     },
   });
 
   const handleDelete = (name: string) => {
     openModal(ModalName.ConfirmAction, {
       title: m.settings_openid_provider_delete_confirm_title(),
-      contentMd: m.settings_openid_provider_delete_confirm_body(),
+      contentMd: openIdProviderDeleteBody(mfaFlows),
       actionPromise: () => api.openIdProvider.deleteOpenIdProvider(name),
-      invalidateKeys: [['settings'], ['info'], ['openid'], ['settings_essentials']],
+      invalidateKeys: [
+        ['settings'],
+        ['info'],
+        ['openid'],
+        ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
+      ],
       submitProps: { text: m.controls_delete(), variant: 'critical' },
       onSuccess: () => {
         Snackbar.default(m.settings_openid_provider_delete_success());

@@ -667,6 +667,16 @@ impl ProxyHandler {
                     }
                 }
             }
+            // RPC MfaConfigEnd (MfaConfigEndRequest) returns google.protobuf.Empty.
+            Some(core_request::Payload::MfaConfigEnd(request)) => {
+                match boxed(services.mfa_config.mfa_config_end(request)).await {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("MFA config end error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
             // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
             Some(core_request::Payload::CodeMfaSetupStart(request)) => {
                 match boxed(services.enrollment.mfa_setup_start(request)).await {

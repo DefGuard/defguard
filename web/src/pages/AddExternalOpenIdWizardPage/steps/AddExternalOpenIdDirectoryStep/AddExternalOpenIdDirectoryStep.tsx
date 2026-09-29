@@ -10,6 +10,7 @@ import {
   ThemeSpacing,
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
+import { mfaAvailabilityInvalidateKey } from '../../../../shared/query';
 import { validateExternalProviderWizard } from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
 import { GoogleProviderForm } from './forms/GoogleProviderForm';
@@ -43,6 +44,7 @@ export const AddExternalOpenIdDirectoryStep = () => {
         ['info'],
         ['openid', 'provider'],
         ['settings_essentials'],
+        mfaAvailabilityInvalidateKey,
       ],
     },
   });
