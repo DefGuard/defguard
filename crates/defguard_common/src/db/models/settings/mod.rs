@@ -66,7 +66,13 @@ pub enum SettingsValidationError {
     CannotEnableLdap,
     #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
     InvalidDefguardUrl(String),
+    #[error("LDAP attribute `{0}` cannot be used to store enrollment tokens")]
+    ForbiddenLdapEnrollmentTokenAttr(String),
 }
+
+/// Attributes holding a credential or the entry's identifier, which a token must not overwrite.
+pub const FORBIDDEN_LDAP_ENROLLMENT_TOKEN_ATTRS: [&str; 4] =
+    ["cn", "sambaNTPassword", "uid", "userPassword"];
 
 #[derive(Error, Debug)]
 pub enum SettingsInitializationError {
@@ -628,6 +634,18 @@ impl Settings {
         if self.ldap_remote_enrollment_enabled && !self.ldap_configured() {
             warn!("Cannot enable remote enrollment for LDAP. LDAP is not configured.");
             return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
+        }
+
+        // LDAP attribute names are case-insensitive.
+        if let Some(attr) = self.ldap_enrollment_token_attribute()
+            && let Some(forbidden) = FORBIDDEN_LDAP_ENROLLMENT_TOKEN_ATTRS
+                .iter()
+                .find(|forbidden| forbidden.eq_ignore_ascii_case(attr.trim()))
+        {
+            warn!("Cannot use LDAP attribute {forbidden} to store enrollment tokens.");
+            return Err(SettingsValidationError::ForbiddenLdapEnrollmentTokenAttr(
+                attr.to_owned(),
+            ));
         }
 
         Ok(())

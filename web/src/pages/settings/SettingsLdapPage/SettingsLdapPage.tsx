@@ -96,6 +96,9 @@ export const SettingsLdapPage = () => {
 
 const ldap_minimum_sync_interval = 10;
 
+// Mirrors FORBIDDEN_LDAP_ENROLLMENT_TOKEN_ATTRS on the backend.
+const forbiddenEnrollmentTokenAttrs = ['userpassword', 'cn', 'uid', 'sambantpassword'];
+
 const formSchema = z
   .object({
     ldap_bind_password: z.string().trim().min(1, m.form_error_required()),
@@ -136,6 +139,15 @@ const formSchema = z
         message: m.form_error_min({
           value: ldap_minimum_sync_interval,
         }),
+      });
+    }
+    // LDAP attribute names are case-insensitive.
+    const tokenAttr = value.ldap_enrollment_token_attr?.toLowerCase();
+    if (isPresent(tokenAttr) && forbiddenEnrollmentTokenAttrs.includes(tokenAttr)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['ldap_enrollment_token_attr'],
+        message: m.settings_ldap_error_forbidden_enrollment_token_attribute(),
       });
     }
   });
