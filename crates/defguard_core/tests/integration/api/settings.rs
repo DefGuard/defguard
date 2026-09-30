@@ -430,9 +430,9 @@ async fn test_patch_empty_smtp_rejects_enabled_dependents(
 
     let patch: SettingsPatch = serde_json::from_str(
         r#"{
-            "smtp_server": null,
-            "smtp_port": null,
-            "smtp_sender": null
+            "smtp_server": "",
+            "smtp_port": 587,
+            "smtp_sender": ""
         }"#,
     )
     .unwrap();
