@@ -215,8 +215,8 @@ impl From<TokenError> for WebError {
 impl From<SettingsValidationError> for WebError {
     fn from(err: SettingsValidationError) -> Self {
         match err {
-            SettingsValidationError::CannotEnableGatewayNotifications
-            | SettingsValidationError::CannotEnableLdapRemoteEnrollment
+            SettingsValidationError::SmtpRequiredBy(_)
+            | SettingsValidationError::LdapRequiredForRemoteEnrollment
             | SettingsValidationError::CannotEnableLdap
             | SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
         }

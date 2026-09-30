@@ -401,6 +401,58 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     );
 }
 
+#[sqlx::test]
+async fn test_patch_empty_smtp_rejects_enabled_dependents(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let patch: SettingsPatch = serde_json::from_str(&format!(
+        r#"{{
+            "smtp_server": "smtp.example.com",
+            "smtp_port": 587,
+            "smtp_sender": "noreply@example.com",
+            {VALID_LDAP_FIELDS_NO_URL},
+            {VALID_LDAP_URL},
+            "ldap_remote_enrollment_enabled": true,
+            "gateway_disconnect_notifications_enabled": true
+        }}"#
+    ))
+    .unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let patch: SettingsPatch = serde_json::from_str(
+        r#"{
+            "smtp_server": null,
+            "smtp_port": null,
+            "smtp_sender": null
+        }"#,
+    )
+    .unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let body: serde_json::Value = response.json().await;
+    let message = body["msg"]
+        .as_str()
+        .expect("error response should include msg");
+    assert!(message.contains("LDAP remote enrollment"), "{message}");
+    assert!(
+        message.contains("gateway disconnect notifications"),
+        "{message}"
+    );
+
+    let settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(settings.smtp_configured());
+}
+
 /// The fields of a `BroadcastPublicSettings` control message, so assertions read by name rather
 /// than by tuple position.
 struct PublicSettingsBroadcast {

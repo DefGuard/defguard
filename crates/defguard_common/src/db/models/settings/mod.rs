@@ -56,12 +56,30 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SmtpDependent {
+    LdapRemoteEnrollment,
+    GatewayDisconnectNotifications,
+}
+
+impl fmt::Display for SmtpDependent {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::LdapRemoteEnrollment => "LDAP remote enrollment",
+            Self::GatewayDisconnectNotifications => "gateway disconnect notifications",
+        })
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum SettingsValidationError {
-    #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
-    CannotEnableGatewayNotifications,
-    #[error("Cannot enable remote enrollment for LDAP. LDAP and SMTP must both be configured")]
-    CannotEnableLdapRemoteEnrollment,
+    #[error(
+        "SMTP is required by: {}. Disable them first or configure SMTP.",
+        .0.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+    )]
+    SmtpRequiredBy(Vec<SmtpDependent>),
+    #[error("LDAP must be configured before remote enrollment for LDAP can be enabled")]
+    LdapRequiredForRemoteEnrollment,
     #[error("Cannot enable LDAP. Required LDAP fields are not configured")]
     CannotEnableLdap,
     #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
@@ -601,11 +619,19 @@ impl Settings {
         self.build_webauthn()
             .map_err(|_| SettingsValidationError::InvalidDefguardUrl(self.defguard_url.clone()))?;
 
-        // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
-        // configured.
-        if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
-            warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
-            return Err(SettingsValidationError::CannotEnableGatewayNotifications);
+        let mut smtp_dependents = Vec::new();
+        if !self.smtp_configured() {
+            if self.ldap_remote_enrollment_enabled {
+                smtp_dependents.push(SmtpDependent::LdapRemoteEnrollment);
+            }
+            if self.gateway_disconnect_notifications_enabled {
+                smtp_dependents.push(SmtpDependent::GatewayDisconnectNotifications);
+            }
+        }
+        if !smtp_dependents.is_empty() {
+            let error = SettingsValidationError::SmtpRequiredBy(smtp_dependents);
+            warn!("{error}");
+            return Err(error);
         }
 
         // Check if LDAP can be enabled
@@ -614,14 +640,9 @@ impl Settings {
             return Err(SettingsValidationError::CannotEnableLdap);
         }
 
-        // Check if LDAP remote enrollment can be enabled
-        if self.ldap_remote_enrollment_enabled && !self.smtp_configured() {
-            warn!("Cannot enable remote enrollment for LDAP. SMTP is not configured.");
-            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
-        }
         if self.ldap_remote_enrollment_enabled && !self.ldap_configured() {
             warn!("Cannot enable remote enrollment for LDAP. LDAP is not configured.");
-            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
+            return Err(SettingsValidationError::LdapRequiredForRemoteEnrollment);
         }
 
         Ok(())
