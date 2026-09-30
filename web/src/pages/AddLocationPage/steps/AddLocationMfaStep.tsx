@@ -135,7 +135,7 @@ export const AddLocationMfaStep = () => {
                 };
                 return (
                   <div className="add-location-mfa-flow-row" key={flow.id}>
-                    {index > 0 && <Divider />}
+                    {index > 0 && <Divider spacing={ThemeSpacing.Md} />}
                     {renderMfaFlowSelectionItem({
                       option,
                       active: selectedFlowId === flow.id,
