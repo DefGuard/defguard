@@ -391,12 +391,12 @@ impl LDAPConnection {
             let user_groups = user.member_of_names(pool).await?;
             let user_in_sync_groups = self.user_in_ldap_sync_groups(user).await?;
 
-            // An enrolled, in-scope LDAP user who has just been disabled in Defguard. We detect
-            // this before `user_sync_allowed` because disabled users are filtered out there, and
-            // we'd otherwise miss the active->disabled transition.
+            // An in-scope LDAP user who has just been disabled in Defguard. We detect this before
+            // `user_sync_allowed` because disabled users are filtered out there, and we'd otherwise
+            // miss the active->disabled transition.
             let user_disabled_in_defguard = user_in_sync_groups
                 && user_exists_in_ldap
-                && user.is_enrolled_or_ldap_pending()
+                && user.is_enrolled_or_from_ldap()
                 && !user.is_active;
 
             if user_disabled_in_defguard {
@@ -410,13 +410,13 @@ impl LDAPConnection {
                 continue;
             }
 
-            // An enrolled, in-scope LDAP user who has just been re-enabled in Defguard. Push the
-            // enable to AD here so the data sync below doesn't see a still-disabled AD account and
-            // revert Defguard back to disabled under LDAP authority.
+            // An in-scope LDAP user who has just been re-enabled in Defguard. Push the enable to
+            // AD here so the data sync below doesn't see a still-disabled AD account and revert
+            // Defguard back to disabled under LDAP authority.
             let user_enabled_in_defguard = sync_account_status
                 && user_in_sync_groups
                 && user_exists_in_ldap
-                && user.is_enrolled_or_ldap_pending()
+                && user.is_enrolled_or_from_ldap()
                 && user.is_active;
 
             if user_enabled_in_defguard {

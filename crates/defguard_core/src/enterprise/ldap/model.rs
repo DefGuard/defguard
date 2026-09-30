@@ -287,7 +287,7 @@ pub(crate) fn maybe_update_rdn<I>(user: &mut User<I>) {
 /// - he is in a group that is allowed to be synced or no such groups are configured
 /// - he is active (not disabled), unless AD account status sync is enabled, in which case
 ///   disabled users stay in scope so their status can be kept in sync instead of deleting them
-/// - he is enrolled, or is an LDAP-origin user whose enrollment is still pending
+/// - he is enrolled, or originates from LDAP
 pub(crate) async fn ldap_sync_allowed_for_user<'e, E>(
     user: &User<Id>,
     executor: E,
@@ -321,7 +321,7 @@ where
     Ok(
         (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
             && (user.is_active || sync_account_status)
-            && user.is_enrolled_or_ldap_pending(),
+            && user.is_enrolled_or_from_ldap(),
     )
 }
 

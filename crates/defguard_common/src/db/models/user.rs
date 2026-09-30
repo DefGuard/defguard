@@ -334,16 +334,15 @@ impl<I> User<I> {
         false
     }
 
-    /// Like [`Self::is_enrolled`], but also treats LDAP-origin users whose enrollment is
-    /// still pending as eligible for synchronization.
+    /// Returns whether the user is enrolled or originated from LDAP.
     ///
-    /// LDAP can create users that are enrollment-pending by default
-    /// (https://github.com/DefGuard/defguard/issues/2967). They already exist in the
-    /// directory, so they must stay in scope for synchronization even before they finish
-    /// enrolling, otherwise their group membership and account status drift out of sync.
+    /// LDAP-origin users already exist in the directory, so they stay in sync scope even before
+    /// remote enrollment is complete. This includes users imported with pending enrollment
+    /// (https://github.com/DefGuard/defguard/issues/2967) and users who did not receive an invite
+    /// (https://github.com/DefGuard/defguard/issues/3639).
     #[must_use]
-    pub fn is_enrolled_or_ldap_pending(&self) -> bool {
-        self.is_enrolled() || (self.from_ldap && self.enrollment_pending)
+    pub fn is_enrolled_or_from_ldap(&self) -> bool {
+        self.is_enrolled() || self.from_ldap
     }
 
     #[must_use]
