@@ -278,6 +278,8 @@ const api = {
     bulkDelete: (users: number[]) => client.post('/user/bulk-delete', { users }),
     bulkStartEnrollment: (data: BulkStartEnrollmentRequest) =>
       client.post('/user/bulk-start-enrollment', data),
+    bulkStoreEnrollmentTokenLdap: (users: number[]) =>
+      client.post('/user/bulk-store-enrollment-token-ldap', { users }),
     mfa: {
       totp: {
         disable: (username: string) => client.delete(`/user/${username}/totp`),
