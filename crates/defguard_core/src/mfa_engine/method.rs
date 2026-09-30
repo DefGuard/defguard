@@ -207,12 +207,6 @@ pub(super) async fn verify(
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
-            if authenticator_data.len() < RP_ID_HASH_LEN {
-                return Err(VerifyError::MalformedProof {
-                    message: "Auth data too small",
-                    event: None,
-                });
-            }
             let rpid_hash = authenticator_data[..RP_ID_HASH_LEN].to_vec();
 
             let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
