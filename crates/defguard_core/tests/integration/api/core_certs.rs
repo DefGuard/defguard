@@ -4,7 +4,7 @@ use defguard_common::db::models::{
 };
 use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
@@ -72,7 +72,7 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     // Url schema changed to https
     assert_eq!(settings.defguard_url, "https://defguard.example.com");
 
-    let body: serde_json::Value = response.json::<serde_json::Value>().await;
+    let body = response.json::<Value>().await;
     assert!(!body["cert_info"].is_null());
     assert_eq!(body["cert_info"]["common_name"], "defguard.example.com");
 
@@ -104,7 +104,7 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     // Url schema changed to https
     assert_eq!(settings.defguard_url, "https://defguard.example.com");
 
-    let body: serde_json::Value = response.json::<serde_json::Value>().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["cert_info"]["common_name"], "uploaded.example.com");
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
@@ -154,6 +154,6 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     let settings = Settings::get(&pool).await.unwrap().unwrap();
     // Url schema unchanged on errors
     assert_eq!(settings.defguard_url, "http://defguard.example.com");
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["msg"], "Certificate has expired");
 }

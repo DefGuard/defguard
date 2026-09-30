@@ -13,7 +13,7 @@ use reqwest::{
     Client, StatusCode,
     header::{HeaderMap, USER_AGENT},
 };
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 
@@ -31,7 +31,7 @@ async fn assert_migration_step(pool: &sqlx::PgPool, expected_variant: &str) {
         serde_json::to_value(&state.current_step).expect("Failed to serialize migration step");
     assert_eq!(
         serialized,
-        serde_json::Value::String(expected_variant.to_owned()),
+        Value::String(expected_variant.to_owned()),
         "Expected migration step '{expected_variant}', got {serialized}"
     );
 }
@@ -58,7 +58,10 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to get session-info");
     assert_eq!(resp.status(), StatusCode::OK);
-    let body: serde_json::Value = resp.json().await.expect("Failed to parse session-info");
+    let body = resp
+        .json::<Value>()
+        .await
+        .expect("Failed to parse session-info");
     assert_eq!(body["active_wizard"], "migration");
     assert_eq!(body["authorized"], false);
 
@@ -79,7 +82,10 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to GET /api/v1/migration/state");
     assert_eq!(resp.status(), StatusCode::OK);
-    let state: serde_json::Value = resp.json().await.expect("Failed to parse migration state");
+    let state = resp
+        .json::<Value>()
+        .await
+        .expect("Failed to parse migration state");
     assert_eq!(
         state["current_step"], "welcome",
         "Initial migration step should be 'welcome'"

@@ -12,7 +12,7 @@ use defguard_core::{
     events::ApiEventType,
 };
 use reqwest::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
@@ -38,7 +38,7 @@ async fn test_mfa_flow_single_step_no_license(_: PgPoolOptions, options: PgConne
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let created = response.json::<serde_json::Value>().await;
+    let created = response.json::<Value>().await;
     let created_id = created["id"].as_i64().unwrap();
 
     let events = client.drain_all_events();
@@ -87,7 +87,7 @@ async fn test_additional_mfa_flow_requires_business(_: PgPoolOptions, options: P
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["error"], "license_required");
     assert_eq!(body["fields"][0]["field"], "flow");
     assert_eq!(
@@ -139,7 +139,7 @@ async fn test_mfa_flow_multi_step_requires_business(_: PgPoolOptions, options: P
     set_cached_license(saved.clone());
     let response = client.post("/api/v1/mfa-flow").json(&body).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let created = response.json::<serde_json::Value>().await;
+    let created = response.json::<Value>().await;
     let created_id = created["id"].as_i64().unwrap();
 
     let events = client.drain_all_events();
@@ -183,7 +183,7 @@ async fn test_mfa_flow_oidc_requires_business_and_provider(
     set_cached_license(saved.clone());
     let response = client.post("/api/v1/mfa-flow").json(&body).send().await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["error"], "validation_failed");
     assert_eq!(body["fields"][0]["field"], "steps[0].methods");
     assert_eq!(body["fields"][0]["code"], "oidc_provider_missing");
@@ -213,7 +213,7 @@ async fn test_mfa_flow_email_requires_smtp(_: PgPoolOptions, options: PgConnectO
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["error"], "validation_failed");
     // The field path must point at the offending step so the editor can highlight that row.
     assert_eq!(body["fields"][0]["field"], "steps[1].methods");
@@ -246,9 +246,7 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
     let flow2_id = {
         let resp = client
@@ -260,15 +258,13 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     // Get the admin group ID via group-info endpoint
     let groups_resp = client.get("/api/v1/group-info").send().await;
     assert_eq!(groups_resp.status(), StatusCode::OK);
-    let groups = groups_resp.json::<serde_json::Value>().await;
+    let groups = groups_resp.json::<Value>().await;
     let admin_group_id = groups
         .as_array()
         .and_then(|arr| arr.first())
@@ -277,9 +273,7 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
 
     // Create a location
     let network_resp = make_network(&client, "enterprise-test").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // Default assignment (empty group_ids) + scoped assignment (non-empty)
     let assignment_body = json!([
@@ -353,9 +347,7 @@ async fn test_mfa_flow_update_multi_step_requires_business(
         .send()
         .await;
     assert_eq!(create_resp.status(), StatusCode::CREATED);
-    let flow_id = create_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let flow_id = create_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // Clear the create event before exercising the refusal path.
     let _ = client.drain_all_events();
@@ -424,7 +416,7 @@ async fn test_mfa_flow_update_rejects_foreign_step_id(_: PgPoolOptions, options:
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let flow_a: serde_json::Value = resp.json().await;
+    let flow_a = resp.json::<Value>().await;
 
     let resp = client
         .post("/api/v1/mfa-flow")
@@ -432,7 +424,7 @@ async fn test_mfa_flow_update_rejects_foreign_step_id(_: PgPoolOptions, options:
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let flow_b: serde_json::Value = resp.json().await;
+    let flow_b = resp.json::<Value>().await;
 
     let flow_a_id = flow_a["id"].as_i64().unwrap();
     let flow_b_id = flow_b["id"].as_i64().unwrap();
@@ -451,7 +443,7 @@ async fn test_mfa_flow_update_rejects_foreign_step_id(_: PgPoolOptions, options:
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["fields"][0]["code"], "unknown_step");
     assert!(
         client.drain_all_events().is_empty(),
@@ -463,7 +455,7 @@ async fn test_mfa_flow_update_rejects_foreign_step_id(_: PgPoolOptions, options:
         .get(format!("/api/v1/mfa-flow/{flow_b_id}"))
         .send()
         .await;
-    let flow_b_after: serde_json::Value = response.json().await;
+    let flow_b_after = response.json::<Value>().await;
     assert_eq!(
         flow_b_after["steps"], flow_b["steps"],
         "the other flow's steps must not have been rewritten"
@@ -479,17 +471,13 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     authenticate_admin(&mut client).await;
 
     let network_resp = make_network(&client, "assignment-validation").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
     let flow_resp = client
         .post("/api/v1/mfa-flow")
         .json(&json!({"title": "Flow", "steps": [{ "methods": ["totp"] }]}))
         .send()
         .await;
-    let flow_id = flow_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let flow_id = flow_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // Clear the create event so the refusal assertions below are exact.
     let _ = client.drain_all_events();
@@ -518,7 +506,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
-        response.json::<serde_json::Value>().await["fields"][0]["code"],
+        response.json::<Value>().await["fields"][0]["code"],
         "duplicate"
     );
 
@@ -533,7 +521,7 @@ async fn test_location_mfa_flows_input_validation(_: PgPoolOptions, options: PgC
     .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
-        response.json::<serde_json::Value>().await["fields"][0]["code"],
+        response.json::<Value>().await["fields"][0]["code"],
         "unknown_flow"
     );
 
@@ -562,9 +550,7 @@ async fn test_location_mfa_flows_non_default_without_groups(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
     let flow2_id = {
         let resp = client
@@ -573,15 +559,11 @@ async fn test_location_mfa_flows_non_default_without_groups(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let network_resp = make_network(&client, "non-default-without-groups").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // Clear the two create events before exercising the refusal path.
     let _ = client.drain_all_events();
@@ -596,7 +578,7 @@ async fn test_location_mfa_flows_non_default_without_groups(
     )
     .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["error"], "validation_failed");
     assert_eq!(body["fields"][0]["field"], "assignments[0].group_ids");
     assert_eq!(body["fields"][0]["code"], "non_default_must_have_groups");
@@ -621,14 +603,10 @@ async fn test_location_mfa_flows_clear_disabled_location(
         .json(&json!({"title": "Flow", "steps": [{"methods": ["totp"]}]}))
         .send()
         .await;
-    let flow_id = flow_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let flow_id = flow_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     let network_resp = make_network(&client, "clear-disabled").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // Clear the create/location events so the assignment assertions below are exact.
     let _ = client.drain_all_events();
@@ -695,15 +673,7 @@ async fn test_location_mfa_flows_clear_disabled_location(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(
-        response
-            .json::<serde_json::Value>()
-            .await
-            .as_array()
-            .unwrap()
-            .len(),
-        0
-    );
+    assert_eq!(response.json::<Value>().await.as_array().unwrap().len(), 0);
 }
 
 /// Method availability returns every method with correct availability.
@@ -719,11 +689,11 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let items = response.json::<serde_json::Value>().await;
+    let items = response.json::<Value>().await;
     let items = items.as_array().unwrap();
     assert_eq!(items.len(), 6);
 
-    let find = |method: &str| -> &serde_json::Value {
+    let find = |method: &str| -> &Value {
         items
             .iter()
             .find(|m| m["method"].as_str() == Some(method))
@@ -750,9 +720,9 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
         .get("/api/v1/mfa-flow/method-availability")
         .send()
         .await;
-    let items = response.json::<serde_json::Value>().await;
+    let items = response.json::<Value>().await;
     let items = items.as_array().unwrap();
-    let find = |method: &str| -> &serde_json::Value {
+    let find = |method: &str| -> &Value {
         items
             .iter()
             .find(|m| m["method"].as_str() == Some(method))
@@ -793,7 +763,7 @@ async fn test_mfa_flow_update_preserves_backfilled_email(
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let created: serde_json::Value = resp.json().await;
+    let created = resp.json::<Value>().await;
     let flow_id = created["id"].as_i64().unwrap();
 
     let events = client.drain_all_events();
@@ -853,7 +823,7 @@ async fn test_mfa_flow_update_preserves_backfilled_email(
         StatusCode::BAD_REQUEST,
         "adding email to a new step must still be rejected without SMTP"
     );
-    let body: serde_json::Value = resp.json().await;
+    let body = resp.json::<Value>().await;
     assert_eq!(body["fields"][0]["field"], "steps[1].methods");
     assert_eq!(body["fields"][0]["code"], "smtp_not_configured");
     assert!(
@@ -863,7 +833,7 @@ async fn test_mfa_flow_update_preserves_backfilled_email(
 }
 
 /// The full `WireguardNetworkData` body used to toggle `mfa_enabled` on an existing location.
-fn network_body(name: &str, mfa_enabled: bool, flow_id: i64) -> serde_json::Value {
+fn network_body(name: &str, mfa_enabled: bool, flow_id: i64) -> Value {
     json!({
         "name": name,
         "address": "10.1.1.1/24",
@@ -905,15 +875,11 @@ async fn test_mfa_enabled_disable_preserves_assignments(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let network_resp = make_network(&client, "mfa-lifecycle").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // Assign the flow as the location's default.
     let resp = update_location_mfa_flows(
@@ -949,7 +915,7 @@ async fn test_mfa_enabled_disable_preserves_assignments(
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let assignments = resp.json::<serde_json::Value>().await;
+    let assignments = resp.json::<Value>().await;
     let assignments = assignments.as_array().unwrap();
     assert_eq!(
         assignments.len(),
@@ -998,15 +964,11 @@ async fn test_mfa_flow_delete_location_requires_flow(_: PgPoolOptions, options: 
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let network_resp = make_network(&client, "delete-orphan").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     let resp = update_location_mfa_flows(
         &client,
@@ -1034,7 +996,7 @@ async fn test_mfa_flow_delete_location_requires_flow(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::CONFLICT);
-    let body: serde_json::Value = resp.json().await;
+    let body = resp.json::<Value>().await;
     assert_eq!(body["error"], "conflict");
     assert_eq!(body["fields"][0]["field"], "id");
     assert_eq!(body["fields"][0]["code"], "location_requires_flow");
@@ -1062,9 +1024,7 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
     let flow2_id = {
         let resp = client
@@ -1073,13 +1033,11 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let groups_resp = client.get("/api/v1/group-info").send().await;
-    let groups = groups_resp.json::<serde_json::Value>().await;
+    let groups = groups_resp.json::<Value>().await;
     let admin_group_id = groups
         .as_array()
         .and_then(|arr| arr.first())
@@ -1087,9 +1045,7 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
         .expect("admin group exists");
 
     let network_resp = make_network(&client, "delete-default").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // flow1 is the default, flow2 is group-scoped; group scoping needs Enterprise.
     set_enterprise_license();
@@ -1112,7 +1068,7 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::CONFLICT);
-    let body: serde_json::Value = resp.json().await;
+    let body = resp.json::<Value>().await;
     assert_eq!(body["error"], "conflict");
     assert_eq!(body["fields"][0]["code"], "flow_is_default");
     assert_eq!(body["fields"][0]["locations"], json!(["delete-default"]));
@@ -1158,7 +1114,7 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let created: serde_json::Value = resp.json().await;
+    let created = resp.json::<Value>().await;
     let flow_id = created["id"].as_i64().unwrap();
     assert_eq!(created["steps"].as_array().unwrap().len(), 2);
 
@@ -1172,7 +1128,7 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
 
     let resp = client.get("/api/v1/mfa-flow").send().await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let items = resp.json::<serde_json::Value>().await;
+    let items = resp.json::<Value>().await;
     let item = items
         .as_array()
         .unwrap()
@@ -1189,7 +1145,7 @@ async fn test_mfa_flow_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let detail = resp.json::<serde_json::Value>().await;
+    let detail = resp.json::<Value>().await;
     assert_eq!(detail["title"], "CRUD Flow");
     assert_eq!(detail["steps"].as_array().unwrap().len(), 2);
 
@@ -1249,9 +1205,7 @@ async fn test_mfa_flow_list_groups_steps_per_flow(_: PgPoolOptions, options: PgC
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
     let second = {
         let resp = client
@@ -1260,14 +1214,12 @@ async fn test_mfa_flow_list_groups_steps_per_flow(_: PgPoolOptions, options: PgC
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let resp = client.get("/api/v1/mfa-flow").send().await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let items = resp.json::<serde_json::Value>().await;
+    let items = resp.json::<Value>().await;
     let by_id = |id: i64| {
         items
             .as_array()
@@ -1307,15 +1259,11 @@ async fn test_location_mfa_flows_no_default_designated(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let network_resp = make_network(&client, "no-default").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     let _ = client.drain_all_events();
 
@@ -1328,7 +1276,7 @@ async fn test_location_mfa_flows_no_default_designated(
     )
     .await;
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = resp.json().await;
+    let body = resp.json::<Value>().await;
     assert_eq!(body["error"], "validation_failed");
     assert_eq!(body["fields"][0]["code"], "no_default_designated");
 
@@ -1363,8 +1311,8 @@ async fn test_mfa_flow_list_reports_unavailable_reason(
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     let resp = client.get("/api/v1/mfa-flow").send().await;
-    let flows: serde_json::Value = resp.json().await;
-    assert_eq!(flows[0]["unavailable_reason"], serde_json::Value::Null);
+    let flows = resp.json::<Value>().await;
+    assert_eq!(flows[0]["unavailable_reason"], Value::Null);
 
     let mut settings = Settings::get_current_settings();
     settings.smtp.server = None;
@@ -1374,6 +1322,6 @@ async fn test_mfa_flow_list_reports_unavailable_reason(
 
     let resp = client.get("/api/v1/mfa-flow").send().await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let flows: serde_json::Value = resp.json().await;
+    let flows = resp.json::<Value>().await;
     assert_eq!(flows[0]["unavailable_reason"], "smtp_not_configured");
 }
