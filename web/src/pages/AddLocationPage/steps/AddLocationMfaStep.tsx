@@ -17,11 +17,11 @@ import { Input } from '../../../shared/defguard-ui/components/Input/Input';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getMfaFlowsQueryOptions } from '../../../shared/query';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 import './style.scss';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 
 const disconnectThresholdSchema = z
   .number(m.form_error_required())
@@ -36,16 +36,21 @@ export const AddLocationMfaStep = () => {
   } = useQuery(getMfaFlowsQueryOptions);
   const hasMfaFlows = mfaFlowsLoaded && isPresent(mfaFlows) && mfaFlows.length > 0;
   const noMfaFlows = mfaFlowsLoaded && !hasMfaFlows;
-  const [mfaEnabledState, setMfaEnabledState] = useState(
-    useAddLocationStore.getState().mfa_enabled,
+  const storedMfaEnabled = useAddLocationStore((state) => state.mfa_enabled);
+  const storedSelectedFlowId = useAddLocationStore(
+    (state) => state.mfa_flows.find((flow) => flow.is_default)?.flow_id,
   );
+  const storedDisconnectThreshold = useAddLocationStore(
+    (state) => state.peer_disconnect_threshold,
+  );
+  const [mfaEnabledState, setMfaEnabledState] = useState(storedMfaEnabled);
   const mfaEnabled = mfaFlowsLoaded ? hasMfaFlows && mfaEnabledState : mfaEnabledState;
 
   const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
-    useAddLocationStore.getState().mfa_flows.find((flow) => flow.is_default)?.flow_id,
+    storedSelectedFlowId,
   );
   const [disconnectThreshold, setDisconnectThreshold] = useState<number | null>(
-    useAddLocationStore.getState().peer_disconnect_threshold,
+    storedDisconnectThreshold,
   );
   const [thresholdError, setThresholdError] = useState<string | null>(null);
   const [continueAttempted, setContinueAttempted] = useState(false);
