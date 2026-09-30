@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(array_agg(DISTINCT ipaddr), '{}'::inet[]) \"addresses!: Vec<IpAddr>\" FROM wireguard_network_device wnd CROSS JOIN LATERAL unnest(wnd.wireguard_ips) ipaddr WHERE wireguard_network_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "addresses!: Vec<IpAddr>",
+        "type_info": "InetArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "831855ae872f04a10fd8c9b8e377fb0dd774be9d310cc6b9203a6d92b9babe94"
+}

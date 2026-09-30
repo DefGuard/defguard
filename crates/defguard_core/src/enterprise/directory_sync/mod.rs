@@ -4,9 +4,12 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::db::{
-    Id,
-    models::{Settings, group::Group, user::User},
+use defguard_common::{
+    db::{
+        Id,
+        models::{Settings, group::Group, user::User},
+    },
+    gateway_event::send_multiple_gateway_commands,
 };
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
@@ -1116,14 +1119,16 @@ async fn sync_all_users_state(
 
     if users_reenabled {
         match pool.acquire().await {
-            Ok(mut conn) => {
-                if let Err(err) = sync_all_networks(&mut conn, gateway_tx).await {
-                    error!("Failed to sync all networks after directory user re-enablement: {err}");
+            Ok(mut conn) => match sync_all_networks(&mut conn).await {
+                Ok(gateway_cmds) => send_multiple_gateway_commands(gateway_cmds, gateway_tx),
+                Err(err) => {
+                    error!("Failed to sync all networks after directory user re-enablement: {err}")
                 }
-            }
+            },
             Err(err) => {
                 error!(
-                    "Failed to acquire a connection to sync networks after directory user re-enablement: {err}"
+                    "Failed to acquire a connection to sync networks after directory user \
+                    re-enablement: {err}"
                 );
             }
         }

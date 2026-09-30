@@ -70,13 +70,16 @@
 //!
 use std::collections::{HashMap, HashSet};
 
-use defguard_common::db::{
-    Id,
-    models::{
-        Settings, User,
-        group::Group,
-        settings::{LdapSyncStatus, update_current_settings},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Settings, User,
+            group::Group,
+            settings::{LdapSyncStatus, update_current_settings},
+        },
     },
+    gateway_event::send_multiple_gateway_commands,
 };
 use serde::Serialize;
 use sqlx::{PgConnection, PgPool};
@@ -708,14 +711,16 @@ impl super::LDAPConnection {
 
         if memberships_changed {
             match pool.acquire().await {
-                Ok(mut conn) => {
-                    if let Err(err) = sync_all_networks(&mut conn, wg_tx).await {
-                        error!("Failed to sync all networks after LDAP membership changes: {err}");
+                Ok(mut conn) => match sync_all_networks(&mut conn).await {
+                    Ok(gateway_cmds) => send_multiple_gateway_commands(gateway_cmds, wg_tx),
+                    Err(err) => {
+                        error!("Failed to sync all networks after LDAP membership changes: {err}")
                     }
-                }
+                },
                 Err(err) => {
                     error!(
-                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                        "Failed to acquire a connection to sync networks after LDAP membership \
+                        changes: {err}"
                     );
                 }
             }
@@ -854,8 +859,8 @@ impl super::LDAPConnection {
             .map(|u| u.username.as_str())
             .collect::<HashSet<_>>();
 
-        debug!("LDAP users: {:?}", ldap_usernames);
-        debug!("Defguard users: {:?}", defguard_usernames);
+        debug!("LDAP users: {ldap_usernames:?}");
+        debug!("Defguard users: {defguard_usernames:?}");
 
         let all_ldap_users_groupsync = all_ldap_users.clone();
         let ldap_memberships = self
@@ -902,14 +907,16 @@ impl super::LDAPConnection {
 
         if memberships_changed {
             match pool.acquire().await {
-                Ok(mut conn) => {
-                    if let Err(err) = sync_all_networks(&mut conn, wg_tx).await {
+                Ok(mut conn) => match sync_all_networks(&mut conn).await {
+                    Ok(gateway_cmds) => send_multiple_gateway_commands(gateway_cmds, wg_tx),
+                    Err(err) => {
                         error!("Failed to sync all networks after LDAP membership changes: {err}");
                     }
-                }
+                },
                 Err(err) => {
                     error!(
-                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                        "Failed to acquire a connection to sync networks after LDAP membership \
+                        changes: {err}"
                     );
                 }
             }

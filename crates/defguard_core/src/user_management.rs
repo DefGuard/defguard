@@ -13,7 +13,7 @@ use crate::{
         firewall::{FirewallError, try_get_location_firewall_config},
         limits::update_counts,
     },
-    grpc::{GatewayCommand, send_gateway_command, send_multiple_gateway_commands},
+    grpc::{GatewayCommand, send_multiple_gateway_commands},
     location_management::sync_allowed_devices_for_user,
 };
 
@@ -108,26 +108,24 @@ pub async fn sync_allowed_user_devices(
 ) -> Result<(), UserManagementError> {
     debug!("Syncing allowed devices of user {}", user.username);
     let locations = WireguardNetwork::all(&mut *conn).await?;
+    let mut events = Vec::new();
     for location in locations {
-        let gateway_events =
-            sync_allowed_devices_for_user(&location, &mut *conn, user, None).await?;
-
-        // check if any peers were updated
-        if !gateway_events.is_empty() {
-            // send peer update events
-            send_multiple_gateway_commands(gateway_events, gateway_tx);
-        }
+        sync_allowed_devices_for_user(&location, &mut *conn, user, None, &mut events).await?;
 
         // send firewall config update if ACLs & enterprise features are enabled
         if let Some(firewall_config) =
             try_get_location_firewall_config(&location, &mut *conn).await?
         {
-            send_gateway_command(
-                GatewayCommand::FirewallConfigChanged(location.id, firewall_config),
-                gateway_tx,
-            );
+            events.push(GatewayCommand::FirewallConfigChanged(
+                location.id,
+                firewall_config,
+            ));
         }
     }
+
+    // send peer update events
+    send_multiple_gateway_commands(events, gateway_tx);
+
     info!("Allowed devices of user {} synced", user.username);
     Ok(())
 }
