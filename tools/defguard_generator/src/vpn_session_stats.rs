@@ -117,7 +117,7 @@ async fn generate_stats_for_location(
         let device_count = rng.gen_range(1..=config.devices_per_user.max(1)) as usize;
         let devices = prepare_user_devices(pool, &mut rng, &user, device_count).await?;
 
-        let mut used_ips = location.all_used_ips_for_network(&mut transaction).await?;
+        let mut used_ips = location.all_used_ip_addresses(&mut transaction).await?;
         // assign devices to the network if not already assigned
         for device in &devices {
             if WireguardNetworkDevice::find(&mut *transaction, device.id, location.id)

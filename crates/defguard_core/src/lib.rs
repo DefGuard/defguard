@@ -1112,7 +1112,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not save network")
     };
     let used_ips = network
-        .all_used_ips_for_network(&mut transaction)
+        .all_used_ip_addresses(&mut transaction)
         .await
         .expect("Failed to query used IPs from database");
     if Device::find_by_pubkey(
@@ -1186,7 +1186,8 @@ pub async fn init_vpn_location(
             network.dns.clone_from(&args.dns);
             network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
-            sync_location_allowed_devices(&network, &mut transaction, None).await?;
+            let mut events = Vec::new();
+            sync_location_allowed_devices(&network, &mut transaction, None, &mut events).await?;
             network
         }
         // Otherwise create it with the predefined ID

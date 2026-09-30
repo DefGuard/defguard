@@ -53,7 +53,7 @@ use crate::{
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
     mail::templates,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    user_management::UserManager,
 };
 
 #[derive(Deserialize)]
@@ -949,6 +949,7 @@ pub(crate) async fn modify_user(
             .await?;
     }
     let mut group_diff = GroupDiff::default();
+    let mut usermgr = UserManager::new();
     if session.is_admin {
         // prevent admin from disabling himself
         if session.user.username == username && !user_info.is_active {
@@ -988,7 +989,9 @@ pub(crate) async fn modify_user(
                 "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
-            sync_allowed_user_devices(&user, &mut transaction, &appstate.gateway_tx).await?;
+            usermgr
+                .sync_allowed_user_devices(&user, &mut transaction)
+                .await?;
         }
 
         // remove API tokens when deactivating a user
@@ -1005,6 +1008,7 @@ pub(crate) async fn modify_user(
 
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
     if status_changing {
         update_counts(&appstate.pool).await?;
     }
@@ -1155,11 +1159,15 @@ pub(crate) async fn delete_user(
         } else {
             None
         };
-        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.gateway_tx)
+        let mut usermgr = UserManager::new();
+        usermgr
+            .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
+        usermgr.send(&appstate.gateway_tx);
+
         update_counts(&appstate.pool).await?;
         if let Some(user_for_ldap) = user_for_ldap {
             ldap_delete_user(&user_for_ldap, &appstate.pool, &appstate.ldap_tx).await;
@@ -1670,6 +1678,7 @@ pub(crate) async fn bulk_disable_users(
 
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
+    let mut usermgr = UserManager::new();
     for user in users {
         if !user.is_active {
             continue;
@@ -1677,16 +1686,19 @@ pub(crate) async fn bulk_disable_users(
         let before = user.clone();
         let mut user_to_disable = user;
 
-        // remove API tokens when deactivating a user (mirrors modify_user)
+        // Remove API tokens when deactivating a user (mirrors `modify_user`).
         let api_tokens = ApiToken::find_by_user_id(&mut *transaction, user_to_disable.id).await?;
         for token in api_tokens {
             token.delete(&mut *transaction).await?;
         }
 
-        disable_user(&mut user_to_disable, &mut transaction, &appstate.gateway_tx).await?;
+        usermgr
+            .disable_user(&mut user_to_disable, &mut transaction)
+            .await?;
         events.push((before, user_to_disable));
     }
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
 
     for (_, user) in &mut events {
         Box::pin(ldap_update_user_state(
@@ -1783,6 +1795,7 @@ pub(crate) async fn bulk_enable_users(
 
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
+    let mut usermgr = UserManager::new();
     for user in users {
         if user.is_active {
             continue;
@@ -1791,10 +1804,13 @@ pub(crate) async fn bulk_enable_users(
         let mut user_to_enable = user;
         user_to_enable.is_active = true;
         user_to_enable.save(&mut *transaction).await?;
-        sync_allowed_user_devices(&user_to_enable, &mut transaction, &appstate.gateway_tx).await?;
+        usermgr
+            .sync_allowed_user_devices(&user_to_enable, &mut transaction)
+            .await?;
         events.push((before, user_to_enable));
     }
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
     if to_enable_count > 0 {
         update_counts(&appstate.pool).await?;
     }
@@ -1880,6 +1896,7 @@ pub(crate) async fn bulk_delete_users(
     let mut ldap_targets = Vec::new();
     let mut removed_usernames = Vec::new();
     let mut removed_users = Vec::new();
+    let mut usermgr = UserManager::new();
     for user in users {
         let username = user.username.clone();
         let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
@@ -1887,7 +1904,8 @@ pub(crate) async fn bulk_delete_users(
         } else {
             None
         };
-        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.gateway_tx)
+        usermgr
+            .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
             .await?;
         if let Some(noid_user) = user_for_ldap {
             ldap_targets.push(noid_user);
@@ -1896,10 +1914,11 @@ pub(crate) async fn bulk_delete_users(
         removed_users.push(user);
     }
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
     update_counts(&appstate.pool).await?;
 
-    for username in &removed_usernames {
-        appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
+    for username in removed_usernames {
+        appstate.trigger_action(AppEvent::UserDeleted(username));
     }
     for noid_user in &ldap_targets {
         ldap_delete_user(noid_user, &appstate.pool, &appstate.ldap_tx).await;
