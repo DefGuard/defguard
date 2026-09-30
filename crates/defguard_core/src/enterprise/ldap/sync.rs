@@ -70,16 +70,13 @@
 //!
 use std::collections::{HashMap, HashSet};
 
-use defguard_common::{
-    db::{
-        Id,
-        models::{
-            Settings, User,
-            group::Group,
-            settings::{LdapSyncStatus, update_current_settings},
-        },
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings, User,
+        group::Group,
+        settings::{LdapSyncStatus, update_current_settings},
     },
-    gateway_event::send_multiple_gateway_commands,
 };
 use serde::Serialize;
 use sqlx::{PgConnection, PgPool};
@@ -99,7 +96,7 @@ use crate::{
     events::LdapSyncEventType,
     grpc::GatewayCommand,
     hashset,
-    location_management::sync_all_networks,
+    location_management::LocationManager,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
@@ -711,10 +708,10 @@ impl super::LDAPConnection {
 
         if memberships_changed {
             match pool.acquire().await {
-                Ok(mut conn) => match sync_all_networks(&mut conn).await {
-                    Ok(gateway_cmds) => send_multiple_gateway_commands(gateway_cmds, wg_tx),
+                Ok(mut conn) => match LocationManager::sync_all_networks(&mut conn).await {
+                    Ok(locmgr) => locmgr.send(wg_tx),
                     Err(err) => {
-                        error!("Failed to sync all networks after LDAP membership changes: {err}")
+                        error!("Failed to sync all networks after LDAP membership changes: {err}");
                     }
                 },
                 Err(err) => {
@@ -907,8 +904,8 @@ impl super::LDAPConnection {
 
         if memberships_changed {
             match pool.acquire().await {
-                Ok(mut conn) => match sync_all_networks(&mut conn).await {
-                    Ok(gateway_cmds) => send_multiple_gateway_commands(gateway_cmds, wg_tx),
+                Ok(mut conn) => match LocationManager::sync_all_networks(&mut conn).await {
+                    Ok(locmgr) => locmgr.send(wg_tx),
                     Err(err) => {
                         error!("Failed to sync all networks after LDAP membership changes: {err}");
                     }

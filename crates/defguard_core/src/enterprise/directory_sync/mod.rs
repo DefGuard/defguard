@@ -4,12 +4,9 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::{
-    db::{
-        Id,
-        models::{Settings, group::Group, user::User},
-    },
-    gateway_event::send_multiple_gateway_commands,
+use defguard_common::db::{
+    Id,
+    models::{Settings, group::Group, user::User},
 };
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
@@ -39,7 +36,7 @@ use crate::{
     events::{DirectorySyncEvent, DirectorySyncEventType, LdapSyncEventType},
     grpc::GatewayCommand,
     handlers::user::check_username,
-    location_management::sync_all_networks,
+    location_management::LocationManager,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
@@ -1119,10 +1116,10 @@ async fn sync_all_users_state(
 
     if users_reenabled {
         match pool.acquire().await {
-            Ok(mut conn) => match sync_all_networks(&mut conn).await {
-                Ok(gateway_cmds) => send_multiple_gateway_commands(gateway_cmds, gateway_tx),
+            Ok(mut conn) => match LocationManager::sync_all_networks(&mut conn).await {
+                Ok(locmgr) => locmgr.send(gateway_tx),
                 Err(err) => {
-                    error!("Failed to sync all networks after directory user re-enablement: {err}")
+                    error!("Failed to sync all networks after directory user re-enablement: {err}");
                 }
             },
             Err(err) => {

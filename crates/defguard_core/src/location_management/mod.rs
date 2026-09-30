@@ -12,9 +12,11 @@ use defguard_common::{
             wireguard::MappedDevice,
         },
     },
+    gateway_event::send_multiple_gateway_commands,
 };
 use sqlx::PgConnection;
 use thiserror::Error;
+use tokio::sync::broadcast::Sender;
 
 use crate::{
     device_access::join_device_to_all_networks,
@@ -27,6 +29,41 @@ pub mod allowed_peers;
 #[cfg(test)]
 mod tests;
 
+pub(crate) struct LocationManager {
+    gateway_commands: Vec<GatewayCommand>,
+}
+
+impl LocationManager {
+    // Run `sync_allowed_devices` on all WireGuard networks.
+    pub(crate) async fn sync_all_networks(
+        conn: &mut PgConnection,
+    ) -> Result<Self, LocationManagementError> {
+        info!("Syncing allowed devices for all WireGuard locations");
+        let locations = WireguardNetwork::all(&mut *conn).await?;
+        let mut gateway_commands = Vec::new();
+        for network in locations {
+            sync_location_allowed_devices(&network, &mut *conn, None, &mut gateway_commands)
+                .await?;
+
+            // Send firewall config update, if ACLs are enabled for a given location.
+            if let Some(firewall_config) =
+                try_get_location_firewall_config(&network, &mut *conn).await?
+            {
+                gateway_commands.push(GatewayCommand::FirewallConfigChanged(
+                    network.id,
+                    firewall_config,
+                ));
+            }
+        }
+
+        Ok(Self { gateway_commands })
+    }
+
+    pub(crate) fn send(self, gateway_tx: &Sender<GatewayCommand>) {
+        send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum LocationManagementError {
     #[error(transparent)]
@@ -37,30 +74,6 @@ pub enum LocationManagementError {
     WireguardNetworkError(#[from] WireguardNetworkError),
     #[error(transparent)]
     ModelError(#[from] ModelError),
-}
-
-// Run `sync_allowed_devices` on all WireGuard networks.
-pub(crate) async fn sync_all_networks(
-    conn: &mut PgConnection,
-) -> Result<Vec<GatewayCommand>, LocationManagementError> {
-    info!("Syncing allowed devices for all WireGuard locations");
-    let locations = WireguardNetwork::all(&mut *conn).await?;
-    let mut gateway_cmds = Vec::new();
-    for network in locations {
-        sync_location_allowed_devices(&network, &mut *conn, None, &mut gateway_cmds).await?;
-
-        // send firewall config update if ACLs are enabled for a given location
-        if let Some(firewall_config) =
-            try_get_location_firewall_config(&network, &mut *conn).await?
-        {
-            gateway_cmds.push(GatewayCommand::FirewallConfigChanged(
-                network.id,
-                firewall_config,
-            ));
-        }
-    }
-
-    Ok(gateway_cmds)
 }
 
 /// Refresh network IPs for all relevant devices.

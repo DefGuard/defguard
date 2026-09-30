@@ -4,15 +4,12 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
 };
-use defguard_common::{
-    db::{
-        Id,
-        models::{
-            User,
-            group::{Group, Permission},
-        },
+use defguard_common::db::{
+    Id,
+    models::{
+        User,
+        group::{Group, Permission},
     },
-    gateway_event::send_multiple_gateway_commands,
 };
 use sqlx::query_as;
 
@@ -31,7 +28,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     hashset,
-    location_management::sync_all_networks,
+    location_management::LocationManager,
 };
 
 #[derive(Deserialize)]
@@ -112,9 +109,9 @@ pub(crate) async fn bulk_assign_to_groups(
         }
     }
 
-    let gateway_cmds = sync_all_networks(&mut transaction).await?;
+    let locmgr = LocationManager::sync_all_networks(&mut transaction).await?;
     transaction.commit().await?;
-    send_multiple_gateway_commands(gateway_cmds, &appstate.gateway_tx);
+    locmgr.send(&appstate.gateway_tx);
 
     ldap_add_users_to_groups(ldap_user_groups, &appstate.pool, &appstate.ldap_tx).await;
 
@@ -347,9 +344,9 @@ pub(crate) async fn create_group(
             .insert(&group_info.name);
     }
 
-    let gateway_cmds = sync_all_networks(&mut transaction).await?;
+    let locmgr = LocationManager::sync_all_networks(&mut transaction).await?;
     transaction.commit().await?;
-    send_multiple_gateway_commands(gateway_cmds, &appstate.gateway_tx);
+    locmgr.send(&appstate.gateway_tx);
 
     if !ldap_user_groups.is_empty() {
         ldap_add_users_to_groups(ldap_user_groups, &appstate.pool, &appstate.ldap_tx).await;
@@ -479,10 +476,10 @@ pub(crate) async fn modify_group(
             .insert(group.name.as_str());
     }
 
-    let gateway_cmds = sync_all_networks(&mut transaction).await?;
+    let locmgr = LocationManager::sync_all_networks(&mut transaction).await?;
     let users_after = group.members(&mut *transaction).await?.clone();
     transaction.commit().await?;
-    send_multiple_gateway_commands(gateway_cmds, &appstate.gateway_tx);
+    locmgr.send(&appstate.gateway_tx);
 
     ldap_add_users_to_groups(add_to_ldap_groups, &appstate.pool, &appstate.ldap_tx).await;
     ldap_remove_users_from_groups(remove_from_ldap_groups, &appstate.pool, &appstate.ldap_tx).await;
@@ -594,9 +591,9 @@ pub(crate) async fn delete_group(
 
         // sync allowed devices for all locations
         let mut transaction = appstate.pool.begin().await?;
-        let gateway_cmds = sync_all_networks(&mut transaction).await?;
+        let locmgr = LocationManager::sync_all_networks(&mut transaction).await?;
         transaction.commit().await?;
-        send_multiple_gateway_commands(gateway_cmds, &appstate.gateway_tx);
+        locmgr.send(&appstate.gateway_tx);
 
         info!(
             "User {} deleted group {}",
@@ -661,9 +658,9 @@ pub(crate) async fn add_group_member(
             )
             .await;
             let mut transaction = appstate.pool.begin().await?;
-            let gateway_cmds = sync_all_networks(&mut transaction).await?;
+            let locmgr = LocationManager::sync_all_networks(&mut transaction).await?;
             transaction.commit().await?;
-            send_multiple_gateway_commands(gateway_cmds, &appstate.gateway_tx);
+            locmgr.send(&appstate.gateway_tx);
             info!("Added user: {} to group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,
@@ -727,9 +724,9 @@ pub(crate) async fn remove_group_member(
             .await;
 
             let mut transaction = appstate.pool.begin().await?;
-            let gateway_cmds = sync_all_networks(&mut transaction).await?;
+            let locmgr = LocationManager::sync_all_networks(&mut transaction).await?;
             transaction.commit().await?;
-            send_multiple_gateway_commands(gateway_cmds, &appstate.gateway_tx);
+            locmgr.send(&appstate.gateway_tx);
 
             info!("Removed user: {} from group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
