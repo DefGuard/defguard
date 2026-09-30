@@ -7,6 +7,7 @@
   "add_location_step_public_facing_data_label": "Public Endpoint",
   "add_location_step_internal_vpn_label": "Internal VPN",
   "add_location_step_network_settings_label": "Network Settings",
+  "add_location_mfa_toggle_label": "Enforce Multi-Factor Authentication for this location",
   "add_location_step_mfa_label": "Multi-Factor Authentication",
   "add_location_step_mfa_description": "Configure multi-factor authentication (MFA) to add a secondary verification step to user authentication.",
   "add_location_step_mfa_flow_description": "MFA flows let you assign a predefined verification sequence to a location. Advanced group-level MFA flow settings are available in the location settings after it is created.",
