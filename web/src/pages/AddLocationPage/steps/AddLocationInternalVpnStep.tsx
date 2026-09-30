@@ -155,7 +155,7 @@ export const AddLocationInternalVpnStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="allowed_ips">
             {(field) => (
-              <field.FormChipsInput
+              <field.FormMultiSelect
                 label={m.add_location_internal_vpn_label_allowed_ips()}
                 helper={m.add_location_internal_vpn_helper_allowed_ips()}
                 validate={(value) =>
