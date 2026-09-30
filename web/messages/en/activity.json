@@ -188,6 +188,7 @@
   "activity_log_field_ldap_user_auxiliary_obj_classes": "Additional user object classes",
   "activity_log_field_ldap_user_rdn_attr": "User RDN attribute",
   "activity_log_field_ldap_sync_groups": "Synchronized groups",
+  "activity_log_field_ldap_enrollment_token_attr": "Enrollment token attribute",
   "activity_log_field_openid_create_account": "Create account on external OpenID login",
   "activity_log_field_openid_username_handling": "Username handling",
   "activity_log_field_license": "License key",

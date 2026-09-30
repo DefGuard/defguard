@@ -33,7 +33,7 @@ use defguard_core::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -304,7 +304,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     let mut settings = Settings::get(&pool).await.unwrap().unwrap();
     assert_eq!(settings.public_proxy_url, "http://edge.example.com");
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert!(body["cert_info"].is_null());
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
@@ -327,7 +327,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     let mut settings = Settings::get(&pool).await.unwrap().unwrap();
     assert_eq!(settings.public_proxy_url, "https://edge.example.com");
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert!(!body["cert_info"].is_null());
     assert_eq!(body["cert_info"]["common_name"], "edge.example.com");
 
@@ -367,7 +367,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     let mut settings = Settings::get(&pool).await.unwrap().unwrap();
     assert_eq!(settings.public_proxy_url, "https://edge.example.com");
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(
         body["cert_info"]["common_name"],
         "uploaded-edge.example.com"
@@ -427,6 +427,6 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     // Url schema unchanged on errors
     let settings = Settings::get(&pool).await.unwrap().unwrap();
     assert_eq!(settings.public_proxy_url, "http://edge.example.com");
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["msg"], "Certificate has expired");
 }

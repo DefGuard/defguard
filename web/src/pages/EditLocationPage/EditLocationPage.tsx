@@ -136,23 +136,18 @@ const formSchema = z
         ]),
       ),
     port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-    allowed_ips: z
-      .string()
-      .trim()
-      .nullable()
-      .refine((val) => {
-        if (!val) return true;
-        return Validate.any(
-          val,
-          [
-            Validate.IPv4,
-            Validate.IPv6,
-            (v) => Validate.CIDRv4(v, true),
-            (v) => Validate.CIDRv6(v, true),
-          ],
-          true,
-        );
-      }, m.form_error_invalid()),
+    allowed_ips: z.array(z.string()).refine((val) => {
+      return Validate.any(
+        val.join(','),
+        [
+          Validate.IPv4,
+          Validate.IPv6,
+          (v) => Validate.CIDRv4(v, true),
+          (v) => Validate.CIDRv6(v, true),
+        ],
+        true,
+      );
+    }, m.form_error_invalid()),
     dns: z
       .string()
       .trim()
@@ -289,7 +284,7 @@ const buildLocationSubmissionData = (
   return {
     ...omit(normalizedValue, ['firewall', 'client_mtu_enabled']),
     client_mtu: normalizedValue.client_mtu_enabled ? normalizedValue.client_mtu : null,
-    allowed_ips: normalizedValue.allowed_ips ?? '',
+    allowed_ips: normalizedValue.allowed_ips.join(','),
     acl_default_allow: normalizedValue.firewall === LocationFirewall.Allow,
     acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
     peer_disconnect_threshold:
@@ -570,7 +565,7 @@ const EditLocationForm = ({
       address: location.address.join(','),
       allow_all_groups: location.allow_all_groups,
       allowed_groups: [...location.allowed_groups],
-      allowed_ips: location.allowed_ips.join(','),
+      allowed_ips: location.allowed_ips,
       dns: location.dns,
       endpoint: location.endpoint,
       keepalive_interval: location.keepalive_interval,
@@ -742,7 +737,7 @@ const EditLocationForm = ({
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="allowed_ips">
             {(field) => (
-              <field.FormInput
+              <field.FormMultiSelect
                 label={m.add_location_internal_vpn_label_allowed_ips()}
                 helper={m.add_location_internal_vpn_helper_allowed_ips()}
               />

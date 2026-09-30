@@ -16,7 +16,7 @@ use defguard_core::{
     grpc::GatewayCommand,
 };
 use reqwest::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::{
@@ -83,7 +83,7 @@ async fn create_admin_device(client: &TestClient) -> &'static str {
     const PUBKEY: &str = "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=";
     let response = client
         .post("/api/v1/device/admin")
-        .json(&serde_json::json!({
+        .json(&json!({
             "name": "posture-test-device",
             "wireguard_pubkey": PUBKEY,
         }))
@@ -928,8 +928,8 @@ async fn test_device_posture_set_locations_for_posture(
     let (mut client, _) = setup(options).await;
 
     // create two locations and one posture
-    let net1: serde_json::Value = make_network(&client, "net1").await.json().await;
-    let net2: serde_json::Value = make_network(&client, "net2").await.json().await;
+    let net1 = make_network(&client, "net1").await.json::<Value>().await;
+    let net2 = make_network(&client, "net2").await.json::<Value>().await;
     let loc1 = net1["id"].as_i64().unwrap();
     let loc2 = net2["id"].as_i64().unwrap();
 
@@ -1002,7 +1002,7 @@ async fn test_device_posture_set_postures_for_location(
     let (mut client, _) = setup(options).await;
 
     // create one location and two postures
-    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let net = make_network(&client, "net").await.json::<Value>().await;
     let location_id = net["id"].as_i64().unwrap();
 
     let p1: ApiDevicePosture = client
@@ -1056,7 +1056,7 @@ async fn test_device_posture_set_postures_for_location(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let network: serde_json::Value = response.json().await;
+    let network = response.json::<Value>().await;
     let posture_checks: Vec<i64> =
         serde_json::from_value(network["posture_checks"].clone()).unwrap();
     assert_eq!(posture_checks.len(), 2);
@@ -1085,7 +1085,7 @@ async fn test_assigning_first_posture_refreshes_gateway_with_no_direct_peers(
     let (mut client, state) = setup(options).await;
     let mut gateway_rx = state.gateway_rx;
 
-    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let net = make_network(&client, "net").await.json::<Value>().await;
     let location_id = net["id"].as_i64().unwrap();
     let _device_pubkey = create_admin_device(&client).await;
     let posture = create_posture(&client, "Posture").await;
@@ -1113,7 +1113,7 @@ async fn test_removing_last_posture_refreshes_gateway_with_direct_peers(
     let (mut client, state) = setup(options).await;
     let mut gateway_rx = state.gateway_rx;
 
-    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let net = make_network(&client, "net").await.json::<Value>().await;
     let location_id = net["id"].as_i64().unwrap();
     let device_pubkey = create_admin_device(&client).await;
     let posture = create_posture(&client, "Posture").await;
@@ -1146,8 +1146,8 @@ async fn test_reassigning_posture_locations_refreshes_old_and_new_locations(
     let (mut client, state) = setup(options).await;
     let mut gateway_rx = state.gateway_rx;
 
-    let net1: serde_json::Value = make_network(&client, "net1").await.json().await;
-    let net2: serde_json::Value = make_network(&client, "net2").await.json().await;
+    let net1 = make_network(&client, "net1").await.json::<Value>().await;
+    let net2 = make_network(&client, "net2").await.json::<Value>().await;
     let loc1 = net1["id"].as_i64().unwrap();
     let loc2 = net2["id"].as_i64().unwrap();
     let device_pubkey = create_admin_device(&client).await;
@@ -1192,7 +1192,7 @@ async fn test_deleting_assigned_posture_refreshes_gateway_with_direct_peers(
     let (mut client, state) = setup(options).await;
     let mut gateway_rx = state.gateway_rx;
 
-    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let net = make_network(&client, "net").await.json::<Value>().await;
     let location_id = net["id"].as_i64().unwrap();
     let device_pubkey = create_admin_device(&client).await;
     let posture = create_posture(&client, "Posture").await;
@@ -1242,7 +1242,7 @@ async fn test_device_posture_assignment_not_found(_: PgPoolOptions, options: PgC
 async fn make_service_location(client: &TestClient, name: &str) -> i64 {
     let response = client
         .post("/api/v1/network")
-        .json(&serde_json::json!({
+        .json(&json!({
             "name": name,
             "address": "10.2.2.1/24",
             "port": 55555,
@@ -1266,7 +1266,7 @@ async fn make_service_location(client: &TestClient, name: &str) -> i64 {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let net: serde_json::Value = response.json().await;
+    let net = response.json::<Value>().await;
     net["id"].as_i64().unwrap()
 }
 
@@ -1334,7 +1334,10 @@ async fn test_set_locations_for_posture_allows_service_location(
 ) {
     let (mut client, _) = setup(options).await;
 
-    let regular_net: serde_json::Value = make_network(&client, "regular-net").await.json().await;
+    let regular_net = make_network(&client, "regular-net")
+        .await
+        .json::<Value>()
+        .await;
     let regular_location_id = regular_net["id"].as_i64().unwrap();
     let service_location_id = make_service_location(&client, "service-net").await;
 

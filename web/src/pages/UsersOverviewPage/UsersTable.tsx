@@ -23,6 +23,7 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type BulkStartEnrollmentResponse,
+  type BulkStoreEnrollmentTokenLdapResponse,
   type Device,
   type StartEnrollmentResponse,
   type User,
@@ -61,6 +62,7 @@ import {
   getEnterpriseSettingsQueryOptions,
   getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
+  getSettingsQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
@@ -142,6 +144,11 @@ export const UsersTable = () => {
   const appInfo = useApp((s) => s.appInfo);
   const isAdmin = useAuth((s) => s.isAdmin);
   const authUsername = useAuth((s) => s.user?.username);
+  // Full settings are admin-only.
+  const { data: settings } = useQuery({ ...getSettingsQueryOptions, enabled: isAdmin });
+
+  const ldapEnrollmentTokenAttrSet =
+    (settings?.ldap_enrollment_token_attr ?? '').trim().length > 0;
   const canModifyDevices =
     isAdmin || enterpriseSettings?.admin_device_management === false;
 
@@ -855,6 +862,43 @@ export const UsersTable = () => {
     });
   }, [appInfo.smtp_enabled, authUsername, table]);
 
+  const handleBulkStoreEnrollmentTokenLdap = useCallback(() => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedUsers = selectedRows
+      .filter((row) => row.original.username !== authUsername)
+      .map((row) => row.original.id);
+    if (selectedRows.some((row) => row.original.username === authUsername)) {
+      Snackbar.error(m.users_bulk_self_excluded());
+    }
+    if (selectedUsers.length === 0) return;
+    openModal(ModalName.ConfirmAction, {
+      title: m.users_modal_bulk_store_enrollment_token_ldap_title(),
+      contentMd: m.users_modal_bulk_store_enrollment_token_ldap_content({
+        count: selectedUsers.length,
+      }),
+      actionPromise: () => api.user.bulkStoreEnrollmentTokenLdap(selectedUsers),
+      invalidateKeys: [['user']],
+      submitProps: {
+        text: m.users_bulk_store_enrollment_token_ldap(),
+      },
+      onSuccess: (result) => {
+        const { stored, skipped, failed } = (
+          result as { data: BulkStoreEnrollmentTokenLdapResponse }
+        ).data;
+        const msg =
+          skipped > 0 || failed > 0
+            ? m.users_bulk_store_enrollment_token_ldap_success_partial({
+                stored,
+                skipped,
+                failed,
+              })
+            : m.users_bulk_store_enrollment_token_ldap_success({ stored });
+        Snackbar.default(msg);
+      },
+      onError: () => Snackbar.error(m.users_bulk_store_enrollment_token_ldap_error()),
+    });
+  }, [authUsername, table]);
+
   const handleBulkDisable = useCallback(() => {
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedUsers = selectedRows
@@ -1000,6 +1044,16 @@ export const UsersTable = () => {
                     testId: 'users-bulk-start-enrollment',
                     onClick: handleBulkStartEnrollment,
                   },
+                  ...(ldapEnrollmentTokenAttrSet
+                    ? ([
+                        {
+                          text: m.users_bulk_store_enrollment_token_ldap(),
+                          icon: 'servers',
+                          testId: 'users-bulk-store-enrollment-token-ldap',
+                          onClick: handleBulkStoreEnrollmentTokenLdap,
+                        },
+                      ] satisfies MenuItemProps[])
+                    : []),
                   {
                     text: m.users_bulk_enable(),
                     icon: 'check-circle',

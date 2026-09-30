@@ -179,6 +179,7 @@ pub struct LDAPConfig {
     pub ldap_sync_account_status: bool,
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
+    pub ldap_enrollment_token_attr: Option<String>,
 }
 
 #[cfg(test)]
@@ -200,6 +201,7 @@ impl Default for LDAPConfig {
             ldap_sync_account_status: false,
             ldap_user_rdn_attr: None,
             ldap_sync_groups: Vec::new(),
+            ldap_enrollment_token_attr: None,
         }
     }
 }
@@ -272,6 +274,14 @@ impl LDAPConfig {
         let mut obj_classes = vec![self.ldap_user_obj_class.clone()];
         obj_classes.extend(self.ldap_user_auxiliary_obj_classes.clone());
         obj_classes
+    }
+
+    /// Returns the attribute in which enrollment tokens are stored, if one is configured.
+    #[must_use]
+    pub(crate) fn enrollment_token_attr(&self) -> Option<&str> {
+        self.ldap_enrollment_token_attr
+            .as_deref()
+            .filter(|attr| !attr.is_empty())
     }
 
     /// Checks if the LDAP configuration uses the username as the RDN.
@@ -353,6 +363,7 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_sync_account_status: settings.ldap_sync_account_status,
             ldap_user_rdn_attr: settings.ldap_user_rdn_attr,
             ldap_sync_groups: settings.ldap_sync_groups,
+            ldap_enrollment_token_attr: settings.ldap_enrollment_token_attr,
         })
     }
 }
@@ -737,6 +748,35 @@ impl LDAPConnection {
         let mods = user_as_ldap_mod(user, &self.config);
         self.modify(&old_dn, &new_dn, mods).await?;
         info!("Modified user {old_username} in LDAP");
+
+        Ok(())
+    }
+
+    /// Stores the user's enrollment token in the configured LDAP attribute.
+    pub(crate) async fn set_user_enrollment_token(
+        &mut self,
+        user: &User<Id>,
+        token: &str,
+    ) -> Result<(), LdapError> {
+        let Some(attr) = self.config.enrollment_token_attr().map(ToOwned::to_owned) else {
+            return Err(LdapError::MissingSettings(
+                "LDAP enrollment token attribute is not configured".into(),
+            ));
+        };
+        let user_dn = self.config.user_dn_for_user(user);
+        debug!("Storing enrollment token for user {user} in LDAP attribute {attr}");
+        if !self.user_exists_by_dn(&user_dn).await? {
+            return Err(LdapError::ObjectNotFound(format!(
+                "User {user_dn} not found in LDAP, cannot store enrollment token",
+            )));
+        }
+        self.modify(
+            &user_dn,
+            &user_dn,
+            vec![Mod::Replace(attr.as_str(), hashset![token])],
+        )
+        .await?;
+        info!("Stored enrollment token for user {user} in LDAP");
 
         Ok(())
     }

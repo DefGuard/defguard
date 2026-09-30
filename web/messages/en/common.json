@@ -48,6 +48,7 @@
   "controls_delete": "Delete",
   "controls_reset": "Reset",
   "controls_edit": "Edit",
+  "controls_duplicate": "Duplicate",
   "controls_logout": "Logout",
   "controls_keep": "Keep",
   "controls_submit": "Submit",

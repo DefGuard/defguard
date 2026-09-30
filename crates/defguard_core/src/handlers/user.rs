@@ -41,7 +41,8 @@ use crate::{
             model::{ldap_sync_allowed_for_user, maybe_update_rdn},
             utils::{
                 ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
-                ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+                ldap_handle_user_modify, ldap_remove_user_from_groups,
+                ldap_store_enrollment_tokens, ldap_update_user_state,
             },
         },
         license::get_cached_license,
@@ -1986,7 +1987,7 @@ pub(crate) async fn bulk_start_enrollment(
     let public_proxy_url = settings.proxy_public_url()?;
 
     let mut started = Vec::with_capacity(users.len());
-    let mut pending_notifications: Vec<(String, String)> = Vec::new();
+    let mut pending_notifications = Vec::new();
     let mut skipped = 0;
     let mut transaction = appstate.pool.begin().await?;
     for mut user in users {
@@ -2036,6 +2037,149 @@ pub(crate) async fn bulk_start_enrollment(
 
     Ok(ApiResponse::new(
         json!({ "started": started.len(), "skipped": skipped }),
+        StatusCode::OK,
+    ))
+}
+
+/// Bulk store enrollment tokens in LDAP
+///
+/// Creates a fresh enrollment token for each of the given users and writes it to the attribute
+/// configured through `ldap_enrollment_token_attr`. No enrollment email is sent.
+///
+/// Disabled users are counted in `skipped`, users whose token could not be written to LDAP in
+/// `failed` - their token is still created in Defguard. The request is rejected when LDAP or
+/// the token attribute is not configured, or when any of the given IDs does not exist or is
+/// your own.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/api/v1/user/bulk-store-enrollment-token-ldap",
+    tag = "user",
+    request_body(content = BulkUserOperationRequest, example = json!({"users": [1, 4, 6, 23, 35]})),
+    responses(
+        (status = 200, description = "Enrollment tokens stored.", body = Object, example = json!({"stored": 3, "skipped": 1, "failed": 0})),
+        (status = 400, description = "LDAP is disabled or the enrollment token attribute is not configured, or the list contains unknown user IDs or your own account.", body = ApiErrorResponse, example = json!({"msg": "LDAP enrollment token attribute is not configured."})),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to store enrollment tokens.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+))]
+pub(crate) async fn bulk_store_enrollment_token_in_ldap(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Json(mut data): Json<BulkUserOperationRequest>,
+) -> ApiResult {
+    debug!(
+        "User {} bulk-storing enrollment tokens in LDAP for {} user(s)",
+        session.user.username,
+        data.users.len()
+    );
+
+    // Checked up front, so a misconfigured instance doesn't create tokens that never reach LDAP.
+    let settings = Settings::get_current_settings();
+    if settings.ldap_enrollment_token_attribute().is_none() {
+        debug!(
+            "User {} attempted to store enrollment tokens in LDAP, but the enrollment token \
+            attribute is not configured",
+            session.user.username
+        );
+        return Err(WebError::BadRequest(
+            "LDAP enrollment token attribute is not configured.".into(),
+        ));
+    }
+    if !settings.ldap_enabled {
+        debug!(
+            "User {} attempted to store enrollment tokens in LDAP while the LDAP integration is \
+            disabled",
+            session.user.username
+        );
+        return Err(WebError::BadRequest(
+            "LDAP integration is not enabled.".into(),
+        ));
+    }
+
+    data.users.sort_unstable();
+    data.users.dedup();
+
+    let users = User::find_by_ids(&appstate.pool, &data.users).await?;
+
+    if users.len() != data.users.len() {
+        return Err(WebError::BadRequest(
+            "Request contained users that don't exist in db.".into(),
+        ));
+    }
+
+    let token_expiration_time_seconds = settings.enrollment_token_timeout().as_secs();
+    let public_proxy_url = settings.proxy_public_url()?;
+
+    let mut tokens = Vec::with_capacity(users.len());
+    let mut skipped = 0;
+    let mut transaction = appstate.pool.begin().await?;
+    for mut user in users {
+        if !user.is_active {
+            debug!(
+                "Skipping enrollment token storage for disabled user: {}",
+                user.username
+            );
+            skipped += 1;
+            continue;
+        }
+        let token_id = start_user_enrollment(
+            &mut user,
+            &mut transaction,
+            &session.user,
+            // Delivered through LDAP, never by mail.
+            None,
+            token_expiration_time_seconds,
+            public_proxy_url.clone(),
+            false,
+        )
+        .await?;
+        tokens.push((user, token_id));
+    }
+    transaction.commit().await?;
+
+    // Written after the commit so a slow LDAP server doesn't hold the transaction open.
+    let token_refs = tokens
+        .iter()
+        .map(|(user, token)| (user, token.clone()))
+        .collect::<Vec<_>>();
+    let failed = ldap_store_enrollment_tokens(&token_refs, &appstate.pool)
+        .await
+        .map_err(|err| {
+            error!(
+                "Failed to store enrollment tokens in LDAP for user {}: {err}",
+                session.user.username
+            );
+            WebError::BadRequest(format!("Failed to store enrollment tokens in LDAP: {err}"))
+        })?;
+    let failed_ids = failed.iter().map(|user| user.id).collect::<HashSet<_>>();
+    let failed_count = failed_ids.len();
+    let stored_count = tokens.len() - failed_count;
+
+    info!(
+        "User {} stored enrollment tokens in LDAP for {stored_count} user(s) ({skipped} skipped, \
+        {failed_count} failed)",
+        session.user.username
+    );
+
+    for (user, _) in tokens {
+        if failed_ids.contains(&user.id) {
+            continue;
+        }
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::EnrollmentTokenAdded { user }),
+        })?;
+    }
+
+    Ok(ApiResponse::new(
+        json!({ "stored": stored_count, "skipped": skipped, "failed": failed_count }),
         StatusCode::OK,
     ))
 }
