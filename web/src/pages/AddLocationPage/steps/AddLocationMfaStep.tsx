@@ -53,7 +53,7 @@ export const AddLocationMfaStep = () => {
     storedDisconnectThreshold,
   );
   const [thresholdError, setThresholdError] = useState<string | null>(null);
-  const [continueAttempted, setContinueAttempted] = useState(false);
+  const [flowError, setFlowError] = useState<string | undefined>();
 
   useEffect(() => {
     if (mfaFlowsLoaded && !hasMfaFlows) {
@@ -107,7 +107,7 @@ export const AddLocationMfaStep = () => {
         active={!mfaEnabled}
         onClick={() => {
           setMfaEnabledState(false);
-          setContinueAttempted(false);
+          setFlowError(undefined);
         }}
         text={m.add_location_mfa_disable()}
         disabled={!mfaFlowsLoaded || noMfaFlows}
@@ -117,7 +117,7 @@ export const AddLocationMfaStep = () => {
         active={mfaEnabled}
         onClick={() => {
           setMfaEnabledState(true);
-          setContinueAttempted(false);
+          setFlowError(undefined);
         }}
         text={m.add_location_mfa_assign_flow()}
         disabled={!mfaFlowsLoaded || noMfaFlows}
@@ -141,7 +141,7 @@ export const AddLocationMfaStep = () => {
                       active: selectedFlowId === flow.id,
                       onClick: () => {
                         setSelectedFlowId(flow.id);
-                        setContinueAttempted(false);
+                        setFlowError(undefined);
                       },
                     })}
                   </div>
@@ -150,13 +150,7 @@ export const AddLocationMfaStep = () => {
             </Card>
           </>
         )}
-        <FieldError
-          error={
-            continueAttempted && mfaEnabled && selectedFlowId === undefined
-              ? m.add_location_mfa_flow_required()
-              : null
-          }
-        />
+        <FieldError error={flowError} />
         {mfaEnabled && (
           <>
             <SizedBox height={ThemeSpacing.Xl2} />
@@ -185,7 +179,7 @@ export const AddLocationMfaStep = () => {
             disabled={mfaFlowsPending || mfaFlowsFailed || isPresent(thresholdError)}
             onClick={() => {
               if (mfaEnabled && selectedFlowId === undefined) {
-                setContinueAttempted(true);
+                setFlowError(m.add_location_mfa_flow_required());
                 return;
               }
               saveAndContinue(AddLocationPageStep.AccessControl);
