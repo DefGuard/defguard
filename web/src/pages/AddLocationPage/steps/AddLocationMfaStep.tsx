@@ -2,54 +2,73 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
+import { Card } from '../../../shared/components/Card/Card';
 import { Controls } from '../../../shared/components/Controls/Controls';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { renderMfaFlowSelectionItem } from '../../../shared/components/MfaFlowSelectionItem/MfaFlowSelectionItem';
+import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Input } from '../../../shared/defguard-ui/components/Input/Input';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getMfaFlowsQueryOptions } from '../../../shared/query';
-import { AddLocationPageStep } from '../types';
+import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
-import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
+import './style.scss';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 
-const schema = z
+const disconnectThresholdSchema = z
   .number(m.form_error_required())
   .min(120, m.form_error_min({ value: 120 }));
 
 export const AddLocationMfaStep = () => {
-  const [error, setError] = useState<string | null>(null);
-  const [disconnect, setDisconnect] = useState<number | null>(300);
-  const [mfaEnabled, setMfaEnabled] = useState(false);
-  const { data: mfaFlows } = useQuery(getMfaFlowsQueryOptions);
-  const hasMfaFlows = mfaFlows?.length !== 0;
+  const { data: mfaFlows, isSuccess: mfaFlowsLoaded } = useQuery(getMfaFlowsQueryOptions);
+  const hasMfaFlows = isPresent(mfaFlows) && mfaFlows.length > 0;
+  const [mfaEnabledState, setMfaEnabledState] = useState(
+    useAddLocationStore.getState().mfa_enabled,
+  );
+  const mfaEnabled = hasMfaFlows && mfaEnabledState;
 
-  const handleSubmit = () => {
-    if (!error) {
-      useAddLocationStore.setState({
-        mfa_enabled: mfaEnabled,
-        activeStep: AddLocationPageStep.AccessControl,
-      });
+  const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
+    useAddLocationStore.getState().mfa_flows.find((flow) => flow.is_default)?.flow_id,
+  );
+  const [disconnectThreshold, setDisconnectThreshold] = useState<number | null>(
+    useAddLocationStore.getState().peer_disconnect_threshold,
+  );
+  const [thresholdError, setThresholdError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mfaFlowsLoaded && !hasMfaFlows) {
+      setMfaEnabledState(false);
+      setSelectedFlowId(undefined);
     }
-  };
+  }, [hasMfaFlows, mfaFlowsLoaded]);
 
   useEffect(() => {
     if (!mfaEnabled) {
-      setError(null);
-      setDisconnect(300);
+      setThresholdError(null);
       return;
     }
-    const result = schema.safeParse(disconnect);
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? null);
-    } else {
-      setError(null);
-    }
-  }, [disconnect, mfaEnabled]);
+    const result = disconnectThresholdSchema.safeParse(disconnectThreshold);
+    setThresholdError(result.success ? null : (result.error.issues[0]?.message ?? null));
+  }, [disconnectThreshold, mfaEnabled]);
+
+  const saveAndContinue = (activeStep: AddLocationPageStepValue) => {
+    useAddLocationStore.setState({
+      mfa_enabled: mfaEnabled,
+      mfa_flows:
+        mfaEnabled && selectedFlowId !== undefined
+          ? [{ flow_id: selectedFlowId, is_default: true, group_ids: [] }]
+          : [],
+      peer_disconnect_threshold: disconnectThreshold ?? 300,
+      activeStep,
+    });
+  };
 
   return (
     <WizardCard>
@@ -70,7 +89,7 @@ export const AddLocationMfaStep = () => {
       <Radio
         active={!mfaEnabled}
         onClick={() => {
-          setMfaEnabled(false);
+          setMfaEnabledState(false);
         }}
         text={m.add_location_mfa_disable()}
         disabled={!hasMfaFlows}
@@ -79,44 +98,63 @@ export const AddLocationMfaStep = () => {
       <Radio
         active={mfaEnabled}
         onClick={() => {
-          setMfaEnabled(true);
+          setMfaEnabledState(true);
         }}
         text={m.add_location_mfa_assign_flow()}
         disabled={!hasMfaFlows}
       />
       <Fold open={mfaEnabled}>
-        <SizedBox height={ThemeSpacing.Xl2} />
-        <Input
-          label={m.location_mfa_label_client_disconnect_threshold()}
-          helper={m.location_mfa_helper_client_disconnect_threshold()}
-          type="number"
-          value={disconnect}
-          onChange={(value) => setDisconnect(value as number | null)}
-          error={error}
-          required
-        />
-        <div>TODO</div>
+        {hasMfaFlows && (
+          <>
+            <SizedBox height={ThemeSpacing.Xl2} />
+            <Card className="add-location-mfa-flow-list">
+              {mfaFlows?.map((flow, index) => {
+                const option: SelectionOption<number, { steps: typeof flow.steps }> = {
+                  id: flow.id,
+                  label: flow.title,
+                  meta: { steps: flow.steps },
+                };
+                return (
+                  <div className="add-location-mfa-flow-row" key={flow.id}>
+                    {index > 0 && <Divider />}
+                    {renderMfaFlowSelectionItem({
+                      option,
+                      active: selectedFlowId === flow.id,
+                      onClick: () => setSelectedFlowId(flow.id),
+                    })}
+                  </div>
+                );
+              })}
+            </Card>
+          </>
+        )}
+        {mfaEnabled && (
+          <>
+            <SizedBox height={ThemeSpacing.Xl2} />
+            <Input
+              label={m.location_mfa_label_client_disconnect_threshold()}
+              helper={m.location_mfa_helper_client_disconnect_threshold()}
+              type="number"
+              value={disconnectThreshold}
+              onChange={(value) => setDisconnectThreshold(value as number | null)}
+              error={thresholdError}
+              required
+            />
+          </>
+        )}
       </Fold>
       <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
-          onClick={() => {
-            useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.NetworkSettings,
-              peer_disconnect_threshold: disconnect ?? 300,
-              mfa_enabled: mfaEnabled,
-            });
-          }}
+          onClick={() => saveAndContinue(AddLocationPageStep.NetworkSettings)}
         />
         <div className="right">
           <Button
             text={m.controls_continue()}
             testId="finish"
-            disabled={isPresent(error)}
-            onClick={() => {
-              handleSubmit();
-            }}
+            disabled={isPresent(thresholdError)}
+            onClick={() => saveAndContinue(AddLocationPageStep.AccessControl)}
           />
         </div>
       </Controls>
