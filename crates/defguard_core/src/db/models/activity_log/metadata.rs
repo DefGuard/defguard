@@ -456,6 +456,8 @@ pub struct SettingsNoSecrets {
     pub ldap_sync_groups: Vec<String>,
     pub ldap_remote_enrollment_enabled: bool,
     pub ldap_remote_enrollment_send_invite: bool,
+    // The attribute which holds the enrollment token of a user
+    pub ldap_enrollment_token_attr: Option<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
@@ -538,6 +540,7 @@ impl From<Settings> for SettingsNoSecrets {
             ldap_sync_groups: value.ldap_sync_groups,
             ldap_remote_enrollment_enabled: value.ldap_remote_enrollment_enabled,
             ldap_remote_enrollment_send_invite: value.ldap_remote_enrollment_send_invite,
+            ldap_enrollment_token_attr: value.ldap_enrollment_token_attr,
             openid_create_account: value.openid_create_account,
             openid_username_handling: value.openid_username_handling,
             license: value.license.is_some(),

@@ -35,10 +35,11 @@ const getProtocolLabel = (protocol: AclProtocolValue) => AclProtocolName[protoco
 
 interface Props {
   alias?: AclAlias;
+  duplicate?: AclAlias;
   tab?: AclListTabValue;
 }
 
-export const CEAliasPage = ({ alias, tab }: Props) => {
+export const CEAliasPage = ({ alias, duplicate, tab }: Props) => {
   const isEdit = useMemo(() => isPresent(alias), [alias]);
   const canGoBack = useCanGoBack();
   const navigate = useNavigate();
@@ -105,7 +106,11 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
         subtitle: m.acl_alias_form_subtitle(),
       }}
     >
-      <FormContent alias={alias} onReturnToAliases={returnToAliases} />
+      <FormContent
+        alias={alias}
+        duplicate={duplicate}
+        onReturnToAliases={returnToAliases}
+      />
     </EditPage>
   );
 };
@@ -129,9 +134,11 @@ const anyComponentDefined = (fields: FormFields): boolean => {
 
 const FormContent = ({
   alias,
+  duplicate,
   onReturnToAliases,
 }: {
   alias?: AclAlias;
+  duplicate?: AclAlias;
   onReturnToAliases: () => Promise<void>;
 }) => {
   const isEdit = isPresent(alias);
@@ -145,13 +152,21 @@ const FormContent = ({
         protocols: new Set(alias.protocols),
       };
     }
+    if (isPresent(duplicate)) {
+      return {
+        name: m.acl_duplicate_name({ name: duplicate.name }),
+        addresses: duplicate.addresses,
+        ports: duplicate.ports,
+        protocols: new Set(duplicate.protocols),
+      };
+    }
     return {
       name: '',
       addresses: '',
       ports: '',
       protocols: new Set(),
     };
-  }, [alias]);
+  }, [alias, duplicate]);
 
   const { mutateAsync: addAlias } = useMutation({
     mutationFn: api.acl.alias.addAlias,

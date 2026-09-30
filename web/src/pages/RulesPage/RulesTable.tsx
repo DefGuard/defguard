@@ -330,6 +330,22 @@ export const RulesTable = ({
                   },
                 });
               }
+              topItems.push({
+                icon: 'duplicate',
+                text: m.controls_duplicate(),
+                testId: 'rule-row-duplicate',
+                onClick: () => {
+                  licenseActionCheck(canUseBusinessFeature(license), () => {
+                    navigate({
+                      to: '/acl/add-rule',
+                      search: {
+                        duplicate: row.id,
+                        tab: variant,
+                      },
+                    });
+                  });
+                },
+              });
               break;
             case AclListTab.Pending:
               topItems.push({

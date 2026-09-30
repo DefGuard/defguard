@@ -438,7 +438,7 @@ async fn test_create_network_with_posture_checks_assigns_postures(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let posture_1: serde_json::Value = response.json().await;
+    let posture_1 = response.json::<Value>().await;
 
     let response = client
         .post("/api/v1/device-posture")
@@ -453,7 +453,7 @@ async fn test_create_network_with_posture_checks_assigns_postures(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let posture_2: serde_json::Value = response.json().await;
+    let posture_2 = response.json::<Value>().await;
     let posture_ids = vec![
         posture_1["id"].as_i64().unwrap(),
         posture_2["id"].as_i64().unwrap(),
@@ -486,7 +486,7 @@ async fn test_create_network_with_posture_checks_assigns_postures(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let location: serde_json::Value = response.json().await;
+    let location = response.json::<Value>().await;
     let location_id = location["id"].as_i64().unwrap();
 
     let response = client
@@ -494,7 +494,7 @@ async fn test_create_network_with_posture_checks_assigns_postures(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let network: serde_json::Value = response.json().await;
+    let network = response.json::<Value>().await;
     let assigned_postures: Vec<i64> =
         serde_json::from_value(network["posture_checks"].clone()).unwrap();
     assert_eq!(assigned_postures.len(), 2);
@@ -507,7 +507,7 @@ async fn test_create_network_with_posture_checks_assigns_postures(
             .send()
             .await;
         assert_eq!(response.status(), StatusCode::OK);
-        let posture: serde_json::Value = response.json().await;
+        let posture = response.json::<Value>().await;
         let locations: Vec<i64> = serde_json::from_value(posture["locations"].clone()).unwrap();
         assert_eq!(locations, vec![location_id]);
     }
@@ -557,7 +557,7 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
 
     let response = client.get("/api/v1/network").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let networks: Vec<serde_json::Value> = response.json().await;
+    let networks: Vec<Value> = response.json().await;
     assert!(networks.iter().all(|network| {
         network["name"].as_str() != Some("network-without-enterprise-postures")
     }));
@@ -569,7 +569,7 @@ fn location_payload(
     address: &str,
     mfa_enabled: bool,
     service_location_mode: &str,
-) -> serde_json::Value {
+) -> Value {
     json!({
         "name": name,
         "address": address,
@@ -609,9 +609,7 @@ async fn make_mfa_flow(client: &TestClient) -> i64 {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    response.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap()
+    response.json::<Value>().await["id"].as_i64().unwrap()
 }
 
 /// Assign a flow as a location's default so the location can be MFA-enabled.
@@ -660,7 +658,7 @@ async fn test_mfa_enabled_no_flows_structured_body(_: PgPoolOptions, options: Pg
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["error"], "validation_failed");
     assert_eq!(body["fields"][0]["field"], "mfa_flows");
     assert_eq!(body["fields"][0]["code"], "no_default_designated");
@@ -690,15 +688,11 @@ async fn test_enable_mfa_after_clear_refused_without_flows(
             .send()
             .await;
         assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<serde_json::Value>().await["id"]
-            .as_i64()
-            .unwrap()
+        resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
     let network_resp = make_network(&client, "clear-then-enable").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     let response = update_location_mfa_flows(
         &client,
@@ -748,7 +742,7 @@ async fn test_enable_mfa_after_clear_refused_without_flows(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["fields"][0]["code"], "no_flows_exist");
 }
 
@@ -762,9 +756,7 @@ async fn test_enable_mfa_without_assignment_refused(_: PgPoolOptions, options: P
 
     make_mfa_flow(&client).await;
     let network_resp = make_network(&client, "no-assignment").await;
-    let location_id = network_resp.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     let response = client
         .put(format!("/api/v1/network/{location_id}"))
@@ -792,7 +784,7 @@ async fn test_enable_mfa_without_assignment_refused(_: PgPoolOptions, options: P
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["error"], "validation_failed");
     assert_eq!(body["fields"][0]["field"], "mfa_enabled");
     assert_eq!(body["fields"][0]["code"], "no_flows_assigned");
@@ -813,7 +805,7 @@ async fn make_posture_check(client: &TestClient, name: &str) -> i64 {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let posture: serde_json::Value = response.json().await;
+    let posture = response.json::<Value>().await;
     posture["id"].as_i64().unwrap()
 }
 
@@ -824,7 +816,7 @@ async fn fetch_location_postures(client: &TestClient, location_id: i64) -> Vec<i
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let network: serde_json::Value = response.json().await;
+    let network = response.json::<Value>().await;
     serde_json::from_value(network["posture_checks"].clone()).unwrap()
 }
 
@@ -983,7 +975,7 @@ async fn test_network_rejects_zero_keepalive_interval(_: PgPoolOptions, options:
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let created: serde_json::Value = response.json().await;
+    let created = response.json::<Value>().await;
     let location_id = created["id"].as_i64().unwrap();
 
     let mut payload = location_payload("good-keepalive", "10.2.2.1/24", false, "disabled");
@@ -1317,7 +1309,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(body["fields"][0]["code"], "no_default_designated");
 }
 
@@ -1570,7 +1562,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
     // network details
     let response = client.get("/api/v1/network/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let network_details: serde_json::Value = response.json().await;
+    let network_details = response.json::<Value>().await;
     let network_id = network_details["id"].as_i64().unwrap();
 
     // create devices
@@ -1584,7 +1576,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device1: serde_json::Value = response.json().await;
+    let device1 = response.json::<Value>().await;
     let device1_id = device1["device"]["id"].as_i64().unwrap();
     let device = json!({
         "name": "device2",
@@ -1596,7 +1588,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device2: serde_json::Value = response.json().await;
+    let device2 = response.json::<Value>().await;
     let device2_id = device2["device"]["id"].as_i64().unwrap();
 
     // ensure IPs were assigned for new devices
@@ -1670,7 +1662,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device3: serde_json::Value = response.json().await;
+    let device3 = response.json::<Value>().await;
     let device3_id = device3["device"]["id"].as_i64().unwrap();
 
     let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device3_id)
@@ -2038,7 +2030,7 @@ async fn test_user_device_configs_single_network(_: PgPoolOptions, options: PgCo
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device: serde_json::Value = response.json().await;
+    let device = response.json::<Value>().await;
     let device_id = device["device"]["id"].as_i64().unwrap();
 
     let response = client
@@ -2080,7 +2072,7 @@ async fn test_user_device_configs_multiple_networks(_: PgPoolOptions, options: P
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device: serde_json::Value = response.json().await;
+    let device = response.json::<Value>().await;
     let device_id = device["device"]["id"].as_i64().unwrap();
 
     let response = client
@@ -2148,7 +2140,7 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let hpotter_device: serde_json::Value = response.json().await;
+    let hpotter_device = response.json::<Value>().await;
     let hpotter_device_id = hpotter_device["device"]["id"].as_i64().unwrap();
 
     // Create a device for admin
@@ -2162,7 +2154,7 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let admin_device: serde_json::Value = response.json().await;
+    let admin_device = response.json::<Value>().await;
     let admin_device_id = admin_device["device"]["id"].as_i64().unwrap();
 
     // Switch to hpotter
@@ -2369,7 +2361,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device: serde_json::Value = response.json().await;
+    let device = response.json::<Value>().await;
     let device_id = device["device"]["id"].as_i64().unwrap();
 
     let response = client
@@ -2691,7 +2683,7 @@ async fn test_config_allowed_ips_from_acl_merged(_: PgPoolOptions, options: PgCo
         .send()
         .await;
     assert_eq!(device_response.status(), StatusCode::CREATED);
-    let device_json: serde_json::Value = device_response.json().await;
+    let device_json = device_response.json::<Value>().await;
     let device_id = device_json["device"]["id"].as_i64().unwrap();
 
     let config_response = client
@@ -2699,7 +2691,7 @@ async fn test_config_allowed_ips_from_acl_merged(_: PgPoolOptions, options: PgCo
         .send()
         .await;
     assert_eq!(config_response.status(), StatusCode::OK);
-    let configs: Vec<serde_json::Value> = config_response.json().await;
+    let configs: Vec<Value> = config_response.json().await;
     assert_eq!(configs.len(), 1);
     let config_text = configs[0]["config"].as_str().unwrap();
 
@@ -2800,7 +2792,7 @@ async fn test_config_allowed_ips_from_acl_no_match(_: PgPoolOptions, options: Pg
         .send()
         .await;
     assert_eq!(device_response.status(), StatusCode::CREATED);
-    let device_json: serde_json::Value = device_response.json().await;
+    let device_json = device_response.json::<Value>().await;
     let device_id = device_json["device"]["id"].as_i64().unwrap();
 
     let config_response = client
@@ -2808,7 +2800,7 @@ async fn test_config_allowed_ips_from_acl_no_match(_: PgPoolOptions, options: Pg
         .send()
         .await;
     assert_eq!(config_response.status(), StatusCode::OK);
-    let configs: Vec<serde_json::Value> = config_response.json().await;
+    let configs: Vec<Value> = config_response.json().await;
     assert_eq!(configs.len(), 1);
     let config_text = configs[0]["config"].as_str().unwrap();
 
@@ -2871,7 +2863,7 @@ async fn test_config_allowed_ips_from_acl_toggle_off(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(device_response.status(), StatusCode::CREATED);
-    let device_json: serde_json::Value = device_response.json().await;
+    let device_json = device_response.json::<Value>().await;
     let device_id = device_json["device"]["id"].as_i64().unwrap();
 
     let config_response = client
@@ -2879,7 +2871,7 @@ async fn test_config_allowed_ips_from_acl_toggle_off(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(config_response.status(), StatusCode::OK);
-    let configs: Vec<serde_json::Value> = config_response.json().await;
+    let configs: Vec<Value> = config_response.json().await;
     assert_eq!(configs.len(), 1);
     let config_text = configs[0]["config"].as_str().unwrap();
 
@@ -2946,7 +2938,7 @@ async fn test_config_allowed_ips_from_acl_any_address_skipped(
         .send()
         .await;
     assert_eq!(device_response.status(), StatusCode::CREATED);
-    let device_json: serde_json::Value = device_response.json().await;
+    let device_json = device_response.json::<Value>().await;
     let device_id = device_json["device"]["id"].as_i64().unwrap();
 
     let config_response = client
@@ -2954,7 +2946,7 @@ async fn test_config_allowed_ips_from_acl_any_address_skipped(
         .send()
         .await;
     assert_eq!(config_response.status(), StatusCode::OK);
-    let configs: Vec<serde_json::Value> = config_response.json().await;
+    let configs: Vec<Value> = config_response.json().await;
     assert_eq!(configs.len(), 1);
     let config_text = configs[0]["config"].as_str().unwrap();
 
@@ -3027,7 +3019,7 @@ async fn test_config_allowed_ips_from_acl_no_license(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(device_response.status(), StatusCode::CREATED);
-    let device_json: serde_json::Value = device_response.json().await;
+    let device_json = device_response.json::<Value>().await;
     let device_id = device_json["device"]["id"].as_i64().unwrap();
 
     let config_response = client
@@ -3035,7 +3027,7 @@ async fn test_config_allowed_ips_from_acl_no_license(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(config_response.status(), StatusCode::OK);
-    let configs: Vec<serde_json::Value> = config_response.json().await;
+    let configs: Vec<Value> = config_response.json().await;
     assert_eq!(configs.len(), 1);
     let config_text = configs[0]["config"].as_str().unwrap();
 
@@ -3100,7 +3092,7 @@ async fn test_config_allowed_ips_from_acl_disabled(_: PgPoolOptions, options: Pg
         .send()
         .await;
     assert_eq!(device_response.status(), StatusCode::CREATED);
-    let device_json: serde_json::Value = device_response.json().await;
+    let device_json = device_response.json::<Value>().await;
     let device_id = device_json["device"]["id"].as_i64().unwrap();
 
     let config_response = client
@@ -3108,7 +3100,7 @@ async fn test_config_allowed_ips_from_acl_disabled(_: PgPoolOptions, options: Pg
         .send()
         .await;
     assert_eq!(config_response.status(), StatusCode::OK);
-    let configs: Vec<serde_json::Value> = config_response.json().await;
+    let configs: Vec<Value> = config_response.json().await;
     assert_eq!(configs.len(), 1);
     let config_text = configs[0]["config"].as_str().unwrap();
 

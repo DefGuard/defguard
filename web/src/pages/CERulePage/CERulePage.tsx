@@ -155,10 +155,11 @@ const renderLocationSelectionItem: SelectionSectionCustomRender<
 
 type Props = {
   rule?: AclRule;
+  duplicate?: AclRule;
   tab?: AclListTabValue;
 };
 
-export const CERulePage = ({ rule, tab }: Props) => {
+export const CERulePage = ({ rule, duplicate, tab }: Props) => {
   const isEdit = isPresent(rule);
 
   return (
@@ -171,12 +172,12 @@ export const CERulePage = ({ rule, tab }: Props) => {
         subtitle: m.acl_rule_form_subtitle(),
       }}
     >
-      <Content rule={rule} tab={tab} />
+      <Content rule={rule} duplicate={duplicate} tab={tab} />
     </EditPage>
   );
 };
 
-const Content = ({ rule: initialRule, tab }: Props) => {
+const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
   const router = useRouter();
   const navigate = useNavigate();
 
@@ -534,6 +535,22 @@ const Content = ({ rule: initialRule, tab }: Props) => {
       };
     }
 
+    if (isPresent(duplicate)) {
+      return {
+        ...omit(duplicate, ['id', 'state', 'expires', 'parent_id']),
+        name: m.acl_duplicate_name({ name: duplicate.name }),
+        aliases: new Set(duplicate.aliases),
+        destinations: new Set(duplicate.destinations),
+        protocols: new Set(duplicate.protocols),
+        expires: null,
+        restrict_users: duplicate.deny_all_users || duplicate.denied_users.length > 0,
+        restrict_groups: duplicate.deny_all_groups || duplicate.denied_groups.length > 0,
+        restrict_devices:
+          duplicate.deny_all_network_devices ||
+          duplicate.denied_network_devices.length > 0,
+      };
+    }
+
     return {
       name: '',
       addresses: '',
@@ -565,7 +582,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
       restrict_groups: false,
       restrict_devices: false,
     };
-  }, [initialRule]);
+  }, [initialRule, duplicate]);
 
   const form = useAppForm({
     defaultValues,

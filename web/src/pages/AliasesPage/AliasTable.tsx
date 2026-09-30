@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
-import type { AclListTabValue } from '../../shared/aclTabs';
+import { AclListTab, type AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName, type AclRule } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -193,6 +193,25 @@ export const AliasTable = ({
               ],
             },
           ];
+          if (tab === AclListTab.Deployed) {
+            menuItems[0].items.splice(1, 0, {
+              text: m.controls_duplicate(),
+              icon: 'duplicate',
+              testId: 'alias-row-duplicate',
+              onClick: () => {
+                if (licenseInfo === undefined) return;
+                licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                  navigate({
+                    to: '/acl/add-alias',
+                    search: {
+                      duplicate: row.id,
+                      tab,
+                    },
+                  });
+                });
+              },
+            });
+          }
           if (row.state === 'Modified') {
             menuItems[0].items.splice(1, 0, {
               text: m.controls_deploy(),

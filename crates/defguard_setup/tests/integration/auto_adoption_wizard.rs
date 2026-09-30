@@ -23,7 +23,7 @@ use reqwest::{
     Client, StatusCode,
     header::{HeaderMap, USER_AGENT},
 };
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -197,8 +197,8 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .await
         .expect("Failed to get auto adoption result");
     assert_eq!(resp.status(), StatusCode::OK);
-    let result: serde_json::Value = resp
-        .json()
+    let result = resp
+        .json::<Value>()
         .await
         .expect("Failed to parse auto adoption result");
     assert_eq!(result["step"], "summary");
@@ -648,7 +648,7 @@ async fn test_auto_adoption_mfa_enabled_requires_flow(_: PgPoolOptions, options:
         .await
         .expect("Failed to set MFA settings");
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body = resp.json::<Value>().await.unwrap();
     assert_eq!(body["error"], "validation_failed");
     assert_eq!(body["fields"][0]["field"], "mfa_enabled");
     assert_eq!(body["fields"][0]["code"], "no_flows_exist");

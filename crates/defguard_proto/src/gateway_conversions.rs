@@ -30,28 +30,28 @@ impl From<WireguardPeer> for Peer {
 }
 
 fn policy_to_i32(policy: FirewallPolicy) -> i32 {
-    match policy {
-        FirewallPolicy::Unspecified => ProtoFirewallPolicy::Unspecified as i32,
-        FirewallPolicy::Allow => ProtoFirewallPolicy::Allow as i32,
-        FirewallPolicy::Deny => ProtoFirewallPolicy::Deny as i32,
-    }
+    (match policy {
+        FirewallPolicy::Unspecified => ProtoFirewallPolicy::Unspecified,
+        FirewallPolicy::Allow => ProtoFirewallPolicy::Allow,
+        FirewallPolicy::Deny => ProtoFirewallPolicy::Deny,
+    }) as i32
 }
 
 fn ip_version_to_i32(v: IpVersion) -> i32 {
-    match v {
-        IpVersion::Unspecified => ProtoIpVersion::Unspecified as i32,
-        IpVersion::Ipv4 => ProtoIpVersion::Ipv4 as i32,
-        IpVersion::Ipv6 => ProtoIpVersion::Ipv6 as i32,
-    }
+    (match v {
+        IpVersion::Unspecified => ProtoIpVersion::Unspecified,
+        IpVersion::Ipv4 => ProtoIpVersion::Ipv4,
+        IpVersion::Ipv6 => ProtoIpVersion::Ipv6,
+    }) as i32
 }
 
 fn protocol_to_i32(p: Protocol) -> i32 {
-    match p {
-        Protocol::Unspecified => ProtoProtocol::Unspecified as i32,
-        Protocol::Icmp => ProtoProtocol::Icmp as i32,
-        Protocol::Tcp => ProtoProtocol::Tcp as i32,
-        Protocol::Udp => ProtoProtocol::Udp as i32,
-    }
+    (match p {
+        Protocol::Unspecified => ProtoProtocol::Unspecified,
+        Protocol::Icmp => ProtoProtocol::Icmp,
+        Protocol::Tcp => ProtoProtocol::Tcp,
+        Protocol::Udp => ProtoProtocol::Udp,
+    }) as i32
 }
 
 impl From<IpRange> for ProtoIpRange {

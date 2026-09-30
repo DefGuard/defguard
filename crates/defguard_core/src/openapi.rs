@@ -84,6 +84,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         user::bulk_disable_users,
         user::bulk_enable_users,
         user::bulk_start_enrollment,
+        user::bulk_store_enrollment_token_in_ldap,
         user::change_self_password,
         user::delete_user,
         user::get_user,

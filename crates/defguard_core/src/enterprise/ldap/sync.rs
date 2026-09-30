@@ -96,8 +96,8 @@ use crate::{
     events::LdapSyncEventType,
     grpc::GatewayCommand,
     hashset,
-    location_management::sync_all_networks,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    location_management::LocationManager,
+    user_management::UserManager,
 };
 
 fn emit_ldap_sync_events(
@@ -575,6 +575,7 @@ impl super::LDAPConnection {
         let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
         let mut transaction = pool.begin().await?;
         let mut events = Vec::new();
+        let mut usermgr = UserManager::new();
 
         for (ldap_user, defguard_user) in &mut intersecting_users {
             if sync_account_status && ldap_user.is_active != defguard_user.is_active {
@@ -584,7 +585,8 @@ impl super::LDAPConnection {
                             debug!("Enabling Defguard user {defguard_user} based on AD status");
                             defguard_user.is_active = true;
                             defguard_user.save(&mut *transaction).await?;
-                            sync_allowed_user_devices(defguard_user, &mut transaction, wg_tx)
+                            usermgr
+                                .sync_allowed_user_devices(defguard_user, &mut transaction)
                                 .await
                                 .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                             events.push(LdapSyncEventType::UserEnabled {
@@ -592,7 +594,8 @@ impl super::LDAPConnection {
                             });
                         } else {
                             debug!("Disabling Defguard user {defguard_user} based on AD status");
-                            disable_user(defguard_user, &mut transaction, wg_tx)
+                            usermgr
+                                .disable_user(defguard_user, &mut transaction)
                                 .await
                                 .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                             events.push(LdapSyncEventType::UserDisabled {
@@ -645,6 +648,7 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
+        usermgr.send(wg_tx);
         emit_ldap_sync_events(ldap_tx, events);
 
         Ok(())
@@ -708,14 +712,16 @@ impl super::LDAPConnection {
 
         if memberships_changed {
             match pool.acquire().await {
-                Ok(mut conn) => {
-                    if let Err(err) = sync_all_networks(&mut conn, wg_tx).await {
+                Ok(mut conn) => match LocationManager::sync_all_networks(&mut conn).await {
+                    Ok(locmgr) => locmgr.send(wg_tx),
+                    Err(err) => {
                         error!("Failed to sync all networks after LDAP membership changes: {err}");
                     }
-                }
+                },
                 Err(err) => {
                     error!(
-                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                        "Failed to acquire a connection to sync networks after LDAP membership \
+                        changes: {err}"
                     );
                 }
             }
@@ -854,8 +860,8 @@ impl super::LDAPConnection {
             .map(|u| u.username.as_str())
             .collect::<HashSet<_>>();
 
-        debug!("LDAP users: {:?}", ldap_usernames);
-        debug!("Defguard users: {:?}", defguard_usernames);
+        debug!("LDAP users: {ldap_usernames:?}");
+        debug!("Defguard users: {defguard_usernames:?}");
 
         let all_ldap_users_groupsync = all_ldap_users.clone();
         let ldap_memberships = self
@@ -902,14 +908,16 @@ impl super::LDAPConnection {
 
         if memberships_changed {
             match pool.acquire().await {
-                Ok(mut conn) => {
-                    if let Err(err) = sync_all_networks(&mut conn, wg_tx).await {
+                Ok(mut conn) => match LocationManager::sync_all_networks(&mut conn).await {
+                    Ok(locmgr) => locmgr.send(wg_tx),
+                    Err(err) => {
                         error!("Failed to sync all networks after LDAP membership changes: {err}");
                     }
-                }
+                },
                 Err(err) => {
                     error!(
-                        "Failed to acquire a connection to sync networks after LDAP membership changes: {err}"
+                        "Failed to acquire a connection to sync networks after LDAP membership \
+                        changes: {err}"
                     );
                 }
             }
@@ -1130,7 +1138,7 @@ impl super::LDAPConnection {
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
-        wg_tx: &Sender<GatewayCommand>,
+        gateway_tx: &Sender<GatewayCommand>,
         mut changes: UserSyncChanges,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
@@ -1143,6 +1151,7 @@ impl super::LDAPConnection {
             .as_ref()
             .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
         let mut blocked_import_notification_sent = false;
+        let mut usermgr = UserManager::new();
 
         for user in changes.delete_defguard {
             if user.is_admin(&mut *transaction).await? {
@@ -1154,19 +1163,19 @@ impl super::LDAPConnection {
                 } else {
                     admin_count -= 1;
                     debug!("Deleting admin user {} from Defguard", user.username);
-                    let deleted_user = user.clone();
-                    delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                    usermgr
+                        .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
                         .await
                         .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
-                    events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
+                    events.push(LdapSyncEventType::UserDeleted { user: user.clone() });
                 }
             } else {
                 debug!("Deleting user {} from Defguard", user.username);
-                let deleted_user = user.clone();
-                delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                usermgr
+                    .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
                     .await
                     .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
-                events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
+                events.push(LdapSyncEventType::UserDeleted { user: user.clone() });
             }
         }
 
@@ -1218,6 +1227,7 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
+        usermgr.send(gateway_tx);
         emit_ldap_sync_events(ldap_tx, events);
 
         // attempt to send enrollment invites after the original DB transaction is commited
