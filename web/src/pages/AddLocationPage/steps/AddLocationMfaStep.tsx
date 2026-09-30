@@ -15,6 +15,7 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getMfaFlowsQueryOptions } from '../../../shared/query';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 
 const schema = z
   .number(m.form_error_required())
@@ -52,22 +53,26 @@ export const AddLocationMfaStep = () => {
 
   return (
     <WizardCard>
+      <DescriptionBlock>
+        <p>{m.add_location_step_mfa_flow_description()}</p>
+      </DescriptionBlock>
       {!hasMfaFlows && (
         <>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <InfoBanner
             icon="warning-outlined"
             variant="warning"
-            text={m.add_location_mfa_toggle_label()}
+            text={m.add_location_step_mfa_no_flows()}
           />
-          <SizedBox height={ThemeSpacing.Xl2} />
         </>
       )}
+      <SizedBox height={ThemeSpacing.Xl} />
       <Radio
         active={!mfaEnabled}
         onClick={() => {
           setMfaEnabled(false);
         }}
-        text={m.add_location_postures_dont_assign()}
+        text={m.add_location_mfa_disable()}
         disabled={!hasMfaFlows}
       />
       <SizedBox height={ThemeSpacing.Md} />
@@ -76,7 +81,7 @@ export const AddLocationMfaStep = () => {
         onClick={() => {
           setMfaEnabled(true);
         }}
-        text={m.add_location_postures_assign()}
+        text={m.add_location_mfa_assign_flow()}
         disabled={!hasMfaFlows}
       />
       <Fold open={mfaEnabled}>
