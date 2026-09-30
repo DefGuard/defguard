@@ -25,7 +25,7 @@ use defguard_common::{
 use defguard_core::{
     auth::{
         AdminRole, SessionInfo,
-        failed_login::{charge_login_attempt, login_key, refund_login_attempt},
+        login_throttle::{charge_login_attempt, login_key, refund_login_attempt},
     },
     error::WebError,
     handlers::{ApiResponse, ApiResult, ClientIpAddr, SESSION_COOKIE_NAME},

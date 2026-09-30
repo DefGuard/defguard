@@ -3,7 +3,7 @@ use sqlx::{PgExecutor, PgPool, Type, query, query_scalar};
 use tracing::debug;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Type)]
-#[sqlx(type_name = "text", rename_all = "snake_case")]
+#[sqlx(type_name = "throttle_scope", rename_all = "snake_case")]
 pub enum ThrottleScope {
     /// Web and setup login steps, keyed by username.
     WebLogin,

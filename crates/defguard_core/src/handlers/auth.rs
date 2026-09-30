@@ -35,7 +35,7 @@ use crate::{
     appstate::AppState,
     auth::{
         SessionExtractor, SessionInfo,
-        failed_login::{charge_login_attempt, login_key, refund_login_attempt},
+        login_throttle::{charge_login_attempt, login_key, refund_login_attempt},
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider,

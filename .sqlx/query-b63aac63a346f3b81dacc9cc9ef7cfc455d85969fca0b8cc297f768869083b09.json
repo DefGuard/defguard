@@ -5,7 +5,18 @@
     "columns": [],
     "parameters": {
       "Left": [
-        "Text",
+        {
+          "Custom": {
+            "name": "throttle_scope",
+            "kind": {
+              "Enum": [
+                "web_login",
+                "vpn_mfa_code",
+                "vpn_mfa_initiate"
+              ]
+            }
+          }
+        },
         "Text"
       ]
     },
