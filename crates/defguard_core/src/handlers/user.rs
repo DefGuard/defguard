@@ -53,7 +53,7 @@ use crate::{
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
     mail::templates,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    user_management::{UserManager, disable_user, sync_allowed_user_devices},
 };
 
 #[derive(Deserialize)]
@@ -1155,11 +1155,15 @@ pub(crate) async fn delete_user(
         } else {
             None
         };
-        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.gateway_tx)
+        let mut usermgr = UserManager::new();
+        usermgr
+            .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
+        usermgr.send(&appstate.gateway_tx);
+
         update_counts(&appstate.pool).await?;
         if let Some(user_for_ldap) = user_for_ldap {
             ldap_delete_user(&user_for_ldap, &appstate.pool, &appstate.ldap_tx).await;
@@ -1880,6 +1884,7 @@ pub(crate) async fn bulk_delete_users(
     let mut ldap_targets = Vec::new();
     let mut removed_usernames = Vec::new();
     let mut removed_users = Vec::new();
+    let mut usermgr = UserManager::new();
     for user in users {
         let username = user.username.clone();
         let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
@@ -1887,7 +1892,8 @@ pub(crate) async fn bulk_delete_users(
         } else {
             None
         };
-        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.gateway_tx)
+        usermgr
+            .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
             .await?;
         if let Some(noid_user) = user_for_ldap {
             ldap_targets.push(noid_user);
@@ -1896,10 +1902,11 @@ pub(crate) async fn bulk_delete_users(
         removed_users.push(user);
     }
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
     update_counts(&appstate.pool).await?;
 
-    for username in &removed_usernames {
-        appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
+    for username in removed_usernames {
+        appstate.trigger_action(AppEvent::UserDeleted(username));
     }
     for noid_user in &ldap_targets {
         ldap_delete_user(noid_user, &appstate.pool, &appstate.ldap_tx).await;

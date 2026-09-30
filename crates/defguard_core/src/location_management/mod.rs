@@ -59,6 +59,7 @@ impl LocationManager {
         Ok(Self { gateway_commands })
     }
 
+    /// Send all commands to Gateway.
     pub(crate) fn send(self, gateway_tx: &Sender<GatewayCommand>) {
         send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
     }

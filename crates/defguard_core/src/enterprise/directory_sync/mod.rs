@@ -37,7 +37,7 @@ use crate::{
     grpc::GatewayCommand,
     handlers::user::check_username,
     location_management::LocationManager,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    user_management::{UserManager, disable_user, sync_allowed_user_devices},
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -993,6 +993,7 @@ async fn sync_all_users_state(
     );
     // Keep the admin count to prevent deleting the last admin
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
+    let mut usermgr = UserManager::new();
     for mut user in missing_directory_users {
         if user.is_admin(&mut *transaction).await? {
             match admin_behavior {
@@ -1049,7 +1050,8 @@ async fn sync_all_users_state(
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    delete_user_and_cleanup_devices(user, &mut transaction, gateway_tx)
+                    usermgr
+                        .delete_user_and_cleanup_devices(user, &mut transaction)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -1099,7 +1101,8 @@ async fn sync_all_users_state(
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    delete_user_and_cleanup_devices(user, &mut transaction, gateway_tx)
+                    usermgr
+                        .delete_user_and_cleanup_devices(user, &mut transaction)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -1113,6 +1116,7 @@ async fn sync_all_users_state(
     debug!("Done processing missing users");
 
     transaction.commit().await?;
+    usermgr.send(gateway_tx);
 
     if users_reenabled {
         match pool.acquire().await {

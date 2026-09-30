@@ -97,7 +97,7 @@ use crate::{
     grpc::GatewayCommand,
     hashset,
     location_management::LocationManager,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    user_management::{UserManager, disable_user, sync_allowed_user_devices},
 };
 
 fn emit_ldap_sync_events(
@@ -1134,7 +1134,7 @@ impl super::LDAPConnection {
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
-        wg_tx: &Sender<GatewayCommand>,
+        gateway_tx: &Sender<GatewayCommand>,
         mut changes: UserSyncChanges,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
@@ -1147,6 +1147,7 @@ impl super::LDAPConnection {
             .as_ref()
             .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
         let mut blocked_import_notification_sent = false;
+        let mut usermgr = UserManager::new();
 
         for user in changes.delete_defguard {
             if user.is_admin(&mut *transaction).await? {
@@ -1158,19 +1159,19 @@ impl super::LDAPConnection {
                 } else {
                     admin_count -= 1;
                     debug!("Deleting admin user {} from Defguard", user.username);
-                    let deleted_user = user.clone();
-                    delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                    usermgr
+                        .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
                         .await
                         .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
-                    events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
+                    events.push(LdapSyncEventType::UserDeleted { user: user.clone() });
                 }
             } else {
                 debug!("Deleting user {} from Defguard", user.username);
-                let deleted_user = user.clone();
-                delete_user_and_cleanup_devices(user.clone(), &mut transaction, wg_tx)
+                usermgr
+                    .delete_user_and_cleanup_devices(user.clone(), &mut transaction)
                     .await
                     .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
-                events.push(LdapSyncEventType::UserDeleted { user: deleted_user });
+                events.push(LdapSyncEventType::UserDeleted { user: user.clone() });
             }
         }
 
@@ -1222,6 +1223,7 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
+        usermgr.send(gateway_tx);
         emit_ldap_sync_events(ldap_tx, events);
 
         // attempt to send enrollment invites after the original DB transaction is commited
