@@ -37,7 +37,7 @@ use crate::{
     grpc::GatewayCommand,
     handlers::user::check_username,
     location_management::LocationManager,
-    user_management::{UserManager, disable_user, sync_allowed_user_devices},
+    user_management::{UserManager, disable_user},
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -364,16 +364,18 @@ async fn sync_user_groups<T: DirectorySync>(
     let mut transaction = pool.begin().await?;
 
     let current_groups = user.member_of(&mut *transaction).await?;
-    let current_group_names: Vec<&str> = current_groups.iter().map(|g| g.name.as_str()).collect();
+    let current_group_names = current_groups
+        .iter()
+        .map(|g| g.name.as_str())
+        .collect::<Vec<_>>();
     let mut add_to_ldap_groups = HashSet::new();
     let mut remove_from_ldap_groups = HashSet::new();
     let mut dirsync_events = Vec::new();
 
     debug!(
-        "User {} is a member of {} groups in Defguard: {:?}",
+        "User {} is a member of {} groups in Defguard: {current_group_names:?}",
         user.email,
-        current_groups.len(),
-        current_group_names
+        current_groups.len()
     );
 
     for group_name in &directory_group_names {
@@ -408,7 +410,8 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
-    sync_allowed_user_devices(user, &mut transaction, gateway_tx)
+    let mut usermgr = UserManager::new();
+    usermgr.sync_allowed_user_devices(user, &mut transaction)
         .await
         .map_err(|err| {
             DirectorySyncError::NetworkUpdateError(format!(
@@ -417,6 +420,7 @@ async fn sync_user_groups<T: DirectorySync>(
         ))
         })?;
     transaction.commit().await?;
+    usermgr.send(gateway_tx);
 
     emit_directory_sync_events(dirsync_tx, provider_name, dirsync_events);
 
@@ -602,6 +606,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     let mut dirsync_events = Vec::new();
 
     let mut transaction = pool.begin().await?;
+    let mut usermgr = UserManager::new();
     debug!("User-group mapping construction done, starting to apply the changes to the database");
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
     for (user, groups) in user_group_map {
@@ -612,13 +617,14 @@ async fn sync_all_users_groups<T: DirectorySync>(
         };
 
         let current_groups = user.member_of(&mut *transaction).await?;
-        let current_group_names: HashSet<&str> =
-            current_groups.iter().map(|g| g.name.as_str()).collect();
+        let current_group_names = current_groups
+            .iter()
+            .map(|g| g.name.as_str())
+            .collect::<HashSet<_>>();
         debug!(
-            "User {} is a member of {} groups in Defguard: {:?}",
+            "User {} is a member of {} groups in Defguard: {current_groups:?}",
             user.email,
-            current_groups.len(),
-            current_groups
+            current_groups.len()
         );
         for current_group in &current_groups {
             debug!(
@@ -678,16 +684,21 @@ async fn sync_all_users_groups<T: DirectorySync>(
             }
         }
 
-        sync_allowed_user_devices(&user, &mut transaction, gateway_tx).await.map_err(|err| {
-            DirectorySyncError::NetworkUpdateError(format!(
-                "Failed to sync allowed devices for user {} during directory synchronization: {err}",
-                user.email
-            ))
-        })?;
+        usermgr
+            .sync_allowed_user_devices(&user, &mut transaction)
+            .await
+            .map_err(|err| {
+                DirectorySyncError::NetworkUpdateError(format!(
+                    "Failed to sync allowed devices for user {} during directory synchronization: \
+                    {err}",
+                    user.email
+                ))
+            })?;
 
         affected_users.push(user);
     }
     transaction.commit().await?;
+    usermgr.send(gateway_tx);
 
     emit_directory_sync_events(dirsync_tx, provider_name, dirsync_events);
 

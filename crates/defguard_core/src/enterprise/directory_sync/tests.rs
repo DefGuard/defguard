@@ -861,10 +861,13 @@ mod test {
         let user2 = get_test_user(&pool, "user2").await;
         assert!(user2.is_none());
         let mut transaction = pool.begin().await.unwrap();
-        sync_allowed_user_devices(&user, &mut transaction, &gateway_tx)
+        let mut usermgr = UserManager::new();
+        usermgr
+            .sync_allowed_user_devices(&user, &mut transaction)
             .await
             .unwrap();
         transaction.commit().await.unwrap();
+        usermgr.send(&gateway_tx);
         let event = gateway_rx.try_recv();
         if let Ok(GatewayCommand::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2_pre_sync.id);

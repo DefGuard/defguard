@@ -97,7 +97,7 @@ use crate::{
     grpc::GatewayCommand,
     hashset,
     location_management::LocationManager,
-    user_management::{UserManager, disable_user, sync_allowed_user_devices},
+    user_management::{UserManager, disable_user},
 };
 
 fn emit_ldap_sync_events(
@@ -575,6 +575,7 @@ impl super::LDAPConnection {
         let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
         let mut transaction = pool.begin().await?;
         let mut events = Vec::new();
+        let mut usermgr = UserManager::new();
 
         for (ldap_user, defguard_user) in &mut intersecting_users {
             if sync_account_status && ldap_user.is_active != defguard_user.is_active {
@@ -584,7 +585,8 @@ impl super::LDAPConnection {
                             debug!("Enabling Defguard user {defguard_user} based on AD status");
                             defguard_user.is_active = true;
                             defguard_user.save(&mut *transaction).await?;
-                            sync_allowed_user_devices(defguard_user, &mut transaction, wg_tx)
+                            usermgr
+                                .sync_allowed_user_devices(defguard_user, &mut transaction)
                                 .await
                                 .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                             events.push(LdapSyncEventType::UserEnabled {
@@ -645,6 +647,7 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
+        usermgr.send(wg_tx);
         emit_ldap_sync_events(ldap_tx, events);
 
         Ok(())

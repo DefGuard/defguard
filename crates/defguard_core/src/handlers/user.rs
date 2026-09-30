@@ -53,7 +53,7 @@ use crate::{
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
     mail::templates,
-    user_management::{UserManager, disable_user, sync_allowed_user_devices},
+    user_management::{UserManager, disable_user},
 };
 
 #[derive(Deserialize)]
@@ -949,6 +949,7 @@ pub(crate) async fn modify_user(
             .await?;
     }
     let mut group_diff = GroupDiff::default();
+    let mut usermgr = UserManager::new();
     if session.is_admin {
         // prevent admin from disabling himself
         if session.user.username == username && !user_info.is_active {
@@ -988,7 +989,9 @@ pub(crate) async fn modify_user(
                 "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
-            sync_allowed_user_devices(&user, &mut transaction, &appstate.gateway_tx).await?;
+            usermgr
+                .sync_allowed_user_devices(&user, &mut transaction)
+                .await?;
         }
 
         // remove API tokens when deactivating a user
@@ -1005,6 +1008,7 @@ pub(crate) async fn modify_user(
 
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
     if status_changing {
         update_counts(&appstate.pool).await?;
     }
@@ -1787,6 +1791,7 @@ pub(crate) async fn bulk_enable_users(
 
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
+    let mut usermgr = UserManager::new();
     for user in users {
         if user.is_active {
             continue;
@@ -1795,10 +1800,13 @@ pub(crate) async fn bulk_enable_users(
         let mut user_to_enable = user;
         user_to_enable.is_active = true;
         user_to_enable.save(&mut *transaction).await?;
-        sync_allowed_user_devices(&user_to_enable, &mut transaction, &appstate.gateway_tx).await?;
+        usermgr
+            .sync_allowed_user_devices(&user_to_enable, &mut transaction)
+            .await?;
         events.push((before, user_to_enable));
     }
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
     if to_enable_count > 0 {
         update_counts(&appstate.pool).await?;
     }

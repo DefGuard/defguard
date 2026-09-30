@@ -80,10 +80,46 @@ impl UserManager {
         }
 
         info!("The user {username} has been deleted and his devices removed");
+
         Ok(())
     }
 
-    /// Send all commands to Gateway.
+    /// Update Gateway state based on this user device access rights
+    pub async fn sync_allowed_user_devices(
+        &mut self,
+        user: &User<Id>,
+        conn: &mut PgConnection,
+    ) -> Result<(), UserManagementError> {
+        debug!("Syncing allowed devices of user {}", user.username);
+        let locations = WireguardNetwork::all(&mut *conn).await?;
+        for location in locations {
+            sync_allowed_devices_for_user(
+                &location,
+                &mut *conn,
+                user,
+                None,
+                &mut self.gateway_commands,
+            )
+            .await?;
+
+            // send firewall config update if ACLs & enterprise features are enabled
+            if let Some(firewall_config) =
+                try_get_location_firewall_config(&location, &mut *conn).await?
+            {
+                self.gateway_commands
+                    .push(GatewayCommand::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ));
+            }
+        }
+
+        info!("Allowed devices of user {} synced", user.username);
+
+        Ok(())
+    }
+
+    /// Send all commands to Gateway. Use this method *after* database transaction is committed.
     pub fn send(self, gateway_tx: &Sender<GatewayCommand>) {
         send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
     }
@@ -112,36 +148,10 @@ pub async fn disable_user(
     user.save(&mut *conn).await?;
     update_counts(&mut *conn).await?;
     user.logout_all_sessions(&mut *conn).await?;
-    sync_allowed_user_devices(user, conn, gateway_tx).await?;
-    Ok(())
-}
 
-/// Update gateway state based on this user device access rights
-pub async fn sync_allowed_user_devices(
-    user: &User<Id>,
-    conn: &mut PgConnection,
-    gateway_tx: &Sender<GatewayCommand>,
-) -> Result<(), UserManagementError> {
-    debug!("Syncing allowed devices of user {}", user.username);
-    let locations = WireguardNetwork::all(&mut *conn).await?;
-    let mut events = Vec::new();
-    for location in locations {
-        sync_allowed_devices_for_user(&location, &mut *conn, user, None, &mut events).await?;
+    let mut usermgr = UserManager::new();
+    usermgr.sync_allowed_user_devices(user, conn).await?;
+    usermgr.send(gateway_tx);
 
-        // send firewall config update if ACLs & enterprise features are enabled
-        if let Some(firewall_config) =
-            try_get_location_firewall_config(&location, &mut *conn).await?
-        {
-            events.push(GatewayCommand::FirewallConfigChanged(
-                location.id,
-                firewall_config,
-            ));
-        }
-    }
-
-    // send peer update events
-    send_multiple_gateway_commands(events, gateway_tx);
-
-    info!("Allowed devices of user {} synced", user.username);
     Ok(())
 }
