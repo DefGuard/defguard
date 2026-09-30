@@ -4003,6 +4003,34 @@ async fn test_ldap_sync_allowed_ldap_pending_enrollment(
     assert!(result);
 }
 
+/// An LDAP user who did not receive a remote-enrollment invite must remain in sync scope.
+#[sqlx::test]
+async fn test_ldap_sync_allowed_ldap_remote_enrollment_not_invited(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut user = make_test_user("testuser", None, None);
+    user.is_active = true;
+    user.password_hash = None;
+    user.openid_sub = None;
+    user.from_ldap = true;
+    user.enrollment_pending = false;
+    user.ldap_remote_enrollment_completed = false;
+    let user = user.save(&pool).await.unwrap();
+
+    assert!(!user.is_enrolled());
+    assert!(ldap_sync_allowed_for_user(&user, &pool).await.unwrap());
+}
+
 /// A non-LDAP user with pending enrollment is not yet a real account and must stay out of sync.
 #[sqlx::test]
 async fn test_ldap_sync_disallowed_non_ldap_pending_enrollment(
@@ -4022,6 +4050,177 @@ async fn test_ldap_sync_disallowed_non_ldap_pending_enrollment(
 
     let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
+}
+
+#[sqlx::test]
+async fn test_sync_keeps_uninvited_pending_ldap_user_in_scope(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = false;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+    let mut ldap_user = make_test_user("pending_sync_changes", None, None);
+    ldap_user.ldap_rdn = Some(ldap_user.username.clone());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_owned());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let imported = User::find_by_username(&pool, &ldap_user.username)
+        .await
+        .unwrap()
+        .expect("LDAP user should be imported into Defguard");
+    assert!(imported.from_ldap);
+    assert!(!imported.enrollment_pending);
+    assert!(!imported.is_enrolled());
+
+    let mut changed_ldap_user = imported.clone().as_noid();
+    changed_ldap_user.email = "updated-pending@example.com".to_owned();
+    let group = Group::new("pending-sync-group");
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&changed_ldap_user, &config);
+    ldap_conn.test_client_mut().add_test_group(&group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership(&group, &changed_ldap_user, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let synced = User::find_by_id(&pool, imported.id).await.unwrap().unwrap();
+    assert_eq!(synced.email, "updated-pending@example.com");
+    assert!(
+        synced
+            .member_of_names(&pool)
+            .await
+            .unwrap()
+            .contains(&group.name)
+    );
+}
+
+#[sqlx::test]
+async fn test_defguard_authoritative_full_sync_keeps_uninvited_pending_user_in_ldap(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = false;
+    settings.ldap_is_authoritative = false;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+    let mut ldap_user = make_test_user("pending_sync_defguard_authority", None, None);
+    ldap_user.ldap_rdn = Some(ldap_user.username.clone());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_owned());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let imported = User::find_by_username(&pool, &ldap_user.username)
+        .await
+        .unwrap()
+        .expect("LDAP user should be imported into Defguard");
+    assert!(!imported.enrollment_pending);
+    assert!(!imported.is_enrolled());
+
+    ldap_conn.test_client_mut().clear_events();
+    ldap_conn.sync(&pool, true, &wg_tx, &ldap_tx).await.unwrap();
+
+    let user_dn = config.user_dn_for_user(&imported);
+    assert!(
+        !ldap_conn
+            .test_client
+            .get_events()
+            .iter()
+            .any(|event| matches!(event, LdapEvent::ObjectDeleted { dn } if dn == &user_dn)),
+        "Defguard-authoritative full sync must not delete the pending LDAP user"
+    );
+    assert!(ldap_conn.user_exists(&imported).await.unwrap());
+}
+
+#[sqlx::test]
+async fn test_ldap_authoritative_full_sync_deletes_uninvited_pending_user_removed_from_ldap(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = false;
+    settings.ldap_is_authoritative = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+    let mut ldap_user = make_test_user("pending_sync_ldap_authority", None, None);
+    ldap_user.ldap_rdn = Some(ldap_user.username.clone());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_owned());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let imported = User::find_by_username(&pool, &ldap_user.username)
+        .await
+        .unwrap()
+        .expect("LDAP user should be imported into Defguard");
+    assert!(!imported.enrollment_pending);
+    assert!(!imported.is_enrolled());
+
+    ldap_conn
+        .test_client_mut()
+        .remove_test_user(&imported.clone().as_noid(), &config);
+    ldap_conn.sync(&pool, true, &wg_tx, &ldap_tx).await.unwrap();
+
+    assert!(
+        User::find_by_username(&pool, &ldap_user.username)
+            .await
+            .unwrap()
+            .is_none(),
+        "LDAP-authoritative full sync should remove a pending user deleted from LDAP"
+    );
 }
 
 #[sqlx::test]
