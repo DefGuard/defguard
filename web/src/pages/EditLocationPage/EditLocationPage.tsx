@@ -740,10 +740,6 @@ const EditLocationForm = ({
               <field.FormMultiSelect
                 label={m.add_location_internal_vpn_label_allowed_ips()}
                 helper={m.add_location_internal_vpn_helper_allowed_ips()}
-                validate={(value) =>
-                  formSchema.shape.allowed_ips.safeParse([value]).error?.issues[0]
-                    ?.message
-                }
               />
             )}
           </form.AppField>
