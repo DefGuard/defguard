@@ -53,7 +53,7 @@ use crate::{
     handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
     mail::templates,
-    user_management::{UserManager, disable_user},
+    user_management::UserManager,
 };
 
 #[derive(Deserialize)]
@@ -1678,6 +1678,7 @@ pub(crate) async fn bulk_disable_users(
 
     let mut events = Vec::with_capacity(users.len());
     let mut transaction = appstate.pool.begin().await?;
+    let mut usermgr = UserManager::new();
     for user in users {
         if !user.is_active {
             continue;
@@ -1685,16 +1686,19 @@ pub(crate) async fn bulk_disable_users(
         let before = user.clone();
         let mut user_to_disable = user;
 
-        // remove API tokens when deactivating a user (mirrors modify_user)
+        // Remove API tokens when deactivating a user (mirrors `modify_user`).
         let api_tokens = ApiToken::find_by_user_id(&mut *transaction, user_to_disable.id).await?;
         for token in api_tokens {
             token.delete(&mut *transaction).await?;
         }
 
-        disable_user(&mut user_to_disable, &mut transaction, &appstate.gateway_tx).await?;
+        usermgr
+            .disable_user(&mut user_to_disable, &mut transaction)
+            .await?;
         events.push((before, user_to_disable));
     }
     transaction.commit().await?;
+    usermgr.send(&appstate.gateway_tx);
 
     for (_, user) in &mut events {
         Box::pin(ldap_update_user_state(

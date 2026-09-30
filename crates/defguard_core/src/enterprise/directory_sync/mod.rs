@@ -37,7 +37,7 @@ use crate::{
     grpc::GatewayCommand,
     handlers::user::check_username,
     location_management::LocationManager,
-    user_management::{UserManager, disable_user},
+    user_management::UserManager,
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -778,13 +778,14 @@ async fn sync_all_users_state(
         .as_ref()
         .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
     let mut blocked_import_notification_sent = false;
+    let mut usermgr = UserManager::new();
 
     sync_inactive_directory_users(
         &mut transaction,
         &inactive_directory_users,
         &mut modified_users,
-        gateway_tx,
         &mut dirsync_events,
+        &mut usermgr,
     )
     .await?;
 
@@ -1004,7 +1005,7 @@ async fn sync_all_users_state(
     );
     // Keep the admin count to prevent deleting the last admin
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
-    let mut usermgr = UserManager::new();
+
     for mut user in missing_directory_users {
         if user.is_admin(&mut *transaction).await? {
             match admin_behavior {
@@ -1028,7 +1029,7 @@ async fn sync_all_users_state(
                             the admin behavior setting is set to disable",
                             user.email
                         );
-                        disable_user(&mut user, &mut transaction, gateway_tx).await.map_err(|err| {
+                        usermgr.disable_user(&mut user, &mut transaction).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable admin {} during directory synchronization: {err}",
                                 user.email
@@ -1087,7 +1088,7 @@ async fn sync_all_users_state(
                             the user behavior setting is set to disable",
                             user.email
                         );
-                        disable_user(&mut user, &mut transaction, gateway_tx).await.map_err(|err| {
+                        usermgr.disable_user(&mut user, &mut transaction).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable user {} during directory synchronization: {err}",
                                 user.email
@@ -1176,8 +1177,8 @@ async fn sync_inactive_directory_users(
     transaction: &mut PgConnection,
     inactive_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
-    gateway_tx: &Sender<GatewayCommand>,
     dirsync_events: &mut Vec<DirectorySyncEventType>,
+    usermgr: &mut UserManager,
 ) -> Result<(), DirectorySyncError> {
     // find all active Defguard users disabled in directory
     let disabled_users_emails = inactive_directory_users
@@ -1202,7 +1203,8 @@ async fn sync_inactive_directory_users(
                 "Disabling user {} because they are disabled in the directory",
                 user.email
             );
-            disable_user(&mut user, transaction, gateway_tx)
+            usermgr
+                .disable_user(&mut user, transaction)
                 .await
                 .map_err(|err| {
                     DirectorySyncError::UserUpdateError(format!(

@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use defguard_common::db::{
     Id,
-    models::{Settings, User, WireguardNetwork, device::DeviceInfo, settings::set_settings},
+    models::{
+        ModelError, Settings, User, WireguardNetwork, WireguardNetworkError, device::DeviceInfo,
+        settings::set_settings,
+    },
 };
 use sqlx::PgConnection;
 use thiserror::Error;
@@ -16,6 +19,19 @@ use crate::{
     grpc::{GatewayCommand, send_multiple_gateway_commands},
     location_management::sync_allowed_devices_for_user,
 };
+
+/// Errors arising from user management operations.
+#[derive(Debug, Error)]
+pub enum UserManagementError {
+    #[error("Database error: {0}")]
+    Db(#[from] sqlx::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] ModelError),
+    #[error("WireGuard network error: {0}")]
+    Network(#[from] WireguardNetworkError),
+    #[error("Firewall error: {0}")]
+    Firewall(#[from] FirewallError),
+}
 
 pub struct UserManager {
     gateway_commands: Vec<GatewayCommand>,
@@ -119,39 +135,24 @@ impl UserManager {
         Ok(())
     }
 
+    /// Disable user, log out all his sessions and update Gateway state.
+    pub async fn disable_user(
+        &mut self,
+        user: &mut User<Id>,
+        conn: &mut PgConnection,
+    ) -> Result<(), UserManagementError> {
+        user.is_active = false;
+        user.save(&mut *conn).await?;
+        update_counts(&mut *conn).await?;
+        user.logout_all_sessions(&mut *conn).await?;
+
+        self.sync_allowed_user_devices(user, conn).await?;
+
+        Ok(())
+    }
+
     /// Send all commands to Gateway. Use this method *after* database transaction is committed.
     pub fn send(self, gateway_tx: &Sender<GatewayCommand>) {
         send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
     }
-}
-
-/// Errors arising from user management operations.
-#[derive(Debug, Error)]
-pub enum UserManagementError {
-    #[error("Database error: {0}")]
-    Db(#[from] sqlx::Error),
-    #[error("Model error: {0}")]
-    Model(#[from] defguard_common::db::models::ModelError),
-    #[error("WireGuard network error: {0}")]
-    Network(#[from] defguard_common::db::models::WireguardNetworkError),
-    #[error("Firewall error: {0}")]
-    Firewall(#[from] FirewallError),
-}
-
-/// Disable user, log out all his sessions and update gateways state.
-pub async fn disable_user(
-    user: &mut User<Id>,
-    conn: &mut PgConnection,
-    gateway_tx: &Sender<GatewayCommand>,
-) -> Result<(), UserManagementError> {
-    user.is_active = false;
-    user.save(&mut *conn).await?;
-    update_counts(&mut *conn).await?;
-    user.logout_all_sessions(&mut *conn).await?;
-
-    let mut usermgr = UserManager::new();
-    usermgr.sync_allowed_user_devices(user, conn).await?;
-    usermgr.send(gateway_tx);
-
-    Ok(())
 }

@@ -97,7 +97,7 @@ use crate::{
     grpc::GatewayCommand,
     hashset,
     location_management::LocationManager,
-    user_management::{UserManager, disable_user},
+    user_management::UserManager,
 };
 
 fn emit_ldap_sync_events(
@@ -594,7 +594,8 @@ impl super::LDAPConnection {
                             });
                         } else {
                             debug!("Disabling Defguard user {defguard_user} based on AD status");
-                            disable_user(defguard_user, &mut transaction, wg_tx)
+                            usermgr
+                                .disable_user(defguard_user, &mut transaction)
                                 .await
                                 .map_err(|err| LdapError::UserStatusUpdate(err.to_string()))?;
                             events.push(LdapSyncEventType::UserDisabled {
