@@ -10,6 +10,7 @@ import type { SelectionOption } from '../../../shared/components/SelectionSectio
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { FieldError } from '../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Input } from '../../../shared/defguard-ui/components/Input/Input';
@@ -41,6 +42,7 @@ export const AddLocationMfaStep = () => {
     useAddLocationStore.getState().peer_disconnect_threshold,
   );
   const [thresholdError, setThresholdError] = useState<string | null>(null);
+  const [continueAttempted, setContinueAttempted] = useState(false);
 
   useEffect(() => {
     if (mfaFlowsLoaded && !hasMfaFlows) {
@@ -90,6 +92,7 @@ export const AddLocationMfaStep = () => {
         active={!mfaEnabled}
         onClick={() => {
           setMfaEnabledState(false);
+          setContinueAttempted(false);
         }}
         text={m.add_location_mfa_disable()}
         disabled={!hasMfaFlows}
@@ -99,6 +102,7 @@ export const AddLocationMfaStep = () => {
         active={mfaEnabled}
         onClick={() => {
           setMfaEnabledState(true);
+          setContinueAttempted(false);
         }}
         text={m.add_location_mfa_assign_flow()}
         disabled={!hasMfaFlows}
@@ -120,7 +124,10 @@ export const AddLocationMfaStep = () => {
                     {renderMfaFlowSelectionItem({
                       option,
                       active: selectedFlowId === flow.id,
-                      onClick: () => setSelectedFlowId(flow.id),
+                      onClick: () => {
+                        setSelectedFlowId(flow.id);
+                        setContinueAttempted(false);
+                      },
                     })}
                   </div>
                 );
@@ -128,6 +135,13 @@ export const AddLocationMfaStep = () => {
             </Card>
           </>
         )}
+        <FieldError
+          error={
+            continueAttempted && mfaEnabled && selectedFlowId === undefined
+              ? m.add_location_mfa_flow_required()
+              : null
+          }
+        />
         {mfaEnabled && (
           <>
             <SizedBox height={ThemeSpacing.Xl2} />
@@ -154,7 +168,13 @@ export const AddLocationMfaStep = () => {
             text={m.controls_continue()}
             testId="finish"
             disabled={isPresent(thresholdError)}
-            onClick={() => saveAndContinue(AddLocationPageStep.AccessControl)}
+            onClick={() => {
+              if (mfaEnabled && selectedFlowId === undefined) {
+                setContinueAttempted(true);
+                return;
+              }
+              saveAndContinue(AddLocationPageStep.AccessControl);
+            }}
           />
         </div>
       </Controls>
