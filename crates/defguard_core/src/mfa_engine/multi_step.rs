@@ -54,6 +54,10 @@ pub enum ProofConversionError {
     Fido2AuthenticatorDataTooShort,
     #[error("FIDO2 RP ID hash does not match authenticator data")]
     Fido2RpIdHashMismatch,
+    #[error("FIDO2 credential ID is empty")]
+    Fido2CredentialIdEmpty,
+    #[error("FIDO2 signature is empty")]
+    Fido2SignatureEmpty,
 }
 
 /// Proof used by the mark-only mobile approval operation.
@@ -162,6 +166,13 @@ impl TryFrom<StepCredential> for VerificationProof {
                 }
                 if authenticator_data[..RP_ID_HASH_LEN] != rp_id_hash {
                     return Err(ProofConversionError::Fido2RpIdHashMismatch);
+                }
+                if credential_id.is_empty() {
+                    // Unknown non-empty IDs must fail verification to prevent credential enumeration.
+                    return Err(ProofConversionError::Fido2CredentialIdEmpty);
+                }
+                if signature.is_empty() {
+                    return Err(ProofConversionError::Fido2SignatureEmpty);
                 }
 
                 Ok(Self::Fido2 {
@@ -613,6 +624,8 @@ fn map_proof_conversion_error(error: ProofConversionError) -> StepFinishError {
             ProofConversionError::Fido2RpIdHashMismatch => {
                 "FIDO2 RP ID hash does not match authenticator data"
             }
+            ProofConversionError::Fido2CredentialIdEmpty => "FIDO2 credential ID is empty",
+            ProofConversionError::Fido2SignatureEmpty => "FIDO2 signature is empty",
         },
     }
 }
@@ -689,5 +702,18 @@ mod tests {
         .expect_err("mismatched RP ID hash must be rejected");
 
         assert_eq!(error, ProofConversionError::Fido2RpIdHashMismatch);
+    }
+
+    #[test]
+    fn test_step_credential_rejects_short_fido2_authenticator_data() {
+        let error = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash: vec![1; 32],
+            authenticator_data: vec![1; 31],
+            signature: vec![3],
+            credential_id: vec![4],
+        }))
+        .expect_err("short FIDO2 authenticator data must be rejected");
+
+        assert_eq!(error, ProofConversionError::Fido2AuthenticatorDataTooShort);
     }
 }

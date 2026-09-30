@@ -10,11 +10,11 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceType, User, WireguardNetwork,
+            Device, DeviceType, User, WebAuthn, WireguardNetwork,
             biometric_auth::{BiometricAuth, BiometricChallenge},
             device::WireguardNetworkDevice,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
-            settings::initialize_current_settings,
+            settings::{Settings, initialize_current_settings},
             user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
             vpn_client_mfa_session::{
                 EphemeralState, MFA_FAILED_ATTEMPT_CAP, VPN_MFA_SESSION_TIMEOUT,
@@ -37,6 +37,8 @@ use sqlx::{
 use tokio::sync::{broadcast, mpsc};
 use tonic::{Code, Status};
 use totp_lite::{Sha1, totp_custom};
+use uuid::Uuid;
+use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 
 use super::MfaEngine;
 use crate::{
@@ -53,7 +55,9 @@ use crate::{
         error::StartError,
         legacy::{FinishError, LegacyProof},
         method::{InitiateError, Verdict, VerifyError, check_mobile_approval, verify},
-        multi_step::{StartRejectionReason, StartResult, StepCredential, StepError, StepProof},
+        multi_step::{
+            Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError, StepProof,
+        },
         types::{FinishOutcome, VerificationProof},
     },
 };
@@ -1027,6 +1031,204 @@ async fn test_fido2_session_rejects_code_credential_before_totp_verification(
         .expect("session lookup should succeed")
         .expect("the rejected session must remain active");
     assert_eq!(session.failed_attempts, 0);
+}
+
+async fn register_test_fido2_passkey(pool: &PgPool, user_id: Id, username: &str) -> Vec<u8> {
+    let settings = Settings::get_current_settings();
+    let webauthn = settings
+        .build_webauthn()
+        .expect("failed to build WebAuthn configuration");
+    let origin = Url::parse(&settings.defguard_url).expect("invalid WebAuthn origin");
+    let (challenge, registration_state) = webauthn
+        .start_passkey_registration(Uuid::new_v4(), username, username, None)
+        .expect("failed to start passkey registration");
+    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
+    let registration = authenticator
+        .do_registration(origin, challenge)
+        .expect("failed to register software passkey");
+    let passkey = webauthn
+        .finish_passkey_registration(&registration, &registration_state)
+        .expect("failed to finish passkey registration");
+    let credential_id = passkey.cred_id().as_ref().to_vec();
+    WebAuthn::new(user_id, "registered test key".to_owned(), &passkey)
+        .expect("failed to serialize passkey")
+        .save(pool)
+        .await
+        .expect("failed to save passkey");
+    credential_id
+}
+
+async fn start_fido2_test_attempt(
+    pool: &PgPool,
+    user_id: Id,
+) -> (
+    MfaEngine,
+    mpsc::UnboundedReceiver<BidiStreamEvent>,
+    String,
+    String,
+) {
+    initialize_current_settings(pool)
+        .await
+        .expect("failed to init settings");
+    let (session, token, _) = start_session_with_flow(
+        pool,
+        user_id,
+        "FIDO2 assertion flow",
+        vec![vec![VpnClientMfaMethod::Fido2]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let mut conn = pool.acquire().await.expect("failed to acquire connection");
+    let attempt_id = session
+        .begin_attempt(
+            &mut conn,
+            VpnClientMfaMethod::Fido2,
+            Some(BiometricChallenge::new()),
+        )
+        .await
+        .expect("failed to begin FIDO2 attempt");
+    let (engine, event_rx, _gateway_rx) = make_engine(pool.clone());
+    (engine, event_rx, token, attempt_id)
+}
+
+#[sqlx::test]
+async fn test_finish_step_rejects_empty_fido2_credential_id_without_counting(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let user = create_user(&pool).await;
+    let (engine, mut event_rx, token, attempt_id) = start_fido2_test_attempt(&pool, user.id).await;
+    let rp_id_hash = vec![1; 32];
+    let mut authenticator_data = rp_id_hash.clone();
+    authenticator_data.push(2);
+
+    let status = Status::from(
+        engine
+            .finish_step(
+                token.clone(),
+                StepProof {
+                    step_attempt_id: attempt_id,
+                    credential: Some(StepCredential::Fido2(Fido2Assertion {
+                        rp_id_hash,
+                        authenticator_data,
+                        signature: vec![3],
+                        credential_id: Vec::new(),
+                    })),
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("an empty FIDO2 credential ID must be malformed"),
+    );
+    assert_eq!(status.code(), Code::InvalidArgument);
+    assert_eq!(status.message(), "FIDO2 credential ID is empty");
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("malformed proof must preserve the session");
+    assert_eq!(session.failed_attempts, 0);
+    assert!(event_rx.try_recv().is_err());
+}
+
+#[sqlx::test]
+async fn test_finish_step_rejects_empty_fido2_signature_without_counting(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let user = create_user(&pool).await;
+    let (engine, mut event_rx, token, attempt_id) = start_fido2_test_attempt(&pool, user.id).await;
+    let rp_id_hash = vec![1; 32];
+    let mut authenticator_data = rp_id_hash.clone();
+    authenticator_data.push(2);
+
+    let status = Status::from(
+        engine
+            .finish_step(
+                token.clone(),
+                StepProof {
+                    step_attempt_id: attempt_id,
+                    credential: Some(StepCredential::Fido2(Fido2Assertion {
+                        rp_id_hash,
+                        authenticator_data,
+                        signature: Vec::new(),
+                        credential_id: vec![4],
+                    })),
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("an empty FIDO2 signature must be malformed"),
+    );
+    assert_eq!(status.code(), Code::InvalidArgument);
+    assert_eq!(status.message(), "FIDO2 signature is empty");
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("malformed proof must preserve the session");
+    assert_eq!(session.failed_attempts, 0);
+    assert!(event_rx.try_recv().is_err());
+}
+
+#[sqlx::test]
+async fn test_finish_step_unknown_nonempty_fido2_credential_id_stays_counted_to_prevent_enumeration(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let registered_credential_id =
+        register_test_fido2_passkey(&pool, user.id, &user.username).await;
+    let mut unknown_credential_id = registered_credential_id;
+    unknown_credential_id.push(0);
+    let (engine, mut event_rx, token, attempt_id) = start_fido2_test_attempt(&pool, user.id).await;
+    let rp_id_hash = vec![1; 32];
+    let mut authenticator_data = rp_id_hash.clone();
+    authenticator_data.push(2);
+
+    let status = Status::from(
+        engine
+            .finish_step(
+                token.clone(),
+                StepProof {
+                    step_attempt_id: attempt_id,
+                    credential: Some(StepCredential::Fido2(Fido2Assertion {
+                        rp_id_hash,
+                        authenticator_data,
+                        signature: vec![3],
+                        credential_id: unknown_credential_id,
+                    })),
+                },
+                test_ip(),
+            )
+            .await
+            .expect_err("an unknown non-empty credential ID must fail verification"),
+    );
+    assert_eq!(status.code(), Code::Unauthenticated);
+    assert_eq!(status.message(), "unauthorized");
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("verification failure must preserve the session");
+    assert_eq!(session.failed_attempts, 1);
+    match event_rx
+        .try_recv()
+        .expect("verification failure must emit a failed event")
+        .event
+    {
+        BidiStreamEventType::DesktopClientMfa(event) => {
+            assert!(matches!(*event, DesktopClientMfaEvent::Failed { .. }));
+        }
+        other => panic!("unexpected stream event: {other:?}"),
+    }
+    assert!(event_rx.try_recv().is_err());
 }
 
 #[sqlx::test]
