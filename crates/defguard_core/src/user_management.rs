@@ -156,3 +156,9 @@ impl UserManager {
         send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
     }
 }
+
+impl Default for UserManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
