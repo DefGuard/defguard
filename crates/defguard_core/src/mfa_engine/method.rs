@@ -216,11 +216,14 @@ pub async fn verify(
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
+            // The client sends binary as base64url, matching how webauthn-rs writes
+            // the credential ids it was offered.
+            let signature = decode_proof_field(proof.auth_pub_key.as_ref(), "Signature")?;
             if verify_fido2_assertion(
                 pool,
                 ctx.user.id,
                 &challenge.challenge,
-                proof.auth_pub_key.as_ref(),
+                Some(&signature),
                 proof.auth_data.as_deref(),
                 proof.credential_id.as_deref(),
             )
@@ -243,7 +246,7 @@ pub async fn verify_fido2_assertion(
     pool: &PgPool,
     user_id: Id,
     challenge: &str,
-    signature: Option<&String>,
+    signature: Option<&[u8]>,
     auth_data: Option<&[u8]>,
     credential_id: Option<&[u8]>,
 ) -> Result<bool, VerifyError> {
@@ -253,9 +256,10 @@ pub async fn verify_fido2_assertion(
     let rp_id = settings
         .webauthn_rp_id()
         .map_err(|_| VerifyError::MissingRPID)?;
-    // The client sends binary as base64url, matching how webauthn-rs writes
-    // the credential ids it was offered.
-    let signature = decode_proof_field(signature, "Signature")?;
+    let signature = signature.ok_or(VerifyError::MalformedProof {
+        message: "Signature",
+        event: None,
+    })?;
     let auth_data = auth_data.ok_or(VerifyError::MalformedProof {
         message: "Auth data not found in request",
         event: None,
@@ -276,7 +280,7 @@ pub async fn verify_fido2_assertion(
 
     let assertion = Assertion {
         rpid_hash,
-        signature,
+        signature: signature.to_vec(),
         auth_data: auth_data.to_vec(),
         ..Default::default()
     };

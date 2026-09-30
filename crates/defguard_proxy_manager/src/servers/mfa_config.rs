@@ -529,7 +529,7 @@ impl MfaConfigServer {
                     &self.pool,
                     user.id,
                     &challenge,
-                    request.signature.as_ref(),
+                    request.signature.as_deref(),
                     request.auth_data.as_deref(),
                     request.credential_id.as_deref(),
                 )

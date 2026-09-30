@@ -138,8 +138,8 @@ async fn register_signing_key(pool: &PgPool, user_id: Id) -> (SigningKey, Vec<u8
 }
 
 /// Signs `challenge` the way a security key does for `ctap_hid_fido2`'s verifier, returning the
-/// base64url signature and the authenticator data.
-fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> (String, Vec<u8>) {
+/// raw signature and the authenticator data.
+fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> (Vec<u8>, Vec<u8>) {
     // rpIdHash, flags (user present + verified), signature counter.
     let mut auth_data = Sha256::digest(TEST_RP_ID).to_vec();
     auth_data.push(0x05);
@@ -147,10 +147,7 @@ fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> (String, Vec<u8>
     let mut message = auth_data.clone();
     message.extend_from_slice(&Sha256::digest(challenge));
     let signature = signing_key.sign(&message);
-    (
-        BASE64_URL_SAFE_NO_PAD.encode(signature.to_bytes()),
-        auth_data,
-    )
+    (signature.to_bytes().to_vec(), auth_data)
 }
 
 /// Requests a FIDO2 challenge, returning it and the offered credential ids.
@@ -225,7 +222,7 @@ async fn test_fido2_challenge_requires_security_key(_: PgPoolOptions, options: P
     let authorized = send_mfa_config_authorize_fido2(
         &mut context,
         &session.session_token,
-        Some(String::new()),
+        Some(Vec::new()),
         Some(Vec::new()),
         None,
     )
@@ -252,7 +249,7 @@ async fn test_fido2_challenge_is_single_use(_: PgPoolOptions, options: PgConnect
     let without_challenge = send_mfa_config_authorize_fido2(
         &mut context,
         &session_token,
-        Some(String::new()),
+        Some(Vec::new()),
         Some(Vec::new()),
         None,
     )

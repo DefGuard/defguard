@@ -1459,7 +1459,7 @@ pub(crate) async fn send_mfa_config_fido2_challenge(
 pub(crate) async fn send_mfa_config_authorize_fido2(
     context: &mut HandlerTestContext,
     session_token: &str,
-    signature: Option<String>,
+    signature: Option<Vec<u8>>,
     auth_data: Option<Vec<u8>>,
     credential_id: Option<Vec<u8>>,
 ) -> CoreResponse {
