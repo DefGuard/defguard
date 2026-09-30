@@ -28,12 +28,18 @@ const disconnectThresholdSchema = z
   .min(120, m.form_error_min({ value: 120 }));
 
 export const AddLocationMfaStep = () => {
-  const { data: mfaFlows, isSuccess: mfaFlowsLoaded } = useQuery(getMfaFlowsQueryOptions);
-  const hasMfaFlows = isPresent(mfaFlows) && mfaFlows.length > 0;
+  const {
+    data: mfaFlows,
+    isError: mfaFlowsFailed,
+    isPending: mfaFlowsPending,
+    isSuccess: mfaFlowsLoaded,
+  } = useQuery(getMfaFlowsQueryOptions);
+  const hasMfaFlows = mfaFlowsLoaded && isPresent(mfaFlows) && mfaFlows.length > 0;
+  const noMfaFlows = mfaFlowsLoaded && !hasMfaFlows;
   const [mfaEnabledState, setMfaEnabledState] = useState(
     useAddLocationStore.getState().mfa_enabled,
   );
-  const mfaEnabled = hasMfaFlows && mfaEnabledState;
+  const mfaEnabled = mfaFlowsLoaded ? hasMfaFlows && mfaEnabledState : mfaEnabledState;
 
   const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
     useAddLocationStore.getState().mfa_flows.find((flow) => flow.is_default)?.flow_id,
@@ -77,13 +83,17 @@ export const AddLocationMfaStep = () => {
       <DescriptionBlock>
         <p>{m.add_location_step_mfa_flow_description()}</p>
       </DescriptionBlock>
-      {!hasMfaFlows && (
+      {(noMfaFlows || mfaFlowsFailed) && (
         <>
           <SizedBox height={ThemeSpacing.Xl2} />
           <InfoBanner
             icon="warning-outlined"
             variant="warning"
-            text={m.add_location_step_mfa_no_flows()}
+            text={
+              noMfaFlows
+                ? m.add_location_step_mfa_no_flows()
+                : m.add_location_step_mfa_flows_load_failed()
+            }
           />
         </>
       )}
@@ -95,7 +105,7 @@ export const AddLocationMfaStep = () => {
           setContinueAttempted(false);
         }}
         text={m.add_location_mfa_disable()}
-        disabled={!hasMfaFlows}
+        disabled={!mfaFlowsLoaded || noMfaFlows}
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
@@ -105,7 +115,7 @@ export const AddLocationMfaStep = () => {
           setContinueAttempted(false);
         }}
         text={m.add_location_mfa_assign_flow()}
-        disabled={!hasMfaFlows}
+        disabled={!mfaFlowsLoaded || noMfaFlows}
       />
       <Fold open={mfaEnabled}>
         {hasMfaFlows && (
@@ -167,7 +177,7 @@ export const AddLocationMfaStep = () => {
           <Button
             text={m.controls_continue()}
             testId="finish"
-            disabled={isPresent(thresholdError)}
+            disabled={mfaFlowsPending || mfaFlowsFailed || isPresent(thresholdError)}
             onClick={() => {
               if (mfaEnabled && selectedFlowId === undefined) {
                 setContinueAttempted(true);
