@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Card } from '../../../shared/components/Card/Card';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -20,7 +20,6 @@ import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/In
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getMfaFlowsQueryOptions,
   getMfaMethodAvailabilityQueryOptions,
@@ -33,29 +32,21 @@ export const AddLocationMfaStep = () => {
     data: mfaFlows,
     isError: mfaFlowsFailed,
     isPending: mfaFlowsPending,
-    isSuccess: mfaFlowsLoaded,
   } = useQuery(getMfaFlowsQueryOptions);
   const { data: methodAvailability } = useQuery(getMfaMethodAvailabilityQueryOptions);
-  const hasMfaFlows = mfaFlowsLoaded && isPresent(mfaFlows) && mfaFlows.length > 0;
-  const noMfaFlows = mfaFlowsLoaded && !hasMfaFlows;
+  const hasMfaFlows = (mfaFlows?.length ?? 0) > 0;
+  const noMfaFlows = !mfaFlowsPending && !mfaFlowsFailed && !hasMfaFlows;
   const storedMfaEnabled = useAddLocationStore((state) => state.mfa_enabled);
   const storedSelectedFlowId = useAddLocationStore(
     (state) => state.mfa_flows.find((flow) => flow.is_default)?.flow_id,
   );
   const [mfaEnabledState, setMfaEnabledState] = useState(storedMfaEnabled);
-  const mfaEnabled = mfaFlowsLoaded ? hasMfaFlows && mfaEnabledState : mfaEnabledState;
+  const mfaEnabled = hasMfaFlows && mfaEnabledState;
 
   const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
     storedSelectedFlowId,
   );
   const [flowError, setFlowError] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (mfaFlowsLoaded && !hasMfaFlows) {
-      setMfaEnabledState(false);
-      setSelectedFlowId(undefined);
-    }
-  }, [hasMfaFlows, mfaFlowsLoaded]);
 
   const saveAndContinue = (activeStep: AddLocationPageStepValue) => {
     useAddLocationStore.setState({
@@ -95,7 +86,7 @@ export const AddLocationMfaStep = () => {
           setFlowError(undefined);
         }}
         text={m.add_location_mfa_disable()}
-        disabled={!mfaFlowsLoaded || noMfaFlows}
+        disabled={mfaFlowsPending || mfaFlowsFailed || noMfaFlows}
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
@@ -105,7 +96,7 @@ export const AddLocationMfaStep = () => {
           setFlowError(undefined);
         }}
         text={m.add_location_mfa_assign_flow()}
-        disabled={!mfaFlowsLoaded || noMfaFlows}
+        disabled={mfaFlowsPending || mfaFlowsFailed || noMfaFlows}
       />
       <Fold open={mfaEnabled}>
         {hasMfaFlows && (
@@ -151,7 +142,7 @@ export const AddLocationMfaStep = () => {
           <Button
             text={m.controls_continue()}
             testId="finish"
-            disabled={mfaFlowsPending || mfaFlowsFailed}
+            disabled={mfaFlowsPending}
             onClick={() => {
               if (mfaEnabled && selectedFlowId === undefined) {
                 setFlowError(m.add_location_mfa_flow_required());
