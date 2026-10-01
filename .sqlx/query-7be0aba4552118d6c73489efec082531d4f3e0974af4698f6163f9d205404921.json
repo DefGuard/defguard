@@ -1,15 +1,14 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE token SET used_at = $1 WHERE id = $2",
+  "query": "DELETE FROM token WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
-        "Timestamp",
         "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "05c7cfa839d4411955c207095336861c744c520880d33815044babe0eff1d644"
+  "hash": "7be0aba4552118d6c73489efec082531d4f3e0974af4698f6163f9d205404921"
 }

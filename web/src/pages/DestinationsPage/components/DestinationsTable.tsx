@@ -32,6 +32,7 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
+import { ruleNamesByResourceId } from '../../../shared/utils/ruleNamesByResourceId';
 import { useAclBulkActions } from '../../Acl/hooks/useAclBulkActions';
 
 type Props = {
@@ -58,19 +59,10 @@ export const DestinationsTable = ({
   disableBlockedModal,
 }: Props) => {
   const rulesById = useMemo(() => resourceById(rules), [rules]);
-  const rulesByDestinationId = useMemo(() => {
-    if (!rules) return {} as Record<number, string[]>;
-    const map: Record<number, string[]> = {};
-    rules.forEach((rule) => {
-      rule.destinations.forEach((destinationId) => {
-        if (!map[destinationId]) {
-          map[destinationId] = [];
-        }
-        map[destinationId].push(rule.name);
-      });
-    });
-    return map;
-  }, [rules]);
+  const rulesByDestinationId = useMemo(
+    () => ruleNamesByResourceId(rules, (rule) => rule.destinations),
+    [rules],
+  );
   const [searchValue, setSearchValue] = useState<string>('');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const navigate = useNavigate();
