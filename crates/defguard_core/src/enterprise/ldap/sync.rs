@@ -278,29 +278,29 @@ pub(super) fn compute_user_sync_changes(
             debug!("User {} not found in LDAP", user.username);
             match authority {
                 Authority::LDAP => {
-                    // Skip inactive/not enrolled users when deleting from LDAP
-                    if user.is_active && user.is_enrolled_or_ldap_pending() {
+                    if user.is_active && user.is_enrolled_or_from_ldap() {
                         debug!(
-                            "User {} is active and enrolled, removing from Defguard",
+                            "User {} is in LDAP sync scope, removing from Defguard",
                             user.username
                         );
                         delete_defguard.push(user);
                     } else {
                         debug!(
-                            "User {} is inactive or not enrolled, skipping deletion from Defguard",
+                            "User {} is outside LDAP sync scope, skipping deletion from Defguard",
                             user.username
                         );
                     }
                 }
                 Authority::Defguard => {
-                    // Skip inactive users when adding to LDAP
-                    if (user.is_active || sync_account_status) && user.is_enrolled_or_ldap_pending()
-                    {
-                        debug!("User {} is enrolled, adding to LDAP", user.username);
+                    if (user.is_active || sync_account_status) && user.is_enrolled_or_from_ldap() {
+                        debug!(
+                            "User {} is in LDAP sync scope, adding to LDAP",
+                            user.username
+                        );
                         add_ldap.push(user);
                     } else {
                         debug!(
-                            "User {} is inactive or not enrolled, skipping addition to LDAP",
+                            "User {} is outside LDAP sync scope, skipping addition to LDAP",
                             user.username
                         );
                     }
