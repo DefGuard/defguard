@@ -255,6 +255,25 @@ const Content = ({
   };
 
   const handleDelete = () => {
+    const dependents = [
+      settings.ldap_remote_enrollment_enabled
+        ? `- [${m.settings_ldap_section_remote_enrollment_title()}](/settings/ldap)`
+        : null,
+      settings.gateway_disconnect_notifications_enabled
+        ? `- [${m.settings_gateway_notifications_disconnect_title()}](/settings/gateway-notifications)`
+        : null,
+    ].filter(isPresent);
+
+    if (dependents.length > 0) {
+      openModal(ModalName.ConfirmAction, {
+        title: m.settings_smtp_reset_confirm_title(),
+        contentMd: `${m.settings_smtp_reset_blocked_body()}\n\n${dependents.join('\n')}`,
+        actionPromise: () => api.settings.patchSettings(emptyValues),
+        cancelProps: { text: m.controls_close() },
+      });
+      return;
+    }
+
     openModal(ModalName.ConfirmAction, {
       title: m.settings_smtp_reset_confirm_title(),
       contentMd: m.settings_smtp_reset_confirm_body(),
