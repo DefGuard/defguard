@@ -334,8 +334,6 @@ impl<I> User<I> {
         false
     }
 
-    /// Returns whether the user is enrolled or originated from LDAP.
-    ///
     /// LDAP-origin users already exist in the directory, so they stay in sync scope even before
     /// remote enrollment is complete. This includes users imported with pending enrollment
     /// (https://github.com/DefGuard/defguard/issues/2967) and users who did not receive an invite

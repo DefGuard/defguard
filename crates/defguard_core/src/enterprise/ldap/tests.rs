@@ -4003,7 +4003,6 @@ async fn test_ldap_sync_allowed_ldap_pending_enrollment(
     assert!(result);
 }
 
-/// An LDAP user who did not receive a remote-enrollment invite must remain in sync scope.
 #[sqlx::test]
 async fn test_ldap_sync_allowed_ldap_remote_enrollment_not_invited(
     _: PgPoolOptions,

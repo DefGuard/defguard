@@ -278,7 +278,6 @@ pub(super) fn compute_user_sync_changes(
             debug!("User {} not found in LDAP", user.username);
             match authority {
                 Authority::LDAP => {
-                    // Skip users outside LDAP sync scope when deleting from Defguard
                     if user.is_active && user.is_enrolled_or_from_ldap() {
                         debug!(
                             "User {} is in LDAP sync scope, removing from Defguard",
@@ -293,7 +292,6 @@ pub(super) fn compute_user_sync_changes(
                     }
                 }
                 Authority::Defguard => {
-                    // Skip inactive users unless AD account-status sync is enabled
                     if (user.is_active || sync_account_status) && user.is_enrolled_or_from_ldap() {
                         debug!(
                             "User {} is in LDAP sync scope, adding to LDAP",
