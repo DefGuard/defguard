@@ -292,7 +292,7 @@ pub async fn patch_settings(
 ) -> ApiResult {
     debug!("Admin {} is patching settings", session.user.username);
     let mut settings = Settings::get_current_settings();
-    // prepare clone for emitting an event
+    // Keep the pre-patch settings for validation and event reporting.
     let before = settings.clone();
     let license = data.license.clone();
     let licensed_before = is_business_license_active();
@@ -315,7 +315,7 @@ pub async fn patch_settings(
     }
 
     settings.apply(data);
-    settings.validate()?;
+    settings.validate_against(&before)?;
 
     // clone for event
     let after = settings.clone();

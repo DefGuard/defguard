@@ -50,7 +50,8 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     mut new_settings: Settings,
 ) -> Result<(), SettingsSaveError> {
     debug!("Updating current settings to: {new_settings:?}");
-    new_settings.validate()?;
+    let previous_settings = get_settings().clone();
+    new_settings.validate_with_previous(previous_settings.as_ref())?;
     new_settings.save(executor).await?;
     set_settings(Some(new_settings));
     Ok(())
@@ -71,13 +72,26 @@ impl fmt::Display for SmtpDependent {
     }
 }
 
+fn format_smtp_dependents(dependents: &[SmtpDependent]) -> String {
+    dependents
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 #[derive(Error, Debug)]
 pub enum SettingsValidationError {
     #[error(
-        "SMTP is required by: {}. Disable them first or configure SMTP.",
-        .0.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+        "SMTP is required by: {}. Disable these features to delete SMTP settings.",
+        format_smtp_dependents(.0)
     )]
-    SmtpRequiredBy(Vec<SmtpDependent>),
+    CannotDisableSmtpSettings(Vec<SmtpDependent>),
+    #[error(
+        "SMTP is required by: {}. Configure SMTP before enabling these features.",
+        format_smtp_dependents(.0)
+    )]
+    CannotEnableSmtpDependents(Vec<SmtpDependent>),
     #[error("LDAP must be configured before remote enrollment for LDAP can be enabled")]
     LdapRequiredForRemoteEnrollment,
     #[error("Cannot enable LDAP. Required LDAP fields are not configured")]
@@ -611,6 +625,18 @@ impl Settings {
 
     /// Checks if given settings are correct
     pub fn validate(&mut self) -> Result<(), SettingsValidationError> {
+        self.validate_with_previous(None)
+    }
+
+    /// Validates an update against its previous settings state.
+    pub fn validate_against(&mut self, previous: &Self) -> Result<(), SettingsValidationError> {
+        self.validate_with_previous(Some(previous))
+    }
+
+    fn validate_with_previous(
+        &mut self,
+        previous: Option<&Self>,
+    ) -> Result<(), SettingsValidationError> {
         debug!("Validating settings: {self:?}");
         if self.uuid.is_nil() {
             warn!("Detected empty UUID in settings. Generating a new one.");
@@ -629,7 +655,11 @@ impl Settings {
             }
         }
         if !smtp_dependents.is_empty() {
-            let error = SettingsValidationError::SmtpRequiredBy(smtp_dependents);
+            let error = if previous.is_some_and(Self::smtp_configured) {
+                SettingsValidationError::CannotDisableSmtpSettings(smtp_dependents)
+            } else {
+                SettingsValidationError::CannotEnableSmtpDependents(smtp_dependents)
+            };
             warn!("{error}");
             return Err(error);
         }

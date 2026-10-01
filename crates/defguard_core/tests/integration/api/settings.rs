@@ -448,9 +448,42 @@ async fn test_patch_empty_smtp_rejects_enabled_dependents(
         message.contains("gateway disconnect notifications"),
         "{message}"
     );
+    assert!(
+        message.ends_with("Disable these features to delete SMTP settings."),
+        "{message}"
+    );
 
     let settings = Settings::get(&pool).await.unwrap().unwrap();
     assert!(settings.smtp_configured());
+}
+
+#[sqlx::test]
+async fn test_patch_enabling_smtp_dependents_requires_configuration(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let patch: SettingsPatch = serde_json::from_str(
+        r#"{
+            "ldap_remote_enrollment_enabled": true,
+            "gateway_disconnect_notifications_enabled": true
+        }"#,
+    )
+    .unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(
+        body["msg"].as_str().unwrap(),
+        "SMTP is required by: LDAP remote enrollment, gateway disconnect notifications. Configure SMTP before enabling these features."
+    );
 }
 
 /// The fields of a `BroadcastPublicSettings` control message, so assertions read by name rather

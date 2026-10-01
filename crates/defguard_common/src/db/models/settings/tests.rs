@@ -371,7 +371,7 @@ fn test_validate_requires_smtp_for_ldap_remote_enrollment() {
 
     assert!(matches!(
         settings.validate(),
-        Err(SettingsValidationError::SmtpRequiredBy(dependents))
+        Err(SettingsValidationError::CannotEnableSmtpDependents(dependents))
             if dependents == vec![SmtpDependent::LdapRemoteEnrollment]
     ));
 }
@@ -386,7 +386,7 @@ fn test_validate_requires_smtp_for_gateway_disconnect_notifications() {
 
     assert!(matches!(
         settings.validate(),
-        Err(SettingsValidationError::SmtpRequiredBy(dependents))
+        Err(SettingsValidationError::CannotEnableSmtpDependents(dependents))
             if dependents == vec![SmtpDependent::GatewayDisconnectNotifications]
     ));
 }
@@ -403,11 +403,42 @@ fn test_validate_lists_all_smtp_dependents() {
     let error = settings.validate().unwrap_err();
     assert_eq!(
         error.to_string(),
-        "SMTP is required by: LDAP remote enrollment, gateway disconnect notifications. Disable them first or configure SMTP."
+        "SMTP is required by: LDAP remote enrollment, gateway disconnect notifications. Configure SMTP before enabling these features."
     );
     assert!(matches!(
         error,
-        SettingsValidationError::SmtpRequiredBy(dependents)
+        SettingsValidationError::CannotEnableSmtpDependents(dependents)
+            if dependents == vec![
+                SmtpDependent::LdapRemoteEnrollment,
+                SmtpDependent::GatewayDisconnectNotifications,
+            ]
+    ));
+}
+
+#[test]
+fn test_validate_prevents_disabling_smtp_with_dependents() {
+    let mut previous = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        ldap_remote_enrollment_enabled: true,
+        gateway_disconnect_notifications_enabled: true,
+        ..Default::default()
+    };
+    previous.smtp.server = Some("smtp.example.com".into());
+    previous.smtp.port = Some(587);
+    previous.smtp.sender = Some("noreply@example.com".into());
+
+    let mut settings = previous.clone();
+    settings.smtp.server = Some(String::new());
+    settings.smtp.sender = Some(String::new());
+
+    let error = settings.validate_against(&previous).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "SMTP is required by: LDAP remote enrollment, gateway disconnect notifications. Disable these features to delete SMTP settings."
+    );
+    assert!(matches!(
+        error,
+        SettingsValidationError::CannotDisableSmtpSettings(dependents)
             if dependents == vec![
                 SmtpDependent::LdapRemoteEnrollment,
                 SmtpDependent::GatewayDisconnectNotifications,
