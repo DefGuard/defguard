@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { m } from '../../../paraglide/messages';
@@ -25,7 +27,6 @@ import {
 } from '../../../shared/query';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
-import './style.scss';
 
 export const AddLocationMfaStep = () => {
   const {
