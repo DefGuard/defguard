@@ -46,5 +46,6 @@ webauthn-authenticator-rs = { workspace = true, features = ["softpasskey"] }
 webauthn-rs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 totp-lite.workspace = true
 tower.workspace = true
