@@ -13,6 +13,7 @@ import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { getAliasesQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import { ruleNamesByResourceId } from '../../../shared/utils/ruleNamesByResourceId';
 import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 import { useAclBulkActions } from '../../Acl/hooks/useAclBulkActions';
 import { useRuleDeps } from '../../RulesPage/useRuleDeps';
@@ -29,21 +30,10 @@ export const AliasesDeployedTab = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const { license, loading } = useRuleDeps();
   const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
-  const rulesByAliasId = useMemo(() => {
-    const map: Record<number, string[]> = {};
-
-    rules.forEach((rule) => {
-      rule.aliases.forEach((aliasId) => {
-        if (!map[aliasId]) {
-          map[aliasId] = [];
-        }
-
-        map[aliasId].push(rule.name);
-      });
-    });
-
-    return map;
-  }, [rules]);
+  const rulesByAliasId = useMemo(
+    () => ruleNamesByResourceId(rules, (rule) => rule.aliases),
+    [rules],
+  );
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
