@@ -171,23 +171,27 @@ describe('edit location posture-checks section state', () => {
       {
         label: 'Windows',
         lines: [
-          'Windows 11+',
-          'Within 30 days',
-          'Connected to Active Directory',
-          'Antivirus installed',
-          'Disk encryption enabled',
+          { text: 'Windows 11+' },
+          { text: 'Within 30 days' },
+          { text: 'Connected to Active Directory' },
+          { text: 'Antivirus installed' },
+          { text: 'Disk encryption enabled' },
         ],
       },
       {
         label: 'macOS',
-        lines: ['macOS 15+', 'Disk encryption enabled', 'Device integrity enabled'],
+        lines: [
+          { text: 'macOS 15+' },
+          { text: 'Disk encryption enabled' },
+          { text: 'Device integrity enabled' },
+        ],
       },
       {
         label: 'Defguard',
         lines: [
-          'Desktop client: 2.0 and higher',
-          'Mobile application: 1.7.0 and higher',
-          'Allow pre-release versions of the Defguard client.',
+          { text: 'Desktop client: 2.0 and higher' },
+          { text: 'Mobile application: 1.7.0 and higher' },
+          { text: 'Allow pre-release versions of the Defguard client.' },
         ],
       },
     ]);
@@ -217,11 +221,14 @@ describe('edit location posture-checks section state', () => {
     expect(getPostureCheckAssignmentSummarySections(postureCheck)).toEqual([
       {
         label: 'Windows',
-        lines: ['Any version', 'Disk encryption enabled'],
+        lines: [{ text: 'Any version' }, { text: 'Disk encryption enabled' }],
       },
       {
         label: 'Defguard',
-        lines: ['Desktop client: Any version', 'Mobile application: Any version'],
+        lines: [
+          { text: 'Desktop client: Any version' },
+          { text: 'Mobile application: Any version' },
+        ],
       },
     ]);
   });

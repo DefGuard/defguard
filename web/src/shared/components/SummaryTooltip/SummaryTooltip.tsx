@@ -12,19 +12,8 @@ import { TooltipTrigger } from '../../defguard-ui/providers/tooltip/TooltipTrigg
 import { ThemeVariable } from '../../defguard-ui/types';
 import type { SummarySection } from './type';
 
-type SummaryTooltipLine =
-  | string
-  | {
-      text: string;
-      warning?: boolean;
-    };
-
-type SummaryTooltipSection = Omit<SummarySection, 'lines'> & {
-  lines: SummaryTooltipLine[];
-};
-
 type Props = {
-  sections: SummaryTooltipSection[];
+  sections: SummarySection[];
   className?: string;
   placement?: Placement;
   footer?: ReactNode;
@@ -49,22 +38,18 @@ export const SummaryTooltip = ({
             <div className="summary-item">
               <p className="label">{section.label}</p>
               <div className="content">
-                {section.lines.map((line) => {
-                  const summaryLine: SummaryTooltipLine =
-                    typeof line === 'string' ? { text: line } : line;
-                  return (
-                    <p key={`${section.label}-${summaryLine.text}`}>
-                      {summaryLine.text}
-                      {summaryLine.warning && (
-                        <Icon
-                          icon={IconKind.WarningFilled}
-                          size={16}
-                          staticColor={ThemeVariable.FgCritical}
-                        />
-                      )}
-                    </p>
-                  );
-                })}
+                {section.lines.map((line) => (
+                  <p key={`${section.label}-${line.text}`}>
+                    {line.text}
+                    {line.warning && (
+                      <Icon
+                        icon={IconKind.WarningFilled}
+                        size={16}
+                        staticColor={ThemeVariable.FgCritical}
+                      />
+                    )}
+                  </p>
+                ))}
               </div>
             </div>
           </Fragment>
