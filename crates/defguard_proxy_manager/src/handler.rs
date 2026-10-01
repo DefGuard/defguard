@@ -51,8 +51,8 @@ use defguard_proto::{
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackRequest, AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest,
-        CoreResponse, HttpsCerts, InitialInfo, core_request, core_response,
-        proxy_client::ProxyClient,
+        CoreResponse, HttpsCerts, InitialInfo, OpenIdProviderKind as ProtoOpenIdProviderKind,
+        core_request, core_response, proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
@@ -165,8 +165,8 @@ type CoreOidcClient = CoreClient<
 >;
 
 /// Build the `AuthInfo` payload for a successfully built state: construct the authorize URL from
-/// the client, the provider, and the state data, and wrap the resulting CSRF token, nonce, and
-/// provider display name.
+/// the client, the provider, and the state data, and wrap the resulting CSRF token, nonce,
+/// provider display name and provider kind.
 fn build_auth_info_payload(
     client: &CoreOidcClient,
     provider: &OpenIdProvider<Id>,
@@ -195,6 +195,7 @@ fn build_auth_info_payload(
         csrf_token: csrf_token.secret().to_owned(),
         nonce: nonce.secret().to_owned(),
         button_display_name: provider.display_name.clone(),
+        provider_kind: ProtoOpenIdProviderKind::from(&provider.kind) as i32,
     })
 }
 
