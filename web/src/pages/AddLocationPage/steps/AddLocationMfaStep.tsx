@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import { Card } from '../../../shared/components/Card/Card';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -16,7 +15,6 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { FieldError } from '../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
-import { Input } from '../../../shared/defguard-ui/components/Input/Input';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -28,10 +26,6 @@ import {
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 import './style.scss';
-
-const disconnectThresholdSchema = z
-  .number(m.form_error_required())
-  .min(120, m.form_error_min({ value: 120 }));
 
 export const AddLocationMfaStep = () => {
   const {
@@ -47,19 +41,12 @@ export const AddLocationMfaStep = () => {
   const storedSelectedFlowId = useAddLocationStore(
     (state) => state.mfa_flows.find((flow) => flow.is_default)?.flow_id,
   );
-  const storedDisconnectThreshold = useAddLocationStore(
-    (state) => state.peer_disconnect_threshold,
-  );
   const [mfaEnabledState, setMfaEnabledState] = useState(storedMfaEnabled);
   const mfaEnabled = mfaFlowsLoaded ? hasMfaFlows && mfaEnabledState : mfaEnabledState;
 
   const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
     storedSelectedFlowId,
   );
-  const [disconnectThreshold, setDisconnectThreshold] = useState<number | null>(
-    storedDisconnectThreshold,
-  );
-  const [thresholdError, setThresholdError] = useState<string | null>(null);
   const [flowError, setFlowError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -69,15 +56,6 @@ export const AddLocationMfaStep = () => {
     }
   }, [hasMfaFlows, mfaFlowsLoaded]);
 
-  useEffect(() => {
-    if (!mfaEnabled) {
-      setThresholdError(null);
-      return;
-    }
-    const result = disconnectThresholdSchema.safeParse(disconnectThreshold);
-    setThresholdError(result.success ? null : (result.error.issues[0]?.message ?? null));
-  }, [disconnectThreshold, mfaEnabled]);
-
   const saveAndContinue = (activeStep: AddLocationPageStepValue) => {
     useAddLocationStore.setState({
       mfa_enabled: mfaEnabled,
@@ -85,7 +63,6 @@ export const AddLocationMfaStep = () => {
         mfaEnabled && selectedFlowId !== undefined
           ? [{ flow_id: selectedFlowId, is_default: true, group_ids: [] }]
           : [],
-      peer_disconnect_threshold: disconnectThreshold ?? 300,
       activeStep,
     });
   };
@@ -162,20 +139,6 @@ export const AddLocationMfaStep = () => {
           </>
         )}
         <FieldError error={flowError} />
-        {mfaEnabled && (
-          <>
-            <SizedBox height={ThemeSpacing.Xl2} />
-            <Input
-              label={m.location_mfa_label_client_disconnect_threshold()}
-              helper={m.location_mfa_helper_client_disconnect_threshold()}
-              type="number"
-              value={disconnectThreshold}
-              onChange={(value) => setDisconnectThreshold(value as number | null)}
-              error={thresholdError}
-              required
-            />
-          </>
-        )}
       </Fold>
       <Controls>
         <Button
@@ -187,7 +150,7 @@ export const AddLocationMfaStep = () => {
           <Button
             text={m.controls_continue()}
             testId="finish"
-            disabled={mfaFlowsPending || mfaFlowsFailed || isPresent(thresholdError)}
+            disabled={mfaFlowsPending || mfaFlowsFailed}
             onClick={() => {
               if (mfaEnabled && selectedFlowId === undefined) {
                 setFlowError(m.add_location_mfa_flow_required());
