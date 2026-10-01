@@ -447,6 +447,9 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
 }
 
 /// Assign a single-step MFA flow to a location.
+///
+/// Setting `mfa_enabled` alone is not enough: the legacy MFA mode is derived from the location's
+/// flow configuration, and a location with no flow derives `None`, which the MFA start path refuses.
 async fn assign_mfa_flow(
     pool: &PgPool,
     location_id: Id,
