@@ -4,9 +4,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -110,6 +115,7 @@ export const AddLocationNetworkStep = () => {
           <form.AppField name="mtu">
             {(field) => (
               <field.FormInput
+                required
                 label={m.location_network_label_mtu()}
                 helper={m.location_network_helper_mtu()}
                 type="number"
@@ -117,23 +123,46 @@ export const AddLocationNetworkStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
+          <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+            {m.location_network_client_mtu_title()}
+          </AppText>
+          <SizedBox height={ThemeSpacing.Xs} />
+          <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+            {m.location_network_client_mtu_description()}
+          </AppText>
+          <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="client_mtu_enabled">
-            {(field) => <field.FormCheckbox text={m.location_network_set_client_mtu()} />}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Md} />
-          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
-            {(clientMtuEnabled) => (
-              <form.AppField name="client_mtu">
-                {(field) => (
-                  <field.FormInput
-                    label={m.location_network_label_client_mtu()}
-                    helper={m.location_network_helper_client_mtu()}
-                    disabled={!clientMtuEnabled}
-                    type="number"
-                  />
-                )}
-              </form.AppField>
+            {(field) => (
+              <>
+                <field.FormRadio
+                  value={false}
+                  text={m.location_network_client_mtu_option_client()}
+                />
+                <SizedBox height={ThemeSpacing.Md} />
+                <field.FormRadio
+                  value={true}
+                  text={m.location_network_client_mtu_option_custom()}
+                />
+              </>
             )}
+          </form.AppField>
+          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
+            {(clientMtuEnabled) =>
+              clientMtuEnabled && (
+                <>
+                  <SizedBox height={ThemeSpacing.Lg} />
+                  <form.AppField name="client_mtu">
+                    {(field) => (
+                      <field.FormInput
+                        required
+                        label={m.location_network_label_client_mtu()}
+                        type="number"
+                      />
+                    )}
+                  </form.AppField>
+                </>
+              )
+            }
           </form.Subscribe>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="fwmark">

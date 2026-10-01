@@ -26,6 +26,7 @@ import type {
 } from '../../shared/components/SelectionSection/type';
 import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
 import { externalLink } from '../../shared/constants';
+import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
@@ -33,7 +34,7 @@ import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoB
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
@@ -773,7 +774,7 @@ const EditLocationForm = ({
             )}
           </form.AppField>
         </EditPageFormSection>
-        <EditPageFormSection label={m.add_location_step_network_settings_label()}>
+        <EditPageFormSection label={m.location_edit_section_general_network_settings()}>
           <form.AppField name="keepalive_interval">
             {(field) => (
               <field.FormInput
@@ -785,35 +786,6 @@ const EditLocationForm = ({
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="mtu">
-            {(field) => (
-              <field.FormInput
-                label={m.location_network_label_mtu()}
-                type="number"
-                helper={m.location_network_helper_mtu()}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="client_mtu_enabled">
-            {(field) => <field.FormCheckbox text={m.location_network_set_client_mtu()} />}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Md} />
-          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
-            {(clientMtuEnabled) => (
-              <form.AppField name="client_mtu">
-                {(field) => (
-                  <field.FormInput
-                    label={m.location_network_label_client_mtu()}
-                    type="number"
-                    disabled={!clientMtuEnabled}
-                    helper={m.location_network_helper_client_mtu()}
-                  />
-                )}
-              </form.AppField>
-            )}
-          </form.Subscribe>
-          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="fwmark">
             {(field) => (
               <field.FormInput
@@ -823,6 +795,60 @@ const EditLocationForm = ({
               />
             )}
           </form.AppField>
+        </EditPageFormSection>
+        <EditPageFormSection label={m.location_edit_section_mtu_settings()}>
+          <form.AppField name="mtu">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.location_network_label_mtu()}
+                type="number"
+                helper={m.location_network_helper_mtu()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+            {m.location_network_client_mtu_title()}
+          </AppText>
+          <SizedBox height={ThemeSpacing.Xs} />
+          <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+            {m.location_network_client_mtu_description()}
+          </AppText>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <form.AppField name="client_mtu_enabled">
+            {(field) => (
+              <>
+                <field.FormRadio
+                  value={false}
+                  text={m.location_network_client_mtu_option_client()}
+                />
+                <SizedBox height={ThemeSpacing.Md} />
+                <field.FormRadio
+                  value={true}
+                  text={m.location_network_client_mtu_option_custom()}
+                />
+              </>
+            )}
+          </form.AppField>
+          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
+            {(clientMtuEnabled) =>
+              clientMtuEnabled && (
+                <>
+                  <SizedBox height={ThemeSpacing.Lg} />
+                  <form.AppField name="client_mtu">
+                    {(field) => (
+                      <field.FormInput
+                        required
+                        label={m.location_network_label_client_mtu()}
+                        type="number"
+                      />
+                    )}
+                  </form.AppField>
+                </>
+              )
+            }
+          </form.Subscribe>
         </EditPageFormSection>
         <form.Subscribe selector={(state) => state.values.allow_all_groups}>
           {(allowAllGroups) => (
