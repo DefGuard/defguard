@@ -1,15 +1,24 @@
 import './style.scss';
 
-import type { MfaFlowStepMethods } from '../../api/types';
+import type {
+  MfaFlowStepMethods,
+  MfaMethodAvailabilityReasonValue,
+  MfaMethodAvailabilityResponse,
+} from '../../api/types';
 import { IconKind } from '../../defguard-ui/components/Icon';
 import { Icon } from '../../defguard-ui/components/Icon/Icon';
 import { InteractiveBlock } from '../../defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { ThemeVariable } from '../../defguard-ui/types';
-import { MfaFlowStepsTooltip } from '../MfaFlowStepsTooltip/MfaFlowStepsTooltip';
+import {
+  hasMfaFlowAvailabilityIssues,
+  MfaFlowStepsTooltip,
+} from '../MfaFlowStepsTooltip/MfaFlowStepsTooltip';
 import type { SelectionSectionCustomRender } from '../SelectionSection/type';
 
 export type MfaFlowSelectionMeta = {
   steps: MfaFlowStepMethods[];
+  methodAvailability?: MfaMethodAvailabilityResponse[];
+  unavailableReason?: MfaMethodAvailabilityReasonValue | null;
 };
 
 export const renderMfaFlowSelectionItem: SelectionSectionCustomRender<
@@ -17,6 +26,11 @@ export const renderMfaFlowSelectionItem: SelectionSectionCustomRender<
   MfaFlowSelectionMeta
 > = ({ active, onClick, option }) => {
   const steps = option.meta?.steps ?? [];
+  const hasAvailabilityIssues = hasMfaFlowAvailabilityIssues({
+    steps,
+    methodAvailability: option.meta?.methodAvailability,
+    unavailableReason: option.meta?.unavailableReason,
+  });
 
   return (
     <InteractiveBlock
@@ -27,7 +41,11 @@ export const renderMfaFlowSelectionItem: SelectionSectionCustomRender<
       onClick={onClick}
       helperBlock={
         steps.length > 0 && (
-          <MfaFlowStepsTooltip steps={steps}>
+          <MfaFlowStepsTooltip
+            steps={steps}
+            methodAvailability={option.meta?.methodAvailability}
+            unavailableReason={option.meta?.unavailableReason}
+          >
             <div
               className="summary-info-trigger"
               onClick={(event) => {
@@ -37,7 +55,11 @@ export const renderMfaFlowSelectionItem: SelectionSectionCustomRender<
               <Icon
                 icon={IconKind.InfoOutlined}
                 size={20}
-                staticColor={ThemeVariable.FgMuted}
+                staticColor={
+                  hasAvailabilityIssues
+                    ? ThemeVariable.FgAttention
+                    : ThemeVariable.FgMuted
+                }
               />
             </div>
           </MfaFlowStepsTooltip>

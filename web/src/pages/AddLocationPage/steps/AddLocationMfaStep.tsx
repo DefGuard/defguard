@@ -5,7 +5,10 @@ import { m } from '../../../paraglide/messages';
 import { Card } from '../../../shared/components/Card/Card';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
-import { renderMfaFlowSelectionItem } from '../../../shared/components/MfaFlowSelectionItem/MfaFlowSelectionItem';
+import {
+  type MfaFlowSelectionMeta,
+  renderMfaFlowSelectionItem,
+} from '../../../shared/components/MfaFlowSelectionItem/MfaFlowSelectionItem';
 import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -18,7 +21,10 @@ import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { getMfaFlowsQueryOptions } from '../../../shared/query';
+import {
+  getMfaFlowsQueryOptions,
+  getMfaMethodAvailabilityQueryOptions,
+} from '../../../shared/query';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 import './style.scss';
@@ -34,6 +40,7 @@ export const AddLocationMfaStep = () => {
     isPending: mfaFlowsPending,
     isSuccess: mfaFlowsLoaded,
   } = useQuery(getMfaFlowsQueryOptions);
+  const { data: methodAvailability } = useQuery(getMfaMethodAvailabilityQueryOptions);
   const hasMfaFlows = mfaFlowsLoaded && isPresent(mfaFlows) && mfaFlows.length > 0;
   const noMfaFlows = mfaFlowsLoaded && !hasMfaFlows;
   const storedMfaEnabled = useAddLocationStore((state) => state.mfa_enabled);
@@ -128,10 +135,14 @@ export const AddLocationMfaStep = () => {
             <SizedBox height={ThemeSpacing.Xl2} />
             <Card className="add-location-mfa-flow-list">
               {mfaFlows?.map((flow, index) => {
-                const option: SelectionOption<number, { steps: typeof flow.steps }> = {
+                const option: SelectionOption<number, MfaFlowSelectionMeta> = {
                   id: flow.id,
                   label: flow.title,
-                  meta: { steps: flow.steps },
+                  meta: {
+                    steps: flow.steps,
+                    methodAvailability: methodAvailability?.methodAvailability,
+                    unavailableReason: flow.unavailable_reason,
+                  },
                 };
                 return (
                   <div className="add-location-mfa-flow-row" key={flow.id}>
