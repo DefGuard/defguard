@@ -176,6 +176,7 @@ impl TryFrom<StepCredential> for VerificationProof {
                 }
 
                 Ok(Self::Fido2 {
+                    rp_id_hash,
                     signature,
                     authenticator_data,
                     credential_id,
@@ -674,7 +675,7 @@ mod tests {
         let signature = vec![5, 6, 7];
         let credential_id = vec![8, 9, 10];
         let proof = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
-            rp_id_hash,
+            rp_id_hash: rp_id_hash.clone(),
             authenticator_data: authenticator_data.clone(),
             signature: signature.clone(),
             credential_id: credential_id.clone(),
@@ -684,6 +685,7 @@ mod tests {
         assert_eq!(
             proof,
             VerificationProof::Fido2 {
+                rp_id_hash,
                 signature,
                 authenticator_data,
                 credential_id,

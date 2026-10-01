@@ -192,13 +192,12 @@ pub(super) async fn verify(
         (
             VpnClientMfaMethod::Fido2,
             Some(VerificationProof::Fido2 {
+                rp_id_hash,
                 signature,
                 authenticator_data,
                 credential_id,
             }),
         ) => {
-            const RP_ID_HASH_LEN: usize = 32;
-
             let settings = Settings::get_current_settings();
             let rp_id = settings
                 .webauthn_rp_id()
@@ -207,12 +206,10 @@ pub(super) async fn verify(
                 .biometric_challenge
                 .as_ref()
                 .ok_or(VerifyError::MissingChallenge)?;
-            let rpid_hash = authenticator_data[..RP_ID_HASH_LEN].to_vec();
-
             let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
 
             let assertion = Assertion {
-                rpid_hash,
+                rpid_hash: rp_id_hash.clone(),
                 signature: signature.clone(),
                 auth_data: authenticator_data.clone(),
                 ..Default::default()
