@@ -55,6 +55,8 @@ import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
+import { LocationGroupMtuSection } from './components/LocationGroupMtuSection/LocationGroupMtuSection';
+import type { GroupClientMtu } from './components/LocationGroupMtuSection/types';
 import { knownFlowAssignments } from './components/LocationMfaSection/assignments';
 import { LocationMfaSection } from './components/LocationMfaSection/LocationMfaSection';
 import { getPostureChecksSectionState } from './postureChecksSection';
@@ -435,6 +437,8 @@ const EditLocationForm = ({
   const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
   const [pendingMfaFlows, setPendingMfaFlows] =
     useState<MfaFlowAssignment[]>(savedMfaFlows);
+  // TODO: load from and save to the API once the backend supports group-level MTU.
+  const [pendingGroupMtus, setPendingGroupMtus] = useState<GroupClientMtu[]>([]);
 
   const postureCheckOptions = useMemo(
     () =>
@@ -849,6 +853,12 @@ const EditLocationForm = ({
               )
             }
           </form.Subscribe>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <LocationGroupMtuSection
+            overrides={pendingGroupMtus}
+            groupOptions={mfaGroupOptions}
+            onChange={setPendingGroupMtus}
+          />
         </EditPageFormSection>
         <form.Subscribe selector={(state) => state.values.allow_all_groups}>
           {(allowAllGroups) => (

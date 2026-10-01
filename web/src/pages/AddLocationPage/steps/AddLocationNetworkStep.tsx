@@ -1,8 +1,10 @@
+import { useQuery } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
+import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -15,6 +17,8 @@ import {
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { getGroupsInfoQueryOptions } from '../../../shared/query';
+import { LocationGroupMtuSection } from '../../EditLocationPage/components/LocationGroupMtuSection/LocationGroupMtuSection';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
@@ -58,6 +62,17 @@ const toStoreValues = (value: FormFields) => ({
 
 export const AddLocationNetworkStep = () => {
   const locationType = useAddLocationStore((s) => s.locationType);
+  const groupClientMtus = useAddLocationStore((s) => s.group_client_mtus);
+  const { data: groupOptions = [] } = useQuery({
+    ...getGroupsInfoQueryOptions,
+    select: (response) =>
+      response.data.map(
+        (group): SelectionOption<number> => ({
+          id: group.id,
+          label: group.name,
+        }),
+      ),
+  });
 
   const defaultValues = useAddLocationStore(
     useShallow(
@@ -164,6 +179,14 @@ export const AddLocationNetworkStep = () => {
               )
             }
           </form.Subscribe>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <LocationGroupMtuSection
+            overrides={groupClientMtus}
+            groupOptions={groupOptions}
+            onChange={(group_client_mtus) =>
+              useAddLocationStore.setState({ group_client_mtus })
+            }
+          />
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="fwmark">
             {(field) => (

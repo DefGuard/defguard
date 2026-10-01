@@ -77,6 +77,8 @@ export const AddLocationFirewallStep = () => {
         'reset',
         'activeStep',
         'locationType',
+        // TODO: send once the backend supports group-level MTU.
+        'group_client_mtus',
       ]),
     );
     mutate(storageState);

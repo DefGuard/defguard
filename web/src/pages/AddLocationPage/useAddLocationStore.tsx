@@ -2,6 +2,7 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { type EditNetworkLocation, LocationServiceMode } from '../../shared/api/types';
+import type { GroupClientMtu } from '../EditLocationPage/components/LocationGroupMtuSection/types';
 import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 
 type StoreValues = {
@@ -9,6 +10,7 @@ type StoreValues = {
   activeStep: AddLocationPageStepValue;
   locationType: 'regular' | 'service';
   posture_checks: number[];
+  group_client_mtus: GroupClientMtu[];
 } & EditNetworkLocation;
 
 type StoreMethods = {
@@ -40,6 +42,7 @@ const defaults: StoreValues = {
   mfa_enabled: false,
   service_location_mode: LocationServiceMode.Disabled,
   posture_checks: [],
+  group_client_mtus: [],
   mfa_flows: [],
 };
 
