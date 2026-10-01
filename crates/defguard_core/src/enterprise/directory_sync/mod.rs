@@ -36,8 +36,8 @@ use crate::{
     events::{DirectorySyncEvent, DirectorySyncEventType, LdapSyncEventType},
     grpc::GatewayCommand,
     handlers::user::check_username,
-    location_management::sync_all_networks,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    location_management::LocationManager,
+    user_management::UserManager,
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -364,16 +364,18 @@ async fn sync_user_groups<T: DirectorySync>(
     let mut transaction = pool.begin().await?;
 
     let current_groups = user.member_of(&mut *transaction).await?;
-    let current_group_names: Vec<&str> = current_groups.iter().map(|g| g.name.as_str()).collect();
+    let current_group_names = current_groups
+        .iter()
+        .map(|g| g.name.as_str())
+        .collect::<Vec<_>>();
     let mut add_to_ldap_groups = HashSet::new();
     let mut remove_from_ldap_groups = HashSet::new();
     let mut dirsync_events = Vec::new();
 
     debug!(
-        "User {} is a member of {} groups in Defguard: {:?}",
+        "User {} is a member of {} groups in Defguard: {current_group_names:?}",
         user.email,
-        current_groups.len(),
-        current_group_names
+        current_groups.len()
     );
 
     for group_name in &directory_group_names {
@@ -408,7 +410,8 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
-    sync_allowed_user_devices(user, &mut transaction, gateway_tx)
+    let mut usermgr = UserManager::new();
+    usermgr.sync_allowed_user_devices(user, &mut transaction)
         .await
         .map_err(|err| {
             DirectorySyncError::NetworkUpdateError(format!(
@@ -417,6 +420,7 @@ async fn sync_user_groups<T: DirectorySync>(
         ))
         })?;
     transaction.commit().await?;
+    usermgr.send(gateway_tx);
 
     emit_directory_sync_events(dirsync_tx, provider_name, dirsync_events);
 
@@ -602,6 +606,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     let mut dirsync_events = Vec::new();
 
     let mut transaction = pool.begin().await?;
+    let mut usermgr = UserManager::new();
     debug!("User-group mapping construction done, starting to apply the changes to the database");
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
     for (user, groups) in user_group_map {
@@ -612,13 +617,14 @@ async fn sync_all_users_groups<T: DirectorySync>(
         };
 
         let current_groups = user.member_of(&mut *transaction).await?;
-        let current_group_names: HashSet<&str> =
-            current_groups.iter().map(|g| g.name.as_str()).collect();
+        let current_group_names = current_groups
+            .iter()
+            .map(|g| g.name.as_str())
+            .collect::<HashSet<_>>();
         debug!(
-            "User {} is a member of {} groups in Defguard: {:?}",
+            "User {} is a member of {} groups in Defguard: {current_groups:?}",
             user.email,
-            current_groups.len(),
-            current_groups
+            current_groups.len()
         );
         for current_group in &current_groups {
             debug!(
@@ -678,16 +684,21 @@ async fn sync_all_users_groups<T: DirectorySync>(
             }
         }
 
-        sync_allowed_user_devices(&user, &mut transaction, gateway_tx).await.map_err(|err| {
-            DirectorySyncError::NetworkUpdateError(format!(
-                "Failed to sync allowed devices for user {} during directory synchronization: {err}",
-                user.email
-            ))
-        })?;
+        usermgr
+            .sync_allowed_user_devices(&user, &mut transaction)
+            .await
+            .map_err(|err| {
+                DirectorySyncError::NetworkUpdateError(format!(
+                    "Failed to sync allowed devices for user {} during directory synchronization: \
+                    {err}",
+                    user.email
+                ))
+            })?;
 
         affected_users.push(user);
     }
     transaction.commit().await?;
+    usermgr.send(gateway_tx);
 
     emit_directory_sync_events(dirsync_tx, provider_name, dirsync_events);
 
@@ -767,13 +778,14 @@ async fn sync_all_users_state(
         .as_ref()
         .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
     let mut blocked_import_notification_sent = false;
+    let mut usermgr = UserManager::new();
 
     sync_inactive_directory_users(
         &mut transaction,
         &inactive_directory_users,
         &mut modified_users,
-        gateway_tx,
         &mut dirsync_events,
+        &mut usermgr,
     )
     .await?;
 
@@ -993,6 +1005,7 @@ async fn sync_all_users_state(
     );
     // Keep the admin count to prevent deleting the last admin
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
+
     for mut user in missing_directory_users {
         if user.is_admin(&mut *transaction).await? {
             match admin_behavior {
@@ -1016,7 +1029,7 @@ async fn sync_all_users_state(
                             the admin behavior setting is set to disable",
                             user.email
                         );
-                        disable_user(&mut user, &mut transaction, gateway_tx).await.map_err(|err| {
+                        usermgr.disable_user(&mut user, &mut transaction).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable admin {} during directory synchronization: {err}",
                                 user.email
@@ -1049,7 +1062,8 @@ async fn sync_all_users_state(
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    delete_user_and_cleanup_devices(user, &mut transaction, gateway_tx)
+                    usermgr
+                        .delete_user_and_cleanup_devices(user, &mut transaction)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -1074,7 +1088,7 @@ async fn sync_all_users_state(
                             the user behavior setting is set to disable",
                             user.email
                         );
-                        disable_user(&mut user, &mut transaction, gateway_tx).await.map_err(|err| {
+                        usermgr.disable_user(&mut user, &mut transaction).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable user {} during directory synchronization: {err}",
                                 user.email
@@ -1099,7 +1113,8 @@ async fn sync_all_users_state(
                     if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    delete_user_and_cleanup_devices(user, &mut transaction, gateway_tx)
+                    usermgr
+                        .delete_user_and_cleanup_devices(user, &mut transaction)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -1113,17 +1128,20 @@ async fn sync_all_users_state(
     debug!("Done processing missing users");
 
     transaction.commit().await?;
+    usermgr.send(gateway_tx);
 
     if users_reenabled {
         match pool.acquire().await {
-            Ok(mut conn) => {
-                if let Err(err) = sync_all_networks(&mut conn, gateway_tx).await {
+            Ok(mut conn) => match LocationManager::sync_all_networks(&mut conn).await {
+                Ok(locmgr) => locmgr.send(gateway_tx),
+                Err(err) => {
                     error!("Failed to sync all networks after directory user re-enablement: {err}");
                 }
-            }
+            },
             Err(err) => {
                 error!(
-                    "Failed to acquire a connection to sync networks after directory user re-enablement: {err}"
+                    "Failed to acquire a connection to sync networks after directory user \
+                    re-enablement: {err}"
                 );
             }
         }
@@ -1159,8 +1177,8 @@ async fn sync_inactive_directory_users(
     transaction: &mut PgConnection,
     inactive_directory_users: &[&DirectoryUser],
     modified_users: &mut Vec<User<Id>>,
-    gateway_tx: &Sender<GatewayCommand>,
     dirsync_events: &mut Vec<DirectorySyncEventType>,
+    usermgr: &mut UserManager,
 ) -> Result<(), DirectorySyncError> {
     // find all active Defguard users disabled in directory
     let disabled_users_emails = inactive_directory_users
@@ -1185,7 +1203,8 @@ async fn sync_inactive_directory_users(
                 "Disabling user {} because they are disabled in the directory",
                 user.email
             );
-            disable_user(&mut user, transaction, gateway_tx)
+            usermgr
+                .disable_user(&mut user, transaction)
                 .await
                 .map_err(|err| {
                     DirectorySyncError::UserUpdateError(format!(

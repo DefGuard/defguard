@@ -15,9 +15,8 @@ pub struct WireguardPeer {
 }
 
 /// Default firewall action applied to traffic that does not match any rule.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FirewallPolicy {
-    #[default]
     Unspecified,
     Allow,
     Deny,
@@ -85,7 +84,7 @@ pub enum Port {
 }
 
 /// A single ACL-derived firewall rule to be enforced on a gateway.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct FirewallRule {
     pub id: Id,
     pub source_addrs: Vec<IpAddress>,
@@ -98,7 +97,7 @@ pub struct FirewallRule {
 }
 
 /// Source NAT binding that rewrites the source IP of matching VPN traffic.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct SnatBinding {
     pub id: Id,
     pub source_addrs: Vec<IpAddress>,
@@ -107,7 +106,7 @@ pub struct SnatBinding {
 }
 
 /// Full firewall configuration to be applied to a gateway location.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct FirewallConfig {
     pub default_policy: FirewallPolicy,
     pub rules: Vec<FirewallRule>,

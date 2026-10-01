@@ -709,3 +709,51 @@ fn test_edge_callback_url() {
         "https://edge.example.com:8443/path/openid/mfa/callback"
     );
 }
+
+#[test]
+fn test_validate_rejects_forbidden_ldap_enrollment_token_attrs() {
+    for attr in [
+        "userPassword",
+        "USERPASSWORD",
+        "cn",
+        "CN",
+        "uid",
+        " uid ",
+        "sambaNTPassword",
+    ] {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            ldap_enrollment_token_attr: Some(attr.into()),
+            ..Default::default()
+        };
+
+        assert!(
+            matches!(
+                settings.validate(),
+                Err(SettingsValidationError::ForbiddenLdapEnrollmentTokenAttr(_))
+            ),
+            "{attr} must not be usable as the enrollment token attribute"
+        );
+    }
+}
+
+#[test]
+fn test_validate_accepts_other_ldap_enrollment_token_attrs() {
+    for attr in [
+        None,
+        Some(""),
+        Some("defguardEnrollmentToken"),
+        Some("uidNumber"),
+    ] {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            ldap_enrollment_token_attr: attr.map(ToOwned::to_owned),
+            ..Default::default()
+        };
+
+        assert!(
+            settings.validate().is_ok(),
+            "{attr:?} must be usable as the enrollment token attribute"
+        );
+    }
+}

@@ -219,7 +219,10 @@ impl From<SettingsValidationError> for WebError {
             | SettingsValidationError::CannotEnableSmtpDependents(_)
             | SettingsValidationError::LdapRequiredForRemoteEnrollment
             | SettingsValidationError::CannotEnableLdap
-            | SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
+            | SettingsValidationError::InvalidDefguardUrl(_)
+            | SettingsValidationError::ForbiddenLdapEnrollmentTokenAttr(_) => {
+                Self::BadRequest(err.to_string())
+            }
         }
     }
 }

@@ -188,10 +188,10 @@ use crate::{
         updates::outdated_components,
         user::{
             add_user, bulk_delete_users, bulk_disable_users, bulk_enable_users,
-            bulk_start_enrollment, change_password, change_self_password, delete_authorized_app,
-            delete_security_key, delete_user, get_user, list_users, me, modify_user,
-            reset_password, start_enrollment, start_remote_desktop_configuration,
-            username_available,
+            bulk_start_enrollment, bulk_store_enrollment_token_in_ldap, change_password,
+            change_self_password, delete_authorized_app, delete_security_key, delete_user,
+            get_user, list_users, me, modify_user, reset_password, start_enrollment,
+            start_remote_desktop_configuration, username_available,
         },
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -366,6 +366,10 @@ pub fn build_webapp(
             .route("/user/bulk-enable", post(bulk_enable_users))
             .route("/user/bulk-delete", post(bulk_delete_users))
             .route("/user/bulk-start-enrollment", post(bulk_start_enrollment))
+            .route(
+                "/user/bulk-store-enrollment-token-ldap",
+                post(bulk_store_enrollment_token_in_ldap),
+            )
             .route("/user/{username}", put(modify_user).delete(delete_user))
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
@@ -1108,7 +1112,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not save network")
     };
     let used_ips = network
-        .all_used_ips_for_network(&mut transaction)
+        .all_used_ip_addresses(&mut transaction)
         .await
         .expect("Failed to query used IPs from database");
     if Device::find_by_pubkey(
@@ -1182,7 +1186,8 @@ pub async fn init_vpn_location(
             network.dns.clone_from(&args.dns);
             network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
-            sync_location_allowed_devices(&network, &mut transaction, None).await?;
+            let mut events = Vec::new();
+            sync_location_allowed_devices(&network, &mut transaction, None, &mut events).await?;
             network
         }
         // Otherwise create it with the predefined ID

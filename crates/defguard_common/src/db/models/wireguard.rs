@@ -583,7 +583,7 @@ impl WireguardNetwork<Id> {
             "Assigning IPs in network {} for all existing devices ",
             self
         );
-        let mut used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
+        let mut used_ips = self.all_used_ip_addresses(&mut *transaction).await?;
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             let wireguard_network_device = device
@@ -607,7 +607,7 @@ impl WireguardNetwork<Id> {
             .await?;
 
         if allowed {
-            let used_ips = self.all_used_ips_for_network(&mut *conn).await?;
+            let used_ips = self.all_used_ip_addresses(&mut *conn).await?;
             let wireguard_network_device = device
                 .assign_next_network_ip(&mut *conn, self, &used_ips, reserved_ips, None)
                 .await?;
@@ -1495,20 +1495,30 @@ impl WireguardNetwork<Id> {
     }
 
     /// Obtain all used IP addresses for network.
-    pub async fn all_used_ips_for_network(
+    pub async fn all_used_ip_addresses(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
     ) -> sqlx::Result<HashSet<IpAddr>> {
-        let all_devices =
-            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
-        let used_ips: HashSet<IpAddr> = all_devices
-            .into_iter()
-            .flat_map(|device| device.wireguard_ips)
-            .collect();
-        Ok(used_ips)
+        struct ResultRow {
+            addresses: Vec<IpAddr>,
+        }
+
+        // Fetch all IP addresses aggregated, without duplicates.
+        let result = query_as!(
+            ResultRow,
+            "SELECT COALESCE(array_agg(DISTINCT ipaddr), '{}'::inet[]) \"addresses!: Vec<IpAddr>\" \
+            FROM wireguard_network_device wnd \
+            CROSS JOIN LATERAL unnest(wnd.wireguard_ips) ipaddr \
+            WHERE wireguard_network_id = $1",
+            self.id
+        )
+        .fetch_one(conn)
+        .await?;
+
+        Ok(result.addresses.into_iter().collect())
     }
 
-    /// Returns true if the location has at least one posture check assigned.
+    /// Returns `true` if the location has at least one posture check assigned.
     pub async fn has_postures<'e, E>(&self, executor: E) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
