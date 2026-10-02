@@ -6,13 +6,16 @@ use base64::{
 use ctap_hid_fido2::{
     fidokey::get_assertion::get_assertion_params::Assertion, verifier::verify_assertion,
 };
-use defguard_common::db::models::{
-    Settings, ThrottleScope, WebAuthn,
-    biometric_auth::{BiometricAuth, BiometricAuthError, BiometricChallenge},
-    user::UserError,
-    vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
-    vpn_client_session::VpnClientMfaMethod,
-    webauthn::to_ctap_public_key,
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings, ThrottleScope, WebAuthn,
+        biometric_auth::{BiometricAuth, BiometricAuthError, BiometricChallenge},
+        user::UserError,
+        vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
+        vpn_client_session::VpnClientMfaMethod,
+        webauthn::to_ctap_public_key,
+    },
 };
 use sqlx::PgPool;
 use thiserror::Error;
@@ -217,12 +220,6 @@ pub async fn verify(
             }
         }
         VpnClientMfaMethod::Fido2 => {
-            const RP_ID_HASH_LEN: usize = 32;
-
-            let settings = Settings::get_current_settings();
-            let rp_id = settings
-                .webauthn_rp_id()
-                .map_err(|_| VerifyError::MissingRPID)?;
             let challenge = ephemeral
                 .biometric_challenge
                 .as_ref()
@@ -230,58 +227,85 @@ pub async fn verify(
             // The client sends binary as base64url, matching how webauthn-rs writes
             // the credential ids it was offered.
             let signature = decode_proof_field(proof.auth_pub_key.as_ref(), "Signature")?;
-            let auth_data = proof
-                .auth_data
-                .as_ref()
-                .ok_or(VerifyError::MalformedProof {
-                    message: "Auth data not found in request",
-                    event: None,
-                })?;
-            if auth_data.len() < RP_ID_HASH_LEN {
-                return Err(VerifyError::MalformedProof {
-                    message: "Auth data too small",
-                    event: None,
-                });
+            if verify_fido2_assertion(
+                pool,
+                ctx.user.id,
+                &challenge.challenge,
+                Some(&signature),
+                proof.auth_data.as_deref(),
+                proof.credential_id.as_deref(),
+            )
+            .await?
+            {
+                Ok(Verdict::Proved)
+            } else {
+                Ok(Verdict::Failed {
+                    message: "FIDO2 challenge failed",
+                })
             }
-            let rpid_hash = auth_data[..RP_ID_HASH_LEN].to_vec();
-
-            // The key names the credential it signed with, so verification goes
-            // straight to that public key. A client that names none - a pre-FIDO2
-            // build - falls back to trying every registered key; one that names a
-            // credential this user does not own matches nothing and fails.
-            let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
-
-            let assertion = Assertion {
-                rpid_hash,
-                signature,
-                auth_data: auth_data.clone(),
-                ..Default::default()
-            };
-            for passkey in &passkeys {
-                // Skip the keys the client did not name, if it named one.
-                if proof.credential_id.as_ref().is_some_and(|credential_id| {
-                    passkey.cred_id().as_ref() != credential_id.as_slice()
-                }) {
-                    continue;
-                }
-                let Some(public_key) = to_ctap_public_key(passkey) else {
-                    continue;
-                };
-                if verify_assertion(
-                    &rp_id,
-                    &public_key,
-                    challenge.challenge.as_bytes(),
-                    &assertion,
-                ) {
-                    return Ok(Verdict::Proved);
-                }
-            }
-
-            Ok(Verdict::Failed {
-                message: "FIDO2 challenge failed",
-            })
         }
     }
+}
+
+/// Verifies a FIDO2 assertion over `challenge` against the user's registered security keys.
+///
+/// Returns `Ok(false)` when no key produced the signature. A malformed proof is an error.
+pub async fn verify_fido2_assertion(
+    pool: &PgPool,
+    user_id: Id,
+    challenge: &str,
+    signature: Option<&[u8]>,
+    auth_data: Option<&[u8]>,
+    credential_id: Option<&[u8]>,
+) -> Result<bool, VerifyError> {
+    const RP_ID_HASH_LEN: usize = 32;
+
+    let settings = Settings::get_current_settings();
+    let rp_id = settings
+        .webauthn_rp_id()
+        .map_err(|_| VerifyError::MissingRPID)?;
+    let signature = signature.ok_or(VerifyError::MalformedProof {
+        message: "Signature",
+        event: None,
+    })?;
+    let auth_data = auth_data.ok_or(VerifyError::MalformedProof {
+        message: "Auth data not found in request",
+        event: None,
+    })?;
+    if auth_data.len() < RP_ID_HASH_LEN {
+        return Err(VerifyError::MalformedProof {
+            message: "Auth data too small",
+            event: None,
+        });
+    }
+    let rpid_hash = auth_data[..RP_ID_HASH_LEN].to_vec();
+
+    // The key names the credential it signed with, so verification goes
+    // straight to that public key. A client that names none - a pre-FIDO2
+    // build - falls back to trying every registered key; one that names a
+    // credential this user does not own matches nothing and fails.
+    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
+
+    let assertion = Assertion {
+        rpid_hash,
+        signature: signature.to_vec(),
+        auth_data: auth_data.to_vec(),
+        ..Default::default()
+    };
+    for passkey in &passkeys {
+        // Skip the keys the client did not name, if it named one.
+        if credential_id.is_some_and(|credential_id| passkey.cred_id().as_ref() != credential_id) {
+            continue;
+        }
+        let Some(public_key) = to_ctap_public_key(passkey) else {
+            continue;
+        };
+        if verify_assertion(&rp_id, &public_key, challenge.as_bytes(), &assertion) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 /// Decode a base64 value the client sent as part of a FIDO2 proof.
@@ -327,7 +351,13 @@ pub async fn offered_credential_ids(
     if method != VpnClientMfaMethod::Fido2 {
         return Ok(Vec::new());
     }
-    Ok(WebAuthn::passkeys_for_user(pool, ctx.user.id)
+    fido2_credential_ids(pool, ctx.user.id).await
+}
+
+/// Every security key credential the user has registered, base64url as webauthn-rs
+/// serializes them.
+pub async fn fido2_credential_ids(pool: &PgPool, user_id: Id) -> Result<Vec<String>, sqlx::Error> {
+    Ok(WebAuthn::passkeys_for_user(pool, user_id)
         .await?
         .iter()
         .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))

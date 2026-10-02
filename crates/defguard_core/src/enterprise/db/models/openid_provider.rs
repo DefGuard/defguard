@@ -1,6 +1,7 @@
 use std::fmt;
 
 use defguard_common::db::{Id, NoId};
+use defguard_proto::proxy::OpenIdProviderKind as ProtoOpenIdProviderKind;
 use model_derive::Model;
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 
@@ -88,6 +89,19 @@ pub enum OpenIdProviderKind {
     Okta,
     JumpCloud,
     Zitadel,
+}
+
+impl From<&OpenIdProviderKind> for ProtoOpenIdProviderKind {
+    fn from(kind: &OpenIdProviderKind) -> Self {
+        match kind {
+            OpenIdProviderKind::Custom => Self::Custom,
+            OpenIdProviderKind::Google => Self::Google,
+            OpenIdProviderKind::Microsoft => Self::Microsoft,
+            OpenIdProviderKind::Okta => Self::Okta,
+            OpenIdProviderKind::JumpCloud => Self::Jumpcloud,
+            OpenIdProviderKind::Zitadel => Self::Zitadel,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize)]

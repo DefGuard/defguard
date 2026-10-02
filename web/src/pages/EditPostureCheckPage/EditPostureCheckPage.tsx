@@ -105,6 +105,7 @@ const EditPostureCheckForm = ({
     },
     onSuccess: () => {
       Snackbar.default(m.posture_checks_edit_save_success());
+      navigate({ to: '/acl/posture-checks', replace: true });
     },
     onError: () => {
       Snackbar.error(m.posture_checks_edit_save_failed());

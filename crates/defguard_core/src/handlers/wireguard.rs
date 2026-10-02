@@ -623,7 +623,8 @@ pub(crate) async fn modify_network(
 
     // `NetworkModified` sends the complete peer list. The gateway compares the peer count and
     // public keys, then replaces its peers, so separate device events are not needed.
-    let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
+    let mut events = Vec::new();
+    sync_location_allowed_devices(&network, &mut transaction, None, &mut events).await?;
 
     let peers = get_location_allowed_peers(&network, &mut transaction).await?;
     let maybe_firewall_config =
@@ -970,8 +971,14 @@ pub(crate) async fn import_network(
 
     // assign IPs for other existing devices
     debug!("Assigning IPs in imported network for remaining existing devices");
-    let gateway_events =
-        sync_location_allowed_devices(&network, &mut transaction, Some(&reserved_ips)).await?;
+    let mut gateway_events = Vec::new();
+    sync_location_allowed_devices(
+        &network,
+        &mut transaction,
+        Some(&reserved_ips),
+        &mut gateway_events,
+    )
+    .await?;
     appstate.send_multiple_gateway_commands(gateway_events);
     debug!("Assigned IPs in imported network for remaining existing devices");
 

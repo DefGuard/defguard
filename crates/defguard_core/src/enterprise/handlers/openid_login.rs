@@ -160,7 +160,7 @@ pub fn build_state(state_data: Option<String>) -> CsrfToken {
 }
 
 /// Extract the state data from the provided state.
-pub(crate) fn extract_state_data(state: &str) -> Option<String> {
+pub fn extract_state_data(state: &str) -> Option<String> {
     let decoded = BASE64_STANDARD.decode(state).ok()?;
     let decoded_str = String::from_utf8(decoded).ok()?;
     let result = decoded_str.split_once('.');

@@ -21,8 +21,8 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{AuthFlowType, AuthInfoRequest, MfaMethod},
     proxy::{
-        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreRequest, core_request,
-        core_response,
+        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreRequest, OpenIdProviderKind,
+        core_request, core_response,
     },
 };
 use reqwest::Url;
@@ -170,6 +170,12 @@ async fn test_auth_info_enrollment_returns_authorize_url(
         auth_info.button_display_name.as_deref(),
         provider.display_name.as_deref(),
         "button_display_name should match provider display_name"
+    );
+
+    assert_eq!(
+        auth_info.provider_kind(),
+        OpenIdProviderKind::Custom,
+        "provider_kind should match provider kind"
     );
 
     clear_test_license();
