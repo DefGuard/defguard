@@ -9,6 +9,7 @@ use defguard_common::{
             WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
             polling_token::PollingToken,
+            vpn_client_session::VpnClientMfaMethod,
             wireguard::ServiceLocationMode,
         },
     },
@@ -1103,7 +1104,7 @@ impl EnrollmentServer {
     ) -> Result<CodeMfaSetupStartResponse, Status> {
         debug!("Starting MFA setup");
         let method = request.method();
-        if method != MfaMethod::Email && method != MfaMethod::Totp && method != MfaMethod::Fido2 {
+        if !VpnClientMfaMethod::CONFIG_SETUP.contains(&method.into()) {
             return Err(Status::invalid_argument("Method not supported".to_owned()));
         }
         let (mut token, is_enrollment) = self
@@ -1186,7 +1187,7 @@ impl EnrollmentServer {
             .validate_mfa_setup_session(Some(&request.token))
             .await?;
         let method = request.method();
-        if method != MfaMethod::Totp && method != MfaMethod::Email && method != MfaMethod::Fido2 {
+        if !VpnClientMfaMethod::CONFIG_SETUP.contains(&method.into()) {
             return Err(Status::invalid_argument("Method not supported"));
         }
         let mut user = token.fetch_user(&self.pool).await?;

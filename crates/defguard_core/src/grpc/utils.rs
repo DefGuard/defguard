@@ -1083,4 +1083,39 @@ mod tests {
                 .is_empty()
         );
     }
+
+    #[sqlx::test]
+    async fn test_instance_info_advertises_mfa_capabilities(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let settings = Settings::get_current_settings();
+
+        let instance: defguard_proto::client_types::InstanceInfo =
+            InstanceInfo::build(&pool, &settings, &user, None, None)
+                .await
+                .expect("failed to build instance info")
+                .into();
+
+        let capabilities = instance
+            .mfa_capabilities
+            .expect("InstanceInfo should contain MFA capabilities");
+        assert_eq!(
+            capabilities.setup_methods,
+            [MfaMethod::Totp, MfaMethod::Email, MfaMethod::Fido2].map(|method| method as i32)
+        );
+        assert_eq!(
+            capabilities.authorize_methods,
+            [
+                MfaMethod::Totp,
+                MfaMethod::Email,
+                MfaMethod::Fido2,
+                MfaMethod::Oidc
+            ]
+            .map(|method| method as i32)
+        );
+    }
 }

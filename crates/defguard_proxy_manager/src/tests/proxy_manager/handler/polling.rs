@@ -183,6 +183,10 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
                     .configured_methods,
                 vec![client_types::MfaMethod::Totp as i32]
             );
+            assert!(
+                instance.mfa_capabilities.is_some(),
+                "InstanceInfo should contain MFA capabilities"
+            );
         }
         other => panic!(
             "expected InstanceInfo response, got: {:?}",
