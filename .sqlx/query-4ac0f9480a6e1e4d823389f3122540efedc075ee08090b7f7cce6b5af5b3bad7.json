@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO group_client_mtu (network_id, group_id, client_mtu) SELECT $1, * FROM unnest($2::bigint[], $3::integer[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ac0f9480a6e1e4d823389f3122540efedc075ee08090b7f7cce6b5af5b3bad7"
+}

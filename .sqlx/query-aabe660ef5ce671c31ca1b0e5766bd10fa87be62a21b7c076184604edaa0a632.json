@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT min(gcm.client_mtu) FROM group_client_mtu gcm JOIN group_user gu ON gu.group_id = gcm.group_id WHERE gcm.network_id = $1 AND gu.user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "min",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "aabe660ef5ce671c31ca1b0e5766bd10fa87be62a21b7c076184604edaa0a632"
+}

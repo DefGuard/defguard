@@ -225,7 +225,7 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID + 1);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
                 assert!(matches!(
                     &result.result,
                     Some(MfaStepResult {
@@ -235,17 +235,17 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID);
-                assert!(!result.preshared_key.is_empty());
+                assert_ne!(result.preshared_key, "");
                 parked_key = Some(result.preshared_key.clone());
             }
             _ => panic!("unexpected response"),
         }
     }
-    assert!(
-        !parked_key
+    assert_ne!(
+        parked_key
             .as_ref()
-            .expect("parked response must contain a key")
-            .is_empty()
+            .expect("parked response must contain a key"),
+        ""
     );
 
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
@@ -473,11 +473,11 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     for r in [&r1, &r2] {
         match &r.payload {
             Some(core_response::Payload::ClientMfaFinish(fr)) => {
-                assert!(!fr.preshared_key.is_empty());
+                assert_ne!(fr.preshared_key, "");
                 got_finish = true;
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(ar)) => {
-                assert!(!ar.preshared_key.is_empty());
+                assert_ne!(ar.preshared_key, "");
                 got_await = true;
             }
             other => panic!(

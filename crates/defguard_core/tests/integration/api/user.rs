@@ -1681,12 +1681,12 @@ async fn test_admin_can_disable_another_users_mfa_emits_updated_event_and_cleans
     assert!(updated_user.totp_secret.is_none());
     assert!(updated_user.email_mfa_secret.is_none());
     assert_eq!(updated_user.mfa_method, MFAMethod::None);
-    assert!(updated_user.recovery_codes.is_empty());
-    assert!(
+    assert_eq!(updated_user.recovery_codes, [] as [std::string::String; 0]);
+    assert_eq!(
         WebAuthn::all_for_user(&pool, updated_user.id)
             .await
-            .unwrap()
-            .is_empty()
+            .unwrap(),
+        [] as [defguard_common::db::models::WebAuthn<i64>; 0]
     );
 
     client.verify_api_events_with_user(&[(
