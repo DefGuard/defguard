@@ -1,4 +1,4 @@
-use std::{net::IpAddr, str::FromStr};
+use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
@@ -48,11 +48,6 @@ pub async fn build_device_config_response(
 
     let smtp_configured = settings.smtp_configured();
     let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
-
-    let locations = WireguardNetwork::all(pool).await.map_err(|err| {
-        error!("Failed to fetch all networks: {err}");
-        Status::internal(format!("unexpected error: {err}"))
-    })?;
 
     let mut configs = Vec::new();
     let user = User::find_by_id(pool, device.user_id)
@@ -133,22 +128,26 @@ pub async fn build_device_config_response(
             configs.push(config);
         }
     } else {
+        let mut assignments = WireguardNetworkDevice::find_by_device(pool, device.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch networks for device {}: {err}", device.id);
+                Status::internal(format!("unexpected error: {err}"))
+            })?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|assignment| (assignment.wireguard_network_id, assignment))
+            .collect::<HashMap<_, _>>();
+        let locations = WireguardNetwork::all(pool).await.map_err(|err| {
+            error!("Failed to fetch all networks: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
         let supports_multi_step_mfa =
             ClientFeature::MultiStepMfa.is_supported_by_device(device_info.as_ref());
         for location in locations {
-            let wireguard_network_device = WireguardNetworkDevice::find(
-                pool,
-                device.id,
-                location.id,
-            )
-            .await
-            .map_err(|err| {
-                error!(
-                    "Failed to fetch WireGuard network device for device {} and network {}: {err}",
-                    device.id, location.id
-                );
-                Status::internal(format!("unexpected error: {err}"))
-            })?;
+            let Some(wireguard_network_device) = assignments.remove(&location.id) else {
+                continue;
+            };
             if should_prevent_service_location_usage(&location) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
@@ -181,53 +180,51 @@ pub async fn build_device_config_response(
                 );
                 continue;
             }
-            if let Some(wireguard_network_device) = wireguard_network_device {
-                let mut conn = pool.acquire().await.map_err(|err| {
-                    error!("Failed to acquire connection: {err}");
-                    Status::internal(format!("unexpected error: {err}"))
-                })?;
+            let mut conn = pool.acquire().await.map_err(|err| {
+                error!("Failed to acquire connection: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
 
-                let device_config =
-                    build_device_config(&mut conn, &location, &wireguard_network_device, &user)
-                        .await
-                        .map_err(|err| {
-                            error!("Failed to build device config: {err}");
-                            Status::internal(format!("unexpected error: {err}"))
-                        })?;
+            let device_config =
+                build_device_config(&mut conn, &location, &wireguard_network_device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to build device config: {err}");
+                        Status::internal(format!("unexpected error: {err}"))
+                    })?;
 
-                if device_config.posture_check_required
-                    && !ClientFeature::PostureChecks.is_supported_by_device(device_info.as_ref())
-                {
-                    info!(
-                        "Device {} does not support posture checks feature, skipping sending network {} configuration to device {}.",
-                        device.name, location.name, device.name
-                    );
-                    continue;
-                }
-
-                if should_omit_location_for_device(
-                    device_config.location_mfa_mode.clone(),
-                    device_info.as_ref(),
-                ) {
-                    info!(
-                        "Device {} does not support multi-step MFA, skipping sending network {} configuration to device {}.",
-                        device.name, location.name, device.name
-                    );
-                    continue;
-                }
-
-                let config = to_wire_device_config(
-                    pool,
-                    device_config,
-                    &user,
-                    device.id,
-                    smtp_configured,
-                    oidc_configured,
-                    supports_multi_step_mfa,
-                )
-                .await?;
-                configs.push(config);
+            if device_config.posture_check_required
+                && !ClientFeature::PostureChecks.is_supported_by_device(device_info.as_ref())
+            {
+                info!(
+                    "Device {} does not support posture checks feature, skipping sending network {} configuration to device {}.",
+                    device.name, location.name, device.name
+                );
+                continue;
             }
+
+            if should_omit_location_for_device(
+                device_config.location_mfa_mode.clone(),
+                device_info.as_ref(),
+            ) {
+                info!(
+                    "Device {} does not support multi-step MFA, skipping sending network {} configuration to device {}.",
+                    device.name, location.name, device.name
+                );
+                continue;
+            }
+
+            let config = to_wire_device_config(
+                pool,
+                device_config,
+                &user,
+                device.id,
+                smtp_configured,
+                oidc_configured,
+                supports_multi_step_mfa,
+            )
+            .await?;
+            configs.push(config);
         }
     }
 
@@ -630,6 +627,39 @@ mod tests {
             support_type: SupportType::Basic,
             features: Vec::new(),
         }
+    }
+
+    #[sqlx::test]
+    async fn test_polling_returns_only_attached_locations(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        let first = create_disabled_location(&pool, "attached-first", 1).await;
+        let _unattached = create_mfa_location_without_flow(&pool, "unattached-mfa", 2).await;
+        let last = create_disabled_location(&pool, "attached-last", 3).await;
+
+        let response = build_device_config_response(&pool, device.clone(), None, None)
+            .await
+            .expect("failed to build config without attachments");
+        assert!(response.configs.is_empty());
+
+        attach_device(&pool, first.id, device.id).await;
+        attach_device(&pool, last.id, device.id).await;
+        let response = build_device_config_response(&pool, device, None, None)
+            .await
+            .expect("failed to build config with attachments");
+        let mut names: Vec<&str> = response
+            .configs
+            .iter()
+            .map(|config| config.network_name.as_str())
+            .collect();
+        names.sort_unstable();
+        assert_eq!(names, vec!["attached-first", "attached-last"]);
     }
 
     #[sqlx::test]
