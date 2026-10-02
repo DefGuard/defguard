@@ -56,7 +56,7 @@ pub mod proto {
 }
 
 use defguard_proto::{
-    client_types::{MfaMethod, MfaUserState},
+    client_types::{MfaCapabilities, MfaMethod, MfaUserState},
     worker::worker_service_server::WorkerServiceServer,
 };
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
@@ -259,6 +259,19 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
                     .into_iter()
                     .map(|method| MfaMethod::from(method) as i32)
                     .collect(),
+            }),
+            mfa_capabilities: Some(MfaCapabilities {
+                setup_methods: vec![
+                    MfaMethod::Totp as i32,
+                    MfaMethod::Email as i32,
+                    MfaMethod::Fido2 as i32,
+                ],
+                authorize_methods: vec![
+                    MfaMethod::Totp as i32,
+                    MfaMethod::Email as i32,
+                    MfaMethod::Fido2 as i32,
+                    MfaMethod::Oidc as i32,
+                ],
             }),
         }
     }

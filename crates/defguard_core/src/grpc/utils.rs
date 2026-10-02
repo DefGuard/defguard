@@ -1075,6 +1075,27 @@ mod tests {
                 .expect("failed to build instance info")
                 .into();
 
+        let capabilities = instance
+            .mfa_capabilities
+            .as_ref()
+            .expect("InstanceInfo should advertise MFA capabilities");
+        assert_eq!(
+            capabilities.setup_methods,
+            vec![
+                MfaMethod::Totp as i32,
+                MfaMethod::Email as i32,
+                MfaMethod::Fido2 as i32,
+            ]
+        );
+        assert_eq!(
+            capabilities.authorize_methods,
+            vec![
+                MfaMethod::Totp as i32,
+                MfaMethod::Email as i32,
+                MfaMethod::Fido2 as i32,
+                MfaMethod::Oidc as i32,
+            ]
+        );
         assert!(
             instance
                 .mfa_user_state
