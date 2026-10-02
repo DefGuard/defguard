@@ -51,6 +51,10 @@ Following environment variables can be set to configure orion core service:
 
 * **DEFGUARD_WEB_PORT**: web services bind port, default = `8000`
 
+### E-mail notifications
+
+* **DEFGUARD_MAIL_TIMEZONE**: IANA time zone name (e.g. `Europe/Warsaw`) used for timestamps rendered in notification e-mails, default = `UTC`
+
 
 ### User agents YAML update
 
