@@ -63,3 +63,17 @@ export const openIdProviderDeleteBody = (
     flows: usingOidc.map((flow) => flow.title).join(', '),
   });
 };
+
+export const smtpResetBody = (
+  flows: Pick<MfaFlowListItemResponse, 'title' | 'steps'>[],
+): string => {
+  const usingEmail = flows.filter((flow) =>
+    flow.steps.some((step) => step.methods.includes(MfaFlowMethod.Email)),
+  );
+
+  if (usingEmail.length === 0) return m.settings_smtp_reset_confirm_body();
+
+  return m.settings_smtp_reset_confirm_body_mfa({
+    flows: usingEmail.map((flow) => flow.title).join(', '),
+  });
+};

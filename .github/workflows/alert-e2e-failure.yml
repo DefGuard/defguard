@@ -5,11 +5,19 @@ on:
       source:
         type: string
         default: e2e
-        description: 'Alert source identifier (change only for test harnesses)'
+        description: 'Alert source identifier (e2e, rehearsal)'
       extra_labels:
         type: string
         default: e2e
         description: 'Additional labels beyond release-blocker'
+      workflow:
+        type: string
+        default: e2e.yml
+        description: 'Workflow whose last green run on the branch limits the assignee search'
+      failure_summary:
+        type: string
+        default: e2e suite failed
+        description: 'Failure description for the issue title and body'
     secrets:
       ALERT_TOKEN:
         required: true
@@ -25,13 +33,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Find last green e2e run
+      - name: Find last green run
         id: last-green
         run: |
           LAST_GREEN=$(gh run list \
             --repo '${{ github.repository }}' \
             --branch '${{ github.ref_name }}' \
-            --workflow e2e.yml \
+            --workflow '${{ inputs.workflow }}' \
             --status success \
             --limit 1 \
             --json headSha \
@@ -71,7 +79,7 @@ jobs:
           source: ${{ inputs.source }}
           repo: ${{ github.repository }}
           branch: ${{ github.ref_name }}
-          failure_summary: e2e suite failed
+          failure_summary: ${{ inputs.failure_summary }}
           run_link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           assignees: ${{ steps.assignees.outputs.usernames }}
           extra_labels: ${{ inputs.extra_labels }}

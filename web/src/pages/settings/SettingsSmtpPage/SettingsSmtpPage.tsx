@@ -1,11 +1,13 @@
 import './style.scss';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import type { AxiosError } from 'axios';
 import { useMemo, useRef, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import {
+  type ApiError,
   type Settings,
   SmtpAuthentication,
   SmtpEncryption,
@@ -31,10 +33,12 @@ import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
 import {
   getLicenseInfoQueryOptions,
+  getMfaFlowsQueryOptions,
   getSettingsQueryOptions,
   mfaAvailabilityInvalidateKey,
 } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import { smtpResetBody } from '../../../shared/utils/mfaFlowSteps';
 import { Validate } from '../../../shared/validate';
 import { getConfiguredBadge, getNotConfiguredBadge } from '../SettingsIndexPage/types';
 import {
@@ -198,6 +202,7 @@ const Content = ({
   );
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const { data: mfaFlows = [] } = useQuery(getMfaFlowsQueryOptions);
   const oauthLocked =
     licenseInfo !== undefined && !canUseBusinessFeature(licenseInfo).result;
 
@@ -209,8 +214,8 @@ const Content = ({
     onSuccess: () => {
       Snackbar.default(m.settings_msg_saved());
     },
-    onError: () => {
-      Snackbar.error(m.settings_msg_save_failed());
+    onError: (error: AxiosError<ApiError>) => {
+      Snackbar.error(error.response?.data?.msg ?? m.settings_msg_save_failed());
     },
   });
 
@@ -253,9 +258,28 @@ const Content = ({
   };
 
   const handleDelete = () => {
+    const dependents = [
+      settings.ldap_remote_enrollment_enabled
+        ? `- [${m.settings_ldap_section_remote_enrollment_title()}](/settings/ldap)`
+        : null,
+      settings.gateway_disconnect_notifications_enabled
+        ? `- [${m.settings_gateway_notifications_disconnect_title()}](/settings/gateway-notifications)`
+        : null,
+    ].filter(isPresent);
+
+    if (dependents.length > 0) {
+      openModal(ModalName.ConfirmAction, {
+        title: m.settings_smtp_reset_confirm_title(),
+        contentMd: `${m.settings_smtp_reset_blocked_body()}\n\n${dependents.join('\n')}`,
+        actionPromise: () => api.settings.patchSettings(emptyValues),
+        cancelProps: { text: m.controls_close() },
+      });
+      return;
+    }
+
     openModal(ModalName.ConfirmAction, {
       title: m.settings_smtp_reset_confirm_title(),
-      contentMd: m.settings_smtp_reset_confirm_body(),
+      contentMd: smtpResetBody(mfaFlows),
       actionPromise: () => {
         return api.settings.patchSettings(emptyValues);
       },
@@ -265,7 +289,11 @@ const Content = ({
         form.reset(emptyValues);
         Snackbar.default(m.settings_smtp_reset_success());
       },
-      onError: () => Snackbar.error(m.settings_smtp_reset_failed()),
+      onError: (_message, _code, error) =>
+        Snackbar.error(
+          (error as AxiosError<ApiError> | undefined)?.response?.data?.msg ??
+            m.settings_smtp_reset_failed(),
+        ),
     });
   };
 

@@ -1,0 +1,25 @@
+name: Release rehearsal
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  dispatch:
+    name: Dispatch ${{ matrix.branch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [stable/2.x, dev]
+    steps:
+      - name: Dispatch release.yml without a draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ matrix.branch }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH" -f draft=false

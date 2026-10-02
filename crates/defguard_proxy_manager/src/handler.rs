@@ -51,8 +51,8 @@ use defguard_proto::{
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackRequest, AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest,
-        CoreResponse, HttpsCerts, InitialInfo, core_request, core_response,
-        proxy_client::ProxyClient,
+        CoreResponse, HttpsCerts, InitialInfo, OpenIdProviderKind as ProtoOpenIdProviderKind,
+        core_request, core_response, proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
@@ -87,7 +87,10 @@ use tonic::{
 use crate::ProxyManagerTestSupport;
 use crate::{
     HandlerTxMap, ProxyError, ProxyTxSet, TEN_SECS,
-    servers::{EnrollmentServer, MfaConfigServer, PasswordResetServer},
+    servers::{
+        EnrollmentServer, MfaConfigServer, PasswordResetServer, mfa_config_oidc_begin,
+        mfa_config_oidc_state,
+    },
 };
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -106,6 +109,13 @@ async fn build_auth_info_state(
         debug!("OIDC MFA AuthInfo request is missing the session token");
         return Err(CoreError::invalid_argument("missing MFA session token"));
     };
+
+    // A bare token may name an MFA configuration session, which starts its own attempt here.
+    if !state.contains('.')
+        && let Some(state) = mfa_config_oidc_begin(pool, &state).await?
+    {
+        return Ok(Some(state));
+    }
 
     let (token, requested_attempt_id) = if state.contains('.') {
         let parsed = MfaOidcState::parse(&state)
@@ -155,8 +165,8 @@ type CoreOidcClient = CoreClient<
 >;
 
 /// Build the `AuthInfo` payload for a successfully built state: construct the authorize URL from
-/// the client, the provider, and the state data, and wrap the resulting CSRF token, nonce, and
-/// provider display name.
+/// the client, the provider, and the state data, and wrap the resulting CSRF token, nonce,
+/// provider display name and provider kind.
 fn build_auth_info_payload(
     client: &CoreOidcClient,
     provider: &OpenIdProvider<Id>,
@@ -185,6 +195,7 @@ fn build_auth_info_payload(
         csrf_token: csrf_token.secret().to_owned(),
         nonce: nonce.secret().to_owned(),
         button_display_name: provider.display_name.clone(),
+        provider_kind: ProtoOpenIdProviderKind::from(&provider.kind) as i32,
     })
 }
 
@@ -652,6 +663,15 @@ impl ProxyHandler {
                     }
                 }
             }
+            Some(core_request::Payload::MfaConfigFido2Challenge(request)) => {
+                match boxed(services.mfa_config.mfa_config_fido2_challenge(request)).await {
+                    Ok(response) => Some(core_response::Payload::MfaConfigFido2Challenge(response)),
+                    Err(err) => {
+                        error!("MFA config FIDO2 challenge error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
             Some(core_request::Payload::MfaConfigAuthorize(request)) => {
                 match boxed(
                     services
@@ -662,7 +682,12 @@ impl ProxyHandler {
                 {
                     Ok(response) => Some(core_response::Payload::MfaConfigAuthorize(response)),
                     Err(err) => {
-                        error!("MFA config authorize error {err}");
+                        if err.code() == Code::FailedPrecondition {
+                            // Includes the client polling an unfinished OIDC authentication.
+                            debug!("MFA config authorize error {err}");
+                        } else {
+                            error!("MFA config authorize error {err}");
+                        }
                         Some(core_response::Payload::CoreError(err.into()))
                     }
                 }
@@ -918,13 +943,27 @@ impl ProxyHandler {
                 }
             }
             Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
-                match boxed(
-                    services
-                        .client_mfa
-                        .auth_mfa_session_with_oidc(request, received.device_info),
-                )
-                .await
-                {
+                // Edge's OpenID MFA callback serves both VPN MFA and MFA configuration sessions.
+                let result = match boxed(mfa_config_oidc_state(&pool, &request.state)).await {
+                    Ok(Some(state)) => {
+                        boxed(services.mfa_config.mfa_config_oidc_authenticate(
+                            state,
+                            request,
+                            received.device_info,
+                        ))
+                        .await
+                    }
+                    Ok(None) => {
+                        boxed(
+                            services
+                                .client_mfa
+                                .auth_mfa_session_with_oidc(request, received.device_info),
+                        )
+                        .await
+                    }
+                    Err(err) => Err(err),
+                };
+                match result {
                     Ok(()) => Some(core_response::Payload::Empty(())),
                     Err(err) => {
                         error!("client MFA OIDC authenticate error {err}");

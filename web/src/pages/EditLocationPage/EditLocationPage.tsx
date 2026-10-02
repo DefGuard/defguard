@@ -109,8 +109,6 @@ const locationToFirewall = (location: NetworkLocation): LocationFirewallValue =>
   return 'deny';
 };
 
-const peerDisconnectThresholdMinimum = 120;
-
 const formSchema = z
   .object({
     name: z.string(m.form_error_required()).min(1, m.form_error_required()),
@@ -167,7 +165,9 @@ const formSchema = z
           true,
         );
       }),
-    peer_disconnect_threshold: z.number().nullable(),
+    peer_disconnect_threshold: z
+      .number(m.form_error_required())
+      .min(120, m.form_error_min({ value: 120 })),
     keepalive_interval: z
       .number(m.form_error_required())
       // Keepalive is mandatory to prevent idle service locations from disconnecting
@@ -187,22 +187,6 @@ const formSchema = z
     allowed_ips_from_acl: z.boolean(),
   })
   .superRefine((value, context) => {
-    if (value.mfa_enabled) {
-      if (value.peer_disconnect_threshold === null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['peer_disconnect_threshold'],
-          message: m.form_error_required(),
-        });
-      } else if (value.peer_disconnect_threshold < peerDisconnectThresholdMinimum) {
-        context.addIssue({
-          code: 'custom',
-          path: ['peer_disconnect_threshold'],
-          message: m.form_error_min({ value: peerDisconnectThresholdMinimum }),
-        });
-      }
-    }
-
     refineClientMtu(value, context);
 
     if (!value.allow_all_groups && value.allowed_groups.length === 0) {
@@ -282,7 +266,9 @@ const buildLocationSubmissionData = (
     acl_default_allow: normalizedValue.firewall === LocationFirewall.Allow,
     acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
     peer_disconnect_threshold:
-      normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
+      normalizedValue.peer_disconnect_threshold ??
+      location.peer_disconnect_threshold ??
+      300,
     posture_checks: postureChecks,
     mfa_flows: mfaFlows,
     group_client_mtus: groupClientMtus,
@@ -576,7 +562,7 @@ const EditLocationForm = ({
       client_mtu: location.client_mtu,
       fwmark: location.fwmark,
       mfa_enabled: location.mfa_enabled,
-      peer_disconnect_threshold: location.peer_disconnect_threshold,
+      peer_disconnect_threshold: location.peer_disconnect_threshold ?? 300,
       port: location.port,
       service_location_mode: location.service_location_mode,
       firewall: locationToFirewall(location),
@@ -799,6 +785,17 @@ const EditLocationForm = ({
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="peer_disconnect_threshold">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.location_mfa_label_client_disconnect_threshold()}
+                type="number"
+                helper={m.location_mfa_helper_client_disconnect_threshold()}
+              />
+            )}
+          </form.AppField>
         </EditPageFormSection>
         <EditPageFormSection label={m.location_edit_section_mtu_settings()}>
           <form.AppField name="mtu">
@@ -975,17 +972,6 @@ const EditLocationForm = ({
                   {(mfaEnabled) =>
                     mfaEnabled ? (
                       <>
-                        <SizedBox height={ThemeSpacing.Xl2} />
-                        <form.AppField name="peer_disconnect_threshold">
-                          {(field) => (
-                            <field.FormInput
-                              required
-                              label={m.location_mfa_label_client_disconnect_threshold()}
-                              type="number"
-                              helper={m.location_mfa_helper_client_disconnect_threshold()}
-                            />
-                          )}
-                        </form.AppField>
                         <SizedBox height={ThemeSpacing.Xl2} />
                         <LocationMfaSection
                           assignments={editedMfaFlows}

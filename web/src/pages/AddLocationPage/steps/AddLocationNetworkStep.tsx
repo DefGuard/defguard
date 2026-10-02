@@ -31,6 +31,9 @@ const formSchema = z
     client_mtu_enabled: z.boolean(),
     client_mtu: z.number().nullable(),
     fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
+    peer_disconnect_threshold: z
+      .number(m.form_error_required())
+      .min(120, m.form_error_min({ value: 120 })),
   })
   .superRefine(refineClientMtu);
 
@@ -40,6 +43,7 @@ type FormFields = z.infer<typeof formSchema>;
 const toStoreValues = (value: FormFields) => ({
   ...omit(value, ['client_mtu_enabled']),
   client_mtu: value.client_mtu_enabled ? value.client_mtu : null,
+  peer_disconnect_threshold: value.peer_disconnect_threshold,
 });
 
 export const AddLocationNetworkStep = () => {
@@ -54,6 +58,7 @@ export const AddLocationNetworkStep = () => {
         client_mtu_enabled: isPresent(s.client_mtu),
         client_mtu: s.client_mtu,
         fwmark: s.fwmark,
+        peer_disconnect_threshold: s.peer_disconnect_threshold,
       }),
     ),
   );
@@ -125,6 +130,17 @@ export const AddLocationNetworkStep = () => {
                 label={m.location_network_label_fwmark()}
                 helper={m.location_network_helper_fwmark()}
                 type="number"
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="peer_disconnect_threshold">
+            {(field) => (
+              <field.FormInput
+                label={m.location_mfa_label_client_disconnect_threshold()}
+                helper={m.location_mfa_helper_client_disconnect_threshold()}
+                type="number"
+                required
               />
             )}
           </form.AppField>

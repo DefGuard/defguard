@@ -211,7 +211,7 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
     context.finish().await.expect_server_finished().await;
 }
 
-/// A security key counts as a factor, so the fallback must not clobber the user's codes.
+/// A security key authorizes the session, so the fallback must not clobber the user's codes.
 #[sqlx::test]
 async fn test_fido2_only_user_is_not_treated_as_no_factor(
     _: PgPoolOptions,
@@ -235,14 +235,13 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
     );
     let polling_token = create_polling_token(&context.pool, device.id).await;
 
-    // FIDO2 cannot authorize this flow, so no method is offered — but no fallback either.
     let start_response =
         send_mfa_config_start(&mut context, &polling_token, &device.wireguard_pubkey).await;
     let session = match &start_response.payload {
         Some(core_response::Payload::MfaConfigStart(response)) => response,
         _ => panic!("expected MfaConfigStartResponse"),
     };
-    assert_eq!(session.available_methods, [] as [i32; 0]);
+    assert_eq!(session.available_methods, vec![MfaMethod::Fido2 as i32]);
     assert!(
         !session.email_fallback,
         "a security-key user must not be offered the email fallback"

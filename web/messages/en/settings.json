@@ -214,6 +214,8 @@
   "settings_notifications_smtp_card_content": "Configure your SMTP server to enable email notifications and system alerts.",
   "settings_smtp_reset_confirm_title": "Reset SMTP Settings",
   "settings_smtp_reset_confirm_body": "Are you sure you want to reset SMTP settings? This action cannot be undone.",
+  "settings_smtp_reset_blocked_body": "SMTP settings cannot be reset while these features are enabled. Disable them first:",
+  "settings_smtp_reset_confirm_body_mfa": "MFA flows **{flows}** use email codes. Their users cannot complete MFA until those flows are edited. Are you sure you want to reset SMTP settings? This action cannot be undone.",
   "settings_smtp_reset_success": "SMTP settings reset",
   "settings_smtp_reset_failed": "Failed to reset SMTP settings",
   "settings_smtp_test_success": "Test email sent",
