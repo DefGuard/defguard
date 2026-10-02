@@ -1206,14 +1206,50 @@ impl ClientMfaServer {
 
         let token = request.token.clone();
         let legacy_proof = LegacyProof {
-            code: request.code,
-            auth_pub_key: request.auth_pub_key,
+            code: request.code.clone(),
+            auth_pub_key: request.auth_pub_key.clone(),
         };
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
-        let (outcome, method) = self
+        let (outcome, method) = match self
             .engine
             .finish_legacy(token.clone(), legacy_proof, ip)
-            .await?;
+            .await
+        {
+            Ok(result) => result,
+            Err(error @ FinishError::SessionNotFound) => {
+                let session = self
+                    .engine
+                    .find_active_session_for_flow(&token, VpnMfaFlowKind::MultiStep)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to find MFA session: {err}");
+                        Status::internal("unexpected error")
+                    })?;
+                let Some(ephemeral) = session
+                    .and_then(|session| session.ephemeral_state.map(|state| state.0))
+                    .filter(|state| state.selected_method == VpnClientMfaMethod::MobileApprove)
+                else {
+                    // Keep other multi-step attempts indistinguishable from an unknown token.
+                    return Err(Status::from(error));
+                };
+
+                self.approve_and_wake_mobile_step(
+                    token.clone(),
+                    MobileApprovalProof {
+                        signature: request.code.unwrap_or_default(),
+                        auth_pub_key: request.auth_pub_key.unwrap_or_default(),
+                        step_attempt_id: ephemeral.step_attempt_id,
+                    },
+                    ip,
+                )
+                .await?;
+                return Ok(ClientMfaFinishResponse {
+                    preshared_key: String::new(),
+                    token: Some(token),
+                });
+            }
+            Err(error) => return Err(Status::from(error)),
+        };
 
         let is_mobile_signature = method == VpnClientMfaMethod::MobileApprove;
         let preshared_key = match &outcome {
@@ -1276,6 +1312,25 @@ impl ClientMfaServer {
         })
     }
 
+    async fn approve_and_wake_mobile_step(
+        &self,
+        token: String,
+        proof: MobileApprovalProof,
+        ip: IpAddr,
+    ) -> Result<(), Status> {
+        let step_attempt_id = proof.step_attempt_id.clone();
+        self.engine
+            .approve_mobile_step(token.clone(), proof, ip)
+            .await?;
+
+        if let Some(waiter) =
+            take_multi_step_remote_mfa_waiter(&self.remote_mfa_responses, &token, &step_attempt_id)
+        {
+            signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
+        }
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub async fn mfa_flow_approve(
         &self,
@@ -1287,26 +1342,16 @@ impl ClientMfaServer {
             .proof
             .ok_or_else(|| Status::invalid_argument("missing mobile approval proof"))?;
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
-        let token = request.token;
-        let step_attempt_id = request.step_attempt_id;
-        self.engine
-            .approve_mobile_step(
-                token.clone(),
-                MobileApprovalProof {
-                    signature: proof.signature,
-                    auth_pub_key: proof.auth_pub_key,
-                    step_attempt_id: step_attempt_id.clone(),
-                },
-                ip,
-            )
-            .await?;
-
-        if let Some(waiter) =
-            take_multi_step_remote_mfa_waiter(&self.remote_mfa_responses, &token, &step_attempt_id)
-        {
-            signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
-        }
-        Ok(())
+        self.approve_and_wake_mobile_step(
+            request.token,
+            MobileApprovalProof {
+                signature: proof.signature,
+                auth_pub_key: proof.auth_pub_key,
+                step_attempt_id: request.step_attempt_id,
+            },
+            ip,
+        )
+        .await
     }
 
     /// Handles a `PostureCheck` request from the proxy bidi stream.
