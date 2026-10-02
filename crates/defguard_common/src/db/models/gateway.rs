@@ -209,14 +209,14 @@ impl Gateway<Id> {
         Ok(record)
     }
 
-    /// Disable all Gateways except one. Used for expired licence.
+    /// Keep one enabled Gateway per location. Used for expired licence.
     pub async fn leave_one_enabled<'e, E>(executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
         let result = query_scalar!(
             "UPDATE gateway SET enabled = false WHERE enabled AND id NOT IN (\
-                SELECT id FROM gateway WHERE enabled LIMIT 1
+                SELECT DISTINCT ON (location_id) id FROM gateway WHERE enabled ORDER BY location_id, id
             )"
         )
         .execute(executor)

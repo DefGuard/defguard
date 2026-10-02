@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gateway SET enabled = false WHERE enabled AND id NOT IN (SELECT DISTINCT ON (location_id) id FROM gateway WHERE enabled ORDER BY location_id, id\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "31a7b0bb29abd495b5cec4e6d68f1d575ad4d755e18fa493db2581425309e368"
+}
