@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { m } from '../../../../paraglide/messages';
 import type { MfaFlowAssignment, MfaFlowStepMethods } from '../../../../shared/api/types';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon/Icon';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { MfaFlowAssignmentCard } from './MfaFlowAssignmentCard';
 
 type Props = {
@@ -40,7 +41,9 @@ export const MfaFlowOverrideRow = ({
       layout="position"
       className="assignment-row"
     >
-      <span className="marker">{position}</span>
+      <span className="marker">
+        {isPresent(unavailableText) ? <Icon icon="disabled" size={16} /> : position}
+      </span>
       <MfaFlowAssignmentCard
         title={title}
         steps={steps}

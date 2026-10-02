@@ -15,7 +15,7 @@ use defguard_core::{
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
@@ -504,7 +504,7 @@ async fn test_delete_openid_provider_reports_affected_locations(
 
     let location_id = make_network(&client, "oidc-location")
         .await
-        .json::<serde_json::Value>()
+        .json::<Value>()
         .await["id"]
         .as_i64()
         .unwrap();
@@ -518,9 +518,7 @@ async fn test_delete_openid_provider_reports_affected_locations(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let flow_id = response.json::<serde_json::Value>().await["id"]
-        .as_i64()
-        .unwrap();
+    let flow_id = response.json::<Value>().await["id"].as_i64().unwrap();
 
     // Assign the OIDC flow as the location's default, so the location genuinely depends on it.
     let response = update_location_mfa_flows(
@@ -537,7 +535,7 @@ async fn test_delete_openid_provider_reports_affected_locations(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
+    let body = response.json::<Value>().await;
     assert_eq!(
         body["affected_locations"],
         json!(["oidc-location"]),

@@ -12,6 +12,7 @@
   "acl_col_used_in_rules": "Used in rules",
   "acl_protocols_all": "All protocols",
   "acl_rule_fallback_name": "Rule {id}",
+  "acl_duplicate_name": "Copy of {name}",
   "acl_rules_table_title_deployed": "Deployed rules",
   "acl_rules_table_title_pending": "Pending rules",
   "acl_rules_button_create": "Create new rule",

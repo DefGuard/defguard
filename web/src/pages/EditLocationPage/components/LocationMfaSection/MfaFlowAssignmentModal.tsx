@@ -156,7 +156,7 @@ export const MfaFlowAssignmentModalContent = ({
           showActions={false}
           enableDividers
           itemGap={12}
-          visibleItemsLimit={4}
+          visibleItemsLimit={6}
         />
       )}
       <SizedBox height={ThemeSpacing.Xl} />

@@ -69,7 +69,7 @@ impl PasswordResetServer {
         }
 
         let settings = Settings::get_current_settings();
-        if enrollment.is_session_valid(settings.enrollment_session_timeout().as_secs()) {
+        if enrollment.is_session_valid(settings.password_reset_session_timeout().as_secs()) {
             info!("Password reset session validated: {enrollment:?}.",);
             Ok(enrollment)
         } else {
@@ -388,6 +388,15 @@ impl PasswordResetServer {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
         })?;
+
+        user.logout_all_sessions(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to log out user sessions: {err}");
+                Status::internal("Failed to log out user sessions".to_owned())
+            })?;
+        Token::delete_user_tokens_of_type(&mut *transaction, user.id, PASSWORD_RESET_TOKEN_TYPE)
+            .await?;
 
         if let Err(err) = password_reset_success_mail(
             &user.email,

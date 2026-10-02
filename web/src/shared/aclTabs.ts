@@ -19,6 +19,7 @@ export const aclListRouteSearchSchema = z.object({
 
 export const aclFlowRouteSearchSchema = z.object({
   tab: aclListTabSchema.optional(),
+  duplicate: z.number().optional(),
 });
 
 export const getCanonicalAclListUrlSearch = (tab: AclListTabValue): string => {

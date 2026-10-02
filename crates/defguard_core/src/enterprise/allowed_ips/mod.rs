@@ -72,8 +72,8 @@ pub async fn get_allowed_ips_from_acl_rules(
     let acl_rules = get_location_active_acl_rules(location, &mut *conn).await?;
 
     // Collect all destination networks and ranges across all matching rules.
-    let mut all_networks: Vec<IpNetwork> = Vec::new();
-    let mut all_ranges: Vec<RangeInclusive<IpAddr>> = Vec::new();
+    let mut all_networks = Vec::new();
+    let mut all_ranges = Vec::new();
 
     for rule in acl_rules {
         if !rule.user_is_allowed(user.id, &mut *conn).await? {
@@ -128,20 +128,20 @@ pub async fn get_allowed_ips_from_acl_rules(
     }
 
     // Convert all networks to ranges and combine with the explicit ranges collected above.
-    let combined_ranges: Vec<RangeInclusive<IpAddr>> = all_networks
+    let combined_ranges = all_networks
         .iter()
         .map(ipnetwork_to_range)
         .chain(all_ranges)
-        .collect();
+        .collect::<Vec<_>>();
 
     // Merge overlapping/adjacent ranges then decompose into minimal non-overlapping subnets.
-    let result: Vec<IpNetwork> = merge_ranges(combined_ranges)
+    let result = merge_ranges(combined_ranges)
         .into_iter()
         .flat_map(|range| {
             let (start, end) = range.into_inner();
             extract_subnets_from_range(start, end)
         })
-        .collect();
+        .collect::<Vec<_>>();
 
     debug!(
         "Computed {} AllowedIPs networks for user {} in location {}",

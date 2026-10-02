@@ -10,6 +10,7 @@ use defguard_common::{
     random::gen_alphanumeric,
     types::UrlParseError,
 };
+use serde::{Deserialize, Serialize};
 use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, types::Uuid};
 use tera::Context;
 use thiserror::Error;
@@ -22,7 +23,7 @@ pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
 pub static MFA_CONFIG_TOKEN_TYPE: &str = "MFA_CONFIG";
 // One window covers both the time to authorize and the time to configure factors.
-pub const MFA_CONFIG_SESSION_TIMEOUT: Duration = Duration::from_secs(60 * 60);
+pub const MFA_CONFIG_SESSION_TIMEOUT: Duration = Duration::from_hours(1);
 
 #[derive(Error, Debug)]
 pub enum TokenError {
@@ -89,6 +90,19 @@ impl From<TokenError> for Status {
     }
 }
 
+/// An in-flight authorization attempt of an MFA configuration session.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum MfaConfigAuthState {
+    Fido2 {
+        challenge: String,
+    },
+    /// An OIDC round trip, marked completed by the Edge callback.
+    Oidc {
+        attempt_id: String,
+        completed: bool,
+    },
+}
+
 // Representation of a user enrollment session
 #[derive(Clone)]
 pub struct Token {
@@ -101,7 +115,8 @@ pub struct Token {
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
-    /// CBOR-serialized `PasskeyRegistration`; set only while a FIDO2 ceremony is in progress.
+    /// CBOR-serialized ceremony state. An unauthorized MFA configuration session holds
+    /// [`MfaConfigAuthState`], an authorized one a `PasskeyRegistration` during FIDO2 setup.
     pub mfa_setup_state: Option<Vec<u8>>,
 }
 
@@ -217,6 +232,155 @@ impl Token {
         Ok(())
     }
 
+    async fn set_mfa_config_auth_state<'e, E>(
+        &mut self,
+        executor: E,
+        state: &MfaConfigAuthState,
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let mfa_setup_state = serde_cbor::to_vec(state)
+            .map_err(|err| TokenError::MfaSetupStateSerialization(err.to_string()))?;
+        query!(
+            "UPDATE token SET mfa_setup_state = $1 WHERE id = $2",
+            mfa_setup_state,
+            self.id
+        )
+        .execute(executor)
+        .await?;
+        self.mfa_setup_state = Some(mfa_setup_state);
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn get_mfa_config_auth_state(&self) -> Option<MfaConfigAuthState> {
+        self.mfa_setup_state
+            .as_ref()
+            .and_then(|state| serde_cbor::from_slice(state).ok())
+    }
+
+    async fn lock_mfa_config_auth_state(
+        &self,
+        transaction: &mut PgConnection,
+    ) -> Result<Option<MfaConfigAuthState>, TokenError> {
+        let state = query!(
+            "SELECT mfa_setup_state FROM token WHERE id = $1 FOR UPDATE",
+            self.id
+        )
+        .fetch_optional(&mut *transaction)
+        .await?
+        .ok_or(TokenError::NotFound)?
+        .mfa_setup_state;
+        Ok(state.and_then(|state| serde_cbor::from_slice(&state).ok()))
+    }
+
+    /// Starts a new authorization attempt. Returns `false`, leaving the state as is, when a
+    /// completed OIDC attempt is waiting for the client to authorize the session.
+    pub async fn replace_mfa_config_auth_state(
+        &mut self,
+        pool: &PgPool,
+        state: &MfaConfigAuthState,
+    ) -> Result<bool, TokenError> {
+        let mut transaction = pool.begin().await?;
+        if let Some(MfaConfigAuthState::Oidc {
+            completed: true, ..
+        }) = self.lock_mfa_config_auth_state(&mut transaction).await?
+        {
+            return Ok(false);
+        }
+        self.set_mfa_config_auth_state(&mut *transaction, state)
+            .await?;
+        transaction.commit().await?;
+        Ok(true)
+    }
+
+    /// Removes and returns the stored FIDO2 challenge, so each challenge verifies at most once.
+    pub async fn take_fido2_challenge(
+        &mut self,
+        pool: &PgPool,
+    ) -> Result<Option<String>, TokenError> {
+        let mut transaction = pool.begin().await?;
+        let Some(MfaConfigAuthState::Fido2 { challenge }) =
+            self.lock_mfa_config_auth_state(&mut transaction).await?
+        else {
+            return Ok(None);
+        };
+        query!(
+            "UPDATE token SET mfa_setup_state = NULL WHERE id = $1",
+            self.id
+        )
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        self.mfa_setup_state = None;
+        Ok(Some(challenge))
+    }
+
+    /// Whether `attempt_id` is still the pending OIDC attempt, locking the token row for the
+    /// rest of `transaction`. A token deleted by a newer session counts as superseded.
+    async fn lock_pending_mfa_config_oidc_attempt(
+        &self,
+        transaction: &mut PgConnection,
+        attempt_id: &str,
+    ) -> Result<bool, TokenError> {
+        match self.lock_mfa_config_auth_state(transaction).await {
+            Ok(Some(MfaConfigAuthState::Oidc {
+                attempt_id: current,
+                completed: false,
+            })) => Ok(current == attempt_id),
+            Ok(_) | Err(TokenError::NotFound) => Ok(false),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Marks the OIDC attempt `attempt_id` completed. Returns `false` when that attempt is no
+    /// longer the current one or was already completed.
+    pub async fn mark_mfa_config_oidc_completed(
+        &mut self,
+        pool: &PgPool,
+        attempt_id: &str,
+    ) -> Result<bool, TokenError> {
+        let mut transaction = pool.begin().await?;
+        if !self
+            .lock_pending_mfa_config_oidc_attempt(&mut transaction, attempt_id)
+            .await?
+        {
+            return Ok(false);
+        }
+        self.set_mfa_config_auth_state(
+            &mut *transaction,
+            &MfaConfigAuthState::Oidc {
+                attempt_id: attempt_id.to_owned(),
+                completed: true,
+            },
+        )
+        .await?;
+        transaction.commit().await?;
+        Ok(true)
+    }
+
+    /// Deletes the token while `attempt_id` is its pending OIDC attempt. Returns `false`, leaving
+    /// it in place, when the token is gone or the attempt was superseded or completed.
+    pub async fn delete_pending_mfa_config_oidc_attempt(
+        &self,
+        pool: &PgPool,
+        attempt_id: &str,
+    ) -> Result<bool, TokenError> {
+        let mut transaction = pool.begin().await?;
+        if !self
+            .lock_pending_mfa_config_oidc_attempt(&mut transaction, attempt_id)
+            .await?
+        {
+            return Ok(false);
+        }
+        query!("DELETE FROM token WHERE id = $1", self.id)
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await?;
+        Ok(true)
+    }
+
     /// Like the REST `webauthn_init`, but stores the ceremony state on the token.
     /// Returns the `CreationChallengeResponse` as JSON for the client's authenticator.
     pub async fn start_fido2_setup(
@@ -323,15 +487,50 @@ impl Token {
             // session not yet started
             None => {
                 let now = Utc::now().naive_utc();
-                query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
-                    .execute(transaction)
-                    .await?;
+                // Authorization ends any pending MFA configuration authorization attempt.
+                query!(
+                    "UPDATE token SET used_at = $1, mfa_setup_state = NULL WHERE id = $2",
+                    now,
+                    self.id
+                )
+                .execute(transaction)
+                .await?;
                 self.used_at = Some(now);
+                self.mfa_setup_state = None;
 
                 debug!("Generate a new session successfully.");
                 Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
             }
         }
+    }
+
+    /// Authorizes an unused MFA configuration token. Unlike `start_session`, it fails when the
+    /// token is already authorized, so concurrent authorizations succeed at most once.
+    pub async fn authorize_mfa_config_session(
+        &mut self,
+        transaction: &mut PgConnection,
+        session_timeout_seconds: u64,
+    ) -> Result<NaiveDateTime, TokenError> {
+        if self.is_expired() {
+            return Err(TokenError::TokenExpired);
+        }
+        let now = Utc::now().naive_utc();
+        // Authorization ends any pending MFA configuration authorization attempt.
+        let result = query!(
+            "UPDATE token SET used_at = $1, mfa_setup_state = NULL \
+            WHERE id = $2 AND used_at IS NULL",
+            now,
+            self.id
+        )
+        .execute(transaction)
+        .await?;
+        if result.rows_affected() == 0 {
+            return Err(TokenError::TokenUsed);
+        }
+        self.used_at = Some(now);
+        self.mfa_setup_state = None;
+
+        Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
     }
 
     pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
@@ -441,15 +640,40 @@ impl Token {
         E: PgExecutor<'e>,
     {
         debug!("Deleting unused {token_type} tokens for user {user_id}");
-        // Plain query: the token type is a runtime parameter and needs no cached query data.
-        let result =
-            query("DELETE FROM token WHERE user_id = $1 AND token_type = $2 AND used_at IS NULL")
-                .bind(user_id)
-                .bind(token_type)
-                .execute(executor)
-                .await?;
+        let result = query!(
+            "DELETE FROM token WHERE user_id = $1 AND token_type = $2 AND used_at IS NULL",
+            user_id,
+            token_type
+        )
+        .execute(executor)
+        .await?;
         debug!(
             "Deleted {} unused {token_type} tokens for user {user_id}",
+            result.rows_affected()
+        );
+
+        Ok(())
+    }
+
+    /// Deletes all tokens of the given type for the user, including used tokens.
+    pub async fn delete_user_tokens_of_type<'e, E>(
+        executor: E,
+        user_id: Id,
+        token_type: &str,
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
+        debug!("Deleting {token_type} tokens for user {user_id}");
+        let result = query!(
+            "DELETE FROM token WHERE user_id = $1 AND token_type = $2",
+            user_id,
+            token_type
+        )
+        .execute(executor)
+        .await?;
+        debug!(
+            "Deleted {} {token_type} tokens for user {user_id}",
             result.rows_affected()
         );
 
@@ -556,6 +780,9 @@ fn enrollment_welcome_email(settings: &Settings) -> Result<String, TokenError> {
 
 #[cfg(test)]
 mod tests {
+    use defguard_common::db::setup_pool;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
 
     #[test]
@@ -573,5 +800,200 @@ mod tests {
         assert!(!debug.contains("user@example.com"));
         assert!(debug.contains("user_id: 7"));
         assert!(debug.contains(ENROLLMENT_TOKEN_TYPE));
+    }
+
+    async fn mfa_config_token(pool: &PgPool, user_id: Id, attempt_id: &str) -> Token {
+        let mut token = Token::new(
+            user_id,
+            None,
+            None,
+            60,
+            Some(MFA_CONFIG_TOKEN_TYPE.to_owned()),
+        );
+        token.save(pool).await.unwrap();
+        token
+            .set_mfa_config_auth_state(
+                pool,
+                &MfaConfigAuthState::Oidc {
+                    attempt_id: attempt_id.to_owned(),
+                    completed: false,
+                },
+            )
+            .await
+            .unwrap();
+        token
+    }
+
+    async fn token_exists(pool: &PgPool, id: &str) -> bool {
+        match Token::find_by_id(pool, id).await {
+            Ok(_) => true,
+            Err(TokenError::NotFound) => false,
+            Err(err) => panic!("failed to look up token: {err}"),
+        }
+    }
+
+    async fn create_test_user(pool: &PgPool) -> User<Id> {
+        User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_delete_pending_oidc_attempt(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let token = mfa_config_token(&pool, user.id, "current").await;
+        let other = mfa_config_token(&pool, user.id, "other").await;
+
+        assert!(
+            token
+                .delete_pending_mfa_config_oidc_attempt(&pool, "current")
+                .await
+                .unwrap()
+        );
+        assert!(!token_exists(&pool, &token.id).await);
+        assert!(token_exists(&pool, &other.id).await);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_pending_oidc_attempt_keeps_superseded(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let mut token = mfa_config_token(&pool, user.id, "stale").await;
+        assert!(
+            token
+                .replace_mfa_config_auth_state(
+                    &pool,
+                    &MfaConfigAuthState::Oidc {
+                        attempt_id: "current".to_owned(),
+                        completed: false,
+                    },
+                )
+                .await
+                .unwrap()
+        );
+
+        assert!(
+            !token
+                .delete_pending_mfa_config_oidc_attempt(&pool, "stale")
+                .await
+                .unwrap()
+        );
+        assert!(token_exists(&pool, &token.id).await);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_pending_oidc_attempt_keeps_completed(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let mut token = mfa_config_token(&pool, user.id, "current").await;
+        assert!(
+            token
+                .mark_mfa_config_oidc_completed(&pool, "current")
+                .await
+                .unwrap()
+        );
+
+        assert!(
+            !token
+                .delete_pending_mfa_config_oidc_attempt(&pool, "current")
+                .await
+                .unwrap()
+        );
+        assert!(token_exists(&pool, &token.id).await);
+    }
+
+    #[sqlx::test]
+    async fn test_mfa_config_authorization_is_single_use(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let token = mfa_config_token(&pool, user.id, "current").await;
+        let mut first = Token::find_by_id(&pool, &token.id).await.unwrap();
+        let mut second = Token::find_by_id(&pool, &token.id).await.unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        let deadline = first
+            .authorize_mfa_config_session(&mut transaction, 60)
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+        assert!(matches!(
+            second
+                .authorize_mfa_config_session(&mut transaction, 60)
+                .await,
+            Err(TokenError::TokenUsed)
+        ));
+        drop(transaction);
+
+        // Postgres keeps microseconds, so the stored timestamp may be truncated.
+        let stored = Token::find_by_id(&pool, &token.id)
+            .await
+            .unwrap()
+            .used_at
+            .unwrap();
+        let expected = deadline - TimeDelta::seconds(60);
+        assert!((expected - stored).abs() < TimeDelta::milliseconds(1));
+    }
+
+    #[sqlx::test]
+    async fn test_mfa_config_authorization_clears_auth_state(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let mut token = mfa_config_token(&pool, user.id, "current").await;
+
+        let mut transaction = pool.begin().await.unwrap();
+        token
+            .authorize_mfa_config_session(&mut transaction, 60)
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+
+        let stored = Token::find_by_id(&pool, &token.id).await.unwrap();
+        assert!(stored.mfa_setup_state.is_none());
+    }
+
+    #[sqlx::test]
+    async fn test_oidc_attempt_of_deleted_token(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let user = create_test_user(&pool).await;
+        let mut token = mfa_config_token(&pool, user.id, "current").await;
+        Token::delete_user_tokens_of_type(&pool, user.id, MFA_CONFIG_TOKEN_TYPE)
+            .await
+            .unwrap();
+
+        assert!(
+            !token
+                .delete_pending_mfa_config_oidc_attempt(&pool, "current")
+                .await
+                .unwrap()
+        );
+        assert!(
+            !token
+                .mark_mfa_config_oidc_completed(&pool, "current")
+                .await
+                .unwrap()
+        );
     }
 }

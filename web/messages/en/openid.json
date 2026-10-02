@@ -70,6 +70,7 @@
   "settings_openid_provider_delete_button": "Delete",
   "settings_openid_provider_delete_confirm_title": "Delete external identity provider",
   "settings_openid_provider_delete_confirm_body": "Are you sure you want to delete this external identity provider? This action cannot be undone.",
+  "settings_openid_provider_delete_confirm_body_mfa": "MFA flows **{flows}** use this external identity provider. Their users cannot complete MFA until those flows are edited. Are you sure you want to delete this external identity provider? This action cannot be undone.",
   "settings_openid_provider_delete_success": "External identity provider deleted",
   "settings_openid_provider_delete_failed": "Failed to delete external identity provider",
   "settings_openid_provider_validation_success_title": "External ID provider successfully added.",

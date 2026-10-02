@@ -72,8 +72,10 @@ fn test_process_source_addrs_v4() {
         source_addrs,
         [
             IpAddress::Ip("10.0.1.1".to_owned()),
-            IpAddress::IpSubnet("10.0.1.2/31".to_owned()),
-            IpAddress::IpSubnet("10.0.1.4/31".to_owned()),
+            IpAddress::Ip("10.0.1.2".to_owned()),
+            IpAddress::Ip("10.0.1.3".to_owned()),
+            IpAddress::Ip("10.0.1.4".to_owned()),
+            IpAddress::Ip("10.0.1.5".to_owned()),
             IpAddress::Ip("172.16.1.1".to_owned()),
             IpAddress::Ip("192.168.1.100".to_owned()),
         ]

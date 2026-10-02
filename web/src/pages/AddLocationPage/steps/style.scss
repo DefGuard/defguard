@@ -5,3 +5,14 @@
     color: var(--fg-action);
   }
 }
+
+.add-location-mfa-flow-list {
+  display: flex;
+  flex-flow: column;
+
+  & > .add-location-mfa-flow-row {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+  }
+}

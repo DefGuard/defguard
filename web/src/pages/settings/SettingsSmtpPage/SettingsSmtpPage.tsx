@@ -31,9 +31,12 @@ import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
 import {
   getLicenseInfoQueryOptions,
+  getMfaFlowsQueryOptions,
   getSettingsQueryOptions,
+  mfaAvailabilityInvalidateKey,
 } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import { smtpResetBody } from '../../../shared/utils/mfaFlowSteps';
 import { Validate } from '../../../shared/validate';
 import { getConfiguredBadge, getNotConfiguredBadge } from '../SettingsIndexPage/types';
 import {
@@ -197,13 +200,14 @@ const Content = ({
   );
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const { data: mfaFlows = [] } = useQuery(getMfaFlowsQueryOptions);
   const oauthLocked =
     licenseInfo !== undefined && !canUseBusinessFeature(licenseInfo).result;
 
   const { mutateAsync: editSettings } = useMutation({
     mutationFn: api.settings.patchSettings,
     meta: {
-      invalidate: [['settings'], ['info']],
+      invalidate: [['settings'], ['info'], mfaAvailabilityInvalidateKey],
     },
     onSuccess: () => {
       Snackbar.default(m.settings_msg_saved());
@@ -254,11 +258,11 @@ const Content = ({
   const handleDelete = () => {
     openModal(ModalName.ConfirmAction, {
       title: m.settings_smtp_reset_confirm_title(),
-      contentMd: m.settings_smtp_reset_confirm_body(),
+      contentMd: smtpResetBody(mfaFlows),
       actionPromise: () => {
         return api.settings.patchSettings(emptyValues);
       },
-      invalidateKeys: [['settings'], ['info']],
+      invalidateKeys: [['settings'], ['info'], mfaAvailabilityInvalidateKey],
       submitProps: { text: m.controls_delete(), variant: 'critical' },
       onSuccess: () => {
         form.reset(emptyValues);

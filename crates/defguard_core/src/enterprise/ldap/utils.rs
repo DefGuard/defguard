@@ -198,6 +198,31 @@ pub async fn ldap_add_user(
     .await;
 }
 
+/// Stores an enrollment token in LDAP for each of the given users, over a single connection.
+///
+/// Users whose token could not be written are returned instead of aborting the batch.
+pub(crate) async fn ldap_store_enrollment_tokens<'a>(
+    tokens: &[(&'a User<Id>, String)],
+    pool: &PgPool,
+) -> Result<Vec<&'a User<Id>>, LdapError> {
+    Box::pin(with_ldap_status(pool, async {
+        debug!(
+            "Storing enrollment tokens for {} user(s) in LDAP",
+            tokens.len()
+        );
+        let mut ldap_connection = LDAPConnection::create().await?;
+        let mut failed = Vec::new();
+        for (user, token) in tokens {
+            if let Err(err) = ldap_connection.set_user_enrollment_token(user, token).await {
+                error!("Failed to store enrollment token for user {user} in LDAP: {err}");
+                failed.push(*user);
+            }
+        }
+        Ok(failed)
+    }))
+    .await
+}
+
 /// Applies user modifications to LDAP. May update the user object if
 /// his RDN in Defguard needs updating. Fails and sets the sync status to desynced
 /// if the user does not exist in LDAP despite updating his state.

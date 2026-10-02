@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
-import type { AclListTabValue } from '../../shared/aclTabs';
+import { AclListTab, type AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName, type AclRule } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -24,6 +24,7 @@ import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { resourceById } from '../../shared/utils/resourceById';
+import { ruleNamesByResourceId } from '../../shared/utils/ruleNamesByResourceId';
 
 type RowData = AclAlias;
 
@@ -54,19 +55,10 @@ export const AliasTable = ({
   );
 
   const rulesById = useMemo(() => resourceById(rules), [rules]);
-  const rulesByAliasId = useMemo(() => {
-    if (!rules) return {} as Record<number, string[]>;
-    const map: Record<number, string[]> = {};
-    rules.forEach((rule) => {
-      rule.aliases.forEach((aliasId) => {
-        if (!map[aliasId]) {
-          map[aliasId] = [];
-        }
-        map[aliasId].push(rule.name);
-      });
-    });
-    return map;
-  }, [rules]);
+  const rulesByAliasId = useMemo(
+    () => ruleNamesByResourceId(rules, (rule) => rule.aliases),
+    [rules],
+  );
 
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
@@ -201,6 +193,25 @@ export const AliasTable = ({
               ],
             },
           ];
+          if (tab === AclListTab.Deployed) {
+            menuItems[0].items.splice(1, 0, {
+              text: m.controls_duplicate(),
+              icon: 'duplicate',
+              testId: 'alias-row-duplicate',
+              onClick: () => {
+                if (licenseInfo === undefined) return;
+                licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                  navigate({
+                    to: '/acl/add-alias',
+                    search: {
+                      duplicate: row.id,
+                      tab,
+                    },
+                  });
+                });
+              },
+            });
+          }
           if (row.state === 'Modified') {
             menuItems[0].items.splice(1, 0, {
               text: m.controls_deploy(),

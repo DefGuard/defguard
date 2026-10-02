@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query};
+use sqlx::{PgExecutor, query, query_scalar};
 
 use crate::db::Id;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Default, Deserialize, Serialize)]
 pub enum MigrationWizardStep {
     #[default]
     #[serde(rename = "welcome")]
@@ -32,19 +32,19 @@ pub enum MigrationWizardStep {
     Confirmation,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize)]
 pub struct MigrationWizardLocationState {
     pub(crate) locations: Vec<Id>,
     pub(crate) current_location: Id,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize)]
 pub struct ProxyUrl {
     pub domain: String,
     pub port: u16,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Default, Deserialize, Serialize)]
 pub struct MigrationWizardState {
     pub current_step: MigrationWizardStep,
     pub location_state: Option<MigrationWizardLocationState>,
@@ -56,14 +56,10 @@ impl MigrationWizardState {
     where
         E: PgExecutor<'e>,
     {
-        let state: Option<serde_json::Value> = sqlx::query_scalar(
-            "SELECT migration_wizard_state
-             FROM wizard
-             LIMIT 1",
-        )
-        .fetch_optional(executor)
-        .await?
-        .flatten();
+        let state = query_scalar!("SELECT migration_wizard_state FROM wizard LIMIT 1")
+            .fetch_optional(executor)
+            .await?
+            .flatten();
 
         state
             .map(serde_json::from_value)
@@ -95,7 +91,7 @@ impl MigrationWizardState {
         E: PgExecutor<'e>,
     {
         query!(
-            "Update wizard \
+            "UPDATE wizard \
             SET migration_wizard_state = NULL \
             WHERE is_singleton"
         )

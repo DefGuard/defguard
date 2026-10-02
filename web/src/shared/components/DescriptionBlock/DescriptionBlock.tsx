@@ -3,10 +3,11 @@ import './style.scss';
 import clsx from 'clsx';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
+import { isPresent } from '../../defguard-ui/utils/isPresent';
 
 type Props = HTMLProps<HTMLDivElement> &
   PropsWithChildren & {
-    title: string;
+    title?: string;
   };
 
 export const DescriptionBlock = ({
@@ -17,8 +18,12 @@ export const DescriptionBlock = ({
 }: Props) => {
   return (
     <div className={clsx('description-block', className)} {...containerProps}>
-      <p className="title">{title}</p>
-      <SizedBox height={ThemeSpacing.Xs} />
+      {isPresent(title) && (
+        <>
+          <p className="title">{title}</p>
+          <SizedBox height={ThemeSpacing.Xs} />
+        </>
+      )}
       <div>{children}</div>
     </div>
   );

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT migration_wizard_state FROM wizard LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "migration_wizard_state",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "wizard",
+            "name": "migration_wizard_state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "187647d0bdabcec970d525710768cd16580a791275c0556173bfd24de718bc34"
+}

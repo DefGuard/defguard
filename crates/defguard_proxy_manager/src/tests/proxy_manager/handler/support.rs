@@ -41,8 +41,9 @@ use defguard_proto::{
     client_types::{
         ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
         CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
-        EnrollmentStartRequest, MfaConfigAuthorizeRequest, MfaConfigSendCodeRequest,
-        MfaConfigStartRequest, MfaMethod,
+        EnrollmentStartRequest, MfaConfigAuthorizeRequest, MfaConfigEndRequest,
+        MfaConfigFido2ChallengeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest,
+        MfaMethod,
     },
     proxy::{
         ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
@@ -1294,8 +1295,74 @@ pub(crate) async fn send_mfa_config_authorize(
                 session_token: session_token.to_owned(),
                 method: method as i32,
                 code: code.to_owned(),
+                signature: None,
+                auth_data: None,
+                credential_id: None,
             },
         )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Request a FIDO2 challenge for an MFA configuration session.
+pub(crate) async fn send_mfa_config_fido2_challenge(
+    context: &mut HandlerTestContext,
+    session_token: &str,
+) -> CoreResponse {
+    static MFA_CONFIG_FIDO2_CHALLENGE_CTR: AtomicU64 = AtomicU64::new(5000);
+    let id = MFA_CONFIG_FIDO2_CHALLENGE_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaConfigFido2Challenge(
+            MfaConfigFido2ChallengeRequest {
+                session_token: session_token.to_owned(),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send an `MfaConfigAuthorize` request carrying a FIDO2 assertion.
+pub(crate) async fn send_mfa_config_authorize_fido2(
+    context: &mut HandlerTestContext,
+    session_token: &str,
+    signature: Option<Vec<u8>>,
+    auth_data: Option<Vec<u8>>,
+    credential_id: Option<Vec<u8>>,
+) -> CoreResponse {
+    static MFA_CONFIG_AUTH_FIDO2_CTR: AtomicU64 = AtomicU64::new(5250);
+    let id = MFA_CONFIG_AUTH_FIDO2_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaConfigAuthorize(
+            MfaConfigAuthorizeRequest {
+                session_token: session_token.to_owned(),
+                method: MfaMethod::Fido2 as i32,
+                code: String::new(),
+                signature,
+                auth_data,
+                credential_id,
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Sends an `MfaConfigEnd` request for the given session token.
+pub(crate) async fn send_mfa_config_end(
+    context: &mut HandlerTestContext,
+    session_token: &str,
+) -> CoreResponse {
+    static MFA_CONFIG_END_CTR: AtomicU64 = AtomicU64::new(4750);
+    let id = MFA_CONFIG_END_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaConfigEnd(MfaConfigEndRequest {
+            session_token: session_token.to_owned(),
+        })),
     });
     context.mock_proxy_mut().recv_outbound().await
 }
