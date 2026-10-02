@@ -9,6 +9,7 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type EditNetworkLocation,
+  type GroupClientMtu,
   LicenseFeature,
   type LocationMfaFlowResponse,
   LocationServiceMode,
@@ -18,6 +19,12 @@ import {
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
+import {
+  ClientMtuFields,
+  clientMtuFieldNames,
+  refineClientMtu,
+} from '../../shared/components/LocationMtuSettings/ClientMtuFields';
+import { LocationGroupMtuSection } from '../../shared/components/LocationMtuSettings/LocationGroupMtuSection';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import { renderPostureCheckSelectionItem } from '../../shared/components/PostureCheckSelectionItem/PostureCheckSelectionItem';
 import type {
@@ -25,8 +32,7 @@ import type {
   SelectionSectionCustomRender,
 } from '../../shared/components/SelectionSection/type';
 import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
-import { externalLink } from '../../shared/constants';
-import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
+import { externalLink, MAX_MTU, MIN_MTU } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
@@ -34,7 +40,7 @@ import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoB
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
@@ -55,8 +61,6 @@ import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
-import { LocationGroupMtuSection } from './components/LocationGroupMtuSection/LocationGroupMtuSection';
-import type { GroupClientMtu } from './components/LocationGroupMtuSection/types';
 import { knownFlowAssignments } from './components/LocationMfaSection/assignments';
 import { LocationMfaSection } from './components/LocationMfaSection/LocationMfaSection';
 import { getPostureChecksSectionState } from './postureChecksSection';
@@ -169,7 +173,7 @@ const formSchema = z
       // Keepalive is mandatory to prevent idle service locations from disconnecting
       .min(1, m.form_error_keepalive_min())
       .max(65535, m.form_error_port_max()),
-    mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+    mtu: z.number(m.form_error_required()).min(MIN_MTU).max(MAX_MTU),
     client_mtu_enabled: z.boolean(),
     client_mtu: z.number().nullable(),
     fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
@@ -199,21 +203,7 @@ const formSchema = z
       }
     }
 
-    if (value.client_mtu_enabled) {
-      if (value.client_mtu === null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['client_mtu'],
-          message: m.form_error_required(),
-        });
-      } else if (value.client_mtu < 72 || value.client_mtu > 0xffffffff) {
-        context.addIssue({
-          code: 'custom',
-          path: ['client_mtu'],
-          message: m.form_error_invalid(),
-        });
-      }
-    }
+    refineClientMtu(value, context);
 
     if (!value.allow_all_groups && value.allowed_groups.length === 0) {
       context.addIssue({
@@ -277,6 +267,7 @@ const buildLocationSubmissionData = (
   location: NetworkLocation,
   postureChecks: number[],
   mfaFlows: MfaFlowAssignment[],
+  groupClientMtus: GroupClientMtu[],
 ): EditNetworkLocation => {
   const normalizedValue = cloneDeep(value);
 
@@ -294,6 +285,7 @@ const buildLocationSubmissionData = (
       normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
     posture_checks: postureChecks,
     mfa_flows: mfaFlows,
+    group_client_mtus: groupClientMtus,
   };
 };
 
@@ -437,8 +429,13 @@ const EditLocationForm = ({
   const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
   const [pendingMfaFlows, setPendingMfaFlows] =
     useState<MfaFlowAssignment[]>(savedMfaFlows);
-  // TODO: load from and save to the API once the backend supports group-level MTU.
-  const [pendingGroupMtus, setPendingGroupMtus] = useState<GroupClientMtu[]>([]);
+  const [pendingGroupMtus, setPendingGroupMtus] = useState<GroupClientMtu[]>(
+    location.group_client_mtus,
+  );
+  const hasPendingGroupMtuChanges = !isEqual(
+    pendingGroupMtus,
+    location.group_client_mtus,
+  );
 
   const postureCheckOptions = useMemo(
     () =>
@@ -597,6 +594,7 @@ const EditLocationForm = ({
         location,
         pendingPostureChecks,
         editedMfaFlows,
+        pendingGroupMtus,
       ),
     });
   };
@@ -625,6 +623,7 @@ const EditLocationForm = ({
             location,
             location.posture_checks ?? [],
             savedMfaFlows,
+            location.group_client_mtus,
           ),
         ),
         getDisconnectRelevantLocationData(
@@ -633,6 +632,7 @@ const EditLocationForm = ({
             location,
             pendingPostureChecks,
             editedMfaFlows,
+            pendingGroupMtus,
           ),
         ),
       );
@@ -812,51 +812,10 @@ const EditLocationForm = ({
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-            {m.location_network_client_mtu_title()}
-          </AppText>
-          <SizedBox height={ThemeSpacing.Xs} />
-          <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-            {m.location_network_client_mtu_description()}
-          </AppText>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <form.AppField name="client_mtu_enabled">
-            {(field) => (
-              <>
-                <field.FormRadio
-                  value={false}
-                  text={m.location_network_client_mtu_option_client()}
-                />
-                <SizedBox height={ThemeSpacing.Md} />
-                <field.FormRadio
-                  value={true}
-                  text={m.location_network_client_mtu_option_custom()}
-                />
-              </>
-            )}
-          </form.AppField>
-          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
-            {(clientMtuEnabled) =>
-              clientMtuEnabled && (
-                <>
-                  <SizedBox height={ThemeSpacing.Lg} />
-                  <form.AppField name="client_mtu">
-                    {(field) => (
-                      <field.FormInput
-                        required
-                        label={m.location_network_label_client_mtu()}
-                        type="number"
-                      />
-                    )}
-                  </form.AppField>
-                </>
-              )
-            }
-          </form.Subscribe>
+          <ClientMtuFields form={form} fields={clientMtuFieldNames} />
           <SizedBox height={ThemeSpacing.Xl2} />
           <LocationGroupMtuSection
             overrides={pendingGroupMtus}
-            groupOptions={mfaGroupOptions}
             onChange={setPendingGroupMtus}
           />
         </EditPageFormSection>
@@ -1105,7 +1064,8 @@ const EditLocationForm = ({
             isDefault:
               (form.isPristine || form.isDefaultValue) &&
               !hasPendingPostureCheckChanges &&
-              !hasPendingMfaFlowChanges,
+              !hasPendingMfaFlowChanges &&
+              !hasPendingGroupMtuChanges,
           })}
         >
           {({ isDefault, isSubmitting }) => (

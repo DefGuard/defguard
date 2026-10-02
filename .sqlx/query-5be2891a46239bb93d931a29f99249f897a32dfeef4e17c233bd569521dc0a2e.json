@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM group_client_mtu WHERE network_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5be2891a46239bb93d931a29f99249f897a32dfeef4e17c233bd569521dc0a2e"
+}

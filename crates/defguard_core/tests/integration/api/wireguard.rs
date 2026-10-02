@@ -142,6 +142,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
         mfa_flows: Vec::new(),
+        group_client_mtus: Vec::new(),
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -1281,6 +1282,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
         mfa_flows: Vec::new(),
+        group_client_mtus: Vec::new(),
     };
 
     let response = client
@@ -1345,6 +1347,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
         mfa_flows: Vec::new(),
+        group_client_mtus: Vec::new(),
     };
 
     let response = client
@@ -3172,4 +3175,172 @@ async fn test_static_ip_assignment_sends_device_modified(
 
     // ACLs are disabled for this location, so no firewall update follows.
     assert!(gateway_rx.try_recv().is_err());
+}
+
+fn location_json_with_group_client_mtus(name: &str, group_client_mtus: Value) -> Value {
+    json!({
+        "name": name,
+        "address": "10.1.1.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
+        "allowed_groups": [],
+        "allow_all_groups": true,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "allowed_ips_from_acl": false,
+        "mfa_enabled": false,
+        "service_location_mode": "disabled",
+        "posture_checks": [],
+        "mfa_flows": [],
+        "group_client_mtus": group_client_mtus,
+    })
+}
+
+#[sqlx::test]
+async fn test_location_group_client_mtus(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let group_1 = Group::new("mtu_group_1")
+        .save(&client_state.pool)
+        .await
+        .unwrap()
+        .id;
+    let group_2 = Group::new("mtu_group_2")
+        .save(&client_state.pool)
+        .await
+        .unwrap()
+        .id;
+    let group_3 = Group::new("mtu_group_3")
+        .save(&client_state.pool)
+        .await
+        .unwrap()
+        .id;
+
+    // Create a location with overrides.
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_json_with_group_client_mtus(
+            "network",
+            json!([
+                {"client_mtu": 1300, "group_ids": [group_2, group_1]},
+                {"client_mtu": 1200, "group_ids": [group_3]},
+            ]),
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network_id = response.json::<Value>().await["id"].as_i64().unwrap();
+
+    let response = client
+        .get(format!("/api/v1/network/{network_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let details = response.json::<Value>().await;
+    assert_eq!(
+        details["group_client_mtus"],
+        json!([
+            {"client_mtu": 1200, "group_ids": [group_3]},
+            {"client_mtu": 1300, "group_ids": [group_1, group_2]},
+        ])
+    );
+
+    // Replace overrides; overrides with the same value are merged.
+    let response = client
+        .put(format!("/api/v1/network/{network_id}"))
+        .json(&location_json_with_group_client_mtus(
+            "network",
+            json!([
+                {"client_mtu": 1280, "group_ids": [group_1]},
+                {"client_mtu": 1280, "group_ids": [group_3]},
+            ]),
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client.get("/api/v1/network").send().await;
+    let networks = response.json::<Value>().await;
+    assert_eq!(
+        networks[0]["group_client_mtus"],
+        json!([{"client_mtu": 1280, "group_ids": [group_1, group_3]}])
+    );
+
+    // Omitting the field clears overrides.
+    let mut data = location_json_with_group_client_mtus("network", json!([]));
+    data.as_object_mut().unwrap().remove("group_client_mtus");
+    let response = client
+        .put(format!("/api/v1/network/{network_id}"))
+        .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client
+        .get(format!("/api/v1/network/{network_id}"))
+        .send()
+        .await;
+    assert_eq!(
+        response.json::<Value>().await["group_client_mtus"],
+        json!([])
+    );
+
+    // Invalid overrides are rejected and leave saved overrides untouched.
+    for invalid in [
+        json!([{"client_mtu": 71, "group_ids": [group_1]}]),
+        json!([{"client_mtu": 1280, "group_ids": []}]),
+        json!([
+            {"client_mtu": 1280, "group_ids": [group_1]},
+            {"client_mtu": 1300, "group_ids": [group_1]},
+        ]),
+        json!([{"client_mtu": 1280, "group_ids": [group_1, 999_999]}]),
+    ] {
+        let response = client
+            .put(format!("/api/v1/network/{network_id}"))
+            .json(&location_json_with_group_client_mtus("network", invalid))
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_json_with_group_client_mtus(
+            "other",
+            json!([{"client_mtu": 1280, "group_ids": [999_999]}]),
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Deleting a group removes its overrides.
+    let response = client
+        .put(format!("/api/v1/network/{network_id}"))
+        .json(&location_json_with_group_client_mtus(
+            "network",
+            json!([{"client_mtu": 1280, "group_ids": [group_1, group_2]}]),
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    Group::find_by_id(&client_state.pool, group_2)
+        .await
+        .unwrap()
+        .unwrap()
+        .delete(&client_state.pool)
+        .await
+        .unwrap();
+    let response = client
+        .get(format!("/api/v1/network/{network_id}"))
+        .send()
+        .await;
+    assert_eq!(
+        response.json::<Value>().await["group_client_mtus"],
+        json!([{"client_mtu": 1280, "group_ids": [group_1]}])
+    );
 }

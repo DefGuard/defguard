@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { m } from '../../../../paraglide/messages';
-import { Chip } from '../../../../shared/defguard-ui/components/Chip/Chip';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
-import { Icon } from '../../../../shared/defguard-ui/components/Icon/Icon';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { m } from '../../../paraglide/messages';
+import { Chip } from '../../defguard-ui/components/Chip/Chip';
+import { Divider } from '../../defguard-ui/components/Divider/Divider';
+import { IconKind } from '../../defguard-ui/components/Icon';
+import { Icon } from '../../defguard-ui/components/Icon/Icon';
+import { ThemeSpacing } from '../../defguard-ui/types';
 
 const collapsedChipLimit = 5;
 

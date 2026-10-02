@@ -3,18 +3,6 @@
   flex-flow: column;
   align-items: flex-start;
 
-  & > .title {
-    font: var(--t-body-primary-600);
-    color: var(--fg-default);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  & > .description {
-    font: var(--t-body-sm-400);
-    color: var(--fg-muted);
-    margin-bottom: var(--spacing-lg);
-  }
-
   & > .overrides {
     display: flex;
     flex-flow: column;

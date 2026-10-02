@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import { m } from '../../../../paraglide/messages';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
-import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
-import { Input } from '../../../../shared/defguard-ui/components/Input/Input';
-import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { type GroupClientMtu, maxMtu, minMtu } from './types';
+import { m } from '../../../paraglide/messages';
+import type { GroupClientMtu } from '../../api/types';
+import { MAX_MTU, MIN_MTU } from '../../constants';
+import { Button } from '../../defguard-ui/components/Button/Button';
+import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
+import { Input } from '../../defguard-ui/components/Input/Input';
+import { Modal } from '../../defguard-ui/components/Modal/Modal';
+import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../defguard-ui/types';
+import { isPresent } from '../../defguard-ui/utils/isPresent';
+import { Controls } from '../Controls/Controls';
+import { SelectionSection } from '../SelectionSection/SelectionSection';
+import type { SelectionOption } from '../SelectionSection/type';
 
 type Props = {
   isOpen: boolean;
-  target?: Partial<GroupClientMtu>;
+  /** Mounts the content while defined; `null` creates a new override. */
+  initial?: GroupClientMtu | null;
   /** Groups not assigned to any other override. */
   groupOptions: SelectionOption<number>[];
   onClose: () => void;
@@ -24,71 +26,55 @@ type Props = {
 
 export const GroupMtuModal = ({
   isOpen,
-  target,
+  initial,
   groupOptions,
   onClose,
   afterClose,
   onSubmit,
-}: Props) => {
-  const [onGroupStep, setOnGroupStep] = useState(false);
-
-  return (
-    <Modal
-      title={
-        onGroupStep
-          ? m.location_network_group_mtu_groups_modal_title()
-          : m.location_network_group_mtu_value_modal_title()
-      }
-      id="group-mtu-modal"
-      contentClassName="group-mtu-modal"
-      isOpen={isOpen}
-      onClose={onClose}
-      afterClose={() => {
-        setOnGroupStep(false);
-        afterClose();
-      }}
-    >
-      {isPresent(target) && (
-        <GroupMtuModalContent
-          target={target}
-          groupOptions={groupOptions}
-          onGroupStep={onGroupStep}
-          setOnGroupStep={setOnGroupStep}
-          onClose={onClose}
-          onSubmit={onSubmit}
-        />
-      )}
-    </Modal>
-  );
-};
+}: Props) => (
+  <Modal
+    title={m.location_network_group_mtu_modal_title()}
+    id="group-mtu-modal"
+    contentClassName="group-mtu-modal"
+    isOpen={isOpen}
+    onClose={onClose}
+    afterClose={afterClose}
+  >
+    {initial !== undefined && (
+      <GroupMtuModalContent
+        initial={initial}
+        groupOptions={groupOptions}
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />
+    )}
+  </Modal>
+);
 
 type ContentProps = {
-  target: Partial<GroupClientMtu>;
+  initial: GroupClientMtu | null;
   groupOptions: SelectionOption<number>[];
-  onGroupStep: boolean;
-  setOnGroupStep: (value: boolean) => void;
   onClose: () => void;
   onSubmit: (value: GroupClientMtu) => void;
 };
 
+const validateMtu = (value: number | null): string | undefined => {
+  if (value === null) return m.form_error_required();
+  if (value < MIN_MTU) return m.form_error_min({ value: MIN_MTU });
+  if (value > MAX_MTU) return m.form_error_invalid();
+};
+
 const GroupMtuModalContent = ({
-  target,
+  initial,
   groupOptions,
-  onGroupStep,
-  setOnGroupStep,
   onClose,
   onSubmit,
 }: ContentProps) => {
-  const [clientMtu, setClientMtu] = useState<number | null>(target.client_mtu ?? null);
+  const [onGroupStep, setOnGroupStep] = useState(false);
+  const [clientMtu, setClientMtu] = useState(initial?.client_mtu ?? null);
   const [mtuError, setMtuError] = useState<string>();
-  const [groupIds, setGroupIds] = useState(new Set(target.group_ids ?? []));
+  const [groupIds, setGroupIds] = useState(new Set(initial?.group_ids));
   const [groupError, setGroupError] = useState<string>();
-
-  const validateMtu = (value: number | null): string | undefined => {
-    if (value === null) return m.form_error_required();
-    if (value < minMtu) return m.form_error_min({ value: minMtu });
-    if (value > maxMtu) return m.form_error_invalid();
-  };
 
   const handleMtuChange = (value: string | number | null) => {
     const next = typeof value === 'number' ? value : null;

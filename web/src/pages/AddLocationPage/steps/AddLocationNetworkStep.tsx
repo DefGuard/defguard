@@ -1,24 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
-import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
+import {
+  ClientMtuFields,
+  clientMtuFieldNames,
+  refineClientMtu,
+} from '../../../shared/components/LocationMtuSettings/ClientMtuFields';
+import { LocationGroupMtuSection } from '../../../shared/components/LocationMtuSettings/LocationGroupMtuSection';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
+import { MAX_MTU, MIN_MTU } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { getGroupsInfoQueryOptions } from '../../../shared/query';
-import { LocationGroupMtuSection } from '../../EditLocationPage/components/LocationGroupMtuSection/LocationGroupMtuSection';
 import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
@@ -29,28 +27,12 @@ const formSchema = z
       // Keepalive is mandatory to prevent idle service locations from disconnecting
       .min(1, m.form_error_keepalive_min())
       .max(65535, m.form_error_port_max()),
-    mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+    mtu: z.number(m.form_error_required()).min(MIN_MTU).max(MAX_MTU),
     client_mtu_enabled: z.boolean(),
     client_mtu: z.number().nullable(),
     fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
   })
-  .superRefine((value, context) => {
-    if (value.client_mtu_enabled) {
-      if (value.client_mtu === null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['client_mtu'],
-          message: m.form_error_required(),
-        });
-      } else if (value.client_mtu < 72 || value.client_mtu > 0xffffffff) {
-        context.addIssue({
-          code: 'custom',
-          path: ['client_mtu'],
-          message: m.form_error_invalid(),
-        });
-      }
-    }
-  });
+  .superRefine(refineClientMtu);
 
 type FormFields = z.infer<typeof formSchema>;
 
@@ -63,16 +45,6 @@ const toStoreValues = (value: FormFields) => ({
 export const AddLocationNetworkStep = () => {
   const locationType = useAddLocationStore((s) => s.locationType);
   const groupClientMtus = useAddLocationStore((s) => s.group_client_mtus);
-  const { data: groupOptions = [] } = useQuery({
-    ...getGroupsInfoQueryOptions,
-    select: (response) =>
-      response.data.map(
-        (group): SelectionOption<number> => ({
-          id: group.id,
-          label: group.name,
-        }),
-      ),
-  });
 
   const defaultValues = useAddLocationStore(
     useShallow(
@@ -138,51 +110,10 @@ export const AddLocationNetworkStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
-          <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-            {m.location_network_client_mtu_title()}
-          </AppText>
-          <SizedBox height={ThemeSpacing.Xs} />
-          <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-            {m.location_network_client_mtu_description()}
-          </AppText>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <form.AppField name="client_mtu_enabled">
-            {(field) => (
-              <>
-                <field.FormRadio
-                  value={false}
-                  text={m.location_network_client_mtu_option_client()}
-                />
-                <SizedBox height={ThemeSpacing.Md} />
-                <field.FormRadio
-                  value={true}
-                  text={m.location_network_client_mtu_option_custom()}
-                />
-              </>
-            )}
-          </form.AppField>
-          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
-            {(clientMtuEnabled) =>
-              clientMtuEnabled && (
-                <>
-                  <SizedBox height={ThemeSpacing.Lg} />
-                  <form.AppField name="client_mtu">
-                    {(field) => (
-                      <field.FormInput
-                        required
-                        label={m.location_network_label_client_mtu()}
-                        type="number"
-                      />
-                    )}
-                  </form.AppField>
-                </>
-              )
-            }
-          </form.Subscribe>
+          <ClientMtuFields form={form} fields={clientMtuFieldNames} />
           <SizedBox height={ThemeSpacing.Xl} />
           <LocationGroupMtuSection
             overrides={groupClientMtus}
-            groupOptions={groupOptions}
             onChange={(group_client_mtus) =>
               useAddLocationStore.setState({ group_client_mtus })
             }
