@@ -31,6 +31,7 @@ jobs:
       actions: read
       contents: read
       issues: read
+      pull-requests: read
     outputs:
       version: ${{ steps.gates.outputs.version }}
     steps:
@@ -83,7 +84,7 @@ jobs:
 
             echo "::group::Blocker gate: open release-blocker issues with '] $GITHUB_REF_NAME:' in the title"
             # alert-issue titles have the form "[source] branch: summary".
-            BLOCKERS=$(gh issue list --label release-blocker --state open --limit 200 --json title,url \
+            BLOCKERS=$(gh issue list --label release-blocker --search "-label:ignore-for-release" --state open --limit 200 --json title,url \
               --jq '.[] | select(.title | contains("] " + env.GITHUB_REF_NAME + ":")) | .url')
             if [[ -n $BLOCKERS ]]; then
               echo "::error::Open release-blocker issues for $GITHUB_REF_NAME. A green rehearsal (draft=false) closes its own issue."
@@ -139,18 +140,22 @@ jobs:
             echo "All submodule commits are merged"
             echo "::endgroup::"
 
-            echo "::group::Milestone gate: milestone $VERSION must have no open issues or pull requests"
+            echo "::group::Milestone gate: milestone $VERSION must have no open issues or pull requests without the ignore-for-release label"
             export VERSION
-            OPEN=$(gh api "repos/$GH_REPO/milestones?state=all&per_page=100" --paginate \
-              --jq '.[] | select(.title == env.VERSION) | .open_issues')
-            if [[ ${OPEN:-0} != 0 ]]; then
-              echo "::error::Milestone $VERSION has $OPEN open issues or pull requests. Close them, or move them to another milestone."
-              exit 1
-            fi
-            if [[ -z $OPEN ]]; then
+            MILESTONE=$(gh api "repos/$GH_REPO/milestones?state=all&per_page=100" --paginate \
+              --jq '.[] | select(.title == env.VERSION) | .number')
+            if [[ -z $MILESTONE ]]; then
               echo "No milestone $VERSION found"
             else
-              echo "Milestone $VERSION has no open issues or pull requests"
+              # The issues endpoint also returns pull requests.
+              OPEN=$(gh api "repos/$GH_REPO/issues?milestone=$MILESTONE&state=open&per_page=100" --paginate \
+                --jq '.[] | select(any(.labels[]; .name == "ignore-for-release") | not) | .html_url')
+              if [[ -n $OPEN ]]; then
+                echo "::error::Milestone $VERSION has open issues or pull requests. Close them, move them to another milestone, or add the ignore-for-release label."
+                echo "$OPEN"
+                exit 1
+              fi
+              echo "Milestone $VERSION has no open issues or pull requests without the ignore-for-release label"
             fi
             echo "::endgroup::"
           else
