@@ -21,7 +21,6 @@ use defguard_core::{
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
-        is_oidc_mfa_available,
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
@@ -1008,8 +1007,6 @@ impl EnrollmentServer {
                 error!("Failed to get OpenID provider: {err}");
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-        let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
-
         let instance_info = InstanceInfo::build(
             &self.pool,
             &settings,
@@ -1025,20 +1022,14 @@ impl EnrollmentServer {
 
         let supports_multi_step_mfa =
             ClientFeature::MultiStepMfa.is_supported_by_device(req_device_info.as_ref());
-        let smtp_configured = settings.smtp_configured();
 
         let mut wire_configs = Vec::with_capacity(configs.len());
         for device_config in configs {
             let config = to_wire_device_config(
-                &self.pool,
                 device_config,
-                &user,
-                device.id,
-                smtp_configured,
-                oidc_configured,
+                instance_info.configured_methods(),
                 supports_multi_step_mfa,
-            )
-            .await?;
+            )?;
             wire_configs.push(config);
         }
 
