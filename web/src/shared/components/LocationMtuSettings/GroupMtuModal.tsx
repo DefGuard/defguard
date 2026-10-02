@@ -15,7 +15,7 @@ import type { SelectionOption } from '../SelectionSection/type';
 
 type Props = {
   isOpen: boolean;
-  /** Mounts the content while defined; `null` creates a new override. */
+  /** `null` for a new override; `undefined` while closed. */
   initial?: GroupClientMtu | null;
   /** Groups not assigned to any other override. */
   groupOptions: SelectionOption<number>[];

@@ -100,7 +100,7 @@ pub struct WireguardNetworkData {
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Vec<Id>,
     pub mfa_flows: Vec<LocationMfaFlowAssignment>,
-    /// Client MTU overrides for selected groups. Each group may appear in one override only.
+    /// Client MTU overrides; each group may appear once.
     #[serde(default)]
     pub group_client_mtus: Vec<GroupClientMtu>,
 }
@@ -220,7 +220,7 @@ impl WireguardNetworkData {
             .map_or(Ok(()), |mtu| validate_min_mtu("client_mtu", mtu))
     }
 
-    /// Validate group-level client MTU overrides. A group may have only one override.
+    /// Each group may have only one override.
     pub(crate) fn validate_group_client_mtus(&self) -> Result<(), WebError> {
         let mut group_ids = HashSet::new();
         for item in &self.group_client_mtus {
@@ -262,7 +262,7 @@ fn validate_min_mtu(field: &str, mtu: i32) -> Result<(), WebError> {
     }
 }
 
-/// Save group-level client MTU overrides, rejecting unknown groups with `400`.
+/// Unknown groups are rejected with `400`.
 async fn save_group_client_mtus(
     network: &WireguardNetwork<Id>,
     conn: &mut PgConnection,

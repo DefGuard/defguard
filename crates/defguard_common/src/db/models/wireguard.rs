@@ -136,7 +136,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub service_location_mode: ServiceLocationMode,
 }
 
-/// Client MTU override applied to members of the listed groups in a location.
+/// Client MTU for members of the listed groups.
 #[derive(Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GroupClientMtu {
@@ -1422,7 +1422,7 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
-    /// Fetch group-level client MTU overrides, one entry per distinct MTU value.
+    /// Fetch group client MTU overrides, one entry per MTU value.
     pub async fn fetch_group_client_mtus<'e, E>(
         &self,
         executor: E,
@@ -1442,7 +1442,29 @@ impl WireguardNetwork<Id> {
         .await
     }
 
-    /// Replace group-level client MTU overrides with the given list.
+    /// The user's lowest group override, else the location's `client_mtu`.
+    pub async fn client_mtu_for_user<'e, E>(
+        &self,
+        executor: E,
+        user_id: Id,
+    ) -> sqlx::Result<Option<i32>>
+    where
+        E: PgExecutor<'e>,
+    {
+        let group_mtu = query_scalar!(
+            "SELECT min(gcm.client_mtu) FROM group_client_mtu gcm \
+            JOIN group_user gu ON gu.group_id = gcm.group_id \
+            WHERE gcm.network_id = $1 AND gu.user_id = $2",
+            self.id,
+            user_id
+        )
+        .fetch_one(executor)
+        .await?;
+
+        Ok(group_mtu.or(self.client_mtu))
+    }
+
+    /// Replace group client MTU overrides.
     pub async fn set_group_client_mtus(
         &self,
         conn: &mut PgConnection,

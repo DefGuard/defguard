@@ -834,7 +834,7 @@ export interface NetworkLocation {
   group_client_mtus: GroupClientMtu[];
 }
 
-/** Client MTU applied to members of the listed groups. */
+// Client MTU for members of the listed groups.
 export interface GroupClientMtu {
   client_mtu: number;
   group_ids: number[];

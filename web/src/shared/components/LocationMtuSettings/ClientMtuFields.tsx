@@ -11,13 +11,13 @@ type ClientMtuValues = {
   client_mtu: number | null;
 };
 
-/** Mapping for forms whose field names match {@link ClientMtuFields}. */
+/** `fields` for forms using the same field names. */
 export const clientMtuFieldNames = {
   client_mtu_enabled: 'client_mtu_enabled',
   client_mtu: 'client_mtu',
 } as const;
 
-/** Requires a valid client MTU when a custom value is selected. Use in `superRefine`. */
+/** `superRefine` check for a custom client MTU. */
 export const refineClientMtu = (value: ClientMtuValues, context: z.RefinementCtx) => {
   if (!value.client_mtu_enabled) return;
   if (value.client_mtu === null) {
@@ -35,7 +35,7 @@ export const refineClientMtu = (value: ClientMtuValues, context: z.RefinementCtx
   }
 };
 
-/** Client MTU choice: use the client's own value, or assign one for the location. */
+/** Client's own MTU, or one set for the location. */
 export const ClientMtuFields = withFieldGroup({
   defaultValues: { client_mtu_enabled: false, client_mtu: null } as ClientMtuValues,
   render: ({ group }) => (

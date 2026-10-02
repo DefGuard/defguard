@@ -18,7 +18,7 @@ type Props = {
   onChange: (overrides: GroupClientMtu[]) => void;
 };
 
-/** Index of the override being edited, or `'new'` for a new one. */
+/** Index of the edited override, or `'new'`. */
 type Editing = number | 'new';
 
 export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
@@ -46,7 +46,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
     [groupOptions],
   );
 
-  // A group can have only one MTU override, so hide groups taken by other overrides.
+  // A group can have one override only.
   const editorGroupOptions = useMemo(() => {
     const taken = new Set(
       overrides
