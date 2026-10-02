@@ -235,6 +235,12 @@ impl InstanceInfo {
             configured_methods,
         })
     }
+
+    /// Returns the methods configured for the user and device in this instance response.
+    #[must_use]
+    pub fn configured_methods(&self) -> &[VpnClientMfaMethod] {
+        &self.configured_methods
+    }
 }
 
 impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
