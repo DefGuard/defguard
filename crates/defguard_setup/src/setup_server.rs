@@ -11,7 +11,6 @@ use axum::{
 };
 use defguard_common::VERSION;
 use defguard_core::{
-    auth::failed_login::FailedLoginMap,
     handle_404,
     handlers::{
         component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
@@ -44,7 +43,6 @@ pub fn build_setup_webapp(
     version: Version,
     setup_shutdown_tx: OneshotSender<()>,
 ) -> Router {
-    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     Router::<()>::new()
         .route("/", get(index))
         .route("/{*path}", get(index))
@@ -90,7 +88,6 @@ pub fn build_setup_webapp(
         .fallback_service(get(handle_404))
         .layer(Extension(pool))
         .layer(Extension(version))
-        .layer(Extension(failed_logins))
         .layer(Extension(Arc::new(Mutex::new(Some(setup_shutdown_tx)))))
 }
 
