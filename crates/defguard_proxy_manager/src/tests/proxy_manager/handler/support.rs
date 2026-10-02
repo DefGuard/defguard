@@ -42,8 +42,7 @@ use defguard_proto::{
         ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
         CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
         EnrollmentStartRequest, MfaConfigAuthorizeRequest, MfaConfigEndRequest,
-        MfaConfigFido2ChallengeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest,
-        MfaMethod,
+        MfaConfigFido2ChallengeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest, MfaMethod,
     },
     proxy::{
         ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,

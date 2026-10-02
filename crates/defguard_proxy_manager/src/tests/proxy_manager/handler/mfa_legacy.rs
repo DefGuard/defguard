@@ -368,7 +368,7 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
 }
 
 #[sqlx::test]
-async fn test_legacy_mobile_approve_starts_with_fido2_on_location(
+async fn test_legacy_mobile_approve_completes_with_fido2_on_location(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -379,7 +379,8 @@ async fn test_legacy_mobile_approve_starts_with_fido2_on_location(
     let network =
         create_mfa_network_with_methods(&context.pool, INTERNAL_METHODS_WITH_FIDO2.to_vec()).await;
     let (_user, device) = create_user_with_device(&context.pool).await;
-    register_biometric_key(&context.pool, device.id).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
     let (_, token, challenge) = send_mfa_start_with_challenge(
         &mut context,
         network.id,
@@ -387,17 +388,78 @@ async fn test_legacy_mobile_approve_starts_with_fido2_on_location(
         MfaMethod::MobileApprove,
     )
     .await;
-    assert!(
-        challenge.is_some(),
-        "legacy mobile-approve start should return a challenge"
-    );
-    assert!(
-        VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
-            .await
-            .expect("failed to load mobile-approve session")
-            .is_some(),
-        "legacy mobile-approve start should create a session"
-    );
+    let challenge = challenge.expect("legacy mobile-approve start should return a challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: AWAIT_ID,
+        device_info: None,
+        payload: Some(core_request::Payload::AwaitRemoteMfaFinish(
+            AwaitRemoteMfaFinishRequest {
+                token: token.clone(),
+            },
+        )),
+    });
+    task::yield_now().await;
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    context.mock_proxy().send_request(CoreRequest {
+        id: AWAIT_ID + 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.clone(),
+                code: Some(signature),
+                auth_pub_key: Some(auth_pub_key),
+            },
+        )),
+    });
+
+    let first = context.mock_proxy_mut().recv_outbound().await;
+    let second = context.mock_proxy_mut().recv_outbound().await;
+    let mut parked_key = None;
+    for response in [&first, &second] {
+        match &response.payload {
+            Some(core_response::Payload::ClientMfaFinish(result)) => {
+                assert_eq!(response.id, AWAIT_ID + 1);
+                assert!(result.preshared_key.is_empty());
+            }
+            Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
+                assert_eq!(response.id, AWAIT_ID);
+                assert!(!result.preshared_key.is_empty());
+                parked_key = Some(result.preshared_key.clone());
+            }
+            _ => panic!("unexpected response"),
+        }
+    }
+    let parked_key = parked_key.expect("parked response must contain a key");
+
+    let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert_eq!(session.preshared_key.as_ref(), Some(&parked_key));
+
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+        .await
+        .expect("timed out waiting for GatewayCommand::VpnSessionAuthorized")
+        .expect("gateway command channel closed");
+    assert!(matches!(
+        event,
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                mobile_auth_device_name,
+                ..
+            } => assert_eq!(mobile_auth_device_name, Some(device.name.clone())),
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
 
     context.finish().await.expect_server_finished().await;
 }
