@@ -612,7 +612,7 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
-/// Scale down enabled Gateways and Edges to one (per component).
+/// Keep one enabled Gateway per location and one Edge per instance.
 async fn trim_gateways_and_edges(
     pool: &PgPool,
     proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
@@ -1073,7 +1073,12 @@ mod test {
     async fn test_trim_gateways_and_edges(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let location = WireguardNetwork::default().save(&pool).await.unwrap();
+        let mut location_a = WireguardNetwork::default();
+        location_a.name = "Location A".to_string();
+        let location_a = location_a.save(&pool).await.unwrap();
+        let mut location_b = WireguardNetwork::default();
+        location_b.name = "Location B".to_string();
+        let location_b = location_b.save(&pool).await.unwrap();
         let user = User::new(
             "tester",
             Some("hunter2"),
@@ -1087,20 +1092,24 @@ mod test {
         .unwrap();
         let fullname = user.fullname();
 
-        Gateway::new(location.id, "Gateway 1", "localhost", 8000, &fullname)
+        Gateway::new(location_a.id, "Gateway 1", "localhost", 8000, &fullname)
             .save(&pool)
             .await
             .unwrap();
-        Gateway::new(location.id, "Gateway 2", "localhost", 8001, &fullname)
+        Gateway::new(location_a.id, "Gateway 2", "localhost", 8001, &fullname)
+            .save(&pool)
+            .await
+            .unwrap();
+        Gateway::new(location_b.id, "Gateway 3", "localhost", 8002, &fullname)
             .save(&pool)
             .await
             .unwrap();
 
-        Proxy::new("Proxy 1", "localhost", 9000, &fullname)
+        let proxy_1 = Proxy::new("Proxy 1", "localhost", 9000, &fullname)
             .save(&pool)
             .await
             .unwrap();
-        Proxy::new("Proxy 2", "localhost", 9001, &fullname)
+        let proxy_2 = Proxy::new("Proxy 2", "localhost", 9001, &fullname)
             .save(&pool)
             .await
             .unwrap();
@@ -1113,15 +1122,42 @@ mod test {
             .unwrap();
 
         let all_gateways = Gateway::all(&pool).await.unwrap();
-        assert_eq!(1, all_gateways.iter().filter(|gw| gw.enabled).count());
+        assert_eq!(2, all_gateways.iter().filter(|gw| gw.enabled).count());
         assert_eq!(1, all_gateways.iter().filter(|gw| !gw.enabled).count());
+        assert!(
+            all_gateways
+                .iter()
+                .any(|gateway| gateway.name == "Gateway 1" && gateway.enabled)
+        );
+        assert!(
+            all_gateways
+                .iter()
+                .any(|gateway| gateway.name == "Gateway 2" && !gateway.enabled)
+        );
+        assert!(
+            all_gateways
+                .iter()
+                .any(|gateway| gateway.name == "Gateway 3" && gateway.enabled)
+        );
 
         let all_proxies = Proxy::all(&pool).await.unwrap();
-        assert_eq!(1, all_proxies.iter().filter(|gw| gw.enabled).count());
-        assert_eq!(1, all_proxies.iter().filter(|gw| !gw.enabled).count());
+        assert_eq!(1, all_proxies.iter().filter(|proxy| proxy.enabled).count());
+        assert_eq!(1, all_proxies.iter().filter(|proxy| !proxy.enabled).count());
+        assert!(
+            all_proxies
+                .iter()
+                .any(|proxy| proxy.id == proxy_1.id && proxy.enabled)
+        );
+        assert!(
+            all_proxies
+                .iter()
+                .any(|proxy| proxy.id == proxy_2.id && !proxy.enabled)
+        );
 
-        // Only one Proxy has to be shut down.
-        assert!(proxy_control_rx.try_recv().is_ok());
+        assert!(matches!(
+            proxy_control_rx.try_recv(),
+            Ok(ProxyControlMessage::ShutdownConnection(id)) if id == proxy_2.id
+        ));
         assert!(proxy_control_rx.try_recv().is_err());
     }
 }

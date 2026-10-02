@@ -173,7 +173,7 @@ impl Proxy<Id> {
         query_as!(
             Self,
             "SELECT * FROM proxy WHERE enabled AND id NOT IN (\
-                SELECT id FROM proxy WHERE enabled LIMIT 1
+                SELECT id FROM proxy WHERE enabled ORDER BY id LIMIT 1
             )"
         )
         .fetch_all(executor)
