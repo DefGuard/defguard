@@ -210,7 +210,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
     );
     assert!(created.min_mobile_client_version.is_none());
     assert!(created.allow_prerelease_client);
-    assert!(created.locations.is_empty());
+    assert_eq!(created.locations, [] as [i64; 0]);
     let id = created.id;
 
     client.verify_api_events(&[ApiEventType::DevicePostureCreated {
@@ -369,7 +369,7 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         copy.allow_prerelease_client,
         original.allow_prerelease_client
     );
-    assert!(copy.locations.is_empty());
+    assert_eq!(copy.locations, [] as [i64; 0]);
 
     client.verify_api_events(&[ApiEventType::DevicePostureDuplicated {
         original: DevicePostureSnapshot {
@@ -1073,7 +1073,7 @@ async fn test_device_posture_set_postures_for_location(
             .send()
             .await;
         let fetched: ApiDevicePosture = response.json().await;
-        assert!(fetched.locations.is_empty());
+        assert_eq!(fetched.locations, [] as [i64; 0]);
     }
 }
 
@@ -1324,7 +1324,7 @@ async fn test_set_postures_for_service_location_allowed(
         .send()
         .await;
     let fetched: ApiDevicePosture = response.json().await;
-    assert!(fetched.locations.is_empty());
+    assert_eq!(fetched.locations, [] as [i64; 0]);
 }
 
 #[sqlx::test]

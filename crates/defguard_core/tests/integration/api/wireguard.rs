@@ -1119,10 +1119,9 @@ async fn test_modify_network_replaces_posture_checks(_: PgPoolOptions, options: 
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert!(
-        fetch_location_postures(&client, location.id)
-            .await
-            .is_empty()
+    assert_eq!(
+        fetch_location_postures(&client, location.id).await,
+        [] as [i64; 0]
     );
 }
 
@@ -1231,10 +1230,9 @@ async fn test_posture_checks_allowed_on_service_locations(
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let service_location_without_postures: WireguardNetwork<Id> = response.json().await;
-    assert!(
-        fetch_location_postures(&client, service_location_without_postures.id)
-            .await
-            .is_empty()
+    assert_eq!(
+        fetch_location_postures(&client, service_location_without_postures.id).await,
+        [] as [i64; 0]
     );
 
     let response = update_location_posture_checks(
@@ -1545,7 +1543,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/device").json(&device).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device<Id>> = response.json().await;
-    assert!(devices.is_empty());
+    assert_eq!(devices, [] as [defguard_common::db::models::Device<i64>; 0]);
 }
 
 #[sqlx::test]
