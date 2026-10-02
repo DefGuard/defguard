@@ -1105,11 +1105,11 @@ mod test {
             .await
             .unwrap();
 
-        Proxy::new("Proxy 1", "localhost", 9000, &fullname)
+        let proxy_1 = Proxy::new("Proxy 1", "localhost", 9000, &fullname)
             .save(&pool)
             .await
             .unwrap();
-        Proxy::new("Proxy 2", "localhost", 9001, &fullname)
+        let proxy_2 = Proxy::new("Proxy 2", "localhost", 9001, &fullname)
             .save(&pool)
             .await
             .unwrap();
@@ -1141,11 +1141,23 @@ mod test {
         );
 
         let all_proxies = Proxy::all(&pool).await.unwrap();
-        assert_eq!(1, all_proxies.iter().filter(|gw| gw.enabled).count());
-        assert_eq!(1, all_proxies.iter().filter(|gw| !gw.enabled).count());
+        assert_eq!(1, all_proxies.iter().filter(|proxy| proxy.enabled).count());
+        assert_eq!(1, all_proxies.iter().filter(|proxy| !proxy.enabled).count());
+        assert!(
+            all_proxies
+                .iter()
+                .any(|proxy| proxy.id == proxy_1.id && proxy.enabled)
+        );
+        assert!(
+            all_proxies
+                .iter()
+                .any(|proxy| proxy.id == proxy_2.id && !proxy.enabled)
+        );
 
-        // Only one Proxy has to be shut down.
-        assert!(proxy_control_rx.try_recv().is_ok());
+        assert!(matches!(
+            proxy_control_rx.try_recv(),
+            Ok(ProxyControlMessage::ShutdownConnection(id)) if id == proxy_2.id
+        ));
         assert!(proxy_control_rx.try_recv().is_err());
     }
 }
