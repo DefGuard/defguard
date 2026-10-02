@@ -380,6 +380,11 @@ pub(crate) async fn create_network(
         });
     }
 
+    if !data.group_client_mtus.is_empty() && !has_enterprise_access(None) {
+        error!("Adding location {network_name} blocked! Group MTU requires Enterprise license.");
+        return Ok(WebError::Forbidden("Group MTU requires an Enterprise license.").into());
+    }
+
     data.validate_peer_disconnect_threshold()?;
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
@@ -587,7 +592,15 @@ pub(crate) async fn modify_network(
     network
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
-    save_group_client_mtus(&network, &mut transaction, &data.group_client_mtus).await?;
+    // Without a license, keep saved overrides so other fields stay editable.
+    if has_enterprise_access(None) {
+        save_group_client_mtus(&network, &mut transaction, &data.group_client_mtus).await?;
+    } else {
+        warn!(
+            location_id = network.id,
+            "Ignoring group MTU overrides: Enterprise license inactive"
+        );
+    }
 
     // Don't error out on no license - otherwise users won't be able to update other location fields.
     let postures_changed = if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {

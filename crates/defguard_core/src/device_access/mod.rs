@@ -19,7 +19,7 @@ use defguard_common::{
 use sqlx::PgConnection;
 use tracing::warn;
 
-use crate::enterprise::allowed_ips::get_effective_allowed_ips;
+use crate::enterprise::{allowed_ips::get_effective_allowed_ips, has_enterprise_access};
 
 /// Build a `DeviceConfig` for a device already assigned to a network.
 ///
@@ -47,10 +47,15 @@ pub async fn build_device_config(
         .await
         .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
 
-    let mtu = network
-        .client_mtu_for_user(&mut *conn, user.id)
-        .await
-        .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
+    // Group overrides need Enterprise.
+    let mtu = if has_enterprise_access(None) {
+        network
+            .client_mtu_for_user(&mut *conn, user.id)
+            .await
+            .map_err(|err| DeviceError::Unexpected(err.to_string()))?
+    } else {
+        network.client_mtu
+    };
 
     // Resolve the location's MFA flow for this user, carrying the ordered steps (methods only;
     // per-method `configured` flags are computed separately). Empty when MFA is disabled or no
@@ -185,6 +190,7 @@ mod tests {
     };
 
     use super::build_device_config;
+    use crate::enterprise::license::{License, LicenseTier, SupportType, set_cached_license};
 
     async fn create_user(pool: &PgPool, username: &str) -> User<Id> {
         User::new(
@@ -331,6 +337,16 @@ mod tests {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
+        set_cached_license(Some(License::new(
+            "test_customer".to_owned(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Enterprise,
+            SupportType::Basic,
+            Vec::new(),
+        )));
 
         let group_a = Group::new("mtu-a").save(&pool).await.unwrap();
         let group_b = Group::new("mtu-b").save(&pool).await.unwrap();
@@ -399,5 +415,9 @@ mod tests {
         network.save(&pool).await.unwrap();
         assert_eq!(mtu_for(&network, &a_user).await, Some(1300));
         assert_eq!(mtu_for(&network, &plain_user).await, None);
+
+        // Overrides are ignored without a license.
+        set_cached_license(None);
+        assert_eq!(mtu_for(&network, &a_user).await, None);
     }
 }

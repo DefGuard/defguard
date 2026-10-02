@@ -5,10 +5,13 @@ import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import type { GroupClientMtu } from '../../api/types';
 import { AppText } from '../../defguard-ui/components/AppText/AppText';
+import { Badge } from '../../defguard-ui/components/Badge/Badge';
 import { Button } from '../../defguard-ui/components/Button/Button';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../defguard-ui/types';
-import { getGroupsInfoQueryOptions } from '../../query';
+import { getGroupsInfoQueryOptions, getLicenseInfoQueryOptions } from '../../query';
+import { canUseEnterpriseFeature } from '../../utils/license';
+import { enterpriseBadgeProps } from '../badges/EnterpriseBadge';
 import type { SelectionOption } from '../SelectionSection/type';
 import { GroupMtuCard } from './GroupMtuCard';
 import { GroupMtuModal } from './GroupMtuModal';
@@ -24,6 +27,8 @@ type Editing = number | 'new';
 export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
   const [editing, setEditing] = useState<Editing>();
   const [modalOpen, setModalOpen] = useState(false);
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const locked = !canUseEnterpriseFeature(licenseInfo ?? null).result;
 
   const { data: groupOptions = [] } = useQuery({
     ...getGroupsInfoQueryOptions,
@@ -74,9 +79,14 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
 
   return (
     <div className="location-group-mtu">
-      <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-        {m.location_network_group_mtu_title()}
-      </AppText>
+      <div className="header">
+        <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+          {m.location_network_group_mtu_title()}
+        </AppText>
+        {locked && (
+          <Badge {...enterpriseBadgeProps} text={m.license_enterprise_feature_badge()} />
+        )}
+      </div>
       <SizedBox height={ThemeSpacing.Xs} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
         {m.location_network_group_mtu_description()}
@@ -91,6 +101,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
               chips={override.group_ids.map((id) => groupNameById.get(id) ?? String(id))}
               onEdit={() => openEditor(index)}
               onRemove={() => onChange(overrides.filter((_, other) => other !== index))}
+              disabled={locked}
             />
           ))}
         </div>
@@ -98,7 +109,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
       <Button
         variant="outlined"
         text={m.location_network_group_mtu_add()}
-        disabled={allGroupsAssigned}
+        disabled={locked || allGroupsAssigned}
         onClick={() => openEditor('new')}
       />
       <GroupMtuModal

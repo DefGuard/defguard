@@ -13,9 +13,16 @@ type Props = {
   chips: string[];
   onEdit: () => void;
   onRemove: () => void;
+  disabled?: boolean;
 };
 
-export const GroupMtuCard = ({ clientMtu, chips, onEdit, onRemove }: Props) => {
+export const GroupMtuCard = ({
+  clientMtu,
+  chips,
+  onEdit,
+  onRemove,
+  disabled = false,
+}: Props) => {
   const [expanded, setExpanded] = useState(false);
   const foldable = chips.length > collapsedChipLimit;
   const visibleChips = expanded ? chips : chips.slice(0, collapsedChipLimit);
@@ -31,6 +38,7 @@ export const GroupMtuCard = ({ clientMtu, chips, onEdit, onRemove }: Props) => {
           <button
             type="button"
             className="card-action"
+            disabled={disabled}
             aria-label={m.location_network_group_mtu_edit()}
             onClick={onEdit}
           >
@@ -39,6 +47,7 @@ export const GroupMtuCard = ({ clientMtu, chips, onEdit, onRemove }: Props) => {
           <button
             type="button"
             className="card-action"
+            disabled={disabled}
             aria-label={m.location_network_group_mtu_remove()}
             onClick={onRemove}
           >

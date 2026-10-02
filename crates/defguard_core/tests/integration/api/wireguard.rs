@@ -3222,16 +3222,27 @@ async fn test_location_group_client_mtus(_: PgPoolOptions, options: PgConnectOpt
         .unwrap()
         .id;
 
-    // Create a location with overrides.
+    // Overrides need Enterprise.
+    set_cached_license(None);
+    let create_data = location_json_with_group_client_mtus(
+        "network",
+        json!([
+            {"client_mtu": 1300, "group_ids": [group_2, group_1]},
+            {"client_mtu": 1200, "group_ids": [group_3]},
+        ]),
+    );
     let response = client
         .post("/api/v1/network")
-        .json(&location_json_with_group_client_mtus(
-            "network",
-            json!([
-                {"client_mtu": 1300, "group_ids": [group_2, group_1]},
-                {"client_mtu": 1200, "group_ids": [group_3]},
-            ]),
-        ))
+        .json(&create_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // Create a location with overrides.
+    set_enterprise_license();
+    let response = client
+        .post("/api/v1/network")
+        .json(&create_data)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -3339,6 +3350,25 @@ async fn test_location_group_client_mtus(_: PgPoolOptions, options: PgConnectOpt
         .await;
     assert_eq!(
         response.json::<Value>().await["group_client_mtus"],
+        json!([{"client_mtu": 1280, "group_ids": [group_1]}])
+    );
+
+    // Without a license, saved overrides are kept.
+    set_cached_license(None);
+    let response = client
+        .put(format!("/api/v1/network/{network_id}"))
+        .json(&location_json_with_group_client_mtus("renamed", json!([])))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client
+        .get(format!("/api/v1/network/{network_id}"))
+        .send()
+        .await;
+    let details = response.json::<Value>().await;
+    assert_eq!(details["name"], "renamed");
+    assert_eq!(
+        details["group_client_mtus"],
         json!([{"client_mtu": 1280, "group_ids": [group_1]}])
     );
 }

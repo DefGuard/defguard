@@ -3,6 +3,13 @@
   flex-flow: column;
   align-items: flex-start;
 
+  & > .header {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    column-gap: var(--spacing-md);
+  }
+
   & > .overrides {
     display: flex;
     flex-flow: column;
@@ -60,6 +67,11 @@
     background: none;
     border: 0;
     cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
   }
 
   .chips {
