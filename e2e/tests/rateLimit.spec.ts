@@ -85,7 +85,7 @@ test.describe('Rate limiting', () => {
     const login = (username: string, password: string) =>
       apiLogin(request, username, password);
 
-    // A correct password refunds its attempt, so only the failed ones use the limit.
+    // A correct password refunds its attempt.
     for (let i = 0; i < LOGIN_LIMIT - 1; i++) {
       expect(await login(testUser.username, 'wrong')).toBe(401);
     }
@@ -93,12 +93,10 @@ test.describe('Rate limiting', () => {
     expect(await login(testUser.username, 'wrong')).toBe(401);
     expect(await login(testUser.username, 'wrong')).toBe(429);
 
-    // The email address shares the count of the username, and a correct password is refused.
     expect(await login(testUser.mail, testUser.password)).toBe(429);
     expect(await login(testUser.username, testUser.password)).toBe(429);
     expect(await login(defaultUserAdmin.username, defaultUserAdmin.password)).toBe(200);
 
-    // A username without an account has a count of its own.
     for (let i = 0; i < LOGIN_LIMIT; i++) {
       expect(await login('unknownuser', 'wrong')).toBe(401);
     }
@@ -202,8 +200,7 @@ test.describe('Rate limiting', () => {
       // A legacy client sends no attempt id, so Core cannot tell it why a code is refused.
       const exhausted = protocol === 'legacy' ? 401 : 403;
 
-      // A new session keeps the count of the session it replaces: 5 + 4 + 1 wrong codes use
-      // up the limit, and the 5th wrong code of a session aborts that session.
+      // The failed-code count survives a new session, and each session aborts at its own cap.
       let attempt = await clientMfaConnect(request, first);
       for (let i = 1; i <= SESSION_FAILED_ATTEMPT_CAP; i++) {
         const response = await clientMfaFinish(request, attempt, WRONG_CODE);
@@ -220,7 +217,6 @@ test.describe('Rate limiting', () => {
         }
       }
 
-      // The device is blocked even with a valid code, and a new session is refused.
       const blocked = await clientMfaFinish(
         request,
         attempt,
@@ -270,7 +266,6 @@ test.describe('Rate limiting', () => {
       method: MfaMethod.TOTP,
     }));
 
-    // Each connection of a multi-step client charges `start` and `step-start`.
     let attempt = await clientMfaConnect(request, first);
     for (let i = 1; i < VPN_INITIATE_LIMIT / 2; i++) {
       attempt = await clientMfaConnect(request, first);
