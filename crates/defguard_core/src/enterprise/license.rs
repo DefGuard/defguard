@@ -608,7 +608,7 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
-/// Scale down enabled Gateways and Edges to one (per component).
+/// Keep one enabled Gateway per location and one Edge per instance.
 async fn trim_gateways_and_edges(
     pool: &PgPool,
     proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,

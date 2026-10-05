@@ -1,4 +1,4 @@
-use std::{net::IpAddr, str::FromStr};
+use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
@@ -26,7 +26,7 @@ use tonic::Status;
 use super::InstanceInfo;
 use crate::{
     device_access::build_device_config,
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_oidc_mfa_available},
+    enterprise::db::models::openid_provider::OpenIdProvider,
     grpc::{
         client_version::{ClientFeature, should_omit_location_for_device},
         should_prevent_mfa_location_usage, should_prevent_service_location_usage,
@@ -46,14 +46,6 @@ pub async fn build_device_config_response(
         Status::internal(format!("unexpected error: {err}"))
     })?;
 
-    let smtp_configured = settings.smtp_configured();
-    let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
-
-    let locations = WireguardNetwork::all(pool).await.map_err(|err| {
-        error!("Failed to fetch all networks: {err}");
-        Status::internal(format!("unexpected error: {err}"))
-    })?;
-
     let mut configs = Vec::new();
     let user = User::find_by_id(pool, device.user_id)
         .await
@@ -65,6 +57,13 @@ pub async fn build_device_config_response(
             error!("User not found: {}", device.user_id);
             Status::internal("unexpected error")
         })?;
+    let instance_info =
+        InstanceInfo::build(pool, &settings, &user, openid_provider, Some(device.id))
+            .await
+            .map_err(|err| {
+                error!("Failed to build instance info: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
     if device.device_type == DeviceType::Network {
         let wireguard_network_device = WireguardNetworkDevice::find_first(pool, device.id)
             .await
@@ -120,35 +119,31 @@ pub async fn build_device_config_response(
                 ));
             }
 
-            let config = to_wire_device_config(
-                pool,
-                device_config,
-                &user,
-                device.id,
-                smtp_configured,
-                oidc_configured,
-                false,
-            )
-            .await?;
+            let config =
+                to_wire_device_config(device_config, &instance_info.configured_methods, false)?;
             configs.push(config);
         }
     } else {
+        let mut assignments = WireguardNetworkDevice::find_by_device(pool, device.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch networks for device {}: {err}", device.id);
+                Status::internal(format!("unexpected error: {err}"))
+            })?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|assignment| (assignment.wireguard_network_id, assignment))
+            .collect::<HashMap<_, _>>();
+        let locations = WireguardNetwork::all(pool).await.map_err(|err| {
+            error!("Failed to fetch all networks: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
         let supports_multi_step_mfa =
             ClientFeature::MultiStepMfa.is_supported_by_device(device_info.as_ref());
         for location in locations {
-            let wireguard_network_device = WireguardNetworkDevice::find(
-                pool,
-                device.id,
-                location.id,
-            )
-            .await
-            .map_err(|err| {
-                error!(
-                    "Failed to fetch WireGuard network device for device {} and network {}: {err}",
-                    device.id, location.id
-                );
-                Status::internal(format!("unexpected error: {err}"))
-            })?;
+            let Some(wireguard_network_device) = assignments.remove(&location.id) else {
+                continue;
+            };
             if should_prevent_service_location_usage(&location) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
@@ -181,53 +176,46 @@ pub async fn build_device_config_response(
                 );
                 continue;
             }
-            if let Some(wireguard_network_device) = wireguard_network_device {
-                let mut conn = pool.acquire().await.map_err(|err| {
-                    error!("Failed to acquire connection: {err}");
-                    Status::internal(format!("unexpected error: {err}"))
-                })?;
+            let mut conn = pool.acquire().await.map_err(|err| {
+                error!("Failed to acquire connection: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
 
-                let device_config =
-                    build_device_config(&mut conn, &location, &wireguard_network_device, &user)
-                        .await
-                        .map_err(|err| {
-                            error!("Failed to build device config: {err}");
-                            Status::internal(format!("unexpected error: {err}"))
-                        })?;
+            let device_config =
+                build_device_config(&mut conn, &location, &wireguard_network_device, &user)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to build device config: {err}");
+                        Status::internal(format!("unexpected error: {err}"))
+                    })?;
 
-                if device_config.posture_check_required
-                    && !ClientFeature::PostureChecks.is_supported_by_device(device_info.as_ref())
-                {
-                    info!(
-                        "Device {} does not support posture checks feature, skipping sending network {} configuration to device {}.",
-                        device.name, location.name, device.name
-                    );
-                    continue;
-                }
-
-                if should_omit_location_for_device(
-                    device_config.location_mfa_mode.clone(),
-                    device_info.as_ref(),
-                ) {
-                    info!(
-                        "Device {} does not support multi-step MFA, skipping sending network {} configuration to device {}.",
-                        device.name, location.name, device.name
-                    );
-                    continue;
-                }
-
-                let config = to_wire_device_config(
-                    pool,
-                    device_config,
-                    &user,
-                    device.id,
-                    smtp_configured,
-                    oidc_configured,
-                    supports_multi_step_mfa,
-                )
-                .await?;
-                configs.push(config);
+            if device_config.posture_check_required
+                && !ClientFeature::PostureChecks.is_supported_by_device(device_info.as_ref())
+            {
+                info!(
+                    "Device {} does not support posture checks feature, skipping sending network {} configuration to device {}.",
+                    device.name, location.name, device.name
+                );
+                continue;
             }
+
+            if should_omit_location_for_device(
+                device_config.location_mfa_mode.clone(),
+                device_info.as_ref(),
+            ) {
+                info!(
+                    "Device {} does not support multi-step MFA, skipping sending network {} configuration to device {}.",
+                    device.name, location.name, device.name
+                );
+                continue;
+            }
+
+            let config = to_wire_device_config(
+                device_config,
+                &instance_info.configured_methods,
+                supports_multi_step_mfa,
+            )?;
+            configs.push(config);
         }
     }
 
@@ -235,14 +223,6 @@ pub async fn build_device_config_response(
         "User {}({}) device {}({}) automatically fetched the newest configuration.",
         user.username, user.id, device.name, device.id
     );
-
-    let instance_info =
-        InstanceInfo::build(pool, &settings, &user, openid_provider, Some(device.id))
-            .await
-            .map_err(|err| {
-                error!("Failed to build instance info: {err}");
-                Status::internal(format!("unexpected error: {err}"))
-            })?;
 
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
@@ -252,56 +232,34 @@ pub async fn build_device_config_response(
     })
 }
 
-/// Maps the resolved MFA flow steps to the wire `MfaStep` list, computing each method's
-/// `configured` flag for the given user/device.
-pub async fn build_wire_steps(
-    pool: &PgPool,
+/// Maps resolved MFA flow steps to wire steps using the methods configured for this device.
+pub fn build_wire_steps(
     steps: &[MfaFlowStep<Id>],
-    user: &User<Id>,
-    device_id: Id,
-    smtp_configured: bool,
-    oidc_configured: bool,
-) -> Result<Vec<MfaStep>, Status> {
+    configured_methods: &[VpnClientMfaMethod],
+) -> Vec<MfaStep> {
     let mut wire_steps = Vec::with_capacity(steps.len());
     for step in steps {
         let mut methods = Vec::with_capacity(step.methods.len());
         for method in VpnClientMfaMethod::ordered_set(&step.methods) {
-            let configured = method
-                .is_configured(
-                    pool,
-                    user,
-                    Some(device_id),
-                    smtp_configured,
-                    oidc_configured,
-                )
-                .await
-                .map_err(|err| {
-                    error!("Failed to compute MFA method configuration: {err}");
-                    Status::internal("unexpected error")
-                })?;
             methods.push(MfaStepMethod {
                 method: <VpnClientMfaMethod as Into<MfaMethod>>::into(method) as i32,
-                configured,
+                configured: configured_methods.contains(&method),
             });
         }
         wire_steps.push(MfaStep { methods });
     }
-    Ok(wire_steps)
+    wire_steps
 }
 
 /// Computes the wire `steps` for a location, applying per-client capability branching and the
 /// fail-closed empty-flow guard. Returns the resolved flow for clients that support multi-step MFA
 /// and an empty list for legacy clients. Rejects an MFA-enabled location that has no resolvable
 /// flow, so it is never advertised to a capable client as `steps = []`.
-pub async fn wire_steps_for_device(
-    pool: &PgPool,
+pub fn wire_steps_for_device(
     location_mfa_mode_is_none: bool,
     resolved_steps: &[MfaFlowStep<Id>],
     network_name: &str,
-    user: &User<Id>,
-    device_id: Id,
-    smtp_configured: bool,
-    oidc_configured: bool,
+    configured_methods: &[VpnClientMfaMethod],
     supports_multi_step_mfa: bool,
 ) -> Result<Vec<MfaStep>, Status> {
     if location_mfa_mode_is_none && resolved_steps.is_empty() {
@@ -310,45 +268,26 @@ pub async fn wire_steps_for_device(
         )));
     }
     if supports_multi_step_mfa {
-        build_wire_steps(
-            pool,
-            resolved_steps,
-            user,
-            device_id,
-            smtp_configured,
-            oidc_configured,
-        )
-        .await
+        Ok(build_wire_steps(resolved_steps, configured_methods))
     } else {
         Ok(Vec::new())
     }
 }
 
-/// Builds a wire `DeviceConfig` from the resolved internal `DeviceConfig`, applying the per-client
-/// capability branching (`steps`) and the fail-closed empty-flow guard. This is the single
-/// conversion point: the dumb field mapping and the `configured` computation both live here,
-/// because `configured` requires the user/device in scope.
-pub async fn to_wire_device_config(
-    pool: &PgPool,
+/// Builds a wire `DeviceConfig` from the resolved internal config, applying per-client
+/// capability branching and the fail-closed empty-flow guard.
+pub fn to_wire_device_config(
     device_config: DeviceConfig,
-    user: &User<Id>,
-    device_id: Id,
-    smtp_configured: bool,
-    oidc_configured: bool,
+    configured_methods: &[VpnClientMfaMethod],
     supports_multi_step_mfa: bool,
 ) -> Result<ProtoDeviceConfig, Status> {
     let steps = wire_steps_for_device(
-        pool,
         device_config.location_mfa_mode.is_none(),
         &device_config.steps,
         &device_config.network_name,
-        user,
-        device_id,
-        smtp_configured,
-        oidc_configured,
+        configured_methods,
         supports_multi_step_mfa,
-    )
-    .await?;
+    )?;
 
     Ok(ProtoDeviceConfig {
         config: device_config.config,
@@ -398,7 +337,10 @@ pub fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, Strin
 
 #[cfg(test)]
 mod tests {
-    use std::net::{IpAddr, Ipv4Addr};
+    use std::{
+        collections::HashSet,
+        net::{IpAddr, Ipv4Addr},
+    };
 
     use defguard_common::db::{
         Id,
@@ -406,7 +348,7 @@ mod tests {
             Device, DeviceType, Settings, User, WireguardNetwork,
             biometric_auth::BiometricAuth,
             device::WireguardNetworkDevice,
-            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowStep},
             settings::{initialize_current_settings, update_current_settings},
             vpn_client_session::VpnClientMfaMethod,
             wireguard::ServiceLocationMode,
@@ -633,6 +575,39 @@ mod tests {
     }
 
     #[sqlx::test]
+    async fn test_polling_returns_only_attached_locations(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        let first = create_disabled_location(&pool, "attached-first", 1).await;
+        let _unattached = create_mfa_location_without_flow(&pool, "unattached-mfa", 2).await;
+        let last = create_disabled_location(&pool, "attached-last", 3).await;
+
+        let response = build_device_config_response(&pool, device.clone(), None, None)
+            .await
+            .expect("failed to build config without attachments");
+        assert!(response.configs.is_empty());
+
+        attach_device(&pool, first.id, device.id).await;
+        attach_device(&pool, last.id, device.id).await;
+        let response = build_device_config_response(&pool, device, None, None)
+            .await
+            .expect("failed to build config with attachments");
+        let mut names: Vec<&str> = response
+            .configs
+            .iter()
+            .map(|config| config.network_name.as_str())
+            .collect();
+        names.sort_unstable();
+        assert_eq!(names, vec!["attached-first", "attached-last"]);
+    }
+
+    #[sqlx::test]
     async fn test_multi_step_location_omitted_for_legacy_client(
         _: PgPoolOptions,
         options: PgConnectOptions,
@@ -796,7 +771,9 @@ mod tests {
         init_settings(&pool).await;
         let saved_license = get_cached_license().clone();
         set_cached_license(Some(business_license()));
-        let user = create_user(&pool).await;
+        let mut user = create_user(&pool).await;
+        user.totp_enabled = true;
+        user.save(&pool).await.expect("failed to configure TOTP");
         let device = create_device(&pool, user.id).await;
 
         let disabled = create_disabled_location(&pool, "disabled-location", 1).await;
@@ -943,6 +920,31 @@ mod tests {
         assert_eq!(config.steps[0].methods.len(), 1);
         assert_eq!(config.steps[1].methods.len(), 1);
 
+        let mfa_user_state = response
+            .instance
+            .as_ref()
+            .and_then(|instance| instance.mfa_user_state.as_ref())
+            .expect("InstanceInfo should contain MFA user state");
+        assert!(
+            mfa_user_state
+                .configured_methods
+                .contains(&(MfaMethod::Totp as i32))
+        );
+        for name in ["internal-location", "multi-step-location"] {
+            let config = response
+                .configs
+                .iter()
+                .find(|config| config.network_name == name)
+                .expect("MFA location must be present");
+            let totp = config
+                .steps
+                .iter()
+                .flat_map(|step| &step.methods)
+                .find(|method| method.method == MfaMethod::Totp as i32)
+                .expect("TOTP method must be advertised");
+            assert!(totp.configured, "TOTP should be configured in {name}");
+        }
+
         set_cached_license(saved_license);
     }
 
@@ -1018,11 +1020,12 @@ mod tests {
         .expect("failed to create flow");
         tx.commit().await.expect("failed to commit tx");
 
-        // SMTP is configured, OIDC is not: email is gated on the user (not set up), OIDC on
-        // deployment (no provider).
-        let wire = build_wire_steps(&pool, &steps, &user, device.id, true, false)
+        // Email is not set up for the user; OIDC has no provider.
+        let settings = Settings::get_current_settings();
+        let instance_info = InstanceInfo::build(&pool, &settings, &user, None, Some(device.id))
             .await
-            .expect("failed to build wire steps");
+            .expect("failed to build instance info");
+        let wire = build_wire_steps(&steps, &instance_info.configured_methods);
 
         assert_eq!(wire.len(), 2);
 
@@ -1040,12 +1043,7 @@ mod tests {
         assert_eq!(wire[1].methods[2].method, MfaMethod::MobileApprove as i32);
         assert!(wire[1].methods[2].configured);
 
-        let settings = Settings::get_current_settings();
-        let instance: defguard_proto::client_types::InstanceInfo =
-            InstanceInfo::build(&pool, &settings, &user, None, Some(device.id))
-                .await
-                .expect("failed to build instance info")
-                .into();
+        let instance: defguard_proto::client_types::InstanceInfo = instance_info.into();
         let configured_from_instance = instance
             .mfa_user_state
             .expect("InstanceInfo should contain MFA user state")
@@ -1057,6 +1055,59 @@ mod tests {
             .map(|method| method.method)
             .collect::<Vec<_>>();
         assert_eq!(configured_from_instance, configured_from_steps);
+    }
+
+    #[test]
+    fn test_repeated_mfa_method_uses_same_configured_flag() {
+        let steps = vec![
+            MfaFlowStep {
+                id: 1,
+                flow_id: 1,
+                position: 0,
+                methods: HashSet::from([VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email]),
+            },
+            MfaFlowStep {
+                id: 2,
+                flow_id: 1,
+                position: 1,
+                methods: HashSet::from([VpnClientMfaMethod::Totp, VpnClientMfaMethod::Fido2]),
+            },
+        ];
+        let wire = build_wire_steps(&steps, &[VpnClientMfaMethod::Totp]);
+        assert!(wire[0].methods[0].configured);
+        assert!(!wire[0].methods[1].configured);
+        assert!(wire[1].methods[0].configured);
+        assert!(!wire[1].methods[1].configured);
+    }
+
+    #[sqlx::test]
+    async fn test_instance_info_without_device_id_excludes_biometric(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        BiometricAuth::new(device.id, "biometric-pubkey".to_owned())
+            .save(&pool)
+            .await
+            .expect("failed to configure biometric authentication");
+
+        let settings = Settings::get_current_settings();
+        let instance = InstanceInfo::build(&pool, &settings, &user, None, None)
+            .await
+            .expect("failed to build instance info");
+        assert!(
+            !instance
+                .configured_methods
+                .contains(&VpnClientMfaMethod::Biometric)
+        );
+        assert!(
+            instance
+                .configured_methods
+                .contains(&VpnClientMfaMethod::MobileApprove)
+        );
     }
 
     #[sqlx::test]
@@ -1081,6 +1132,41 @@ mod tests {
                 .expect("InstanceInfo should contain MFA user state")
                 .configured_methods
                 .is_empty()
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_instance_info_advertises_mfa_capabilities(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let settings = Settings::get_current_settings();
+
+        let instance: defguard_proto::client_types::InstanceInfo =
+            InstanceInfo::build(&pool, &settings, &user, None, None)
+                .await
+                .expect("failed to build instance info")
+                .into();
+
+        let capabilities = instance
+            .mfa_capabilities
+            .expect("InstanceInfo should contain MFA capabilities");
+        assert_eq!(
+            capabilities.setup_methods,
+            [MfaMethod::Totp, MfaMethod::Email, MfaMethod::Fido2].map(|method| method as i32)
+        );
+        assert_eq!(
+            capabilities.authorize_methods,
+            [
+                MfaMethod::Totp,
+                MfaMethod::Email,
+                MfaMethod::Fido2,
+                MfaMethod::Oidc
+            ]
+            .map(|method| method as i32)
         );
     }
 }

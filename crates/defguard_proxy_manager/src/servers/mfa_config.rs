@@ -298,13 +298,8 @@ impl MfaConfigServer {
         let settings = Settings::get_current_settings();
         let smtp_configured = settings.smtp_configured();
         let oidc_available = user.openid_sub.is_some() && oidc_available(&self.pool).await?;
-        let mut available_methods = Vec::with_capacity(4);
-        for method in [
-            VpnClientMfaMethod::Totp,
-            VpnClientMfaMethod::Email,
-            VpnClientMfaMethod::Fido2,
-            VpnClientMfaMethod::Oidc,
-        ] {
+        let mut available_methods = Vec::with_capacity(VpnClientMfaMethod::CONFIG_AUTHORIZE.len());
+        for method in VpnClientMfaMethod::CONFIG_AUTHORIZE {
             if is_configured(
                 &self.pool,
                 method,
