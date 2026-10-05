@@ -495,6 +495,7 @@ export const LicenseFeature = {
   DevicePosture: 'DevicePosture',
   AclAllowedIps: 'AclAllowedIps',
   ComponentHa: 'ComponentHa',
+  GroupMTUOverride: 'GroupMTUOverride',
   MfaFlow: 'MfaFlow',
 } as const;
 
