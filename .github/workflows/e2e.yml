@@ -2,9 +2,6 @@ name: E2E tests
 
 on:
   workflow_call:
-  push:
-    branches:
-      - rate-limit-e2e
 
 permissions:
   contents: read
