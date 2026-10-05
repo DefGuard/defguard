@@ -25,7 +25,6 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    auth::failed_login::FailedLoginMap,
     build_webapp,
     db::AppEvent,
     enterprise::license::{License, LicenseTier, SupportType, set_cached_license},
@@ -145,8 +144,6 @@ async fn make_test_client_with_proxy_rx(
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (gateway_tx, _wg_rx) = broadcast::channel::<GatewayCommand>(16);
 
-    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
-
     let license = License::new(
         "test_customer".to_owned(),
         false,
@@ -177,7 +174,6 @@ async fn make_test_client_with_proxy_rx(
         worker_state,
         pool.clone(),
         key,
-        failed_logins,
         api_event_tx,
         ldap_tx,
         dirsync_tx,
