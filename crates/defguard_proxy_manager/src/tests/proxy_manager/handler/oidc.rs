@@ -19,10 +19,10 @@ use defguard_core::{
     grpc::proto::enterprise::license::LicenseLimits,
 };
 use defguard_proto::{
-    client_types::{AuthFlowType, AuthInfoRequest, MfaMethod},
+    client_types::{AuthFlowType, AuthInfoRequest, MfaMethod, OpenIdProviderKind},
     proxy::{
-        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreRequest, OpenIdProviderKind,
-        core_request, core_response,
+        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreRequest, core_request,
+        core_response,
     },
 };
 use reqwest::Url;

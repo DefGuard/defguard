@@ -47,12 +47,15 @@ use defguard_core::{
 };
 use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
-    client_types::{AuthFlowType as ProtoAuthFlowType, AuthInfoRequest},
+    client_types::{
+        AuthFlowType as ProtoAuthFlowType, AuthInfoRequest,
+        OpenIdProviderKind as ProtoOpenIdProviderKind,
+    },
     enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackRequest, AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest,
-        CoreResponse, HttpsCerts, InitialInfo, OpenIdProviderKind as ProtoOpenIdProviderKind,
-        core_request, core_response, proxy_client::ProxyClient,
+        CoreResponse, HttpsCerts, InitialInfo, core_request, core_response,
+        proxy_client::ProxyClient,
     },
 };
 use defguard_version::{
