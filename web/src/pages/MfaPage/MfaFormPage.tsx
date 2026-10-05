@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
 import { useMemo } from 'react';
@@ -25,18 +25,7 @@ import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useAppForm, useFieldContext } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-
-const formSchema = z.object({
-  title: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-  steps: z
-    .array(
-      z.object({
-        id: z.union([z.string(), z.number()]),
-        methods: z.array(z.enum(MfaFlowMethod)).min(1, m.mfa_flow_method_required()),
-      }),
-    )
-    .min(1, m.mfa_flow_step_required()),
-});
+import { getMfaFlowsQueryOptions } from '../../shared/query';
 
 /** Maps a structured MFA flow API failure to user-facing copy. */
 const getSaveErrorMessage = (error: AxiosError<MfaFlowErrorResponse>): string => {
@@ -62,6 +51,31 @@ type Props = {
 export const MfaFormPage = ({ flow }: Props) => {
   const navigate = useNavigate();
   const isEdit = flow !== undefined;
+  const { data: flows } = useQuery(getMfaFlowsQueryOptions);
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        title: z
+          .string(m.form_error_required())
+          .trim()
+          .min(1, m.form_error_required())
+          .refine(
+            (val) => val === flow?.title || !flows?.some((f) => f.title === val),
+            m.form_error_name_reserved(),
+          ),
+        steps: z
+          .array(
+            z.object({
+              id: z.union([z.string(), z.number()]),
+              methods: z
+                .array(z.enum(MfaFlowMethod))
+                .min(1, m.mfa_flow_method_required()),
+            }),
+          )
+          .min(1, m.mfa_flow_step_required()),
+      }),
+    [flows, flow?.title],
+  );
   const { mutateAsync: createMfaFlow } = useMutation({
     mutationFn: api.mfaFlow.create,
     meta: {

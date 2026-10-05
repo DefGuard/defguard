@@ -330,6 +330,22 @@ impl MfaFlow<Id> {
         Ok(exists.unwrap_or(false))
     }
 
+    /// Returns whether a flow other than `exclude_id` already uses `title`.
+    pub async fn title_exists<'e, E: PgExecutor<'e>>(
+        executor: E,
+        title: &str,
+        exclude_id: Option<Id>,
+    ) -> sqlx::Result<bool> {
+        let exists = query_scalar!(
+            "SELECT EXISTS (SELECT 1 FROM mfa_flow WHERE title = $1 AND id IS DISTINCT FROM $2)",
+            title,
+            exclude_id,
+        )
+        .fetch_one(executor)
+        .await?;
+        Ok(exists.unwrap_or(false))
+    }
+
     /// Returns whether the location has a designated default assignment.
     ///
     /// The `mfa_enabled` precondition uses this: a location cannot be enabled until it has a
