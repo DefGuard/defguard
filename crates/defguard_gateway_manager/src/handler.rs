@@ -1455,15 +1455,21 @@ mod tests {
             firewall_config.default_policy,
             ProtoFirewallPolicy::Unspecified as i32
         );
-        assert!(firewall_config.rules.is_empty());
-        assert!(firewall_config.snat_bindings.is_empty());
+        assert_eq!(
+            firewall_config.rules,
+            [] as [defguard_proto::enterprise::firewall::FirewallRule; 0]
+        );
+        assert_eq!(
+            firewall_config.snat_bindings,
+            [] as [defguard_proto::enterprise::firewall::SnatBinding; 0]
+        );
     }
 
     #[test]
     fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
         let config = Configuration::new(&build_network(), Vec::new(), None);
 
-        assert!(config.peers.is_empty());
+        assert_eq!(config.peers, [] as [defguard_proto::gateway::Peer; 0]);
         assert!(config.firewall_config.is_none());
     }
 

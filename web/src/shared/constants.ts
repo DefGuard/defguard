@@ -71,3 +71,7 @@ export const edgeDefaultGrpcPort = 50051;
 export const gatewayDefaultGrpcPort = 50066;
 
 export const DISMISSED_UPDATE_KEY = 'dismissed-update-version';
+
+/** Smallest MTU WireGuard can carry a packet over. */
+export const MIN_MTU = 72;
+export const MAX_MTU = 0xffffffff;

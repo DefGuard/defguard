@@ -40,6 +40,7 @@ const defaults: StoreValues = {
   mfa_enabled: false,
   service_location_mode: LocationServiceMode.Disabled,
   posture_checks: [],
+  group_client_mtus: [],
   mfa_flows: [],
 };
 

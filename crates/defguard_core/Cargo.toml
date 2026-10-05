@@ -19,7 +19,7 @@ defguard_web_ui.workspace = true
 model_derive.workspace = true
 
 # mail (moved in-crate from the former defguard_mail crate)
-css-inline = "0.21"
+css-inline = "0.22"
 image = "0.25" # match with qrcode
 lettre.workspace = true
 mrml = "6.0"

@@ -691,7 +691,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
         .await;
     assert_eq!(still_pending_child.state, AliasState::Modified);
     assert_eq!(still_pending_child.parent_id, Some(2));
-    assert!(still_pending_child.rules.is_empty());
+    assert_eq!(still_pending_child.rules, [] as [i64; 0]);
 
     let first_rule_after_apply: ApiAclRule =
         client.get("/api/v1/acl/rule/1").send().await.json().await;

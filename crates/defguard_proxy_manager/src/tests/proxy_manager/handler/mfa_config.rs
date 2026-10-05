@@ -101,7 +101,7 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
         Some(core_response::Payload::MfaConfigStart(response)) => response,
         _ => panic!("expected MfaConfigStartResponse"),
     };
-    assert!(session.available_methods.is_empty());
+    assert_eq!(session.available_methods, [] as [i32; 0]);
     assert!(session.email_fallback);
     let session_token = session.session_token.clone();
 
