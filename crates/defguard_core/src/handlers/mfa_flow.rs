@@ -473,6 +473,13 @@ pub async fn create_mfa_flow(
         return Ok(resp);
     }
 
+    if MfaFlow::title_exists(&appstate.pool, &data.title, None).await? {
+        return Err(WebError::ObjectAlreadyExists(format!(
+            "MFA flow {} already exists",
+            data.title
+        )));
+    }
+
     if !is_business_license_active() && MfaFlow::any_exist(&appstate.pool).await? {
         return Ok(license_error_response(
             "flow",
@@ -598,6 +605,13 @@ pub async fn update_mfa_flow(
         validate_flow_request(&data.title, &step_methods, &before_methods, &appstate.pool).await?
     {
         return Ok(resp);
+    }
+
+    if MfaFlow::title_exists(&appstate.pool, &data.title, Some(existing.id)).await? {
+        return Err(WebError::ObjectAlreadyExists(format!(
+            "MFA flow {} already exists",
+            data.title
+        )));
     }
 
     let mut tx = appstate.pool.begin().await?;

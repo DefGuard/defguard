@@ -174,7 +174,7 @@ pub struct InstanceInfo {
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
     disable_tunnels: bool,
-    configured_methods: Vec<VpnClientMfaMethod>,
+    pub configured_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -261,17 +261,12 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
                     .collect(),
             }),
             mfa_capabilities: Some(MfaCapabilities {
-                setup_methods: vec![
-                    MfaMethod::Totp as i32,
-                    MfaMethod::Email as i32,
-                    MfaMethod::Fido2 as i32,
-                ],
-                authorize_methods: vec![
-                    MfaMethod::Totp as i32,
-                    MfaMethod::Email as i32,
-                    MfaMethod::Fido2 as i32,
-                    MfaMethod::Oidc as i32,
-                ],
+                setup_methods: VpnClientMfaMethod::CONFIG_SETUP
+                    .map(|method| MfaMethod::from(method) as i32)
+                    .to_vec(),
+                authorize_methods: VpnClientMfaMethod::CONFIG_AUTHORIZE
+                    .map(|method| MfaMethod::from(method) as i32)
+                    .to_vec(),
             }),
         }
     }

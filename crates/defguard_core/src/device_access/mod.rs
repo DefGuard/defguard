@@ -11,7 +11,7 @@ use defguard_common::{
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
             mfa_flow::MfaFlow,
             user::User,
-            wireguard::WireguardNetworkError,
+            wireguard::{LocationMfaMode, WireguardNetworkError},
         },
     },
     device_config_gen::create_wireguard_config,
@@ -43,9 +43,13 @@ pub async fn build_device_config(
     // `None` when the location's flow configuration has no legacy equivalent. Carried through as
     // absent rather than coerced to `Disabled`, which would advertise an MFA-enabled location as
     // unprotected. Gating such locations for legacy clients is tracked separately (#3042).
-    let location_mfa_mode = MfaFlow::derive_legacy_mode(&mut *conn, network.id)
-        .await
-        .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
+    let location_mfa_mode = if network.mfa_enabled {
+        MfaFlow::derive_legacy_mode(&mut *conn, network.id)
+            .await
+            .map_err(|err| DeviceError::Unexpected(err.to_string()))?
+    } else {
+        Some(LocationMfaMode::Disabled)
+    };
 
     // Resolve the location's MFA flow for this user, carrying the ordered steps (methods only;
     // per-method `configured` flags are computed separately). Empty when MFA is disabled or no
@@ -170,6 +174,7 @@ mod tests {
             group::Group,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             vpn_client_session::VpnClientMfaMethod,
+            wireguard::LocationMfaMode,
         },
         setup_pool,
     };
@@ -317,5 +322,20 @@ mod tests {
             config.steps[0].methods,
             HashSet::from([VpnClientMfaMethod::Oidc])
         );
+
+        // Saved flow assignments must not advertise MFA after the location disables it.
+        network.mfa_enabled = false;
+        network.save(&pool).await.expect("failed to disable MFA");
+        let config = build_device_config(
+            &mut conn,
+            &network,
+            &wireguard_network_device,
+            &default_user,
+        )
+        .await
+        .expect("failed to build config with MFA disabled");
+        assert!(!config.mfa_enabled);
+        assert_eq!(config.location_mfa_mode, Some(LocationMfaMode::Disabled));
+        assert!(config.steps.is_empty());
     }
 }

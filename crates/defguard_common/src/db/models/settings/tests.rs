@@ -361,6 +361,122 @@ fn test_validate_rejects_invalid_url() {
     ));
 }
 
+#[test]
+fn test_validate_requires_smtp_for_ldap_remote_enrollment() {
+    let mut settings = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        ldap_remote_enrollment_enabled: true,
+        ..Default::default()
+    };
+
+    assert!(matches!(
+        settings.validate(),
+        Err(SettingsValidationError::CannotEnableSmtpDependents(dependents))
+            if dependents == vec![SmtpDependent::LdapRemoteEnrollment]
+    ));
+}
+
+#[test]
+fn test_validate_requires_smtp_for_gateway_disconnect_notifications() {
+    let mut settings = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        gateway_disconnect_notifications_enabled: true,
+        ..Default::default()
+    };
+
+    assert!(matches!(
+        settings.validate(),
+        Err(SettingsValidationError::CannotEnableSmtpDependents(dependents))
+            if dependents == vec![SmtpDependent::GatewayDisconnectNotifications]
+    ));
+}
+
+#[test]
+fn test_validate_lists_all_smtp_dependents() {
+    let mut settings = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        ldap_remote_enrollment_enabled: true,
+        gateway_disconnect_notifications_enabled: true,
+        ..Default::default()
+    };
+
+    let error = settings.validate().unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "SMTP is required by: LDAP remote enrollment, gateway disconnect notifications. Configure SMTP before enabling these features."
+    );
+    assert!(matches!(
+        error,
+        SettingsValidationError::CannotEnableSmtpDependents(dependents)
+            if dependents == vec![
+                SmtpDependent::LdapRemoteEnrollment,
+                SmtpDependent::GatewayDisconnectNotifications,
+            ]
+    ));
+}
+
+#[test]
+fn test_validate_prevents_disabling_smtp_with_dependents() {
+    let mut previous = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        ldap_remote_enrollment_enabled: true,
+        gateway_disconnect_notifications_enabled: true,
+        ..Default::default()
+    };
+    previous.smtp.server = Some("smtp.example.com".into());
+    previous.smtp.port = Some(587);
+    previous.smtp.sender = Some("noreply@example.com".into());
+
+    let mut settings = previous.clone();
+    settings.smtp.server = Some(String::new());
+    settings.smtp.sender = Some(String::new());
+
+    let error = settings.validate_against(&previous).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "SMTP is required by: LDAP remote enrollment, gateway disconnect notifications. Disable these features to delete SMTP settings."
+    );
+    assert!(matches!(
+        error,
+        SettingsValidationError::CannotDisableSmtpSettings(dependents)
+            if dependents == vec![
+                SmtpDependent::LdapRemoteEnrollment,
+                SmtpDependent::GatewayDisconnectNotifications,
+            ]
+    ));
+}
+
+#[test]
+fn test_validate_requires_ldap_for_remote_enrollment() {
+    let mut settings = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        ldap_remote_enrollment_enabled: true,
+        ..Default::default()
+    };
+    settings.smtp.server = Some("smtp.example.com".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("noreply@example.com".into());
+
+    assert!(matches!(
+        settings.validate(),
+        Err(SettingsValidationError::LdapRequiredForRemoteEnrollment)
+    ));
+}
+
+#[test]
+fn test_validate_accepts_smtp_dependent_when_smtp_is_configured() {
+    let mut settings = Settings {
+        defguard_url: "https://defguard.example.com".into(),
+        gateway_disconnect_notifications_enabled: true,
+        ..Default::default()
+    };
+    settings.smtp.server = Some("smtp.example.com".into());
+    settings.smtp.port = Some(587);
+    settings.smtp.sender = Some("noreply@example.com".into());
+
+    assert!(settings.validate().is_ok());
+}
+
 /// Regression test for https://github.com/DefGuard/defguard/issues/3394
 ///
 /// Disabling LDAP remote enrollment while the dependent "send invite" option

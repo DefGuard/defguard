@@ -462,6 +462,35 @@ async fn test_mfa_flow_update_rejects_foreign_step_id(_: PgPoolOptions, options:
     );
 }
 
+#[sqlx::test]
+async fn test_mfa_flow_duplicate_title_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": "Flow A", "steps": [{ "methods": ["totp"] }]}))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let flow_id = resp.json::<Value>().await["id"].as_i64().unwrap();
+
+    let resp = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": "Flow A", "steps": [{ "methods": ["totp"] }]}))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::CONFLICT);
+
+    let resp = client
+        .put(format!("/api/v1/mfa-flow/{flow_id}"))
+        .json(&json!({"title": "Flow A", "steps": [{ "methods": ["biometric"] }]}))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
 /// Assignment input that cannot be satisfied is a validation error, not a 500 from a constraint
 /// violation, and an unknown location is a 404 rather than an empty list.
 #[sqlx::test]
