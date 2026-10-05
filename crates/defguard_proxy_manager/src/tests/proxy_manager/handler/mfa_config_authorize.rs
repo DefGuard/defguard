@@ -439,7 +439,7 @@ async fn test_oidc_requires_license(_: PgPoolOptions, options: PgConnectOptions)
         link_user_oidc_identity(pool, user).await;
     })
     .await;
-    assert!(session.available_methods.is_empty());
+    assert_eq!(session.available_methods, [] as [i32; 0]);
     assert!(session.email_fallback);
 
     let authorized =
@@ -458,7 +458,7 @@ async fn test_unlinked_user_keeps_email_fallback(_: PgPoolOptions, options: PgCo
     let _mock = setup_oidc(&context).await;
 
     let (session, _, ()) = start_session(&mut context, async |_, _| {}).await;
-    assert!(session.available_methods.is_empty());
+    assert_eq!(session.available_methods, [] as [i32; 0]);
     assert!(session.email_fallback);
 
     let auth_info = send_oidc_auth_info(&mut context, &session.session_token).await;

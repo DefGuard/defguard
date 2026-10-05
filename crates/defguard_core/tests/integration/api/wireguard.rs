@@ -142,7 +142,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
         mfa_flows: Vec::new(),
-        group_client_mtus: Vec::new(),
+        group_client_mtus: None,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -1280,7 +1280,7 @@ async fn test_peer_disconnect_threshold_validation_create(
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
         mfa_flows: Vec::new(),
-        group_client_mtus: Vec::new(),
+        group_client_mtus: None,
     };
 
     let response = client
@@ -1345,7 +1345,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
         service_location_mode: ServiceLocationMode::Disabled,
         posture_checks: Vec::new(),
         mfa_flows: Vec::new(),
-        group_client_mtus: Vec::new(),
+        group_client_mtus: None,
     };
 
     let response = client
@@ -3282,12 +3282,28 @@ async fn test_location_group_client_mtus(_: PgPoolOptions, options: PgConnectOpt
         json!([{"client_mtu": 1280, "group_ids": [group_1, group_3]}])
     );
 
-    // Omitting the field clears overrides.
+    // Omitting the field (older clients) keeps saved overrides.
     let mut data = location_json_with_group_client_mtus("network", json!([]));
     data.as_object_mut().unwrap().remove("group_client_mtus");
     let response = client
         .put(format!("/api/v1/network/{network_id}"))
         .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client
+        .get(format!("/api/v1/network/{network_id}"))
+        .send()
+        .await;
+    assert_eq!(
+        response.json::<Value>().await["group_client_mtus"],
+        json!([{"client_mtu": 1280, "group_ids": [group_1, group_3]}])
+    );
+
+    // An explicit empty list clears overrides.
+    let response = client
+        .put(format!("/api/v1/network/{network_id}"))
+        .json(&location_json_with_group_client_mtus("network", json!([])))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);

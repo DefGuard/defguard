@@ -100,9 +100,10 @@ pub struct WireguardNetworkData {
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Vec<Id>,
     pub mfa_flows: Vec<LocationMfaFlowAssignment>,
-    /// Client MTU overrides; each group may appear once.
+    /// Client MTU overrides; each group may appear once. `None` (field omitted, e.g. by older
+    /// clients) leaves saved overrides untouched on update.
     #[serde(default)]
-    pub group_client_mtus: Vec<GroupClientMtu>,
+    pub group_client_mtus: Option<Vec<GroupClientMtu>>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -223,7 +224,7 @@ impl WireguardNetworkData {
     /// Each group may have only one override.
     pub(crate) fn validate_group_client_mtus(&self) -> Result<(), WebError> {
         let mut group_ids = HashSet::new();
-        for item in &self.group_client_mtus {
+        for item in self.group_client_mtus.iter().flatten() {
             validate_min_mtu("group_client_mtus: client_mtu", item.client_mtu)?;
             if item.group_ids.is_empty() {
                 return Err(WebError::BadRequest(
@@ -380,7 +381,12 @@ pub(crate) async fn create_network(
         });
     }
 
-    if !data.group_client_mtus.is_empty() && !has_enterprise_access(None) {
+    if data
+        .group_client_mtus
+        .as_ref()
+        .is_some_and(|overrides| !overrides.is_empty())
+        && !has_enterprise_access(None)
+    {
         error!("Adding location {network_name} blocked! Group MTU requires Enterprise license.");
         return Ok(WebError::Forbidden("Group MTU requires an Enterprise license.").into());
     }
@@ -418,7 +424,9 @@ pub(crate) async fn create_network(
     network
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
-    save_group_client_mtus(&network, &mut transaction, &data.group_client_mtus).await?;
+    if let Some(overrides) = &data.group_client_mtus {
+        save_group_client_mtus(&network, &mut transaction, overrides).await?;
+    }
 
     // generate IP addresses for existing devices
     network.add_all_allowed_devices(&mut transaction).await?;
@@ -593,13 +601,15 @@ pub(crate) async fn modify_network(
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
     // Without a license, keep saved overrides so other fields stay editable.
-    if has_enterprise_access(None) {
-        save_group_client_mtus(&network, &mut transaction, &data.group_client_mtus).await?;
-    } else {
-        warn!(
-            location_id = network.id,
-            "Ignoring group MTU overrides: Enterprise license inactive"
-        );
+    if let Some(overrides) = &data.group_client_mtus {
+        if has_enterprise_access(None) {
+            save_group_client_mtus(&network, &mut transaction, overrides).await?;
+        } else {
+            warn!(
+                location_id = network.id,
+                "Ignoring group MTU overrides: Enterprise license inactive"
+            );
+        }
     }
 
     // Don't error out on no license - otherwise users won't be able to update other location fields.
