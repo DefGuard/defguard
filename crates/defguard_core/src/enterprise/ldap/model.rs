@@ -411,7 +411,7 @@ where
             .iter()
             .any(|g| group_in_list(sync_groups, &g.name)))
         && (user.is_active || sync_account_status)
-        && user.is_enrolled_or_ldap_pending())
+        && user.is_enrolled_or_from_ldap())
 }
 
 pub(super) async fn get_users_without_ldap_path<'e, E>(executor: E) -> sqlx::Result<Vec<User<Id>>>

@@ -4102,6 +4102,54 @@ async fn test_ldap_sync_disallowed_non_ldap_pending_enrollment(
     assert!(!result);
 }
 
+/// With `ldap_remote_enrollment_enabled` set, an LDAP user that is neither enrollment-pending
+/// nor done with remote enrollment (for example, imported while invites were off) must stay in
+/// sync scope, so an attribute change in LDAP still reaches Defguard.
+#[sqlx::test]
+async fn test_sync_keeps_ldap_user_without_enrollment_invite_in_scope(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let (ldap_tx, _ldap_rx) = ldap_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = false;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let mut user = make_test_user("testuser", Some("testuser".to_owned()), None);
+    user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_owned());
+    user.password_hash = None;
+    user.from_ldap = true;
+    user.enrollment_pending = false;
+    user.ldap_remote_enrollment_completed = false;
+    let user = user.save(&pool).await.unwrap();
+    assert!(!user.is_enrolled());
+    assert!(ldap_sync_allowed_for_user(&user, &pool).await.unwrap());
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+    let mut ldap_user = user.clone().as_noid();
+    ldap_user.last_name = "LastName".to_owned();
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let synced = User::find_by_id(&pool, user.id).await.unwrap().unwrap();
+    assert_eq!(synced.last_name, "LastName");
+    assert!(!synced.is_enrolled());
+}
+
 #[sqlx::test]
 async fn test_ldap_sync_allowed_all_conditions_false(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;

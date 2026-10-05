@@ -405,7 +405,7 @@ impl LDAPConnection {
             // we'd otherwise miss the active->disabled transition.
             let user_disabled_in_defguard = user_in_sync_groups
                 && user_exists_in_ldap
-                && user.is_enrolled_or_ldap_pending()
+                && user.is_enrolled_or_from_ldap()
                 && !user.is_active;
 
             if user_disabled_in_defguard {
@@ -425,7 +425,7 @@ impl LDAPConnection {
             let user_enabled_in_defguard = sync_account_status
                 && user_in_sync_groups
                 && user_exists_in_ldap
-                && user.is_enrolled_or_ldap_pending()
+                && user.is_enrolled_or_from_ldap()
                 && user.is_active;
 
             if user_enabled_in_defguard {
