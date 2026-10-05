@@ -1,0 +1,75 @@
+.mfa-flow-assignment-card {
+  display: flex;
+  flex-flow: column;
+  row-gap: 0;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-default);
+  border-radius: var(--radius-lg);
+
+  &:has(> .info-banner) {
+    border-color: var(--border-warning);
+  }
+
+  .header {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+
+    .flow-title {
+      font: var(--t-body-sm-500);
+      color: var(--fg-action);
+      text-decoration: underline;
+      cursor: help;
+    }
+
+    .actions {
+      margin-left: auto;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      column-gap: var(--spacing-xl);
+    }
+  }
+
+  .card-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .chips {
+    display: flex;
+    flex-flow: row wrap;
+    gap: var(--spacing-sm);
+  }
+
+  .info-banner {
+    margin-top: var(--spacing-lg);
+
+    & > .inner {
+      align-items: center;
+    }
+  }
+
+  .fold-chips {
+    align-self: flex-start;
+    margin-top: var(--spacing-md);
+    padding: 0;
+    background: none;
+    border: none;
+    font: var(--t-body-sm-400);
+    color: var(--fg-action);
+    cursor: pointer;
+  }
+}
