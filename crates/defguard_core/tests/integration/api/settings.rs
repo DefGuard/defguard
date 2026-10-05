@@ -705,3 +705,53 @@ async fn test_license_removal_triggers_public_settings_broadcast(
         "SMTP is not configured, so password reset stays hidden"
     );
 }
+
+#[sqlx::test]
+async fn test_get_settings_does_not_expose_secrets(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("ldap-secret").unwrap());
+    settings.smtp.password = Some(SecretStringWrapper::from_str("smtp-secret").unwrap());
+    settings.smtp.oauth_client_secret =
+        Some(SecretStringWrapper::from_str("oauth-client-secret").unwrap());
+    settings.smtp.oauth_refresh_token =
+        Some(SecretStringWrapper::from_str("oauth-refresh-token").unwrap());
+    update_current_settings(&client_state.pool, settings)
+        .await
+        .unwrap();
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+
+    for field in [
+        "ldap_bind_password",
+        "smtp_password",
+        "smtp_oauth_client_secret",
+        "smtp_oauth_refresh_token",
+    ] {
+        assert!(
+            body.get(field).is_none(),
+            "{field} should not be present in the GET /api/v1/settings response"
+        );
+    }
+
+    let raw = body.to_string();
+    for secret in [
+        "ldap-secret",
+        "smtp-secret",
+        "oauth-client-secret",
+        "oauth-refresh-token",
+    ] {
+        assert!(
+            !raw.contains(secret),
+            "secret value {secret:?} leaked in the GET /api/v1/settings response"
+        );
+    }
+}
