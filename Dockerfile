@@ -52,7 +52,7 @@ COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
-FROM public.ecr.aws/docker/library/debian:13-slim
+FROM public.ecr.aws/docker/library/debian:13-slim AS runtime
 # TEMPORARY FIX: The parent image has a snapshot of debian sources that has a security vulnerability. This is a temporary fix until the parent image is updated.
 # Remove this once the parent image is updated with the latest debian sources.
 RUN sed -i \
