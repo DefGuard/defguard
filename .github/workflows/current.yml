@@ -9,7 +9,6 @@ on:
       - dev
       - "release/**"
       - "stable/**"
-      - rate-limit-e2e
     paths-ignore:
       - "*.md"
       - "LICENSE"
