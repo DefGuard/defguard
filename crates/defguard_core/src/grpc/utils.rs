@@ -120,7 +120,7 @@ pub async fn build_device_config_response(
             }
 
             let config =
-                to_wire_device_config(device_config, instance_info.configured_methods(), false)?;
+                to_wire_device_config(device_config, &instance_info.configured_methods, false)?;
             configs.push(config);
         }
     } else {
@@ -212,7 +212,7 @@ pub async fn build_device_config_response(
 
             let config = to_wire_device_config(
                 device_config,
-                instance_info.configured_methods(),
+                &instance_info.configured_methods,
                 supports_multi_step_mfa,
             )?;
             configs.push(config);
@@ -1025,7 +1025,7 @@ mod tests {
         let instance_info = InstanceInfo::build(&pool, &settings, &user, None, Some(device.id))
             .await
             .expect("failed to build instance info");
-        let wire = build_wire_steps(&steps, instance_info.configured_methods());
+        let wire = build_wire_steps(&steps, &instance_info.configured_methods);
 
         assert_eq!(wire.len(), 2);
 
@@ -1100,12 +1100,12 @@ mod tests {
             .expect("failed to build instance info");
         assert!(
             !instance
-                .configured_methods()
+                .configured_methods
                 .contains(&VpnClientMfaMethod::Biometric)
         );
         assert!(
             instance
-                .configured_methods()
+                .configured_methods
                 .contains(&VpnClientMfaMethod::MobileApprove)
         );
     }

@@ -1027,7 +1027,7 @@ impl EnrollmentServer {
         for device_config in configs {
             let config = to_wire_device_config(
                 device_config,
-                instance_info.configured_methods(),
+                &instance_info.configured_methods,
                 supports_multi_step_mfa,
             )?;
             wire_configs.push(config);

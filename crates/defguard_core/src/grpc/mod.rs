@@ -174,7 +174,7 @@ pub struct InstanceInfo {
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
     disable_tunnels: bool,
-    configured_methods: Vec<VpnClientMfaMethod>,
+    pub configured_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -234,12 +234,6 @@ impl InstanceInfo {
             disable_tunnels: enterprise_settings.disable_tunnels,
             configured_methods,
         })
-    }
-
-    /// Returns the methods configured for the user and device in this instance response.
-    #[must_use]
-    pub fn configured_methods(&self) -> &[VpnClientMfaMethod] {
-        &self.configured_methods
     }
 }
 
