@@ -1,7 +1,7 @@
 use std::fmt;
 
 use defguard_common::db::{Id, NoId};
-use defguard_proto::proxy::OpenIdProviderKind as ProtoOpenIdProviderKind;
+use defguard_proto::client_types::OpenIdProviderKind as ProtoOpenIdProviderKind;
 use model_derive::Model;
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 
