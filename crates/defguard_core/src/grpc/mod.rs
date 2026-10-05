@@ -33,7 +33,7 @@ use crate::{
                 ClientTrafficPolicy, EnterpriseSettings, resolve_client_traffic_policy,
             },
             group_client_traffic_policy::GroupClientTrafficPolicy,
-            openid_provider::OpenIdProvider,
+            openid_provider::{OpenIdProvider, OpenIdProviderKind},
         },
         has_enterprise_access, is_business_license_active, is_oidc_mfa_available,
         license::LicenseTier,
@@ -56,7 +56,9 @@ pub mod proto {
 }
 
 use defguard_proto::{
-    client_types::{MfaCapabilities, MfaMethod, MfaUserState},
+    client_types::{
+        MfaCapabilities, MfaMethod, MfaUserState, OpenIdProviderKind as ProtoOpenIdProviderKind,
+    },
     worker::worker_service_server::WorkerServiceServer,
 };
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
@@ -173,6 +175,7 @@ pub struct InstanceInfo {
     client_traffic_policy: ClientTrafficPolicy,
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
+    openid_provider_kind: Option<OpenIdProviderKind>,
     disable_tunnels: bool,
     pub configured_methods: Vec<VpnClientMfaMethod>,
 }
@@ -220,6 +223,7 @@ impl InstanceInfo {
             .as_ref()
             .map(|provider| provider.display_name.clone())
             .unwrap_or_default();
+        let openid_provider_kind = openid_provider.map(|provider| provider.kind);
         let url = Settings::url()?;
         let proxy_url = settings.proxy_public_url()?;
         Ok(Self {
@@ -231,6 +235,7 @@ impl InstanceInfo {
             client_traffic_policy,
             enterprise_enabled: is_business_license_active(),
             openid_display_name,
+            openid_provider_kind,
             disable_tunnels: enterprise_settings.disable_tunnels,
             configured_methods,
         })
@@ -252,6 +257,9 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
             client_traffic_policy: Some(instance.client_traffic_policy as i32),
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
+            openid_provider_kind: instance
+                .openid_provider_kind
+                .map(|kind| ProtoOpenIdProviderKind::from(&kind) as i32),
             disable_tunnels: Some(instance.disable_tunnels),
             mfa_user_state: Some(MfaUserState {
                 configured_methods: instance

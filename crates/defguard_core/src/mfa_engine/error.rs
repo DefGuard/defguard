@@ -20,6 +20,8 @@ pub enum StartError {
     MethodNotAvailable,
     #[error("Select MFA method is not available for the device.")]
     BiometricNotConfigured,
+    #[error("Too many failed MFA attempts. Try again later.")]
+    AttemptLimit,
     #[error("unexpected error")]
     Internal,
     #[error(transparent)]

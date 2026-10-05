@@ -115,7 +115,10 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
         .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
         .await
         .data;
-    assert!(openid_clients.is_empty());
+    assert_eq!(
+        openid_clients,
+        [] as [defguard_common::db::models::oauth2client::OAuth2Client<i64>; 0]
+    );
 }
 
 #[sqlx::test]
@@ -709,7 +712,7 @@ async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
     assert_eq!(location, FAKE_REDIRECT_URI);
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
     // Verify we got a valid authorization code
-    assert!(!auth_response.code.is_empty());
+    assert_ne!(auth_response.code, "");
 
     // Now disable the OAuth2 client
     let disabled_oauth2client = NewOpenIDClient {

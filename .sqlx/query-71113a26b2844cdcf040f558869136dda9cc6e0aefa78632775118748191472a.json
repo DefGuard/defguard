@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT client_mtu, array_agg(group_id ORDER BY group_id) \"group_ids!\" FROM group_client_mtu WHERE network_id = $1 GROUP BY client_mtu ORDER BY client_mtu",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client_mtu",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "group_client_mtu",
+            "name": "client_mtu"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "group_ids!",
+        "type_info": "Int8Array",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "71113a26b2844cdcf040f558869136dda9cc6e0aefa78632775118748191472a"
+}

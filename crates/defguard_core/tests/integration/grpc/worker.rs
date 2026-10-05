@@ -306,11 +306,11 @@ async fn set_job_done_failure_stores_status_without_keys_or_event(
             .expect("yubikey query should succeed")
             .is_empty()
     );
-    assert!(
+    assert_eq!(
         AuthenticationKey::find_by_user_id(&pool, user.id, None)
             .await
-            .expect("auth key query should succeed")
-            .is_empty()
+            .expect("auth key query should succeed"),
+        [] as [defguard_common::db::models::AuthenticationKey<i64>; 0]
     );
     assert_matches!(server.app_event_rx.try_recv(), Err(TryRecvError::Empty));
 }
@@ -362,11 +362,11 @@ async fn set_job_done_unknown_job_is_ignored(_: PgPoolOptions, options: PgConnec
             .expect("yubikey query should succeed")
             .is_empty()
     );
-    assert!(
+    assert_eq!(
         AuthenticationKey::find_by_user_id(&pool, user.id, None)
             .await
-            .expect("auth key query should succeed")
-            .is_empty()
+            .expect("auth key query should succeed"),
+        [] as [defguard_common::db::models::AuthenticationKey<i64>; 0]
     );
     assert_matches!(server.app_event_rx.try_recv(), Err(TryRecvError::Empty));
 }

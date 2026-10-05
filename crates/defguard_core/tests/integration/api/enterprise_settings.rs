@@ -866,11 +866,9 @@ async fn test_group_client_traffic_policies_are_saved_and_validated(
         settings.group_client_traffic_policies.disable_all_traffic,
         vec![disable.id]
     );
-    assert!(
-        settings
-            .group_client_traffic_policies
-            .force_all_traffic
-            .is_empty()
+    assert_eq!(
+        settings.group_client_traffic_policies.force_all_traffic,
+        [] as [i64; 0]
     );
 
     let license = get_cached_license().clone();

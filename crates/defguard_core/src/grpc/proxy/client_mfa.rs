@@ -166,6 +166,7 @@ impl From<InitiateError> for Status {
             InitiateError::UnsupportedMethod => {
                 Self::unimplemented("Selected MFA method is not supported")
             }
+            InitiateError::TooManyRequests => Self::failed_precondition(err.to_string()),
         }
     }
 }
@@ -229,7 +230,9 @@ impl From<StepRejection> for MfaStepRejection {
 impl From<StartError> for Status {
     fn from(err: StartError) -> Self {
         let code = match err {
-            StartError::MultiStepNotAvailable => Code::FailedPrecondition,
+            StartError::MultiStepNotAvailable | StartError::AttemptLimit => {
+                Code::FailedPrecondition
+            }
             StartError::PlanLengthMismatch
             | StartError::MethodNotAvailable
             | StartError::BiometricNotConfigured => Code::InvalidArgument,

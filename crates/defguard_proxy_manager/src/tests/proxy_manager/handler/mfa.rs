@@ -537,7 +537,7 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
         &[MfaMethod::Totp, MfaMethod::Email],
     )
     .await;
-    assert!(!token.is_empty());
+    assert_ne!(token, "");
 
     // Subscribe to the gateway broadcast before finishing so the collect path's
     // gateway send has a live receiver.
@@ -570,7 +570,7 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
 
     // Step 1 (Email) completes the flow.
     let step_started = send_mfa_step_start(&mut context, &token, MfaMethod::Email).await;
-    assert!(!step_started.step_attempt_id.is_empty());
+    assert_ne!(step_started.step_attempt_id, "");
 
     let email = user
         .generate_email_mfa_code()
@@ -589,7 +589,7 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
         ),
         _ => panic!("expected ClientMfaFinish response"),
     };
-    assert!(!preshared_key.is_empty());
+    assert_ne!(preshared_key, "");
 
     let sessions = VpnClientSession::get_all_active_device_sessions_in_location(
         &context.pool,
@@ -653,7 +653,7 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
     match &response.payload {
         #[allow(deprecated)]
         Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert!(result.preshared_key.is_empty());
+            assert_eq!(result.preshared_key, "");
             assert!(matches!(
                 result.result,
                 Some(MfaStepResult {
@@ -720,7 +720,7 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
         },
         _ => panic!("expected completed response"),
     };
-    assert!(!preshared_key.is_empty());
+    assert_ne!(preshared_key, "");
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
@@ -772,7 +772,7 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
     let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert!(result.preshared_key.is_empty());
+            assert_eq!(result.preshared_key, "");
             assert!(matches!(
                 result.result,
                 Some(MfaStepResult {
@@ -859,11 +859,11 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
         Some(&attempt_id),
     )
     .await;
-    assert!(preshared_key.is_empty());
+    assert_eq!(preshared_key, "");
     // New-protocol approval marks the session and returns AwaitingExternal.
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert!(result.preshared_key.is_empty());
+            assert_eq!(result.preshared_key, "");
             assert!(matches!(
                 result.result,
                 Some(MfaStepResult {
@@ -909,8 +909,8 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
             Some(MfaStepResult {
                 outcome: Some(mfa_step_result::Outcome::Completed(completed)),
             }) => {
-                assert!(!result.preshared_key.is_empty());
-                assert!(!completed.preshared_key.is_empty());
+                assert_ne!(result.preshared_key, "");
+                assert_ne!(completed.preshared_key, "");
                 assert_eq!(result.preshared_key, completed.preshared_key);
                 completed.preshared_key
             }
@@ -923,7 +923,7 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
         Some(_) => panic!("expected completed response payload"),
         None => panic!("expected completed response payload"),
     };
-    assert!(!preshared_key.is_empty());
+    assert_ne!(preshared_key, "");
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
@@ -1000,7 +1000,7 @@ async fn test_new_protocol_mobile_approve_advances_non_final_step(
         Some(&attempt_id),
     )
     .await;
-    assert!(preshared_key.is_empty());
+    assert_eq!(preshared_key, "");
     assert!(matches!(
         response.payload,
         Some(core_response::Payload::ClientMfaFinish(result))
@@ -1117,7 +1117,7 @@ async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_
         Some(&attempt_id),
     )
     .await;
-    assert!(preshared_key.is_empty());
+    assert_eq!(preshared_key, "");
     assert!(matches!(
         response.payload,
         Some(core_response::Payload::ClientMfaFinish(result))
@@ -1314,7 +1314,7 @@ async fn test_parked_mobile_approval_completes_final_step(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, 7003);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
                 // New-protocol approval marks the session and returns AwaitingExternal.
                 assert!(matches!(
                     result.result,
@@ -1331,19 +1331,15 @@ async fn test_parked_mobile_approval_completes_final_step(
                 else {
                     panic!("expected completed parked result");
                 };
-                assert!(!result.preshared_key.is_empty());
-                assert!(!completed.preshared_key.is_empty());
+                assert_ne!(result.preshared_key, "");
+                assert_ne!(completed.preshared_key, "");
                 assert_eq!(result.preshared_key, completed.preshared_key);
                 parked_key = Some(completed.preshared_key.clone());
             }
             _ => panic!("unexpected response"),
         }
     }
-    assert!(
-        !parked_key
-            .expect("parked response must contain a key")
-            .is_empty()
-    );
+    assert_ne!(parked_key.expect("parked response must contain a key"), "");
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
@@ -1438,7 +1434,7 @@ async fn test_parked_mobile_approval_advances_non_final_step(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, 7102);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
                 assert!(matches!(
                     result.result,
                     Some(MfaStepResult {
@@ -1448,7 +1444,7 @@ async fn test_parked_mobile_approval_advances_non_final_step(
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, 7101);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
                 assert!(
                     matches!(result.result, Some(MfaStepResult { outcome: Some(mfa_step_result::Outcome::Advanced(advanced)) }) if advanced.next_step == 1)
                 );
@@ -1503,7 +1499,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
         send_mfa_finish_raw(&mut context, &token, Some(&generate_totp_code(&user))).await;
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert!(result.preshared_key.is_empty());
+            assert_eq!(result.preshared_key, "");
             assert!(matches!(
                 result.result,
                 Some(MfaStepResult {
@@ -1533,7 +1529,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
     let challenge = step_started
         .challenge
         .expect("biometric StepStart must return a challenge");
-    assert!(!challenge.is_empty());
+    assert_ne!(challenge, "");
     let invalid_response = send_mfa_finish_signed_with_attempt_id_raw(
         &mut context,
         &token,

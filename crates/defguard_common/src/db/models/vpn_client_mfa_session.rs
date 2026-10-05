@@ -32,7 +32,8 @@ use crate::{
 /// entry, and the durable row is reaped by a background job instead of a per-entry expiry.
 pub const VPN_MFA_SESSION_TIMEOUT: Duration = Duration::from_mins(10);
 
-/// Per-step cap on proof-verification failures. A sanity/abuse limit, not a lockout.
+/// Per-step cap on proof-verification failures within one session.
+/// [`ThrottleScope::VpnMfaCode`](super::ThrottleScope::VpnMfaCode) counts them across sessions.
 pub const MFA_FAILED_ATTEMPT_CAP: i32 = 5;
 
 /// Point-in-time snapshot of the resolved MFA flow, frozen at `start`.

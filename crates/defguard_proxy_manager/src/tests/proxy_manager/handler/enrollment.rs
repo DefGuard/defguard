@@ -826,7 +826,7 @@ async fn test_code_mfa_setup_finish_totp_recreates_recovery_codes_for_reenrollme
         ),
     };
 
-    assert!(!new_recovery_codes.is_empty());
+    assert_ne!(new_recovery_codes, [] as [std::string::String; 0]);
     assert_ne!(old_recovery_codes, new_recovery_codes);
 
     let updated = User::find_by_username(&context.pool, &user.username)

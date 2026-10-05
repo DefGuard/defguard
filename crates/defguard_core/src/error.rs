@@ -12,7 +12,6 @@ use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 
 use crate::{
-    auth::failed_login::FailedLoginError,
     cert_settings::CertSettingsError,
     db::models::enrollment::TokenError,
     enterprise::{
@@ -65,8 +64,8 @@ pub enum WebError {
     PubkeyExists(String),
     #[error("HTTP error: {0}")]
     Http(StatusCode),
-    #[error(transparent)]
-    TooManyLoginAttempts(#[from] FailedLoginError),
+    #[error("Too many login attempts")]
+    TooManyLoginAttempts,
     #[error("Bad request: {0}")]
     BadRequest(String),
     #[error(transparent)]

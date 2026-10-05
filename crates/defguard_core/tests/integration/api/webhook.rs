@@ -63,5 +63,5 @@ async fn test_webhooks(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/webhook").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let webhooks: Vec<WebHook<Id>> = response.json().await;
-    assert!(webhooks.is_empty());
+    assert_eq!(webhooks, [] as [defguard_core::db::WebHook<i64>; 0]);
 }
