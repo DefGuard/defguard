@@ -193,7 +193,7 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
     set_public_proxy_url(&context.pool, &mock.base_url).await;
 
     // The MFA flow requires an active session whose token rides in `state`. Start one for the
-    // external (OIDC) network so `start_client_mfa_login` accepts the Oidc method.
+    // external (OIDC) network so `legacy_mfa_start` accepts the Oidc method.
     let network = create_external_mfa_network(&context.pool).await;
     let (mut user, device) = create_user_with_device(&context.pool).await;
     link_user_oidc_identity(&context.pool, &mut user).await;

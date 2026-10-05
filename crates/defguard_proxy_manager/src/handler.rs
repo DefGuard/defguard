@@ -40,8 +40,7 @@ use defguard_core::{
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
-            ClientMfaServer, ClientMfaStartOutcome, MfaFlowStartOutcome, PostureCheckOutcome,
-            RemoteAuthWaiters,
+            ClientMfaServer, MfaStartRejection, PostureCheckOutcome, RemoteAuthWaiters,
         },
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
@@ -880,19 +879,19 @@ impl ProxyHandler {
                 match boxed(
                     services
                         .client_mfa
-                        .start_client_mfa_login(request, received.device_info),
+                        .legacy_mfa_start(request, received.device_info),
                 )
                 .await
                 {
-                    Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
+                    Ok(response_payload) => {
                         Some(core_response::Payload::ClientMfaStart(response_payload))
                     }
-                    Ok(ClientMfaStartOutcome::Rejected { failed_checks }) => Some(
+                    Err(MfaStartRejection::PostureFailed { failed_checks }) => Some(
                         core_response::Payload::DevicePostureRejected(DevicePostureRejection {
                             failed_posture_checks: failed_checks,
                         }),
                     ),
-                    Err(err) => {
+                    Err(MfaStartRejection::Status(err)) => {
                         error!("client MFA start error {err}");
                         Some(core_response::Payload::CoreError(err.into()))
                     }
@@ -903,19 +902,17 @@ impl ProxyHandler {
                 match boxed(
                     services
                         .client_mfa
-                        .start_mfa_flow(request, received.device_info),
+                        .mfa_flow_start(request, received.device_info),
                 )
                 .await
                 {
-                    Ok(MfaFlowStartOutcome::PostureApproved(response)) => {
-                        Some(core_response::Payload::MfaFlowStart(response))
-                    }
-                    Ok(MfaFlowStartOutcome::PostureRejected { failed_checks }) => Some(
+                    Ok(response) => Some(core_response::Payload::MfaFlowStart(response)),
+                    Err(MfaStartRejection::PostureFailed { failed_checks }) => Some(
                         core_response::Payload::DevicePostureRejected(DevicePostureRejection {
                             failed_posture_checks: failed_checks,
                         }),
                     ),
-                    Err(err) => {
+                    Err(MfaStartRejection::Status(err)) => {
                         error!("client MFA flow start error {err}");
                         Some(core_response::Payload::CoreError(err.into()))
                     }
@@ -923,7 +920,7 @@ impl ProxyHandler {
             }
             // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
             Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
-                match boxed(services.client_mfa.await_remote_mfa_login(
+                match boxed(services.client_mfa.legacy_mfa_remote(
                     request,
                     response_tx.clone(),
                     received.id,
@@ -956,7 +953,7 @@ impl ProxyHandler {
             }
             // rpc MfaFlowRemote (MfaFlowRemoteRequest) returns (MfaFlowRemoteResponse)
             Some(core_request::Payload::MfaFlowRemote(request)) => {
-                match boxed(services.client_mfa.await_mfa_flow_remote(
+                match boxed(services.client_mfa.mfa_flow_remote(
                     request,
                     response_tx.clone(),
                     received.id,
@@ -992,7 +989,7 @@ impl ProxyHandler {
                 match boxed(
                     services
                         .client_mfa
-                        .finish_client_mfa_login(request, received.device_info),
+                        .legacy_mfa_finish(request, received.device_info),
                 )
                 .await
                 {

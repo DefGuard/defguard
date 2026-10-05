@@ -15,6 +15,8 @@ pub enum StartError {
     MultiStepNotAvailable,
     #[error("MFA plan length does not match the location's flow")]
     PlanLengthMismatch,
+    #[error("selected MFA method is not supported by location")]
+    MethodNotInStep,
     /// The selected method is not set up for this user or device.
     #[error("selected MFA method is not available")]
     MethodNotAvailable,

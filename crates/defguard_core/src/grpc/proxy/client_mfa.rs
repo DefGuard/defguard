@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, hash_map::Entry},
+    collections::{HashMap, HashSet, hash_map::Entry},
     net::IpAddr,
     sync::{Arc, Mutex, RwLock},
     time::Duration,
@@ -58,7 +58,6 @@ use crate::{
             build_authorized_gateway_network_info, create_new_session,
         },
         error::StartError,
-        filter_unlicensed_mfa_methods,
         legacy::{FinishError, LegacyProof},
         method::InitiateError,
         multi_step::{
@@ -90,7 +89,9 @@ enum RemoteAuthWaiterKind {
 
 /// State for a client waiting for remote MFA.
 pub struct RemoteAuthWaiter {
-    generation: Arc<()>,
+    /// Each parked waiter gets a fresh `Arc` identity; its cleanup task keeps a clone.
+    /// `Arc::ptr_eq` stops stale cleanup from removing a replacement under the same token hash.
+    waiter_identity: Arc<()>,
     signal_tx: oneshot::Sender<RemoteAuthSignal>,
     kind: RemoteAuthWaiterKind,
 }
@@ -126,13 +127,13 @@ async fn acquire_connection(pool: &PgPool) -> Result<PoolConnection<Postgres>, S
 }
 
 /// Removes a waiting client only if it still belongs to this cleanup task.
-fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, generation: &Arc<()>) {
+fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, waiter_identity: &Arc<()>) {
     let mut waiters = waiters
         .write()
         .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses");
     let owns_current_waiter = waiters
         .get(hash)
-        .is_some_and(|waiter| Arc::ptr_eq(&waiter.generation, generation));
+        .is_some_and(|waiter| Arc::ptr_eq(&waiter.waiter_identity, waiter_identity));
     if owns_current_waiter {
         waiters.remove(hash);
     }
@@ -147,25 +148,6 @@ fn take_remote_mfa_waiter_by_hash(
         .write()
         .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
         .remove(hash)
-}
-
-fn take_remote_mfa_waiter_if(
-    waiters: &RemoteAuthWaiters,
-    token: &str,
-    matches_kind: impl FnOnce(&RemoteAuthWaiterKind) -> bool,
-) -> Option<RemoteAuthWaiter> {
-    let hash = hash_token(token);
-    let mut waiters = waiters
-        .write()
-        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses");
-    if waiters
-        .get(&hash)
-        .is_some_and(|waiter| matches_kind(&waiter.kind))
-    {
-        waiters.remove(&hash)
-    } else {
-        None
-    }
 }
 
 fn take_legacy_remote_mfa_waiter(
@@ -191,11 +173,18 @@ fn take_multi_step_remote_mfa_waiter(
     token: &str,
     step_attempt_id: &str,
 ) -> Option<RemoteAuthWaiter> {
-    take_remote_mfa_waiter_if(
-        waiters,
-        token,
-        |kind| matches!(kind, RemoteAuthWaiterKind::MultiStep { step_attempt_id: current } if current == step_attempt_id),
-    )
+    let hash = hash_token(token);
+    let mut waiters = waiters
+        .write()
+        .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses");
+    let Entry::Occupied(entry) = waiters.entry(hash) else {
+        return None;
+    };
+    let matches_attempt = matches!(
+        &entry.get().kind,
+        RemoteAuthWaiterKind::MultiStep { step_attempt_id: current } if current == step_attempt_id
+    );
+    matches_attempt.then(|| entry.remove())
 }
 
 /// Sends a message to a waiting client. Closed receivers are normal; the message never contains the VPN key.
@@ -269,7 +258,8 @@ fn parse_mfa_method(method: i32) -> Result<VpnClientMfaMethod, Status> {
         })
 }
 
-fn flow_step_started(
+/// Builds the wire `MfaStepStarted` for an opened step, choosing the challenge variant the method needs.
+fn encode_step_started(
     method: VpnClientMfaMethod,
     step_attempt_id: String,
     challenge: Option<String>,
@@ -363,6 +353,7 @@ impl From<StartError> for Status {
         let code = match err {
             StartError::MultiStepNotAvailable => Code::FailedPrecondition,
             StartError::PlanLengthMismatch
+            | StartError::MethodNotInStep
             | StartError::MethodNotAvailable
             | StartError::BiometricNotConfigured => Code::InvalidArgument,
             StartError::Internal => Code::Internal,
@@ -474,15 +465,15 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn start_client_mfa_login(
+    pub async fn legacy_mfa_start(
         &self,
         request: ClientMfaStartRequest,
         info: Option<proxy::DeviceInfo>,
-    ) -> Result<ClientMfaStartOutcome, Status> {
+    ) -> Result<ClientMfaStartResponse, MfaStartRejection> {
         debug!("Starting desktop client login: {request:?}");
         let selected_client_method = parse_mfa_method(request.method)?;
         if selected_client_method == VpnClientMfaMethod::Fido2 {
-            return Err(Status::from(InitiateError::UnsupportedMethod));
+            return Err(Status::from(InitiateError::UnsupportedMethod).into());
         }
 
         let ClientMfaStartContext {
@@ -501,104 +492,45 @@ impl ClientMfaServer {
         {
             ClientMfaStartPreparation::Ready(context) => context,
             ClientMfaStartPreparation::PostureRejected { failed_checks } => {
-                return Ok(ClientMfaStartOutcome::Rejected { failed_checks });
+                return Err(MfaStartRejection::PostureFailed { failed_checks });
             }
         };
 
-        // Reject locations whose flow configuration cannot be expressed as a legacy
-        // single-factor mode (multi-flow, multi-step, or a subset of the internal method set).
-        // Fail closed rather than silently driving only the first step.
-        if MfaFlow::derive_legacy_mode(&self.pool, location.id)
-            .await
-            .map_err(|err| {
-                error!("Failed to derive legacy MFA mode: {err}");
-                Status::internal("unexpected error")
-            })?
-            .is_none()
-        {
-            error!(
-                "Location {location} has an MFA flow configuration that cannot be enforced by \
-                this client"
-            );
-            // A flow this client cannot express is usually multi-step, and
-            // then updating really is the answer. A single step of methods
-            // no legacy client can drive is a different story - a CLI has
-            // no way to reach a security key, however new it is - so say
-            // that instead of sending the user after a pointless upgrade.
-            let (_, steps) = self
-                .resolve_mfa_flow(&location, &user, LEGACY_CLIENT_MESSAGE)
-                .await?;
-            let needs_method_this_client_lacks = steps.len() == 1
-                && steps[0]
-                    .methods
-                    .iter()
-                    .all(|method| *method == VpnClientMfaMethod::Fido2);
-            return Err(Status::failed_precondition(
-                if needs_method_this_client_lacks {
-                    FIDO2_ONLY_MESSAGE
-                } else {
-                    LEGACY_CLIENT_MESSAGE
-                },
-            ));
-        }
-
-        // The legacy adapter drives only the first step, so license-filter that step's methods
-        // and validate the client's selected method against them.
-        let (flow, steps) = self
-            .resolve_mfa_flow(
-                &location,
-                &user,
-                "location MFA configuration is not supported by this client",
-            )
-            .await?;
-
-        let Some(first_step) = steps.first() else {
-            error!("Resolved MFA flow has no steps");
-            return Err(Status::internal("unexpected error"));
-        };
-        let first_step_methods = filter_unlicensed_mfa_methods(&first_step.methods);
-
-        if !first_step_methods.contains(&selected_client_method) {
-            error!(
-                "Selected MFA method ({selected_client_method:?}) is not supported by location \
-                {location}"
-            );
-            return Err(Status::invalid_argument(
-                "selected MFA method is not supported by location",
-            ));
-        }
-
+        let (flow_id, step_methods) = self.resolve_legacy_mfa_flow(&location, &user).await?;
         let start_outcome = self
             .engine
             .start_legacy(
                 &location,
                 &device,
                 &user,
-                flow.id,
-                first_step_methods,
+                flow_id,
+                step_methods,
                 selected_client_method,
             )
-            .await?;
+            .await
+            .map_err(Status::from)?;
 
-        self.finish_start(start_outcome, &user, ip, &device, &location)
+        Ok(self.finish_start(start_outcome, &user, ip, &device, &location)?)
     }
 
     #[instrument(skip_all)]
-    pub async fn start_mfa_flow(
+    pub async fn mfa_flow_start(
         &self,
         request: MfaFlowStartRequest,
         info: Option<proxy::DeviceInfo>,
-    ) -> Result<MfaFlowStartOutcome, Status> {
+    ) -> Result<MfaFlowStartResponse, MfaStartRejection> {
         debug!("Starting multi-step desktop client login: {request:?}");
         if request.selected_methods.is_empty() {
-            return Err(Status::invalid_argument("MFA plan must not be empty"));
+            return Err(Status::invalid_argument("MFA plan must not be empty").into());
         }
         let selected_methods = request
             .selected_methods
             .iter()
             .map(|&method| parse_mfa_method(method))
             .collect::<Result<Vec<_>, _>>()?;
-        let first_method = selected_methods[0];
+        let Some(&first_method) = selected_methods.first() else {
+            return Err(Status::invalid_argument("MFA plan must not be empty").into());
+        };
 
         let ClientMfaStartContext {
             location,
@@ -616,7 +548,7 @@ impl ClientMfaServer {
         {
             ClientMfaStartPreparation::Ready(context) => context,
             ClientMfaStartPreparation::PostureRejected { failed_checks } => {
-                return Ok(MfaFlowStartOutcome::PostureRejected { failed_checks });
+                return Err(MfaStartRejection::PostureFailed { failed_checks });
             }
         };
 
@@ -639,7 +571,8 @@ impl ClientMfaServer {
                 step_methods,
                 selected_methods,
             )
-            .await?
+            .await
+            .map_err(Status::from)?
         {
             StartResult::Accepted(start_outcome) => {
                 let MultiStepStartOutcome {
@@ -657,28 +590,28 @@ impl ClientMfaServer {
                     &location,
                 )?;
                 let first_step =
-                    flow_step_started(first_method, step_attempt_id, challenge, credential_ids)?;
-                Ok(MfaFlowStartOutcome::PostureApproved(MfaFlowStartResponse {
+                    encode_step_started(first_method, step_attempt_id, challenge, credential_ids)?;
+                Ok(MfaFlowStartResponse {
                     outcome: Some(mfa_flow_start_response::Outcome::Accepted(
                         MfaFlowStartAccepted {
                             token,
                             first_step: Some(first_step),
                         },
                     )),
-                }))
+                })
             }
             StartResult::Rejected(rejections) => {
                 info!(
                     "MFA plan rejected for user {} at location {}: {rejections:?}",
                     user.username, location.name
                 );
-                Ok(MfaFlowStartOutcome::PostureApproved(MfaFlowStartResponse {
+                Ok(MfaFlowStartResponse {
                     outcome: Some(mfa_flow_start_response::Outcome::Rejected(
                         MfaFlowStartRejected {
                             rejections: rejections.into_iter().map(Into::into).collect(),
                         },
                     )),
-                }))
+                })
             }
         }
     }
@@ -692,7 +625,7 @@ impl ClientMfaServer {
         ip: IpAddr,
         device: &Device<Id>,
         location: &WireguardNetwork<Id>,
-    ) -> Result<ClientMfaStartOutcome, Status> {
+    ) -> Result<ClientMfaStartResponse, Status> {
         self.finish_start_side_effects(
             start_outcome.superseded_token_hash.as_deref(),
             user,
@@ -706,10 +639,10 @@ impl ClientMfaServer {
             user.username, location.name
         );
 
-        Ok(ClientMfaStartOutcome::Approved(ClientMfaStartResponse {
+        Ok(ClientMfaStartResponse {
             token: start_outcome.token,
             challenge: start_outcome.challenge,
-        }))
+        })
     }
 
     fn finish_start_side_effects(
@@ -875,6 +808,59 @@ impl ClientMfaServer {
         }))
     }
 
+    /// Resolve a flow that can be represented by the legacy single-step contract.
+    async fn resolve_legacy_mfa_flow(
+        &self,
+        location: &WireguardNetwork<Id>,
+        user: &User<Id>,
+    ) -> Result<(Id, HashSet<VpnClientMfaMethod>), Status> {
+        if MfaFlow::derive_legacy_mode(&self.pool, location.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to derive legacy MFA mode: {err}");
+                Status::internal("unexpected error")
+            })?
+            .is_none()
+        {
+            error!(
+                "Location {location} has an MFA flow configuration that cannot be enforced by \
+                this client"
+            );
+            // FIDO2-only flows get a specific error because legacy clients cannot use security keys.
+            let (_, steps) = self
+                .resolve_mfa_flow(location, user, LEGACY_CLIENT_MESSAGE)
+                .await?;
+            let needs_method_this_client_lacks = match steps.as_slice() {
+                [step] => step
+                    .methods
+                    .iter()
+                    .all(|method| *method == VpnClientMfaMethod::Fido2),
+                _ => false,
+            };
+            return Err(Status::failed_precondition(
+                if needs_method_this_client_lacks {
+                    FIDO2_ONLY_MESSAGE
+                } else {
+                    LEGACY_CLIENT_MESSAGE
+                },
+            ));
+        }
+
+        let (flow, steps) = self
+            .resolve_mfa_flow(
+                location,
+                user,
+                "location MFA configuration is not supported by this client",
+            )
+            .await?;
+        let Some(first_step) = steps.first() else {
+            error!("Resolved MFA flow has no steps");
+            return Err(Status::internal("unexpected error"));
+        };
+
+        Ok((flow.id, first_step.methods.clone()))
+    }
+
     /// Resolve the MFA flow applying to `user` at `location`. The two start paths differ only in
     /// the message reported when no flow applies, hence `no_flow_message`.
     async fn resolve_mfa_flow(
@@ -953,14 +939,14 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn await_mfa_flow_remote(
+    pub async fn mfa_flow_remote(
         &self,
         request: MfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
         info: Option<proxy::DeviceInfo>,
     ) -> Result<(), Status> {
-        self.await_mfa_flow_remote_with_timeout(
+        self.mfa_flow_remote_with_timeout(
             request,
             response_tx,
             request_id,
@@ -970,7 +956,7 @@ impl ClientMfaServer {
         .await
     }
 
-    async fn await_mfa_flow_remote_with_timeout(
+    async fn mfa_flow_remote_with_timeout(
         &self,
         request: MfaFlowRemoteRequest,
         response_tx: UnboundedSender<CoreResponse>,
@@ -1005,7 +991,7 @@ impl ClientMfaServer {
 
         let hash = hash_token(&token);
         let (signal_tx, rx) = oneshot::channel();
-        let generation = Arc::new(());
+        let waiter_identity = Arc::new(());
         let replaced_waiter = {
             self.remote_mfa_responses
                 .write()
@@ -1013,7 +999,7 @@ impl ClientMfaServer {
                 .insert(
                     hash.clone(),
                     RemoteAuthWaiter {
-                        generation: generation.clone(),
+                        waiter_identity: waiter_identity.clone(),
                         signal_tx,
                         kind: RemoteAuthWaiterKind::MultiStep {
                             step_attempt_id: step_attempt_id.clone(),
@@ -1053,7 +1039,7 @@ impl ClientMfaServer {
                             .await
                     }
                     Ok(Ok(RemoteAuthSignal::Superseded)) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                         let _ = response_tx.send(CoreResponse {
                             id: request_id,
                             payload: Some(Payload::CoreError(
@@ -1063,12 +1049,12 @@ impl ClientMfaServer {
                         return;
                     }
                     Ok(Err(err)) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                         debug!("Multi-step remote MFA response channel closed: {err:?}");
                         return;
                     }
                     Err(_) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                         warn!(
                             "Multi-step remote MFA process with request_id {request_id} timed out"
                         );
@@ -1078,7 +1064,7 @@ impl ClientMfaServer {
                 result => result,
             };
 
-            remove_remote_mfa_waiter(&waiters, &hash, &generation);
+            remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
             let payload = match result {
                 Ok(FinishOutcome::AwaitingExternal) => {
                     Payload::CoreError(Status::internal("mobile approval did not complete").into())
@@ -1098,7 +1084,7 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn await_remote_mfa_login(
+    pub async fn legacy_mfa_remote(
         &self,
         request: AwaitRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
@@ -1125,7 +1111,7 @@ impl ClientMfaServer {
         let hash = hash_token(&request.token);
         let (signal_tx, rx) = oneshot::channel();
         let legacy_preshared_key = Arc::new(Mutex::new(None));
-        let generation = Arc::new(());
+        let waiter_identity = Arc::new(());
         let replaced_waiter = {
             self.remote_mfa_responses
                 .write()
@@ -1133,7 +1119,7 @@ impl ClientMfaServer {
                 .insert(
                     hash.clone(),
                     RemoteAuthWaiter {
-                        generation: generation.clone(),
+                        waiter_identity: waiter_identity.clone(),
                         signal_tx,
                         kind: RemoteAuthWaiterKind::Legacy {
                             preshared_key: legacy_preshared_key.clone(),
@@ -1182,12 +1168,12 @@ impl ClientMfaServer {
                 }
                 Ok(Err(err)) => {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
-                    remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                    remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                     debug!("Remote MFA response channel closed: {err:?}");
                 }
                 Err(_) => {
                     // Drop the waiter so a client that never finishes cannot leak map entries.
-                    remove_remote_mfa_waiter(&waiters, &hash, &generation);
+                    remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                     warn!("Remote MFA process with request_id {request_id} timed out");
                 }
             }
@@ -1197,7 +1183,7 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn finish_client_mfa_login(
+    pub async fn legacy_mfa_finish(
         &self,
         request: ClientMfaFinishRequest,
         info: Option<proxy::DeviceInfo>,
@@ -1286,7 +1272,7 @@ impl ClientMfaServer {
         debug!("Starting multi-step MFA step");
         let method = parse_mfa_method(request.method)?;
         let step_started = self.engine.step_start(request.token, method).await?;
-        let started = flow_step_started(
+        let started = encode_step_started(
             method,
             step_started.step_attempt_id,
             step_started.challenge,
@@ -1691,21 +1677,16 @@ pub enum PostureCheckOutcome {
     Rejected { failed_checks: Vec<String> },
 }
 
-/// Result of a [`ClientMfaServer::start_client_mfa_login`] call.
-/// Adds posture check outcome info.
-pub enum ClientMfaStartOutcome {
-    /// Posture evaluation succeeded or was unnecessary.
-    Approved(ClientMfaStartResponse),
-    /// Posture evaluation failed; the contained list describes which checks failed.
-    Rejected { failed_checks: Vec<String> },
+#[derive(Debug)]
+pub enum MfaStartRejection {
+    PostureFailed { failed_checks: Vec<String> },
+    Status(Status),
 }
 
-/// Result of a [`ClientMfaServer::start_mfa_flow`] call.
-pub enum MfaFlowStartOutcome {
-    /// Posture evaluation succeeded or was unnecessary.
-    PostureApproved(MfaFlowStartResponse),
-    /// Posture evaluation failed; the contained list describes which checks failed.
-    PostureRejected { failed_checks: Vec<String> },
+impl From<Status> for MfaStartRejection {
+    fn from(status: Status) -> Self {
+        Self::Status(status)
+    }
 }
 
 #[cfg(test)]

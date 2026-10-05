@@ -15,8 +15,11 @@ use super::{
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
     filter_unlicensed_mfa_methods,
-    method::{InitiateError, Verdict, VerifyError, verify, verify_mobile_signature},
-    types::{FinishOutcome, LegacyFinishOutcome, LegacyStartOutcome, VerificationProof},
+    method::{
+        CommonVerifyError, InitiateError, LegacyCredential, Verdict, verify_legacy,
+        verify_mobile_signature,
+    },
+    types::{FinishOutcome, LegacyFinishOutcome, LegacyStartOutcome},
 };
 use crate::events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
 
@@ -52,22 +55,6 @@ pub enum FinishError {
     Event(#[from] ClientMfaServerError),
 }
 
-/// Credential submitted to a legacy finish operation.
-#[derive(Debug, Eq, PartialEq)]
-enum LegacyCredential {
-    Code(String),
-    BiometricSignature(String),
-}
-
-impl From<LegacyCredential> for VerificationProof {
-    fn from(credential: LegacyCredential) -> Self {
-        match credential {
-            LegacyCredential::Code(code) => Self::Code(code),
-            LegacyCredential::BiometricSignature(signature) => Self::BiometricSignature(signature),
-        }
-    }
-}
-
 impl MfaEngine {
     /// Begin a single-step login through the frozen legacy contract.
     pub async fn start_legacy(
@@ -88,7 +75,11 @@ impl MfaEngine {
 
         let step = filter_unlicensed_mfa_methods(&step);
         if !step.contains(&selected_method) {
-            return Err(StartError::MethodNotAvailable);
+            error!(
+                "Selected MFA method ({selected_method:?}) is not supported by location \
+                {location}"
+            );
+            return Err(StartError::MethodNotInStep);
         }
 
         // Email initiation sends asynchronously, so require SMTP configuration before starting.
@@ -171,7 +162,6 @@ impl MfaEngine {
             | VpnClientMfaMethod::MobileApprove
             | VpnClientMfaMethod::Fido2 => None,
         };
-        let proof = credential.map(VerificationProof::from);
 
         // Legacy MobileApprove requires a signature; an empty proof is not a polling request.
         if method == VpnClientMfaMethod::MobileApprove && code.is_none() && auth_pub_key.is_none() {
@@ -192,7 +182,7 @@ impl MfaEngine {
             })?;
             verify_mobile_signature(&self.pool, &ctx, &ephemeral, signature, mobile_pub_key).await
         } else {
-            verify(&self.pool, &ctx, &ephemeral, proof.as_ref()).await
+            verify_legacy(&ctx, &ephemeral, credential.as_ref())
         };
 
         let mut mobile_auth_device_name = None;
@@ -239,7 +229,7 @@ impl MfaEngine {
                     .map_err(map_finish_core_error)?;
                 return Err(FinishError::Unauthorized);
             }
-            Err(VerifyError::MalformedProof { message, event }) => {
+            Err(CommonVerifyError::MalformedProof { message, event }) => {
                 if let Some(event_message) = event {
                     self.channels.emit_event(BidiStreamEvent {
                         context,
@@ -255,22 +245,14 @@ impl MfaEngine {
                 }
                 return Err(FinishError::MalformedProof { message });
             }
-            Err(VerifyError::MissingChallenge) => {
+            Err(CommonVerifyError::MissingChallenge) => {
                 if method == VpnClientMfaMethod::Biometric {
                     return Err(FinishError::MissingBiometricChallenge);
                 }
                 return Err(FinishError::MissingChallenge);
             }
-            Err(VerifyError::Db(err)) => {
+            Err(CommonVerifyError::Db(err)) => {
                 error!("Failed to verify MFA proof: {err}");
-                return Err(FinishError::Internal);
-            }
-            Err(VerifyError::MissingRPID) => {
-                error!("Failed to verify FIDO2: missing RP ID");
-                return Err(FinishError::Internal);
-            }
-            Err(VerifyError::UnsupportedMethod) => {
-                error!("MFA method requires a contract-specific verifier");
                 return Err(FinishError::Internal);
             }
         }
@@ -315,18 +297,6 @@ fn map_finish_core_error(error: FinishCoreError) -> FinishError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_legacy_credentials_convert_to_verification_proofs() {
-        assert_eq!(
-            VerificationProof::from(LegacyCredential::Code("code".to_owned())),
-            VerificationProof::Code("code".to_owned())
-        );
-        assert_eq!(
-            VerificationProof::from(LegacyCredential::BiometricSignature("signature".to_owned())),
-            VerificationProof::BiometricSignature("signature".to_owned())
-        );
-    }
 
     #[test]
     fn test_legacy_finish_error_messages_are_frozen() {

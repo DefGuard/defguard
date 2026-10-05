@@ -556,7 +556,7 @@ impl MfaEngine {
             &proof.auth_pub_key,
         )
         .await
-        .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error))?
+        .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?
         {
             Verdict::Proved => {
                 let mobile_auth_device_name =

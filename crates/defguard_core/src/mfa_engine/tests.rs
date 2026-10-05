@@ -937,7 +937,7 @@ async fn test_start_legacy_rejects_unlicensed_oidc(_: PgPoolOptions, options: Pg
         .await
         .expect_err("an unlicensed OIDC method must be rejected");
 
-    assert!(matches!(error, StartError::MethodNotAvailable));
+    assert!(matches!(error, StartError::MethodNotInStep));
     assert_eq!(session_count(&pool, location.id, device.id).await, 0);
 }
 

@@ -661,7 +661,7 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
     user.new_email_secret(pool).await.expect("new_email_secret");
     user.enable_email_mfa(pool).await.expect("enable_email_mfa");
     // generate_email_mfa_code uses the in-memory secret; note that
-    // start_client_mfa_login also calls generate_email_mfa_code internally -
+    // legacy_mfa_start also calls generate_email_mfa_code internally -
     // the two calls will produce the same code because the in-memory secret
     // hasn't changed. But we need the code *after* the start call, so the
     // caller should call this helper before start and pass the code to finish.

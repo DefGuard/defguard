@@ -32,6 +32,29 @@ pub enum Verdict {
     Failed { message: &'static str },
 }
 
+/// Credential submitted to a legacy finish operation.
+#[derive(Debug, Eq, PartialEq)]
+pub(super) enum LegacyCredential {
+    Code(String),
+    BiometricSignature(String),
+}
+
+/// Errors produced by method verifiers shared by the legacy and multi-step contracts.
+#[derive(Debug, Error)]
+pub(super) enum CommonVerifyError {
+    /// A required credential is absent or has the wrong shape. `event` is the audit message to emit.
+    #[error("{message}")]
+    MalformedProof {
+        message: &'static str,
+        event: Option<&'static str>,
+    },
+    /// The session's ephemeral state holds no challenge for a method that requires one.
+    #[error("session holds no challenge for this method")]
+    MissingChallenge,
+    #[error(transparent)]
+    Db(#[from] sqlx::Error),
+}
+
 /// An error surfaced by [`verify`] that is not a proof rejection.
 #[derive(Debug, Error)]
 pub enum VerifyError {
@@ -52,6 +75,18 @@ pub enum VerifyError {
     MissingRPID,
     #[error("MFA method requires a contract-specific verifier")]
     UnsupportedMethod,
+}
+
+impl From<CommonVerifyError> for VerifyError {
+    fn from(error: CommonVerifyError) -> Self {
+        match error {
+            CommonVerifyError::MalformedProof { message, event } => {
+                Self::MalformedProof { message, event }
+            }
+            CommonVerifyError::MissingChallenge => Self::MissingChallenge,
+            CommonVerifyError::Db(error) => Self::Db(error),
+        }
+    }
 }
 
 /// An error surfaced by [`initiate`].
@@ -108,6 +143,75 @@ pub async fn initiate(
     }
 }
 
+fn credential_method_mismatch() -> CommonVerifyError {
+    CommonVerifyError::MalformedProof {
+        message: "MFA credential does not match the selected method",
+        event: None,
+    }
+}
+
+fn verify_totp(ctx: &MfaSessionContext, code: Option<&str>) -> Result<Verdict, CommonVerifyError> {
+    let Some(code) = code else {
+        return Err(CommonVerifyError::MalformedProof {
+            message: "TOTP code not provided",
+            event: Some("TOTP code not provided in request"),
+        });
+    };
+    Ok(if ctx.user.verify_totp_code(code) {
+        Verdict::Proved
+    } else {
+        Verdict::Failed {
+            message: "invalid TOTP code",
+        }
+    })
+}
+
+fn verify_email(ctx: &MfaSessionContext, code: Option<&str>) -> Result<Verdict, CommonVerifyError> {
+    let Some(code) = code else {
+        return Err(CommonVerifyError::MalformedProof {
+            message: "email MFA code not provided",
+            event: Some("email MFA code not provided in request"),
+        });
+    };
+    Ok(if ctx.user.verify_email_mfa_code(code) {
+        Verdict::Proved
+    } else {
+        Verdict::Failed {
+            message: "invalid email MFA code",
+        }
+    })
+}
+
+fn verify_biometric(
+    ephemeral: &EphemeralState,
+    signature: Option<&str>,
+) -> Result<Verdict, CommonVerifyError> {
+    let challenge = ephemeral
+        .biometric_challenge
+        .as_ref()
+        .ok_or(CommonVerifyError::MissingChallenge)?;
+    let Some(signature) = signature else {
+        return Err(CommonVerifyError::MalformedProof {
+            message: "Challenge not found in request",
+            event: None,
+        });
+    };
+    Ok(match challenge.verify(signature) {
+        Ok(()) => Verdict::Proved,
+        Err(_) => Verdict::Failed {
+            message: "Signed challenge rejected",
+        },
+    })
+}
+
+fn verify_oidc(ephemeral: &EphemeralState) -> Verdict {
+    if ephemeral.openid_auth_completed {
+        Verdict::Proved
+    } else {
+        Verdict::NotYet
+    }
+}
+
 /// Verify a proof against the current step's selected method.
 ///
 /// Read-only: never mutates the session. The caller owns every mutation (failure accounting,
@@ -118,145 +222,121 @@ pub(super) async fn verify(
     ephemeral: &EphemeralState,
     proof: Option<&VerificationProof>,
 ) -> Result<Verdict, VerifyError> {
-    // Key this match on the session-selected method so the client cannot choose the verifier.
     match (ephemeral.selected_method, proof) {
         (VpnClientMfaMethod::Totp, Some(VerificationProof::Code(code))) => {
-            if ctx.user.verify_totp_code(code) {
-                Ok(Verdict::Proved)
-            } else {
-                Ok(Verdict::Failed {
-                    message: "invalid TOTP code",
-                })
-            }
+            verify_totp(ctx, Some(code)).map_err(Into::into)
         }
-        (VpnClientMfaMethod::Totp, None) => Err(VerifyError::MalformedProof {
-            message: "TOTP code not provided",
-            event: Some("TOTP code not provided in request"),
-        }),
-        (VpnClientMfaMethod::Totp, Some(_)) => Err(VerifyError::MalformedProof {
-            message: "MFA credential does not match the selected method",
-            event: None,
-        }),
+        (VpnClientMfaMethod::Totp, None) => verify_totp(ctx, None).map_err(Into::into),
+        (VpnClientMfaMethod::Totp, Some(_)) => Err(credential_method_mismatch().into()),
         (VpnClientMfaMethod::Email, Some(VerificationProof::Code(code))) => {
-            if ctx.user.verify_email_mfa_code(code) {
-                Ok(Verdict::Proved)
-            } else {
-                Ok(Verdict::Failed {
-                    message: "invalid email MFA code",
-                })
-            }
+            verify_email(ctx, Some(code)).map_err(Into::into)
         }
-        (VpnClientMfaMethod::Email, None) => Err(VerifyError::MalformedProof {
-            message: "email MFA code not provided",
-            event: Some("email MFA code not provided in request"),
-        }),
-        (VpnClientMfaMethod::Email, Some(_)) => Err(VerifyError::MalformedProof {
-            message: "MFA credential does not match the selected method",
-            event: None,
-        }),
+        (VpnClientMfaMethod::Email, None) => verify_email(ctx, None).map_err(Into::into),
+        (VpnClientMfaMethod::Email, Some(_)) => Err(credential_method_mismatch().into()),
         (VpnClientMfaMethod::Biometric, Some(VerificationProof::BiometricSignature(signature))) => {
-            let challenge = ephemeral
-                .biometric_challenge
-                .as_ref()
-                .ok_or(VerifyError::MissingChallenge)?;
-            match challenge.verify(signature) {
-                Ok(()) => Ok(Verdict::Proved),
-                Err(_) => Ok(Verdict::Failed {
-                    message: "Signed challenge rejected",
-                }),
-            }
+            verify_biometric(ephemeral, Some(signature)).map_err(Into::into)
         }
         (VpnClientMfaMethod::Biometric, None) => {
-            ephemeral
-                .biometric_challenge
-                .as_ref()
-                .ok_or(VerifyError::MissingChallenge)?;
-            Err(VerifyError::MalformedProof {
-                message: "Challenge not found in request",
-                event: None,
-            })
+            verify_biometric(ephemeral, None).map_err(Into::into)
         }
-        (VpnClientMfaMethod::Biometric, Some(_)) => Err(VerifyError::MalformedProof {
-            message: "MFA credential does not match the selected method",
-            event: None,
-        }),
-        (VpnClientMfaMethod::Oidc, None) => {
-            if ephemeral.openid_auth_completed {
-                Ok(Verdict::Proved)
-            } else {
-                Ok(Verdict::NotYet)
-            }
-        }
-        (VpnClientMfaMethod::Oidc, Some(_)) => Err(VerifyError::MalformedProof {
-            message: "MFA credential does not match the selected method",
-            event: None,
-        }),
+        (VpnClientMfaMethod::Biometric, Some(_)) => Err(credential_method_mismatch().into()),
+        (VpnClientMfaMethod::Oidc, None) => Ok(verify_oidc(ephemeral)),
+        (VpnClientMfaMethod::Oidc, Some(_)) => Err(credential_method_mismatch().into()),
         (VpnClientMfaMethod::MobileApprove, _) => Err(VerifyError::UnsupportedMethod),
-        (
-            VpnClientMfaMethod::Fido2,
-            Some(VerificationProof::Fido2 {
-                rp_id_hash,
-                signature,
-                authenticator_data,
-                credential_id,
-            }),
-        ) => {
-            let settings = Settings::get_current_settings();
-            let rp_id = settings
-                .webauthn_rp_id()
-                .map_err(|_| VerifyError::MissingRPID)?;
-            let challenge = ephemeral
-                .biometric_challenge
-                .as_ref()
-                .ok_or(VerifyError::MissingChallenge)?;
-            let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
+        (VpnClientMfaMethod::Fido2, proof) => verify_fido2(pool, ctx, ephemeral, proof).await,
+    }
+}
 
-            let assertion = Assertion {
-                rpid_hash: rp_id_hash.clone(),
-                signature: signature.clone(),
-                auth_data: authenticator_data.clone(),
-                ..Default::default()
-            };
-            for passkey in &passkeys {
-                if passkey.cred_id().as_ref() != credential_id.as_slice() {
-                    continue;
-                }
-                let Some(public_key) = to_ctap_public_key(passkey) else {
-                    continue;
-                };
-                if verify_assertion(
-                    &rp_id,
-                    &public_key,
-                    challenge.challenge.as_bytes(),
-                    &assertion,
-                ) {
-                    return Ok(Verdict::Proved);
-                }
-            }
-
-            Ok(Verdict::Failed {
-                message: "FIDO2 challenge failed",
-            })
+/// Verify a legacy credential using only the method selected in the persisted session.
+pub(super) fn verify_legacy(
+    ctx: &MfaSessionContext,
+    ephemeral: &EphemeralState,
+    proof: Option<&LegacyCredential>,
+) -> Result<Verdict, CommonVerifyError> {
+    match (ephemeral.selected_method, proof) {
+        (VpnClientMfaMethod::Totp, Some(LegacyCredential::Code(code))) => {
+            verify_totp(ctx, Some(code))
         }
-        (VpnClientMfaMethod::Fido2, None) => {
-            let settings = Settings::get_current_settings();
-            settings
-                .webauthn_rp_id()
-                .map_err(|_| VerifyError::MissingRPID)?;
-            ephemeral
-                .biometric_challenge
-                .as_ref()
-                .ok_or(VerifyError::MissingChallenge)?;
-            Err(VerifyError::MalformedProof {
-                message: "Signature",
+        (VpnClientMfaMethod::Totp, None) => verify_totp(ctx, None),
+        (VpnClientMfaMethod::Totp, Some(_)) => Err(credential_method_mismatch()),
+        (VpnClientMfaMethod::Email, Some(LegacyCredential::Code(code))) => {
+            verify_email(ctx, Some(code))
+        }
+        (VpnClientMfaMethod::Email, None) => verify_email(ctx, None),
+        (VpnClientMfaMethod::Email, Some(_)) => Err(credential_method_mismatch()),
+        (VpnClientMfaMethod::Biometric, Some(LegacyCredential::BiometricSignature(signature))) => {
+            verify_biometric(ephemeral, Some(signature))
+        }
+        (VpnClientMfaMethod::Biometric, None) => verify_biometric(ephemeral, None),
+        (VpnClientMfaMethod::Biometric, Some(_)) => Err(credential_method_mismatch()),
+        (VpnClientMfaMethod::Oidc, None) => Ok(verify_oidc(ephemeral)),
+        (VpnClientMfaMethod::Oidc, Some(_)) => Err(credential_method_mismatch()),
+        (VpnClientMfaMethod::MobileApprove | VpnClientMfaMethod::Fido2, _) => {
+            Err(CommonVerifyError::MalformedProof {
+                message: "MFA method requires a contract-specific verifier",
                 event: None,
             })
         }
-        (VpnClientMfaMethod::Fido2, Some(_)) => Err(VerifyError::MalformedProof {
-            message: "MFA credential does not match the selected method",
-            event: None,
-        }),
     }
+}
+
+async fn verify_fido2(
+    pool: &PgPool,
+    ctx: &MfaSessionContext,
+    ephemeral: &EphemeralState,
+    proof: Option<&VerificationProof>,
+) -> Result<Verdict, VerifyError> {
+    let assertion = match proof {
+        Some(VerificationProof::Fido2 {
+            rp_id_hash,
+            signature,
+            authenticator_data,
+            credential_id,
+        }) => Some((rp_id_hash, signature, authenticator_data, credential_id)),
+        Some(_) => return Err(credential_method_mismatch().into()),
+        None => None,
+    };
+    let settings = Settings::get_current_settings();
+    let rp_id = settings
+        .webauthn_rp_id()
+        .map_err(|_| VerifyError::MissingRPID)?;
+    let challenge = ephemeral
+        .biometric_challenge
+        .as_ref()
+        .ok_or(VerifyError::MissingChallenge)?;
+    let Some((rp_id_hash, signature, authenticator_data, credential_id)) = assertion else {
+        return Err(VerifyError::MalformedProof {
+            message: "Signature",
+            event: None,
+        });
+    };
+    let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
+    let assertion = Assertion {
+        rpid_hash: rp_id_hash.clone(),
+        signature: signature.clone(),
+        auth_data: authenticator_data.clone(),
+        ..Default::default()
+    };
+    for passkey in &passkeys {
+        if passkey.cred_id().as_ref() != credential_id.as_slice() {
+            continue;
+        }
+        let Some(public_key) = to_ctap_public_key(passkey) else {
+            continue;
+        };
+        if verify_assertion(
+            &rp_id,
+            &public_key,
+            challenge.challenge.as_bytes(),
+            &assertion,
+        ) {
+            return Ok(Verdict::Proved);
+        }
+    }
+
+    Ok(Verdict::Failed {
+        message: "FIDO2 challenge failed",
+    })
 }
 
 /// Verify a FIDO2 assertion used to authorize MFA configuration.
@@ -323,11 +403,11 @@ pub(super) async fn verify_mobile_signature(
     ephemeral: &EphemeralState,
     signature: &str,
     auth_device_pub_key: &str,
-) -> Result<Verdict, VerifyError> {
+) -> Result<Verdict, CommonVerifyError> {
     let challenge = ephemeral
         .biometric_challenge
         .as_ref()
-        .ok_or(VerifyError::MissingChallenge)?;
+        .ok_or(CommonVerifyError::MissingChallenge)?;
     if !BiometricAuth::verify_owner(pool, ctx.user.id, auth_device_pub_key).await? {
         // A signing device not owned by the user is indistinguishable from a wrong signature.
         return Ok(Verdict::Failed {
