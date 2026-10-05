@@ -2,7 +2,7 @@ FROM public.ecr.aws/docker/library/node:26-alpine AS web
 
 WORKDIR /app
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-RUN npm i -g pnpm@11
+RUN npm i -g pnpm@12
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .
 RUN pnpm build

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   MfaFlowAssignmentModalContent,
   type MfaFlowAssignmentTarget,
-} from '../src/pages/EditLocationPage/components/LocationMfaSection/MfaFlowAssignmentModal';
+} from '../src/pages/EditLocationPage/components/LocationMfaSection/components/MfaFlowAssignmentModal/MfaFlowAssignmentModal';
 import type { MfaFlowListItemResponse } from '../src/shared/api/types';
 import type { SelectionOption } from '../src/shared/components/SelectionSection/type';
 

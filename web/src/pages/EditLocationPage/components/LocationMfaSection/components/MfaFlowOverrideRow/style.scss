@@ -1,0 +1,21 @@
+.mfa-flow-override-row {
+  .drag-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: 0;
+    cursor: grab;
+
+    // Prevent scrolling during touch drag.
+    touch-action: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+}
