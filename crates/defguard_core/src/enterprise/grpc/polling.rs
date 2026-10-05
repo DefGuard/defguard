@@ -23,7 +23,7 @@ impl PollingServer {
 
     /// Checks validity of polling session
     async fn validate_session(&self, token: &str) -> Result<PollingToken<Id>, Status> {
-        debug!("Validating polling token. Token: {token}");
+        debug!("Validating polling token");
 
         // Polling service is enterprise-only, check the lincense
         if !is_business_license_active() {
@@ -37,12 +37,12 @@ impl PollingServer {
             Status::internal("failed to retrieve token")
         })?
         else {
-            error!("Invalid token {token:?}");
+            error!("Invalid polling token");
             return Err(Status::permission_denied("invalid token"));
         };
 
         // Polling tokens are valid indefinitely
-        debug!("Token validation successful {token:?}.");
+        debug!("Polling token validation successful");
 
         Ok(token)
     }
