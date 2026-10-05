@@ -174,7 +174,7 @@ pub struct InstanceInfo {
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
     disable_tunnels: bool,
-    configured_methods: Vec<VpnClientMfaMethod>,
+    pub configured_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, thiserror::Error)]
