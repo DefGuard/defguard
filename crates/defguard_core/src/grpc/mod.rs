@@ -177,6 +177,8 @@ pub struct InstanceInfo {
     openid_display_name: Option<String>,
     openid_provider_kind: Option<OpenIdProviderKind>,
     disable_tunnels: bool,
+    smtp_configured: bool,
+    openid_available: bool,
     pub configured_methods: Vec<VpnClientMfaMethod>,
 }
 
@@ -237,6 +239,8 @@ impl InstanceInfo {
             openid_display_name,
             openid_provider_kind,
             disable_tunnels: enterprise_settings.disable_tunnels,
+            smtp_configured,
+            openid_available: oidc_configured,
             configured_methods,
         })
     }
@@ -261,6 +265,8 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
                 .openid_provider_kind
                 .map(|kind| ProtoOpenIdProviderKind::from(&kind) as i32),
             disable_tunnels: Some(instance.disable_tunnels),
+            smtp_configured: Some(instance.smtp_configured),
+            openid_available: Some(instance.openid_available),
             mfa_user_state: Some(MfaUserState {
                 configured_methods: instance
                     .configured_methods

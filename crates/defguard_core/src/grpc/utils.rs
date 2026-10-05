@@ -1170,4 +1170,24 @@ mod tests {
             .map(|method| method as i32)
         );
     }
+
+    #[sqlx::test]
+    async fn test_instance_info_advertises_smtp_and_openid_availability(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        init_settings(&pool).await;
+        let user = create_user(&pool).await;
+        let settings = Settings::get_current_settings();
+
+        let instance: defguard_proto::client_types::InstanceInfo =
+            InstanceInfo::build(&pool, &settings, &user, None, None)
+                .await
+                .expect("failed to build instance info")
+                .into();
+
+        assert_eq!(instance.smtp_configured, Some(false));
+        assert_eq!(instance.openid_available, Some(false));
+    }
 }
