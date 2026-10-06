@@ -182,7 +182,11 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         cs_aliased_fields.push(match model_type {
             ModelType::Any => format!("\"{name}\""),
             ModelType::Secret => {
-                let nullable = if option_field_type(&field.ty).is_some() { "?" } else { "" };
+                let nullable = if option_field_type(&field.ty).is_some() {
+                    "?"
+                } else {
+                    ""
+                };
                 format!("\"{name}\" \"{name}{nullable}: _\"")
             }
             ModelType::Ip => format!("\"{name}\" \"{name}: IpAddr\""),
