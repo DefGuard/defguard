@@ -18,7 +18,9 @@ export const baseExternalProviderConfigSchema = z.object({
 });
 
 export const editExternalProviderConfigSchema = baseExternalProviderConfigSchema.extend({
-  client_secret: baseExternalProviderConfigSchema.shape.client_secret.nullable().optional(),
+  client_secret: baseExternalProviderConfigSchema.shape.client_secret
+    .nullable()
+    .optional(),
 });
 
 export const baseExternalProviderSyncSchema = z.object({
