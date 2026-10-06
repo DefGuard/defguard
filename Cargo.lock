@@ -1726,6 +1726,7 @@ dependencies = [
  "serde_qs",
  "serde_urlencoded",
  "sha-1",
+ "sha2 0.11.0",
  "sha256",
  "sqlx",
  "ssh-key",

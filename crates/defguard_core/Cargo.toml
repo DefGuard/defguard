@@ -125,6 +125,7 @@ reqwest = { version = "0.12", features = [
     "stream",
 ], default-features = false }
 serde_qs = "1.0"
+sha2.workspace = true
 tower.workspace = true
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 wiremock = "0.6"
