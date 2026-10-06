@@ -71,7 +71,7 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     // --- smtp_user & smtp_password ---
 
     // set smtp_user and smtp_password (include the required trio so validation passes)
-    let patch: SettingsPatch = serde_json::from_str(
+    let patch: serde_json::Value = serde_json::from_str(
         r#"{
             "smtp_server": "smtp.example.com",
             "smtp_port": 587,
@@ -101,7 +101,7 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     );
 
     // clear smtp_user and smtp_password by sending null
-    let patch: SettingsPatch =
+    let patch: serde_json::Value =
         serde_json::from_str(r#"{ "smtp_user": null, "smtp_password": null }"#).unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -209,7 +209,7 @@ async fn test_ldap_settings_validation(_: PgPoolOptions, options: PgConnectOptio
     );
 
     // enabling LDAP with an invalid URL must fail even when all other fields are present
-    let patch: SettingsPatch = serde_json::from_str(&format!(
+    let patch: serde_json::Value = serde_json::from_str(&format!(
         r#"{{ {VALID_LDAP_FIELDS_NO_URL}, "ldap_url": "not-a-url", "ldap_enabled": true }}"#
     ))
     .unwrap();
@@ -221,7 +221,7 @@ async fn test_ldap_settings_validation(_: PgPoolOptions, options: PgConnectOptio
     );
 
     // enabling LDAP with all required fields filled and a valid URL must succeed
-    let patch: SettingsPatch = serde_json::from_str(&format!(
+    let patch: serde_json::Value = serde_json::from_str(&format!(
         r#"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL}, "ldap_enabled": true }}"#
     ))
     .unwrap();
@@ -301,7 +301,7 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     );
 
     // configure LDAP fields (without SMTP)
-    let patch: SettingsPatch = serde_json::from_str(&format!(
+    let patch: serde_json::Value = serde_json::from_str(&format!(
         r"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"
     ))
     .unwrap();
@@ -413,7 +413,7 @@ async fn test_patch_empty_smtp_rejects_enabled_dependents(
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let patch: SettingsPatch = serde_json::from_str(&format!(
+    let patch: serde_json::Value = serde_json::from_str(&format!(
         r#"{{
             "smtp_server": "smtp.example.com",
             "smtp_port": 587,
